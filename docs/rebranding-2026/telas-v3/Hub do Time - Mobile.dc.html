@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#c9d2cb}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+</style>
+</helmet>
+
+<div style="display:flex;justify-content:center;padding:24px;font-family:'Space Grotesk',system-ui,sans-serif">
+  <div style="width:390px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative">
+
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:38px;height:38px;object-fit:contain;flex:0 0 auto;margin-left:5px;background:#fff;border-radius:11px;padding:3px;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+        <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+        <div style="display:flex;align-items:baseline;gap:7px;min-width:0">
+          <span style="font-family:Georgia,serif;font-size:13px;font-weight:700;color:#F2B90C;white-space:nowrap">Gringo</span>
+          <span style="font-size:10px;color:#c3d3ec;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Série D · 2026</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto">
+        <span style="font-size:8px;font-weight:600;letter-spacing:.12em;color:#a9bfe0;white-space:nowrap">EM CAIXA</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#fff;white-space:nowrap">R$ 1,27 mi</span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #dde7db;overflow:auto">
+      <div style="display:flex;align-items:center;gap:5px;flex:0 0 auto">
+        <span style="font-size:9px;font-weight:600;letter-spacing:.1em;color:#8b978d;white-space:nowrap">FORMA</span>
+        <div style="display:flex;gap:3px">
+          <sc-for list="{{ form }}" as="f" hint-placeholder-count="5">
+            <span style="{{ f.style }}">{{ f.r }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <span style="width:1px;height:18px;background:#eef1ee;flex:0 0 auto"></span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;white-space:nowrap;flex:0 0 auto">MORAL 72</span>
+      <span style="width:1px;height:18px;background:#eef1ee;flex:0 0 auto"></span>
+      <span style="font-size:11px;font-weight:600;color:#17458F;background:#e9eff8;border:1px solid #d6e1f1;border-radius:99px;padding:4px 9px;white-space:nowrap;flex:0 0 auto">🟢 Janela · 2 dias</span>
+    </div>
+
+    <div style="display:flex;gap:2px;padding:10px 16px 0;background:#e8f0e7">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <span style="{{ t.style }}" onClick="{{ t.onClick }}">{{ t.label }}</span>
+      </sc-for>
+    </div>
+
+    <div style="padding:12px 16px 96px;display:flex;flex-direction:column;gap:12px">
+
+      <div style="{{ formacaoStyle }}">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap">Tática 3-3-4</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">onze 11/11</span>
+          </div>
+
+          <div style="display:flex;justify-content:center">
+            <div style="width:326px;height:406px;flex:0 0 auto;box-sizing:border-box;position:relative;border-radius:10px;background:repeating-linear-gradient(180deg,#3e9c5a 0 32px,#37904f 32px 64px);box-shadow:inset 0 14px 30px -18px rgba(0,0,0,.55),inset 0 -14px 30px -18px rgba(0,0,0,.45);padding:26px 8px 12px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;overflow:hidden">
+              <div style="position:absolute;left:8px;right:8px;top:8px;bottom:8px;border:2px solid rgba(255,255,255,.4);border-radius:4px;pointer-events:none"></div>
+              <div style="position:absolute;left:8px;right:8px;top:50%;height:2px;background:rgba(255,255,255,.4)"></div>
+              <div style="position:absolute;left:50%;top:calc(50% - 30px);width:60px;height:60px;border:2px solid rgba(255,255,255,.4);border-radius:99px;transform:translateX(-50%)"></div>
+              <div style="position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.6);transform:translate(-50%,-50%)"></div>
+              <div style="position:absolute;left:50%;bottom:8px;width:132px;height:46px;border:2px solid rgba(255,255,255,.4);border-bottom:none;transform:translateX(-50%)"></div>
+              <div style="position:absolute;left:50%;bottom:8px;width:62px;height:20px;border:2px solid rgba(255,255,255,.4);border-bottom:none;transform:translateX(-50%)"></div>
+              <div style="position:absolute;left:50%;top:8px;width:132px;height:46px;border:2px solid rgba(255,255,255,.4);border-top:none;transform:translateX(-50%)"></div>
+              <div style="position:absolute;left:50%;top:8px;width:62px;height:20px;border:2px solid rgba(255,255,255,.4);border-top:none;transform:translateX(-50%)"></div>
+              <img src="uploads/pasted-1786581574687-0.png" alt="" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:130px;height:130px;object-fit:contain;opacity:.1;filter:brightness(0) invert(1);pointer-events:none">
+
+              <sc-for list="{{ lines }}" as="ln" hint-placeholder-count="4">
+                <div style="{{ ln.rowStyle }}">
+                  <sc-for list="{{ ln.players }}" as="p" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer">
+                      <div style="position:relative;width:34px;height:31px;flex:0 0 auto;filter:drop-shadow(0 3px 5px rgba(0,0,0,.4))">
+                        <div style="{{ p.sleeveL }}"></div>
+                        <div style="{{ p.sleeveR }}"></div>
+                        <div style="{{ p.body }}"><span style="{{ p.numStyle }}">{{ p.number }}</span></div>
+                        <div style="{{ p.collar }}"></div>
+                      </div>
+                      <span style="font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap">{{ p.name }}</span>
+                      <div style="display:flex;align-items:center;gap:3px;width:56px">
+                        <div style="flex:1;height:3px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden"><div style="{{ p.energyBar }}"></div></div>
+                        <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7)">{{ p.energy }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:6px;overflow:auto;padding-bottom:2px">
+            <sc-for list="{{ formations }}" as="f" hint-placeholder-count="8">
+              <span style="{{ f.style }}" onClick="{{ f.onClick }}">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600">{{ f.name }}</span>
+                <span style="{{ f.keyStyle }}">{{ f.key }}</span>
+              </span>
+            </sc-for>
+          </div>
+
+          <span style="height:38px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:11px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">🟩 Seleccionar descansados</span>
+        </div>
+
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">SUPLENTES</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">14</span>
+          </div>
+          <div style="display:flex;gap:8px;overflow:auto;padding-bottom:4px">
+            <sc-for list="{{ bench }}" as="b" hint-placeholder-count="6">
+              <div style="flex:0 0 auto;width:82px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;border-radius:12px;background:#f6f8f5;cursor:pointer">
+                <div style="position:relative;width:30px;height:28px;flex:0 0 auto">
+                  <div style="position:absolute;left:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:3px 1px 4px 3px;transform:rotate(-16deg)"></div>
+                  <div style="position:absolute;right:0;top:5px;width:9px;height:11px;background:#F2B90C;border-radius:1px 3px 3px 4px;transform:rotate(16deg)"></div>
+                  <div style="position:absolute;left:7px;top:3px;width:16px;height:25px;background:#17458F;border-radius:3px 3px 5px 5px"></div>
+                  <div style="position:absolute;left:9px;top:8px;width:12px;height:20px;background:#F2B90C;border-radius:2px 2px 4px 4px;box-shadow:inset 0 0 0 1px rgba(23,69,143,.35);display:flex;align-items:center;justify-content:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#17458F">{{ b.number }}</span></div>
+                </div>
+                <span style="max-width:100%;font-size:10px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</span>
+                <div style="width:100%;height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="{{ b.energyBar }}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="{{ elencoStyle }}">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ELENCO</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">26 · 11 titulares</span>
+          </div>
+          <div style="display:grid;grid-template-columns:20px minmax(0,1fr) 26px 44px;gap:0 8px;padding:0 8px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+            <span></span><span>JOGADOR</span><span style="text-align:right">FRC</span><span style="text-align:right">ENER</span>
+          </div>
+          <sc-for list="{{ squad }}" as="p" hint-placeholder-count="10">
+            <div style="{{ p.rowStyle }}">
+              <span style="{{ p.tagStyle }}">{{ p.status }}</span>
+              <span style="{{ p.nameStyle }}">{{ p.name }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">{{ p.force }}</span>
+              <span style="display:flex;align-items:center;gap:4px"><span style="flex:1;height:3px;border-radius:99px;background:#eef1ee;overflow:hidden"><span style="{{ p.energyBar }}"></span></span></span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="{{ jogoStyle }}">
+        <div style="background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;color:#fff">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec">ADVERSÁRIO</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#F2B90C">25/abr · 2026</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:36px;height:36px;object-fit:contain;flex:0 0 auto">
+            <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+              <span style="font-size:18px;font-weight:700;letter-spacing:-.02em;white-space:nowrap">Cianorte</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#c3d3ec;white-space:nowrap">FORA · SÉRIE D · 8ª JORNADA</span>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.09);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px 20px 20px 24px;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#a9bfe0"><span></span><span style="text-align:right">J</span><span style="text-align:right">V</span><span style="text-align:right">D</span><span style="text-align:right">P</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px 20px 20px 24px;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span><span style="text-align:right">7</span><span style="text-align:right">3</span><span style="text-align:right">2</span><span style="text-align:right">11</span></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 20px 20px 20px 24px;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c3d3ec"><span style="font-family:'Space Grotesk',sans-serif;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span><span style="text-align:right">7</span><span style="text-align:right">4</span><span style="text-align:right">1</span><span style="text-align:right">14</span></div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CLASSIFICAÇÃO</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">4º de 64</span>
+          </div>
+          <sc-for list="{{ standings }}" as="r" hint-placeholder-count="4">
+            <div style="{{ r.rowStyle }}">
+              <span style="display:flex;align-items:center;gap:5px"><span style="{{ r.zoneStyle }}"></span><span style="{{ r.posStyle }}">{{ r.pos }}</span></span>
+              <span style="{{ r.nameStyle }}">{{ r.name }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">{{ r.goals }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">{{ r.points }}</span>
+            </div>
+          </sc-for>
+          <span style="height:34px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:11px;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Ver tabela completa…</span>
+        </div>
+      </div>
+
+      <div style="width:100%;height:80px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:9px;font-weight:700;letter-spacing:.16em;box-sizing:border-box">PUBLICIDADE 320×50</div>
+    </div>
+
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:8px 10px 12px;display:flex;align-items:center;gap:6px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+        <span style="{{ n.style }}" onClick="{{ n.onClick }}">
+          <span style="font-size:17px;line-height:1">{{ n.icon }}</span>
+          <span style="{{ n.labelStyle }}">{{ n.label }}</span>
+        </span>
+      </sc-for>
+      <button style="flex:0 0 auto;height:46px;padding:0 16px;border:none;border-radius:14px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite;white-space:nowrap" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'formacao', formation: '3-3-4' };
+
+  energyColor(v) {
+    return v >= 80 ? '#2fbf5f' : v >= 70 ? '#8fc93a' : v >= 55 ? '#F2B90C' : v >= 40 ? '#e8802a' : '#d94141';
+  }
+
+  renderVals() {
+    const P = '#17458F', S = '#F2B90C', MONO = "'IBM Plex Mono',monospace";
+    const tab = this.state.tab;
+
+    const lineups = [
+      [{ n: 11, name: 'C. Miguel', e: 85 }, { n: 9, name: 'Dudu V.', e: 80 }, { n: 17, name: 'F. Matos', e: 74 }, { n: 7, name: 'V. Almeida', e: 77 }],
+      [{ n: 10, name: 'B. Nunes', e: 76 }, { n: 8, name: 'T. Oliveira', e: 83 }, { n: 6, name: 'Serginho', e: 78 }],
+      [{ n: 4, name: 'R. Lima', e: 79 }, { n: 3, name: 'J. Reis', e: 84 }, { n: 2, name: 'João V.', e: 81 }],
+      [{ n: 1, name: 'V. Gomes', e: 82, gk: true }]
+    ];
+    const shifts = [26, 60, 34, 0];
+
+    const jersey = (p) => {
+      const body = p.gk ? S : P, trim = p.gk ? P : S, ink = p.gk ? P : S;
+      return {
+        number: p.n, name: p.name, energy: p.e,
+        sleeveL: 'position:absolute;left:0;top:6px;width:10px;height:13px;background:' + trim + ';border-radius:4px 2px 5px 4px;transform:rotate(-16deg)',
+        sleeveR: 'position:absolute;right:0;top:6px;width:10px;height:13px;background:' + trim + ';border-radius:2px 4px 4px 5px;transform:rotate(16deg)',
+        body: 'position:absolute;left:8px;top:3px;width:18px;height:28px;background:' + body + ';border-radius:3px 3px 5px 5px;display:flex;align-items:center;justify-content:center',
+        numStyle: 'font-family:' + MONO + ';font-size:11px;font-weight:600;color:' + ink + ';margin-top:3px',
+        collar: 'position:absolute;left:50%;top:2px;transform:translateX(-50%);width:11px;height:5px;background:' + trim + ';border-radius:0 0 6px 6px',
+        energyBar: 'width:' + p.e + '%;height:100%;border-radius:99px;background:' + this.energyColor(p.e)
+      };
+    };
+
+    const squad = [
+      ['T', 'Ronaldo Lima', 12, 79], ['T', 'Thales Oliveira', 11, 83], ['T', 'Breno Nunes', 10, 76],
+      ['T', 'Vitor Almeida', 11, 77], ['T', 'Carlos Miguel', 11, 85], ['T', 'Serginho', 10, 78],
+      ['T', 'Ronaldo Júnior', 12, 71], ['R', 'Jonathan Reis', 12, 84], ['R', 'João Victor', 9, 81],
+      ['R', 'Kuhn Gustavo', 7, 68], ['R', 'Renna', 9, 72], ['R', 'Richard', 9, 73]
+    ];
+
+    const standings = [
+      ['3', 'Cianorte', '11:6', 14, '#2fbf5f', false],
+      ['4', 'XV Piracicaba', '9:7', 11, S, true],
+      ['5', 'Aimoré', '8:8', 11, '#c9d2ca', false],
+      ['6', 'Azuriz', '7:8', 9, '#c9d2ca', false]
+    ];
+
+    const tabs = [['formacao', 'Formação'], ['elenco', 'Elenco'], ['jogo', 'Jogo']];
+    const nav = [['🏠', 'Início', 'inicio'], ['🥅', 'Formação', 'formacao'], ['🛒', 'Mercado', 'mercado'], ['🏆', 'Copas', 'copas']];
+    const formations = [['3-3-4', 'F1'], ['3-4-3', 'F2'], ['4-2-4', 'F3'], ['4-3-3', 'F4'], ['4-4-2', 'F5'], ['4-5-1', 'F6'], ['Auto', 'A']];
+
+    return {
+      form: ['V', 'V', 'E', 'D', 'V'].map(r => ({
+        r,
+        style: 'width:16px;height:16px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:' + MONO + ';font-size:9px;font-weight:700;color:' +
+          (r === 'D' ? '#fff' : r === 'E' ? '#4a3c00' : '#0d3d22') + ';background:' + (r === 'V' ? '#2fbf5f' : r === 'E' ? S : '#d94141')
+      })),
+
+      tabs: tabs.map(([k, label]) => ({
+        label,
+        style: 'flex:1;text-align:center;font-size:12px;font-weight:' + (tab === k ? 700 : 500) +
+          ';color:' + (tab === k ? '#fff' : '#3a473f') + ';background:' + (tab === k ? P : '#fff') +
+          ';border:1px solid ' + (tab === k ? P : '#dde7db') + ';border-bottom:none;border-radius:12px 12px 0 0;padding:9px 0;white-space:nowrap;cursor:pointer',
+        onClick: () => this.setState({ tab: k })
+      })),
+
+      formacaoStyle: tab === 'formacao' ? 'display:block' : 'display:none',
+      elencoStyle: tab === 'elenco' ? 'display:block' : 'display:none',
+      jogoStyle: tab === 'jogo' ? 'display:block' : 'display:none',
+
+      lines: lineups.map((l, i) => ({
+        rowStyle: 'position:relative;display:flex;justify-content:space-around;align-items:flex-start' + (shifts[i] ? ';transform:translateY(' + shifts[i] + 'px)' : ''),
+        players: l.map(jersey)
+      })),
+
+      formations: formations.map(([name, key]) => {
+        const on = name === this.state.formation;
+        return {
+          name, key,
+          style: 'flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid ' + (on ? P : '#d8e2d6') +
+            ';background:' + (on ? P : '#fff') + ';color:' + (on ? '#fff' : '#3a473f') +
+            ';border-radius:10px;padding:6px 10px;white-space:nowrap;cursor:pointer',
+          keyStyle: 'font-family:' + MONO + ';font-size:8px;font-weight:500;color:' + (on ? S : '#9aa79e'),
+          onClick: () => this.setState({ formation: name })
+        };
+      }),
+
+      bench: [
+        [12, 'R. Lima', 79], [13, 'K. Gustavo', 68], [14, 'Renna', 72], [15, 'Richard', 73],
+        [18, 'D. Ribeiro', 75], [19, 'E. Bessa', 70], [24, 'Kauã S.', 64], [26, 'Igor Melo', 44]
+      ].map(([number, name, e]) => ({
+        number, name,
+        energyBar: 'width:' + e + '%;height:100%;border-radius:99px;background:' + this.energyColor(e)
+      })),
+
+      squad: squad.map(([status, name, force, energy], i) => ({
+        status, name, force,
+        rowStyle: 'display:grid;grid-template-columns:20px minmax(0,1fr) 26px 44px;gap:0 8px;align-items:center;padding:7px 8px;border-radius:9px;background:' + (i % 2 ? '#fafbfa' : '#fff'),
+        tagStyle: 'width:16px;height:16px;border-radius:5px;background:' + (status === 'T' ? P : '#eceff0') + ';color:' + (status === 'T' ? S : '#8b978d') +
+          ';font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center',
+        nameStyle: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:' + (status === 'T' ? 600 : 500) + ';color:' + (status === 'T' ? '#12201a' : '#3a473f'),
+        energyBar: 'display:block;width:' + energy + '%;height:100%;border-radius:99px;background:' + this.energyColor(energy)
+      })),
+
+      standings: standings.map(([pos, name, goals, points, zone, mine]) => ({
+        pos, name, goals, points,
+        rowStyle: 'display:grid;grid-template-columns:34px minmax(0,1fr) 40px 26px;gap:0 6px;align-items:center;padding:7px 8px;border-radius:9px;background:' + (mine ? '#eef3fa' : 'transparent'),
+        zoneStyle: 'width:3px;height:13px;border-radius:99px;background:' + zone,
+        posStyle: 'font-family:' + MONO + ';font-size:11px;font-weight:600;color:' + (mine ? P : '#8b978d'),
+        nameStyle: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:' + (mine ? 700 : 500) + ';color:' + (mine ? '#12201a' : '#3a473f')
+      })),
+
+      nav: nav.map(([icon, label, k]) => {
+        const on = k === 'formacao';
+        return {
+          icon, label,
+          style: 'flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;cursor:pointer;background:' + (on ? '#eef3fa' : 'transparent'),
+          labelStyle: 'font-size:9px;font-weight:' + (on ? 700 : 500) + ';color:' + (on ? P : '#78877c') + ';white-space:nowrap',
+          onClick: () => this.setState({ tab: k === 'formacao' ? 'formacao' : 'jogo' })
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

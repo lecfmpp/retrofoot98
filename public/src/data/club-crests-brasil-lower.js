@@ -51,9 +51,14 @@ window.CLUB_CREST_BRASIL_LOWER = {
   "br_D_capital": "https://tmssl.akamaized.net/images/wappen/big/82329.png",
   "br_D_cianorte": "https://tmssl.akamaized.net/images/wappen/big/16837.png",
   "br_D_crac": "https://tmssl.akamaized.net/images/wappen/big/12602.png",
-  "br_D_csa": "https://tmssl.akamaized.net/images/wappen/big/61687.png",
+  /* CORRIGIDO (16/ago): estava 61687, que nao e o CSA. Procurado no
+     Transfermarkt: Centro Sportivo Alagoano = 18545. */
+  "br_D_csa": "https://tmssl.akamaized.net/images/wappen/big/18545.png",
   "br_D_ferroviario": "https://tmssl.akamaized.net/images/wappen/big/11931.png",
-  "br_D_gama": "https://tmssl.akamaized.net/images/wappen/big/978.png",
+  /* CORRIGIDO (16/ago). Estava 978, que e o VASCO DA GAMA: o gerador casa por
+     nome e "Gama" bateu com "Vasco da GAMA". Procurado no Transfermarkt e
+     confirmado: SE Gama = 7014, imagem existente (180x180). */
+  "br_D_gama": "https://tmssl.akamaized.net/images/wappen/big/7014.png",
   "br_D_luverdense": "https://tmssl.akamaized.net/images/wappen/big/21599.png",
   "br_D_marciliodias": "https://tmssl.akamaized.net/images/wappen/big/4759.png",
   "br_D_nacional": "https://tmssl.akamaized.net/images/wappen/big/22782.png",

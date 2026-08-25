@@ -1362,6 +1362,7 @@ function slotHTML(e, editar){
       <div><span>Padrão</span><b>${h(e.iab||'—')}</b></div>
       <div><span>Desktop</span><b>${e.w}×${e.h}</b></div>
       <div><span>Celular</span><b>${e.mw}×${e.mh}</b></div>
+      ${e.dur_max_s!=null?`<div><span>Vídeo</span><b>até ${e.dur_max_s}s${e.sem_audio===false?'':' · sem som'}</b></div>`:''}
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
@@ -1422,7 +1423,7 @@ function modalPatrocinador(){
 
 /* ---------- upload de criativo ---------- */
 const MIME_EXT = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp',
-                   mp4:'video/mp4', gif:'image/gif' };
+                   mp4:'video/mp4', webm:'video/webm', gif:'image/gif' };
 function modalUpload(chave){
   const e = (D.pub.espacos||[]).find(x=>x.chave===chave);
   if(!e) return;
@@ -1430,6 +1431,8 @@ function modalUpload(chave){
   const accept = exts.map(x=>'.'+x).join(',');
   const patros = D.pub.patrocinadores||[];
   const razao = (e.w/e.h).toFixed(2);
+  /* vídeo: o espaço só o aceita se tiver duração máxima definida E um formato de vídeo na lista */
+  const aceitaVideo = e.dur_max_s != null && exts.some(x=>x==='mp4'||x==='webm');
   let arquivo = null;
 
   abrirModal(`
@@ -1443,6 +1446,9 @@ function modalUpload(chave){
       <div><span style="color:var(--dim2)">Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span style="color:var(--dim2)">Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span style="color:var(--dim2)">Proporção</span><b>${razao}:1</b></div>
+      ${aceitaVideo ? `<div><span style="color:var(--dim2)">Duração máx.</span><b>${e.dur_max_s}s</b></div>
+      <div><span style="color:var(--dim2)">Áudio</span><b>${e.sem_audio===false?'permitido':'sem som'}</b></div>` : ''}
+      ${e.nota ? `<div class="full" style="color:var(--dim2);line-height:1.5">${h(e.nota)}</div>` : ''}
     </div>
     <div class="col">
       <div class="drop" id="up-drop">
@@ -1495,10 +1501,13 @@ function modalUpload(chave){
   function medir(f, ext){
     return new Promise((res, rej) => {
       const url = URL.createObjectURL(f);
-      if(ext==='mp4'){
+      if(ext==='mp4'||ext==='webm'){
         const v = document.createElement('video');
+        /* o limite é o DO ESPAÇO (ad_spaces.dur_max_s) — era 15 s fixo para todos, e a pausa
+           patrocinada precisa de 8 s. Meio segundo de folga para o arredondamento do encoder. */
+        const limite = (e.dur_max_s != null ? e.dur_max_s : 15) + 0.5;
         v.onloadedmetadata = () => { URL.revokeObjectURL(url);
-          if(v.duration > 15.5) return rej(new Error('vídeo maior que 15 s'));
+          if(v.duration > limite) return rej(new Error('vídeo maior que '+(e.dur_max_s!=null?e.dur_max_s:15)+' s'));
           res({w:v.videoWidth, h:v.videoHeight}); };
         v.onerror = () => { URL.revokeObjectURL(url); rej(new Error('vídeo inválido')); };
         v.src = url;
@@ -2049,7 +2058,11 @@ function carregarCatalogo(){
   const arquivos = ['/src/data/game-data.js', '/src/data/leagues-brasil-lower.js',
                     '/src/data/leagues-intl.js', '/src/data/leagues-conmebol.js',
                     '/src/data/universos.js', '/src/data/competicoes.js',
-                    '/src/engine/world-rules.js'];
+                    '/src/engine/world-rules.js', '/src/engine/calendars.js',
+                    '/src/engine/world-config.js'];
+  /* NÃO acrescente uma folha aqui antes de o site estar PUBLICADO com ela: os arquivos vêm de
+     JOGO_URL (produção, não do localhost) e um único 404 rejeita o Promise.all abaixo, deixando
+     a página do Editor inteira sem catálogo. As quatro acima já estão no ar. */
   return Promise.all(arquivos.map(f => new Promise((ok, erro) => {
     const t = document.createElement('script');
     t.src = JOGO_URL + f; t.onload = ok;
@@ -3041,12 +3054,14 @@ function abaCompeticoes(pack, editar){
         calendário oficial fica intacto.
       </div></div>`}
 
+    ${gradeDeSlotsHTML()}
+
     <div class="card card-p" style="border-color:#5a4a18;background:#1c1710;margin-bottom:16px">
-      <div class="tt" style="margin-bottom:6px;color:var(--ambar)">Até onde a edição chega hoje</div>
+      <div class="tt" style="margin-bottom:6px;color:var(--ambar)">Datas e slots</div>
       <div class="st" style="line-height:1.7">
-        Datas e formato ficam guardados e validados no patch. O motor ainda lê o calendário do
-        próprio arquivo — passar a ler o do patch mexe no motor e na edge function que resolve as
-        rodadas (as duas compartilham o arquivo byte a byte), e é a etapa seguinte.
+        A grade acima é o que o jogo joga: cada competição ocupa um <b>slot</b> (a semana) numa
+        <b>janela</b> (meio de semana ou fim de semana), e a data é só o rótulo. A lista de datas
+        abaixo é a mesma coisa, vista pelo calendário.
       </div>
     </div>
 
@@ -3083,6 +3098,11 @@ function abaCompeticoes(pack, editar){
     </div>
 
     ${calendarioHTML(comps)}`;
+
+  /* O SELETOR DE PAÍS DA GRADE fica FORA do `if(!editar)` de propósito: a grade é leitura, e
+     quem só tem permissão de ver precisa poder olhar o calendário de cada país. */
+  const selPais = el('cal-pais');
+  if(selPais) selPais.onchange = () => { ST.calPais = selPais.value; pgEditor(); };
 
   if(!editar) return;
   const cpImp = el('cp-importar-oficial');
@@ -3191,6 +3211,98 @@ function calendarioHTML(comps){
     </div>
     <div class="cal-ano">${meses.join('')}</div>
   </div>`;
+}
+
+/* ===================== A GRADE DE SLOTS =====================
+   O que o jogo joga, exatamente como o motor o lê: engine/calendars.js. Cada linha é uma janela
+   (MIDWEEK_1 = terça/quarta, MIDWEEK_2 = quinta, WEEKEND = fim de semana) e cada coluna é um slot
+   — a semana da temporada. É a mesma folha que o servidor recebe injetada, então o que se vê aqui
+   é o que acontece na sala.
+
+   E o VALIDADOR é o do motor (CALENDARIOS_API.validarCalendario), não uma cópia: uma segunda
+   versão da mesma regra é a causa histórica de toda esta família de bug — está escrito no
+   cabeçalho do world-rules.js. Se o painel aprovasse uma folha que o jogo recusa, teríamos
+   inventado exatamente esse problema outra vez.
+
+   As cores das competições saem de corComp(), as mesmas do gráfico do ano logo abaixo. */
+function calAPI(){ return (typeof window!=='undefined' && window.CALENDARIOS_API) || null; }
+
+function gradeDeSlotsHTML(){
+  const API = calAPI();
+  if(!API) return `<div class="card card-p" style="margin-bottom:16px"><div class="st">
+    A folha de calendário do jogo ainda não carregou.</div></div>`;
+
+  const paises = API.paisesComCalendario();
+  const pais = ST.calPais && paises.includes(ST.calPais) ? ST.calPais : paises[0];
+  const cal = API.calendarioDe(pais);
+  const uni = (window.UNIVERSOS||{})[pais];
+
+  /* os totais REAIS de rodada não estão no painel (dependem do save: nº de grupos, tique de
+     sorteio). Usa-se o nº de slots declarados, que é o que a folha promete — a regra dos "poucos
+     slots" fica então por conta do motor, que conhece o total de verdade e avisa nos relatórios. */
+  const problemas = API.validarCalendario(pais, { divisoes: uni && uni.size });
+  const erros  = problemas.filter(x=>x.nivel==='erro');
+  const avisos = problemas.filter(x=>x.nivel==='aviso');
+
+  const comps = Object.keys(cal.competicoes);
+  const onde = {};                                   // slot:janela -> competição
+  comps.forEach(k => cal.competicoes[k].slots.forEach((sl,i) => { onde[sl+':'+cal.competicoes[k].janela] = { k, i }; }));
+
+  const rotulo = { MIDWEEK_1:'Meio de semana I', MIDWEEK_2:'Meio de semana II', WEEKEND:'Fim de semana' };
+  const linhas = API.JANELAS.map(j => {
+    const celulas = [];
+    for(let sl=1; sl<=cal.slotsTotal; sl++){
+      const c = onde[sl+':'+j];
+      celulas.push(c
+        ? `<i class="sl sl-on" style="background:${corComp(c.k)}" title="${h(nomeComp(c.k))} — rodada ${c.i+1}, semana ${sl}"></i>`
+        : `<i class="sl" title="semana ${sl}"></i>`);
+    }
+    return `<div class="sl-linha"><span class="sl-rot">${rotulo[j]||j}</span><div class="sl-cels">${celulas.join('')}</div></div>`;
+  }).join('');
+
+  const ultimoDeLiga = (cal.competicoes.liga && cal.competicoes.liga.slots.slice(-1)[0]) || 0;
+  const finais = comps.filter(k=>k!=='liga').map(k=>{
+    const sl = cal.competicoes[k].slots.slice(-1)[0];
+    return `<span class="sl-final"><i style="background:${corComp(k)}"></i>${h(nomeComp(k))} decide na semana ${sl}</span>`;
+  }).join('');
+
+  return `<div class="card card-p" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <div class="tt">A grade da temporada</div>
+        <div class="st">${cal.slotsTotal} semanas. Cada quadradinho é um dia de jogo — a semana e o momento dela.</div>
+      </div>
+      <label class="f" style="margin:0">País
+        <select class="f" id="cal-pais">
+          ${paises.map(p=>`<option value="${h(p)}" ${p===pais?'selected':''}>${h(nomePais(p))}</option>`).join('')}
+        </select></label>
+    </div>
+
+    ${erros.length ? `<div class="erro" style="margin-bottom:12px">
+      <b>${erros.length} problema(s) que o jogo recusa:</b><br>
+      ${erros.map(x=>`${h(x.comp||'')} — ${h(x.texto)}`).join('<br>')}
+    </div>` : `<div class="ok" style="margin-bottom:12px">
+      Folha válida: nenhuma competição divide o dia com outra, e nenhuma perde rodada.
+    </div>`}
+    ${avisos.length ? `<div class="aviso" style="margin-bottom:12px">
+      ${avisos.map(x=>`${h(x.comp||'')} — ${h(x.texto)}`).join('<br>')}
+    </div>` : ''}
+
+    <div class="sl-grade">${linhas}</div>
+    <div class="sl-rodape">
+      <span class="sl-final"><i style="background:#5b6b7a"></i>Liga até a semana ${ultimoDeLiga}</span>
+      ${finais}
+    </div>
+  </div>`;
+}
+function nomeComp(k){
+  const d = (window.COMPETICOES||{})[k];
+  return d ? d.short : (k==='liga' ? 'Liga nacional' : k);
+}
+function nomePais(k){
+  if(k==='brasil') return 'Brasil';
+  const u=(window.UNIVERSOS||{})[k];
+  return (u && u.country) || k;
 }
 
 /* DUAS COMPETIÇÕES NO MESMO DIA é o bug que world-rules.js descreve como o pior do

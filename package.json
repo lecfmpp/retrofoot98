@@ -4,10 +4,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/sync-world-rules.mjs && vite build && node scripts/build-seo.mjs",
+    "build": "node scripts/sync-world-rules.mjs && npm run teste --silent && vite build && node scripts/build-seo.mjs",
+    "deploy": "npm run build && firebase deploy --only hosting --project elifoot-d368d",
+    "teste": "node scripts/teste-calendario.mjs && node scripts/teste-universos.mjs && node scripts/teste-virada.mjs",
+    "teste:calendario": "node scripts/teste-calendario.mjs",
+    "teste:universos": "node scripts/teste-universos.mjs",
+    "teste:virada": "node scripts/teste-virada.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "esbuild": "^0.27.0",
     "puppeteer-core": "^25.3.0",
     "vite": "^8.1.4"
   }

@@ -7,7 +7,9 @@ Fluxo de trabalho: um item por vez → implementar → commitar → publicar →
 
 ---
 
-## 1. [ ] Tela de finalização de temporada não apareceu para todos os humanos
+## 1. [x] Tela de finalização de temporada não apareceu para todos os humanos
+
+**Feito em 2026-08-21 (aguardando teste):** (1) quem entra/reconecta com a virada já feita agora processa a virada na entrada — premiação em dinheiro + registro de títulos + a tela de fim de temporada — gateado pelo carimbo por assento `_titlesRegisteredSeason` (game_seats.career), idempotente; (2) o sorteio da copa nova passou a ESPERAR: com overlay, momento ou modal aberto ele não abre por cima do resumo; (3) fonte única no servidor — o extrato/carimbo de premiação (`_myFin`) saiu do localStorage e viaja no assento (CAREER_KEYS), com migração automática do que estava gravado localmente. Nenhum fato de jogo vive mais só no cliente.
 
 Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver o resumo da temporada que fechou.
 
@@ -20,7 +22,9 @@ Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver 
 
 ---
 
-## 2. [ ] Grupo H da Sul-Americana com só 3 clubes
+## 2. [x] Grupo H da Sul-Americana com só 3 clubes
+
+**Feito em 2026-08-21 (aguardando teste):** o total de cada copa agora fecha em múltiplo de 4 antes do sorteio — completa com o próximo da tabela (o 13º, no caso da WEBLG) e, em último caso, apara os últimos reciclados. No solo, também: cada clube em uma copa só (dedupe entre Libertadores e Sul-Americana) e fechamento pelas reservas dos países. Blocos 8 e 9 do `teste-virada.mjs` cobrem, incluindo o cenário exato da WEBLG (31 → 32). **Obs.: vale a partir da PRÓXIMA virada — o grupo H de 3 da edição em andamento fica como está.**
 
 **Causa:** a edição real de 2026 tem **7 brasileiros** na Sul-Americana, mas a cota do servidor é fixa em 6 ([resolve-round/index.ts:1269](supabase/functions/resolve-round/index.ts): `SUL_SLOTS_BR = 6`). Na virada, o servidor recicla os estrangeiros da edição anterior (25) + 6 brasileiros novos = **31 clubes**, e `splitIntoGroupsT` fatia de 4 em 4 sem exigir múltiplo → 7 grupos de 4 + grupo H com 3. **É permanente**: 31 vira 31 de novo todo ano.
 
@@ -28,7 +32,12 @@ Um jogador foi direto para o sorteio da Libertadores da temporada nova, sem ver 
 
 ---
 
-## 3. [ ] Campeão da Sul-Americana não vai para a Libertadores seguinte
+## 3. [~] Vagas continentais por copa (regras do dono, 20/08)
+
+**Regra definida e implementada (aguardando teste):** no Brasil, o **campeão da Copa do Brasil** (só ele — o vice NÃO leva vaga, ajuste de 21/08) e o **campeão da Libertadores** garantem vaga na Libertadores seguinte. Eles entram na frente das 6 vagas; a tabela completa o resto e a Sul-Americana fica com os melhores que sobraram — ninguém ocupa vaga nas duas. Campeão estrangeiro da Libertadores mantém a vaga sem consumir vaga brasileira. Implementado no `rebuildContinentalCups` (servidor) e em `computeQualification`/`unifiedContinentalQualification` (solo), coberto pelo bloco 8 do `teste-virada.mjs`.
+**Campeão da Sul-Americana (21/08, aguardando teste):** sobe para a Libertadores seguinte — brasileiro entra na prioridade das vagas; estrangeiro troca de copa na reciclagem (e o fecho em múltiplo de 4 repõe a vaga que abriu na Sula). Implementado nos dois lados, coberto no bloco 8 do teste. Obs.: as zonas coloridas da tabela ("Lib"/"Sul" por posição) seguem aproximadas — não descontam as vagas tomadas pelos finalistas das copas.
+
+### (histórico) Campeão da Sul-Americana não vai para a Libertadores seguinte
 
 **Causa: a regra não existe.** Todas as fontes de vaga (cliente e servidor) usam só posição na liga: 1º-6º → Libertadores, 7º-12º → Sul-Americana. Nenhuma consulta campeão de copa. Um clube pode ser campeão da Sula e ficar fora das duas copas se terminou 13º.
 
@@ -37,7 +46,15 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 4. [ ] Jogo está repetindo os clubes das copas?
+## 4. [x] Jogo está repetindo os clubes das copas? → Ligas de fundo em TODOS os países
+
+**Feito em 2026-08-21 (aguardando teste; aprovado pelo dono: camadas 1+2).** Todo país com bundle roda de fundo, nos dois modos:
+- **Tabela real por país** (quick-sim por overall, rodada a rodada) com promoção/rebaixamento pela regra do país; visível na aba Ligas internacionais (14 ligas, líderes) e na Classificação.
+- **Artilharia estatística nos jogadores reais** (gols distribuídos pela campanha do clube, determinístico pela seed) — artilheiro por país na aba, e no fecho vai pro arquivo.
+- **Vagas continentais pela campanha real**: `rebuildContinentalCups`/`unifiedContinentalPool` usam a classificação de cada país com a cota real CONMEBOL — fim da reciclagem congelada. Classificado que o servidor nunca viu é materializado do elenco compacto do pacote.
+- **Mercado sente a performance**: gols da temporada na lista (⚽N) e no preço (até +50% pro artilheiro), aplicado também no valor na materialização.
+- **Arquivo por país**: campeão + artilheiro + tabela final de cada país por temporada (`arq.paises`), visível no filtro de temporada da aba Ligas internacionais.
+- **Resenha**: o servidor roda tudo (porte completo); sala antiga recebe o pacote via seed único de um cliente (`last_result.bgSeed`). Estado +~250KB (calendários regenerados na hora, não gravados). Bloco 10 do `teste-virada.mjs` cobre.
 
 **Resposta: parte sim, parte não.**
 - **Brasileiros: dinâmico e correto.** Usa a tabela final real da temporada que fechou (`_prevTables` no servidor, `S._topFinalStandings` no solo). O bug antigo da lista congelada por overall já foi corrigido.
@@ -47,7 +64,9 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 5. [ ] Histórico de campeões e artilheiros de TODAS as competições, TODOS os anos
+## 5. [x] Histórico de campeões e artilheiros de TODAS as competições, TODOS os anos
+
+**Feito em 2026-08-21 (aguardando teste):** o servidor agora carimba cada gol na competição em que caiu (`S.scorersByComp` no resolve-round — liga por divisão + cada copa), manda o livro na foto da virada (`_prevSeason.scorersByComp`) e grava o artilheiro por competição no arquivo permanente (`archive.artPorComp`). No cliente, o caminho da Resenha (`registerPrevSeasonTitles`) passou a gravar `divChamps` (campeão de cada divisão) e `artPorComp` no `S.history` — a mesma foto que o solo já tinha. Coberto pelos asserts novos no bloco 7 do `teste-virada.mjs`.
 
 **Causa:** `S.history` guarda por temporada só o campeão **da divisão do jogador** e **1 artilheiro** (o da divisão do jogador). Campeões das outras divisões e das copas viram strings soltas; artilheiro por competição não existe no servidor (`S.scorersByComp` só existe no worktree do rebranding, e nem lá o caminho Resenha grava `divChamps`/`artPorComp`).
 
@@ -58,7 +77,9 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 6. [ ] Classificações finais de todas as competições — nunca se apagam, vão pro servidor
+## 6. [x] Classificações finais de todas as competições — nunca se apagam, vão pro servidor
+
+**Feito em 2026-08-21 (aguardando teste):** nasceu o `S.archive` — append-only, uma entrada por temporada, com as tabelas finais das 4 divisões, artilharia (top 25) e cada copa compacta (campeão, grupos, mata-mata, sem narração). Escrito pelo servidor na virada (`archiveSeasonT` no resolve-round) e pelo cliente no solo (`archiveSeason` no core.js). O resgate (`backfillArchiveT` / `archiveBackfill`) recupera a temporada fechada da WEBLG do `_prevSeason` no próximo resolve — só os grupos das continentais dessa 1ª temporada não são recuperáveis. UI: filtro de temporada em Campeonatos ganhou os cartões de classificação final (ligas, grupos e mata-mata das copas) e a artilharia arquivada. Coberto pelo bloco 7 do `teste-virada.mjs` (portão do deploy).
 
 **Causa:** a tabela completa da temporada vai para `S._prevSeason`, que é um **buffer de uma temporada só, sobrescrito na virada seguinte**. Da temporada N, em N+2 só sobra top3 + rebaixados da divisão do jogador. Não há tabela Supabase de histórico — tudo vive em `games.shared_state` (jsonb).
 
@@ -68,7 +89,9 @@ Pergunta da memória de copas: antes de mexer, conferir colisão de jornada entr
 
 ---
 
-## 7. [ ] Filtro de temporada no Perfil está nas abas erradas (worktree rebranding)
+## 7. [x] Filtro de temporada no Perfil está nas abas erradas
+
+**Feito em 2026-08-21 (aguardando teste):** a barra de temporadas não aparece mais em Perfil e Ofertas (e o ano escolhido nem se aplica lá — sempre mostram o agora). O Ranking ganhou arquivo de verdade: a cada fecho de temporada uma foto do ranking (top 30 + humanos, `coachRankingSnapshot`) entra no `S.history` do assento, e escolher um ano passado mostra "RANKING NO FIM DE <ano>". Temporadas de antes da foto existir caem no aviso padrão.
 
 Regra definida pelo usuário:
 - **Sem filtro de tempo:** Perfil (estático, editável pelo usuário) e Ofertas (do momento).
@@ -88,6 +111,66 @@ Feito em `rfSidebarHTML` (rf26.js) + limpeza do CSS morto (`rf-sb-next-hd/opp/li
 ## 9. [x] Bloco Formações: pílulas à esquerda, próximo jogo à direita
 
 Pedido de 2026-08-20: inverter as duas colunas do bloco Formações — pílulas de formação (com o "Seleccionar descansados") na coluna esquerda, cartão do adversário/próximo jogo na direita. Feito trocando a ordem em `rfHubHTML` e invertendo a proporção do grid `.rf-form-duas` (o adversário mantém a coluna um pouco maior). Aguardando teste do usuário.
+
+---
+
+## 10. [x] Sala de Troféus: TODOS os troféus, de todos os países e clubes, na mesma página
+
+Regra do dono (21/08): a estante nunca esquece — todas as divisões, países e ligas que o treinador já venceu, nos dois modos, nada se perde na virada.
+**Feito (aguardando teste):** a fonte vira o `S.coachHistory` (carimbado na hora da taça, append-only, por assento na Resenha — nenhum reset o toca); saiu o filtro por clube atual que escondia títulos de clubes anteriores; e a estante ganha ladrilho para toda competição fora do universo ativo (Premier, ligas CONMEBOL, etc.), com taça genérica quando não há arte própria.
+
+---
+
+## 11. [x] Botão "Sincronizar sala" no lugar do Gravar (Resenha)
+
+Pedido do dono (21/08): na Resenha o Gravar não faz sentido (o estado mora no servidor). O botão da faixa vira **Sincronizar sala**: grava o que é do assento (carreira, finanças, inbox), garante o `?sala=` na URL e recarrega a página — a reentrada adota o estado do servidor do zero, sem sair da sala e sem logout. No solo o Gravar continua igual. Aguardando teste.
+
+---
+
+## 12. [x] Mercado exterior: buscar jogadores em qualquer país (dois modos, desde a 1ª temporada)
+
+Pedido do dono (21/08). O Mercado→Comprar ganhou o filtro **País** (primeiro da fila): "o meu campeonato" é o de sempre, e cada país com bundle real (CONMEBOL + Europa) vira prateleira navegável; o filtro de **Clube** carrega conforme o país. A lista é lida direto do bundle (nada entra no mundo por olhar); o clube só é materializado ao abrir negociação (`ensureForeignClub`), e daí toda a negociação existente funciona igual. Na Resenha, a compra viaja com o retrato inteiro do jogador (`t.player`, mesmo caminho do 'BASE') — o servidor adiciona ao destino mesmo sem nunca ter visto o clube de origem. Testado ponta a ponta no solo (compra de jogador do Bolívar-BOL: taxa, salário, contrato, débito e elenco).
+**Quirk pré-existente anotado:** clubes das copas 2026 vivem no mundo com ids `intl_*` enquanto o bundle usa `cmb_*` — o mesmo clube real pode existir duas vezes no mundo (ex.: dois Bolívar). Não é causado pelo mercado novo; ligado ao item 4/multi-país.
+
+---
+
+## 13. [x] Lista de saves do solo mostra o time (como a lista de salas da Resenha)
+
+Pedido do dono (21/08). O `listSoloSaves` passou a ler do próprio jsonb a identidade do clube (id/short/escudo, gravados pelo `saveV3` daqui em diante) e onde o save está (temporada, divisão, rodada) — sem baixar o estado inteiro. A linha mostra escudo + clube + "Série X · ano" + "Nª rodada". Save antigo sem identidade resolve pelo clubId nos bundles. Aguardando teste.
+
+## 14. [x] "Jornada" vira "rodada" em todo texto visível
+
+Pedido do dono (21/08). Varredura em todos os textos do jogo (475 ocorrências), preservando identificadores de código e o protocolo (`t.jornada` etc.). A folha world-rules foi re-sincronizada com o servidor (portão byte-a-byte passa). Aguardando teste.
+
+---
+
+## 15. [x] Sondagens do exterior guiadas por um índice real de ligas
+
+Pedido do dono (21/08): pesos realistas por país — indo bem no Brasil, o convite vem da 1ª de Portugal/Argentina e das 2ªs divisões européias, não dos grandes da Premier. Nasceu o `NIVEL_LIGA` (escala 0-100 calibrada nos rankings reais de liga — UEFA/CONMEBOL/Opta): o prestígio do treinador = nível da liga atual + empurrão dos títulos (Libertadores 20 pts etc.); o convite só vem de liga até 4 pontos acima do prestígio (e não mais de 18 abaixo), com peso caindo com o quadrado da distância ao degrau ideal e no máximo 2 clubes por liga na cesta (variedade). Medido: Série A sem título → ARG/PT/2ªs; com Brasileirão → 1ªs IT/DE/ES e Premier como zebra; com Libertadores → Premier atende (17%). Solo e Resenha usam a mesma régua. A antiga trava de divisão saiu (o índice cuida — Série C não alcança ninguém). Aguardando teste.
+
+---
+
+## 16. [x] Rebalance das táticas e formações no motor
+
+O ofensivo era drift sem custo (92-100% de vitórias com times iguais; a causa do "3-3-4 ganha tudo") e o bônus por meia fazia do 4-5-1 o meta silencioso (59%). Calibrado na arena (`scripts/arena-motor.mjs`, motor real do servidor, N=3000): nasce o `TACTIC_EMPHASIS` (ofensivo expõe a defesa ×0.82, retranca blinda ×1.22), o drift da tática cai (±0.10/0.09 → +0.025/−0.015) e o bônus por meia cai (0.018 → 0.004). **Recalibrado após a bateria de validação do dono (21/08):** a 1ª calibração passava por partida mas reprovava em TEMPORADAS (regra dos 3 pontos: sempre-ofensivo fazia 59 pts e 72% dos títulos). Calibração final mira V≈D por confronto: `TACTIC_BETA` −0.008/0/+0.016, `TACTIC_EMPHASIS` retranca OS×0.93/DS×1.20, ofensivo OS×1.04/DS×0.80. Bateria completa (scripts/arena-validacao.mjs) APROVADA: temporadas por tática 50,7-51,9 pts e títulos 22-27% (neutro 25); matriz formação×formação ≤45%; formação×tática 31-40%, nenhum confronto ≥60%; curva de qualidade suave (+20%→72%, +40%→93%); mando 41/29/30; placares 1,84-2,44 gols/jogo com 1×0/2×1/1×1 no topo; temporadas com grandes e pequenos plausíveis. De quebra alinhou o goleiro do servidor à curva leve do cliente (engForceGK — divergência antiga). PUBLICADO (21/08) — martelo dado, confirmado em produção (TACTIC_BETA/TACTIC_EMPHASIS/alphaMidCount calibrados ao vivo em retrofoot.com.br).
+
+---
+
+---
+
+## 17. [x] Atributos do jogador passam a influenciar a partida de verdade (backend, sem tela)
+
+Pedido do dono (21/08): "quero que os atributos dos jogadores sejam reais e influenciem no resultado da partida... apenas no backend, de forma que quando decidirmos implementar o visual seja mais fácil". Investigação prévia mostrou que `p.attr` (fin/pas/dri/des/cab/cru/vis/pos/com/det/vel/res/fis/agi/ref/mao — `genAttrs`/`POS_PROFILE`, index.html) já era gerado de verdade pra todo elenco desde a sessão anterior, mas só influenciava o jogo DEVAGAR (via `evolvePlayer` reescrevendo `p.f` a cada rodada) — dentro da própria partida nunca era lido: dois jogadores da mesma força decidiam o resultado de forma idêntica.
+
+Nasce `attrFactor(p, keys, lo, hi)`: lê o(s) atributo(s) relevante(s) do jogador RELATIVO ao seu próprio nível médio (não à força do time) e devolve um multiplicador [lo,hi] — tempero, não substituto de `f`. Dois pontos de entrada no motor (mesma função, colada nos 4 lugares — `match-engine.js`, `resolve-round/index.ts`, `kickoff-round/index.ts`, e a versão solta em `simulate.js`/`index.html`):
+- **Quem finaliza** (`scorerFrom`): peso agora é `f × attrFactor(fin)` — um artilheiro nato (fin acima do seu nível) marca mais que um "faz-tudo" da mesma força.
+- **Quanto o goleiro segura** (`avgGK` dentro de `computeRatings`/`ratings`/`sessionRatingsFromPlayers`): multiplicado por `attrFactor(ref,mao)` — um goleiro-reflexo sofre menos que um goleiro-linha da mesma força.
+
+De quebra, corrigido um buraco: `materializeBgClubT` (clube de liga de fundo materializado pela 1ª vez, ex. qualificação continental) gravava `attr:{}` — jogador "fantasma" que nunca evoluía nem participava do `attrFactor`. Ganhou `genAttrsT`, porte fiel do `genAttrs` do cliente, rodando no servidor.
+
+Medido na arena (`scripts/arena-atributos.mjs`, motor real, N=4000, times iguais em força f=70): atacante com fin=20 marca **25% mais gols** que um parceiro fin=12 na mesma posição/força; goleiro com ref/mao=20 sofre **12% menos gols** que um ref/mao=4 na mesma força. Bateria de validação (`scripts/arena-validacao.mjs`) rodada de novo — times sintéticos sem `.attr` caem no `attrFactor` neutro (retorna 1), então os números de temporada por tática/formação já aprovados no item 16 continuam idênticos (zero regressão). `scripts/arena-brasil.mjs` com elencos reais também rodado — tabelas plausíveis, sem exploit.
+
+Puramente numérico — nenhuma tela lê `p.attr` hoje; os rótulos (`ATTR_LABEL`/`ATTR_GROUP`, index.html) já existem prontos pra quando decidirmos mostrar isso ao usuário. PUBLICADO (21/08) — martelo dado junto com o item 16, confirmado em produção.
 
 ---
 

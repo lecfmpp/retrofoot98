@@ -1,0 +1,72 @@
+:root{
+  /* Marca — NUNCA trocam por clube. As telas de sistema (troca de aparelho no
+     hotseat, por exemplo) mostram o clube de OUTRA pessoa no corpo; pintar o
+     cabeçalho com a cor de quem está sentado seria dizer que o time é dele. */
+  --brand-primary:#17458F;
+  --brand-primary-deep:#0e2f66;
+  --brand-secondary:#F2B90C;
+  --brand-on-primary:#ffffff;
+  --brand-on-secondary:#17458F;
+
+  /* Clube — trocáveis por time. Estes são os do XV Piracicaba. */
+  --club-primary:#17458F;
+  --club-primary-deep:#0e2f66;
+  --club-primary-soft:#e9eff8;
+  --club-primary-line:#d6e1f1;
+  --club-secondary:#F2B90C;
+  --club-secondary-hover:#ffcb2e;
+  --club-on-primary:#ffffff;
+  --club-on-secondary:#17458F;
+
+  /* Superfícies — verde padrão, igual para todos os clubes */
+  --surface-desk:#e8f0e7;
+  --surface-card:#ffffff;
+  --surface-sunken:#f2f7f1;
+  --surface-row-alt:#fafbfa;
+  --surface-row-active:#eef3fa;
+
+  /* Linhas */
+  --line-1:#dde7db;
+  --line-2:#d8e2d6;
+  --line-3:#eef1ee;
+
+  /* Texto */
+  --text-1:#12201a;
+  --text-2:#3a473f;
+  --text-3:#5d6c62;
+  --text-4:#78877c;
+  --text-muted:#8b978d;
+  --text-faint:#9aa79e;
+  --text-on-dark:#ffffff;
+  --text-on-dark-soft:#c3d3ec;
+  --text-on-dark-faint:#a9bfe0;
+
+  /* Gramado */
+  --pitch-1:#3e9c5a;
+  --pitch-2:#37904f;
+  --pitch-line:rgba(255,255,255,.4);
+  --pitch-edge:#2f7f45;
+
+  /* Placas de publicidade */
+  --ad-dark:#12201a;
+  --ad-orange:#d1541f;
+  --ad-green:#1d6b3a;
+
+  /* Energia / forma — escala vermelho→verde */
+  --energy-100:#2fbf5f;
+  --energy-80:#8fc93a;
+  --energy-60:#F2B90C;
+  --energy-40:#e8802a;
+  --energy-20:#d94141;
+
+  /* Zonas de tabela */
+  --zone-promo:#2fbf5f;
+  --zone-neutral:#c9d2ca;
+  --zone-drop:#d94141;
+
+  /* Semânticos */
+  --ok:#2fbf5f;
+  --warn:#F2B90C;
+  --danger:#d94141;
+  --note:#c0392b;
+}

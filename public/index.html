@@ -61,7 +61,9 @@
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" }
 }
 </script>
-<link rel="stylesheet" href="src/styles/main.css"></head>
+<link rel="stylesheet" href="src/styles/main.css">
+<!-- Rebranding 2026: a camada do design system novo vem DEPOIS de main.css (ver rf26.css) -->
+<link rel="stylesheet" href="src/styles/rf26.css"></head>
 <body>
 <div id="c-root">
 <!-- ===== A HOME EXISTE ANTES DO JOGO CARREGAR =====
@@ -175,6 +177,11 @@
      Para usar defer é preciso antes tirar aquele bloco inline para um arquivo — e aí ele entra na
      mesma fila destes. Enquanto isso, o que faz a home aparecer rápido é ela estar em HTML acima
      desta linha, e não a forma como o jogo carrega. -->
+<!-- FOLHAS COMPARTILHADAS cliente ⇄ servidor (as mesmas que scripts/sync-world-rules.mjs injeta
+     no resolve-round). world-config.js lê UNIVERSOS preguiçosamente, então basta estar na página
+     antes do primeiro uso — mas vem primeiro de propósito, porque rebalance.js consulta a banda
+     de divisão logo abaixo. -->
+<script src="src/engine/world-config.js"></script>
 <script src="src/data/match-config.js"></script>
 <script src="src/data/trophies.js"></script>
 <script src="src/data/trophy-room.js"></script>
@@ -186,6 +193,7 @@
 <script src="src/data/leagues-conmebol.js"></script>
 <script src="src/data/stadiums-intl.js"></script>
 <script src="src/data/stadium-images.js"></script>
+<script src="src/data/estadios.js"></script>
 <script src="src/data/club-welcome-video.js"></script>
 <script src="src/data/leagues-brasil-lower.js"></script>
 <script src="src/data/club-crests-brasil-lower.js"></script>
@@ -212,7 +220,10 @@ function curInfo(){ return window.MARKET.currencyInfo((typeof CL!=='undefined'&&
 function curSym(){ return curInfo().sym; }
 function curConv(n){ return (n||0)*curInfo().rate; }            // R$ interno -> moeda exibida
 function curParse(n){ return Math.round((n||0)/curInfo().rate); } // valor digitado -> R$ interno
-const fmt = n => { const v=curConv(n); return curSym()+' '+(v>=1e6?(v/1e6).toFixed(v>=1e7?0:1)+'M':(v/1e3).toFixed(0)+'k'); };
+/* UMA CASA DECIMAL SEMPRE, E VIRGULA. Acima de 10M isto arredondava para inteiro e escrevia
+   ponto decimal: a mesma quantia saia "R$ 11M" aqui e "R$ 10,60 mi" no cartao ao lado (rfDin),
+   como se fossem valores diferentes. E "R$ 1.5M" nao e como se escreve numero em portugues. */
+const fmt = n => { const v=curConv(n); return curSym()+' '+(v>=1e6?(v/1e6).toFixed(1).replace(/\.0$/,'').replace('.',',')+'M':(v/1e3).toFixed(0)+'k'); };
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 function gauss(mu,sd){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
@@ -315,6 +326,18 @@ const POS_PROFILE={
 function forceToLevel(f){return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6)));}
 function levelToForce(L){return Math.max(40,Math.min(95,Math.round((L-6)/13*46+45)));}
 function attrLevel(a,s){const prof=POS_PROFILE[s]||POS_PROFILE.MID;let sw=0,acc=0;for(const k in prof){sw+=prof[k];acc+=prof[k]*(a[k]||1);}return acc/sw;}
+/* ATRIBUTOS DE VERDADE NO RESULTADO (21/08) — mesma função em match-engine.js/resolve-round.ts/
+   kickoff-round.ts (a fonte do motor). Lê o(s) atributo(s) relevante(s) do jogador RELATIVO ao
+   seu próprio nível médio: um artilheiro nato finaliza melhor, um goleiro-reflexo defende mais,
+   mesmo com a MESMA força que um colega genérico. Puramente numérico — sem tela ainda (ver
+   ATTR_LABEL/ATTR_GROUP acima, já prontos pra quando decidirmos mostrar isso ao usuário). */
+function attrFactor(p,keys,lo,hi){
+  const a=p&&p.attr; if(!a) return 1;
+  let sv=0,n=0; for(const k of keys){ if(a[k]!=null){ sv+=a[k]; n++; } }
+  if(!n) return 1;
+  const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f);
+  return Math.max(lo,Math.min(hi,1+(rel-base)/22));
+}
 function genAttrs(p){
   const rf=(p.rawF!=null?p.rawF:p.f);                       // atributos vêm da força na escala ANTIGA (rawF)
   const R=makeRng(hashSeed('attr',p.n,rf,p.s));
@@ -499,6 +522,24 @@ function newGame(clubId, division, compToggle, seedOverride){
   division = division || 'A';
   compToggle = compToggle || {libertadores:true, copaBrasil:true, sulamericana:true};
   PROC_USED_NAMES=new Set(); // novo save -> zera o controle de nomes procedurais únicos
+  /* REDE DE SEGURANCA: os clubes TEM de ser os da divisao que se vai comecar.
+     newGame monta tudo (tabela, elencos, calendario) a partir de DATA.clubs, e
+     quem enche DATA.clubs e o CHAMADOR (clubsForDivision, no assistente). Um
+     chamador que se esqueca disso cria uma divisao com os clubes de outra -- foi
+     assim que a "Serie D" da bancada nasceu com o Palmeiras e o Flamengo, e a
+     Serie A aparecia duas vezes na tabela e no filtro da rodada ao vivo. Aqui
+     nao se corrige em silencio (o save da Resenha traz lista propria, curada):
+     avisa-se alto, para o engano aparecer no primeiro teste. */
+  try{
+    if(typeof clubsForDivision==='function'){
+      const esperados=clubsForDivision(division)||[];
+      const ids0=new Set(DATA.clubs.map(c=>c.id));
+      const iguais=esperados.length && esperados.filter(c=>ids0.has(c.id)).length>=Math.ceil(esperados.length*0.5);
+      if(esperados.length && !iguais)
+        console.warn('[newGame] DATA.clubs nao parece ser a divisao '+division+
+          ' — chame clubsForDivision('+division+') antes de newGame.');
+    }
+  }catch(e){}
   const ids=DATA.clubs.map(c=>c.id);
   const sched=makeSchedule(ids);
   const table={};
@@ -545,6 +586,10 @@ function newGame(clubId, division, compToggle, seedOverride){
     finished:false,
   };
   S.xi = autoXI(clubId);
+  /* A PRIMEIRA PASSAGEM ABRE AQUI, com a tabela ainda zerada — e o unico ponto por onde TODOS os
+     caminhos de novo jogo passam. Aberta mais tarde, a marca da passagem ja apanhava jogos
+     jogados e o periodo comecava a contar do meio. Ver coachSpells em engine/core.js. */
+  try{ if(typeof coachSpellAbrir==='function'){ S.coachSpells=[]; coachSpellAbrir(clubId,'contratado'); } }catch(e){}
   // F3.3: caixa por-clube pra divisão do usuário (as outras entram em buildOtherDivisions).
   // Determinístico pela seed -> igual em todos os clientes da Resenha.
   DATA.clubs.forEach(c=>{ S.budgets[c.id]=REBAL.budget(division, makeRng(hashSeed(seed,'budget',c.id))); });
@@ -662,7 +707,7 @@ function ratings(id, useXI){
   // goleiro em campo, então "empilhar" não se aplica a ele; comprimir igual deixava um goleiro
   // Craque Mundial (f~95) quase indistinguível de um mediano (f~50) no DS (diferença de só
   // ~5 pontos), sem impacto perceptível na simulação apesar da diferença real de qualidade.
-  const avgGK=a=>a.length?a.reduce((s,p)=>s+REBAL.engForceGK(p.f)*(0.6+0.4*p.energy/100),0)/a.length:28;
+  const avgGK=a=>a.length?a.reduce((s,p)=>s+REBAL.engForceGK(p.f)*(0.6+0.4*p.energy/100)*attrFactor(p,['ref','mao'],0.85,1.15),0)/a.length:28;
   let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
   // morale coupling
   const mor=teamMorale(id,players);
@@ -685,10 +730,48 @@ function teamMorale(id,players){
 <script src="src/engine/simulate.js"></script>
 <!-- regras de mundo (calendário, avanço de copa): folha ÚNICA compartilhada com o servidor —
      ver public/src/engine/world-rules.js e scripts/sync-world-rules.mjs. Antes do core, que a usa. -->
+<script src="src/engine/calendars.js"></script>
 <script src="src/engine/world-rules.js"></script>
 <script src="src/engine/core.js"></script>
 <script src="src/engine/autosave.js"></script>
 <script src="src/ui/main.js"></script>
+<!-- Rebranding 2026: envelope, sidebar e roteador de páginas (ver src/ui/rf26.js) -->
+<script src="src/ui/rf26-icones.js"></script>
+  <script src="src/ui/rf26.js"></script>
+<!-- Onboarding portado das telas Onboarding 1..7 (ver src/ui/rf26-onboarding.js) -->
+<script src="src/ui/rf26-onboarding.js"></script>
+<!-- Cerimônia do sorteio portada das telas Sorteio 2..6 (ver src/ui/rf26-sorteio.js) -->
+<script src="src/ui/rf26-sorteio.js"></script>
+<!-- Partida ao vivo portada da tela PartidaAoVivo (ver src/ui/rf26-live.js) -->
+<script src="src/ui/rf26-live.js"></script>
+<!-- Landing portada da tela Landing - Home (ver src/ui/rf26-landing.js) -->
+<script src="src/ui/rf26-landing.js"></script>
+<!-- Leva 2: sobreposições de partida e pós-rodada (ver src/ui/rf26-partida.js) -->
+<script src="src/ui/rf26-partida.js"></script>
+<!-- Leva 4: entre rodadas e competições (ver src/ui/rf26-competicao.js) -->
+<script src="src/ui/rf26-competicao.js"></script>
+<!-- Leva 4: Modo Resenha — pausa, espera e troca de aparelho (ver src/ui/rf26-resenha.js) -->
+<script src="src/ui/rf26-resenha.js"></script>
+<!-- Leva 4: fluxo de entrada e páginas institucionais (ver src/ui/rf26-fluxo.js) -->
+<script src="src/ui/rf26-fluxo.js"></script>
+<!-- Entrada da Resenha: entrar com codigo e minhas salas (ver src/ui/rf26-resenha-entrada.js) -->
+<script src="src/ui/rf26-resenha-entrada.js"></script>
+<!-- Leva 5: as seis abas do Mercado (ver src/ui/rf26-mercado.js) -->
+<script src="src/ui/rf26-mercado.js"></script>
+<!-- Leva 6: os 24 diálogos de ação interna (ver src/ui/rf26-acoes.js) -->
+<script src="src/ui/rf26-acoes.js"></script>
+<!-- Leva 5: as quatro abas de Elenco & Base (ver src/ui/rf26-elenco.js) -->
+<script src="src/ui/rf26-elenco.js"></script>
+<!-- Leva 5: as cinco abas de Campeonatos (ver src/ui/rf26-campeonatos.js) -->
+<script src="src/ui/rf26-campeonatos.js"></script>
+<!-- Leva 5: as seis abas de Treinador (ver src/ui/rf26-treinador.js) -->
+<script src="src/ui/rf26-treinador.js"></script>
+<!-- Leva 5: as cinco abas de Finanças (ver src/ui/rf26-financas.js) -->
+<script src="src/ui/rf26-financas.js"></script>
+<!-- Leva 5: E-mail (2 abas) e Configurações (3 abas) — ver src/ui/rf26-email-config.js -->
+<script src="src/ui/rf26-email-config.js"></script>
+<!-- Hub v2: notas do plantel e cartão do adversário (ver src/ui/rf26-formacao.js) -->
+<script src="src/ui/rf26-formacao.js"></script>
 <!-- entrega dos espaços publicitários (o painel dos sócios publica, o jogo lê por chave).
      Depois do main.js porque chama cdraw() quando o inventário chega; antes dos adapters
      de rede porque não depende de nenhum deles (faz fetch cru, ver ads.js). -->
@@ -738,7 +821,27 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     /* aguarda init Supabase se online */
     try{ await netInitSupabase(); NET.useSupabase=true; }catch(e){ console.warn('Supabase fallback para local'); }
   }
-  else cdraw();
+  /* ONDE O UTILIZADOR ESTAVA. Sem isto, recarregar caia sempre na home: `CL`
+     e estado de sessao e CL.screen nasce em 'abertura'. rfPosRestaurar() le a
+     posicao gravada (ver rfPosGravar em main.js), recarrega o save da nuvem e
+     volta a mesma pagina. Precisa do Supabase de pe — o save vem de la —, e
+     se nao houver posicao, sessao ou save, cai no cdraw() de sempre. */
+  else {
+    let voltou=false;
+    try{
+      /* ?rf= (bancada) MANDA MAIS QUE A POSICAO GUARDADA: ele pede um save novo,
+         em memoria, e restaurar o ultimo save da nuvem por cima trazia de volta
+         o estado antigo -- inclusive saves de bancada com a divisao errada. */
+      const bancada=/[?&]rf=/.test(location.search);
+      const pos=(!bancada && typeof rfPosLer==='function')?rfPosLer():null;
+      if(pos && pos.save){
+        try{ await netInitSupabase(); }catch(e){ console.warn('Supabase (retomar posicao):', e); }
+        const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+        if(st.loggedIn && typeof rfPosRestaurar==='function') voltou=rfPosRestaurar();
+      }
+    }catch(e){ console.warn('retomar posicao:', e); }
+    if(!voltou) cdraw();
+  }
   if(typeof onlineTimerLoop==='function') onlineTimerLoop();
 });
 </script>

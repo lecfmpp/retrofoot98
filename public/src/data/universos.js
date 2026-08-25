@@ -7,10 +7,17 @@
    criaria duas versões da mesma regra — exatamente o que world-rules.js
    descreve como a causa dos bugs de calendário.
 
-   Consumido por engine/core.js (window.UNIVERSOS) e por admin/admin.js.
+   Consumido por engine/core.js (window.UNIVERSOS), por admin/admin.js e — desde que o
+   resolve-round deixou de ter a pirâmide brasileira congelada — pelo SERVIDOR, por injeção
+   (scripts/sync-world-rules.mjs). É por isso que o arquivo passou a atribuir em `globalThis` e
+   não em `window`: no Deno da edge function `window` não existe, e no navegador
+   `globalThis === window`, então nada muda para quem já lia.
+
    Regra de ouro: dado, não algoritmo. Nada de S, CL ou DOM aqui.
    =================================================================== */
-window.UNIVERSOS = {
+(function(root){
+'use strict';
+root.UNIVERSOS = {
   brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
                label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8 },
   Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
@@ -43,5 +50,8 @@ window.UNIVERSOS = {
 };
 
 /* código ISO da bandeira de cada universo (UNIVERSOS só guarda o nome do país) */
-window.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
+root.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
   Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
+
+if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:root.UNIVERSOS, UNIVERSO_BANDEIRA:root.UNIVERSO_BANDEIRA }; }
+})(typeof globalThis!=='undefined'?globalThis:this);

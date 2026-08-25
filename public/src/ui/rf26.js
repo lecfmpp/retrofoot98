@@ -1,0 +1,3059 @@
+/* =====================================================================
+   RetroFoot98 — REBRANDING 2026 · ENVELOPE, SIDEBAR E ROTEADOR DE PÁGINAS
+   Carrega DEPOIS de main.js e assume o desenho das telas de dentro do jogo.
+
+   O QUE MUDA DE VERDADE (não é só pele):
+   a barra de menu horizontal com sete menus suspensos virou uma SIDEBAR de
+   sete destinos, e cada item que antes abria um modal virou ABA dentro da
+   página do destino. A regra que decide isso está no design system e é
+   curta: se está no menu, é página; se apareceu sozinho, é popup.
+
+   TODA PÁGINA É MONTADA A PARTIR DA TELA DE REFERÊNCIA (docs/rebranding-2026/
+   telas/). Nenhuma reaproveita a marcação da pele antiga: as funções de menu
+   do main.js continuam existindo pro que ainda é POPUP legítimo (proposta
+   recebida, convite de emprego, confirmação destrutiva), mas nenhuma delas
+   desenha página. Houve uma fase de transição em que a página capturava a
+   chamada de overlayC() dessas funções; ela acabou quando a última aba
+   ganhou marcação própria, e o mecanismo foi removido junto.
+   ===================================================================== */
+
+/* ---- estado de navegação novo. Mora em CL (mesmo objeto do resto da UI) ---- */
+function rfState(){
+  // _ultimaTab nasce com o CL.tab ATUAL, não indefinido: senão a ponte das abas
+  // antigas (rfSyncFromLegacyTab) enxerga "mudou" no primeiro desenho e joga o
+  // usuário de volta pro Hub, atropelando a página que ele pediu.
+  if(!CL.rf) CL.rf={ page:'hub', tab:{}, sbCollapsed:false, _ultimaTab:CL.tab };
+  return CL.rf;
+}
+/* a sidebar recolhida é preferência do usuário, não estado de save: persiste
+   no aparelho e vale pra qualquer save que ele abrir. */
+const RF_SB_KEY='rf98.sidebar.collapsed';
+function rfSidebarCollapsed(){
+  const st=rfState();
+  if(st._sbLoaded) return st.sbCollapsed;
+  try{ st.sbCollapsed = localStorage.getItem(RF_SB_KEY)==='1'; }catch(e){ st.sbCollapsed=false; }
+  st._sbLoaded=true; return st.sbCollapsed;
+}
+function rfToggleSidebar(){
+  const st=rfState(); st.sbCollapsed=!rfSidebarCollapsed(); st._sbLoaded=true;
+  try{ localStorage.setItem(RF_SB_KEY, st.sbCollapsed?'1':'0'); }catch(e){}
+  cdraw();
+}
+
+/* =====================================================================
+   AS SETE PÁGINAS
+   `tabs` são os sub-itens que ANTES eram itens de menu abrindo modal.
+   `run` é a função de menu correspondente — a página a executa capturada.
+   `build` (quando existe) tem precedência: é conteúdo escrito pro layout
+   novo, sem passar pela captura.
+   ===================================================================== */
+/* =====================================================================
+   OS NOVE DESTINOS DA SIDEBAR
+   A lista sai da TELA de referência (Hub do Time - Sidebar), não da tabela
+   de consolidação do PROMPT-IMPLEMENTACAO.md: a tabela lista sete páginas,
+   a tela mostra nove itens — com "RetroFoot98" no topo e "E-mail" como
+   destino próprio. Quando os dois discordam, manda a tela.
+
+   `titulo`/`sub`/`pill` são o cabeçalho da página, copiados da referência.
+   A faixa do clube (gradiente) existe SÓ no Hub; as demais páginas abrem
+   com título de 26px + subtítulo + pílula de status à direita.
+
+   `grid` é a grade de duas colunas daquela página, também da referência —
+   elas não são todas iguais: Elenco & Base usa 360px na coluna lateral e
+   Clube & Sistema inverte a ordem.
+   ===================================================================== */
+/* =====================================================================
+   OS OITO DESTINOS E AS 31 ABAS (pacote "Abas Completas")
+   Formação · Mercado · Elenco & Base · Campeonatos · Treinador · Finanças ·
+   E-mail · Configurações.
+
+   O item "RetroFoot98" saiu do menu: o escudo no topo da sidebar já faz o
+   papel de voltar ao hub. Clube & Sistema virou CONFIGURAÇÕES, e o E-mail
+   ganhou destino próprio com as suas duas abas.
+
+   MODELO DE ABA: cada aba é uma tela inteira, com o conteúdo dela. Foi assim
+   que o pacote das abas definiu, e substitui o desenho anterior (bloco =
+   resumo, aba = extensão) — que era a leitura possível das telas antigas,
+   antes de existirem estas.
+   ===================================================================== */
+const RF_PAGES=[
+  { key:'hub', ico:'jogar', label:'Formação', curto:'Formação', banda:true },
+
+  { key:'mercado', ico:'mercado', label:'Mercado', curto:'Mercado',
+    titulo:'Mercado', sub:()=>rfSubMercado(),
+    /* MERCADO É UMA COLUNA SÓ. As telas do Mercado empilham: a tabela
+       ocupa a largura inteira e o bloco de apoio ("O que o caixa
+       permite", "Como negociar") vem embaixo. Espremer a tabela num
+       1fr+340 comia justamente a coluna do NOME do jogador. */
+    acoes:()=>rfMktAcoesHTML(), grid:'minmax(0,1fr)',
+    /* ORDEM DO PACOTE: Comprar · Vender · Leilão · Propostas · Contrapropostas.
+       "Vender" estava em quinto, depois de tudo o que é resposta a terceiros —
+       mas comprar e vender são as duas ações que o treinador inicia, e o desenho
+       as põe lado a lado. "Transferências" não consta na lista do pacote; fica
+       no fim até você decidir se some ou vira outra coisa. */
+    tabs:[ {k:'comprar', l:()=>'Comprar',        build:()=>rfMktComprarHTML()},
+           {k:'vender',  l:()=>'Vender',         build:()=>rfMktVenderHTML()},
+           {k:'leilao',  l:()=>'Leilão',         build:()=>rfMktLeilaoHTML()},
+           {k:'propostas',l:()=>'Propostas'+rfSufixo(rfLen(rfPropostas())), build:()=>rfMktPropostasHTML()},
+           {k:'contra',  l:()=>'Contrapropostas',build:()=>rfMktContraHTML()},
+           {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
+
+  { key:'elenco', ico:'elenco', label:'Elenco & Base', curto:'Elenco',
+    titulo:'Elenco & Base', sub:()=>rfElSubHTML(),
+    acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
+    tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
+           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML()},
+           {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML()},
+           {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML()} ] },
+
+  { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
+    titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
+    acoes:()=>rfCpAcoesHTML(), grid:'minmax(0,1fr)',
+    /* DUAS PERGUNTAS, DUAS PÁGINAS. O CALENDÁRIO é do CLUBE: quando jogo, contra quem, a
+       temporada inteira, liga e copas. A CLASSIFICAÇÃO é a que navega o mundo: abre na liga do
+       próprio clube e tem os filtros de país, liga e divisão para quem quiser ver outra.
+       Cheguei a pôr a grelha do mundo no Calendário e o dono do jogo reprovou — com razão: ela
+       afoga o "quando é o meu próximo jogo" em vinte linhas por semana. */
+    tabs:[ {k:'minhas',    l:()=>'Minhas competições', build:()=>rfCpMinhasHTML()},
+           {k:'calendario',l:()=>'Calendário',          build:()=>rfCpCalendarioHTML()},
+           {k:'classificacao',l:()=>'Classificação',    build:()=>rfMdClassifHTML()},
+           {k:'artilharia',l:()=>'Artilharia',          build:()=>rfCpArtilhariaHTML()},
+           {k:'historia',  l:()=>'História',            build:()=>rfCpHistoriaHTML()},
+           {k:'intl',      l:()=>'Ligas internacionais',build:()=>rfCpIntlHTML(),
+            show:()=>!!(S&&S.bgLeagues&&Object.keys(S.bgLeagues).length)} ] },
+
+  { key:'treinador', ico:'treinador', label:'Treinador', curto:'Treinador',
+    titulo:'Treinador', sub:()=>rfTrSubHTML(),
+    acoes:()=>rfTrAcoesHTML(), grid:'minmax(0,1fr)',
+    tabs:[ {k:'carreira',l:()=>'Carreira',        build:()=>rfTrCarreiraHTML()},
+           {k:'historia',l:()=>'História',        build:()=>rfTrHistoriaHTML()},
+           {k:'trofeus', l:()=>'Sala de Troféus', build:()=>rfTrTrofeusHTML()},
+           {k:'ranking', l:()=>'Ranking',         build:()=>rfTrRankingHTML()},
+           {k:'ofertas', l:()=>'Ofertas'+rfSufixo(rfLen(rfOfertas())), build:()=>rfTrOfertasHTML()},
+           {k:'perfil',  l:()=>'Perfil',          build:()=>rfTrPerfilHTML()} ] },
+
+  { key:'financas', ico:'financas', label:'Finanças', curto:'Finanças',
+    titulo:'Finanças', sub:()=>rfFiSubHTML(),
+    acoes:()=>rfFiAcoesHTML(), grid:'minmax(0,1fr)',
+    tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFiResumoHTML()},
+           {k:'extrato',   l:()=>'Extrato',    build:()=>rfFiExtratoHTML()},
+           {k:'historico', l:()=>'Histórico',  build:()=>rfFiHistoricoHTML()},
+           {k:'estadio',   l:()=>'Estádio',    build:()=>rfFiEstadioHTML()},
+           {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfFiPatrocinioHTML()} ] },
+
+  { key:'email', ico:'email', label:'E-mail', curto:'E-mail',
+    titulo:'E-mail & Sistema', sub:()=>rfEmSubHTML(),
+    acoes:()=>rfEmAcoesHTML(), grid:'minmax(0,380px) minmax(0,1fr)',
+    tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmCaixaHTML()},
+           {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
+
+  { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
+    titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
+    acoes:()=>rfResenhaAcoesHTML(),
+    grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
+
+  { key:'config', ico:'config', label:'Configurações', curto:'Config',
+    titulo:'Configurações', sub:()=>rfCfSubHTML(),
+    acoes:()=>rfCfAcoesHTML(), grid:'minmax(0,1fr)',
+    /* A aba "Modo Resenha" SAIU daqui e virou página própria (abaixo): a sala é
+       onde a pessoa passa o tempo numa resenha — código, treinadores, ritmo,
+       sincronização — e isso não é uma preferência do sistema. */
+    /* A ABA "JOGO" SAIU. Ela era a página "Sair do jogo" outra vez: SAVE ATUAL
+       repetido, OUTROS SAVES e SAIR DO SAVE. O pacote põe tudo isso na tela de
+       Sair do jogo — que é onde o jogador procura — e deixa Configurações só
+       com as preferências. A lista de saves mudou-se para lá (ver
+       rfSairOutrosSavesHTML); o "Baixar o save" foi com ela. */
+    tabs:[ {k:'opcoes',  l:()=>'Opções', build:()=>rfCfOpcoesHTML()} ] },
+
+  /* ÚLTIMO ITEM, sempre. O nome e a chave são os do pacote: "Sair do jogo" /
+     `sairjogo` — não "Sair", que se confunde com sair da conta. */
+  { key:'sairjogo', ico:'sair', label:'Sair do jogo', curto:'Sair',
+    titulo:'Sair do jogo', sub:()=>rfSairSubHTML(),
+    grid:'minmax(0,1fr)', resumo:()=>rfSairHTML() },
+];
+
+
+/* ---- as pílulas de status do cabeçalho, cada uma com o dado real do save ---- */
+function rfSufixo(n){ return n>0? ' ('+n+')' : ''; }
+function rfNaoLidas(){ return (typeof inboxUnread==='function')?inboxUnread():0; }
+function rfPropostas(){ return (typeof myIncomingOffers==='function')?myIncomingOffers():[]; }
+function rfPill(txt,tom){ return {txt,tom:tom||'info'}; }
+function rfPillCaixa(){ return rfPill('🟢 Caixa '+fmt(S.budget||0)); }
+function rfPillGravado(){
+  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
+  return rfPill(rfIcone('gravar',16)+''+(t?('Gravado '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0')):'Gravação automática'));
+}
+function rfPillDivisao(){ return rfPill(rfIcone('marcacao',16)+''+divisionLabel()); }
+function rfPillFolha(){
+  const folha=squad(CL.clubId).reduce((s,p)=>s+(typeof playerSalary==='function'?playerSalary(p):0),0);
+  return rfPill('Folha '+fmt(folha)+'/sem');
+}
+function rfPillPosicao(){
+  const pos=rfMinhaPosicao();
+  return rfPill(rfIcone('trofeu',16)+''+(pos?pos+'º na '+divisionLabel():divisionLabel()));
+}
+function rfPillReputacao(){ return rfPill(rfIcone('treinador',16)+' Reputação '+Math.round((S.coachRep!=null?S.coachRep:50))); }
+function rfPillSaldo(){
+  const b=S.budget||0;
+  return rfPill((b>=0?'▲ Saldo positivo':'▼ Saldo negativo'), b>=0?'ok':'danger');
+}
+function rfPillNaoLidas(){ const n=rfNaoLidas(); return rfPill(rfIcone('email',16)+''+(n?n+' por ler':'Tudo lido')); }
+function rfSubMercado(){
+  const aberta=(typeof canNegotiate!=='function')||canNegotiate();
+  return (aberta?'Janela aberta':'Janela fechada')
+    +' · caixa '+rfDin(S.budget||0)
+    +' · folha '+rfDin(rfFolha())+'/mês';
+}
+/* posição do meu clube na tabela da divisão */
+function rfMinhaPosicao(){
+  const t=S.table||{}; const ids=Object.keys(t); if(!ids.length) return null;
+  const ord=ids.map(id=>({id,r:t[id]})).sort((a,b)=>(b.r.Pts-a.r.Pts)||((b.r.GF-b.r.GA)-(a.r.GF-a.r.GA))||(b.r.GF-a.r.GF));
+  const i=ord.findIndex(x=>x.id===CL.clubId);
+  return i<0?null:i+1;
+}
+function rfLen(x){ return (x&&x.length)||0; }
+function rfLen0(n){ return n||0; }
+function rfPageDef(key){ return RF_PAGES.find(p=>p.key===key)||RF_PAGES[0]; }
+/* abas visíveis de uma página (a de ligas internacionais só existe se houver liga carregada) */
+/* a barra de competicoes e da PAGINA Campeonatos, nao de uma aba: o filtro vale para
+   Minhas competicoes, Calendario e Artilharia ao mesmo tempo */
+function rfCompChipsDaPagina(page){
+  if(page!=='campeonatos') return '';
+  /* a aba Classificação tem filtro PRÓPRIO (país + competição, incluindo ligas de outros países).
+     Somar a barra da página em cima dela dava duas filas de chips a filtrar coisas diferentes na
+     mesma tela — a primeira só sabia das competições do clube, e clicar nela não mexia na tabela
+     que estava à vista. */
+  if(rfState().tab.campeonatos==='classificacao') return '';
+  return (typeof rfCpCompChipsHTML==='function')?rfCpCompChipsHTML():'';
+}
+function rfTabs(def){ return (def.tabs||[]).filter(t=>!t.show||t.show()); }
+function rfTabLabel(t){ return typeof t.l==='function'? t.l() : t.l; }
+/* A ABA ATIVA PODE SER NENHUMA. O estado em que a página abre é o RESUMO: os
+   blocos todos, cada um com uma amostra e a contagem do total ao lado — é
+   exatamente o que as telas do pacote desenham. Uma aba é a EXTENSÃO de um
+   bloco: abre aquele bloco inteiro, sem corte. Tocar de novo na aba acesa
+   volta pro resumo. Páginas sem `resumo` continuam como antes (primeira aba). */
+function rfActiveTab(def){
+  const st=rfState(); const tabs=rfTabs(def); if(!tabs.length) return null;
+  const want=st.tab[def.key];
+  return tabs.find(t=>t.k===want)||tabs[0];
+}
+function rfSetTabAlterna(page, tab){
+  const st=rfState();
+  st.tab[page] = (st.tab[page]===tab) ? '' : tab;   // clicou na acesa: volta ao resumo
+  cdraw();
+}
+
+/* ---- navegação ---- */
+function rfGo(page, tab){
+  const st=rfState();
+  st.page=page; if(tab) st.tab[page]=tab;
+  CL.menu=null; CL.mobMenuOpen=false;
+  // o Hub é a única página que ainda usa CL.tab (as abas antigas do painel direito)
+  if(page==='hub') CL.tab='seleccao';
+  cdraw();
+}
+function rfSetTab(page, tab){ rfState().tab[page]=tab; cdraw(); }
+
+/* =====================================================================
+   PEÇAS DO ENVELOPE
+   ===================================================================== */
+
+/* escudo: <img> do arquivo real com badge de iniciais como fallback — o mesmo
+   comportamento de clubCrestHTML(), que já resolve os dois casos. */
+/* ESCUDO — marcação própria, sem passar pelo clubCrestHTML legado (que trazia
+   um invólucro fixo de 34x41 e o emblema de iniciais com estilo do skin antigo).
+   Aqui o tamanho vem SEMPRE do contêiner (.rf-*-crest img/.rf-crest-fb), e o
+   emblema de iniciais entra como irmão escondido — é ele que aparece quando a
+   imagem do escudo não carrega. */
+/* ===== TODO ESCUDO E UMA PORTA PARA O CLUBE =====
+   O escudo aparece em toda a parte — tabela, calendario, chave, grupos, rodada ao vivo, cartao do
+   adversario, ofertas, mercado — e em quase todos esses lugares era so desenho. Ligar clube a
+   clube um a um seria repetir a mesma linha em vinte sitios e esquecer-me de metade; aqui e uma
+   funcao so, e todos os ecras ganham a porta ao mesmo tempo.
+
+   TRES CUIDADOS, e sao eles que fazem isto ser seguro:
+     · `stopPropagation`: muitas linhas ja tem accao propria (propor por um jogador, abrir um
+       confronto). O escudo e um DESVIO dentro da linha, nao a accao dela — sem isto, clicar no
+       escudo dispararia as duas.
+     · o MEU clube leva ao meu elenco, nao a tela de adversario.
+     · sem `id` (clube so com nome, um marcador vazio) fica como estava: desenho. */
+/* o mesmo clique do escudo, para as linhas que mostram so o NOME do clube (as tabelas). Devolve
+   os atributos prontos a colar, ou vazio quando nao ha para onde ir. */
+function rfClubeClique(id){
+  if(id==null || typeof S==='undefined' || !S) return '';
+  if(typeof CL!=='undefined' && (CL.screen==='live' || CL.screen==='cupdraw')) return '';   // ver rfCrestClicavel
+  const meu=(typeof CL!=='undefined') && String(id)===String(CL.clubId);
+  const acao=meu ? 'clGoSquad()' : `clViewTeam('${escC(String(id))}')`;
+  const nome=escC(((typeof anyClubOf==='function'&&anyClubOf(id))||{}).short||'clube');
+  return ` title="Ver o ${nome}" onclick="${acao}"`;
+}
+function rfCrestClicavel(club){
+  if(!club || club.id==null) return false;
+  if(typeof S==='undefined' || !S) return false;                 // telas de pre-jogo
+  /* ===== NAO DURANTE A PARTIDA =====
+     `clViewTeam` troca a tela, e a volta (`clViewTeamBack`) devolve ao Hub, nao ao jogo — um
+     toque distraido num escudo no meio da rodada tirava o jogador de campo sem caminho de
+     regresso, com o relogio da partida a correr por tras. Na tela ao vivo e nas cerimonias o
+     escudo volta a ser so desenho; em todo o resto e porta. */
+  if(typeof CL!=='undefined' && (CL.screen==='live' || CL.screen==='cupdraw')) return false;
+  return typeof clViewTeam==='function' || typeof clGoSquad==='function';
+}
+function rfCrestEnvolve(club, dentro){
+  if(!rfCrestClicavel(club)) return dentro;
+  const meu=(typeof CL!=='undefined') && String(club.id)===String(CL.clubId);
+  const acao=meu ? 'clGoSquad()' : `clViewTeam('${escC(String(club.id))}')`;
+  const nome=escC(club.short||club.name||'clube');
+  return `<span class="rf-crest-link rf-clicavel" title="Ver o ${nome}" role="link" tabindex="0"
+    onclick="event.stopPropagation();${acao}"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${acao}}"
+  >${dentro}</span>`;
+}
+function rfCrest(club, size){
+  club=club||{};
+  const {col,col2}=clubColors(club);
+  const txt=(typeof barTextColor==='function')?barTextColor(col,col2):col2;
+  const ini=escC(String(club.short||club.name||'?').replace(/[^\p{L}\p{N}]/gu,'').slice(0,3).toUpperCase());
+  const s=size?`width:${size}px;height:${size}px`:'';
+  const fb=`<span class="rf-crest-fb" style="background:${col};color:${txt};${s}">${ini}</span>`;
+  const url=(typeof clubCrestUrl==='function')?clubCrestUrl(club):'';
+  if(!url) return rfCrestEnvolve(club, fb);
+  return rfCrestEnvolve(club, `<img class="rf-crest" src="${escC(url)}" alt="Escudo do ${escC(club.short||'')}" style="${s}"
+    onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"
+  ><span class="rf-crest-fb" style="display:none;background:${col};color:${txt};${s}">${ini}</span>`);
+}
+
+
+/* forma: os últimos cinco resultados do meu clube, do mais antigo pro mais novo */
+function rfForma(){
+  const id=CL.clubId; const out=[];
+  const res=(S.results||[]).filter(r=>r.h===id||r.a===id).slice(-5);
+  res.forEach(r=>{
+    const eu=r.h===id?r.hg:r.ag, ele=r.h===id?r.ag:r.hg;
+    out.push(eu>ele?'v':eu<ele?'d':'e');
+  });
+  return out;
+}
+function rfFormaHTML(){
+  const f=rfForma(); if(!f.length) return '<span class="rf-band-sh">sem jogos</span>';
+  const L={v:'V',e:'E',d:'D'};
+  return `<span class="rf-forma">${f.map(x=>`<i class="${x}">${L[x]}</i>`).join('')}</span>`;
+}
+
+/* faixa do clube — o cabeçalho de TODAS as páginas */
+function rfBandHTML(titulo){
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  return `<div class="rf-band">
+    <div class="rf-band-filete"></div>
+    <div class="rf-band-crest">${rfCrest(cl,38)}</div>
+    <div class="rf-band-id">
+      <span class="rf-band-club">${escC(cl.short)}</span>
+      <span class="rf-band-sub">
+        <span class="rf-band-mgr">${escC(rfTreinadorNome())}</span>
+        <span class="rf-label-t">Treinador</span>
+        <span>·</span><span>${universeFlag()} ${escC(universeCountryName())}</span>
+        <span>·</span><span>${escC(divisionLabel())}</span>
+        <span class="rf-band-sep-data">·</span>
+        <span class="rf-band-data-inline">${rfBandDataHTML()}</span>
+      </span>
+    </div>
+    <!-- no telemovel a data sai da linha de contexto e sobe para o canto
+         direito da faixa (ver .rf-band-data-canto) -->
+    <div class="rf-band-data-canto">${rfBandDataHTML()}</div>
+    <div class="rf-band-sp"></div>
+    <div class="rf-band-stat end">
+      <span class="rf-band-sl">Em caixa</span>
+      <span class="rf-band-sv gold rf-num">${escC(fmt(S.budget||0))}</span>
+    </div>
+    <div class="rf-band-stat mid">
+      <span class="rf-band-sl">Forma</span>
+      ${rfFormaHTML()}
+    </div>
+    <!-- ===== UMA DATA SÓ NA FAIXA =====
+         Havia duas: os chips da esquerda (o dia da rodada) e este bloco, que ora mostrava
+         quanto falta para o apito ("2d 14h") ora a data do jogo. Duas datas lado a lado, uma
+         delas às vezes contagem e às vezes data, e nem sempre a falar do mesmo dia — o
+         resultado era confusão, e foi o relatado. Fica a data do DIA em que o jogo está, nos
+         chips; o quanto falta continua no cartão de Próximo jogo, na barra lateral, onde tem
+         o contexto do jogo ao lado. -->
+    ${CL.online
+      ? `<button type="button" class="rf-band-gravar" onclick="rfSincronizarSala()"
+          title="Recarrega e força a sincronia com a sala — você continua no seu assento, sem sair nem deslogar">${rfIcone('sincronizar',15)} Sincronizar sala</button>`
+      : `<button type="button" class="rf-band-gravar" onclick="rfAcGravar()"
+          title="Gravar o jogo agora">${rfIcone('salvar',15)} Gravar</button>`}
+    ${rfBandContaHTML()}
+  </div>
+  ${rfFaixaEstadoHTML()}`;
+}
+/* ===== SINCRONIZAR SALA (pedido do dono, 21/08) =====
+   Na Resenha o Gravar não faz sentido — o estado mora no servidor — e o que o
+   jogador precisa de verdade é FORÇAR a sincronia quando sente a tela velha.
+   O caminho mais limpo e completo é recarregar a página: a sala fica na URL
+   (?sala=CODE, ver resenhaRememberRoomInUrl), a sessão do Supabase persiste, e
+   a reentrada adota o estado do servidor do zero — sem sair da sala, sem
+   logout. Antes do reload, o que é DO ASSENTO (carreira, finanças) é gravado,
+   pra nada do lado local se perder no caminho. */
+function rfSincronizarSala(){
+  try{ if(typeof persistCareer==='function') persistCareer(); }catch(e){}
+  try{ if(typeof saveMyFinances==='function') saveMyFinances(); }catch(e){}
+  try{ if(typeof saveInbox==='function') saveInbox(); }catch(e){}
+  try{ if(typeof resenhaRememberRoomInUrl==='function') resenhaRememberRoomInUrl(); }catch(e){}
+  try{ if(typeof toastC==='function') toastC('Sincronizando a sala…','progress'); }catch(e){}
+  // um respiro pro persistCareer (fire-and-forget) sair do cliente antes do reload
+  setTimeout(()=>{ try{ location.reload(); }catch(e){} }, 400);
+}
+/* SAIR DA CONTA TAMBÉM AQUI DENTRO. Estava só em Configurações, a dois cliques
+   e dentro de uma aba; a decisão foi tê-lo fixo no cabeçalho de toda a tela
+   (16/ago). Na faixa do clube ele é o irmão do Gravar — e é de propósito que
+   grava antes de sair (ver rfSairContaGo). Só aparece com sessão: em hotseat
+   local não há conta de que sair. */
+/* A DATA DO JOGO NO CABECALHO, em dois chips: o dia ("27/jul") e o ano.
+   A faixa so mostrava a temporada, solta no fim da linha de contexto — quem
+   olhava sabia o ANO mas nao em que ponto dele estava, e o dia so aparecia
+   dentro do calendario. Sao dois chips e nao um texto so porque o ano e o
+   dado estavel e o dia muda a cada rodada: separados, o olho volta sempre
+   ao mesmo sitio para cada um. */
+function rfBandDataHTML(){
+  /* A DATA DA RODADA, nao o S.day cru. S.day e o INICIO da semana (1/mar na
+     rodada 0) e o jogo e no fim dela (7/mar) — o chip dizia um dia e o
+     calendario outro, para a mesma rodada. Agora os dois saem da mesma conta.
+
+     E A COMPETICAO DO DIA MANDA NA DATA. Uma rodada tem ate tres dias (dois de meio de semana
+     e o fim de semana), e datar sempre pelo dia de LIGA fazia a faixa anunciar sabado enquanto
+     a sala jogava a copa de quarta. Com o ponteiro, a data e a do dia que esta a acontecer. */
+  let dia='';
+  try{
+    const d=(typeof roomDay==='function')?roomDay():null;
+    const comp=(d && d.comp) ? d.comp : 'liga';
+    if(typeof dataCurtaDaJornada==='function') dia=dataCurtaDaJornada(S.round||0, comp);
+  }catch(e){}
+  return `${dia?`<span class="rf-band-chip rf-num">${escC(dia)}</span>`:''}
+    <span class="rf-band-chip rf-num">${escC(String(S.season||''))}</span>`;
+}
+function rfBandContaHTML(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(!st.loggedIn) return '';
+  const nome=st.name||(st.email||'').split('@')[0]||'treinador';
+  return `<button type="button" class="rf-band-conta" onclick="rfAcSairConta()"
+    title="Sair da conta de ${escC(st.email||nome)}">👤 <span class="rf-band-conta-n">${escC(nome)}</span><span class="rf-band-conta-s"> · Sair</span></button>`;
+}
+
+/* ---- FAIXA DE ESTADO — só no telefone ----
+   O pacote (Hub do Time - Mobile) põe, logo abaixo do cabeçalho azul, uma tira
+   branca com FORMA · MORAL · janela de transferências. É por isso que os cartões
+   "Moral do plantel" e "Segurança no cargo" não aparecem em nenhuma das três
+   abas do telefone: o número que importa já está aqui, e um cartão inteiro para
+   dois números seria desperdício de altura num ecrã de 375px. */
+function rfFaixaEstadoHTML(){
+  const sq=(typeof squad==='function')?squad(CL.clubId):[];
+  const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral||70),0)/sq.length):0;
+  const j=(typeof transferWindowStatus==='function')?transferWindowStatus():null;
+  let janela='';
+  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'rodada':'rodadas'}</span>`;
+  else if(j&&j.opensIn!=null) janela=`<span class="rf-fx-chip">Janela abre em ${j.opensIn}</span>`;
+  else if(j) janela=`<span class="rf-fx-chip">Janela fechada</span>`;
+  return `<div class="rf-faixa-estado">
+    <span class="rf-fx-forma"><span class="rf-fx-l">FORMA</span>${rfFormaHTML()}</span>
+    <i class="rf-fx-sep"></i>
+    <span class="rf-fx-moral">MORAL ${moral}</span>
+    ${janela?'<i class="rf-fx-sep"></i>'+janela:''}
+  </div>`;
+}
+
+/* sidebar: 216px → 62px, sete destinos, o "próximo jogo" ancorado no pé */
+function rfSidebarHTML(){
+  const st=rfState();
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  const unread=(typeof inboxUnread==='function')?inboxUnread():0;
+
+  const badgeDe=key=>{
+    if(key==='email') return unread;
+    if(key==='mercado') return rfLen(typeof myIncomingOffers==='function'&&myIncomingOffers())
+                             + rfLen(typeof myCounterOffers==='function'&&myCounterOffers());
+    if(key==='treinador') return rfLen(rfOfertas());
+    return 0;
+  };
+  const itens=RF_PAGES.map(p=>{
+    const n=badgeDe(p.key);
+    return `<button type="button" class="rf-nav-i ${st.page===p.key?'on':''}" title="${escC(p.label)}"
+      onclick="rfGo('${p.key}')">
+      <span class="rf-nav-ico" aria-hidden="true">${rfIcone(p.ico,18)}</span>
+      <span class="rf-nav-l">${escC(p.label)}</span>
+      ${n>0?`<span class="rf-nav-b">${n>9?'9+':n}</span>`:''}
+    </button>`;
+  }).join('');
+
+  /* ===== O CARTAO DO PE E SO O PATROCINADOR (pedido do dono, 20/08) =====
+     O "Próximo jogo" com o adversário saiu daqui: essa informação já mora no cartão do
+     adversário dentro do bloco Formações, e repetida aqui só disputava atenção com o
+     espaço vendável. O quadrado fica sozinho, com o rótulo "Publicidade" dele. */
+  const proximo = `<div class="rf-sb-next">${rfSbAnuncioHTML()}</div>`;
+
+  /* O INTERRUPTOR DO MENU MORA NO PÉ, embaixo do botão Jogar, e é a mesma seta
+     nos dois estados — para a direita abre, para a esquerda fecha. Já esteve no
+     topo; voltou para baixo porque é ali que ele fecha o bloco do próximo jogo,
+     e recolhido os dois viram uma coluna só: o quadrado amarelo com a bola e a
+     seta logo abaixo. */
+  const recolhida=rfSidebarCollapsed();
+
+  return `<aside class="rf-sidebar">
+    <button type="button" class="rf-sb-club" onclick="rfGo('hub')" title="Voltar à Formação">
+      <span class="rf-sb-crest">${rfCrest(cl,34)}</span>
+      <span class="rf-sb-cnames">
+        <span class="rf-sb-cname">${escC(cl.short)}</span>
+        <span class="rf-sb-cmeta">${escC(divisionLabel())} · ${escC(String(S.season||''))}</span>
+      </span>
+    </button>
+    <nav class="rf-sb-nav">${itens}</nav>
+    <div class="rf-sb-sp"></div>
+    ${proximo}
+    <div class="rf-sb-pe">
+      <button type="button" class="rf-sb-toggle" onclick="rfToggleSidebar()"
+        aria-expanded="${recolhida?'false':'true'}"
+        title="${recolhida?'Expandir menu':'Recolher menu'}">
+        ${rfIcone(recolhida?'seta-dir':'seta-esq',22)}
+        <span class="rf-sb-toggle-l">Recolher menu</span>
+      </button>
+    </div>
+  </aside>`;
+}
+/* ===== O QUADRADO DO PATROCINADOR DA BARRA LATERAL =====
+   Produto real da Moda Esporte Clube: a midia alterna em crossfade suave entre a logo (sobre
+   azul escuro) e a foto da camisa — CSS puro, duas camadas com keyframes de opacidade, nada de
+   timer. Titulo do produto abaixo da imagem e o botao Comprar com o parcelado (o "3x de" sai
+   pequeno, o valor grande). */
+/* ===== A VITRINE REVEZA OS PRODUTOS =====
+   Cada produto vive um ciclo inteiro do crossfade (logo -> camisa -> logo) e a troca acontece
+   no INICIO do ciclo, quando a logo esta opaca por cima da foto: nada de pulo visivel. Quem
+   avisa que o ciclo virou e o proprio CSS (animationiteration na face da logo) — sem timer
+   proprio, entao a troca nunca briga com o redesenho da tela (que reinicia a animacao e o
+   ciclo recomeca do zero, com a logo na frente). Titulo, preco e link trocam JUNTOS com a
+   foto: sao pecas do mesmo produto. */
+const RF_SB_PRODUTOS=[
+  { img:'img/sponsors/moda-fluminense-2004.webp',
+    titulo:'Fluminense - 2004 - Tricolor - Unimed - Adidas',
+    href:'https://modaec.com.br/produtos/fluminense-2004-tricolor-unimed-adidas-dwnu2/?utm=retrofoot-sidebar-proximo-jogo',
+    preco:'R$ 151,67' },
+  { img:'img/sponsors/moda-flamengo-1993.webp',
+    titulo:'Flamengo - 1993 - Lubrax',
+    href:'https://modaec.com.br/produtos/flamengo-1993-lubrax-4vhj0/?utm=retrofoot-sidebar-proxima-partida',
+    preco:'R$ 132,33' },
+];
+function rfSbAnuncioHTML(){
+  const p=RF_SB_PRODUTOS[(CL._sbAdIdx||0)%RF_SB_PRODUTOS.length];
+  return `<div class="rf-sb-ad">
+    <span class="rf-sb-ad-tag">Publicidade</span>
+    <div class="rf-sb-ad-media">
+      <span class="rf-sb-ad-face logo"><img src="img/sponsors/moda-esporte-logo.webp" alt="Moda Esporte Clube" loading="lazy" draggable="false"></span>
+      <span class="rf-sb-ad-face foto"><img src="${escC(p.img)}" alt="${escC(p.titulo)}" loading="lazy" draggable="false"></span>
+    </div>
+    <span class="rf-sb-ad-titulo">${escC(p.titulo)}</span>
+    <a class="rf-sb-ad-cta" href="${escC(p.href)}" target="_blank" rel="noopener sponsored">
+      <b>Comprar</b>
+      <span class="rf-sb-ad-preco"><small>3x de</small> ${escC(p.preco)}</span>
+    </a>
+  </div>`;
+}
+/* a virada de produto, escondida atras da logo (ver a nota acima) */
+if(typeof document!=='undefined') document.addEventListener('animationiteration', function(e){
+  const el=e.target;
+  if(!el || !el.classList || !el.classList.contains('rf-sb-ad-face') || !el.classList.contains('logo')) return;
+  CL._sbAdIdx=((CL._sbAdIdx||0)+1)%RF_SB_PRODUTOS.length;
+  const p=RF_SB_PRODUTOS[CL._sbAdIdx];
+  const box=el.closest('.rf-sb-ad'); if(!box) return;
+  const img=box.querySelector('.rf-sb-ad-face.foto img'); if(img){ img.src=p.img; img.alt=p.titulo; }
+  const t=box.querySelector('.rf-sb-ad-titulo'); if(t) t.textContent=p.titulo;
+  const a=box.querySelector('.rf-sb-ad-cta'); if(a) a.href=p.href;
+  const pr=box.querySelector('.rf-sb-ad-preco'); if(pr) pr.innerHTML='<small>3x de</small> '+escC(p.preco);
+});
+/* O BOTÃO JOGAR DA SIDEBAR É O MESMO BOTÃO DE SEMPRE, não um atalho novo:
+   fora da Resenha ele começa a partida (clJogar); dentro dela ele é o
+   interruptor "Pronto" — clicar de novo cancela e a sala volta a esperar
+   por mim (ver jogarBtnHTML/clCancelarPronto em main.js). Duplicar essa
+   regra aqui seria criar um segundo caminho pra virar rodada. */
+/* de quem é esta cadeira: no hotseat o envelope é o MESMO, mas quem está
+   sentado é o assento da vez — mostrar o nome do anfitrião ali seria dizer que
+   o time é dele (ver enterSeatContext) */
+function rfTreinadorNome(){
+  const seat=CL._seatContext&&CL._seatContext.seat;
+  return (seat&&seat.name)||CL.mgr||'Treinador';
+}
+function rfJogar(){
+  if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
+  /* dia sem nada em campo: o botao passa o dia (ver rfNadaParaJogar e o rotulo).
+     So no SOLO — na Resenha quem manda na rodada e o servidor, e adiantar o dia
+     por conta propria partiria a sala. La o clJogar de sempre trata do caso. */
+  if(!CL.online && rfNadaParaJogar() && typeof clAvancarDia==='function'){ clAvancarDia(); return; }
+  if(typeof clJogar==='function') clJogar();
+}
+/* SEM TÁTICA O BOTÃO NÃO FICA MORTO. Ele ficava desabilitado dizendo "Jogar",
+   e a pessoa não tinha como saber o que faltava nem para onde ir: um botão
+   apagado não ensina nada. Agora ele diz o que falta e leva ao lugar exato —
+   a Formação, rolada até o bloco de táticas.
+   Só a TÁTICA vira atalho; onze incompleto continua desabilitado, porque aí
+   não há um clique que resolva (é preciso escalar jogador por jogador). */
+/* ===== A SEMANA DA RODADA, DIA A DIA =====
+   Desde que as copas sairam de dentro da liga (fase 1 do calendario), uma
+   rodada e uma SEMANA e cada competicao tem o seu dia dentro dela -- a liga ao
+   domingo, a Copa do Brasil na quarta, a Libertadores na quinta, a
+   Sul-Americana na sexta (DIA_DA_COMPETICAO, no motor). So que nada disso
+   aparecia: o utilizador clicava "Jogar" e o dia saltava sete dias sem
+   explicacao, e nas semanas vazias o botao dizia "Avancar" sem dizer para onde.
+
+   Esta tira mostra os sete dias por baixo do botao: o dia com jogo SEU vem na
+   cor da competicao, o dia em que a competicao corre sem si vem apagado (da
+   para acompanhar), e o dia sem nada fica vazio. E o mesmo calendario que a
+   aba Campeonatos ja mostra, so que a semana em que se esta. */
+function rfSemanaDias(){
+  if(typeof S==='undefined' || !S) return [];
+  const OFF=(typeof DIA_DA_COMPETICAO!=='undefined')?DIA_DA_COMPETICAO
+    :{liga:6,copaBrasil:2,libertadores:3,sulamericana:4,_copa:3};
+  const diaDe=k=>(OFF[k]!=null?OFF[k]:OFF._copa);
+  const eventos={};
+  /* o dia so "melhora": se a liga e a copa caissem no mesmo dia, ganha o jogo
+     em que EU entro em campo -- e esse que manda no botao. */
+  const marca=(o,comp,meu)=>{ const e=eventos[o]; if(!e || (meu && !e.meu)) eventos[o]={comp,meu}; };
+  try{
+    if(((S.sched&&S.sched[S.round])||[]).length)
+      marca(OFF.liga, S.division, !!(typeof userFixture==='function' && userFixture()));
+    if(typeof pendingUserCupMatches==='function')
+      pendingUserCupMatches().forEach(p=>marca(diaDe(p.key),p.key,true));
+    if(typeof cupRoundsUserSitsOut==='function')
+      cupRoundsUserSitsOut().forEach(p=>marca(diaDe(p.key),p.key,false));
+  }catch(e){}
+  const base=1+((S.round||0)*7);
+  const out=[];
+  for(let o=0;o<7;o++){
+    let d=null;
+    try{ d=(typeof realDateForDay==='function')?realDateForDay(base+o):null; }catch(e){}
+    const ev=eventos[o]||null;
+    out.push({ off:o, data:d, comp:ev?ev.comp:null, meu:ev?ev.meu:false });
+  }
+  return out;
+}
+function rfSemanaHTML(){
+  const dias=rfSemanaDias();
+  if(!dias.length) return '';
+  const SEM=['dom','seg','ter','qua','qui','sex','sab'];
+  const temAlgo=dias.some(d=>d.comp);
+  const celulas=dias.map(d=>{
+    const info=d.comp&&typeof rfCompInfo==='function'?rfCompInfo(d.comp):null;
+    const cls=d.comp?(d.meu?'jogo':'assiste'):'vazio';
+    /* DUAS ESCRITAS DA MESMA DATA. "29/mar" nao cabe num setimo de 375px -- o
+       texto encostava nas bordas da caixa. No telemovel entra a forma numerica
+       ("29/3"); no desktop fica o mes por extenso, que se le melhor. */
+    const dia=d.data?d.data.getDate():'';
+    const rotLongo=d.data?(dia+'/'+((typeof PT_MONTHS_ABBR!=='undefined')?PT_MONTHS_ABBR[d.data.getMonth()]:'')):'';
+    const rotCurto=d.data?(dia+'/'+(d.data.getMonth()+1)):'';
+    const sem=d.data?SEM[d.data.getDay()]:'';
+    return `<span class="rf-tema rf-sem-dia ${cls}" ${info?`data-tema="${escC(info.tema)}"`:''}
+      title="${escC(info?(info.nome+(d.meu?' — seu jogo':' — sem o seu clube')):'sem jogo')}">
+      <i class="rf-sem-s">${escC(sem)}</i>
+      <b class="rf-sem-d"><span class="rf-so-desktop">${escC(rotLongo)}</span><span class="rf-so-mobile">${escC(rotCurto)}</span></b>
+      ${info?`<em class="rf-sem-c">${escC(info.curto)}</em>`:'<em class="rf-sem-c vazio">—</em>'}
+    </span>`;
+  }).join('');
+  return `<div class="rf-semana" aria-label="Os sete dias desta rodada">
+    <div class="rf-semana-l">
+      <span class="rf-label-t">Esta semana</span>
+      <span class="rf-semana-r">${temAlgo?'o dia colorido e o seu jogo':'semana sem jogos — o botao passa a semana'}</span>
+    </div>
+    <div class="rf-semana-g">${celulas}</div>
+  </div>`;
+}
+function rfFaltaTatica(){
+  if(CL.tacticChosen) return false;
+  const xi=xiPlayers(CL.clubId);
+  return xi.length>=11 && xiGKCount(xi)===1;
+}
+/* ===== DIA SEM JOGO: O BOTAO E "AVANCAR", NAO "JOGAR" =====
+   Desde que as copas deixaram de ser espremidas dentro da liga (fase 1), a
+   temporada tem rodadas genuinamente vazias: entre o fim da liga e as finais
+   das continentais ha semanas sem nada em campo. Antes o botao continuava a
+   dizer "Jogar" e nao fazia nada — o jogo parecia travado, que foi o relato.
+   Agora ele diz o que faz, e faz.
+
+   Nao ha jogo quando: a rodada nao tem partida da liga E nao ha copa para
+   jogar nem para assistir. `rfFaltaTatica` continua a mandar primeiro — sem
+   onze nao se avanca, porque a rodada seguinte pode ter jogo. */
+function rfNadaParaJogar(){
+  try{
+    if(typeof S==='undefined' || !S || !Array.isArray(S.sched)) return false;
+    if(((S.sched[S.round]||[]).length)>0) return false;          // ha jogo de liga
+    const prox=(typeof nextUserMatch==='function')?nextUserMatch():null;
+    if(prox && prox.kind==='cup') return false;                  // tenho copa hoje
+    if(typeof cupRoundsUserSitsOut==='function' && cupRoundsUserSitsOut().length) return false; // ha copa para ver
+    return true;
+  }catch(e){ return false; }
+}
+/* ===== O BOTAO TEM DE DIZER O QUE O CLIQUE FAZ =====
+   Numa rodada com mais de uma competicao, a fila de classificacoes para na tela do clube entre
+   uma e outra (ver cupClassifContinue, main.js) e o proximo "Jogar" retoma dela. Do lado de quem
+   joga isso era: clico em Jogar -> aparece a tabela da Libertadores -> volto ao elenco -> clico
+   outra vez -> aparece a tabela da Copa do Brasil -> volto -> so no terceiro clique entro em
+   campo. O botao prometia partida tres vezes e cumpriu uma.
+   O rotulo passa a olhar a MESMA fila que o clJogar consulta primeiro, e na mesma ordem: se ha
+   classificacao por ver, ele diz "Ver classificacao" -- e entao o que aparece e o que estava
+   escrito. */
+function rfClassifPendente(){
+  try{ return !!(typeof CL!=='undefined' && CL && CL._cupClassifQueue && CL._cupClassifQueue.length); }
+  catch(e){ return false; }
+}
+/* a acao do botao, para os quatro lugares que o desenham. Com classificacao pendente ele NUNCA
+   desvia para a Formacao: clJogar trata a fila antes de olhar a tatica, entao mandar o jogador
+   escolher formacao aqui seria pedir uma coisa para fazer outra. */
+function rfJogarAcao(){
+  /* o unico desvio e a Formacao: rfJogar() nao leva la, so avisa. Todo o resto e o clJogar,
+     que ja sabe o que fazer com cada degrau (ver rfProximaAcao). */
+  return (rfProximaAcao().k==='tatica') ? 'rfIrEscolherTatica()' : 'rfJogar()';
+}
+/* ===== HOJE EU SO ASSISTO =====
+   Numa rodada de copa que o meu clube nao disputa (nao entrou, foi eliminado, ou pegou bye) o
+   clique nao leva a campo nenhum: leva a ver a rodada dos outros. O botao dizia "Jogar" e abria
+   uma transmissao — a promessa nao batia com o que acontecia. */
+function rfSoAssistir(){
+  try{
+    if(typeof S==='undefined' || !S) return false;
+    /* NAO IMPORTA SE TENHO JOGO DE LIGA HOJE: o clJogar poe a rodada que eu ASSISTO antes de
+       libertar a minha partida. Cheguei a filtrar por "tenho jogo de liga" e o rotulo nunca
+       aparecia — a pergunta certa e so uma: o proximo clique leva a campo ou a arquibancada? */
+    const prox=(typeof nextUserMatch==='function')?nextUserMatch():null;
+    if(prox && prox.kind==='cup') return false;                     // tenho partida de copa hoje
+    if(typeof cupRoundsUserSitsOut!=='function') return false;
+    return cupRoundsUserSitsOut().some(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key));
+  }catch(e){ return false; }
+}
+/* =====================================================================
+   O ROTULO DESCE A MESMA ESCADA QUE O CLIQUE
+   ---------------------------------------------------------------------
+   Havia DUAS escadas de decisao para a mesma coisa: a do `clJogar` (o que
+   acontece ao clicar) e a do rotulo (o que o botao promete). Nasceram juntas e
+   foram-se afastando -- e o afastamento so aparece no fim da temporada, quando
+   a rodada tem copa, sorteio e classificacao ao mesmo tempo e a ordem passa a
+   importar. Foi o relatado: "vejo muito Ver sorteio quando seria jogar ou ver
+   classificacao".
+
+   Tres degraus faltavam ao rotulo, todos do lado da Resenha:
+     · o goleiro em falta (o clique recusa e manda escalar; o rotulo dizia Jogar);
+     · os MOMENTOS da sala -- a acertar a rodada, a escalar, a fechar a rodada.
+       Na Resenha "Jogar" durante o 'escalando' quer dizer "estou pronto", e
+       durante o 'classificacao' nao quer dizer nada;
+     · o filtro do DIA nas copas. O clique so oferece a competicao que esta em
+       campo hoje (`copaDoDia`); o rotulo oferecia a primeira da minha lista, que
+       num dia de liga podia ser outra competicao qualquer.
+
+   `rfProximaAcao()` e agora a UNICA escada: devolve o que vai mesmo acontecer,
+   na ordem exata do clJogar, e o rotulo e so a leitura dela. Quem mexer no
+   clJogar tem de mexer aqui -- e e por isso que a ordem esta numerada dos dois
+   lados. */
+function rfProximaAcao(){
+  const curto=(typeof isPhone==='function' && isPhone());
+  const R=(k,ico,txt,txtCurto)=>({k, rotulo:rfIcone(ico,16)+' '+((curto&&txtCurto)||txt)});
+  try{
+    // 1) partida a decorrer: o botao nao comeca nada por cima dela
+    if(CL.live && !CL.live.done && CL.screen==='live') return R('emcampo','jogar','Em campo');
+    // 2) fila de classificacoes de copa
+    if(rfClassifPendente()) return R('classif','lista','Ver classificação','Classificação');
+    /* RODADA SEM CAMPO NAO PEDE FORMACAO. Tatica e goleiro sao condicoes para ENTRAR EM
+       CAMPO; numa rodada em que o clube nao joga (parada, semana de finais) exigir a
+       formacao era pedir uma coisa para fazer outra — o botao dizia "Escolher formação"
+       quando o que ele ia fazer era Avançar. Os dois degraus so gateiam com jogo a vista. */
+    const semCampo = !CL.online && typeof rfNadaParaJogar==='function' && rfNadaParaJogar();
+    // 3) tatica por escolher
+    if(!semCampo && rfFaltaTatica()) return R('tatica','estrategia','Escolher formação','Formação');
+    // 4) sorteio por ver
+    if(typeof haSorteioPendente==='function' && haSorteioPendente())
+      return R('sorteio','sorteio','Ver o sorteio','Sorteio');
+    // 5) onze invalido (o clJogar recusa aqui, antes de qualquer porta da sala)
+    if(!semCampo && typeof xiGKCount==='function' && typeof xiPlayers==='function'){
+      const g=xiGKCount(xiPlayers(CL.clubId));
+      if(g!==1) return R('goleiro','estrategia', g===0?'Escalar um goleiro':'Só um goleiro','Goleiro');
+    }
+    // 6) os momentos da SALA (Resenha)
+    const dia=(typeof roomDay==='function')?roomDay():null;
+    if(dia && dia.hold) return R('espera','relogio','Acertando a rodada','Aguarde');
+    if(dia && dia.moment==='escalando'){
+      const pronto=(typeof estouPronto==='function' && estouPronto());
+      return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Quase pronto','Quase');
+    }
+    if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a rodada','Aguarde');
+    const diaDeLiga=!!(dia && dia.comp==='liga');
+    const copaDoDia=(dia && dia.comp!=='liga') ? dia.comp : null;
+    // 7) tenho partida de copa HOJE (a do dia, nao a primeira da minha lista)
+    const prox=(typeof nextUserMatch==='function')?nextUserMatch():null;
+    if(prox && prox.kind==='cup' && !diaDeLiga && (!copaDoDia || (prox.pending&&prox.pending.key)===copaDoDia))
+      return R('copa','jogar','Jogar');
+    // 8) copa de hoje que eu nao disputo: assisto
+    if(typeof cupRoundsUserSitsOut==='function'){
+      const assisto=cupRoundsUserSitsOut()
+        .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key))
+        .filter(c=>!diaDeLiga && (!copaDoDia || c.key===copaDoDia));
+      if(assisto.length) return R('assistir','camarote','Assistir à rodada','Assistir');
+    }
+    // 9) Resenha sem mais nada a cumprir: digo que estou pronto
+    if(CL.online) return R('marcarpronto','jogar','Quase pronto','Quase');
+    // 10) SOLO: rodada sem nada em campo -> passa o dia
+    if(typeof rfNadaParaJogar==='function' && rfNadaParaJogar()) return R('avancar','calendario','Avançar');
+    // 11) a rodada de liga
+    return R('jogar','jogar','Jogar');
+  }catch(e){ return R('jogar','jogar','Jogar'); }
+}
+function rfJogarLabel(){ return rfProximaAcao().rotulo; }
+/* ===== VERDE QUER DIZER "PODE ENTRAR EM CAMPO" =====
+   O botão era sempre azul, dissesse ele "Escolher formação", "Ver o sorteio" ou "Jogar" — a cor
+   não distinguia o passo que ainda falta cumprir do passo que É a partida. Verde fica reservado
+   aos dois estados em que o clique leva mesmo a jogo: entrar em campo, e o "estou pronto" da
+   Resenha já carimbado (aí a sala é que segura, não eu).
+   `pronto` é o portão de sempre: onze completo, um goleiro, tática escolhida. */
+/* ===== E O AMARELO QUER DIZER "FALTA O RESTO DA SALA" =====
+   "Estou pronto" saia verde, a par de "Jogar" — mas os dois nao valem o mesmo. Verde diz que o
+   clique entra em campo; o "quase pronto" nao entra em lado nenhum, ele CARIMBA e fica a espera
+   dos outros treinadores. Pintar os dois de verde prometia campo onde havia fila.
+   Fica no amarelo da casa (o mesmo do rodape das sobreposicoes), e o verde so aparece depois do
+   carimbo — a acao 'pronto', em que so falta a sala fechar. */
+const RF_PASSOS_DE_JOGO=['jogar','copa','pronto'];
+function rfJogarClasse(){
+  const a=rfProximaAcao();
+  const meu=(RF_PASSOS_DE_JOGO.indexOf(a.k)>=0);
+  if(!meu && a.k!=='marcarpronto') return '';
+  const xi=(typeof xiPlayers==='function')?xiPlayers(CL.clubId):[];
+  const pronto = xi.length>=11 && CL.tacticChosen && (typeof xiGKCount==='function'?xiGKCount(xi)===1:true);
+  if(!pronto) return '';
+  return meu ? 'rf-btn-pronto' : 'rf-btn-quase';
+}
+function rfIrEscolherTatica(){
+  /* No telefone o Hub tem abas, e o bloco de formações vive na aba "Formação".
+     Sem trocar de aba primeiro, o destino está com `display:none` e a rolagem
+     não tem para onde ir — o botão parecia não fazer nada. */
+  CL.hubTab='formacao';
+  CL.rolarPara='rf-taticas';   // aplicado no fim de cada desenho, em devolveRolagem
+  CL.rolarAte=Date.now()+900;  // janela: sobrevive aos redesenhos que vêm logo atrás
+  rfGo('hub');                 // a Formação é a página inicial do painel
+}
+
+
+/* =====================================================================
+   ESPAÇO DE PUBLICIDADE — com o criativo real ou com o lugar dele à vista
+   ---------------------------------------------------------------------
+   A regra antiga era "espaço sem criativo NÃO é desenhado": enquanto ninguém
+   publicasse, o espaço não existia. O efeito é que oito dos dez espaços do
+   jogo eram invisíveis — não dava para ver o inventário nem conferir se ele
+   cabe no desenho. Agora o espaço aparece SEMPRE: com a arte quando há
+   criativo publicado, e com o marcador do formato quando não há.
+   `formato` é só rótulo (o tamanho vem do CSS da classe), e serve para quem
+   está a montar a campanha saber o que aquele lugar pede.
+   ===================================================================== */
+function rfAdEspaco(chave, opts){
+  opts=opts||{};
+  const real=window.ADS?ADS.html(chave,{cls:opts.cls||''}):'';
+  if(real) return real;
+  /* CRIATIVO DE CASA: um patrocinador fixo pode ocupar o espaco enquanto o painel nao publica
+     nada naquela chave — o criativo do painel continua a mandar quando existe. */
+  if(opts.padrao) return `<a class="rf-ad-fixo ${opts.cls||''}" href="${escC(opts.padrao.href)}"
+      target="_blank" rel="noopener sponsored" data-ad-fixo="${escC(chave)}">
+      <img src="${escC(opts.padrao.img)}" alt="${escC(opts.padrao.alt||'Publicidade')}" loading="lazy" draggable="false">
+    </a>`;
+  return `<div class="rf-adph ${opts.cls||''}" data-ad-vazio="${escC(chave)}">
+    <span class="rf-adph-l">Publicidade</span>
+    ${opts.formato?`<span class="rf-adph-f">${escC(opts.formato)}</span>`:''}
+  </div>`;
+}
+/* trilhos de publicidade — ficam FORA da coluna de conteúdo e somem antes dela */
+function rfRail(lado){
+  return `<div data-ad-rail="${lado}">${rfAdEspaco('rf98.rail.'+lado,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
+}
+/* =====================================================================
+   IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta
+   ---------------------------------------------------------------------
+   A tela não dizia QUAL competição estava a rolar: oito jogos a correr e
+   o cabeçalho a dizer só "Rodada ao vivo". Agora o troféu real abre a
+   faixa, o nome vem por extenso e a paleta muda POR COMPETIÇÃO — nunca
+   por clube. As ligas nacionais ficam com o azul e o amarelo da marca
+   (vale para o Brasil, a Argentina ou Portugal); só as copas ganham cor
+   própria, e nelas todo controlo sobre o cabeçalho vira pílula branca
+   sólida, porque branco translúcido sobre dourado dá 3,3:1 e um controlo
+   precisa de 4,5:1.
+   ===================================================================== */
+const RF_COMP_TEMA={copaBrasil:'copa',libertadores:'liberta',sulamericana:'sula',
+  championsLeague:'liberta',europaLeague:'sula'};
+/* O TROFÉU AQUI VEM DO ARQUIVO, NÃO DO TROPHIES. A arte embutida em
+   data/trophies.js é achatada — fundo preto na Série A e na Libertadores,
+   branco na Série D — e por cima do degradê do cabeçalho ela aparecia como
+   um quadrado. Os .webp de public/img/trofeus/ têm alfa e recortam. */
+const RF_COMP_TROFEU={A:'serie-a',B:'serie-b',C:'serie-c',D:'serie-d',
+  copaBrasil:'copa-do-brasil',libertadores:'libertadores',sulamericana:'sul-americana',
+  championsLeague:'champions',europaLeague:'europa-league'};
+
+function rfCompInfo(d){
+  const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
+  if(comp) return {id:d,copa:true,tema:RF_COMP_TEMA[d]||'liga',trofeu:RF_COMP_TROFEU[d]||'',
+    nome:comp.name||comp.short||String(d), curto:comp.short||comp.name||String(d)};
+  const nome=(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  return {id:d,copa:false,tema:'liga',trofeu:RF_COMP_TROFEU[d]||'', nome, curto:nome};
+}
+/* TROFÉU É ARTE REAL (public/img/trofeus). Onde a arte daquela competição
+   não existe — as ligas de fora do Brasil, por exemplo — o espaço fica
+   vazio, nunca um emoji nem o escudo de um clube. */
+function rfCompTrofeuHTML(info,size){
+  size=size||44;
+  if(!info||!info.trofeu) return '';
+  return `<span class="rf-comp-trofeu" style="--s:${size}px"
+    ><img src="img/trofeus/${escC(info.trofeu)}.webp" alt="" draggable="false"></span>`;
+}
+/* O ATRIBUTO DE TEMA, pronto a colar na raiz de qualquer tela de competicao.
+   E o que da consistencia: a mesma competicao tem a mesma cor na rodada ao
+   vivo, no Camarote, no cartao dos Campeonatos, na classificacao, no palco de
+   fim de fase e nos avisos dela. */
+/* pastilha da competicao: trofeu + nome, na tinta clara do tema dela. Serve de
+   assinatura em qualquer tabela, aviso ou dialogo que fale de UMA competicao. */
+function rfCompTagHTML(d,rotulo){
+  const info=rfCompInfo(d);
+  return `<span class="rf-tema rf-comp-tag" data-tema="${escC(info.tema)}">
+    ${rfCompTrofeuHTML(info,20)}
+    <span class="rf-comp-tag-n">${escC(rotulo||info.nome)}</span></span>`;
+}
+function rfCompTema(d){ return `rf-tema" data-tema="${escC(rfCompInfo(d).tema)}`; }
+/* idem, mas para quem monta o atributo a mao: devolve so o nome do tema */
+function rfCompTemaDe(d){ return rfCompInfo(d).tema; }
+
+/* quantos clubes tem aquela divisão, pela configuração do universo do save */
+function rfCompTamanho(d){
+  const k=(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:null;
+  const cfg=(typeof UNI_CONFIGS!=='undefined'&&k)?UNI_CONFIGS[k]:null;
+  const n=cfg&&cfg.size&&cfg.size[d];
+  return n?(n+' clubes'):'';
+}
+/* a fase corrente de uma copa, do mesmo sítio de onde a tela Campeonatos a lê */
+function rfCompFase(info){
+  const c=(typeof S!=='undefined'&&S.cups)?S.cups[info.id]:null;
+  return (c&&typeof cupCompetitionRoundLabel==='function')?cupCompetitionRoundLabel(c,info.id):'';
+}
+/* a linha por baixo do nome: onde a competição está agora */
+/* O DIA DAQUELA COMPETICAO, e nao so a fase. Cada competicao tem o seu dia
+   dentro da rodada (DIA_DA_COMPETICAO, no motor): a liga ao sabado, a Copa do
+   Brasil na quarta, a Libertadores na quinta, a Sul-Americana na sexta. Sem a
+   data na faixa, ver a rodada da copa e logo a seguir a da liga parecia tudo no
+   mesmo dia -- e e essa a pergunta que a tela tem de responder sozinha. */
+function rfCompDia(info){
+  if(typeof dataCurtaDaJornada!=='function' || typeof S==='undefined' || !S) return '';
+  try{ return dataCurtaDaJornada(S.round||0, info.copa?info.id:null)||''; }catch(e){ return ''; }
+}
+function rfCompLinha(info,RL){
+  RL=RL||CL.live||{};
+  const temporada=(typeof S!=='undefined'&&S.season)?String(S.season):'';
+  const dia=rfCompDia(info);
+  if(info.copa) return [dia,rfCompFase(info),temporada].filter(Boolean).join(' · ');
+  const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
+  return [dia,jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
+}
+/* o segundo andar da pastilha do trilho */
+function rfCompMeta(info){
+  return info.copa?rfCompFase(info):rfCompTamanho(info.id);
+}
+
+function rfTopAd(){
+  /* o banner da Moda Esporte Clube e o criativo de casa do topo (pedido do dono, 20/08) —
+     arte recomposta em 970×90 a partir da pecas do patrocinador (img/sponsors) */
+  return rfAdEspaco('rf98.top.970x90',{cls:'rf-ad-top',formato:'970×90',
+    padrao:{ img:'img/sponsors/moda-banner-970x90.webp',
+      href:'https://modaec.com.br/?utm=retrofoot-banner-topo',
+      alt:'Moda Esporte Clube — cada camisa conta uma história' }});
+}
+
+/* O ENVELOPE — painel, não cápsula.
+   Antes isto era uma mesa que CENTRAVA um envelope de `width:max-content`,
+   ladeado por dois trilhos de anúncio. Três coisas saíam erradas disso:
+   a área logada deixava vazio metade de um monitor largo; o banner do topo
+   (970px fixos, centrado na mesa) não alinhava com nada — nem com a faixa do
+   clube, que é a barra logo abaixo dele; e a sidebar era um cartão flutuando
+   com 18px de respiro em volta, em vez de a coluna de navegação da página.
+   Agora é o desenho de painel: sidebar colada à borda esquerda ocupando a
+   altura toda, miolo com o resto da largura e rolagem PRÓPRIA (a página não
+   rola, o miolo rola), e o banner como primeiro bloco da coluna de conteúdo —
+   mesma caixa da faixa do clube, que era o pedido.
+   Os trilhos laterais saíram: a publicidade da área logada passa a morar
+   dentro da página. */
+/* ===== A ANCORA FIXA SAIU DO JOGO (18/08/2026) =====
+   Era a unica peca de publicidade `position:fixed` — uma barra presa ao fundo da janela, por
+   cima do conteudo, em todas as paginas. Comia a base da tela justamente onde ficam as acoes
+   (o cartao do proximo jogo, a barra de abas do telefone) e acompanhava o jogador o tempo todo,
+   em vez de aparecer no lugar dela.
+
+   Fica como funcao vazia, e nao apagada, porque `rfEnvelope` e `anchorAdHTML` (main.js) sao os
+   dois pontos por onde ela entrava: se voltar algum dia, volta por aqui, com a decisao num
+   lugar so. Os outros espacos de publicidade continuam todos — o que saiu foi a barra fixa.
+   O espaco `rf98.anchor.bottom` continua descrito no media kit (docs/media-kit) e no painel:
+   quem vende precisa saber que ele deixou de existir. */
+function rfAncoraHTML(){ return ''; }
+function rfEnvelope(conteudo){
+  return `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
+    ${rfSidebarHTML()}
+    <main class="rf-main">
+      <div class="rf-content">
+        ${rfTopAd()}
+        ${conteudo}
+      </div>
+    </main>
+    ${rfBottomNavHTML()}
+    ${rfAncoraHTML()}
+    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
+  </div>`;
+}
+
+/* ----- Barra de abas: as pastilhas moram DENTRO de um card branco -----
+   (referência: card de raio 16 com 6px de respiro, pastilha de raio 11 e
+   14px de padding; a ativa é azul cheia com texto branco). A barra rola na
+   horizontal quando não cabe, em vez de quebrar em duas linhas. */
+function rfTabsHTML(def){
+  const tabs=rfTabs(def); if(tabs.length<2) return '';
+  const at=rfActiveTab(def);
+  return `<div class="rf-tabbar">${tabs.map(t=>
+    `<button type="button" class="rf-tabp ${at&&at.k===t.k?'on':''}"
+      onclick="rfSetTab('${def.key}','${t.k}')">${escC(rfTabLabel(t))}</button>`).join('')}</div>`;
+}
+
+/* ----- Cabeçalho de página: título de 26px, subtítulo e pílula de status.
+   A faixa do clube (gradiente) NÃO aparece aqui — ela existe só no Hub. ----- */
+function rfPageHeadHTML(def){
+  const sub = typeof def.sub==='function' ? def.sub() : def.sub;
+  const pill = typeof def.pill==='function' ? def.pill() : null;
+  /* AÇÕES DA PÁGINA: quando a tela do pacote desenha botões no canto
+     superior direito (Mercado tem "Exportar lista" e "Buscar jogador"),
+     eles substituem a pílula de estado — não convivem com ela. */
+  const acoes = typeof def.acoes==='function' ? def.acoes() : null;
+  return `<div class="rf-pagehead">
+    <div class="rf-pagehead-top">
+      <div class="rf-pagehead-id">
+        <span class="rf-pagehead-t">${escC(def.titulo||def.label)}</span>
+        ${sub?`<span class="rf-pagehead-s">${escC(sub)}</span>`:''}
+      </div>
+      ${acoes||(pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:'')}
+    </div>
+    ${rfTabsHTML(def)}
+  </div>`;
+}
+
+/* =====================================================================
+   O HUB — a tela principal, e o padrão de envelope de todas as outras.
+   Coluna esquerda 530px: elenco, moral/segurança, classificação.
+   Coluna direita: campo (470×585 FIXOS), formações, destaques, adversário.
+   ===================================================================== */
+function rfHubHTML(){
+  const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+  const oppId=nm?nm.oppId:null;
+  const xi=xiPlayers(CL.clubId);
+  const sq=squad(CL.clubId);
+  const moral=Math.round(sq.reduce((s,p)=>s+(p.moral||70),0)/Math.max(1,sq.length));
+
+  const esquerda=`
+    <div class="rf-card rf-card-flat" data-hub="elenco">
+      <div class="rf-card-hd">
+        <span class="rf-label-t">Elenco</span>
+        <span class="rf-label-r">${sq.length} jogadores · <b>${xi.length}</b> titulares</span>
+      </div>
+      ${rfSquadTableHTML('hub')}
+    </div>
+    <div class="rf-duo" data-hub="indicadores">
+      ${rfMedidorHTML('Moral do plantel', moral, rfFormaHTML()||'sem jogos',
+        'var(--brand-primary)', moralTipText())}
+      ${rfSegurancaHTML()}
+    </div>
+    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
+  /* O RETANGULO 300x250 SAIU DA FORMACAO, no telefone e no computador. Esta e a tela de
+     trabalho do treinador — escalar o time e escolher o esquema —, e o quadrado ficava logo
+     abaixo da tabela, no caminho de quem esta a decidir. Os outros espacos do inventario
+     continuam onde estavam; e este lugar que nao servia. */
+
+  const direita=`
+    <!-- AS FORMACOES VEM ANTES DO CAMPO. Trocar de esquema e a decisao mais
+         frequente desta tela, e era a que ficava mais longe: com o campo em
+         cima, era preciso rolar por baixo dele para chegar as taticas. O campo
+         e para VER o resultado da escolha — vem depois dela. -->
+    <!-- O ADVERSARIO E O BOTAO PRINCIPAL DE AVANCO, E MORA AQUI (pedido do dono, 20/08).
+         O cartao escuro do adversario — com a mini-tabela e o Jogar/Quase pronto — vive na
+         COLUNA DIREITA do bloco Formacoes (invertido a 20/08: as taticas primeiro, que sao
+         a decisao; o proximo jogo ao lado), com o "Seleccionar descansados" abaixo das
+         taticas. O Jogar duplicado que vivia na linha das acoes sai: o botao do cartao e o
+         principal, e a barra do telefone mantem o dela. -->
+    <div class="rf-card" id="rf-taticas" data-hub="formacoes">
+      <span class="rf-label-t">Formações</span>
+      <div class="rf-form-duas">
+        <div class="rf-form-tat">
+          ${rfFormacoesHTML()}
+          <div class="rf-acts">
+            ${btn('Seleccionar descansados','clSelectRested()',{icon:rfIcone('energia',16)+'',dis:!CL.tacticChosen,
+              title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
+          </div>
+        </div>
+        <div class="rf-form-adv">${rfAdversarioCardHTML()}</div>
+      </div>
+      ${rfSemanaHTML()}
+    </div>
+    <div class="rf-card rf-pitch-card" data-hub="campo">
+      <div class="rf-card-hd">
+        <span class="rf-label-t">Tática ${escC(CL.formation||'—')}</span>
+        <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · titulares marcados com T na lista</span></span>
+        <button type="button" class="rf-campo-ampliar" title="Ver o campo em tela cheia"
+          aria-label="Ver o campo em tela cheia" onclick="rfCampoAmpliar()">${rfIcone('expandir',16)}</button>
+      </div>
+      ${rfCampoAmpliado()
+        ? `<div class="rf-campo-cedido">
+             <span class="rf-campo-cedido-t">O campo está em tela cheia</span>
+             <button type="button" class="rf-btn rf-btn-secondary" onclick="rfCampoFechar()">Trazer de volta</button>
+           </div>`
+        : pitchHTML()}
+    </div>
+    <div class="rf-hub-baixo" data-hub="destaques">
+      ${rfNotasHTML()}
+    </div>`;
+
+  /* NO TELEFONE O HUB TEM ABAS — Formação · Elenco · Jogo (ver os três mobiles do
+     pacote). Não é a mesma página rolando: cada aba mostra o seu conteúdo e o
+     resto não existe na tela. No desktop a barra não aparece e as duas colunas
+     seguem inteiras, que é o desenho de lá. */
+  return `${rfBandHTML('Formação')}
+    ${rfHubAbasHTML()}
+    <div class="rf-cols" data-hubtab="${escC(rfHubTab())}">
+      <div class="rf-col">${esquerda}</div>
+      <div class="rf-col">${direita}</div>
+    </div>`;
+}
+/* ---- as abas do Hub no telefone ---- */
+const RF_HUB_ABAS=[['formacao','Formação'],['elenco','Elenco'],['jogo','Jogo']];
+function rfHubTab(){
+  const t=CL.hubTab;
+  return RF_HUB_ABAS.some(a=>a[0]===t)?t:'formacao';
+}
+function rfHubIrAba(k){ CL.hubTab=k; cdraw(); }
+function rfHubAbasHTML(){
+  const at=rfHubTab();
+  return `<div class="rf-hub-abas">${RF_HUB_ABAS.map(([k,l])=>
+    `<button type="button" class="rf-hub-aba ${k===at?'on':''}" onclick="rfHubIrAba('${k}')">${escC(l)}</button>`
+  ).join('')}</div>`;
+}
+
+/* as oito pastilhas de formação (seis + Auto + Melhores), com o atalho embaixo */
+function rfFormacoesHTML(){
+  const opts=Object.keys(FORMATIONS).map(f=>({sel:!CL.xiModo&&CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f]}))
+    .concat([
+      {sel:CL.xiModo==='auto', on:"clSelFormation('auto');cdraw()", l:'Auto', h:'A', t:'Escalação automática'},
+      {sel:CL.xiModo==='best', on:"clSelFormation('best');cdraw()", l:'11+', h:'Melhores', t:'O melhor de cada posição'},
+    ]);
+  return `<div class="rf-formgrid">${opts.map(o=>
+    `<button type="button" class="rf-chip rf-chip-hint ${o.sel?'on':''}" title="${escC(o.t)}" onclick="${o.on}">
+      <span class="rf-chip-l">${escC(o.l)}</span><span class="rf-chip-h">${escC(o.h)}</span>
+    </button>`).join('')}</div>`;
+}
+
+/* classificação compacta da coluna esquerda, com as competições como chips */
+/* =====================================================================
+   MEDIDORES E CLASSIFICAÇÃO DO HUB  (pacote "Hub do time v2")
+   Os dois medidores são a mesma peça: rótulo, o número grande em mono
+   à esquerda e a leitura em texto à direita, na MESMA linha de base, e
+   a barra de 8px embaixo. Antes eram dois desenhos diferentes — a moral
+   com o número solto e a segurança ainda com a barra do jogo antigo.
+   ===================================================================== */
+function rfMedidorHTML(rotulo, valor, leitura, cor, dica){
+  const v=Math.max(0,Math.min(100,Math.round(valor)));
+  return `<div class="rf-card rf-medidor">
+    <span class="rf-label-t"${dica?` title="${escC(dica)}"`:''}>${escC(rotulo)}</span>
+    <div class="rf-med-l">
+      <span class="rf-med-v rf-num">${v}</span>
+      <span class="rf-med-t">${leitura}</span>
+    </div>
+    <div class="rf-med-bar"><i style="width:${v}%;background:${cor}"></i></div>
+  </div>`;
+}
+function rfSegurancaHTML(){
+  const js=Math.round(S.jobSecurity!=null?S.jobSecurity:60);
+  const leitura = js>=70?'direção confiante' : js>=40?'direção neutra'
+                : js>=16?'direção impaciente' : 'cargo em risco';
+  const cor = js>=70?'var(--ok)' : js>=40?'var(--brand-secondary,#F2B90C)' : 'var(--danger)';
+  const dica=(typeof jobSecurityTipText==='function')
+    ? jobSecurityTipText(js, leitura) : '';
+  return rfMedidorHTML('Segurança no cargo', js, escC(leitura), cor, dica);
+}
+
+/* ----- Classificação com os CHIPS das competições -----
+   O bloco mostra uma competição por vez e os chips trocam entre elas.
+   Só entram competições que o clube DISPUTA neste save: a liga sempre, e
+   cada copa que existe em S.cups e não foi desligada no compToggle. Nada
+   de chip decorativo pra torneio que o motor não simula. */
+function rfHubComps(){
+  const out=[{key:'liga', rot:divisionLabel()}];
+  ((typeof allCupKeys==='function')?allCupKeys():[]).forEach(k=>{
+    if(S.compToggle && S.compToggle[k]===false) return;
+    if(!(S.cups&&S.cups[k])) return;
+    const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
+    out.push({key:k, rot:def.short||def.name||k});
+  });
+  return out;
+}
+function rfSetHubComp(k){ CL.hubComp=k; cdraw(); }
+function rfClassifHTML(){
+  const comps=rfHubComps();
+  const atual = comps.find(c=>c.key===CL.hubComp) || comps[0];
+  /* AS PASTILHAS GUARDAM A COR DA SUA COMPETICAO, como o trilho da rodada ao
+     vivo: ve-se de relance que uma e a Libertadores e a outra a Copa do Brasil
+     mesmo antes de ler o rotulo. E a tabela em baixo diz de qual e. */
+  const chaveDe=k=>k==='liga'?S.division:k;
+  const chips = comps.length>1 ? `<div class="rf-comp-chips">${comps.map(c=>
+    `<button type="button" class="rf-tema rf-comp-chip ${c.key===atual.key?'on':''}"
+      data-tema="${escC(rfCompTemaDe(chaveDe(c.key)))}"
+      onclick="rfSetHubComp('${escC(c.key)}')">${escC(c.rot)}</button>`).join('')}</div>` : '';
+  const corpo = atual.key==='liga' ? rfClassifLigaHTML() : rfClassifCopaHTML(atual.key);
+  return `<div class="rf-cl-hd">
+      <span class="rf-label-t">${rfCompTagHTML(chaveDe(atual.key), atual.rot)}</span>
+      <span class="rf-label-r">${corpo.meta}</span>
+    </div>
+    ${chips}
+    ${corpo.html}
+    <div class="rf-cl-fill"></div>
+    <button type="button" class="rf-cl-ver" onclick="rfGo('campeonatos')">Ver tabela completa</button>`;
+}
+function rfClTabelaHTML(linhas){
+  return `<div class="rf-tb-head"><span></span><span></span><span>J</span><span>V</span>
+      <span>E</span><span>D</span><span>GM:GS</span><span>P</span></div>
+    <div class="rf-tb-list">${linhas}</div>`;
+}
+function rfClassifLigaHTML(){
+  const ids=Object.keys(S.table||{});
+  if(!ids.length) return {meta:'a começar',
+    html:'<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>'};
+  const rows=ids.map(id=>({id,t:S.table[id]}))
+    .sort((a,b)=>(b.t.Pts-a.t.Pts)||((b.t.GF-b.t.GA)-(a.t.GF-a.t.GA))||(b.t.GF-a.t.GF));
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
+  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  const minha=rows.findIndex(r=>r.id===CL.clubId)+1;
+  const linhas=rows.map((r,i)=>{
+    const z = (promo&&i<promo)?'promo' : (releg&&i>=rows.length-releg)?'drop' : '';
+    const c=anyClubOf(r.id)||{short:r.id};
+    return `<div class="rf-tb-row rf-clicavel ${r.id===CL.clubId?'me':''}"${rfClubeClique(r.id)}>
+      <span class="rf-tb-pos"><i class="rf-zona ${z}"></i><b>${i+1}</b></span>
+      <span class="rf-tb-n">${escC(c.short||r.id)}</span>
+      <span class="rf-tb-x">${r.t.P}</span><span class="rf-tb-x">${r.t.W}</span>
+      <span class="rf-tb-x">${r.t.D}</span><span class="rf-tb-x">${r.t.L}</span>
+      <span class="rf-tb-x">${r.t.GF}:${r.t.GA}</span>
+      <span class="rf-tb-p">${r.t.Pts}</span>
+    </div>`;
+  }).join('');
+  return {meta: minha? minha+'º de '+rows.length : rows.length+' equipas',
+    html: rfClTabelaHTML(linhas)};
+}
+/* Copa tem DOIS formatos e eles não se parecem: a fase de grupos é uma
+   tabela de verdade (do meu grupo), o mata-mata é a escada de fases. As
+   duas usam a mesma grelha da liga — no mata-mata as colunas que não
+   existem (J V E D) ficam em travessão, como no desenho. */
+function rfClassifCopaHTML(key){
+  const c=(S.cups&&S.cups[key])||{};
+  const meta=(typeof cupCompetitionRoundLabel==='function'&&cupCompetitionRoundLabel(c,key))||'—';
+  const gobj=(c.group&&c.group.groups)||null;
+  if(gobj && !c.bracket){
+    const letras=Object.keys(gobj).sort();
+    const L=letras.find(x=>(gobj[x].teams||[]).includes(CL.clubId));
+    const tab=L?gobj[L]:null;
+    if(!tab) return {meta:'não disputa',
+      html:'<div class="rf-empty">O clube não está na fase de grupos desta competição.</div>'};
+    const ord=Object.values(tab.table||{})
+      .sort((a,b)=>(b.Pts-a.Pts)||((b.GF-b.GA)-(a.GF-a.GA))||(b.GF-a.GF));
+    const linhas=ord.map((t,i)=>{
+      const cl=anyClubOf(t.id)||{short:t.id};
+      return `<div class="rf-tb-row rf-clicavel ${t.id===CL.clubId?'me':''}"${rfClubeClique(t.id)}>
+        <span class="rf-tb-pos"><i class="rf-zona ${i<2?'promo':''}"></i><b>${i+1}</b></span>
+        <span class="rf-tb-n">${escC(cl.short||t.id)}</span>
+        <span class="rf-tb-x">${t.P}</span><span class="rf-tb-x">${t.W}</span>
+        <span class="rf-tb-x">${t.D}</span><span class="rf-tb-x">${t.L}</span>
+        <span class="rf-tb-x">${t.GF}:${t.GA}</span>
+        <span class="rf-tb-p">${t.Pts}</span>
+      </div>`;
+    }).join('');
+    return {meta:'grupo '+L, html:rfClTabelaHTML(linhas)};
+  }
+  const br=c.bracket;
+  if(!br) return {meta, html:'<div class="rf-empty">A chave ainda não foi sorteada.</div>'};
+  const fases=[];
+  (br.history||[]).forEach(h=>(h.ties||[]).forEach(t=>{
+    if(t.h!==CL.clubId && t.a!==CL.clubId) return;
+    const casa=t.h===CL.clubId, adv=anyClubOf(casa?t.a:t.h)||{short:'—'};
+    fases.push({f:cupPhaseLabel(h.round,br.roundsTotal), adv:adv.short||'—',
+      pl:(t.hg!=null&&t.ag!=null)?((casa?t.hg:t.ag)+':'+(casa?t.ag:t.hg)):'—',
+      ok:t.winner?(t.winner===CL.clubId?'promo':'drop'):''});
+  }));
+  (br.ties||[]).forEach(t=>{
+    if(t.h!==CL.clubId && t.a!==CL.clubId) return;
+    const casa=t.h===CL.clubId, adv=anyClubOf(casa?t.a:t.h)||{short:'—'};
+    fases.push({f:cupPhaseLabel(br.round,br.roundsTotal), adv:adv.short||'—', pl:'—', ok:''});
+  });
+  if(!fases.length) return {meta, html:'<div class="rf-empty">O clube não está nesta chave.</div>'};
+  const linhas=fases.map(x=>`<div class="rf-tb-row">
+      <span class="rf-tb-pos"><i class="rf-zona ${x.ok}"></i><b>${escC(x.f.replace(/[^0-9A-Za-zªº]/g,'').slice(0,5))}</b></span>
+      <span class="rf-tb-n">${escC(x.adv)}</span>
+      <span class="rf-tb-x">—</span><span class="rf-tb-x">—</span>
+      <span class="rf-tb-x">—</span><span class="rf-tb-x">—</span>
+      <span class="rf-tb-x">${escC(x.pl)}</span>
+      <span class="rf-tb-p">—</span>
+    </div>`).join('');
+  return {meta, html:rfClTabelaHTML(linhas)};
+}
+
+/* ----- Mercado ▸ Vender -----
+   clSell() é a exceção do grupo: ela não abre modal nenhum. O que ela faz é
+   ligar CL.rightMode='vender' e mandar redesenhar, porque a tela de venda
+   sempre morou DENTRO do painel do jogador. Capturar overlayC aqui não pega
+   nada (não há overlay), então a aba liga o mesmo modo na mão e desenha o
+   mesmo painel — sem duplicar a tela de venda em lugar nenhum.
+   Sem jogador seleccionado não há o que vender: a aba diz isso em vez de
+   abrir um formulário vazio. */
+function rfVenderHTML(){
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer);
+  if(!p) return `<div class="rf-empty">Selecciona um jogador no elenco primeiro.<br>
+    <small>A venda acontece sobre o jogador escolhido na lista da <b>Formação</b>.</small></div>`;
+  if(typeof canNegotiate==='function' && !canNegotiate())
+    return `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`;
+  CL.tab='jogador'; CL.rightMode='vender'; if(CL.sellPrice==null) CL.sellPrice='';
+  return panJogador();
+}
+
+/* aba Modo Resenha dentro de Clube & Sistema */
+function rfResenhaHTML(){
+  if(!CL.online) return `<div class="rf-empty">Você está no <b>Modo Solo</b>.<br>
+    <small>O Modo Resenha é o campeonato com a sua turma, na mesma rodada.</small></div>`;
+  const acts=[];
+  if(typeof NET!=='undefined' && NET.isHost){
+    const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0;
+    acts.push(btn('Aprovar entradas'+(nr?' ('+nr+')':''),'clJoinRequestsPanel()'));
+  }
+  acts.push(btn('Sincronizar com a sala','clSyncResenha()'));
+  acts.push(btn('Chamar pra Resenha','clInviteResenha()',{cls:'cl-btn-ok'}));
+  return `<div class="rf-acts">${acts.join('')}</div>`;
+}
+
+/* =====================================================================
+   O ROTEADOR — o que cdraw() chama no lugar de scMain()
+   ===================================================================== */
+/* ===== A PONTE DAS ABAS ANTIGAS =====
+   Vinte lugares do jogo dizem "volta pra tela principal mostrando X" com
+   `CL.tab='jogador'` / `'financas'` / `'correio'` — o vocabulário da barra de
+   abas que não existe mais. Reescrever os vinte seria churn e deixaria o
+   próximo `CL.tab=` que alguém escrever apontando pro vazio. Em vez disso o
+   roteador ENTENDE o vocabulário antigo: quando CL.tab muda, ele leva pra
+   página equivalente.
+
+   Só age na MUDANÇA. Se agisse a cada desenho, o usuário não conseguiria
+   navegar: qualquer clique na sidebar seria desfeito no render seguinte,
+   porque CL.tab continuaria com o último valor escrito. */
+const RF_TAB_LEGADA={
+  jogador:  ['elenco','ficha'],
+  financas: ['financas','caixa'],
+  correio:  ['clube','email'],
+  seleccao: ['hub',null],
+  jogo:     ['hub',null],
+  elenco:   ['hub',null],
+  equipa:   ['hub',null],
+  adversario:['hub',null],
+};
+function rfSyncFromLegacyTab(){
+  const st=rfState();
+  if(CL.tab===st._ultimaTab) return;      // ninguém pediu nada de novo
+  st._ultimaTab=CL.tab;
+  const alvo=RF_TAB_LEGADA[CL.tab]; if(!alvo) return;
+  st.page=alvo[0];
+  if(alvo[1]) st.tab[alvo[0]]=alvo[1];
+}
+function rfScreenHTML(){
+  const st=rfState();
+  rfSyncFromLegacyTab();
+  const def=rfPageDef(st.page);
+
+  // O HUB é a única página com faixa do clube e com a grade 530px + campo.
+  if(def.key==='hub') return rfEnvelope(rfHubHTML())+rfCampoTeatroHTML();
+
+  const at=rfActiveTab(def);
+  let corpo='<div class="rf-empty">Nada a mostrar aqui agora.</div>';
+  const monta = at ? at.build : def.resumo;
+  /* ===== FILTRO POR TEMPORADA (Campeonatos e Treinador) =====
+     Ponto unico onde o conteudo de qualquer aba e montado — as barras de temporada entram aqui
+     para nao ter de ser repetidas nas onze abas das duas paginas. Com uma temporada passada
+     escolhida, a pagina mostra o ARQUIVO daquele ano (o que ficou gravado no fecho) em vez do
+     estado de agora. */
+  /* ESCOLHER UM ANO NAO SAI DA PAGINA. Antes isto devolvia SO a barra de temporadas e um
+     resumo do arquivo -- sem cabecalho e sem abas --, entao carregar em "2026" era perder de
+     vista a propria pagina. Agora a pagina segue igual e o que muda e o CONTEUDO da aba, que
+     passa a ser o daquele ano (ver rfTemporadaAbaHTML). Aba sem registo por temporada diz isso
+     dentro dela mesma. */
+  /* Perfil e Ofertas não têm tempo (regra do dono): nessas abas o ano escolhido nem se aplica —
+     elas mostram SEMPRE o agora, e a barra de temporadas não aparece (ver rfTemporadaChipsHTML) */
+  const abaSemTempo = def.key==='treinador' && at && (at.k==='perfil'||at.k==='ofertas');
+  const anoSel=(!abaSemTempo && RF_TEMPORADA_PAGS.indexOf(def.key)>=0)?rfTemporadaSel(def.key):null;
+  if(anoSel!=null){
+    try{ corpo = rfTemporadaAbaHTML(def.key, at?at.k:'', anoSel) || rfTemporadaSemArquivoHTML(anoSel); }
+    catch(e){
+      console.warn('[rf26] arquivo da temporada falhou:', def.key+'/'+(at?at.k:'')+'/'+anoSel, e);
+      corpo=`<div class="rf-empty">Não foi possível abrir o arquivo de ${escC(String(anoSel))}.</div>`;
+    }
+  }
+  else if(monta){
+    try{ corpo = monta(); }
+    catch(e){
+      console.warn('[rf26] página falhou:', def.key+'/'+(at?at.k:'resumo'), e);
+      corpo=`<div class="rf-empty">Não foi possível carregar esta secção.<br><small>${escC(e.message||'')}</small></div>`;
+    }
+  }
+  // `corpo` pode devolver as duas colunas já montadas (quando a aba foi
+  // refeita pela referência) ou um bloco só (quando ainda é conteúdo
+  // herdado). Nos dois casos a grade da página é a mesma — quem monta é
+  // rfCols(), com a proporção que aquela tela declara.
+  // Uma aba pode devolver: (a) só um bloco — vira painel de largura cheia;
+  // (b) duas colunas marcadas com data-rf-col — vão pra grade da página;
+  // (c) uma FAIXA (data-rf-top, os KPIs de Finanças) seguida das colunas —
+  // a faixa fica ACIMA da grade, atravessando as duas colunas.
+  const s=String(corpo);
+  const iCol=s.indexOf('data-rf-col');
+  if(iCol<0) return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key, at?at.k:'')}${rfCompChipsDaPagina(def.key)}
+    <div class="rf-tabpane" data-tab="${at?at.k:''}">${s}</div>`);
+  // tudo que vem antes do primeiro <div class="rf-pagecol"> é faixa de topo
+  const corte=s.lastIndexOf('<div class="rf-pagecol"', iCol);
+  const topo=corte>0?s.slice(0,corte):'';
+  const colunas=corte>0?s.slice(corte):s;
+  return rfEnvelope(`${rfPageHeadHTML(def)}${rfTemporadaChipsHTML(def.key, at?at.k:'')}${rfCompChipsDaPagina(def.key)}
+    ${topo}
+    <div class="rf-pagegrid" style="grid-template-columns:${def.grid||'minmax(0,1fr) 340px'}">${colunas}</div>`);
+}
+
+/* =====================================================================
+   BLOCO É RESUMO, ABA É O BLOCO INTEIRO
+   Toda página interna é uma lista de BLOCOS. Sem aba escolhida, a página
+   desenha todos eles, cada um com uma amostra e a contagem do todo ao lado
+   — é o que as telas do pacote mostram. Escolhida uma aba, a página desenha
+   SÓ aquele bloco, inteiro e em largura cheia: a aba é a extensão do bloco,
+   não outro assunto.
+
+   `col` diz em qual das duas colunas o bloco mora no resumo. `lim` é quantas
+   linhas o resumo mostra; o corpo recebe esse número e decide o que fazer
+   com ele (quem não tem lista ignora).
+   ===================================================================== */
+function rfBlocos(pagina, blocos, so){
+  const dir=b=>(typeof b.dir==='function')?b.dir():b.dir;
+  if(so){
+    const b=blocos.find(x=>x.k===so);
+    if(!b) return '';
+    return rfCol(rfCard(typeof b.t==='function'?b.t():b.t, b.corpo(0), {right:dir(b)}));
+  }
+  const card=b=>rfCard(typeof b.t==='function'?b.t():b.t, b.corpo(b.lim||0), {right:dir(b),
+    cls: b.lim? 'rf-card-resumo':''});
+  const c1=blocos.filter(b=>(b.col||1)===1).map(card).join('');
+  const c2=blocos.filter(b=>b.col===2).map(card).join('');
+  return (pagina&&pagina.topo?pagina.topo():'') + rfCol(c1) + rfCol(c2);
+}
+/* rodapé de um bloco resumido: "ver os N …" leva pra aba daquele bloco */
+function rfVerMais(pagina, k, texto){
+  return `<button type="button" class="rf-vermais" onclick="rfSetTab('${pagina}','${k}')">${escC(texto)}</button>`;
+}
+
+/* helpers de composição das páginas refeitas pela referência */
+function rfCol(html){ return `<div class="rf-pagecol" data-rf-col>${html}</div>`; }
+
+/* =====================================================================
+   LISTA LONGA — rola DENTRO do card, e não carrega tudo de uma vez.
+   Duas coisas que uma lista de 38 rodadas ou de 60 e-mails quebra:
+   a página inteira vira um rolo (o cabeçalho da lista sai da vista logo na
+   terceira linha), e o navegador monta centenas de nós que ninguém vai ler.
+   Aqui a lista ganha rolagem própria — do mesmo jeito que o bloco Elenco do
+   Hub sempre teve — e um limite de 20/50/100 linhas com o pé mostrando
+   quantas estão à vista de quantas existem.
+   O limite vive em CL (não no save): é preferência de sessão, não estado
+   de jogo, e não deve viajar no arquivo do save.
+   ===================================================================== */
+const RF_LISTA_PASSOS=[20,50,100];
+/* =====================================================================
+   GRAVAR É DUAS COISAS, E METADE DELAS ESTAVA A FALTAR.
+
+   `save()` escreve o save LOCAL (localStorage). `saveV3()` escreve na NUVEM — e
+   sai logo no início quando não há ligação, quando o jogo está online (a sala é
+   que manda) ou num assento de hotseat.
+
+   Onze ações do desenho novo chamavam só `saveV3()`: renovar contrato, promover
+   da base, propor, contrapor, listar, dar lance, mudar preferências. Em solo sem
+   ligação — que é como o jogo corre na maior parte do tempo — nenhuma delas
+   sobrevivia a um recarregamento. Medido: renovar por R$ 464k deixava o save com
+   os R$ 211k antigos.
+
+   Daqui para a frente há um nome só. Ele grava local SEMPRE e tenta a nuvem por
+   cima; a nuvem continua livre de decidir que não é a altura. */
+function rfGravar(){
+  try{ if(typeof save==='function') save(); }catch(e){}
+  try{ if(typeof saveV3==='function') saveV3(); }catch(e){}
+}
+
+/* AS OFERTAS DE EMPREGO VIVEM EM `S.pendingJobOffers`.
+   Toda a pele nova lia `S.jobOffers` — um campo que o motor NUNCA escreve. A
+   aba Ofertas aparecia sempre vazia, o contador da barra lateral sempre a zero
+   e o resumo do Hub sempre em branco, mesmo com propostas reais na mesa. */
+function rfOfertas(){ return (typeof S!=='undefined'&&S&&S.pendingJobOffers)||[]; }
+function rfListaLim(chave){
+  const v=CL.listaLim && CL.listaLim[chave];
+  return RF_LISTA_PASSOS.indexOf(v)>=0 ? v : RF_LISTA_PASSOS[0];
+}
+function rfListaSetLim(chave, n){
+  CL.listaLim=CL.listaLim||{}; CL.listaLim[chave]=n;
+  cdraw();
+}
+/* `linhas` é um ARRAY de HTML, não uma string já juntada: o corte tem de
+   acontecer por linha, e receber a string pronta obrigaria a cortar no
+   meio de uma marcação. */
+function rfLista(chave, linhas, vazio){
+  linhas=linhas||[];
+  if(!linhas.length) return `<div class="rf-empty">${vazio||'Nada aqui agora.'}</div>`;
+  const lim=rfListaLim(chave);
+  const total=linhas.length;
+  const vistas=Math.min(lim,total);
+  const corpo=`<div class="rf-lista">${linhas.slice(0,vistas).join('')}</div>`;
+  // o pé só aparece quando há mais linha do que o menor passo — numa lista
+  // de seis nomes ele seria ruído
+  if(total<=RF_LISTA_PASSOS[0]) return corpo;
+  return corpo+`<div class="rf-lista-pe">
+    <span class="rf-lista-conta">mostrando ${vistas} de ${total}</span>
+    <div class="rf-sp"></div>
+    <span class="rf-lista-l">linhas</span>
+    ${RF_LISTA_PASSOS.map(n=>`<button type="button" class="rf-lista-n ${lim===n?'on':''}"
+      onclick="rfListaSetLim('${escC(chave)}',${n})">${n}</button>`).join('')}
+  </div>`;
+}
+function rfCard(rotulo, corpo, opts){
+  opts=opts||{};
+  return `<div class="rf-card ${opts.cls||''}">
+    ${rotulo?`<div class="rf-label"><span class="rf-label-t">${escC(rotulo)}</span>
+      ${opts.right?`<span class="rf-label-r">${opts.right}</span>`:''}</div>`:''}
+    ${corpo}
+  </div>`;
+}
+
+/* =====================================================================
+   ATALHO DE BANCADA — só em localhost, nunca em produção.
+   Abrir /?rf=hub cria um save descartável e cai direto na tela pedida, em
+   vez de percorrer os sete passos do onboarding a cada recarga. É a única
+   porta que faz isso, e ela não existe fora da máquina de desenvolvimento:
+   o guard de hostname é a trava, não um comentário pedindo pra ninguém usar.
+   ===================================================================== */
+(function(){
+  const local=/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  if(!local) return;
+  const alvo=new URLSearchParams(location.search).get('rf');
+  if(!alvo) return;
+  window.addEventListener('load',()=>{
+    setTimeout(()=>{
+      try{
+        /* O ?rf= MANDA MAIS QUE A ULTIMA POSICAO GUARDADA. rfPosRestaurar()
+           recarrega o ultimo save assim que a pagina abre e substitui o S
+           inteiro -- era ele que trazia de volta o save de bancada antigo (com
+           a Serie A dentro da Serie D) por cima do novo, e que fazia as
+           simulacoes correrem sobre um estado que ja ia ser deitado fora. */
+        if(typeof rfPosLimpar==='function') rfPosLimpar();
+        CL.countries=new Set(['Brasil']);
+        CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true};
+        CL.intlUniverse=false; CL.mgr='Gringo'; CL.mode='solo'; CL.save='bancada';
+        /* O SAVE DE BANCADA ESTAVA A NASCER MENTINDO. `DATA.clubs` no arranque
+           e a lista da SERIE A (o padrao do bundle), e nenhum desses clubes tem
+           `div==='D'` -- o filtro devolvia vazio e caia-se no `DATA.clubs[0]`,
+           ou seja, o Palmeiras. Dai `newGame(cid,'D')` montava uma "Serie D"
+           inteira com os clubes da Serie A: a tabela da divisao, o filtro da
+           rodada ao vivo e as ligas de fundo mostravam a Serie A duas vezes.
+           Quem escolhe os clubes de uma divisao e `clubsForDivision` -- e o que
+           o fluxo real do assistente faz antes de chamar newGame (ver clGoMoeda
+           em main.js). A bancada passa a fazer o mesmo. */
+        if(typeof clubsForDivision==='function'){
+          const daDiv=clubsForDivision('D');
+          if(daDiv && daDiv.length) DATA.clubs=daDiv.slice();
+        }
+        const cid=DATA.clubs[0].id;
+        newGame(cid,'D',CL.compToggle);
+        CL.clubId=cid; S.xi=autoXI(cid); CL.humans={}; CL.humans[cid]=CL.mgr;
+        CL.online=false; CL.formation='4-4-2'; CL.tacticChosen=true; CL.tab='seleccao';
+        CL.screen='main';
+        // ?rf=ob1..ob7 abre um PASSO DO ONBOARDING direto, com o save de
+        // bancada por trás — é o único jeito de rever o passo 6 (sorteio) ou o
+        // 7 (boas-vindas) sem refazer o fluxo inteiro a cada recarga.
+        if(/^ob[1-7]$/.test(alvo)){ rfBancadaOnboarding(alvo); return; }
+        if(alvo!=='hub'&&alvo!=='1') rfState().page=alvo;
+        /* ?rf=hub&temporadas=30 -> cai no hub ja na temporada 30 (ver
+           rfSimularTemporadas). O save de bancada e descartavel, entao nao ha
+           nada a perder ao correr trinta temporadas por cima dele. */
+        /* o save da nuvem chega DEPOIS deste atalho (a carga e assincrona) e
+           substitui o S inteiro: simular aqui seria simular um estado que ja
+           vai ser deitado fora. Por isso espera-se um pouco. Em caso de duvida,
+           chame `rfSimularTemporadas(30)` na consola com o jogo ja aberto. */
+        const temps=Number(new URLSearchParams(location.search).get('temporadas')||0);
+        if(temps>1 && typeof rfSimularTemporadas==='function')
+          setTimeout(()=>rfSimularTemporadas(temps), 1200);
+        cdraw();
+        console.info('[rf26] bancada:', clubOf(cid).short, '→', alvo);
+      }catch(e){ console.error('[rf26] bancada falhou:', e); }
+    },80);
+  });
+})();
+
+/* =====================================================================
+   SIMULADOR DE TEMPORADAS — bancada, so em localhost
+   ---------------------------------------------------------------------
+   Testar o que acontece na temporada 30 exigia jogar 38 rodadas trinta vezes.
+   Isto corre a temporada inteira pelo MOTOR (o mesmo playRound que a rodada de
+   verdade usa: mesmas partidas, mesmas financas, mesmas copas, mesma virada de
+   temporada), so que sem desenhar nada -- por isso e rapido.
+
+   Uso, na consola (ou pelo atalho ?rf=hub&temporadas=30):
+     rfSimularTemporadas(30)                 -> avanca ate a temporada 30
+     rfSimularTemporadas(30,{gravar:'Teste'}) -> e grava o save com esse nome
+
+   `gravar` usa o gravador do proprio jogo, entao o save vai para a conta que
+   estiver ligada NESTE navegador -- e o unico jeito de ele aparecer no perfil de
+   alguem, porque o save mora na nuvem, por conta.
+   ===================================================================== */
+/* ===== IR ATE A BEIRA DA VIRADA DE TEMPORADA =====
+   Este e o atalho para testar A VIRADA, e nao para a saltar: ele joga por si as
+   rodadas do meio -- pelo motor, como uma rodada normal -- e para com UMA
+   rodada por jogar. Dai em diante e o jogo de sempre, na velocidade de sempre:
+   carrega-se em Jogar, ve-se a ultima rodada, e a seguir vem tudo o que a virada
+   traz (fim de temporada, premios, acesso ou queda, novas copas, temporada nova).
+
+     rfIrAoFimDaTemporada()      -> para a uma rodada do fim desta temporada
+     rfIrAoFimDaTemporada(3)     -> para a tres rodadas do fim
+     rfIrAoFimDaTemporada(1,{temporadas:5}) -> antes disso, avanca 5 temporadas
+
+   Se ja estiver perto do fim, nao faz nada -- nunca recua. */
+function rfIrAoFimDaTemporada(faltam, opts){
+  opts=opts||{};
+  if(typeof S==='undefined' || !S){ console.warn('[rf26] nao ha jogo aberto'); return Promise.resolve(null); }
+  const restar=Math.max(1,Number(faltam)||1);
+  const correr=()=>{
+    const total=(S.sched||[]).length;
+    const parar=Math.max(0,total-restar);
+    if((S.round||0)>=parar){
+      console.info('[rf26] ja esta a '+(total-(S.round||0))+' rodada(s) do fim — nada a fazer');
+    } else {
+      const t0=Date.now();
+      while((S.round||0)<parar){
+        try{ playRound(null); }
+        catch(e){ console.warn('[rf26] rodada '+S.round+' falhou:', e&&e.message); S.round++; }
+      }
+      console.info('[rf26] parado na rodada '+((S.round||0)+1)+' de '+total+
+        ' ('+Math.round((Date.now()-t0)/1000)+'s). Carregue em Jogar para ver a virada.');
+    }
+    /* a proxima rodada tem de estar jogavel: tatica escolhida e onze completo */
+    try{ if(!CL.tacticChosen && typeof clSelFormation==='function'){ clSelFormation(CL.formation||'4-4-2'); CL.tacticChosen=true; } }catch(e){}
+    try{ if(typeof autoXI==='function') S.xi=autoXI(CL.clubId); }catch(e){}
+    if(typeof cdraw==='function') cdraw();
+    const pos=(typeof rfMinhaPosicao==='function')?rfMinhaPosicao():null;
+    return {temporada:S.season, rodada:(S.round||0)+1, de:(S.sched||[]).length, posicao:pos, divisao:S.division};
+  };
+  if(opts.temporadas>1 && typeof rfSimularTemporadas==='function')
+    return rfSimularTemporadas(opts.temporadas).then(()=>correr());
+  return Promise.resolve(correr());
+}
+function rfSimularTemporadas(alvo, opts){
+  opts=opts||{};
+  if(typeof S==='undefined' || !S){ console.warn('[rf26] nao ha jogo aberto'); return Promise.resolve(null); }
+  const t0=Date.now();
+  /* "temporada 30" e a 30a DO SAVE, nao o ano 30: o jogo comeca em 2026 e conta
+     por ano. Numero pequeno (ate 100) = quantas temporadas o save tera; numero
+     grande = o ano em que se quer parar. */
+  const n=Number(alvo)||2;
+  /* a PRIMEIRA temporada do save fica carimbada na primeira vez que se conta.
+     Nao da para deduzi-la de S.history: ele leva mais de uma entrada por ano
+     (fecho da temporada e virada), e a conta saia sempre curta. */
+  if(S._season0==null) S._season0=S.season||2026;
+  const season0=S._season0;
+  const limite = n>100 ? n : (season0 + Math.max(1,n) - 1);
+  /* UMA TEMPORADA POR VEZ, E ENTRE ELAS O NAVEGADOR RESPIRA. Trinta temporadas
+     de uma assentada seguram a thread por um minuto: a aba fica sem responder e
+     as ferramentas do navegador chegam a matar o script a meio. Com um respiro
+     entre temporadas, da para acompanhar o progresso na consola e nada trava. */
+  return new Promise(resolve=>{
+    let voltas=0;
+    const umaTemporada=()=>{
+      if((S.season||1)>=limite || voltas>=200) return terminar();
+      voltas++;
+      const total=(S.sched||[]).length;
+      while((S.round||0) < total){
+        try{ playRound(null); }
+        catch(e){ console.warn('[rf26] rodada '+S.round+' falhou:', e&&e.message); S.round++; }
+      }
+      try{ endSeason(); }catch(e){ console.warn('[rf26] fim de temporada:', e&&e.message); }
+      try{ newSeasonReset(); }catch(e){ console.warn('[rf26] virada de temporada:', e&&e.message); }
+      S.finished=false;
+      S._season0=season0;    // a virada de temporada reescreve o S; o carimbo volta
+      const cl0=(typeof clubOf==='function'&&clubOf(CL.clubId))||{short:'?'};
+      console.info('[rf26] temporada '+S.season+' · '+cl0.short+' na '+S.division+
+        ' · '+Math.round((Date.now()-t0)/1000)+'s');
+      setTimeout(umaTemporada, 0);
+    };
+    const terminar=()=>{
+      const cl=(typeof clubOf==='function'&&clubOf(CL.clubId))||{short:'?'};
+      const res={temporada:S.season, doSave:(S.season-season0)+1,
+        divisao:S.division, clube:cl.short, segundos:Math.round((Date.now()-t0)/1000)};
+      console.info('[rf26] pronto:', res);
+      try{ console.table((S.history||[]).slice(-8).map(h=>({temporada:h.season,campeao:h.champion}))); }catch(e){}
+      if(opts.gravar && typeof saveV3==='function'){
+        CL.save=String(opts.gravar);
+        Promise.resolve(saveV3(true))
+          .then(()=>console.info('[rf26] gravado como "'+CL.save+'" — abre em Continuar save'))
+          .catch(e=>console.warn('[rf26] nao deu para gravar (e preciso ter sessao iniciada):', e&&e.message));
+      }
+      if(typeof cdraw==='function') cdraw();
+      resolve(res);
+    };
+    umaTemporada();
+  });
+}
+/* monta o estado mínimo de cada passo e desenha só ele (ver o atalho acima) */
+function rfBancadaOnboarding(alvo){
+  const n=Number(alvo.slice(2));
+  CL.auth={mode:'signup',name:CL.mgr,email:'',password:''};
+  CL.playCountry='Brasil';
+  if(n===2 && CL.soloSaves==null && typeof NET!=='undefined' && NET.listSoloSaves){
+    NET.listSoloSaves().then(l=>{ CL.soloSaves=l||[]; rfBancadaDesenha(n); }).catch(()=>{ CL.soloSaves=[]; rfBancadaDesenha(n); });
+  }
+  if(n===4||n===5){
+    // sala de mentira, só pra desenhar: o lobby de verdade exige servidor
+    NET.isHost=true; NET.self=NET.self||{id:'u1',name:CL.mgr};
+    NET.room=NET.room||{code:'RF-0000',name:'Sala de bancada',
+      participants:[{id:'u1',name:CL.mgr,host:true,confirmed:true}]};
+    if(!NET.inviteLink) NET.inviteLink=()=>location.origin+'/s/RF-0000';
+    CL.net=CL.net||{roomName:'Sala de bancada',inviteEmail:'',phone:''};
+  }
+  if(n===6){
+    const pool=DATA.clubs.slice(0,4);
+    CL.soloDraw={ list:pool.map((c,i)=>({name:['Gringo','Zé do Bairro','Marreco','Tiu'][i],clubId:c.id})),
+      idx:3, poolById:Object.fromEntries(pool.map(c=>[c.id,c])) };
+  }
+  rfBancadaDesenha(n);
+}
+function rfBancadaDesenha(n){
+  const f=window['rfOb'+n]; if(typeof f!=='function'){ console.warn('[rf26] passo inexistente:',n); return; }
+  document.querySelector('#c-root').innerHTML=f();
+  console.info('[rf26] bancada: onboarding passo', n);
+}
+
+/* =====================================================================
+   MOBILE — a sidebar vira BARRA INFERIOR
+   No telefone os sete destinos não cabem numa barra: cinco viram itens
+   fixos e o resto entra em "Mais", que abre uma FOLHA DE BAIXO. O botão
+   ⚽ Jogar fica sempre à direita, fora da contagem — é a ação da tela, não
+   um destino. Na Resenha o chat entra como terceiro item, do jeito que o
+   design system pede (no telefone não existe a bolha flutuante).
+   ===================================================================== */
+const RF_NAV_MOBILE=['hub','elenco','mercado','campeonatos'];
+
+function rfBottomNavHTML(){
+  const st=rfState();
+  const chaves=RF_NAV_MOBILE.slice();
+  if(CL.online && rfChatDisponivel()) chaves.splice(2,0,'chat');   // no telefone o chat não existe (ver rfChatDisponivel)
+  const itens=chaves.slice(0,5).map(k=>{
+    if(k==='chat'){
+      const n=(typeof rfChatNaoLidas==='function')?rfChatNaoLidas():0;
+      return `<button type="button" class="rf-bn-i ${rfChatAberto()?'on':''}" onclick="rfChatToggle()">
+        <span class="rf-bn-ico">💬</span><span class="rf-bn-l">Chat</span>
+        ${n>0?`<span class="rf-nav-b">${n>9?'9+':n}</span>`:''}</button>`;
+    }
+    const p=rfPageDef(k);
+    // na barra inferior vale o rótulo CURTO: "Elenco & Base" e "Campeonatos"
+    // não cabem em 375px sem quebrar em duas linhas, e rótulo quebrado é
+    // justamente o que o checklist do design system proíbe.
+    return `<button type="button" class="rf-bn-i ${st.page===k?'on':''}" onclick="rfGo('${k}')">
+      <span class="rf-bn-ico">${rfIcone(p.ico,20)}</span><span class="rf-bn-l">${escC(p.curto||p.label)}</span></button>`;
+  }).join('');
+  const restantes=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
+  const maisAtivo=restantes.some(p=>p.key===st.page);
+  const xi=xiPlayers(CL.clubId);
+  const pronto = xi.length>=11 && CL.tacticChosen && xiGKCount(xi)===1;
+  return `<nav class="rf-bottomnav">
+    ${itens}
+    <button type="button" class="rf-bn-i ${maisAtivo?'on':''}" onclick="rfMaisSheet()">
+      <span class="rf-bn-ico">${rfIcone('menu',20)}</span><span class="rf-bn-l">Mais</span></button>
+    <!-- Sem tática escolhida o botão NÃO fica morto: vira "Formação" e leva ao
+         bloco de formações, igual ao da barra lateral no desktop. Ficava
+         desabilitado sem dizer o que faltava nem para onde ir. -->
+    <button type="button" class="rf-bn-jogar ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
+      ${(pronto||rfFaltaTatica()||['avancar','sorteio','classif','assistir'].indexOf(rfProximaAcao().k)>=0)?'':'disabled'}
+      onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
+  </nav>`;
+}
+
+/* ----- FOLHA DE BAIXO (bottom sheet) — o que no desktop é Dialog -----
+   Alça no topo, ações empilhadas, fecha no toque fora ou arrastando pra baixo.
+   É o mesmo #c-overlay do desktop: uma peça só, dois formatos, pra um popup
+   nunca precisar saber em que aparelho está. */
+function rfSheet(titulo, corpo, opts){
+  opts=opts||{};
+  overlayC(`<div class="rf-sheet" onclick="event.stopPropagation()">
+    <div class="rf-sheet-alca" aria-hidden="true"></div>
+    ${titulo?`<div class="rf-sheet-hd"><span class="rf-dlg-t">${escC(titulo)}</span>
+      <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✕</button></div>`:''}
+    <div class="rf-sheet-body">${corpo}</div>
+    ${opts.footer?`<div class="rf-sheet-foot">${opts.footer}</div>`:''}
+  </div>`);
+}
+function rfMaisSheet(){
+  const st=rfState();
+  const chaves=RF_NAV_MOBILE.concat((CL.online&&rfChatDisponivel())?['chat']:[]);
+  const resto=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
+  const linhas=resto.map(p=>`<button type="button" class="rf-sheet-i ${st.page===p.key?'on':''}"
+    onclick="clCloseOverlay();rfGo('${p.key}')">
+    <span class="rf-nav-ico">${rfIcone(p.ico,18)}</span><span class="rf-nav-l">${escC(p.label)}</span></button>`).join('');
+  /* A CONTA ENTRA AQUI. O menu "Mais" so listava paginas; sair da conta vivia
+     em Configuracoes, a dois toques e dentro de uma aba. Como no telefone a
+     faixa do clube nao tem espaco para o nome + Sair, e daqui que se sai. */
+  const auth=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  const conta = auth.loggedIn ? `<div class="rf-sheet-sep"></div>
+    <div class="rf-sheet-conta">
+      <span class="rf-sheet-conta-ic" aria-hidden="true">👤</span>
+      <span class="rf-sheet-conta-id">
+        <span class="rf-sheet-conta-n">${escC(auth.name||'treinador')}</span>
+        <span class="rf-sheet-conta-e">${escC(auth.email||'')}</span>
+      </span>
+    </div>
+    <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
+      <span class="rf-nav-ico">${rfIcone('sair',18)}</span>
+      <span class="rf-nav-l">Sair da conta</span></button>` : '';
+  rfSheet('Ir para', `<div class="rf-sheet-list">${linhas}${conta}</div>`);
+}
+
+/* =====================================================================
+   CHAT DA RESENHA — três estados no desktop, dois no telefone
+
+   O chat já existia e foi DESLIGADO (CHAT_ATIVO em net/local-transport.js)
+   por dois motivos concretos: a doca ficava por cima do jogo em toda tela
+   online, e a mensagem nova interrompia a partida ao vivo. O desenho novo
+   existe justamente pra resolver esses dois — então o transporte continua o
+   mesmo (NET.sendChat, room.chat, chatMsgsHTML) e só a interface é nova.
+
+     1 · FECHADO   só a bolha no canto inferior direito. O contador pulsa
+                   quando chega mensagem. Sem som, sem notificação do
+                   navegador, sem pop-up — o contador é o único aviso.
+     2 · ESPIADA   uma linha por vez, 4 segundos, some sozinha. Só enquanto
+                   o chat está fechado, e NUNCA durante a partida ao vivo.
+     3 · ABERTO    painel de 264px ancorado no canto, por cima do conteúdo,
+                   sem empurrar nada. Fecha no ✖, no Esc ou clicando fora.
+
+   SILÊNCIO TOTAL na partida ao vivo e no Camarote: nada de espiada, nada de
+   pulso. O contador continua contando — só não chama atenção.
+   ===================================================================== */
+const RF_CHAT_TELAS_MUDAS=['live','seatclassif'];
+function rfChatMudo(){
+  if(RF_CHAT_TELAS_MUDAS.indexOf(CL.screen)>=0) return true;
+  return !!(CL.camaroteOn || CL.camOpen);      // Modo Camarote
+}
+/* CHAT DESLIGADO NO TELEFONE, por decisão do usuário. Ele estava abrindo a
+   qualquer toque na tela — e num ecrã de 375px uma folha que cobre 66% da altura
+   por engano inviabiliza o uso. Desligando na FONTE, some a bolha, some o item da
+   barra inferior, somem os atalhos e some a folha: nada mais o invoca. */
+function rfChatDisponivel(){
+  if(typeof isPhone==='function' && isPhone()) return false;
+  return !!(CL.online && typeof NET!=='undefined' && NET.room);
+}
+function rfChatAberto(){ return !!CL.chatOpen; }
+function rfChatNaoLidas(){ return CL.chatUnread||0; }
+function rfChatToggle(){
+  CL.chatOpen=!CL.chatOpen;
+  if(CL.chatOpen){ CL.chatUnread=0; CL._chatPeek=null; }
+  rfChatRender();
+  if(CL.chatOpen) setTimeout(()=>{ const i=document.getElementById('rf-chat-in'); if(i) i.focus(); },30);
+}
+function rfChatFechar(){ if(CL.chatOpen){ CL.chatOpen=false; rfChatRender(); } }
+
+/* uma linha por vez, 4 segundos — e só com o chat fechado e o jogo em silêncio */
+function rfChatEspiada(msg){
+  if(CL.chatOpen || rfChatMudo()) return;
+  CL._chatPeek={ nome:(msg.name||'').split(' ')[0], txt:msg.text };
+  clearTimeout(CL._chatPeekT);
+  CL._chatPeekT=setTimeout(()=>{ CL._chatPeek=null; rfChatRender(); }, 4000);
+  rfChatRender();
+}
+
+function rfChatHTML(){
+  if(!rfChatDisponivel()) return '';
+  const n=rfChatNaoLidas();
+  const peek=CL._chatPeek;
+  const pulsa = n>0 && !rfChatMudo();
+  if(CL.chatOpen){
+    return `<div class="rf-chat-painel" onclick="event.stopPropagation()">
+      <div class="rf-chat-hd">
+        <span class="rf-label-t">Chat da Resenha</span>
+        <button type="button" class="rf-dlg-x" onclick="rfChatFechar()" aria-label="Fechar chat">✖</button>
+      </div>
+      <div class="rf-chat-msgs" id="rf-chat-msgs">${chatMsgsHTML()}</div>
+      <div class="rf-chat-in">
+        <input id="rf-chat-in" class="rf-chat-input" placeholder="Manda a braba"
+          onkeydown="if(event.key==='Enter')rfChatEnviar();if(event.key==='Escape')rfChatFechar()">
+        <button type="button" class="rf-chat-send" onclick="rfChatEnviar()" aria-label="Enviar">➤</button>
+      </div>
+    </div>`;
+  }
+  return `${peek?`<div class="rf-chat-peek" onclick="rfChatToggle()">
+      <span class="rf-chat-peek-q">${escC(peek.nome)}:</span>
+      <span class="rf-chat-peek-t">${escC(peek.txt)}</span>
+    </div>`:''}
+    <button type="button" class="rf-chat-bolha" onclick="rfChatToggle()"
+      title="Chat da Resenha (C)" aria-label="Abrir o chat da Resenha">
+      <span aria-hidden="true">💬</span>
+      ${n>0?`<span class="rf-chat-badge ${pulsa?'pulsa':''}">${n>99?'99+':n}</span>`:''}
+    </button>`;
+}
+/* Há dois campos de chat: a bolha flutuante e o cartão da página do Modo
+   Resenha. Cada um diz qual é o seu, senão os dois disputavam o mesmo id e o
+   botão do cartão enviava o que estava escrito na bolha (ou nada). */
+function rfChatEnviar(campo){
+  const el=document.getElementById(campo||'rf-chat-in')
+        || document.getElementById('rf-chat-in')
+        || document.getElementById('rf-cf-chat-in');
+  if(!el) return;
+  const txt=(el.value||'').trim(); if(!txt) return;
+  el.value='';
+  Promise.resolve(NET.sendChat(txt, CL.clubId||null))
+    .then(()=>rfChatRender())
+    .catch(e=>toastC('Mensagem não enviada: '+(e.message||'erro desconhecido'),'danger'));
+}
+
+/* O chat mora num container fixo em <body>, fora do #c-root: assim ele
+   sobrevive a cdraw() em qualquer tela (principal, ao vivo, classificação,
+   sorteio) sem cada tela precisar saber que ele existe. */
+function rfChatRender(){
+  if(typeof document==='undefined') return;
+  let host=document.getElementById('rf-chat-host');
+  if(!rfChatDisponivel()){ if(host) host.remove(); return; }
+  if(!host){ host=document.createElement('div'); host.id='rf-chat-host'; document.body.appendChild(host); }
+  // no telefone não existe bolha: o chat é item da barra inferior e abre
+  // como folha de baixo (ver rfChatSheet)
+  if(isPhone()){ host.innerHTML = CL.chatOpen?'':''; if(CL.chatOpen) rfChatSheet(); return; }
+  host.className = rfChatMudo()?'mudo':'';
+  host.innerHTML = rfChatHTML();
+  const m=document.getElementById('rf-chat-msgs'); if(m) m.scrollTop=m.scrollHeight;
+}
+/* telefone: folha de baixo ocupando 66% da tela */
+function rfChatSheet(){
+  rfSheet('Chat da Resenha', `<div class="rf-chat-msgs rf-chat-msgs-sheet" id="rf-chat-msgs">${chatMsgsHTML()}</div>`, {
+    footer:`<div class="rf-chat-in">
+      <input id="rf-chat-in" class="rf-chat-input" placeholder="Manda a braba"
+        onkeydown="if(event.key==='Enter')rfChatEnviar()">
+      <button type="button" class="rf-chat-send" onclick="rfChatEnviar()" aria-label="Enviar">➤</button>
+    </div>`});
+  const m=document.getElementById('rf-chat-msgs'); if(m) m.scrollTop=m.scrollHeight;
+}
+
+/* atalhos: C abre, Esc fecha. C só vale fora de campo de texto — senão
+   escrever "casa" no nome do save abriria o chat quatro vezes. */
+document.addEventListener('keydown',e=>{
+  if(!rfChatDisponivel()) return;
+  const alvo=e.target, digitando = alvo && (alvo.tagName==='INPUT'||alvo.tagName==='TEXTAREA'||alvo.isContentEditable);
+  if(e.key==='Escape' && CL.chatOpen){ rfChatFechar(); return; }
+  if(!digitando && (e.key==='c'||e.key==='C') && !e.ctrlKey && !e.metaKey && !e.altKey){ rfChatToggle(); }
+});
+/* clicar fora fecha o painel — o mesmo alcance do Esc */
+document.addEventListener('click',()=>{ if(CL.chatOpen && !isPhone()) rfChatFechar(); });
+
+/* =====================================================================
+   MERCADO — refeito a partir de telas/Mercado.html
+   A tela troca o antigo caminho de gaveta (divisão → clube → elenco →
+   jogador) por uma LISTA ÚNICA de jogadores à venda, com filtro por
+   posição e o preço já visível. A coluna de 340px à direita fica fixa em
+   qualquer aba: propostas, contrapropostas e últimas transferências são
+   resumo permanente, não destino.
+   ===================================================================== */
+
+/* ---- quem está à venda: o elenco de todos os outros clubes do universo ----
+   O jogo nunca teve uma "lista de transferências" — tinha o passeio por
+   divisão e clube. A lista é derivada: todo jogador negociável de clube que
+   não é o meu, ordenado por força. É a mesma fonte que o passeio usava, só
+   que achatada, que é o que a tela pede. */
+function rfMercadoLista(){
+  if(CL._mktCache && CL._mktCache.round===S.round && CL._mktCache.pos===(CL.mktPos||'all'))
+    return CL._mktCache.lista;
+  const pos=CL.mktPos||'all';
+  const SETOR={gk:'GK',def:'DEF',mid:'MID',att:'ATT'};
+  // O TETO É O CAIXA. A referência escreve "até R$ 1,27 mi" no canto da lista:
+  // ela mostra quem eu POSSO comprar, não o mercado inteiro. Sem esse corte um
+  // clube da Série D abria a tela com trinta jogadores de 50 milhões e "Sem
+  // caixa" em toda linha — uma lista que não serve pra decidir nada.
+  const teto=S.budget||0;
+  const out=[];
+  (DATA.clubs||[]).forEach(c=>{
+    if(c.id===CL.clubId) return;
+    (squad(c.id)||[]).forEach(p=>{
+      if(typeof isTradeLocked==='function' && isTradeLocked(p)) return;
+      if(pos!=='all' && p.s!==SETOR[pos]) return;
+      const ask=(typeof playerAsk==='function')?playerAsk(p,c.id):(p.mv||0);
+      if(ask>teto) return;
+      out.push({p,clubId:c.id,ask});
+    });
+  });
+  out.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
+  const lista=out.slice(0,120);
+  CL._mktCache={round:S.round,pos,lista,total:out.length};
+  return lista;
+}
+function rfMercadoTotal(){ rfMercadoLista(); return (CL._mktCache&&CL._mktCache.total)||0; }
+function rfMktPos(p){ CL.mktPos=p; CL._mktCache=null; cdraw(); }
+
+/* linha da lista: escudo · nome · POS · ID · FRC · VALOR · ação
+   (grade 30px minmax(0,1fr) 34px 30px 42px 74px 92px, da referência) */
+function rfMercadoLinhaHTML(item){
+  const p=item.p, c=clubOf(item.clubId)||{short:'?'};
+  const ask=item.ask!=null?item.ask:((typeof playerAsk==='function')?playerAsk(p,item.clubId):(p.mv||0));
+  return `<div class="rf-mkt-row" onclick="clMarketPlayer('${escC(item.clubId)}','${escC(p.n)}')"
+      title="${escC(p.n)} — ${escC(c.short)}">
+    <span class="rf-mkt-crest">${rfCrest(c,24)}</span>
+    <span class="rf-mkt-name">${escC(p.n)}</span>
+    <!-- POS/ID/FRC ficam dentro de um invólucro que no DESKTOP é
+         display:contents (os três viram colunas da grade, como na tela) e no
+         TELEFONE vira uma linha só, de subtítulo embaixo do nome. Um HTML,
+         duas leituras — sem repetir o dado em dois lugares. -->
+    <span class="rf-mkt-meta">
+      <span class="rf-mkt-pos">${escC(rfPosLabel(p.s))}</span>
+      <span class="rf-mkt-id">${p.age||''}</span>
+      <span class="rf-mkt-frc">${p.f}</span>
+    </span>
+    <span class="rf-mkt-val">${escC(mvShort(ask))}</span>
+    <span class="rf-mkt-act">Fazer proposta</span>
+  </div>`;
+}
+const RF_POS_LBL={GK:'GOL',DEF:'ZAG',MID:'MEI',ATT:'ATA'};
+function rfPosLabel(s){ return RF_POS_LBL[s]||'MEI'; }
+
+/* ---- aba Comprar: o card "JOGADORES À VENDA" ---- */
+/* =====================================================================
+   MERCADO — BLOCO É RESUMO, ABA É O BLOCO INTEIRO
+   A página abre no RESUMO: os cinco blocos, cada um com uma amostra e a
+   contagem do todo ao lado ("126 na janela", "2 novas"). É o que a tela do
+   pacote desenha. Tocar numa aba abre AQUELE bloco por inteiro, em largura
+   cheia e sem corte — a aba é a extensão do bloco, não outro assunto.
+   ===================================================================== */
+function rfMktVendaCard(lim){
+  if(typeof canNegotiate==='function' && !canNegotiate())
+    return rfCard('Jogadores à venda',
+      `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`);
+  const lista=rfMercadoLista();
+  const mostra=lim?lista.slice(0,lim):lista;
+  const filtros=[['all','Todos'],['gk','Goleiros'],['def','Defesa'],['mid','Meio'],['att','Ataque']];
+  const corpo=`
+    <div class="rf-mkt-filtros">
+      ${filtros.map(([k,l])=>`<button type="button" class="rf-chip ${(CL.mktPos||'all')===k?'on':''}"
+        onclick="rfMktPos('${k}')">${escC(l)}</button>`).join('')}
+      <div class="rf-sp"></div>
+      <span class="rf-label-r">até ${escC(fmt(S.budget||0))}</span>
+    </div>
+    <div class="rf-mkt-head">
+      <span></span><span>JOGADOR</span><span>POS</span><span>ID</span><span>FRC</span><span>VALOR</span><span>AÇÃO</span>
+    </div>
+    <div class="rf-mkt-list">${
+      mostra.length ? mostra.map(rfMercadoLinhaHTML).join('')
+                    : '<div class="rf-empty">Nenhum jogador nesta posição agora.</div>'}</div>
+    ${lim&&lista.length>lim?`<button type="button" class="rf-vermais" onclick="rfSetTab('mercado','comprar')">
+      Ver os ${lista.length} jogadores à venda</button>`:''}`;
+  // "na janela" é o que a ABA abre — não o total do mundo. rfMercadoLista()
+  // corta em 120 por desempenho, e prometer 328 num botão que abre 120 é
+  // mentir sobre o próprio resumo.
+  return rfCard('Jogadores à venda', corpo, {right:lista.length+' na janela'});
+}
+function rfMktLeilaoCard(lim){
+  const lots=((S.auctions&&S.auctions.lots)||[]).filter(l=>l.status==='open');
+  if(typeof mergeAuctionBidsFromSeats==='function'){ try{ mergeAuctionBidsFromSeats(); }catch(e){} }
+  const mostra=lim?lots.slice(0,lim):lots;
+  const linhas=mostra.map(l=>{
+    const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
+    const meu=l.leader===S.clubId;
+    return `<div class="rf-auc-row ${meu?'me':''}">
+      <span class="rf-auc-id">
+        <span class="rf-auc-n">${escC(p.n)}</span>
+        <span class="rf-auc-sub">${escC(rfPosLabel(p.s))} · ${escC((clubOf(l.sellerId)||{short:'?'}).short)} · 👥 ${l.interest||0}</span>
+      </span>
+      <span class="rf-auc-frc">${p.f}</span>
+      <span class="rf-auc-lance ${meu?'me':''}">${meu?escC(mvShort(l.bid)):'—'}</span>
+      <span class="rf-auc-maior">${escC(mvShort(l.bid))}</span>
+      <span class="rf-auc-act">
+        <button type="button" class="rf-btn rf-btn-pill"
+          onclick="clAuctionBidPrompt('${escC(l.sellerId)}','${escC(l.player)}')">Cobrir</button>
+      </span>
+    </div>`;
+  }).join('');
+  const corpo=`
+    ${lim?'':'<span class="rf-note">Cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</span>'}
+    <div class="rf-auc-head"><span>JOGADOR</span><span>FRC</span><span>SEU LANCE</span><span>MAIOR</span><span></span></div>
+    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta rodada.</div>'}</div>
+    ${lim&&lots.length>lim?`<button type="button" class="rf-vermais" onclick="rfSetTab('mercado','leilao')">
+      Ver os ${lots.length} leilões abertos</button>`:''}`;
+  return rfCard('Leilão de jogadores', corpo, {right: lots.length?'fecha em 2 rodadas':''});
+}
+/* o RESUMO da página: coluna 1 com venda + leilão, coluna 2 com o trilho */
+function rfMercadoResumoHTML(){
+  return rfCol(rfMktVendaCard(6) + rfMktLeilaoCard(5)) + rfMercadoRailHTML();
+}
+/* as abas: o mesmo bloco, inteiro e em largura cheia */
+function rfMercadoComprarHTML(){ return rfCol(rfMktVendaCard()); }
+function rfMercadoLeilaoHTML(){ return rfCol(rfMktLeilaoCard()); }
+
+/* ---- aba Propostas: as recebidas, em detalhe ---- */
+function rfMercadoPropostasHTML(){
+  const ofertas=rfPropostas().filter(o=>o.expiresRound>S.round);
+  const corpo = ofertas.length
+    ? `<div class="rf-prop-list">${ofertas.map(rfPropostaCardHTML).join('')}</div>`
+    : `<div class="rf-empty">Nenhuma proposta no momento.<br><small>Clubes fazem propostas pelos seus destaques enquanto a janela está aberta.</small></div>`;
+  return rfCol(rfCard('Propostas recebidas', corpo, {right:ofertas.length? ofertas.length+' novas':''}));
+}
+function rfPropostaCardHTML(o){
+  const p=squad(CL.clubId).find(x=>x.n===o.playerName);
+  const rodadas=Math.max(0,o.expiresRound-S.round);
+  return `<div class="rf-prop">
+    <div class="rf-prop-top">
+      <span class="rf-prop-n">${escC(o.playerName)}</span>
+      <span class="rf-prop-fee">${escC(mvShort(o.fee))}</span>
+    </div>
+    <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} rodada(s)</span>
+    ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
+    <div class="rf-prop-acts">
+      <button type="button" class="rf-btn rf-btn-primary rf-prop-b" onclick="clAcceptOffer(${o.id})">Aceitar</button>
+      <button type="button" class="rf-btn rf-btn-secondary rf-prop-b" onclick="clRejectOffer(${o.id})">Recusar</button>
+    </div>
+  </div>`;
+}
+
+/* ---- A COLUNA DE 340px: fixa em qualquer aba ----
+   Propostas, contrapropostas e últimas transferências são resumo
+   permanente do mercado — na referência elas aparecem ao lado do conteúdo,
+   não como destino separado. */
+function rfMercadoRailHTML(){
+  const ofertas=rfPropostas().filter(o=>o.expiresRound>S.round);
+  const contra=(typeof myCounterOffers==='function')?myCounterOffers():[];
+  const props = ofertas.length
+    ? ofertas.slice(0,3).map(rfPropostaCardHTML).join('')
+    : '<span class="rf-note">Nenhuma proposta aberta agora.</span>';
+  /* `askFee`, nao `fee`: a contraproposta guarda o que ELES pedem (ver counterHumanOffer).
+     Com o campo errado o trilho mostrava R$ 0 em todas as linhas. */
+  const contraHTML = contra.length
+    ? contra.slice(0,3).map(c=>`<div class="rf-linha">
+        <span class="rf-linha-t">${escC(c.playerName||'')}</span>
+        <span class="rf-linha-v">${escC(mvShort(c.askFee||0))}</span></div>`).join('')
+    : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
+  // O jogo não guarda um log global de transferências: o histórico VIAJA COM O
+  // JOGADOR (p.transferHistory, ver recordTransferHistory no core). Então as
+  // "últimas" são as entradas mais recentes entre os jogadores do meu elenco —
+  // a mesma fonte que a tela de Últimas transferências sempre usou.
+  const nomeDe=id=>{ if(!id) return 'fora do mundo';
+    const c=clubOf(id)||(typeof bgClubById==='function'&&bgClubById(id))||(typeof intlClubById==='function'&&intlClubById(id));
+    return (c&&c.short)||String(id); };
+  const entradas=[];
+  squad(CL.clubId).forEach(p=>{ (p.transferHistory||[]).forEach(h=>entradas.push({p,h})); });
+  entradas.sort((a,b)=>(b.h.season-a.h.season)||(b.h.round-a.h.round));
+  const transfHTML = entradas.length
+    ? entradas.slice(0,3).map(({p,h})=>{
+        const entrou = h.to===CL.clubId;
+        return `<div class="rf-linha">
+          <span class="rf-linha-t">${escC(p.n)} ${entrou?'←':'→'} ${escC(nomeDe(entrou?h.from:h.to))}</span>
+          <span class="rf-linha-v">${escC(mvShort(h.fee||0))}</span></div>`;
+      }).join('')
+    : '<span class="rf-note">Nenhuma transferência ainda nesta temporada.</span>';
+  return rfCol(
+    rfCard('Propostas recebidas', props, {right: ofertas.length? ofertas.length+' novas':''})
+    + rfCard('Contrapropostas', contraHTML)
+    + rfCard('Últimas transferências', transfHTML)
+  );
+}
+
+/* ---- helpers ainda sem tela refeita: entregam conteúdo real no formato novo,
+   e viram implementação completa quando a tela correspondente for portada ---- */
+function rfEmailHTML(){
+  if(typeof syncInbox==='function'){ try{ syncInbox(); }catch(e){} }
+  return typeof panCorreio==='function' ? panCorreio()
+    : '<div class="rf-empty">Caixa de entrada vazia.</div>';
+}
+/* ---- ELENCO & BASE (telas/Elenco e Base.html) ----
+   Quatro cards: ELENCO e BASE na coluna larga, FICHA DO JOGADOR e TREINO
+   ESPECIAL na de 360px. As abas do topo levam ao card correspondente — a
+   página mostra tudo, a aba é a ênfase. */
+const RF_BL_ELENCO=[
+  { k:'elenco', t:'Elenco', col:1, corpo:()=>rfSquadTableHTML('elenco'),
+    dir:()=>{ const sq=squad(CL.clubId), xi=xiPlayers(CL.clubId);
+              return sq.length+' jogadores · <b>'+xi.length+'</b> titulares'; } },
+  { k:'base',   t:'Base',   col:1, corpo:()=>rfBaseHTML() },
+  { k:'ficha',  t:'Ficha do jogador', col:2, corpo:()=>rfFichaHTML(), dir:'selecionado' },
+  { k:'treino', t:'Treino especial',  col:2, corpo:()=>rfTreinoHTML() },
+];
+function rfElencoHTML(so){ return rfBlocos(null, RF_BL_ELENCO, so); }
+
+/* base: quem dá pra subir agora, com o custo e o botão */
+function rfBaseHTML(){
+  const disp=(typeof youthAvailable==='function')&&youthAvailable();
+  if(!disp) return `<span class="rf-note">A base não tem ninguém pronto nesta rodada.</span>`;
+  return `<span class="rf-note">Suba um jogador da base para o elenco principal. Cada promoção vale por temporada.</span>
+    <div class="rf-acts">${btn('Ver jogadores da base','clPromoteYouth()',{cls:'cl-btn-ok'})}</div>`;
+}
+/* treino especial: os que estão em treino e as vagas que sobram */
+function rfTreinoHTML(){
+  const lista=(typeof myTrainingList==='function')?myTrainingList():[];
+  const max=(typeof TRAINING_MAX_SLOTS!=='undefined')?TRAINING_MAX_SLOTS:3;
+  const linhas=lista.length ? lista.map(pid=>{
+      const p=squad(CL.clubId).find(x=>x.pid===pid); if(!p) return '';
+      return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}</span>
+        <span class="rf-linha-v">força ${p.f}</span></div>`;
+    }).join('')
+    : '<span class="rf-note">Ninguém em treino especial agora.</span>';
+  return `${linhas}
+    <div class="rf-acts">${btn('Gerir treino ('+lista.length+'/'+max+')','clTrainingScreen()')}</div>`;
+}
+/* quantos dias faltam pra janela fechar (texto do subtítulo do Mercado) */
+function rfDiasJanela(){
+  if(typeof transferWindowStatus!=='function') return null;
+  try{ const st=transferWindowStatus(); return st&&st.closesIn?st.closesIn:null; }catch(e){ return null; }
+}
+function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'s':'')) : null; }
+
+/* =====================================================================
+   SQUADTABLE — a tabela de elenco do design system
+   Uma peça só, duas densidades, porque a referência traz as duas:
+     'hub'    9 colunas (20/24/1fr/26/34/34/42/46/58) — inclui SAL.
+     'elenco' 8 colunas (22/26/1fr/30/34/40/46/62)    — sem SAL., mais folgada
+   Regras que não mudam entre elas: número em IBM Plex Mono alinhado à
+   direita, nome em 14px/600, e o marcador de 17px à esquerda — "T" nas
+   cores do clube pra titular, letra da posição em cinza pra reserva.
+   ===================================================================== */
+/* O pacote escreve o valor COM a moeda e na forma CURTA — "R$ 2k", "R$ 99k".
+   NÃO se chama rfDin: esse nome já existe em rf26-mercado.js e devolve a forma
+   longa ("R$ 125 mil"), que não cabe nas colunas estreitas do Hub. Eu redefini
+   por engano e a outra venceu, estourando a tabela inteira. */
+function rfDinCurto(v){
+  const sim=(typeof curSym==='function')?curSym():'R$';
+  return sim+' '+((typeof mvShort==='function')?mvShort(v||0):String(v||0));
+}
+const RF_SQUAD_COLS={
+  /* A GRADE LITERAL DO PACOTE NÃO CABE NOS 380px QUE ESTA COLUNA TEM.
+     O pacote desenha esta tabela numa coluna de 530px, e as nove medidas dele
+     somam 284px de faixas fixas + 64px de folga = 348. Numa coluna de 378 sobram
+     30px para o NOME — medido, dava 10px. O resultado era uma tabela onde o
+     jogador se chamava "C" e a nota saía "9," cortada por cima da energia.
+     Já ficou decidido que a coluna NÃO cresce para 530 (ver CONFERENCIA.md), e
+     entre repetir uma medida que não cabe e mostrar a informação, a informação
+     ganha.
+
+     O que sai é o SALÁRIO. É a coluna menos útil para escalar um time — é uma
+     decisão de mercado, não de escalação — e é a única das nove que aparece
+     inteira noutro sítio: Elenco & Base tem SALÁRIO e FIM, e a ficha do jogador
+     tem as duas. O interruptor `sal` já existia para isto; o modo `elenco` já o
+     usava. Ninguém perde dado nenhum: muda de tela.
+
+     Com ela fora e a folga em 7px, o NOME passa de 10px para ~103px e a NOTA de
+     34 (que era exatamente a largura de "9,4", sem um pixel de sobra) para 40. */
+  /* A GRADE DO HUB RESPIRA depois de as duas colunas passarem a ser iguais (ver
+     .rf-cols): a coluna da tabela ganhou ~250px, e o que era aperto -- a barra
+     de energia colada ao "100%", o valor em 52px, a nota em 40 -- deixou de
+     precisar de ser. O NOME continua a ficar com todo o resto. */
+  hub:    {grid:'20px 24px minmax(0,1fr) 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
+  elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
+};
+function rfSquadTableHTML(modo, opts){
+  opts=opts||{};
+  modo=RF_SQUAD_COLS[modo]?modo:'hub';
+  const cfg=RF_SQUAD_COLS[modo];
+  const id=opts.clubId||CL.clubId;
+  const lista=(opts.lista||squad(id)).slice().sort(bySquadOrder);
+  const xi=new Set(S.xi||[]);
+  // a densidade vai na CLASSE, não só na grade inline: é por ela que o CSS
+  // enxuga a tabela do Hub quando a coluna aperta, sem tocar na do Elenco.
+  const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'}">
+    <span></span><span>POS</span><span>NOME</span>
+    <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
+    ${cfg.sal?'<span>SAL.</span>':''}<span>VALOR</span>
+  </div>`;
+  const linhas=lista.map(p=>{
+    const tit=xi.has(p.pid);
+    const nota=(typeof playerNota==='function')?playerNota(p):null;
+    const en=Math.round(p.energy!=null?p.energy:100);
+    const sal=(typeof playerSalary==='function')?playerSalary(p):0;
+    const indisp=(p.suspended>0)||(p.injuredMatches>0);
+    return `<div class="rf-sq-row rf-sq-${modo||'hub'} ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
+        style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'};padding:${cfg.pad}"
+        onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
+      <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
+      <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
+      <span class="rf-sq-name">${escC(p.n)}${indisp?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      <span class="rf-sq-id">${p.age||''}</span>
+      <span class="rf-sq-frc">${p.f}</span>
+      <span class="rf-sq-nota ${rfNotaTom(nota)}">${nota!=null?escC(String(nota).replace('.',',')):'–'}</span>
+      <span class="rf-sq-ener"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i><b>${en}%</b></span>
+      ${cfg.sal?`<span class="rf-sq-sal">${escC(rfDinCurto(sal))}</span>`:''}
+      <span class="rf-sq-val">${escC(rfDinCurto(rfVM(p)))}</span>
+    </div>`;
+  }).join('');
+  return `${cab}<div class="rf-sq-list">${linhas}</div>`;
+}
+/* a escala de energia do design system: vermelho → verde em cinco faixas */
+function rfEnergiaCor(v){
+  return v>=80?'var(--energy-100)':v>=70?'var(--energy-80)':v>=55?'var(--energy-60)'
+        :v>=40?'var(--energy-40)':'var(--energy-20)';
+}
+function rfNotaTom(n){ return n==null?'':(n>=7?'boa':n>=5?'media':'ruim'); }
+
+/* =====================================================================
+   FICHA DO JOGADOR (telas/Elenco e Base.html)
+   Camisa desenhada em CSS (o design system proíbe SVG novo pra isso),
+   nome, três barras — Força, Energia, Moral — e as linhas de valor,
+   salário e gols. Nada de painel escuro: é card claro como o resto.
+   ===================================================================== */
+function rfJerseyHTML(num){
+  return `<div class="rf-jersey" aria-hidden="true">
+    <i class="rf-j-sl l"></i><i class="rf-j-sl r"></i>
+    <i class="rf-j-body"><b>${escC(String(num||''))}</b></i>
+    <i class="rf-j-collar"></i>
+  </div>`;
+}
+function rfBarraHTML(rotulo, valor, pct, cor){
+  return `<div class="rf-fb-l"><span>${escC(rotulo)}</span><span class="rf-num">${escC(String(valor))}</span></div>
+    <div class="rf-fb"><i style="width:${Math.max(0,Math.min(100,pct))}%;background:${cor}"></i></div>`;
+}
+function rfFichaHTML(){
+  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer) || squad(CL.clubId)[0];
+  if(!p) return '<div class="rf-empty">Selecciona um jogador no elenco.</div>';
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
+  const en=Math.round(p.energy!=null?p.energy:100);
+  const moral=Math.round(p.moral!=null?p.moral:70);
+  const sal=(typeof playerSalary==='function')?playerSalary(p):0;
+  const gols=((S.scorers&&S.scorers[p.n])||0);
+  const fim=(p.contract&&p.contract.until)||null;
+  // a força do jogo é uma escala aberta; a barra usa a maior força do meu
+  // elenco como topo, senão um clube de Série D teria todas as barras no chão
+  const topo=Math.max(1,...squad(CL.clubId).map(x=>x.f||0));
+  return `<div class="rf-ficha-id">
+      ${rfJerseyHTML(nums[p.pid])}
+      <div class="rf-ficha-nm">
+        <span class="rf-ficha-n">${escC(p.n)}</span>
+        <span class="rf-ficha-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
+      </div>
+    </div>
+    <div class="rf-ficha-bars">
+      ${rfBarraHTML('Força', p.f, 100*p.f/topo, 'var(--club-primary)')}
+      ${rfBarraHTML('Energia', en+'%', en, rfEnergiaCor(en))}
+      ${rfBarraHTML('Moral', moral, moral, 'var(--club-secondary)')}
+    </div>
+    <div class="rf-sep"></div>
+    <div class="rf-ficha-linhas">
+      <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span><span class="rf-linha-v">${escC(fmt(rfVM(p)))}</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Salário</span><span class="rf-linha-v">${escC(fmt(sal))}/sem</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Gols na temporada</span><span class="rf-linha-v">${gols}</span></div>
+      <div class="rf-linha"><span class="rf-linha-t">Comportamento</span><span class="rf-linha-v">${escC(typeof playerBehaviorLabel==='function'?playerBehaviorLabel(p):'—')}</span></div>
+    </div>`;
+}
+
+/* =====================================================================
+   CAMPEONATOS (telas/Campeonatos.html)
+   Cinco cards: a TABELA e o CALENDÁRIO na coluna larga; artilharia,
+   últimos vencedores e marcadores de sempre na de 340px.
+   ===================================================================== */
+
+/* zona da linha na tabela: acesso (verde), rebaixamento (vermelho), neutro.
+   As faixas vêm das MESMAS constantes que decidem a virada de temporada
+   (DIVISION_PROMO/DIVISION_RELEG) — a tabela não pode prometer um acesso
+   que o motor não vai cumprir. */
+function rfZonaTabela(pos, total){
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
+  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  if(promo>0 && pos<=promo) return 'promo';
+  if(releg>0 && pos>total-releg) return 'drop';
+  return '';
+}
+/* `lim` corta a tabela para o RESUMO. O corte é uma JANELA EM VOLTA DO MEU
+   CLUBE, não os primeiros da tabela: quem está em 14º precisa ver os vizinhos
+   dele, não o líder. Sem `lim`, a tabela inteira. */
+function rfTabelaHTML(lim){
+  const linhas=(typeof sortedTable==='function')?sortedTable():[];
+  if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>';
+  const total=linhas.length;
+  // a janela do resumo: eu no meio, os vizinhos em volta
+  let mostra=linhas.map((t,i)=>({t,i}));
+  if(lim && total>lim){
+    const meu=Math.max(0, linhas.findIndex(t=>t.id===CL.clubId));
+    let ini=Math.max(0, meu-Math.floor((lim-1)/2));
+    ini=Math.min(ini, total-lim);
+    mostra=mostra.slice(ini, ini+lim);
+  }
+  return `<div class="rf-tb-head">
+      <span></span><span></span><span>J</span><span>V</span><span>E</span><span>D</span><span>GM:GS</span><span>P</span>
+    </div>
+    <div class="rf-tb-list">${mostra.map(({t,i})=>{
+      const eu=t.id===CL.clubId;
+      /* ===== A LINHA DA TABELA ABRE O CLUBE =====
+         Ela chamava `clClubHistory`, que mostra as temporadas em que EU comandei aquele clube —
+         para qualquer outro clube isso e uma janela vazia. E vinha atras de `clubLink&&`, um
+         guarda que so servia para nao estourar: o clique nao fazia nada de util em lado nenhum.
+         Agora abre a tela do clube, a mesma a que o Calendario ja levava. */
+      return `<div class="rf-tb-row rf-clicavel ${eu?'me':''}"${rfClubeClique(t.id)}>
+        <span class="rf-tb-pos"><i class="rf-zona ${rfZonaTabela(i+1,total)}"></i><b>${i+1}</b></span>
+        <span class="rf-tb-n">${escC((anyClubOf(t.id)||{short:t.id}).short)}</span>
+        <span class="rf-tb-x">${t.P}</span><span class="rf-tb-x">${t.W}</span>
+        <span class="rf-tb-x">${t.D}</span><span class="rf-tb-x">${t.L}</span>
+        <span class="rf-tb-x">${t.GF}:${t.GA}</span>
+        <span class="rf-tb-p">${t.Pts}</span>
+      </div>`;
+    }).join('')}</div>
+    ${lim&&total>lim?rfVerMais('campeonatos','minhas','Ver a tabela dos '+total+' clubes'):''}`;
+}
+
+/* calendário do MEU clube: data, adversário, local e resultado */
+function rfCalendarioHTML(){
+  const sched=S.sched||[]; const linhas=[];
+  sched.forEach((jornada,i)=>{
+    (jornada||[]).forEach(m=>{
+      if(m[0]!==CL.clubId && m[1]!==CL.clubId) return;
+      const casa=m[0]===CL.clubId;
+      const opp=anyClubOf(casa?m[1]:m[0])||{short:'—'};
+      const res=(S.results||[]).find(r=>r.round===i && r.h===m[0] && r.a===m[1]);
+      const meu=res?(casa?res.hg:res.ag):null, dele=res?(casa?res.ag:res.hg):null;
+      const tom=res?(meu>dele?'v':meu<dele?'d':'e'):'';
+      linhas.push(`<div class="rf-cal-row ${i===S.round?'agora':''}">
+        <span class="rf-cal-d">${escC((typeof calRowDate==='function'&&calRowDate(i))||((i+1)+'ª'))}</span>
+        <span class="rf-cal-o">${escC(opp.short)}</span>
+        <span class="rf-cal-l">${casa?'Casa':'Fora'}</span>
+        <span class="rf-cal-r ${tom}">${res?meu+'-'+dele:'—'}</span>
+      </div>`);
+    });
+  });
+  if(!linhas.length) return '<div class="rf-empty">O calendário aparece quando a temporada começa.</div>';
+  return `<div class="rf-cal-head"><span>DATA</span><span>ADVERSÁRIO</span><span>LOCAL</span><span>RES.</span></div>
+    <div class="rf-cal-list">${linhas.join('')}</div>`;
+}
+
+/* artilharia da divisão (temporada) e de sempre — a mesma peça, duas fontes */
+function rfArtilhariaHTML(mapa, subDe, lim){
+  const todos=Object.entries(mapa||{}).map(([n,g])=>({n,g})).sort((a,b)=>b.g-a.g);
+  const arr=todos.slice(0, lim||20);
+  if(!arr.length) return '<span class="rf-note">Sem gols marcados ainda.</span>';
+  return arr.map((s,i)=>{
+    const cid=(typeof findPlayerClub==='function')?findPlayerClub(s.n):null;
+    const sub=subDe? subDe(s) : (cid?(clubOf(cid)||{short:''}).short:'');
+    return `<div class="rf-art-row">
+      <span class="rf-art-i">${i+1}</span>
+      <span class="rf-art-id"><span class="rf-art-n">${escC(s.n)}</span><span class="rf-art-s">${escC(sub||'')}</span></span>
+      <span class="rf-art-g">${s.g}</span>
+    </div>`;
+  }).join('') + (lim&&todos.length>lim
+    ? `<span class="rf-note">e mais ${todos.length-lim} marcador${todos.length-lim===1?'':'es'}.</span>` : '');
+}
+function rfVencedoresHTML(){
+  const hist=(S.history||[]).slice().reverse().slice(0,6);
+  if(!hist.length) return '<span class="rf-note">Ainda não há temporadas concluídas neste save.</span>';
+  return hist.map(h=>`<div class="rf-linha">
+    <span class="rf-linha-t rf-num">${escC(String(h.season))}</span>
+    <span class="rf-venc">${escC(h.champ||'—')}</span></div>`).join('');
+}
+
+function rfMarcadoresDeSempre(){
+  const acc={...(S.allTimeScorers||{})};
+  Object.entries(S.scorers||{}).forEach(([n,g])=>{ acc[n]=(acc[n]||0)+g; });
+  return acc;
+}
+const RF_BL_CAMPEONATOS=[
+  { k:'minhas',   t:()=>classifDivName(S.division), col:1, lim:7, corpo:l=>rfTabelaHTML(l),
+    dir:()=>rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:'' },
+  { k:'calendario', t:'Calendário', col:1, corpo:()=>rfCalendarioHTML(),
+    dir:()=>{ const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
+              return nm? ((S.round||0)+1)+'ª rodada em '+(shortMatchDate(nm)||'') : ''; } },
+  { k:'artilharia', t:()=>'Artilharia da '+divisionLabel(), col:2, lim:4,
+    corpo:l=>rfArtilhariaHTML(S.scorers,null,l) },
+  { k:'historia',   t:'Últimos vencedores', col:2, corpo:()=>rfVencedoresHTML() },
+  // HISTORIAL DO CLUBE: era a única coisa que só existia na página Equipa. A
+  // Equipa saiu da sidebar e o historial veio pra cá — é história de
+  // competição, que é do que esta página trata.
+  { k:'historial',  t:'Historial do clube', col:2, corpo:()=>rfHistorialHTML(),
+    dir:()=>(S.history||[]).filter(h=>h.clubId===CL.clubId).length+' temporadas' },
+  { k:'sempre',     t:'Marcadores de sempre', col:2, lim:2,
+    corpo:l=>rfArtilhariaHTML(rfMarcadoresDeSempre(),null,l) },
+];
+function rfCampeonatosHTML(so){ return rfBlocos(null, RF_BL_CAMPEONATOS, so); }
+
+
+/* =====================================================================
+   FINANÇAS (telas/Financas.html)
+   Uma tira de quatro KPIs no topo — caixa, folha, sócios, estádio — e
+   depois EXTRATO e HISTÓRICO na coluna larga, ESTÁDIO e PATROCÍNIO na de
+   340px. Todo número em IBM Plex Mono, e o vermelho é reservado pra
+   despesa: nada de pintar de vermelho o que é só grande.
+   ===================================================================== */
+/* O NÚMERO É SEMPRE NEUTRO; quem carrega cor é a LINHA DEBAIXO. É assim
+   nas telas: "R$ 3,05 mi" em preto e "+1,78 mi" em verde por baixo. Pintar
+   o número grande de vermelho fazia a tela inteira parecer um alarme. */
+function rfKpiHTML(rotulo, valor, sub, tom){
+  return `<div class="rf-kpi">
+    <span class="rf-label-t">${escC(rotulo)}</span>
+    <span class="rf-kpi-v">${escC(valor)}</span>
+    ${sub?`<span class="rf-kpi-s ${tom||''}">${escC(sub)}</span>`:''}
+  </div>`;
+}
+function rfFinTotais(){
+  return S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+}
+function rfFinancasKpisHTML(){
+  const sq=squad(CL.clubId);
+  const folhaSem=sq.reduce((s,p)=>s+((p.contract&&p.contract.salary)||0),0);
+  const st=myStadium?myStadium():null;
+  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:0);
+  const socios=Math.round(cap*0.18);   // proporção estável de sócios sobre a capacidade
+  const ult=(S.finances||[])[0];
+  const delta=ult?((ult.income||0)+(ult.playerSales||0)-((ult.salaries||0)+(ult.bonuses||0)+(ult.opex||0)+(ult.playerPurchases||0)+(ult.stadium||0))):0;
+  return `<div class="rf-kpis">
+    ${rfKpiHTML('Em caixa', fmt(S.budget||0), (delta>=0?'+ ':'− ')+fmt(Math.abs(delta))+' na rodada')}
+    ${rfKpiHTML('Folha salarial', fmt(folhaSem), 'por semana · '+sq.length+' jogadores','neg')}
+    ${rfKpiHTML('Sócios', grp(socios), 'estimativa sobre a capacidade')}
+    ${rfKpiHTML('Estádio', grp(cap), 'lugares')}
+  </div>`;
+}
+/* extrato: o log real de transações da temporada, mais recente primeiro */
+function rfExtratoHTML(){
+  const logs=[];
+  (S.finances||[]).forEach(f=>{ if(f.log) logs.push(...f.log); });
+  if(!logs.length) return '<span class="rf-note">Nenhum movimento registrado nesta temporada ainda.</span>';
+  return `<div class="rf-extrato">${logs.slice(0,12).map(l=>{
+    // o log já vem escrito na voz do jogo ("💰 Fulano vendido ao X por R$ 1M");
+    // aqui só separamos o valor no fim pra ele cair na coluna mono à direita
+    const m=String(l).match(/^(.*?)([+-]?\s*R?\$?\s*[\d.,]+\s*(?:mil|mi|k|M)?)\s*\.?$/);
+    const txt=m?m[1].replace(/\s+por\s*$/,''):l, val=m?m[2].trim():'';
+    return `<div class="rf-ext-row">
+      <span class="rf-ext-t">${escC(txt)}</span>
+      <span class="rf-ext-v">${escC(val)}</span></div>`;
+  }).join('')}</div>`;
+}
+/* histórico: ANO · RECEITA · DESPESA · LUCRO */
+function rfHistoricoHTML(){
+  const ent=((S.financeHistory&&S.financeHistory[CL.clubId])||[]).slice().reverse();
+  if(!ent.length) return '<span class="rf-note">O histórico aparece quando a primeira temporada fechar.</span>';
+  return `<div class="rf-fh-head"><span>ANO</span><span>RECEITA</span><span>DESPESA</span><span>LUCRO</span></div>
+    <div class="rf-fh-list">${ent.map(e=>{
+      const rec=e.income||0, des=e.expenses||0, luc=rec-des;
+      return `<div class="rf-fh-row">
+        <span class="rf-fh-a">${escC(String(e.season))}</span>
+        <span class="rf-fh-r">${escC(mvShort(rec))}</span>
+        <span class="rf-fh-d">${escC(mvShort(des))}</span>
+        <span class="rf-fh-l ${luc>=0?'pos':'neg'}">${luc>=0?'+ ':'− '}${escC(mvShort(Math.abs(luc)))}</span>
+      </div>`;
+    }).join('')}</div>`;
+}
+function rfEstadioCardHTML(){
+  const st=myStadium?myStadium():null;
+  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:0);
+  const max=(typeof stadiumMaxCapacity==='function')?stadiumMaxCapacity():cap;
+  const custo=(typeof standCost==='function')?standCost():0;
+  /* O CONVITE PARA A OBRA TEM DE SER VISÍVEL. Este cartão listava quatro números e terminava num
+     botão discreto de "Gerir estádio" — não se percebia que dali se construía. Agora a última
+     linha é a própria chamada, com o preço ao lado, e abre a calculadora da obra. */
+  const st2=(typeof myStadium==='function')?myStadium():null;
+  const feito=(st2&&st2.builtThisSeason)||0;
+  const resta=Math.max(0,(typeof SEASON_BUILD_LIMIT!=='undefined'?SEASON_BUILD_LIMIT:0)-feito);
+  return `<div class="rf-linha"><span class="rf-linha-t">Capacidade</span><span class="rf-linha-v">${grp(cap)} lugares</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Teto de expansão</span><span class="rf-linha-v">${grp(max)}</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Preço do bilhete</span><span class="rf-linha-v">${CL.ticket||0} reais</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Obras liberadas este ano</span><span class="rf-linha-v">${grp(resta)} lugares</span></div>
+    <button type="button" class="rf-obr-cta" onclick="rfAcEstadio()">
+      <span class="rf-obr-cta-t">${rfIcone('estadio',16)} Construir bancadas</span>
+      <span class="rf-obr-cta-v">a partir de ${escC(fmt(custo))}</span>
+    </button>
+    <div class="rf-acts">${btn('Ver o estádio','clStadium()')}</div>`;
+}
+/* PATROCÍNIO: a referência traz camisa, manga e placas. Os valores saem da
+   divisão e do porte do estádio — o jogo não tem contrato de patrocínio
+   como entidade, então eles são derivados, não inventados a cada desenho. */
+function rfPatrocinioHTML(){
+  const st=myStadium?myStadium():null;
+  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:20000);
+  const peso={A:8,B:4,C:2,D:1}[S.division]||1;
+  const base=Math.round(cap*peso*0.7);
+  const linha=(l,v)=>`<div class="rf-linha"><span class="rf-linha-t">${escC(l)}</span>
+    <span class="rf-linha-v">${escC(fmt(v))}/temporada</span></div>`;
+  return linha('Camisa', base*2) + linha('Manga', Math.round(base*1.3)) + linha('Placas do estádio', base);
+}
+const RF_BL_FINANCAS=[
+  { k:'extrato',   t:'Extrato da temporada', col:1, corpo:()=>rfExtratoHTML(),
+    dir:()=>S.season+' · '+(S.round||0)+' jogos' },
+  { k:'historico', t:'Histórico por temporada', col:1, corpo:()=>rfHistoricoHTML(),
+    dir:()=>{ const n=(S.history||[]).length; return n?n+' temporadas':''; } },
+  { k:'estadio',   t:'Estádio', col:2, corpo:()=>rfEstadioCardHTML(),
+    dir:()=>{ const st=(typeof myStadium==='function')?myStadium():null;
+              return st&&st.capacity?grp(st.capacity)+' lugares':''; } },
+  { k:'patrocinio',t:'Patrocínio', col:2, corpo:()=>rfPatrocinioHTML() },
+];
+function rfFinancasHTML(so){
+  return rfBlocos({topo:rfFinancasKpisHTML}, RF_BL_FINANCAS, so);
+}
+
+
+/* =====================================================================
+   TREINADOR (telas/Treinador.html)
+   Faixa de identidade no topo (nome em Georgia — o único uso de serifa da
+   tela), depois HISTÓRIA e SALA DE TROFÉUS na coluna larga, OFERTAS,
+   RANKING e PERFIL na de 340px.
+   ===================================================================== */
+function rfTreinadorTopoHTML(){
+  const cl=clubOf(CL.clubId)||{short:'—'};
+  const temps=(S.coachHistory||[]).length;
+  const titulos=rfTitulosDoTreinador().length;
+  return `<div class="rf-kpis">
+    <div class="rf-kpi rf-kpi-id">
+      <span class="rf-label-t">Treinador</span>
+      <span class="rf-tr-nome">${escC(rfTreinadorNome())}</span>
+      <span class="rf-kpi-s">${escC(cl.short)} · ${escC(divisionLabel())} · ${escC(String(S.season||''))}</span>
+    </div>
+    ${rfKpiHTML('Reputação', String(Math.round(S.coachRep!=null?S.coachRep:50)), 'entre 0 e 100')}
+    ${rfKpiHTML('Títulos', String(titulos), titulos===1?'conquistado':'conquistados')}
+    ${rfKpiHTML('Temporadas', String(temps), 'registradas na carreira')}
+  </div>`;
+}
+/* ===== OS TITULOS SAO MEUS, NAO DO MUNDO =====
+   Isto lia S.titlesByClub — que e o palmares de TODOS os clubes do save: o Flamengo ganhou a
+   Libertadores, o Boca ganhou duas, a Aguia de Maraba ganhou a Serie D. A funcao despejava tudo
+   numa lista chamada "os titulos do treinador", e a Sala de Trofeus, ao perguntar "ganhei a
+   Libertadores?", encontrava a do Flamengo e respondia que sim. Bastavam duas ou tres
+   temporadas para o mundo encher a estante inteira: a sala dizia 7 de 7 a quem nunca levantou
+   nada. Era o relatado, e explica porque nao aparecia num save recem-criado (o mundo ainda nao
+   tinha campeao nenhum).
+   A fonte certa e o MEU historico: S.history guarda, por temporada que EU comandei, a minha
+   posicao na liga (myPos) e o meu desfecho em cada copa (myCups). Titulo e myPos===1 ou um
+   myCups que diz "campeao" — nada mais.
+   S.titlesByClub continua a servir a sala LEGADA (clTrophyRoom), que mostra taças POR CLUBE e
+   para a qual ele e a fonte certa. */
+/* ===== TODOS os títulos do treinador — de todos os clubes, países e ligas =====
+   Regra do dono (21/08): a Sala de Troféus nunca esquece — o que o treinador ganhou fica,
+   não importa em que clube, divisão ou país foi, e nada se perde na virada de temporada.
+   A fonte primária é S.coachHistory type 'campeao': carimbado na hora da taça com a chave
+   da competição, o rótulo e o país (uni), append-only, e por assento na Resenha. S.history
+   entra como resgate de save antigo (de antes do coachHistory carimbar copa/divisão), com
+   dedupe por temporada+competição. O filtro por clube ATUAL que vivia aqui saiu: ele
+   escondia da estante os títulos ganhos nos clubes anteriores da carreira. */
+function rfTitulosDoTreinador(){
+  const out=[]; const vistos={};
+  const poe=(comp,season,extra)=>{
+    const m=String(comp||'')+':'+String(season||'');
+    if(!comp||vistos[m]) return; vistos[m]=1;
+    out.push(Object.assign({comp,season},extra||{}));
+  };
+  ((S&&S.coachHistory)||[]).forEach(h=>{
+    if(h&&h.type==='campeao') poe(h.comp,h.season,{label:h.label,uni:h.uni,clubShort:h.clubShort});
+  });
+  ((S&&S.history)||[]).forEach(h=>{
+    if(!h) return;
+    // só divisão brasileira no resgate: fora do Brasil o coachHistory é quem carimba (a chave
+    // de lá é outra — 'premier', 'liga:<país>:<div>' — e duplicaria o ladrilho)
+    if(h.myPos===1 && /^[A-D]$/.test(String(h.division||''))) poe('serie'+h.division,h.season);
+    Object.entries(h.myCups||{}).forEach(([k,v])=>{ if(foiCampeao(v)) poe(k,h.season); });
+  });
+  return out;
+}
+function rfTrofeusHTML(){
+  const t=rfTitulosDoTreinador();
+  if(!t.length) return `<span class="rf-note">Nenhum título ainda. As silhuetas aparecem quando a primeira taça vier.</span>`;
+  return `<div class="rf-trofeus">${t.slice(0,8).map(x=>`<div class="rf-trofeu">
+    <span class="rf-trofeu-i">${(typeof trophyImg==='function'&&trophyImg(x.comp,26))||rfIcone('trofeu',16)+''}</span>
+    <span class="rf-trofeu-n">${escC(rfCompLabel(x.comp))}</span>
+    <span class="rf-trofeu-a">${escC(String(x.season||''))}</span>
+  </div>`).join('')}</div>`;
+}
+function rfCompLabel(k){
+  if(typeof COMP_DEFS!=='undefined' && COMP_DEFS[k]) return COMP_DEFS[k].short||k;
+  if(typeof divisionLabelOf==='function' && /^serie/i.test(k)) return divisionLabelOf(k.replace(/^serie/i,'').toUpperCase());
+  return String(k);
+}
+/* história: ANO · CLUBE · DIVISÃO · POS · TÍTULO */
+function rfHistoriaHTML(){
+  const h=(S.coachHistory||[]).slice().reverse();
+  if(!h.length) return '<span class="rf-note">A carreira começa agora.</span>';
+  return `<div class="rf-th-head"><span>ANO</span><span>CLUBE</span><span>DIVISÃO</span><span>POS</span><span>TÍTULO</span></div>
+    <div class="rf-th-list">${h.slice(0,12).map(e=>`<div class="rf-th-row">
+      <span class="rf-th-a">${escC(String(e.season||''))}</span>
+      <span class="rf-th-c">${escC((clubOf(CL.clubId)||{short:''}).short)}</span>
+      <span class="rf-th-d">${escC(divisionLabel())}</span>
+      <span class="rf-th-p">${e.pos||'—'}</span>
+      <span class="rf-th-t">${escC(e.text||'')}</span>
+    </div>`).join('')}</div>`;
+}
+/* ranking: posição · nome · pontos (mesma conta do clCoachRanking) */
+function rfRankingHTML(lim){
+  if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
+  // mesma conta do core (coachRankingScore): titulos com o peso real da competicao
+  const rows=(DATA.clubs||[]).map((c,i)=>{
+    const t=(S.table&&S.table[c.id])||{Pts:0};
+    const sc=(typeof coachRankingScore==='function')?coachRankingScore(c.id, t.Pts||0):{total:(t.Pts||0)};
+    return {nome:(typeof coachName==='function')?coachName(c.id,i):'—',
+            pts:sc.total, eu:!!(CL.humans&&CL.humans[c.id])};
+  }).sort((a,b)=>b.pts-a.pts);
+  return `<div class="rf-rk-list">${rows.slice(0, lim||20).map((r,i)=>`<div class="rf-rk-row ${r.eu?'me':''}">
+    <span class="rf-rk-i">${i+1}</span>
+    <span class="rf-rk-n">${escC(r.nome)}</span>
+    <span class="rf-rk-p">${r.pts}</span>
+  </div>`).join('')}</div>
+  ${lim&&rows.length>lim?rfVerMais('treinador','ranking','Ver o ranking completo'):''}`;
+}
+function rfOfertasHTML(){
+  const of=rfOfertas();
+  if(!of.length) return '<span class="rf-note">Nenhuma oferta na mesa agora.</span>';
+  return of.slice(0,3).map(o=>{
+    const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'?'};
+    return `<div class="rf-oferta">
+      <div class="rf-oferta-hd">
+        <span class="rf-oferta-crest">${rfCrest(c,28)}</span>
+        <span class="rf-oferta-id">
+          <span class="rf-oferta-n">${escC(c.short)}</span>
+          <span class="rf-oferta-s">${escC((typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):''))}${o.salary?' · salário '+fmt(o.salary):''}</span>
+        </span>
+      </div>
+      <span class="rf-note">${escC((typeof jobOfferObjective==='function'?jobOfferObjective(o):''))}</span>
+      <div class="rf-acts">${btn('Ver convite','showJobInvite('+JSON.stringify(o).replace(/"/g,'&quot;')+')',{cls:'cl-btn-ok'})}</div>
+    </div>`;
+  }).join('');
+}
+/* perfil: preferências, com interruptor de verdade onde o jogo tem opção */
+function rfPerfilHTML(){
+  const auto=rfPref('autoSalary');
+  return `<div class="rf-perfil">
+    <div class="rf-pref"><span class="rf-pref-l">Salários automáticos</span>
+      <button type="button" class="rf-switch ${auto?'on':''}" onclick="rfTogglePref('autoSalary')"
+        aria-pressed="${auto?'true':'false'}"><i></i></button></div>
+    <div class="rf-linha"><span class="rf-linha-t">Ritmo de jogo</span>
+      <span class="rf-linha-v">${escC(typeof tempoLabelAtual==='function'?tempoLabelAtual():'—')}</span></div>
+    <div class="rf-linha"><span class="rf-linha-t">Modo</span>
+      <span class="rf-linha-v">${CL.online?'Resenha':'Solo'}</span></div>
+    <div class="rf-acts">${btn('Abrir opções','clOptions()')}</div>
+  </div>`;
+}
+/* =====================================================================
+   AS PREFERÊNCIAS MORAVAM ONDE NADA É GUARDADO.
+
+   `rfTogglePref` escrevia em `CL.options`. `CL` é o estado da SESSÃO — só o `S`
+   vai para o disco. Os seis interruptores da página de Configurações voltavam
+   ao padrão a cada recarregamento, e ninguém percebia porque o desenho
+   mostrava o interruptor a mudar.
+
+   Pior no "Som da partida": o motor lê `S.config.sound` (ver o Audio_ no topo
+   do core.js) e o interruptor escrevia noutro sítio. Desligar o som não
+   desligava som nenhum.
+
+   Agora cada chave vai para a sua casa: as que o motor já conhece vão para o
+   `S.config`, e as que são só da interface vão para `S.config.ui` — dentro do
+   `S`, portanto guardadas. E gravar é gravar. */
+const RF_PREF_MOTOR={ som:'sound', voz:'voice', classico:'classic' };
+function rfPref(k){
+  if(!S) return false;
+  S.config=S.config||{};
+  const nativa=RF_PREF_MOTOR[k];
+  if(nativa) return !!S.config[nativa];
+  return !!(S.config.ui&&S.config.ui[k]);
+}
+function rfPrefDef(k, padrao){
+  if(!S) return !!padrao;
+  S.config=S.config||{};
+  const nativa=RF_PREF_MOTOR[k];
+  if(nativa) return S.config[nativa]!=null ? !!S.config[nativa] : !!padrao;
+  const ui=S.config.ui||{};
+  return ui[k]!=null ? !!ui[k] : !!padrao;
+}
+function rfTogglePref(k){
+  if(!S){ cdraw(); return; }
+  S.config=S.config||{};
+  const nativa=RF_PREF_MOTOR[k];
+  if(nativa) S.config[nativa]=!S.config[nativa];
+  else { S.config.ui=S.config.ui||{}; S.config.ui[k]=!S.config.ui[k]; }
+  if(typeof rfGravar==='function') rfGravar();
+  cdraw();
+}
+
+const RF_BL_TREINADOR=[
+  { k:'historia', t:'História', col:1, corpo:()=>rfHistoriaHTML(),
+    dir:()=>(S.coachHistory||[]).length+' temporadas registradas' },
+  { k:'trofeus',  t:'Sala de Troféus', col:1, corpo:()=>rfTrofeusHTML(),
+    dir:()=>{ const t=rfTitulosDoTreinador(); return t.length+(t.length===1?' título':' títulos'); } },
+  { k:'ofertas',  t:'Ofertas', col:2, corpo:()=>rfOfertasHTML(),
+    dir:()=>rfOfertas().length? rfOfertas().length+' nova(s)':'' },
+  { k:'ranking',  t:'Ranking de treinadores', col:2, lim:4, corpo:l=>rfRankingHTML(l),
+    dir:'por pontos somados' },
+  { k:'perfil',   t:'Perfil', col:2, corpo:()=>rfPerfilHTML(), dir:'preferências' },
+];
+function rfTreinadorHTML(so){
+  return rfBlocos({topo:rfTreinadorTopoHTML}, RF_BL_TREINADOR, so);
+}
+
+
+/* =====================================================================
+   CLUBE & SISTEMA / E-MAIL (telas/Clube e Sistema.html)
+   Grade INVERTIDA: a lista de e-mails ocupa os 340px da ESQUERDA e o
+   conteúdo (leitura, opções, jogo) fica na coluna larga da direita.
+   ===================================================================== */
+function rfInbox(){ if(typeof syncInbox==='function'){ try{ syncInbox(); }catch(e){} } return CL.inbox||[]; }
+function rfQuandoHTML(e){
+  const r=(e.round||0)+1;
+  return 'rodada '+r+(e.season?(' · '+e.season):'');
+}
+function rfListaEmailsHTML(){
+  const box=rfInbox();
+  if(!box.length) return '<span class="rf-note">Caixa de entrada vazia.</span>';
+  return `<div class="rf-mails">${box.slice(0,20).map(e=>`
+    <div class="rf-mail ${e.read?'':'novo'} ${CL.inboxOpen===e.key?'aberto':''}"
+         onclick="clOpenEmail('${escC(e.key)}')">
+      <div class="rf-mail-top">
+        <span class="rf-mail-a">${e.read?'':'● '}${escC(e.subject||'')}</span>
+        <span class="rf-mail-q">${escC(rfQuandoHTML(e))}</span>
+      </div>
+      <span class="rf-mail-p">${escC(String(e.preview||e.from||'').slice(0,72))}</span>
+    </div>`).join('')}</div>`;
+}
+function rfLeituraHTML(){
+  const box=rfInbox();
+  const e=CL.inboxOpen? box.find(x=>x.key===CL.inboxOpen) : box[0];
+  if(!e) return '<div class="rf-empty">Escolha um e-mail na lista ao lado.</div>';
+  return `<div class="rf-mail-hd">
+      <span class="rf-mail-subj">${(typeof inboxIcon==='function'?inboxIcon(e.kind):'')} ${escC(e.subject||'')}</span>
+      <span class="rf-label-r">${escC(rfQuandoHTML(e))}</span>
+    </div>
+    <div class="rf-mail-body">${e.body||''}</div>
+    <div class="rf-acts">
+      <button type="button" class="rf-btn rf-btn-secondary"
+        onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">📥 Arquivar</button>
+      <button type="button" class="rf-btn rf-btn-cta"
+        onclick="rfAcAbrir('${e.kind==='prize'?'mail-imprensa':'mail-responder'}',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">${e.kind==='prize'?'🎙️ Falar com a imprensa':'↩ Responder'}</button>
+    </div>`;
+}
+/* OPÇÕES: cada linha é rótulo + explicação + controle, como na referência */
+function rfOpcaoHTML(titulo, explica, controle){
+  return `<div class="rf-opt">
+    <div class="rf-opt-id"><span class="rf-opt-t">${escC(titulo)}</span>
+      <span class="rf-opt-s">${escC(explica)}</span></div>
+    ${controle}
+  </div>`;
+}
+function rfOpcoesHTML(){
+  const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
+  const moeda=(typeof curSym==='function')?curSym():'R$';
+  return rfOpcaoHTML('Tempo de jogo','Velocidade da rodada ao vivo — o Camarote trava no Usain Bolt',
+      `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(tempo)}</button>`)
+    + rfOpcaoHTML('Moeda','Símbolo usado em todo valor da tela',
+      `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(moeda)}</button>`)
+    + rfOpcaoHTML('Modo','Solo joga contra a máquina; Resenha é a liga com a turma',
+      `<button type="button" class="rf-opt-c" onclick="clOptions()">${CL.online?'Resenha':'Solo'}</button>`);
+}
+function rfJogoHTML(){
+  const acoes=[
+    `<button type="button" class="rf-acao primaria" onclick="clSaveMenu()">${rfIcone('gravar',16)} Gravar jogo</button>`,
+    CL.online?`<button type="button" class="rf-acao" onclick="clInviteResenha()">${rfIcone('chat',16)} Chamar pra Resenha</button>`:'',
+    `<button type="button" class="rf-acao" onclick="clOptions()">${rfIcone('config',16)} Opções</button>`,
+    `<button type="button" class="rf-acao perigo" onclick="clExit()">↩ Sair para o menu</button>`,
+  ].filter(Boolean).join('');
+  return `<div class="rf-acoes">${acoes}</div>
+    <span class="rf-note">O jogo grava sozinho a cada rodada. "Gravar jogo" força a gravação agora e mostra os saves guardados.</span>`;
+}
+/* Clube & Sistema inverte as colunas (a lista de e-mails é a de 340). O
+   bloco de LEITURA não tem aba: ele é o corpo do e-mail selecionado na
+   lista ao lado — abrir "leitura" sozinho não mostraria nada de novo. */
+const RF_BL_CLUBE=[
+  { k:'email',   t:'E-mail', col:1, corpo:()=>rfListaEmailsHTML(),
+    dir:()=>{ const n=rfNaoLidas(); return n?n+' novos':'tudo lido'; } },
+  { k:'leitura', t:'', col:2, corpo:()=>rfLeituraHTML(), semAba:true },
+  { k:'opcoes',  t:'Opções', col:2, corpo:()=>rfOpcoesHTML() },
+  { k:'jogo',    t:'Jogo',   col:2, corpo:()=>rfJogoHTML() },
+  { k:'resenha', t:'Modo Resenha', col:2, corpo:()=>rfResenhaHTML(), so:()=>!!CL.online },
+];
+function rfClubeSistemaHTML(so){
+  const blocos=RF_BL_CLUBE.filter(b=>!b.so || b.so());
+  return rfBlocos(null, blocos, so);
+}
+
+
+/* ---- HISTORIAL DO CLUBE ----
+   Sobrou da página Equipa, que saiu da sidebar: elenco e formação já cobrem
+   o time, estádio mora em Finanças, e a identidade do clube já está na faixa
+   do topo do Hub. O historial é o único dado que não tinha outro lugar, e
+   agora vive em Campeonatos.
+   ===================================================================== */
+function rfHistorialHTML(){
+  const ent=(S.history||[]).filter(h=>h.clubId===CL.clubId).slice().reverse();
+  if(!ent.length) return '<span class="rf-note">Mostra só as temporadas em que você comandou este clube neste save. Ainda não há nenhuma fechada.</span>';
+  return `<div class="rf-th-head"><span>ANO</span><span>COMPETIÇÃO</span><span>DIVISÃO</span><span>POS</span><span>CAMPEÃO</span></div>
+    <div class="rf-th-list">${ent.map(h=>`<div class="rf-th-row">
+      <span class="rf-th-a">${escC(String(h.season))}</span>
+      <span class="rf-th-c">${escC(classifDivName(h.division||'A', h.country))}</span>
+      <span class="rf-th-d">${escC(divisionLabelOf(h.division||'A'))}</span>
+      <span class="rf-th-p">${h.pos||'—'}</span>
+      <span class="rf-th-t">${escC(h.champ||'—')}</span>
+    </div>`).join('')}</div>`;
+}
+
+
+/* ---- Mercado ▸ Contrapropostas e Últimas transferências ----
+   Os dois últimos destinos do Mercado que ainda passavam pela captura.
+   Mesma anatomia do resto da página: card na coluna larga, o trilho de 340
+   à direita continua igual. */
+function rfContrapropostasHTML(){
+  const lista=(typeof myCounterOffers==='function')?myCounterOffers():[];
+  const corpo = lista.length
+    ? lista.map(o=>`<div class="rf-prop" onclick="rfMkContraReceb(${o.id})">
+        <div class="rf-prop-top">
+          <span class="rf-prop-n">${escC(o.playerName||'')}</span>
+          <span class="rf-prop-fee">${escC(mvShort(o.askFee||0))}</span>
+        </div>
+        <span class="rf-prop-sub">${escC(o.sellerHumanName||o.sellerName||'')} · você ofereceu ${escC(mvShort(o.offeredFee||0))}</span>
+        <span class="rf-prop-msg">${rfIcone('chat',16)} Toque para aceitar, recusar ou propor outro valor.</span>
+      </div>`).join('')
+    : '<span class="rf-note">Nenhuma contraproposta aberta agora.</span>';
+  return rfCol(rfCard('Contrapropostas', corpo, {right:lista.length?lista.length+' aberta(s)':''}));
+}
+function rfTransferenciasHTML(){
+  const nomeDe=id=>{ if(!id) return 'fora do mundo';
+    const c=clubOf(id)||(typeof bgClubById==='function'&&bgClubById(id))||(typeof intlClubById==='function'&&intlClubById(id));
+    return (c&&c.short)||String(id); };
+  const ent=[];
+  squad(CL.clubId).forEach(p=>{ (p.transferHistory||[]).forEach(h=>ent.push({p,h})); });
+  ent.sort((a,b)=>(b.h.season-a.h.season)||(b.h.round-a.h.round));
+  const corpo = ent.length
+    ? `<div class="rf-tr-head"><span>TEMP.</span><span>JOGADOR</span><span>DE → PARA</span><span>VALOR</span></div>
+       <div class="rf-tr-list">${ent.slice(0,20).map(({p,h})=>`<div class="rf-tr-row">
+         <span class="rf-tr-a">${escC(String(h.season))}</span>
+         <span class="rf-tr-n">${escC(p.n)}</span>
+         <span class="rf-tr-c">${escC(nomeDe(h.from))} → ${escC(nomeDe(h.to))}</span>
+         <span class="rf-tr-v">${escC(mvShort(h.fee||0))}</span>
+       </div>`).join('')}</div>`
+    : `<span class="rf-note">Nenhuma transferência registrada. O histórico viaja com o jogador: aparecem aqui os movimentos de quem está no seu elenco.</span>`;
+  return rfCol(rfCard('Últimas transferências', corpo, {right:ent.length?ent.length+' registros':''}));
+}
+
+/* =====================================================================
+   MODAIS DE OFERTA — portados de telas/Modal - Convite para Jantar e
+   telas/Modal - Jantar e Proposta.
+
+   São POPUP legítimo pela regra do design system: acontecem sozinhos no
+   meio do save, o treinador não foi procurar.
+
+   Os dois têm a mesma anatomia — cabeçalho azul com o escudo do clube que
+   sondou, vídeo à esquerda e ficha à direita, e uma barra de ação com a
+   recusa em branco e o aceite em amarelo. Muda a largura (860 / 940), a
+   coluna da direita (300 / 320) e o conteúdo da ficha.
+   ===================================================================== */
+/* O ESPAÇO 16:9 ERA UM ESPAÇO RESERVADO — E O VÍDEO JÁ EXISTIA.
+   O pacote desenha estes dois modais com um bloco "ESPAÇO RESERVADO · 16:9", e
+   o porte copiou o bloco à letra: o jogo mostrava o mockup do designer, com o
+   texto do mockup, enquanto `video/convite-jantar.mp4` e
+   `video/convite-assinatura.mp4` estavam no disco a não tocar em lado nenhum.
+   Eles TOCAVAM no desenho antigo; quando `showJobInvite`/`showJobProposal`
+   passaram a devolver o modal novo, o código velho — e o vídeo com ele — ficou
+   inalcançável depois do `return`.
+
+   Agora o espaço é o vídeo. Sem ficheiro, volta a ser o cartaz de antes, que é
+   o que faz sentido para os seis momentos que ainda não têm filme. Nunca com
+   som: `muted` + `volume=0` no play, porque um vídeo que fala sozinho por cima
+   de um jogo é a pior surpresa possível. */
+function rfVideoHTML(titulo, dur, src){
+  if(src) return `<div class="rf-video rf-video-on">
+    <video src="${escC(src)}" autoplay muted loop playsinline preload="metadata"
+      onloadeddata="this.muted=true;this.volume=0"
+      onerror="this.closest('.rf-video').classList.remove('rf-video-on')"></video>
+    <span class="rf-video-cap">${escC(titulo)}</span>
+  </div>`;
+  return `<div class="rf-video">
+    <span class="rf-video-play">▶</span>
+    <span class="rf-video-t">${escC(titulo)}</span>
+    <span class="rf-video-s">Espaço reservado · 16:9</span>
+    <span class="rf-video-d">${escC(dur||'0:18')}</span>
+  </div>`;
+}
+function rfFichaLinha(l,v){
+  return `<div class="rf-of-linha"><span class="rf-of-l">${escC(l)}</span>
+    <span class="rf-of-v">${escC(String(v))}</span></div>`;
+}
+/* ---- 1 · CONVITE PARA JANTAR ---- */
+function rfModalConviteHTML(o){
+  const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'—'};
+  const me=clubOf(CL.clubId)||{short:'—'};
+  const js=Math.round((S.jobSecurity!=null?S.jobSecurity:50));
+  const dir=js>=66?'direção tranquila':js>=34?'direção neutra':'direção impaciente';
+  return `<div class="rf-of rf-of-convite">
+    <div class="rf-of-hd">
+      <div class="rf-band-filete"></div>
+      <span class="rf-of-glyph">🍽️</span>
+      <div class="rf-of-ttl">
+        <span class="rf-of-t">Um convite para jantar.</span>
+        <span class="rf-of-sub">O empresário ligou — querem conversar com você.</span>
+      </div>
+      <div class="rf-sp"></div>
+      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
+    </div>
+    <div class="rf-of-body">
+      <div class="rf-of-esq">
+        ${rfVideoHTML('O presidente espera você para conversar.','0:18','video/convite-jantar.mp4')}
+        <p class="rf-of-p">O presidente do <b>${escC(c.short)}</b> (${escC((typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):''))}) pediu para falar com você pessoalmente. Ele acompanha o seu trabalho no ${escC(me.short)} e quer conversar num jantar, sem compromisso.</p>
+        <p class="rf-of-p2">Aceitar o jantar não é aceitar emprego nenhum — é só ouvir o que eles têm a dizer.</p>
+      </div>
+      <div class="rf-of-dir">
+        <div class="rf-card">
+          <span class="rf-label-t">A vaga</span>
+          ${rfFichaLinha('Clube', c.short)}
+          ${rfFichaLinha('Divisão', (typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):'—'))}
+          ${rfFichaLinha('Situação', 'vaga aberta')}
+          ${rfFichaLinha('Seu clube hoje', me.short)}
+        </div>
+        <div class="rf-card rf-card-quiet">
+          <span class="rf-label-t">Sua segurança no ${escC(me.short)}</span>
+          <div class="rf-of-js">
+            <span class="rf-of-jsn">${js}</span>
+            <span class="rf-of-jsd">${escC(dir)}</span>
+          </div>
+          <div class="rf-fb"><i style="width:${js}%;background:var(--club-secondary)"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="rf-of-foot">
+      <span class="rf-of-nota">Recusar encerra a conversa. O ${escC(me.short)} continua com você.</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-wiz-b2" onclick="clJobInviteDecline()">Recusar o convite</button>
+      <!-- clJobInviteAccept, nunca showJobProposal direto: e ele que guarda a oferta na MESA
+           (CL._ofertaEmMesa) — sem isso o Assinar da tela seguinte podia nao achar oferta
+           nenhuma e morrer em silencio. Era o "aceitar nao funcionava" relatado a 20/08. -->
+      <button type="button" class="rf-wiz-cta" onclick="clJobInviteAccept()">🍽️ Aceitar o jantar</button>
+    </div>
+  </div>`;
+}
+/* ---- 2 · JANTAR E PROPOSTA ---- */
+function rfModalPropostaHTML(o){
+  const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'—'};
+  const me=clubOf(CL.clubId)||{short:'—'};
+  return `<div class="rf-of rf-of-proposta">
+    <div class="rf-of-hd">
+      <div class="rf-band-filete"></div>
+      <span class="rf-of-glyph">✍️</span>
+      <div class="rf-of-ttl">
+        <span class="rf-of-t">O jantar e a proposta.</span>
+        <span class="rf-of-sub">Eles puseram os termos na mesa.</span>
+      </div>
+      <div class="rf-sp"></div>
+      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
+    </div>
+    <div class="rf-of-body">
+      <div class="rf-of-esq">
+        ${rfVideoHTML('Presidente e treinador lendo o contrato.','0:24','video/convite-assinatura.mp4')}
+        <div class="rf-card rf-card-quiet">
+          <span class="rf-label-t">💬 O presidente do ${escC(c.short)}</span>
+          <p class="rf-of-p">Treinador, a gente viu o que você fez no ${escC(me.short)}. Aqui o projeto é sério: elenco pronto, torcida do lado e paciência pra construir. Vem com a gente.</p>
+        </div>
+      </div>
+      <div class="rf-of-dir">
+        <div class="rf-card">
+          <span class="rf-label-t">Os termos</span>
+          ${rfFichaLinha('Salário', o&&o.salary?fmt(o.salary):'—')}
+          ${rfFichaLinha('Prêmio por título', o&&o.bonus?fmt(o.bonus):'—')}
+          ${rfFichaLinha('Caixa do clube', (S.budgets&&S.budgets[o&&o.clubId])?fmt(S.budgets[o.clubId]):'—')}
+          ${rfFichaLinha('Divisão', (typeof jobOfferDivLabel==='function'?jobOfferDivLabel(o):'—'))}
+        </div>
+        <div class="rf-card rf-card-quiet">
+          <span class="rf-label-t">🎯 Objetivo principal</span>
+          <p class="rf-of-p">${escC((typeof jobOfferObjective==='function'?jobOfferObjective(o):'—'))}</p>
+        </div>
+      </div>
+    </div>
+    <div class="rf-of-foot">
+      <span class="rf-of-nota">Aceitar encerra o seu contrato com o ${escC(me.short)} na hora.</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-wiz-b2" onclick="clJobProposalDecline()">Agradecer e ficar</button>
+      <button type="button" class="rf-wiz-cta" onclick="clJobProposalAccept()">✍️ Assinar com o ${escC(c.short)}</button>
+    </div>
+  </div>`;
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Onboarding — Boas-vindas (mobile)" description="Onboarding — Boas-vindas (mobile) — mobile" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#c9d2cb}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="display:flex;justify-content:center;padding:24px;font-family:'Space Grotesk',system-ui,sans-serif">
+  <div style="width:390px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative">
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;flex-direction:column;gap:10px;position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:5px">
+        <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:28px;height:28px;object-fit:contain;flex:0 0 auto">
+        <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#F2B90C">98</span></span>
+        <div style="flex:1"></div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#c3d3ec;white-space:nowrap">5 de 5</span>
+      </div>
+      <div style="display:flex;gap:4px;margin-left:5px">
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+        <span style="flex:1;height:4px;border-radius:99px;background:#F2B90C"></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;margin-left:5px;padding-top:2px">
+        <span style="font-size:19px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.2;text-wrap:pretty">Bem-vindo ao XV Piracicaba.</span>
+        <span style="font-size:12px;color:#c3d3ec;line-height:1.5;text-wrap:pretty">A diretoria confia. A torcida quer acesso. O primeiro jogo é sábado, fora.</span>
+      </div>
+    </div>
+    <div style="padding:14px 16px 96px;display:flex;flex-direction:column;gap:12px">
+      <div style="position:relative;border-radius:16px;overflow:hidden;background:#12201a;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center">
+        <img src="assets/estadios/xv-piracicaba.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.4">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,47,102,.7),rgba(18,32,26,.9))"></div>
+        <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <span style="width:48px;height:48px;border-radius:99px;background:#F2B90C;color:#17458F;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer">▶</span>
+          <span style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap">Vídeo do treinador contratado</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#a9bfe0;letter-spacing:.1em;white-space:nowrap">ESPAÇO RESERVADO · 16:9</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:3px;min-width:0">
+          <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">DIVISÃO</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#17458F;white-space:nowrap">Série D</span>
+          <span style="font-size:10px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">64 clubes</span>
+        </div>
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:3px;min-width:0">
+          <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">OBJETIVO</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#F2B90C;white-space:nowrap">Top 8</span>
+          <span style="font-size:10px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">cobrado pela diretoria</span>
+        </div>
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:3px;min-width:0">
+          <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ELENCO</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap">26</span>
+          <span style="font-size:10px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">força média 9,8</span>
+        </div>
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:3px;min-width:0">
+          <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CAIXA</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap">R$ 1,27 mi</span>
+          <span style="font-size:10px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">folha 184 mil/mês</span>
+        </div>
+      </div>
+      <div style="background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">RECADO DA DIRETORIA</span>
+        <span style="font-family:Georgia,serif;font-size:14px;font-style:italic;color:#fff;line-height:1.5;text-wrap:pretty">"A gente enche o estádio do mesmo jeito, treinador. Só não deixe o XV baixar a cabeça."</span>
+        <div style="display:flex;flex-direction:column;gap:5px;padding-top:2px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#c3d3ec"><span style="white-space:nowrap">Paciência da diretoria</span><span style="font-family:'IBM Plex Mono',monospace;color:#fff">alta</span></div>
+          <div style="height:7px;border-radius:99px;background:rgba(255,255,255,.15);overflow:hidden"><div style="width:78%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#5d6c62;white-space:nowrap">Primeiro jogo</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Cianorte · fora</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#5d6c62;white-space:nowrap">Estádio</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">12.500 lugares</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#5d6c62;white-space:nowrap">Artilheiro</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Carlos Miguel · 6</span></div>
+      </div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:12px 16px 16px;display:flex;gap:8px">
+      
+      <span style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;animation:ctaPulse 2.4s ease-in-out infinite">⚽ Entrar no clube</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

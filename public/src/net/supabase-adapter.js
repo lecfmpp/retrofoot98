@@ -61,7 +61,12 @@ async function netInitSupabase(){
         }, 1500);
         return;
       }
-      if(session && session.user) SB_AUTH_USER = session.user;
+      if(session && session.user){
+        SB_AUTH_USER = session.user;
+        /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
+           cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
+        netCarregarPlano().then(()=>{ try{ cdraw(); }catch(e){} });
+      }
     });
     const { data:{ session } } = await sb.auth.getSession();
     if(session && session.user && session.user.is_anonymous){
@@ -71,7 +76,8 @@ async function netInitSupabase(){
     } else if(session) {
       SB_AUTH_USER = session.user;
     }
-    console.log('✓ Supabase pronto', SB_AUTH_USER ? '(sessão ativa: '+(SB_AUTH_USER.email||'?')+')' : '(sem sessão)');
+    if(SB_AUTH_USER) await netCarregarPlano();
+    console.log('✓ Supabase pronto', SB_AUTH_USER ? '(sessão ativa: '+(SB_AUTH_USER.email||'?')+', plano '+SB_PLANO.plan+')' : '(sem sessão)');
     return true;
   } catch(e) { console.warn('⚠ Supabase init erro:', e.message); return false; }
 }
@@ -148,9 +154,31 @@ function netWarnDeadSession(){
 }
 
 /* retorna {loggedIn, email, name} pra UI decidir se mostra login/cadastro ou "continuar como X" */
+/* PLANO DO TREINADOR (free/pro). Vem de elifoot_v3.user_plans pela funcao
+   my_plan(), que ja resolve o prazo — `until` no passado deixa de ser PRO sem
+   ninguem ter de rebaixar a conta a mao.
+
+   FICA EM CACHE NUMA VARIAVEL porque netAuthStatus() e chamada em todo o
+   desenho (o cabecalho pergunta a cada cdraw): uma consulta por redesenho
+   seria absurdo. A cache e preenchida uma vez por sessao, ao ligar, e ao
+   trocar de conta — ver netCarregarPlano. */
+let SB_PLANO = { plan:'free', pro:false, until:null };
+async function netCarregarPlano(){
+  SB_PLANO = { plan:'free', pro:false, until:null };
+  if(!sb || !SB_AUTH_USER) return SB_PLANO;
+  try{
+    const { data, error } = await sb.rpc('my_plan');
+    if(error) throw error;
+    const r = Array.isArray(data) ? data[0] : data;
+    if(r) SB_PLANO = { plan:r.plan||'free', pro:!!r.pro, until:r.until||null };
+  }catch(e){ console.warn('plano do treinador:', e && e.message); }
+  return SB_PLANO;
+}
 function netAuthStatus(){
   if(!SB_AUTH_USER) return { loggedIn:false };
-  return { loggedIn:true, email: SB_AUTH_USER.email, name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0] };
+  return { loggedIn:true, email: SB_AUTH_USER.email,
+    name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0],
+    plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until };
 }
 
 /* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.
@@ -346,8 +374,27 @@ async function netCreateRoom(name, host){
     catch(e){ console.warn('patch de dados da sala:', e && e.message); }
   }
   const testDiv = (typeof TESTING_FREE_DIVISION_PICK!=='undefined' && TESTING_FREE_DIVISION_PICK && CL.testStartDiv && CL.testStartDiv.brasil) || undefined;
-  const poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(testDiv).length) ? resenhaStartClubs(testDiv)
-    : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
+  /* ===== O SORTEIO É DE UM PAÍS SÓ =====
+     Sala com vários países NÃO quer dizer um treinador no Flamengo e outro no Manchester: quer
+     dizer que aquelas ligas existem por inteiro no mundo desta sala — simuladas, assistíveis,
+     com mercado e calendário próprios. Todos começam JUNTOS no mesmo país; sair para outro é uma
+     decisão de carreira, por convite (ver resenhaOfferClubs / applyManagerJobChange).
+
+     Por isso o pool do sorteio é o do país INICIAL, e só dele. Misturar aqui separaria a sala
+     logo no primeiro dia, que é o contrário do que a Resenha é.
+
+     E é também o desenho mais barato: no arranque só um país tem humano, logo só um precisa de
+     elencos completos (~1 MB no shared_state, medido). Um país ganha elencos quando um humano vai
+     treinar lá — o custo acompanha o uso, em vez de vir todo de uma vez. */
+  const paisInicial = (CL.net && CL.net.paisInicial) || 'brasil';
+  const divInicial = (paisInicial==='brasil') ? testDiv
+    : ((typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[paisInicial] && UNI_CONFIGS[paisInicial].order)
+        ? UNI_CONFIGS[paisInicial].order[UNI_CONFIGS[paisInicial].order.length-1] : undefined);
+  let poolClubs = (typeof clubesDoUniverso==='function') ? clubesDoUniverso(paisInicial, divInicial) : [];
+  if(!poolClubs || !poolClubs.length){
+    poolClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(testDiv).length) ? resenhaStartClubs(testDiv)
+      : ((typeof DATA!=='undefined' && DATA.clubsSerieA && DATA.clubsSerieA.length) ? DATA.clubsSerieA : DATA.clubs);
+  }
   const clubIds = poolClubs.map(c=>c.id);
   const { data: code, error } = await sb.rpc('create_game', { p_name:name, p_club_ids:clubIds, p_mode: CL.net.mode||'sorteio' });
   if(error) throw error;
@@ -401,7 +448,7 @@ async function netJoinRoom(code, me){
   // nunca mexe nele — ver 'caixa de humano é do assento' no resolve-round). Sem ler a coluna, o
   // cliente só conhecia o valor que ELE MESMO publicou nesta sessão, e depois de um reload
   // sobrava o número do mundo, que é sempre mais velho. Ver applyViewerDivision.
-  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium }; });
+  (seatsData||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium, last_cup_result:s.last_cup_result, last_cup_round:s.last_cup_round, day_ack:s.day_ack }; });
   NET.room = {
     code: gameData.id, gameId: gameData.id, name: gameData.name, hostId: gameData.host_id, mode: gameData.mode, phase: gameData.phase,
     participants: [], seed: gameData.seed, round: gameData.round||0, deadline: gameData.ready_deadline?new Date(gameData.ready_deadline).getTime():0,
@@ -437,8 +484,8 @@ async function netRefreshRoom(){
        ainda assim em competições diferentes. Agora a resposta é uma linha só.
        O PLANO PODE TROCAR: na virada de temporada ele é refeito (ver netSeedDayPlan(force)). O
        cache aqui só era preenchido quando estava VAZIO — então o cliente seguia com o calendário
-       da temporada velha, o ponteiro do servidor apontava pra jornada 37 e o meu S.round já era 0:
-       o desacordo nunca se resolvia e a sala ficava em "acertando a jornada" pra sempre. */
+       da temporada velha, o ponteiro do servidor apontava pra rodada 37 e o meu S.round já era 0:
+       o desacordo nunca se resolvia e a sala ficava em "acertando a rodada" pra sempre. */
     if(g.day_plan && (!NET.room.dayPlan || NET.room.dayPlan.length!==g.day_plan.length
         || JSON.stringify(NET.room.dayPlan[0]||null)!==JSON.stringify(g.day_plan[0]||null))){
       NET.room.dayPlan = g.day_plan;
@@ -451,7 +498,7 @@ async function netRefreshRoom(){
     }
     const { data: seats } = await sb.from('game_seats').select('*').eq('game_id', NET.gameId);
     NET._claimed = NET._claimed || {};
-    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium }; });
+    (seats||[]).forEach(s=>{ if(s.user_id) NET._claimed[s.user_id] = { clubId:s.club_id, ready:s.is_ready, name:s.name, email:s.email, busy_until:s.busy_until, last_xi:s.last_xi, last_tactic:s.last_tactic, last_result:s.last_result, last_result_round:s.last_result_round, last_bids:s.last_bids, last_seen:s.last_seen, budget:seatBudgetEmVoo(s), stadium:s.stadium, last_cup_result:s.last_cup_result, last_cup_round:s.last_cup_round, day_ack:s.day_ack }; });
     netMergeParticipants(); // -> NET.onState (transição lobby->jogo + reconcile de rodada)
     return NET.room;
   }catch(e){ console.warn('refreshRoom:', e&&e.message); return null; }
@@ -515,7 +562,19 @@ async function netPublishResult(round, result){
   // antes de evoluir. Fonte única: S.trainingByClub (o que o menu de Treino especial escreve).
   const _trn = (typeof S!=='undefined' && S && S.trainingByClub && S.clubId!=null)
     ? (S.trainingByClub[S.clubId]||[]) : [];
+  // SEMENTE DAS LIGAS DE FUNDO (item 4): sala de antes do pacote existir. O estado adotado não
+  // tem S.bgLeagues — este cliente monta o pacote de todos os países (bgInitCountry) e manda
+  // UMA vez; o servidor só adota quando ainda não há (ver o seat loop no resolve-round).
+  let _bgSeed=null;
+  try{
+    if(typeof S!=='undefined' && S && !S.bgLeagues && typeof bgLeagueCountries==='function' && typeof bgInitCountry==='function'){
+      _bgSeed={};
+      bgLeagueCountries().forEach(co=>{ const L=bgInitCountry(co); if(L) _bgSeed[co]=L; });
+      if(!Object.keys(_bgSeed).length) _bgSeed=null;
+    }
+  }catch(e){ _bgSeed=null; }
   const payload = { round, h:result.h, a:result.a, hg:result.hg, ag:result.ag,
+    ...( _bgSeed ? { bgSeed:_bgSeed } : {} ),
     scorers:result.scorers||[], perf:result.perf||null, events:result.events||[],
     decisions:result.decisions||[], // Fase 3A: log de decisões da partida (pênalti/lesão/expulsão/substituição)
     // caps = súmula de minutos em campo dos dois lados. Só o CLIENTE sabe disso numa partida
@@ -547,16 +606,16 @@ async function netResolveRound(round, stage){
    análogo a netPublishResult, mas grava em last_cup_result/last_cup_round. O servidor
    (resolve-round) aplica esse resultado na chave (mandante-autoritativo) antes de simular
    o resto do bracket. Só copas de mata-mata (Copa do Brasil); grupos são Série A -> futuro. */
-/* competições que EU já cumpri nesta jornada (acumula; zera quando a jornada muda) */
+/* competições que EU já cumpri nesta rodada (acumula; zera quando a rodada muda) */
 function cupDoneList(round, addKey){
   const me=(NET._claimed&&NET._claimed[SB_UID()])||{};
   const prev=(me.last_cup_round===round && me.last_cup_result && Array.isArray(me.last_cup_result.done)) ? me.last_cup_result.done.slice() : [];
   if(addKey && prev.indexOf(addKey)<0) prev.push(addKey);
   return prev;
 }
-/* TODOS OS RESULTADOS DE COPA DESTA JORNADA, UM POR COMPETIÇÃO.
+/* TODOS OS RESULTADOS DE COPA DESTA RODADA, UM POR COMPETIÇÃO.
    O BUG MEDIDO EM PRODUÇÃO: `last_cup_result` é UMA coluna, e o calendário oficial põe
-   Libertadores, Sul-Americana e Copa do Brasil na MESMA jornada. Publicar a segunda partida
+   Libertadores, Sul-Americana e Copa do Brasil na MESMA rodada. Publicar a segunda partida
    APAGAVA a primeira. Consequências, todas relatadas:
      - o servidor não encontrava mais o resultado da Copa do Brasil e RE-SIMULAVA a partida que o
        humano tinha acabado de ganhar ao vivo -> ele era eliminado com outro placar;
@@ -604,9 +663,9 @@ async function netPublishCupResult(round, cupResult){
     scorers:cupResult.scorers||[], perf:cupResult.perf||null, // artilharia + Historial no servidor (cupSumula)
     caps:cupResult.caps||null, matchMinutes:cupResult.matchMinutes||null, // súmula de minutos em campo (ver liveCaps)
     decisions:cupResult.decisions||[] }; // Fase 3A: log de decisões
-  // LISTA DE COMPETIÇÕES CUMPRIDAS NESTA JORNADA. last_cup_round é UMA coluna por rodada e não diz
-  // QUAL competição foi paga — com o calendário oficial a 3ª jornada tem Libertadores,
-  // Sul-Americana e Copa do Brasil, então terminar a primeira marcava a jornada inteira como paga
+  // LISTA DE COMPETIÇÕES CUMPRIDAS NESTA RODADA. last_cup_round é UMA coluna por rodada e não diz
+  // QUAL competição foi paga — com o calendário oficial a 3ª rodada tem Libertadores,
+  // Sul-Americana e Copa do Brasil, então terminar a primeira marcava a rodada inteira como paga
   // e a barreira soltava com o jogador ainda em campo na Copa do Brasil. O campo `done` (dentro do
   // JSONB que já existe, aditivo — o servidor ignora chave que não conhece) carrega a lista.
   payload.done = cupDoneList(round, cupResult.key||null);
@@ -619,22 +678,22 @@ async function netPublishCupResult(round, cupResult){
     await sb.from('game_seats').update({ last_cup_result:payload, last_cup_round:round }).eq('game_id', NET.gameId).eq('user_id', SB_UID());
   }catch(e){ console.warn('publishCupResult:', e&&e.message); }
 }
-/* QUITA A OBRIGAÇÃO DE COPA DA JORNADA SEM RESULTADO NENHUM.
+/* QUITA A OBRIGAÇÃO DE COPA DA RODADA SEM RESULTADO NENHUM.
    A barreira do dia de copa (onlineCupDayPending) pergunta "este assento ainda deve a partida de
-   copa desta jornada?" e cruza duas fontes: (A) o mundo compartilhado diz que o clube tem
+   copa desta rodada?" e cruza duas fontes: (A) o mundo compartilhado diz que o clube tem
    confronto sem vencedor, e (B) game_seats.last_cup_round diz se ele já publicou. Só que (B) era
    escrito num lugar só — netPublishCupResult, no fim de uma partida jogada AO VIVO até o fim.
    Todo caminho em que o confronto se resolve sem isso deixava a dívida pendurada até o teto de
    90s: humano ausente simulado pelo servidor, confronto resolvido pelo cliente de outro humano
    (resolveCupRoundRest), transmissão perdida, ou confronto sem vencedor (que faz o publish sair
    antes de escrever). Agora o próprio devedor pode dizer "não devo mais", por qualquer motivo.
-   DUAS PROTEÇÕES: nunca sobrescreve um resultado já publicado nesta jornada (sai cedo), e zera
+   DUAS PROTEÇÕES: nunca sobrescreve um resultado já publicado nesta rodada (sai cedo), e zera
    last_cup_result junto — sem isso o resolve-round veria last_cup_round==round com um resultado
-   VELHO no assento e aplicaria o placar da jornada passada nesta. */
+   VELHO no assento e aplicaria o placar da rodada passada nesta. */
 async function netMarkCupDone(round){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
   const me = NET._claimed && NET._claimed[SB_UID()];
-  if(me && me.last_cup_round===round) return;      // já publiquei o resultado desta jornada
+  if(me && me.last_cup_round===round) return;      // já publiquei o resultado desta rodada
   try{
     const payload={ done: cupDoneList(round, null), settled:true };   // sem placar, só a quitação
     if(me){ me.last_cup_round=round; me.last_cup_result=payload; }
@@ -725,7 +784,7 @@ function netHumanResultFor(h, a, round){
    autoritativo, igual netHumanResultFor da liga) — usado antes de abrir uma partida de copa ao
    vivo: se o outro lado JÁ jogou e publicou (ex.: eu estava ausente e cliquei depois), reproduzo
    o jogo oficial em vez de esperar um stream que não vai mais chegar. */
-/* `cupKey` diz QUAL competição — sem ele, dois confrontos do mesmo par de clubes na mesma jornada
+/* `cupKey` diz QUAL competição — sem ele, dois confrontos do mesmo par de clubes na mesma rodada
    (Copa do Brasil e Sul-Americana caem juntas no calendário oficial) se confundiam e o placar de
    uma aparecia na outra. Ver cupResultsList. */
 function netHumanCupResultFor(h, a, round, cupKey){
@@ -856,7 +915,7 @@ async function netSetReady(ready, clubId){
 /* PONTEIRO DE DIA. A temporada inteira vira uma lista ordenada de dias — cada um com a competição
    que entra em campo — e a sala guarda essa lista mais um índice e um momento. Quem decide qual
    tela todos veem passa a ser esse ponteiro, não o palpite de cada cliente a partir do seu próprio
-   estado (foi assim que dois humanos acabaram em jornadas diferentes, cada um "certo" pela sua
+   estado (foi assim que dois humanos acabaram em rodadas diferentes, cada um "certo" pela sua
    conta). A lista é montada pela folha de regras, a mesma que o servidor roda: montar de novo no
    banco seria uma terceira cópia das mesmas datas.
    Só o anfitrião grava, e só uma vez: day_plan já preenchido nunca é sobrescrito, senão um
@@ -867,21 +926,68 @@ async function netSeedDayPlan(force){
     const { data: g } = await sb.from('games').select('day_plan').eq('id', NET.gameId).single();
     // `force` é a VIRADA DE TEMPORADA: aí o calendário TEM que ser refeito, e o ponteiro voltar
     // ao dia 0. Sem isso o plano da temporada velha continuava valendo e o ponteiro ficava preso
-    // na última jornada dela, enquanto os clientes já estavam na jornada 0 da temporada nova.
+    // na última rodada dela, enquanto os clientes já estavam na rodada 0 da temporada nova.
     if(g && g.day_plan && !force) return;             // sala já tem o seu calendário
     const tog = (typeof S!=='undefined' && S && S.compToggle) || {};
-    const cups = (typeof allCupKeys==='function' ? allCupKeys() : []).filter(k=>tog[k]!==false);
     const epoch = (typeof seasonEpoch==='function') ? seasonEpoch() : null;
-    // o total de rodadas de cada copa vem do jogo (cupTotalRounds), não do número de datas na
-    // folha — senão a final das continentais fica sem dia no plano (ver buildDayPlan)
-    const totais={}; cups.forEach(k=>{ try{ if(typeof cupTotalRounds==='function') totais[k]=cupTotalRounds(k); }catch(e){} });
-    const plan = WORLD_RULES.buildDayPlan(cups, epoch, totais);
+    /* A ANCORA E A DO MUNDO DA SALA, NUNCA A DA ABA. netStart roda ANTES de o mundo novo existir:
+       se o navegador do anfitriao vinha de um save noutro universo (ACTIVE_UNI='Inglaterra'), o
+       semeador montava o plano do pais errado sobre um mundo do Brasil — plano vazio, sala sem
+       ponteiro. O estado (S.intlUniverse) e quem sabe de que pais o mundo e. */
+    const ancora = (typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.uniDoEstado && typeof S!=='undefined' && S)
+      ? WORLD_CONFIG.uniDoEstado(S)
+      : ((typeof activeUniverseKey==='function') ? activeUniverseKey() : 'brasil');
+
+    /* ===== A FILA DE DIAS É DE TODOS OS PAÍSES VIVOS =====
+       O slot é da SALA e a mesma semana vale para toda a gente; o que muda por país é qual
+       competição entra em campo nele. No slot 5, meio de semana, o brasileiro vê a Libertadores e
+       o inglês vê a Champions — ao mesmo tempo, na mesma fila, sem ninguém esperar por ninguém.
+       Cada dia carrega o país; cada cliente vive só os do país do clube dele (diasDoPais).
+
+       Sala de um país só — que é toda sala existente — dá exatamente a fila de antes: o laço
+       percorre uma lista de um elemento. */
+    const vivos = (S && Array.isArray(S.paisesVivos) && S.paisesVivos.length) ? S.paisesVivos.slice() : [ancora];
+    if(vivos.indexOf(ancora)<0) vivos.push(ancora);
+
+    const cupsPorPais={}, totaisPorPais={}, jornadasPorPais={};
+    vivos.forEach(pais=>{
+      const naAncora = (pais===ancora);
+      const mundo = naAncora ? S : ((S.mundos||{})[pais]||null);
+      const cupsDoMundo = naAncora ? (S.cups||{}) : ((mundo&&mundo.cups)||{});
+      /* quais copas este país disputa vem da folha; a âncora mantém o caminho antigo (allCupKeys),
+         que também respeita o que o usuário desligou em compToggle. */
+      const lista = naAncora
+        ? (typeof allCupKeys==='function' ? allCupKeys() : []).filter(k=>tog[k]!==false)
+        : ((typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.copasDe) ? WORLD_CONFIG.copasDe(pais) : [])
+            .filter(k=>cupsDoMundo[k]);
+      cupsPorPais[pais]=lista;
+      /* o total de rodadas vem do JOGO, não do número de slots na folha — senão a final das
+         continentais fica sem dia no plano (ver buildDayPlan). */
+      const nac = (typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.COPA_NACIONAL) ? (WORLD_CONFIG.COPA_NACIONAL[pais]||null) : null;
+      const t={}; lista.forEach(k=>{ try{
+        t[k] = naAncora ? cupTotalRounds(k) : cupTotalRoundsDe(cupsDoMundo, k, nac);
+      }catch(e){} });
+      totaisPorPais[pais]=t;
+      /* QUANTAS RODADAS A LIGA TEM DE VERDADE — não o tamanho de S.sched.
+         `sched` é maior do que a liga: a temporada nasce com rodadas a mais, sem jogo de liga,
+         só para dar dia às finais das copas (ver ensureCupCalendar). Usar o tamanho dele punha
+         no plano dias de LIGA que não têm partida nenhuma — no Brasil, quatro deles, nos slots
+         39 a 42, justamente onde moram as finais. O jogador via "dia de liga" e não havia jogo.
+         Conta-se as rodadas com partida; se vier tudo vazio (save a meio de uma migração),
+         cai no tamanho, que é o comportamento antigo. */
+      const sched = naAncora ? S.sched : (mundo&&mundo.sched);
+      const comJogo = Array.isArray(sched) ? sched.filter(j=>j && j.length).length : 0;
+      jornadasPorPais[pais] = Array.isArray(sched) ? (comJogo || sched.length) : null;
+    });
+
+    const plan = WORLD_RULES.buildDayPlanMulti(vivos, epoch, totaisPorPais,
+      { cups:cupsPorPais, jornadasLiga:jornadasPorPais });
     if(!plan || !plan.length) return;
     await sb.from('games').update({ day_plan: plan, day_idx: 0, day_moment: 'escalando' }).eq('id', NET.gameId);
   }catch(e){ console.warn('seedDayPlan:', e && e.message); }
 }
 
-/* o dia que a sala está vivendo agora, direto do servidor: {idx, momento, jornada, competicao,
+/* o dia que a sala está vivendo agora, direto do servidor: {idx, momento, rodada, competicao,
    dia_da_temporada, total_dias}. null quando a sala ainda não tem plano (save antigo). */
 async function netDayPointer(){
   if(!sb || !NET.gameId) return null;
@@ -896,7 +1002,7 @@ async function netDayPointer(){
    que não dá garantia: tem limite de eventos por segundo, o evento pode se perder, a aba pode estar
    em segundo plano. O efeito medido em sala real: o servidor com o dia CERTO e dois clientes
    decidindo em cima de leituras diferentes dele — um foi assistir a Libertadores enquanto o outro
-   esperava para jogar a jornada. Não era o ponteiro que estava errado; era a cópia de cada um.
+   esperava para jogar a rodada. Não era o ponteiro que estava errado; era a cópia de cada um.
    Esta leitura é uma linha só (day_current) e roda de segundos em segundos, ao lado do realtime:
    ninguém mais entra em campo decidindo por uma foto velha do dia da sala. */
 async function netRefreshDay(){
@@ -911,15 +1017,21 @@ async function netRefreshDay(){
       NET.room.day = e ? { idx:r.idx, moment:r.momento, round:e.r, comp:e.comp,
                            cupIdx:e.idx, dia:e.dia, total:NET.room.dayPlan.length } : null;
     } else {
-      NET.room.day = { idx:r.idx, moment:r.momento, round:r.jornada, comp:r.competicao,
-                       dia:r.dia_da_temporada, total:r.total_dias };
+      /* SEM PLANO NAO HA DIA. A sala 6RZRX nasceu sem day_plan (o semeador falhou calado) e este
+         ramo fabricava um dia com rodada NULL — e null nunca e igual a S.round, entao roomDay()
+         devolvia hold para sempre: "a sala esta acertando a rodada" desde o dia zero. Sem
+         rodada de verdade, nao ha ponteiro: a sala degrada para o caminho sem plano (que
+         funciona), e o replantio do anfitriao (ver onlineTimerLoop) cria o plano que falta. */
+      NET.room.day = (r.jornada==null) ? null
+        : { idx:r.idx, moment:r.momento, round:r.jornada, comp:r.competicao,
+            dia:r.dia_da_temporada, total:r.total_dias };
     }
     return NET.room.day;
   }catch(e){ return null; }
 }
 /* CARIMBO POR ASSENTO (item 2). Substitui o netDayDone acima, e a diferença é a que importa:
    "ninguém está ocupado" é uma FOTO do instante — entre uma tela e outra todo mundo está livre, e o
-   dia virava sem nada ter sido cumprido (foi assim que o ponteiro chegou à jornada 4 com a sala na
+   dia virava sem nada ter sido cumprido (foi assim que o ponteiro chegou à rodada 4 com a sala na
    3, sala 365ZV). Aqui cada assento assina o dia que viveu; o dia só vira quando o último assinar.
    `ignorarSeg` é o "começar sem eles": quem não dá sinal de vida há tanto tempo deixa de ser
    esperado — é o escape que impede um jogador que fechou a aba de congelar a sala.
@@ -1078,8 +1190,12 @@ async function netListMyRooms(){
     const byCode = new Map();
     // (1) assento reivindicado — tem prioridade (traz o clubId escolhido)
     (seatData||[]).filter(r=>r.games && r.games.phase!=='deleted').forEach(r=>{
+      // `pronto` = is_ready deste assento, que a consulta JA buscava e era descartado. E o que
+      // permite dizer "a sua vez" em vez de so "12a rodada" na lista de salas: numa resenha o
+      // que a pessoa precisa saber e em QUAL das salas ela esta a segurar a rodada.
       byCode.set(r.game_id, { code:r.game_id, name:r.games.name, phase:r.games.phase, round:r.games.round,
-        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false, createdAt:r.games.created_at });
+        isHost:r.games.host_id===SB_UID(), clubId:r.club_id, pending:false, pronto:r.is_ready!==false,
+        createdAt:r.games.created_at });
     });
     // (2) salas que eu criei (mesmo sem assento) — não sobrescreve um assento já mapeado
     (e3?[]:(hostData||[])).filter(g=>g.phase!=='deleted').forEach(g=>{
@@ -1174,14 +1290,14 @@ async function netSaveGame(stateObj){
     const { data: cur } = await sb.from('games').select('state_version').eq('id', NET.gameId).single();
     const nextV = (cur?.state_version||0) + 1;
     /* ITEM 3 — games.round TEM UM ESCRITOR SÓ, E NÃO É O ANFITRIÃO.
-       Esta linha publicava a jornada a partir do estado LOCAL do host. Era a segunda fonte de
-       verdade do mesmo número: o ponteiro do dia derivava a jornada do plano (day_ack) e o save do
+       Esta linha publicava a rodada a partir do estado LOCAL do host. Era a segunda fonte de
+       verdade do mesmo número: o ponteiro do dia derivava a rodada do plano (day_ack) e o save do
        anfitrião a sobrescrevia com a conta dele. Dois escritores para um número é precisamente a
-       origem de "cada humano numa jornada". Agora, em sala com plano de dias, o host publica só o
-       MUNDO (shared_state) e quem escreve a jornada é o servidor, ao virar o dia.
+       origem de "cada humano numa rodada". Agora, em sala com plano de dias, o host publica só o
+       MUNDO (shared_state) e quem escreve a rodada é o servidor, ao virar o dia.
        Os convidados não perdem o gatilho de sincronia: o reconcile também dispara por
        state_version, que este mesmo update incrementa (ver onlineReconcileIfBehind).
-       Sala sem plano (save antigo) continua publicando a jornada como sempre. */
+       Sala sem plano (save antigo) continua publicando a rodada como sempre. */
     const temPonteiro = !!(NET.room && NET.room.dayPlan);
     const authRound = (stateObj && stateObj.round!=null) ? stateObj.round : (stateObj && stateObj.S && stateObj.S.round);
     const patch = temPonteiro ? { shared_state: stateObj, state_version: nextV }
@@ -1206,9 +1322,18 @@ async function netListSoloSaves(){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return [];
   try {
-    const { data, error } = await sb.from('solo_saves').select('save_name,updated_at').order('updated_at',{ascending:false});
+    /* A LISTA MOSTRA O TIME, não só o nome do save (pedido do dono, 21/08 — mesmo estilo da
+       lista de salas da Resenha). Os campos do clube saem do próprio jsonb, sem baixar o
+       estado inteiro: identidade (clubId/short/crest, gravados pelo saveV3) + onde o save
+       está (temporada, divisão, rodada). Save antigo não tem short/crest — o cliente
+       resolve pelo clubId (ver rfClubeDoSave em rf26-fluxo). */
+    const { data, error } = await sb.from('solo_saves')
+      .select('save_name,updated_at,clubId:state->>clubId,clubShort:state->>clubShort,clubCrest:state->>clubCrest,season:state->S->>season,division:state->S->>division,round:state->S->>round')
+      .order('updated_at',{ascending:false});
     if(error){ console.error('listSoloSaves erro:', error); return []; }
-    return (data||[]).map(r=>({ name:r.save_name, updated_at:r.updated_at }));
+    return (data||[]).map(r=>({ name:r.save_name, updated_at:r.updated_at,
+      clubId:r.clubId||null, clubShort:r.clubShort||null, clubCrest:r.clubCrest||null,
+      season:r.season||null, division:r.division||null, round:r.round||null }));
   } catch(e){ console.error('listSoloSaves erro:', e); return []; }
 }
 async function netLoadSoloSave(name){
@@ -1256,7 +1381,12 @@ function netSetupRealtime(){
   SB_CH.on('postgres_changes', { event:'*', schema:SB_SCHEMA, table:'game_seats', filter:'game_id=eq.'+NET.gameId }, (p)=>{
     const row = p.new && Object.keys(p.new).length ? p.new : null;
     if(row){
-      if(row.user_id){ NET._claimed[row.user_id] = { clubId:row.club_id, ready:row.is_ready, name:row.name, email:row.email, busy_until:row.busy_until, last_xi:row.last_xi, last_tactic:row.last_tactic, last_result:row.last_result, last_result_round:row.last_result_round, last_bids:row.last_bids, last_seen:row.last_seen }; }
+      /* O REALTIME NAO PODE EMPOBRECER O CACHE. Este bloco reescrevia o assento com um
+         subconjunto das colunas: budget/stadium/last_cup_result/day_ack sumiam do _claimed no
+         instante em que chegava QUALQUER update daquele assento — e sao exatamente as colunas
+         que os chips da sala e a adocao de resultado de copa leem. O payload do realtime traz a
+         linha inteira, entao o cache recebe a linha inteira. */
+      if(row.user_id){ NET._claimed[row.user_id] = { clubId:row.club_id, ready:row.is_ready, name:row.name, email:row.email, busy_until:row.busy_until, last_xi:row.last_xi, last_tactic:row.last_tactic, last_result:row.last_result, last_result_round:row.last_result_round, last_bids:row.last_bids, last_seen:row.last_seen, budget:seatBudgetEmVoo(row), stadium:row.stadium, last_cup_result:row.last_cup_result, last_cup_round:row.last_cup_round, day_ack:row.day_ack }; }
       else { // assento LIBERADO (ex.: expulsão): remove o dono anterior do cache — senão o clube fica
              // "fantasma-ocupado" pros outros clientes (freeClubIds não oferece de volta) e o ex-dono
              // continua listado como participante.
@@ -1311,6 +1441,12 @@ function netSetupRealtime(){
   });
 
   // expulsão pelo anfitrião: sinal em tempo real pra TODOS (inclusive o expulso), independente de DB/RLS
+  /* BANCADA: o anfitrião liga o modo de teste para a SALA INTEIRA. Sem isto, só quem clicou
+     entraria em auto-jogo e a sala pararia à espera dos outros — o carimbo do dia exige todos. */
+  SB_CH.on('broadcast', { event:'teste' }, ({ payload })=>{
+    if(!payload || payload.from===SB_UID()) return;
+    if(typeof clTesteEntrar==='function') clTesteEntrar(payload);
+  });
   SB_CH.on('broadcast', { event:'kick' }, ({ payload })=>{
     if(!payload || !payload.uid) return;
     const uid=payload.uid, clubId=payload.clubId;
@@ -1619,6 +1755,10 @@ NET.fetchRoundStreams = netFetchRoundStreams;
 NET.clubOnline = netClubOnline;
 NET.broadcastMatch = netBroadcastMatch;
 NET.broadcastDecision = netBroadcastDecision;
+NET.broadcastTeste = function(payload){
+  if(!SB_CH || !SB_AUTH_USER) return;
+  try{ SB_CH.send({ type:'broadcast', event:'teste', payload:{ ...payload, from:SB_UID() } }); }catch(e){}
+};
 NET.broadcastKickoff = netBroadcastKickoff;
 NET.reopenReady = netReopenReady;
 NET.toLobby = netToLobby;
@@ -1628,6 +1768,7 @@ NET.saveGame = netSaveGame;
 NET.loadGame = netLoadGame;
 NET.isOnlineUser = netIsOnline;
 NET.authStatus = netAuthStatus;
+NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;
@@ -1640,8 +1781,8 @@ NET.dayStatus = netDayStatus;
 NET.refreshDay = netRefreshDay;
 /* VOLTAR O PONTEIRO DE DIA JUNTO COM O ESTADO (restauração do auto-save). Sem isto a sala
    ficaria apontando pra um dia que o estado restaurado ainda não viveu — o mesmo descompasso que
-   travou a ZAF6T em "acertando a jornada". Escolhe o PRIMEIRO dia do plano cuja jornada é a
-   restaurada; se o plano não tiver essa jornada (restauração pra uma temporada anterior), volta
+   travou a ZAF6T em "acertando a rodada". Escolhe o PRIMEIRO dia do plano cuja rodada é a
+   restaurada; se o plano não tiver essa rodada (restauração pra uma temporada anterior), volta
    ao dia 0. Só o anfitrião escreve. */
 async function netRewindDayPointer(round){
   if(!sb || !NET.gameId || !NET.isHost) return;

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Clube & Sistema — Mobile" description="Versão mobile da tela Clube & Sistema" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#c9d2cb}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+</style>
+</helmet>
+
+<div style="display:flex;justify-content:center;padding:24px;font-family:'Space Grotesk',system-ui,sans-serif">
+  <div style="width:390px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative">
+
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+      <span style="margin-left:5px;font-size:18px;color:#fff;flex:0 0 auto;cursor:pointer">‹</span>
+      <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+        <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Clube & Sistema</span>
+        <span style="font-size:10px;color:#c3d3ec;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">E-mail, opções e save · gravado 21h34</span>
+      </div>
+      <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:32px;height:32px;object-fit:contain;flex:0 0 auto;background:#fff;border-radius:10px;padding:3px;box-sizing:border-box">
+    </div>
+
+    <div style="display:flex;gap:2px;padding:10px 16px 0;background:#e8f0e7;overflow:auto">
+      <span style="flex:0 0 auto;font-size:12px;font-weight:700;color:#fff;background:#17458F;border:1px solid #17458F;border-bottom:none;border-radius:12px 12px 0 0;padding:9px 14px;white-space:nowrap;cursor:pointer">E-mail (3)</span>
+      <span style="flex:0 0 auto;font-size:12px;font-weight:500;color:#3a473f;background:#fff;border:1px solid #dde7db;border-bottom:none;border-radius:12px 12px 0 0;padding:9px 14px;white-space:nowrap;cursor:pointer">Opções</span>
+      <span style="flex:0 0 auto;font-size:12px;font-weight:500;color:#3a473f;background:#fff;border:1px solid #dde7db;border-bottom:none;border-radius:12px 12px 0 0;padding:9px 14px;white-space:nowrap;cursor:pointer">Jogo</span>
+      <span style="flex:0 0 auto;font-size:12px;font-weight:500;color:#3a473f;background:#fff;border:1px solid #dde7db;border-bottom:none;border-radius:12px 12px 0 0;padding:9px 14px;white-space:nowrap;cursor:pointer">Resenha</span>
+    </div>
+
+    <div style="padding:12px 16px 96px;display:flex;flex-direction:column;gap:12px">
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">E-MAIL</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">3 novos</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;padding:9px;border-radius:11px;background:#f6f8f5;cursor:pointer">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">● Proposta por Fidel Rocha</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">há 2h</span>
+          </div>
+          <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tocantinópolis · R$ 260k</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;padding:9px;border-radius:11px;background:#f6f8f5;cursor:pointer">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">● Leilão encerrado 🔨</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">há 5h</span>
+          </div>
+          <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Kaique por R$ 120k</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;padding:9px;border-radius:11px;background:#f6f8f5;cursor:pointer">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">● Convite para a Resenha</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">ontem</span>
+          </div>
+          <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Zé do Bairro</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;padding:9px;border-radius:11px;background:transparent;cursor:pointer">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+            <span style="min-width:0;font-size:13px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Relatório da 7ª jornada</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">2 dias</span>
+          </div>
+          <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Diretoria</span>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">OPÇÕES</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f2f5f1">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Tempo de jogo</span>
+            <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Velocidade da rodada ao vivo</span>
+          </div>
+          <span style="flex:0 0 auto;height:30px;padding:0 11px;display:flex;align-items:center;border:1px solid #d8e2d6;border-radius:10px;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap">Ultrassônico ▾</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f2f5f1">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Modo Camarote</span>
+            <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Abrir a rodada direto no seu jogo</span>
+          </div>
+          <span style="flex:0 0 auto;width:38px;height:22px;border-radius:99px;background:#17458F;display:flex;align-items:center;justify-content:flex-end;padding:2px;box-sizing:border-box;cursor:pointer"><span style="width:18px;height:18px;border-radius:99px;background:#fff"></span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f2f5f1">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Sons do jogo</span>
+            <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Apito, gol e alertas de mercado</span>
+          </div>
+          <span style="flex:0 0 auto;width:38px;height:22px;border-radius:99px;background:#17458F;display:flex;align-items:center;justify-content:flex-end;padding:2px;box-sizing:border-box;cursor:pointer"><span style="width:18px;height:18px;border-radius:99px;background:#fff"></span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f2f5f1">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap">Salários automáticos</span>
+            <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A diretoria renova contratos de rotina</span>
+          </div>
+          <span style="flex:0 0 auto;width:38px;height:22px;border-radius:99px;background:#dde7db;display:flex;align-items:center;justify-content:flex-start;padding:2px;box-sizing:border-box;cursor:pointer"><span style="width:18px;height:18px;border-radius:99px;background:#fff"></span></span>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+          <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">JOGO</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap">último save hoje, 21h34</span>
+        </div>
+        <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">💾 Gravar jogo</span>        <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">💬 Chamar pra Resenha</span>        <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">🔄 Sincronizar com a sala</span>
+        <span style="height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:#fff;border:1px solid #f0d4d4;color:#c0392b;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Sair para o menu</span>
+      </div>
+      <div style="width:100%;height:80px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:9px;font-weight:700;letter-spacing:.16em;box-sizing:border-box">PUBLICIDADE 320×50</div>
+    </div>
+
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #dde7db;padding:8px 10px 12px;display:flex;align-items:center;gap:6px">
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;cursor:pointer;background:#eef3fa">
+        <span style="font-size:17px;line-height:1">🏠</span>
+        <span style="font-size:9px;font-weight:700;color:#17458F;white-space:nowrap">Início</span>
+      </span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;cursor:pointer;background:transparent">
+        <span style="font-size:17px;line-height:1">🥅</span>
+        <span style="font-size:9px;font-weight:500;color:#78877c;white-space:nowrap">Formação</span>
+      </span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;cursor:pointer;background:transparent">
+        <span style="font-size:17px;line-height:1">🛒</span>
+        <span style="font-size:9px;font-weight:500;color:#78877c;white-space:nowrap">Mercado</span>
+      </span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;cursor:pointer;background:transparent">
+        <span style="font-size:17px;line-height:1">🏆</span>
+        <span style="font-size:9px;font-weight:500;color:#78877c;white-space:nowrap">Copas</span>
+      </span>
+      <span style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;cursor:pointer;background:transparent">
+        <span style="font-size:17px;line-height:1">💰</span>
+        <span style="font-size:9px;font-weight:500;color:#78877c;white-space:nowrap">Finanças</span>
+      </span>
+      <button style="flex:0 0 auto;height:46px;padding:0 14px;border:none;border-radius:14px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite;white-space:nowrap" style-hover="background:#ffcb2e;animation:none">⚽</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

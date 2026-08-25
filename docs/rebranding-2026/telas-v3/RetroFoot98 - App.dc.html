@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+</style>
+</helmet>
+
+<div style="height:100vh;display:flex;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;overflow:hidden">
+
+  <aside style="{{ railStyle }}">
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 12px;border-bottom:1px solid #eef1ee">
+      <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:34px;height:34px;object-fit:contain;flex:0 0 auto">
+      <div style="{{ clubStyle }}">
+        <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">SÉRIE D · 2026</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ nav }}" as="it" hint-placeholder-count="8">
+        <span title="{{ it.label }}" style="{{ it.style }}" onClick="{{ it.onClick }}">
+          <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">{{ it.icon }}</span>
+          <span style="{{ labelStyle }}">{{ it.label }}</span>
+          <span style="{{ it.badgeStyle }}">{{ it.badge }}</span>
+        </span>
+      </sc-for>
+    </div>
+
+    <div style="height:1px;background:#eef1ee;margin:8px 0"></div>
+
+    <span style="{{ sectionLabelStyle }}">DURANTE O JOGO</span>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ flows }}" as="it" hint-placeholder-count="6">
+        <span title="{{ it.label }}" style="{{ it.style }}" onClick="{{ it.onClick }}">
+          <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">{{ it.icon }}</span>
+          <span style="{{ labelStyle }}">{{ it.label }}</span>
+        </span>
+      </sc-for>
+    </div>
+
+    <div style="height:1px;background:#eef1ee;margin:8px 0"></div>
+
+    <span style="{{ sectionLabelStyle }}">DIÁLOGOS E CONFIRMAÇÕES</span>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ actions }}" as="it" hint-placeholder-count="7">
+        <span title="{{ it.label }}" style="{{ it.style }}" onClick="{{ it.onClick }}">
+          <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">{{ it.icon }}</span>
+          <span style="{{ labelStyle }}">{{ it.label }}</span>
+        </span>
+      </sc-for>
+    </div>
+
+    <div style="flex:1"></div>
+
+    <div style="{{ nextGameStyle }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">PRÓXIMO JOGO</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">25/abr</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;min-width:0">
+        <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+        <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+          <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">FORA · 8ª JORNADA</span>
+        </div>
+      </div>
+      <button style="height:40px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" onClick="{{ goLive }}" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+    </div>
+
+    <button style="{{ miniPlayStyle }}" title="Jogar contra o Cianorte" onClick="{{ goLive }}" style-hover="background:#ffcb2e">⚽</button>
+
+    <span onClick="{{ toggleRail }}" style="display:flex;align-items:center;gap:11px;height:38px;padding:0 12px;border-radius:12px;font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#f2f7f1">
+      <span style="flex:0 0 auto;width:18px;text-align:center;font-size:14px">{{ toggleIcon }}</span>
+      <span style="{{ labelStyle }}">{{ toggleLabel }}</span>
+    </span>
+  </aside>
+
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:#fff;border-bottom:1px solid #dde7db;flex:0 0 auto">
+      <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentTitle }}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentFile }}</span>
+      <div style="flex:1"></div>
+      <span style="display:flex;align-items:center;gap:6px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:11px;padding:5px;flex:0 0 auto">
+        <sc-for list="{{ viewports }}" as="v" hint-placeholder-count="2">
+          <span style="{{ v.style }}" onClick="{{ v.onClick }}">{{ v.label }}</span>
+        </sc-for>
+      </span>
+      <span style="height:34px;padding:0 13px;display:flex;align-items:center;gap:6px;border-radius:11px;background:#fff;border:1px solid #d8e2d6;font-size:12px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer;flex:0 0 auto" onClick="{{ openStandalone }}" style-hover="background:#f2f7f1">Abrir só esta tela ↗</span>
+    </div>
+
+    <div style="flex:1;min-height:0;display:flex;justify-content:center;background:#eef0ee;overflow:auto;padding:0">
+      <iframe title="{{ currentTitle }}" src="{{ currentSrc }}" onLoad="{{ onFrameLoad }}" style="{{ frameStyle }}"></iframe>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const P = '#17458F', PD = '#0e2f66', S = '#F2B90C';
+
+const PAGES = [
+  ['🥅', 'Formação', '', 'Hub do Time - Sidebar Recolhida.dc.html', 'Hub do Time - Mobile.dc.html'],
+  ['🛒', 'Mercado', '2', 'Mercado - Abas.dc.html', 'Mercado - Abas - Mobile.dc.html'],
+  ['👤', 'Elenco & Base', '', 'Elenco e Base - Abas.dc.html', 'Elenco e Base - Abas - Mobile.dc.html'],
+  ['🏆', 'Campeonatos', '', 'Campeonatos - Abas.dc.html', 'Campeonatos - Abas - Mobile.dc.html'],
+  ['🎓', 'Treinador', '1', 'Treinador - Abas.dc.html', 'Treinador - Abas - Mobile.dc.html'],
+  ['💰', 'Finanças', '', 'Financas - Abas.dc.html', 'Financas - Abas - Mobile.dc.html'],
+  ['✉️', 'E-mail', '3', 'E-mail - Abas.dc.html', 'E-mail - Abas - Mobile.dc.html'],
+  ['⚙️', 'Configurações', '', 'Configuracoes - Abas.dc.html', 'Configuracoes - Abas - Mobile.dc.html']
+];
+
+const FLOWS = [
+  ['🔴', 'Partida ao vivo', 'PartidaAoVivo.dc.html', 'PartidaAoVivo.dc.html'],
+  ['📺', 'Modo Camarote', 'Modo Camarote.dc.html', 'Modo Camarote.dc.html'],
+  ['🔁', 'Substituição', 'Modal - Substituicao.dc.html', 'Modal - Substituicao - Mobile.dc.html'],
+  ['🩹', 'Lesão', 'Modal - Lesao.dc.html', 'Modal - Lesao - Mobile.dc.html'],
+  ['🟥', 'Cartão vermelho', 'Modal - Cartao Vermelho.dc.html', 'Modal - Cartao Vermelho - Mobile.dc.html'],
+  ['⚽', 'Pênalti', 'Modal - Penalti Batedor.dc.html', 'Modal - Penalti Batedor - Mobile.dc.html'],
+  ['🥇', 'Disputa de pênaltis', 'Modal - Disputa de Penaltis.dc.html', 'Modal - Disputa de Penaltis - Mobile.dc.html'],
+  ['⏱', 'Prorrogação', 'Modal - Prorrogacao.dc.html', 'Modal - Prorrogacao - Mobile.dc.html'],
+  ['📊', 'Pós-rodada', 'Pos-Rodada - Classificacao.dc.html', 'Pos-Rodada - Classificacao - Mobile.dc.html'],
+  ['📰', 'Imprensa', 'Imprensa.dc.html', 'Imprensa - Mobile.dc.html'],
+  ['🏅', 'Fim de temporada', 'Fim de Temporada.dc.html', 'Fim de Temporada - Mobile.dc.html'],
+  ['🍺', 'Lobby da Resenha', 'Resenha - Lobby da Sala.dc.html', 'Resenha - Lobby da Sala - Mobile.dc.html'],
+  ['⏸', 'Pausa patrocinada', 'Resenha - Pausa Patrocinada.dc.html', 'Resenha - Pausa Patrocinada - Mobile.dc.html'],
+  ['🎲', 'Sorteio da Copa do Brasil', 'Sorteio 2 - Copa do Brasil.dc.html', 'Sorteio 2 - Copa do Brasil - Mobile.dc.html'],
+  ['🗓', 'Onboarding', 'Onboarding 1 - Entrar.dc.html', 'Onboarding 1 - Entrar - Mobile.dc.html'],
+  ['🌐', 'Landing', 'Landing - Home.dc.html', 'Landing - Home.dc.html']
+];
+
+const ACTIONS = [
+  ['🛒', 'Ações do Mercado', 'Acoes - Mercado.dc.html', 'Acoes - Mercado.dc.html'],
+  ['👤', 'Ações de Elenco e E-mail', 'Acoes - Elenco e E-mail.dc.html', 'Acoes - Elenco e E-mail.dc.html'],
+  ['⚙️', 'Ações de Sistema e Conta', 'Acoes - Sistema e Conta.dc.html', 'Acoes - Sistema e Conta.dc.html'],
+  ['🏟', 'Opções, Histórico e Estádio', 'Acoes - Opcoes e Estadio.dc.html', 'Acoes - Opcoes e Estadio - Mobile.dc.html'],
+  ['🍺', 'Chamar pra Resenha', 'Chamar pra Resenha.dc.html', 'Chamar pra Resenha - Mobile.dc.html'],
+  ['📈', 'Avançar temporada · acesso', 'Avancar Temporada - Acesso.dc.html', 'Avancar Temporada - Acesso - Mobile.dc.html'],
+  ['📉', 'Avançar temporada · rebaixado', 'Avancar Temporada - Rebaixado.dc.html', 'Avancar Temporada - Rebaixado - Mobile.dc.html']
+];
+
+class Component extends DCLogic {
+  state = { group: 'page', index: 0, rail: true, mobile: false };
+
+  componentDidMount() { this.fitTimer = setInterval(() => this.fitFrame(), 400); }
+  componentDidUpdate() { this.fitFrame(); }
+  componentWillUnmount() { clearInterval(this.fitTimer); }
+
+  // A casca já tem o menu: esconde a sidebar e os trilhos de anúncio da página embutida.
+  fitFrame() {
+    const f = document.querySelector('iframe');
+    if (!f) return;
+    try {
+      const doc = f.contentDocument;
+      if (!doc || !doc.head || doc.getElementById('__shell_fit')) return;
+      const st = doc.createElement('style');
+      st.id = '__shell_fit';
+      st.textContent = '[data-sidebar],[data-shell] aside,[data-ad-rail]{display:none!important}'
+        + '[data-shell]{grid-template-columns:minmax(0,1fr)!important}'
+        + 'body{background:#eef0ee}';
+      doc.head.appendChild(st);
+    } catch (err) { /* cross-origin: sem ajuste */ }
+  }
+
+  get current() {
+    const g = this.state.group;
+    const list = g === 'page' ? PAGES : g === 'flow' ? FLOWS : ACTIONS;
+    const row = list[this.state.index] || list[0];
+    return g === 'page'
+      ? { title: row[1], desktop: row[3], mobile: row[4] }
+      : { title: row[1], desktop: row[2], mobile: row[3] || row[2] };
+  }
+
+  item(icon, label, badge, active, onClick, open) {
+    return {
+      icon, label, badge,
+      style: 'display:flex;align-items:center;gap:11px;height:' + (open ? 40 : 42) + 'px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:' +
+        (active ? 700 : 500) + ';color:' + (active ? '#fff' : '#3a473f') + ';background:' + (active ? P : 'transparent') +
+        ';white-space:nowrap;cursor:pointer;overflow:hidden',
+      badgeStyle: badge && open
+        ? "flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px"
+        : 'display:none',
+      onClick
+    };
+  }
+
+  renderVals() {
+    const open = this.state.rail;
+    const cur = this.current;
+    const src = this.state.mobile ? cur.mobile : cur.desktop;
+    const go = (group, index) => () => this.setState({ group, index });
+
+    return {
+      railStyle: {
+        width: open ? '224px' : '64px', flex: '0 0 auto', boxSizing: 'border-box',
+        display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto',
+        background: '#fff', borderRight: '1px solid #dde7db', padding: '12px',
+        transition: 'width .22s ease'
+      },
+      labelStyle: open ? 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' : 'display:none',
+      clubStyle: open ? 'display:flex;flex-direction:column;gap:1px;min-width:0' : 'display:none',
+      sectionLabelStyle: open
+        ? 'font-size:9px;font-weight:700;color:#9aa79e;letter-spacing:.14em;padding:4px 12px 2px;white-space:nowrap'
+        : 'display:none',
+      nextGameStyle: open
+        ? { display: 'flex', flexDirection: 'column', gap: '10px', background: 'linear-gradient(160deg,' + PD + ',' + P + ')', borderRadius: '14px', padding: '12px', marginBottom: '6px' }
+        : { display: 'none' },
+      miniPlayStyle: open
+        ? { display: 'none' }
+        : { height: '40px', border: 'none', borderRadius: '12px', background: S, color: P, fontSize: '17px', cursor: 'pointer', marginBottom: '6px', animation: 'jogarPulse 2.4s ease-in-out infinite' },
+      toggleIcon: open ? '◀' : '▶',
+      toggleLabel: open ? 'Recolher menu' : '',
+      toggleRail: () => this.setState(st => ({ rail: !st.rail })),
+      goLive: () => this.setState({ group: 'flow', index: 0 }),
+
+      nav: PAGES.map((r, i) => this.item(r[0], r[1], r[2], this.state.group === 'page' && this.state.index === i, go('page', i), open)),
+      flows: FLOWS.map((r, i) => this.item(r[0], r[1], '', this.state.group === 'flow' && this.state.index === i, go('flow', i), open)),
+      actions: ACTIONS.map((r, i) => this.item(r[0], r[1], '', this.state.group === 'action' && this.state.index === i, go('action', i), open)),
+
+      currentTitle: cur.title,
+      currentFile: src,
+      currentSrc: src,
+      frameStyle: {
+        width: this.state.mobile ? '390px' : '100%',
+        height: '100%', border: 'none',
+        background: '#eef0ee',
+        boxShadow: this.state.mobile ? '0 0 0 1px #dde7db' : 'none'
+      },
+      viewports: [
+        { label: 'Desktop', style: this.vpStyle(!this.state.mobile), onClick: () => this.setState({ mobile: false }) },
+        { label: 'Mobile', style: this.vpStyle(this.state.mobile), onClick: () => this.setState({ mobile: true }) }
+      ],
+      openStandalone: () => window.open(src, '_blank'),
+      // A casca já tem o menu: esconde a sidebar e os trilhos de anúncio da página embutida.
+      onFrameLoad: (e) => {
+        try {
+          const doc = e.target.contentDocument;
+          if (!doc || doc.getElementById('__shell_fit')) return;
+          const st = doc.createElement('style');
+          st.id = '__shell_fit';
+          st.textContent = '[data-sidebar],[data-shell] aside,[data-ad-rail]{display:none!important}'
+            + '[data-shell]{grid-template-columns:minmax(0,1fr)!important}'
+            + 'body{background:#eef0ee}';
+          doc.head.appendChild(st);
+        } catch (err) { /* cross-origin: sem ajuste */ }
+      }
+    };
+  }
+
+  vpStyle(active) {
+    return 'font-size:11px;font-weight:' + (active ? 700 : 500) + ';color:' + (active ? '#fff' : '#5d6c62') +
+      ';background:' + (active ? P : 'transparent') + ';border-radius:8px;padding:5px 10px;white-space:nowrap;cursor:pointer';
+  }
+}
+</script>
+</body>
+</html>

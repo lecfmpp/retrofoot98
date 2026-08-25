@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Mercado" description="Tela Mercado — abas completas" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes dlgIn{from{opacity:0}to{opacity:1}}
+@keyframes dlgUp{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes tabIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media (max-width:1560px){ [data-ad-rail="right"]{display:none} }
+@media (max-width:1320px){ [data-ad-rail]{display:none} }
+@media (max-width:1100px){ [data-shell]{grid-template-columns:minmax(0,1fr)!important} [data-shell] aside{display:none!important} [data-cols]{grid-template-columns:minmax(0,1fr)!important} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:20px;box-sizing:border-box">
+  <div style="display:flex;align-items:flex-start;justify-content:center;gap:16px">
+
+    <div data-ad-rail="left" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+
+    <div style="width:1180px;max-width:100%;flex:0 0 auto;display:flex;flex-direction:column;gap:14px">
+
+      <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-sizing:border-box;box-shadow:0 18px 40px -28px rgba(20,33,26,.35)">
+        <div data-shell style="display:grid;grid-template-columns:216px minmax(0,1fr);gap:14px;align-items:start">
+        <aside style="position:sticky;top:18px;display:flex;flex-direction:column;gap:10px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;box-sizing:border-box;min-height:640px">
+          <div style="display:flex;align-items:center;gap:10px;padding:4px 4px 10px;border-bottom:1px solid #eef1ee">
+            <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:34px;height:34px;object-fit:contain;flex:0 0 auto">
+            <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+              <span style="font-size:14px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">SÉRIE D · 2026</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🥅</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Formação</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🛒</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Mercado</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">2</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">👤</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Elenco & Base</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🏆</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Campeonatos</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">🎓</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Treinador</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">1</span>
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">💰</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Finanças</span>
+              
+            </span>
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">✉️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">E-mail</span>
+              <span style="flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:#fff;background:#c0392b;border-radius:99px;padding:1px 6px">3</span>
+            </span>
+
+            <span style="display:flex;align-items:center;gap:11px;height:42px;padding:0 12px;border-radius:12px;font-size:13px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden" style-hover="background:#eaf2e9">
+              <span style="flex:0 0 auto;width:18px;text-align:center;font-size:15px">⚙️</span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">Configurações</span>
+              
+            </span>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:14px;padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">PRÓXIMO JOGO</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;white-space:nowrap">25/abr</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <img src="assets/crests/cruzeiro.png" alt="Escudo" style="width:26px;height:26px;object-fit:contain;flex:0 0 auto">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c3d3ec;white-space:nowrap">FORA · 8ª JORNADA</span>
+              </div>
+            </div>
+            <button style="height:40px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;animation:jogarPulse 2.4s ease-in-out infinite" style-hover="background:#ffcb2e;animation:none">⚽ Jogar</button>
+          </div>
+        </aside>
+
+          <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <span style="font-size:26px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">Mercado</span>
+                <span style="font-size:13px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Janela aberta · caixa R$ 1,27 mi · folha R$ 184 mil/mês</span>
+              </div>
+              <div style="display:flex;gap:8px;flex:0 0 auto"><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">📤 Exportar lista</span><span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">🔍 Buscar jogador</span></div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #dde7db;border-radius:16px;padding:6px;overflow:auto">
+              <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6">
+                <span style="{{ t.style }}" onClick="{{ t.onClick }}">{{ t.label }}</span>
+              </sc-for>
+            </div>
+
+            <div style="{{ panel0 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">JOGADORES NO MERCADO</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">7 de 214</span>
+                </div>                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Posição</span>
+                    <span style="font-size:12px;font-weight:600;color:#12201a">Todas</span>
+                    <span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Força</span>
+                    <span style="font-size:12px;font-weight:600;color:#12201a">70+</span>
+                    <span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Idade</span>
+                    <span style="font-size:12px;font-weight:600;color:#12201a">até 30</span>
+                    <span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Preço</span>
+                    <span style="font-size:12px;font-weight:600;color:#12201a">até R$ 800 mil</span>
+                    <span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <span style="display:flex;align-items:center;gap:7px;height:36px;padding:0 12px;border:1px solid #d8e2d6;border-radius:11px;background:#fff;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">
+                    <span style="font-size:11px;color:#9aa79e">Clube</span>
+                    <span style="font-size:12px;font-weight:600;color:#12201a">qualquer</span>
+                    <span style="font-size:9px;color:#9aa79e">▾</span>
+                  </span>
+                  <div style="flex:1"></div>
+                  <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Limpar filtros</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span>JOGADOR</span>
+                  <span>POS</span>
+                  <span>IDA</span>
+                  <span>FOR</span>
+                  <span>CLUBE</span>
+                  <span style="text-align:right">VALOR</span>
+                  <span style="text-align:right">SALÁRIO</span>
+                  <span style="text-align:right"></span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Éder Nunes</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">26</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">84</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/flamengo.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aimoré</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 620 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 38 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wallace Reis</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">24</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">81</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/atletico-mg.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Azuriz</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 540 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 31 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bruno Tavares</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">D</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">29</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">79</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/vasco.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Marcílio Dias</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 410 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 27 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Jonas Vieira</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">22</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">78</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/fluminense.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rio Branco-PR</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 480 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 24 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cleber Souza</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">G</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">31</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">77</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/cruzeiro.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sãocarlense</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 290 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 22 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Matheus Lira</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">20</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">74</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/corinthians.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Grêmio Prudente</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 330 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 18 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Igor Peixoto</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">D</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">27</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">73</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/flamengo.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Comercial</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:400;color:#12201a;text-align:right;white-space:nowrap">R$ 260 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 19 mil</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open0 }}">Propor</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">O QUE O CAIXA PERMITE</span>
+                  
+                </div>                <div data-cols style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">CAIXA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 1,27 mi</span>
+                    
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">FOLHA ATUAL</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 184 mil/mês</span>
+                    
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">MARGEM DE SALÁRIO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 42 mil/mês</span>
+                    
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">ELENCO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">26 de 30</span>
+                    
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="{{ panel1 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">LOTES ABERTOS</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">4 ativos</span>
+                </div>                <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 28px 34px 34px minmax(0,1fr) 92px 92px 62px 74px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span>JOGADOR</span>
+                  <span>POS</span>
+                  <span>IDA</span>
+                  <span>FOR</span>
+                  <span>CLUBE</span>
+                  <span style="text-align:right">LANCE ATUAL</span>
+                  <span style="text-align:right">SEU LANCE</span>
+                  <span style="text-align:right">FECHA</span>
+                  <span style="text-align:right"></span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 28px 34px 34px minmax(0,1fr) 92px 92px 62px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Danilo Braga</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">25</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">86</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/vasco.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ferroviária</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 740 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">R$ 690 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">02:14</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F2B90C;border:1px solid #F2B90C;font-size:11px;font-weight:700;color:#17458F;white-space:nowrap;cursor:pointer" onClick="{{ open2 }}">Cobrir</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 28px 34px 34px minmax(0,1fr) 92px 92px 62px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rafinha Costa</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">23</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">82</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/fluminense.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brusque</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 520 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#9aa79e;text-align:right;white-space:nowrap">—</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">07:48</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:700;color:#3a473f;white-space:nowrap;cursor:pointer" onClick="{{ open1 }}">Dar lance</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 28px 34px 34px minmax(0,1fr) 92px 92px 62px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Léo Baptista</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">D</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">28</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">80</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/cruzeiro.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Athletic-MG</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 380 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">R$ 380 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">12:03</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:700;color:#3a473f;white-space:nowrap;cursor:pointer" onClick="{{ open1 }}">Dar lance</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 28px 34px 34px minmax(0,1fr) 92px 92px 62px 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vitor Hugo</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">G</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">30</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">78</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/corinthians.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Operário-MT</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 240 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#9aa79e;text-align:right;white-space:nowrap">—</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">23:31</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:700;color:#3a473f;white-space:nowrap;cursor:pointer" onClick="{{ open1 }}">Dar lance</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">ARREMATADOS RECENTEMENTE</span>
+                  
+                </div>                <div style="display:grid;grid-template-columns:20px minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 92px;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent">
+                  <span style="font-size:13px">🔨</span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Thiago Melo</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">A · força 83</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cascavel</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 810 mil</span>
+                </div>
+                <div style="display:grid;grid-template-columns:20px minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 92px;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent">
+                  <span style="font-size:13px">🔨</span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Paulinho</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">M · força 79</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nacional-PR</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 470 mil</span>
+                </div>
+                <div style="display:grid;grid-template-columns:20px minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 92px;gap:10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <span style="font-size:13px">🔨</span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alex Ramos</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">D · força 81</span>
+                  <span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 560 mil</span>
+                </div>
+              </div>
+            </div>
+            <div style="{{ panel2 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box;border-left:4px solid #c0392b">
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                  <img src="assets/crests/vasco.png" alt="" style="width:38px;height:38px;object-fit:contain;flex:0 0 auto">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:16px;font-weight:700;color:#12201a;white-space:nowrap">Cascavel quer o Carlos Miguel</span>
+                    <span style="font-size:12px;color:#78877c;white-space:nowrap">A · 24 anos · força 79 · resposta em 2 dias</span>
+                  </div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;gap:8px;flex:0 0 auto">
+                    <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #e8c4bf;color:#c0392b;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open4 }}">Recusar</span>
+                    <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open5 }}">Contrapropor</span>
+                    <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e" onClick="{{ open3 }}">Aceitar</span>
+                  </div>
+                </div>
+                <div data-cols style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">OFERTA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 1,1 mi</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">à vista</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SALÁRIO QUE SAI</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 62 mil</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">alívio na folha</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VALOR DE MERCADO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 1,25 mi</span>
+                    <span style="font-size:11px;color:#c0392b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">abaixo do valor</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SUBSTITUTO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alan Pedro</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">já no elenco</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box;border-left:4px solid #F2B90C">
+                <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                  <img src="assets/crests/fluminense.png" alt="" style="width:38px;height:38px;object-fit:contain;flex:0 0 auto">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:16px;font-weight:700;color:#12201a;white-space:nowrap">Ferroviária quer o Serginho</span>
+                    <span style="font-size:12px;color:#78877c;white-space:nowrap">M · 27 anos · força 74 · resposta em 4 dias</span>
+                  </div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;gap:8px;flex:0 0 auto">
+                    <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #e8c4bf;color:#c0392b;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open4 }}">Recusar</span>
+                    <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open5 }}">Contrapropor</span>
+                    <span style="height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e" onClick="{{ open3 }}">Aceitar</span>
+                  </div>
+                </div>
+                <div data-cols style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">OFERTA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 680 mil</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">à vista</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SALÁRIO QUE SAI</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 44 mil</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">alívio na folha</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VALOR DE MERCADO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 610 mil</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">acima do valor</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SUBSTITUTO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Diego Rocha</span>
+                    <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">já no elenco</span>
+                  </div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">IMPACTO SE ACEITAR AS DUAS</span>
+                  
+                </div>                <div data-cols style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">CAIXA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 3,05 mi</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+1,78 mi</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">FOLHA</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 78 mil/mês</span>
+                    <span style="font-size:11px;color:#2fbf5f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">−106 mil</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">FORÇA DO ATAQUE</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">71</span>
+                    <span style="font-size:11px;color:#c0392b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">−8</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">FORÇA DO MEIO</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">68</span>
+                    <span style="font-size:11px;color:#c0392b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">−6</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="{{ panel3 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">NEGOCIAÇÕES EM ANDAMENTO</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">3 abertas</span>
+                </div>                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px minmax(0,1fr) 92px 92px 84px minmax(0,0.9fr) 74px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span>JOGADOR</span>
+                  <span>POS</span>
+                  <span>CLUBE</span>
+                  <span style="text-align:right">SUA OFERTA</span>
+                  <span style="text-align:right">PEDIDO DELES</span>
+                  <span style="text-align:right">DIFERENÇA</span>
+                  <span style="text-align:right">SITUAÇÃO</span>
+                  <span style="text-align:right"></span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px minmax(0,1fr) 92px 92px 84px minmax(0,0.9fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Éder Nunes</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/flamengo.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aimoré</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">R$ 620 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 780 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 160 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#fff;background:#c9d2ca;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">A DECIDIR</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" onClick="{{ open5 }}">Subir</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px minmax(0,1fr) 92px 92px 84px minmax(0,0.9fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wallace Reis</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/atletico-mg.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Azuriz</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">R$ 540 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 590 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 50 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#17458F;background:#F2B90C;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">QUASE FECHADO</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" onClick="{{ open5 }}">Subir</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px minmax(0,1fr) 92px 92px 84px minmax(0,0.9fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cleber Souza</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">G</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/cruzeiro.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sãocarlense</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">R$ 290 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 290 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#9aa79e;text-align:right;white-space:nowrap">—</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#fff;background:#2fbf5f;border-radius:99px;padding:3px 8px;white-space:nowrap;justify-self:start">ACEITO</span>
+                  <span style="height:32px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F2B90C;border:1px solid #F2B90C;font-size:11px;font-weight:700;color:#17458F;white-space:nowrap;cursor:pointer" onClick="{{ open7 }}">Fechar</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">COMO NEGOCIAR</span>
+                  
+                </div>                <span style="font-size:12px;color:#5d6c62;line-height:1.6;text-wrap:pretty">Cada subida na oferta consome um dia da janela. Clubes da mesma divisão pedem 20% a mais quando o jogador é titular. Se a diferença for menor que 10%, costumam aceitar na primeira contraproposta.</span>
+              </div>
+            </div>
+            <div style="{{ panel4 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">SEU ELENCO À VENDA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">26 jogadores</span>
+                </div>                <div style="display:grid;grid-template-columns:34px minmax(0,1.2fr) 28px 34px 34px 92px 84px 58px minmax(0,0.8fr) 74px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span></span>
+                  <span>JOGADOR</span>
+                  <span>POS</span>
+                  <span>IDA</span>
+                  <span>FOR</span>
+                  <span style="text-align:right">VALOR</span>
+                  <span style="text-align:right">SALÁRIO</span>
+                  <span style="text-align:right">FIM</span>
+                  <span style="text-align:right">INTERESSE</span>
+                  <span style="text-align:right"></span>
+                </div>
+                <div style="display:grid;grid-template-columns:34px minmax(0,1.2fr) 28px 34px 34px 92px 84px 58px minmax(0,0.8fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                    <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                    <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                    <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">10</span>
+                  </span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">24</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">79</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 1,25 mi</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 62 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">2027</span>
+                  <span style="font-size:11px;font-weight:500;color:#17458F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">3 clubes</span>
+                  <span style="height:32px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open6 }}">Listar</span>
+                </div>
+                <div style="display:grid;grid-template-columns:34px minmax(0,1.2fr) 28px 34px 34px 92px 84px 58px minmax(0,0.8fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                    <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                    <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                    <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">8</span>
+                  </span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Serginho</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">27</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">74</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 610 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 44 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">2027</span>
+                  <span style="font-size:11px;font-weight:500;color:#17458F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">1 clube</span>
+                  <span style="height:32px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open6 }}">Listar</span>
+                </div>
+                <div style="display:grid;grid-template-columns:34px minmax(0,1.2fr) 28px 34px 34px 92px 84px 58px minmax(0,0.8fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                    <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                    <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                    <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">6</span>
+                  </span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Juninho</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">31</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">66</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 180 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 38 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">2026</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">—</span>
+                  <span style="height:32px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open6 }}">Listar</span>
+                </div>
+                <div style="display:grid;grid-template-columns:34px minmax(0,1.2fr) 28px 34px 34px 92px 84px 58px minmax(0,0.8fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                    <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                    <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                    <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">4</span>
+                  </span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rodrigo Sena</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">D</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">29</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">68</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 240 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 34 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">2028</span>
+                  <span style="font-size:11px;font-weight:500;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">—</span>
+                  <span style="height:32px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open6 }}">Listar</span>
+                </div>
+                <div style="display:grid;grid-template-columns:34px minmax(0,1.2fr) 28px 34px 34px 92px 84px 58px minmax(0,0.8fr) 74px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                    <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                    <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                    <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                    <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">21</span>
+                  </span>
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Kauê</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">19</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">67</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 320 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">R$ 12 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">2029</span>
+                  <span style="font-size:11px;font-weight:500;color:#17458F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">2 clubes</span>
+                  <span style="height:32px;padding:0 10px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#fff;border:1px solid #d8e2d6;font-size:11px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1" onClick="{{ open6 }}">Listar</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">QUEM VOCÊ NÃO DEVERIA VENDER</span>
+                  
+                </div>                <span style="font-size:12px;color:#5d6c62;line-height:1.6;text-wrap:pretty">Carlos Miguel responde por 14 dos 32 gols do time. Vender agora tira 8 pontos de força do ataque e a diretoria cobra explicação se a campanha cair.</span>
+              </div>
+            </div>
+            <div style="{{ panel5 }}">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">JANELA DE TRANSFERÊNCIAS</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">fecha em 12 dias</span>
+                </div>                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                    <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Aberta desde a 4ª jornada</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap">68%</span>
+                  </div>
+                  <div style="height:10px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:68%;height:100%;border-radius:99px;background:linear-gradient(90deg,#17458F,#F2B90C)"></div></div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-sizing:border-box">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">MOVIMENTAÇÕES DA DIVISÃO</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">32 no total</span>
+                </div>                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px 34px minmax(0,1fr) 22px minmax(0,1fr) 92px 84px;gap:0 10px;padding:0 10px 4px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                  <span>JOGADOR</span>
+                  <span>POS</span>
+                  <span>FOR</span>
+                  <span>SAIU DE</span>
+                  <span></span>
+                  <span>FOI PARA</span>
+                  <span style="text-align:right">VALOR</span>
+                  <span style="text-align:right">QUANDO</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px 34px minmax(0,1fr) 22px minmax(0,1fr) 92px 84px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Thiago Melo</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">83</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/flamengo.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aimoré</span></span>
+                  <span style="font-size:11px;color:#9aa79e;text-align:center">→</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/vasco.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cascavel</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 810 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">há 2 dias</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px 34px minmax(0,1fr) 22px minmax(0,1fr) 92px 84px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Paulinho</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">M</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">79</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/atletico-mg.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Azuriz</span></span>
+                  <span style="font-size:11px;color:#9aa79e;text-align:center">→</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/fluminense.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nacional-PR</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 470 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">há 3 dias</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px 34px minmax(0,1fr) 22px minmax(0,1fr) 92px 84px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:#eef3fa;border:1px solid #17458F">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alex Ramos</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">D</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">81</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/flamengo.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Comercial</span></span>
+                  <span style="font-size:11px;color:#9aa79e;text-align:center">→</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="uploads/pasted-1786581574687-0.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700">XV Piracicaba</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 560 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">há 4 dias</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px 34px minmax(0,1fr) 22px minmax(0,1fr) 92px 84px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ronaldo Lima</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">G</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">76</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/fluminense.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rio Branco-PR</span></span>
+                  <span style="font-size:11px;color:#9aa79e;text-align:center">→</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/vasco.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Marcílio Dias</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 190 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">há 5 dias</span>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 28px 34px minmax(0,1fr) 22px minmax(0,1fr) 92px 84px;gap:0 10px;align-items:center;padding:8px 10px;border-radius:11px;background:transparent;border:1px solid transparent" style-hover="background:#f5f8f4">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Felipe Anjos</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:center;white-space:nowrap">A</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;text-align:center;white-space:nowrap">80</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/corinthians.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Grêmio Prudente</span></span>
+                  <span style="font-size:11px;color:#9aa79e;text-align:center">→</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/cruzeiro.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto"><span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 640 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:#5d6c62;text-align:right;white-space:nowrap">há 1 semana</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div data-ad-rail="right" style="width:160px;flex:0 0 auto;position:sticky;top:20px">
+      <div style="width:160px;height:600px;display:flex;align-items:center;justify-content:center;border:1px dashed #c9d2ca;border-radius:14px;background:#f2f7f1;color:#9aa79e;font-size:10px;font-weight:700;letter-spacing:.16em;text-align:center;box-sizing:border-box">PUBLICIDADE<br>160×600</div>
+    </div>
+  </div>
+</div>
+<div data-dlg-layer style="{{ dlgLayer }}">
+  <div onClick="{{ closeDlg }}" style="position:absolute;inset:0;background:rgba(11,26,18,.42)"></div>
+  <div style="{{ dlg0 }}">
+          <div style="width:520px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · COMPRAR</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Proposta por Éder Nunes</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">9</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Éder Nunes</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 26 anos · força 84 · Aimoré</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">PEDIDO</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap">R$ 620 mil</span>
+                </span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">VALOR DA PROPOSTA</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">620.000</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Abaixo de R$ 560 mil o Aimoré recusa direto.</span>
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">SALÁRIO OFERECIDO</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">38.000</span>
+                  <span style="font-size:11px;color:#9aa79e;flex:0 0 auto;white-space:nowrap">/mês</span>
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">O jogador pede no mínimo R$ 34 mil.</span>
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">ANOS DE CONTRATO</span>
+                <span style="display:flex;align-items:center;gap:8px">
+                  <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:17px;color:#5d6c62;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">−</span>
+                  <span style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;min-width:0">3</span>
+                  <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:17px;color:#5d6c62;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">＋</span>
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Contrato mais longo derruba o valor do passe em até 8%.</span>
+              </label>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa depois da compra</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">R$ 650 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Folha depois da contratação</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">R$ 222 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Margem de salário restante</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 4 mil/mês</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">A proposta consome um dia da janela. O Aimoré responde na próxima jornada.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Enviar proposta</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg1 }}">
+          <div style="width:500px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · LEILÃO · FECHA EM 07:48</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Lance por Rafinha Costa</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">11</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rafinha Costa</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Meio · 23 anos · força 82 · Brusque</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">LANCE ATUAL</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap">R$ 520 mil</span>
+                </span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">SEU LANCE</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">545.000</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Incremento mínimo de R$ 25 mil.</span>
+              </label>              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;align-items:center;padding:9px;border-radius:11px;background:#eef3fa;border:1px solid #17458F;cursor:pointer">
+                  <span style="font-size:11px;font-weight:700;color:#17458F;white-space:nowrap">+25 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">R$ 545.000</span>
+                </span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;align-items:center;padding:9px;border-radius:11px;background:#fff;border:1px solid #d8e2d6;cursor:pointer">
+                  <span style="font-size:11px;font-weight:700;color:#5d6c62;white-space:nowrap">+50 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">R$ 570.000</span>
+                </span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;align-items:center;padding:9px;border-radius:11px;background:#fff;border:1px solid #d8e2d6;cursor:pointer">
+                  <span style="font-size:11px;font-weight:700;color:#5d6c62;white-space:nowrap">+100 mil</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">R$ 620.000</span>
+                </span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa disponível</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 1,27 mi</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Se vencer, sobra</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">R$ 725 mil</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">O lance é firme: se ninguém cobrir até 07:48, o jogador é seu.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">🔨 Dar lance</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg2 }}">
+          <div style="width:480px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · LEILÃO · FECHA EM 02:14</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Cobrir o lance do Ferroviária</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">9</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Danilo Braga</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 25 anos · força 86 · Ferroviária</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SEU LANCE</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#c0392b;white-space:nowrap">R$ 690 mil</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">O Cascavel cobriu com R$ 740 mil. Você tem 2 minutos para responder.</span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">COBRIR COM</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">765.000</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">R$ 25 mil acima do lance do Cascavel.</span>
+              </label>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Lance a cobrir</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 740 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa depois</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">R$ 505 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Vezes que você já cobriu</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">2 de 3</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">Depois da terceira cobertura o leilão fecha automaticamente no maior lance.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Desistir do lote</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">⚡ Cobrir agora</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg3 }}">
+          <div style="width:520px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#2fbf5f"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · PROPOSTAS</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Aceitar a venda de Carlos Miguel?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">10</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 24 anos · força 79 · 14 gols na temporada</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">OFERTA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#2fbf5f;white-space:nowrap">R$ 1,1 mi</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Carlos Miguel responde por 14 dos 32 gols do time. O ataque perde 8 pontos de força e a diretoria vai cobrar explicação se a campanha cair.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Entra no caixa</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">R$ 1,1 mi</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Sai da folha</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">R$ 62 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Valor de mercado</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 1,25 mi</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Força do ataque</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">72 → 64</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Substituto no elenco</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">Alan Pedro (70)</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">A venda é definitiva. O jogador se apresenta ao Cascavel na próxima jornada.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Voltar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Confirmar a venda</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg4 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · PROPOSTAS</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Recusar a proposta do Cascavel?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">10</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 24 anos · força 79</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">OFERTA</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap">R$ 1,1 mi</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">O jogador fica sabendo da recusa. Se a oferta era maior que o valor de mercado, a moral dele cai.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Moral atual</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">alta</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Moral depois de recusar</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">média</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Chance de nova proposta</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">alta</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">O Cascavel pode voltar com uma oferta melhor na próxima janela.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Voltar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#c0392b;border:1px solid #c0392b;color:#fff;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#a93226">Recusar</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg5 }}">
+          <div style="width:520px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · CONTRAPROPOSTA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Contrapropor ao Cascavel</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">10</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 24 anos · força 79</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">OFERTA DELES</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap">R$ 1,1 mi</span>
+                </span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">SEU PEDIDO</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">1.380.000</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">10% acima do valor de mercado — a chance de aceitarem é média.</span>
+              </label>              <div style="display:flex;flex-direction:column;gap:7px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">CHANCE DE ACEITAREM</span>
+                <div style="height:9px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:52%;height:100%;border-radius:99px;background:#F2B90C;transition:width .18s"></div></div>
+                <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e">
+                  <span>até 1,1 mi · certa</span><span>1,38 mi · média</span><span>acima de 1,6 mi · recusa</span>
+                </div>
+              </div>              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">INCLUIR NA NEGOCIAÇÃO</span>
+                <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #eef1ee;background:transparent;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:5px;border:1px solid #c9d2ca;background:#fff;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto"></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Jogador na troca</span>
+                    <span style="font-size:10px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wallace Reis (81) do Cascavel</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #17458F;background:#eef3fa;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:5px;border:1px solid #17458F;background:#17458F;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto">✓</span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parcelar em 2 vezes</span>
+                    <span style="font-size:10px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">recebe metade agora</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #eef1ee;background:transparent;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:5px;border:1px solid #c9d2ca;background:#fff;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto"></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ficar com 20% de uma revenda futura</span>
+                    
+                  </span>
+                </div>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">Cada rodada de contraproposta consome um dia da janela.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Enviar contraproposta</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg6 }}">
+          <div style="width:500px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · VENDER</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Listar Juninho para venda</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">6</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Juninho</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Meio · 31 anos · força 66 · contrato até 2026</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">VALOR</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap">R$ 180 mil</span>
+                </span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">PREÇO PEDIDO</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">180.000</span>
+                  
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Acima de R$ 230 mil nenhum clube da divisão procura.</span>
+              </label>              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">COMO LISTAR</span>
+                <div style="display:flex;align-items:center;gap:11px;padding:10px;border-radius:11px;border:1px solid #17458F;background:#eef3fa;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #17458F;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:#17458F"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:12px;font-weight:700;color:#12201a;white-space:nowrap">Venda direta</span>
+                    <span style="font-size:10px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">espera proposta de clube interessado</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:10px;border-radius:11px;border:1px solid #eef1ee;background:transparent;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #c9d2ca;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:transparent"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:12px;font-weight:500;color:#12201a;white-space:nowrap">Leilão de 24h</span>
+                    <span style="font-size:10px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">quem der o maior lance leva</span>
+                  </span>
+                </div>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Alívio na folha se vender</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">R$ 38 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Força do meio depois</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">71 → 69</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Clubes que já sondaram</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#9aa79e;white-space:nowrap;flex:0 0 auto">nenhum</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">🏷 Listar</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg7 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#2fbf5f"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO · LEILÃO ENCERRADO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Arrematado!</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">11</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rafinha Costa</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Meio · 23 anos · força 82 · vem do Brusque</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SEU LANCE</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#2fbf5f;white-space:nowrap">R$ 570 mil</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#d7f5e2;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#2fbf5f">✓</span>
+                <span style="font-size:12px;color:#0d3d22;line-height:1.55;text-wrap:pretty">Rafinha Costa é seu. Ele se apresenta antes da próxima jornada e já pode ser escalado.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Pago pelo passe</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 570 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Salário acertado</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 31 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa agora</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">R$ 700 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Força do meio</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">71 → 76</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Segundo colocado</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#9aa79e;white-space:nowrap;flex:0 0 auto">Cascavel · R$ 545 mil</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Ver o elenco</span>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Continuar</span>
+            </div>
+          </div>
+  </div>
+  <div style="{{ dlg8 }}">
+          <div style="width:440px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">MERCADO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Caixa insuficiente</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">O clube não tem caixa para esta proposta. Venda um jogador ou reduza a oferta.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Proposta</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 1,4 mi</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa disponível</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 1,27 mi</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Falta</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 130 mil</span>
+              </div>              <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #eef1ee;padding-top:12px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">DE ONDE TIRAR</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:12px;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vender Juninho</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#2fbf5f;white-space:nowrap">R$ 180 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:12px;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vender Tiago Alencar</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#2fbf5f;white-space:nowrap">R$ 140 mil</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:12px;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parcelar em 2 vezes</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#2fbf5f;white-space:nowrap">metade agora</span>
+                </div>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Reduzir a oferta</span>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Ir ao mercado</span>
+            </div>
+          </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 0, dlg: -1 };
+  renderVals() {
+    const N = 9;
+    const TABS = ["Comprar","Leilão","Propostas (2)","Contrapropostas","Vender","Transferências"];
+    const on = 'flex:0 0 auto;font-size:13px;font-weight:700;color:#fff;background:#17458F;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const off = 'flex:0 0 auto;font-size:13px;font-weight:500;color:#3a473f;background:transparent;border-radius:11px;padding:8px 14px;white-space:nowrap;cursor:pointer';
+    const vals = {
+      tabs: TABS.map((label, i) => ({
+        label,
+        style: i === this.state.tab ? on : off,
+        onClick: () => this.setState({ tab: i })
+      }))
+    };
+    vals.dlgLayer = this.state.dlg < 0
+      ? { display: 'none' }
+      : { position: 'fixed', inset: 0, zIndex: 90, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflow: 'auto', animation: 'dlgIn .2s ease' };
+    vals.closeDlg = () => this.setState({ dlg: -1 });
+    for (let k = 0; k < N; k++) {
+      vals['open' + k] = () => this.setState({ dlg: k });
+      vals['dlg' + k] = this.state.dlg === k
+        ? { position: 'relative', display: 'flex', justifyContent: 'center', width: '100%', animation: 'dlgUp .24s ease' }
+        : { display: 'none' };
+    }
+    TABS.forEach((_, i) => {
+      vals['panel' + i] = i === this.state.tab
+        ? { display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0, animation: 'tabIn .26s ease' }
+        : { display: 'none' };
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

@@ -34,9 +34,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       gauss:(mu,sd)=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);},
       int:(n)=>Math.floor(r()*n), pick:(arr)=>arr[Math.floor(r()*arr.length)] }; }
 
-  const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
+  /* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, medido na arena) =====
+     O ofensivo ganha menos drift e passa a EXPOR a defesa; a retranca perde menos drift e
+     passa a BLINDAR. Ver TACTIC_EMPHASIS logo abaixo e scripts/arena-motor.mjs. */
+  const TACTIC_BETA={retranca:-0.008, equilibrado:0, ofensivo:0.016};
+  const TACTIC_EMPHASIS={ retranca:{OS:0.93,DS:1.20}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.04,DS:0.80} };
   const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055
-  const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.018, convDiff:0.004 };
+  const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.004, convDiff:0.004 }; // alphaMidCount era 0.018: fazia do 4-5-1 o meta silencioso
   const BEHAVIOR_CARD_MULT={ 'Casca-Grossa':3.2, 'Brigão':2.4, 'Encrenqueiro':1.7, 'Discreto':1.0, 'Manso':0.75, 'Exemplar':0.4 };
   const BEHAVIOR_INJURY_MULT={ 'Discreto':1.6, 'Manso':0.55, 'Exemplar':0.85, 'Encrenqueiro':1.0, 'Brigão':1.05, 'Casca-Grossa':1.1 };
   const RIVALRIES=[
@@ -93,8 +97,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     const R=makeRng((seed>>>0));
     const hp=home.xi||[], ap=away.xi||[];
     const emH=formationEmphasis(hp), emA=formationEmphasis(ap);
-    const H={OS:home.rat.OS*emH.OS, MS:home.rat.MS*emH.MS, DS:home.rat.DS*emH.DS, mor:home.rat.mor};
-    const A={OS:away.rat.OS*emA.OS, MS:away.rat.MS*emA.MS, DS:away.rat.DS*emA.DS, mor:away.rat.mor};
+    const teH=TACTIC_EMPHASIS[home.tactic||'equilibrado']||TACTIC_EMPHASIS.equilibrado;
+    const teA=TACTIC_EMPHASIS[away.tactic||'equilibrado']||TACTIC_EMPHASIS.equilibrado;
+    const H={OS:home.rat.OS*emH.OS*teH.OS, MS:home.rat.MS*emH.MS, DS:home.rat.DS*emH.DS*teH.DS, mor:home.rat.mor};
+    const A={OS:away.rat.OS*emA.OS*teA.OS, MS:away.rat.MS*emA.MS, DS:away.rat.DS*emA.DS*teA.DS, mor:away.rat.mor};
     const betaH=TACTIC_BETA[home.tactic||'equilibrado'], betaA=TACTIC_BETA[away.tactic||'equilibrado'];
     const homeAdv=homeAdvantageFromCap(home.cap);
     const derby=isDerby(home.short, away.short);
@@ -109,8 +115,10 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     function effRat(side){ const b=side==='H'?H:A; const tp=teamPenalty(side); return {OS:b.OS*tp, MS:b.MS*tp, DS:b.DS*tp}; }
     function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, ctxMid); }
     function scorerFrom(id,players){ const atk=players.filter(function(p){return p.s==='ATT'||p.s==='MID';});
-      const pool=atk.length?atk:players; let tot=pool.reduce(function(s,p){return s+p.f;},0), r=R.random()*tot;
-      for(const p of pool){r-=p.f;if(r<=0)return p;} return pool[0]; }
+      const pool=atk.length?atk:players;
+      const w=function(p){return p.f*attrFactor(p,['fin'],0.82,1.28);};
+      let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
+      for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
     function pickFoulPlayer(side){ const pool=activePool(side).filter(function(p){return p.s!=='GK';});
       const list=pool.length?pool:activePool(side); if(!list.length) return null;
       const w=function(p){return (110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);};
@@ -256,6 +264,27 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   /* ===== coleta de INPUTS pura (espelho de ratings()/availableXI()/autoXI()) =====
      O servidor precisa montar rat/xi IGUAL ao cliente. Tudo determinístico a partir do elenco. */
   function engForce(f){ if(typeof f!=='number' || !isFinite(f)) return 40; return f<=49 ? f : 49 + (f-49)*0.33; }
+  // goleiro: compressão leve (só 1 em campo — ver ratings() do cliente/rebalance.js)
+  function engForceGK(f){ if(typeof f!=='number' || !isFinite(f)) return 40; return f<=49 ? f : 49 + (f-49)*0.59; }
+  /* ===== ATRIBUTOS DE VERDADE NO RESULTADO (21/08) =====
+     Até aqui p.attr (fin/pas/dri/... — ver genAttrs em index.html) só influenciava o jogo
+     DEVAGAR, via evolvePlayer reescrevendo p.f a cada rodada; dentro da própria partida os
+     atributos individuais nunca eram lidos — dois jogadores da MESMA força decidiam o
+     resultado de forma idêntica. attrFactor lê o(s) atributo(s) relevante(s) do jogador
+     RELATIVO ao seu próprio nível médio (não à força do time): um artilheiro nato (fin acima
+     do seu nível) finaliza melhor que um "faz-tudo" da mesma força, um goleiro-reflexo
+     (ref/mao acima do seu nível) defende mais que um goleiro-linha da mesma força. Clamp
+     [lo,hi] mantém isso como TEMPERO, não substituto de f — ela ainda decide o grosso do jogo.
+     Puramente numérico: nenhuma tela lê p.attr hoje (ver ATTR_LABEL/ATTR_GROUP, index.html) —
+     é o dado pronto pra quando decidirmos mostrar isso ao usuário. */
+  function forceToLevel(f){ return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6))); }
+  function attrFactor(p,keys,lo,hi){
+    const a=p&&p.attr; if(!a) return 1;
+    let sv=0,n=0; for(const k of keys){ if(a[k]!=null){ sv+=a[k]; n++; } }
+    if(!n) return 1;
+    const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f);
+    return clamp(1+(rel-base)/22, lo, hi);
+  }
   function isAvail(p){ return !(p.suspended>0) && !(p.injuredMatches>0); }
   function best11(avail){ return avail.slice().sort(function(a,b){return b.f-a.f;}).slice(0,11); }
   /* ratings de um clube. players = elenco COMPLETO [{n,f,s,energy,moral,suspended,injuredMatches}].
@@ -268,7 +297,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
     const avg=function(a){return a.length?a.reduce(function(s,p){return s+engForce(p.f)*(0.6+0.4*p.energy/100);},0)/a.length:28;};
-    let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avg(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+    /* goleiro comprime com a curva LEVE (engForceGK), como o ratings() do cliente: só há um em
+       campo, então o motivo da compressão (empilhar craques) não se aplica — sem isto o goleiro
+       craque valia menos nas partidas resolvidas aqui do que nas ao vivo (divergência achada na
+       validação de 21/08). */
+    const avgGK=function(a){return a.length?a.reduce(function(s,p){return s+engForceGK(p.f)*(0.6+0.4*p.energy/100)*attrFactor(p,['ref','mao'],0.85,1.15);},0)/a.length:28;};
+    let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
     const mor= used.length ? used.reduce(function(s,p){return s+(p.moral!=null?p.moral:70);},0)/used.length : 70;
     if(mor<50){ OS*=0.85; MS*=0.85; DS*=0.85; }
     return {OS:OS,MS:MS,DS:DS,mor:mor};
@@ -308,6 +342,257 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ME = (globalThis as any).MATCH_ENGINE;
 
+/* A FOLHA DE SLOTS. Vem ANTES do WORLD_RULES porque buildDayPlan e buildCupSchedule a leem. */
+/* <<< CALENDARIOS:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   CALENDÁRIOS POR PAÍS — a folha de SLOTS.
+
+   POR QUE ISTO EXISTE. O calendário era uma tabela de datas reais (CAL_2026, em world-rules.js) e
+   a temporada era montada a partir dela. Isso produziu o pior bug do jogo: existiam DUAS
+   coordenadas — a rodada, que a ancoragem espremia para caber na temporada, e a data, que vinha
+   da folha e não se movia junto. O plano de dias era ordenado por data, então a FINAL, que não
+   tem data na folha e herdava um dia sintético, era marcada ANTES da própria semifinal. Medido
+   nas três salas com day_plan de agosto/2026.
+
+   AQUI SÓ EXISTE UMA COORDENADA: `(slot, janela)`.
+     · SLOT é a semana da temporada, 1..slotsTotal.
+     · JANELA é o momento dentro da semana: MIDWEEK_1 (ter/qua), MIDWEEK_2 (qui), WEEKEND.
+   A ordem da temporada é `slot` e, dentro dele, a ordem das janelas. A DATA passou a ser
+   RÓTULO derivado — ela aparece na tela e não decide nada. Duas coordenadas não podem discordar
+   quando só existe uma.
+
+   A JANELA É O DESEMPATE QUE FALTAVA. A ordenação era por data justamente porque duas
+   competições caem na mesma semana e é preciso saber qual joga primeiro. Com slots isso é
+   explícito — a final ocupa um slot PRÓPRIO, e a ordem dentro da semana é a das janelas.
+
+   O QUE MUDA PARA QUEM JOGA. No calendário antigo havia 11 semanas com mais de uma copa, três
+   delas com as três juntas — e metade da temporada sem copa nenhuma. Aqui cada copa tem a sua
+   janela e nenhuma semana tem duas copas.
+
+   ONDE MORAM AS FINAIS (regra do dono do jogo, 18/08/2026). Cada final tem a sua semana, sem
+   jogo de liga, e todas elas vêm ANTES da última rodada do campeonato — que fecha a temporada.
+   A folha chegou a pôr as finais DEPOIS do fim da liga, por ser o que a vida real faz; o efeito
+   dentro do jogo era o oposto do pretendido: o campeonato acabava na rodada 38, a temporada
+   dava-se por encerrada, e as três decisões viravam dias soltos no fim que o jogador atravessava
+   sem as ver. Duas ou três semanas sem campeonato não incomodam ninguém; uma final que não
+   acontece, incomoda.
+
+   COMO ACRESCENTAR UM PAÍS: copiar um bloco e trocar os slots. Não há regra a mexer — é dado.
+   `scripts/teste-calendario.mjs` confere as invariantes de todos os países declarados aqui.
+
+   Regra de ouro (a mesma do world-rules.js): dado, não algoritmo. Nada de S, CL ou DOM.
+   Injetada no resolve-round por scripts/sync-world-rules.mjs.
+   =================================================================== */
+(function(root){
+  'use strict';
+
+  /* A ordem das janelas DENTRO de um slot. É esta lista que resolve o caso da final da Copa do
+     Brasil, e é por ela que o plano de dias é ordenado. */
+  const JANELAS=['MIDWEEK_1','MIDWEEK_2','WEEKEND'];
+  function ordemDaJanela(j){ const i=JANELAS.indexOf(j); return i<0 ? JANELAS.length : i; }
+  /* chave ordenável de um dia — estritamente monótona, e a ÚNICA usada para ordenar */
+  function chaveDoDia(slot, janela){ return (slot|0)*JANELAS.length + ordemDaJanela(janela); }
+
+  function serie(de, ate){ const a=[]; for(let i=de;i<=ate;i++) a.push(i); return a; }
+
+  /* ===================== O EIXO É DO MUNDO, NÃO DE UM PAÍS =====================
+     O slot 40 tem de ser a MESMA semana para toda a gente. É isso que permite uma sala com
+     brasileiro e inglês andar junta — e é isso que vai permitir, mais à frente, uma competição
+     MUNDIAL (um Mundial de Clubes) em que clubes de países diferentes se enfrentam: ela ocupa um
+     slot do mundo, e os dois calendários nacionais já sabem que aquela semana está tomada.
+
+     Duas condições, e as duas são verificadas (validarCalendario):
+       · todo país começa a temporada no MESMO dia (`inicio`) — se um começasse uma semana depois,
+         o slot 40 dele seria outra semana e a fila da sala juntaria dias que não são simultâneos;
+       · nenhum país passa de SLOTS_DO_MUNDO — é o tamanho do ano, e o teto comum.
+
+     `slotsTotal` de cada país NÃO é o eixo: é onde a temporada daquele país acaba (o Brasil fecha
+     na 42, a Inglaterra na 50). O eixo é este: */
+  const SLOTS_DO_MUNDO=52;                 // as semanas do ano — o calendário é mundial
+  const INICIO_DO_MUNDO=[2026,2,1];        // 1º de março: todo país começa aqui
+
+  const CALENDARIOS={};
+
+  /* ---------------- BRASIL ----------------
+     Liga aos fins de semana, 38 rodadas espalhadas pelos 42 slots. As três copas em janelas de
+     meio de semana, espaçadas, e nenhuma dividindo slot com outra: Libertadores na MIDWEEK_1;
+     Sul-Americana e Copa do Brasil dividem a MIDWEEK_2, em slots disjuntos.
+
+     AS SEMANAS 39, 40 E 41 SÃO AS DAS FINAIS, e não têm jogo de liga. A regra do dono do jogo
+     (18/08/2026) é esta: a temporada NÃO acaba na última rodada do Brasileirão com as decisões
+     ainda por jogar — as finais entram ANTES dela, e o campeonato fecha o ano no slot 42.
+     Antes era o contrário (finais nos slots 40-42, depois do fim da liga) e o efeito para quem
+     jogava era o pior possível: a liga acabava na rodada 38, o jogo dava a temporada por
+     encerrada e as três finais viravam dias soltos no fim, atropelados pelo botão "Avançar".
+     A quarta semana sem liga é a do slot 21 — a parada do meio do ano, que a folha ganha de
+     graça por sobrar um slot depois de reservar as três das finais.
+
+     ISTO É O PADRÃO PARA TODO PAÍS: reservar as semanas das decisões ANTES da última rodada da
+     liga, mesmo que isso deixe duas ou três semanas sem jogo de campeonato. O salto não faz mal;
+     a final não acontecer, faz. */
+  CALENDARIOS.brasil={
+    pais:'brasil', slotsTotal:42, inicio:[2026,2,1],
+    competicoes:{
+      liga:        { janela:'WEEKEND',   slots:serie(1,20).concat(serie(22,38), [42]) },
+      libertadores:{ janela:'MIDWEEK_1', slots:[2,5,8,11,14,17,20,24,28,32,36,39] },
+      sulamericana:{ janela:'MIDWEEK_2', slots:[3,6,9,12,15,18,21,25,29,33,37,40] },
+      copaBrasil:  { janela:'MIDWEEK_2', slots:[4,10,16,23,30,35,41] },
+    },
+    /* datas reais dos jogos de liga, na ordem dos slots — RÓTULO, não ordenação. As de copa são
+       derivadas: a MIDWEEK_1 cai 4 dias antes do jogo de liga daquele slot e a MIDWEEK_2, 3.
+       A ÚLTIMA data não é a real (03/12): a última rodada do campeonato passou a fechar o ano
+       DEPOIS das três finais, e mantê-la a 03/12 punha o rótulo a andar para trás — as finais
+       eram datadas a partir do jogo de liga anterior (01/12) e caíam depois do fecho. O valor é o
+       passo semanal a partir de 01/12 até ao slot 42, que é onde a rodada agora mora — assim
+       nenhuma data derivada das semanas 39-41 ultrapassa a do fecho. A data é rótulo e segue o
+       slot; quem manda é a ordem das semanas. */
+    datasLiga:['03-01','03-07','03-30','04-10','04-16','05-06','05-11','05-15','06-01','06-07',
+               '06-11','06-22','07-05','07-11','07-22','07-25','08-05','08-18','08-23','08-30',
+               '09-14','09-20','09-24','09-28','10-01','10-05','10-10','10-18','10-21','10-24',
+               '10-27','10-30','11-03','11-07','11-11','11-18','12-01','12-29'],
+  };
+
+  /* ---------------- INGLATERRA ----------------
+     Existe para provar a forma com uma pirâmide diferente, e porque é o país que o levantamento
+     de julho apontou como o mais caro: a Championship tem 24 clubes, logo 46 rodadas, contra as
+     38 da Premier League. Com slots isso deixa de ser problema — a lista de slots de liga cobre a
+     divisão MAIS LONGA, e quem joga numa divisão mais curta usa apenas os primeiros.
+     Sem copa nacional (a FA Cup não existe no motor); Champions e Europa nas janelas de meio de
+     semana, como as continentais do Brasil. */
+  CALENDARIOS.Inglaterra={
+    pais:'Inglaterra', slotsTotal:50, inicio:[2026,2,1],
+    competicoes:{
+      /* mesmo padrão do Brasil: as semanas 47 e 48 são as das finais, a 49 fica de folga e a
+         liga fecha o ano no slot 50. A Premier League, que joga 38 e não 46 rodadas, usa estes
+         mesmos slots espalhados (ver slotsDaLiga em world-rules.js) — também ela acaba no 50,
+         depois das finais, em vez de terminar no meio da folha. */
+      liga:           { janela:'WEEKEND',   slots:serie(1,24).concat(serie(26,46), [50]) },
+      championsLeague:{ janela:'MIDWEEK_1', slots:[2,5,8,11,14,17,20,25,30,35,40,47] },
+      europaLeague:   { janela:'MIDWEEK_2', slots:[3,6,9,12,15,18,21,26,31,36,41,48] },
+    },
+    datasLiga:null,          // sem folha de datas reais: os rótulos saem do passo semanal
+  };
+
+  /* ===================== O VALIDADOR =====================
+     Uma folha de slots é DADO ESCRITO À MÃO, e dado escrito à mão erra. Estas são as regras que,
+     se quebradas, produzem os bugs que já aconteceram — cada uma tem um nome e uma história:
+
+       · POUCOS SLOTS: a competição precisa de mais rodadas do que a folha declara. Era assim que
+         a final desaparecia — as continentais tinham 10 datas para 11 rodadas, e a que sobrava
+         era sempre a última. O motor completa sozinho (slotsDaCompeticao estende), mas isso é
+         conserto todo ano em vez de o dado estar certo desde o começo.
+       · SLOT REPETIDO ou FORA DE ORDEM: duas rodadas da mesma copa no mesmo dia, ou a final
+         antes da semifinal.
+       · DIA PARTILHADO: duas competições no mesmo (slot, janela) — a sala inteira em duas telas
+         ao mesmo tempo.
+       · LIGA CURTA: a folha tem menos slots de liga do que a divisão mais longa do país joga
+         (uma Championship de 24 clubes joga 46 rodadas, não 38).
+       · FINAL DEPOIS DO FIM DA LIGA: a decisão fica para semanas em que já não há campeonato.
+         Não é erro de motor — é escolha de calendário —, mas é a que faz o jogo parecer acabado
+         na última rodada da liga, com as finais viradas em dias soltos no fim. A regra da casa
+         é a inversa: a final vem ANTES da última rodada da liga, custe duas ou três semanas sem
+         campeonato.
+
+     AVISA, NUNCA TRAVA. Uma folha com problema tem de deixar o jogo abrir: travar já transformou
+     erro de dado em sala morta (ver prorrogarPorCopasPendentes). Quem chama decide o que fazer
+     com a lista — o painel pinta de vermelho, o teste reprova, o motor regista nos relatórios.
+
+     `totais` é quantas rodadas cada competição precisa nesta temporada (cupTotalRounds no core);
+     sem ele, a regra dos poucos slots não é verificável e é saltada.
+     `divisoes` é o tamanho de cada divisão do país (UNIVERSOS[pais].size); sem ele, idem. */
+  function validarCalendario(pais, opts){
+    opts=opts||{};
+    const cal=CALENDARIOS[pais];
+    const out=[];
+    const erro=(comp,texto)=>out.push({ nivel:'erro', comp, texto });
+    const aviso=(comp,texto)=>out.push({ nivel:'aviso', comp, texto });
+    if(!cal){ erro(null, 'não existe folha de calendário para "'+pais+'" — o jogo cai no calendário do Brasil'); return out; }
+
+    const ocupadas={};
+    Object.keys(cal.competicoes).forEach(key=>{
+      const c=cal.competicoes[key];
+      if(!c.slots || !c.slots.length){ erro(key, 'sem slots'); return; }
+      if(JANELAS.indexOf(c.janela)<0) erro(key, 'janela desconhecida: "'+c.janela+'"');
+      for(let i=1;i<c.slots.length;i++){
+        if(c.slots[i]===c.slots[i-1]) erro(key, 'slot '+c.slots[i]+' repetido — duas rodadas no mesmo dia');
+        else if(c.slots[i]<c.slots[i-1]) erro(key, 'slots fora de ordem ('+c.slots[i-1]+' depois de '+c.slots[i]+') — a final viria antes da semifinal');
+      }
+      c.slots.forEach(sl=>{
+        if(sl<1 || sl>cal.slotsTotal) erro(key, 'slot '+sl+' fora do intervalo 1..'+cal.slotsTotal);
+        const chave=sl+':'+c.janela;
+        if(ocupadas[chave]) erro(key, 'divide o dia '+sl+'/'+c.janela+' com '+ocupadas[chave]+' — a sala ficaria em duas telas');
+        else ocupadas[chave]=key;
+      });
+      const total=opts.totais && opts.totais[key];
+      if(total && total>c.slots.length)
+        erro(key, 'precisa de '+total+' rodadas e a folha declara '+c.slots.length+' slots — faltam '+(total-c.slots.length)+' (o motor completa, mas a folha fica errada)');
+    });
+
+    /* O EIXO COMUM. Um país que comece noutro dia, ou que passe do tamanho do ano, quebra a
+       simultaneidade da sala: o slot deixaria de ser a mesma semana para toda a gente. */
+    if(cal.slotsTotal>SLOTS_DO_MUNDO)
+      erro(null, 'a temporada usa '+cal.slotsTotal+' slots e o ano tem '+SLOTS_DO_MUNDO);
+    const ini=cal.inicio||INICIO_DO_MUNDO;
+    if(ini.join('-')!==INICIO_DO_MUNDO.join('-'))
+      erro(null, 'começa em '+ini.join('-')+' e o mundo começa em '+INICIO_DO_MUNDO.join('-')+
+                 ' — o slot deixaria de ser a mesma semana para todos');
+
+    const liga=cal.competicoes.liga;
+    if(!liga) erro('liga', 'a folha não declara a liga');
+    else if(opts.divisoes){
+      let maior=0;
+      Object.keys(opts.divisoes).forEach(d=>{ const n=2*((opts.divisoes[d]||0)-1); if(n>maior) maior=n; });
+      if(maior>liga.slots.length)
+        erro('liga', 'a divisão mais longa joga '+maior+' rodadas e a folha declara '+liga.slots.length+' slots de liga');
+    }
+    if(liga && liga.slots.length){
+      const fim=liga.slots[liga.slots.length-1];
+      Object.keys(cal.competicoes).forEach(key=>{
+        if(key==='liga') return;
+        const c=cal.competicoes[key], total=(opts.totais && opts.totais[key]) || c.slots.length;
+        const usados=(total<=c.slots.length) ? c.slots.slice(c.slots.length-total) : c.slots;
+        const finalEm=usados[usados.length-1];
+        if(finalEm>fim) aviso(key, 'a final cai no slot '+finalEm+', depois de a liga já ter acabado no '+fim+
+                                   ' — a temporada parece encerrada antes da decisão');
+      });
+    }
+    return out;
+  }
+
+  /* ===================== FOLHA VINDA DO PACOTE =====================
+     É isto que torna "acrescentar um país" trabalho de tela em vez de código: o painel admin grava
+     uma folha em `pack_edits` e o jogo instala-a por cima da que vem no repositório. O servidor lê
+     a mesma linha, pelo mesmo caminho — se só o cliente lesse, cliente e servidor jogariam
+     calendários diferentes, que é a família de bug que este arquivo inteiro existe para acabar.
+
+     REGRA DE ENTRADA: folha com ERRO não entra. Um calendário torto vindo do banco pode deixar
+     uma sala sem final ou com duas competições no mesmo dia, e ninguém repara até dezembro.
+     Aviso não bloqueia (é escolha de calendário, não defeito); erro bloqueia e a folha do
+     repositório continua a valer. Devolve o que aconteceu, para quem chamou poder registar. */
+  function instalarCalendario(pais, folha, opts){
+    if(!pais || !folha || !folha.competicoes) return { ok:false, motivo:'folha vazia', problemas:[] };
+    const anterior=CALENDARIOS[pais];
+    CALENDARIOS[pais]=folha;
+    const problemas=validarCalendario(pais, opts||{});
+    const erros=problemas.filter(x=>x.nivel==='erro');
+    if(erros.length){
+      if(anterior) CALENDARIOS[pais]=anterior; else delete CALENDARIOS[pais];
+      return { ok:false, motivo:'folha recusada: '+erros.length+' erro(s)', problemas };
+    }
+    return { ok:true, motivo:anterior?'folha substituída':'país novo', problemas };
+  }
+
+  function calendarioDe(pais){ return CALENDARIOS[pais] || CALENDARIOS.brasil; }
+  function temCalendario(pais){ return !!CALENDARIOS[pais]; }
+  function paisesComCalendario(){ return Object.keys(CALENDARIOS); }
+
+  const API={ JANELAS, ordemDaJanela, chaveDoDia, CALENDARIOS, calendarioDe, temCalendario,
+    SLOTS_DO_MUNDO, INICIO_DO_MUNDO,
+    paisesComCalendario, validarCalendario, instalarCalendario };
+  root.CALENDARIOS_API=API;
+  if(typeof module!=='undefined' && module.exports){ module.exports=API; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< CALENDARIOS:FIM >>> */
 /* <<< WORLD_RULES:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
 /* ===================================================================
    REGRAS DE MUNDO — fonte ÚNICA compartilhada cliente ⇄ servidor.
@@ -316,7 +601,7 @@ const ME = (globalThis as any).MATCH_ENGINE;
    vezes: uma em engine/core.js (cliente) e outra em supabase/functions/resolve-round (servidor),
    com um comentário pedindo "se mexer em um, mexer no outro". Esse contrato falhou toda vez:
      · o gerador de calendário foi portado à mão duas vezes e divergiu nas duas;
-     · a trava "esta competição já avançou nesta jornada" existia só no cliente — e o servidor
+     · a trava "esta competição já avançou nesta rodada" existia só no cliente — e o servidor
        avançava a Libertadores de novo, o que punha DOIS jogos da mesma competição no mesmo dia
        no calendário do jogador;
      · a tabela de datas foi copiada manualmente.
@@ -351,10 +636,48 @@ const ME = (globalThis as any).MATCH_ENGINE;
     draws:{ libertadores:'03-02', sulamericana:'03-11', copaBrasil:'03-21' }
   };
   /* estreia de cada copa quando ela NÃO está na tabela (universo europeu) — mantém o
-     escalonamento antigo pra que duas competições não estreiem na mesma jornada */
+     escalonamento antigo pra que duas competições não estreiem na mesma rodada */
   const CUP_FIRST_ROUND={ copaBrasil:3, libertadores:1, sulamericana:2, championsLeague:1, europaLeague:2 };
 
-  function calendar(){ return CAL_2026; }
+  /* ---------- AS DATAS, DERIVADAS DOS SLOTS ----------
+     `slot = rodada + 1`, sempre. Com isso toda data do jogo é uma função de (slot, janela), e a
+     folha de datas deixa de ser uma segunda fonte de verdade — passa a ser o rótulo do slot.
+     CAL_2026 continua abaixo apenas como a lista de datas reais do Brasil, que o calendário de
+     slots consome (calendars.js: datasLiga). */
+  function janelaDaCompeticao(key, pais){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return 'WEEKEND';
+    const c=(CAL.calendarioDe(pais).competicoes||{})[key];
+    return c ? c.janela : 'MIDWEEK_1';
+  }
+  /* o dia (1-based na temporada) de um slot+janela — é por aqui que toda data passa agora */
+  function diaDoSlot(slot, janela, epoch, pais){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return Math.max(1,(slot-1)*7+1);
+    return dataDoDia(CAL.calendarioDe(pais), slot, janela||'WEEKEND', epoch);
+  }
+  /* 'MM-DD' de um dia da temporada — o inverso de calDay, para quem mostra data na tela */
+  function diaParaMMDD(dia, epoch){
+    const e=epoch||SEASON_START_2026;
+    const d=new Date(e[0], e[1], e[2]);
+    d.setDate(d.getDate()+(dia-1));
+    const mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    return mm+'-'+dd;
+  }
+  /* A FOLHA DE DATAS COMO O PAINEL A LÊ — derivada dos slots, não uma tabela paralela. Enquanto
+     isto devolvia CAL_2026 diretamente, o painel mostrava um calendário e o jogo jogava outro. */
+  function calendar(pais, epoch){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return CAL_2026;
+    const cal=CAL.calendarioDe(pais), out={ draws:{} };
+    Object.keys(cal.competicoes).forEach(k=>{
+      const c=cal.competicoes[k];
+      const chave=(k==='liga')?'league':k;
+      out[chave]=c.slots.map(sl=>diaParaMMDD(diaDoSlot(sl, c.janela, epoch, pais), epoch));
+      if(k!=='liga') out.draws[k]=diaParaMMDD(Math.max(1, diaDoSlot(c.slots[0], c.janela, epoch, pais)-2), epoch);
+    });
+    return out;
+  }
   function seasonStart(){ return SEASON_START_2026.slice(); }
 
   /* 'MM-DD' -> dia (1-based) da temporada, contado do epoch */
@@ -365,20 +688,22 @@ const ME = (globalThis as any).MATCH_ENGINE;
     const base=new Date(e[0], e[1], e[2]);
     return Math.round((alvo-base)/86400000)+1;
   }
-  /* jornada de liga em que uma data de copa acontece: a PRIMEIRA jornada cuja data é >= a dela.
+  /* rodada de liga em que uma data de copa acontece: a PRIMEIRA rodada cuja data é >= a dela.
      Mantém a ordem da semana (o dia de copa vem antes do jogo de liga daquele bloco) sem que copa
      e liga precisem compartilhar unidade. Data depois do último jogo de liga (a final da Copa do
-     Brasil, 06/12) fica na última jornada. */
+     Brasil, 06/12) fica na última rodada. */
   function jornadaOfCalDate(mmdd, epoch){
     const L=CAL_2026.league, d=calDay(mmdd, epoch);
     for(let i=0;i<L.length;i++){ if(calDay(L[i], epoch)>=d) return i; }
     return L.length-1;
   }
-  /* dia do jogo da jornada `round` da liga */
-  function leagueMatchDay(round, epoch){
-    const L=CAL_2026.league, i=Math.max(0, round||0);
-    if(L[i]!=null) return calDay(L[i], epoch);
-    return calDay(L[L.length-1], epoch) + (i-(L.length-1))*7;   // além da tabela: mantém o passo
+  /* dia do jogo da rodada `round` da liga — rodada+1 é o slot */
+  function leagueMatchDay(round, epoch, pais){
+    return diaDoSlot(Math.max(0, round||0)+1, 'WEEKEND', epoch, pais);
+  }
+  /* dia do jogo de uma copa numa rodada — mesma conta, com a janela da competição */
+  function cupMatchDayAt(key, rodada, epoch, pais){
+    return diaDoSlot(Math.max(0, rodada||0)+1, janelaDaCompeticao(key, pais), epoch, pais);
   }
   /* dia do jogo da rodada `idx` (0-based) de uma copa */
   function cupMatchDayByRound(key, idx, epoch){
@@ -386,49 +711,58 @@ const ME = (globalThis as any).MATCH_ENGINE;
     if(datas && datas[idx]!=null) return calDay(datas[idx], epoch);
     return null;
   }
-  function cupDrawDay(key, epoch){
-    const d=(CAL_2026.draws||{})[key];
-    return d ? calDay(d, epoch) : 1;    // competição fora da tabela: sorteia no dia 1 (nunca há jogo antes)
+  /* sorteio: dois dias antes da estreia da competição. Competição que a folha do país não
+     declara sorteia no dia 1 — nunca há jogo antes, que é o comportamento seguro. */
+  function cupDrawDay(key, epoch, pais){
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    const c=CAL ? (CAL.calendarioDe(pais).competicoes||{})[key] : null;
+    if(!c || !c.slots.length) return 1;
+    return Math.max(1, diaDoSlot(c.slots[0], c.janela, epoch, pais)-2);
   }
 
-  /* ---------- CRONOGRAMA: em que JORNADA cada rodada de cada copa acontece ----------
+  /* ---------- CRONOGRAMA: em que RODADA cada rodada de cada copa acontece ----------
      Estritamente crescente por construção: as datas são crescentes e jornadaOfCalDate é
-     monotônica; duas rodadas que caíssem na mesma jornada empurram a seguinte, porque uma
+     monotônica; duas rodadas que caíssem na mesma rodada empurram a seguinte, porque uma
      competição nunca joga duas rodadas no mesmo bloco de semana. */
-  function buildCupSchedule(key, total, epoch){
+  /* ---------- EM QUE RODADA CADA RODADA DE CADA COPA ACONTECE ----------
+     Sai dos SLOTS, como o plano de dias: rodada = slot - 1. É o que mantém o jogo SOLO e a
+     Resenha no mesmo calendário — enquanto isto lia a folha de datas e o plano de dias lia os
+     slots, existiam dois calendários, que é a forma exata do bug que os slots vieram resolver.
+
+     As rodadas de uma copa são estritamente crescentes porque os slots são, e a final pode cair
+     numa rodada além do fim da liga de propósito: é lá que ela acontece na vida real. Quem
+     estica a temporada para alcançá-la é prorrogarPorCopasPendentes, que já fazia exatamente
+     isso — só que a consertar um erro, e agora a cumprir um desenho. */
+  function buildCupSchedule(key, total, epoch, pais){
     if(!total || total<1) return [];
-    const datas=CAL_2026[key];
-    const out=[]; let prev=-1;
-    if(datas && datas.length){
-      for(let i=0;i<total;i++){
-        let j = (datas[i]!=null) ? jornadaOfCalDate(datas[i], epoch)
-                                 : (out.length?out[out.length-1]+3:0);
-        if(j<=prev) j=prev+1;
-        prev=j; out.push(j);
-      }
-      return out;
-    }
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return [];
+    const cal=CAL.calendarioDe(pais);
+    const c=slotsDaCompeticao(cal, key, total);
+    if(c) return c.slots.map(s=>Math.max(0, s-1));
+    /* competição que a folha do país não declara (um universo sem aquela copa): mantém o
+       escalonamento antigo de 3 em 3 rodadas, que é o que existia antes de haver folha. */
     const first=CUP_FIRST_ROUND[key]; if(first==null) return [];
-    for(let i=0;i<total;i++) out.push(first+i*3);
+    const out=[]; for(let i=0;i<total;i++) out.push(first+i*3);
     return out;
   }
-  /* esta copa entra em campo nesta jornada? */
+  /* esta copa entra em campo nesta rodada? */
   function cupTickMatchesRound(cupCalendar, key, round){
     const cal=cupCalendar ? cupCalendar[key] : null;
     if(cal && cal.length) return cal.indexOf(round)>=0;
     const first=CUP_FIRST_ROUND[key];
     return first!=null && round>=first && ((round-first)%3===0);
   }
-  /* índice (0-based) da rodada desta copa que acontece nesta jornada — -1 se nenhuma */
+  /* índice (0-based) da rodada desta copa que acontece nesta rodada — -1 se nenhuma */
   function cupRoundIndexAt(cupCalendar, key, round){
     const cal=cupCalendar ? cupCalendar[key] : null;
     return cal ? cal.indexOf(round) : -1;
   }
 
   /* ---------- A TRAVA QUE FALTAVA NO SERVIDOR ----------
-     UMA rodada por competição por jornada. Quando o humano joga a partida de copa ao vivo, o
+     UMA rodada por competição por rodada. Quando o humano joga a partida de copa ao vivo, o
      cliente fecha o RESTO daquela rodada na hora e carimba a competição como resolvida nesta
-     jornada. O servidor não lia esse carimbo e avançava a competição DE NOVO — dois jogos da
+     rodada. O servidor não lia esse carimbo e avançava a competição DE NOVO — dois jogos da
      mesma competição no mesmo dia. O carimbo viaja no estado compartilhado; agora os dois lados
      leem e escrevem pelas MESMAS funções. */
   function cupAlreadyResolved(resolvedMap, key, round){ return !!resolvedMap && resolvedMap[key]===round; }
@@ -443,7 +777,7 @@ const ME = (globalThis as any).MATCH_ENGINE;
      O banco guarda o resultado e anda com o índice; a regra continua num lugar só.
      `cups` = competições que existem neste save (as continentais não existem em todo universo). */
   /* puxa pra dentro da temporada o que a data real jogou pra fora, preservando a ordem das
-     rodadas e sem empilhar duas rodadas da mesma copa na mesma jornada. Mesma regra do calendário
+     rodadas e sem empilhar duas rodadas da mesma copa na mesma rodada. Mesma regra do calendário
      do solo (ver ancorarCalendarioCopa em core.js) — as duas leem a mesma folha de datas. */
   function ancorarNaTemporada(rodadas, ultima, folga){
     if(!Array.isArray(rodadas) || !rodadas.length) return rodadas||[];
@@ -454,46 +788,205 @@ const ME = (globalThis as any).MATCH_ENGINE;
     for(let i=out.length-1, teto=ultima; i>=0; i--, teto--) if(out[i]>teto) out[i]=teto;
     return out.map(r=>Math.max(0,r));
   }
-  function buildDayPlan(cups, epoch, totais){
-    const ativas=(cups&&cups.length)?cups:['copaBrasil','libertadores','sulamericana'];
-    const L=CAL_2026.league, dias=[];
-    /* QUANTAS RODADAS A COPA TEM ≠ QUANTAS DATAS ESTÃO NA TABELA. O plano usava d.length (as datas
-       de CAL_2026) como total — e as continentais têm 10 datas para 11 rodadas. A rodada que
-       sobrava era a ÚLTIMA: a FINAL nunca ganhava um dia no plano da sala, então ela não era
-       jogada e a temporada virava sem ela. Quem chama passa o total de verdade (cupTotalRounds);
-       sem ele, cai no comportamento antigo. buildCupSchedule já sabe estender as datas que
-       faltam (+3 jornadas a partir da última conhecida). */
-    const agenda={};
-    // NENHUMA RODADA DE COPA PODE FICAR FORA DO PLANO. O laço abaixo só caminha pelas jornadas da
-    // LIGA (0..L.length-1): rodada de copa marcada pra uma jornada além disso simplesmente não
-    // entrava no plano — e era assim que a final da Libertadores e a da Sul-Americana (jornada 39
-    // num calendário que acaba na 37) desapareciam da sala. Ancoro cada agenda dentro da
-    // temporada, com uma jornada de folga por competição pra as finais não caírem no mesmo dia.
-    const ultima=L.length-1;
-    ativas.slice().sort().forEach((k,i)=>{ const d=CAL_2026[k]; if(!(d&&d.length)) return;
-      const total=(totais && totais[k]) ? totais[k] : d.length;
-      agenda[k]=ancorarNaTemporada(buildCupSchedule(k, total, epoch), ultima, i); });
-    for(let r=0;r<L.length;r++){
-      const doDia=[];
-      Object.keys(agenda).forEach(k=>{
-        const i=agenda[k].indexOf(r);
-        if(i<0) return;
-        // rodada que a folha de datas não cobre (a final das continentais é uma delas) cai no dia
-        // seguinte ao jogo de liga da mesma jornada: sem data o dia sairia null e a ORDENAÇÃO do
-        // plano — que é por data — ficaria indefinida justamente no fim da temporada.
-        const dia=cupMatchDayByRound(k,i,epoch);
-        doDia.push({ r:r, comp:k, idx:i, dia:(dia!=null?dia:leagueMatchDay(r,epoch)+1) });
-      });
-      doDia.forEach(d=>dias.push(d));
-      dias.push({ r:r, comp:'liga', idx:r, dia:leagueMatchDay(r, epoch) });
+  /* ===================== O PLANO DE DIAS, SOBRE SLOTS =====================
+     A temporada é uma fila de dias. Cada dia é `(slot, janela)` — a semana e o momento dentro
+     dela —, e essa é a ÚNICA coordenada. A rodada e a data saem DELA; antes eram fontes
+     independentes que podiam discordar, e discordavam: a final marcada antes da semifinal.
+
+     `opts.pais` escolhe a folha (engine/calendars.js); `opts.jornadasLiga` diz quantas rodadas a
+     liga daquele save tem de verdade — uma Championship de 24 clubes tem 46, uma Bundesliga de 18
+     tem 34, e a folha do país declara slots para a mais longa. Sem o dado, usa o tamanho da folha.
+
+     `totais` é quantas rodadas cada copa precisa NESTA temporada (cupTotalRounds no core), que não
+     é o número de slots declarados: o formato varia com o número de grupos, e as continentais
+     gastam uma rodada só no sorteio do mata-mata. Quando faltam slots, a competição ganha os que
+     faltarem depois do fim da temporada, no mesmo passo que já vinha usando — a final atrasa, mas
+     NUNCA se perde. Quem confere isso antes de a temporada começar é scripts/teste-calendario.mjs. */
+  function slotsDaCompeticao(cal, key, total){
+    const c=(cal.competicoes||{})[key]; if(!c) return null;
+    const base=c.slots.slice();
+    /* SOBRAM SLOTS: fica com os ÚLTIMOS, não com os primeiros. A final tem de morar no último
+       slot declarado — é ele que a folha escolheu para ficar depois do fim da liga. Cortando pela
+       frente, uma copa com menos rodadas que o previsto decidia no meio da temporada, com o
+       campeonato ainda a rolar. A competição apenas começa mais tarde, que é o comportamento
+       certo para um mata-mata mais curto. */
+    if(!total || total<=base.length) return { janela:c.janela, slots:total ? base.slice(base.length-total) : base };
+    /* FALTAM SLOTS: a competição cresce PARA TRÁS, nunca para a frente.
+       Estender depois do último slot declarado empurrava a final para além do fim da liga — o
+       exato defeito que a folha nova existe para evitar. E é fácil acontecer: basta um formato
+       com mais rodadas do que a folha previu (uma chave maior, um grupo a mais). O último slot é
+       onde a folha decidiu que a decisão mora, e essa escolha não se mexe; o que se mexe é a
+       ESTREIA, que passa a ser mais cedo. Se não houver semana livre antes do slot 1, aí sim
+       acrescenta-se no fim — melhor uma final fora de sítio do que uma rodada sem dia. */
+    const passo=Math.max(1, Math.round((base[base.length-1]-base[0])/Math.max(1,base.length-1)));
+    /* a semana anterior só serve se estiver LIVRE nesta janela. Duas competições partilham a
+       MIDWEEK_2 (Sul-Americana e Copa do Brasil, em slots disjuntos) — crescer para trás sem
+       olhar punha as duas no mesmo dia, que é a sala inteira em duas telas. */
+    const ocupados={};
+    Object.keys(cal.competicoes).forEach(k2=>{
+      if(k2===key) return; const o=cal.competicoes[k2];
+      if(o.janela!==c.janela) return;
+      (o.slots||[]).forEach(sl=>{ ocupados[sl]=true; });
+    });
+    while(base.length<total){
+      const alvo=base[0]-passo;
+      if(alvo<1 || ocupados[alvo]) break;      // sem semana livre antes da estreia: cresce no fim
+      base.unshift(alvo);
     }
-    // A ORDEM É A DAS DATAS, não a das jornadas. Agrupar por jornada e pôr as copas antes da liga
-    // funciona quase sempre e erra no fim: a final da Copa do Brasil é 06/12 e o último jogo da
-    // liga é 03/12 — pela jornada ela vinha antes, pelo calendário vem depois. O ponteiro anda no
-    // tempo, então quem manda é a data.
-    dias.sort((a,b)=>a.dia-b.dia);
+    let f=base[base.length-1];
+    while(base.length<total){ f+=passo; base.push(f); }
+    return { janela:c.janela, slots:base };
+  }
+  /* RÓTULO de data. Deriva do slot: o jogo de liga daquele slot é a data real da folha (quando o
+     país tem uma), e as janelas de meio de semana caem 4 e 3 dias antes. Nada disto ordena coisa
+     nenhuma — quem ordena é a chave do slot.
+
+     SEMANA SEM LIGA: ancora na ÚLTIMA semana de liga ANTES dela e anda sete dias por slot. A
+     regra antiga ancorava sempre na última data da folha inteira, o que só estava certo enquanto
+     os buracos ficavam todos no FIM da temporada. Desde que as finais passaram a morar em
+     semanas próprias no meio-fim do calendário (e a parada do meio do ano ficou sem jogo), o
+     slot 21 era datado a partir de dezembro e recuado 21 semanas — o rótulo saltava meio ano
+     para trás. A data nunca pode andar para trás: é regra da casa, e é o que o teste cobre. */
+  function ancoraDeLiga(cal, slot){
+    const S=cal.competicoes.liga.slots||[], L=cal.datasLiga;
+    const n=L ? Math.min(L.length, S.length) : 0;
+    let i=-1;
+    for(let k=0;k<n;k++){ if(S[k]<=slot) i=k; else break; }
+    return i;                        // índice na folha de datas, ou -1 se o slot vem antes de tudo
+  }
+  function dataDoDia(cal, slot, janela, epoch){
+    const L=cal.datasLiga, e=epoch||cal.inicio||SEASON_START_2026;
+    const slotsLiga=cal.competicoes.liga.slots||[];
+    const iLiga=slotsLiga.indexOf(slot);
+    let base;
+    if(L && iLiga>=0 && L[iLiga]!=null) base=calDay(L[iLiga], e);
+    else if(L && L.length){
+      const iAnc=ancoraDeLiga(cal, slot);
+      if(iAnc>=0) base=calDay(L[iAnc], e) + (slot-slotsLiga[iAnc])*7;
+      else base=calDay(L[0], e) - (slotsLiga[0]-slot)*7;
+    } else base=(slot-1)*7+1;
+    if(janela==='WEEKEND') return base;
+    const recuo=(janela==='MIDWEEK_1')?4:3;
+    /* O RÓTULO NUNCA ANDA PARA TRÁS. As datas reais da liga não são igualmente espaçadas — entre
+       24/10 e 27/10 há três dias —, então recuar 4 punha o meio de semana ANTES do jogo do slot
+       anterior. A ordem não dependia disso (quem ordena é o slot), mas a tela mostrava 27/10 e
+       logo a seguir 26/10, que é a espécie de coisa que faz o jogador desconfiar do calendário.
+       Aqui o dia é empurrado para depois do jogo anterior quando o recuo o levaria longe demais. */
+    /* o jogo de liga anterior é o da última semana de liga ANTES desta — com buracos no meio do
+       calendário isso já não é `iLiga-1`, que só existe quando este slot é ele próprio de liga. */
+    const iAnterior=(iLiga>0) ? iLiga-1 : ancoraDeLiga(cal, slot-1);
+    const anterior=(L && iAnterior>=0 && L[iAnterior]!=null) ? calDay(L[iAnterior], e) : null;
+    const alvo=base-recuo;
+    return (anterior!=null && alvo<=anterior) ? anterior+1 : alvo;
+  }
+  /* ===================== OS SLOTS DA LIGA DE UMA DIVISAO =====================
+     A folha declara os slots de liga da divisao MAIS LONGA do pais (a Championship joga 46
+     rodadas, a Premier 38). Quem joga menos rodadas usava os PRIMEIROS slots e acabava a
+     temporada no meio da folha -- e como as finais das copas moram nos ultimos slots, a liga
+     acabava antes delas. Era esse o "a temporada acaba na rodada 38": o campeonato fechava e o
+     que sobrava eram semanas soltas de copa.
+     Agora os slots sao ESPALHADOS: a divisao mais curta comeca no primeiro slot de liga e acaba
+     no ULTIMO, com as folgas distribuidas pelo meio. A ultima rodada da liga volta a ser o
+     ultimo dia da temporada em qualquer divisao de qualquer pais, que e a regra que a folha
+     escreve e esta funcao faz valer.
+     Passo maior que 1 (a lista e maior que n), entao os indices sao estritamente crescentes e
+     nenhum slot se repete. */
+  function slotsDaLiga(ligaSlots, n){
+    const base=(ligaSlots||[]).slice();
+    if(!base.length || !n || n>=base.length) return base;
+    if(n===1) return [base[base.length-1]];
+    const out=[];
+    for(let i=0;i<n;i++) out.push(base[Math.round(i*(base.length-1)/(n-1))]);
+    return out;
+  }
+  function buildDayPlan(cups, epoch, totais, opts){
+    opts=opts||{};
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return [];
+    const cal=CAL.calendarioDe(opts.pais);
+    const nLiga=opts.jornadasLiga || cal.competicoes.liga.slots.length;
+    const ativas=(cups&&cups.length) ? cups.slice() : Object.keys(cal.competicoes).filter(k=>k!=='liga');
+    const dias=[];
+    /* A RODADA É DERIVADA DO SLOT (slot 1 = rodada 0). Não é clampada ao fim da liga de
+       propósito: as finais moram em slots depois do último jogo de liga, e clampá-las traria as
+       três de volta para a mesma rodada — exatamente o amontoado que os slots existem para
+       acabar. A temporada ganha essas rodadas sem jogo de liga pelo caminho que já existe
+       (prorrogarPorCopasPendentes, logo abaixo). */
+    const jornadaDoSlot=(slot)=>Math.max(0, slot-1);
+    const ligaSlots=slotsDaLiga(cal.competicoes.liga.slots, nLiga);
+    for(let r=0;r<nLiga;r++){
+      const slot=ligaSlots[r]!=null ? ligaSlots[r] : (ligaSlots[ligaSlots.length-1]+(r-ligaSlots.length+1));
+      dias.push({ r:jornadaDoSlot(slot), comp:'liga', idx:r, slot:slot, janela:'WEEKEND',
+                  dia:dataDoDia(cal, slot, 'WEEKEND', epoch) });
+    }
+    ativas.forEach(key=>{
+      const total=(totais && totais[key]) ? totais[key] : null;
+      const c=slotsDaCompeticao(cal, key, total);
+      if(!c) return;
+      c.slots.forEach((slot,i)=>{
+        dias.push({ r:jornadaDoSlot(slot), comp:key, idx:i, slot:slot, janela:c.janela,
+                    dia:dataDoDia(cal, slot, c.janela, epoch) });
+      });
+    });
+    /* UMA COORDENADA, UMA ORDEM. chaveDoDia é estritamente monótona em (slot, janela), e os slots
+       de cada competição são crescentes por construção — então uma rodada nunca pode aparecer
+       antes da anterior. É a invariante que o modelo antigo não conseguia garantir. */
+    dias.sort((a,b)=>CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela));
     return dias;
   }
+  /* ===================== A SALA COM VÁRIOS PAÍSES =====================
+     Regra do dono do jogo (18/08/2026): havendo um humano num país, esse país deixa de ser
+     "fundo" e passa a ser jogável por inteiro — o jogador assiste a TODAS as partidas de TODAS as
+     competições do país dele, como o brasileiro assiste às dele.
+
+     É a fila de semanas que torna isso possível, e é por isso que os slots vieram antes: o SLOT é
+     compartilhado pela sala inteira, e o que muda por país é qual competição entra em campo nele.
+     No slot 5, janela do meio de semana, o brasileiro vê a Libertadores e o inglês vê a Champions
+     — ao mesmo tempo, na mesma fila, sem ninguém esperar por ninguém.
+
+     Daí uma consequência que o validador precisa saber: duas competições NÃO podem dividir o
+     mesmo `(slot, janela)` DENTRO de um país — seria a mesma pessoa em duas telas. Entre países
+     diferentes, dividir é o normal e é o objetivo.
+
+     Cada dia carrega o `pais` a que pertence. REGRA (dono do jogo, 18/08): cada treinador assiste
+     e joga apenas as competições do país do CLUBE DELE. Quem se mudou para o Chelsea passa a
+     viver o calendário inglês e deixa de acompanhar o brasileiro — senão seriam times e
+     competições a mais para assistir, e a sessão viraria uma maratona.
+
+     O ponteiro, esse, anda pela fila INTEIRA: é isso que mantém a sala junta. Um dia que não é do
+     meu país eu não jogo, mas ele existe e passa — como um dia de folga no meu calendário. */
+  function buildDayPlanMulti(paises, epoch, totaisPorPais, opts){
+    opts=opts||{};
+    const CAL=(typeof root!=='undefined' && root.CALENDARIOS_API) ? root.CALENDARIOS_API : null;
+    if(!CAL) return [];
+    const lista=(paises && paises.length) ? paises.slice() : ['brasil'];
+    const jornadasPorPais=opts.jornadasLiga || {};
+    const dias=[];
+    lista.forEach(pais=>{
+      const totais=(totaisPorPais && totaisPorPais[pais]) || null;
+      const cal=CAL.calendarioDe(pais);
+      const cups=(opts.cups && opts.cups[pais])
+        || Object.keys(cal.competicoes).filter(k=>k!=='liga');
+      const doPais=buildDayPlan(cups, epoch, totais, { pais, jornadasLiga:jornadasPorPais[pais] });
+      doPais.forEach(d=>{ d.pais=pais; dias.push(d); });
+    });
+    /* MESMA CHAVE, MESMA ORDEM. A fila é uma só; o país é um rótulo do dia, não uma fila à parte.
+       Empate entre países no mesmo (slot, janela) resolve-se pela ordem em que foram pedidos —
+       determinístico, e sem consequência: são dias simultâneos para pessoas diferentes. */
+    const ordem={}; lista.forEach((p,i)=>ordem[p]=i);
+    dias.sort((a,b)=> (CAL.chaveDoDia(a.slot,a.janela)-CAL.chaveDoDia(b.slot,b.janela))
+                   || ((ordem[a.pais]||0)-(ordem[b.pais]||0)) );
+    return dias;
+  }
+
+  /* os dias que ESTE treinador vive, dado o país do clube dele. O resto da fila passa por ele
+     sem lhe pedir nada. */
+  function diasDoPais(plano, pais){
+    if(!Array.isArray(plano)) return [];
+    const alvo=pais||'brasil';
+    return plano.filter(d=>(d.pais||'brasil')===alvo);
+  }
+
   /* ===================== PRORROGAÇÃO: A TEMPORADA ESPERA AS FINAIS =====================
      A temporada acabava quando a LIGA acabava (S.round >= S.sched.length), sem perguntar se as
      copas tinham terminado. Quando o calendário de copa não coube dentro da liga — foi o que
@@ -502,44 +995,75 @@ const ME = (globalThis as any).MATCH_ENGINE;
 
      A resposta aqui NÃO é travar. Travar transforma um erro de dado num jogo que não abre mais
      (foi o que aconteceu com a barreira do ponteiro de dia, que segurou corretamente e deixou a
-     sala morta). A resposta é CONSERTAR: acrescentar ao fim da temporada tantas jornadas quantas
+     sala morta). A resposta é CONSERTAR: acrescentar ao fim da temporada tantas rodadas quantas
      forem as rodadas de copa que ficaram devendo, e registrar cada uma no calendário da copa
      dona daquela rodada. A temporada segue andando pra frente; só demora um pouco mais.
 
-     Uma jornada acrescentada não tem jogo de liga (a liga acabou de verdade) — ela existe pra
+     Uma rodada acrescentada não tem jogo de liga (a liga acabou de verdade) — ela existe pra
      dar dia à rodada de copa. Por isso cada uma recebe EXATAMENTE uma competição: sem isso, uma
-     jornada acrescentada poderia ficar vazia e o jogador clicaria "Jogar" sem nada em campo.
+     rodada acrescentada poderia ficar vazia e o jogador clicaria "Jogar" sem nada em campo.
 
-     E há um teto. Se depois de `maximo` jornadas extras ainda faltar coisa, a temporada vira
+     E há um teto. Se depois de `maximo` rodadas extras ainda faltar coisa, a temporada vira
      assim mesmo: perder uma final é ruim, ficar presa pra sempre é pior. Quem chama avisa.
 
-     pendentes: [{key, faltam}] — quantas rodadas cada copa ainda deve. Devolve quantas jornadas
+     pendentes: [{key, faltam}] — quantas rodadas cada copa ainda deve. Devolve quantas rodadas
      foram acrescentadas (0 = nada a fazer, ou teto atingido). */
   function prorrogarPorCopasPendentes(S, pendentes, maximo){
     if(!S || !Array.isArray(S.sched) || !Array.isArray(pendentes) || !pendentes.length) return 0;
-    const teto=(maximo!=null)?maximo:10;
+    const teto=(maximo!=null)?maximo:60;
     const jaExtras=S._jornadasExtras||0;
     if(jaExtras>=teto) return 0;
-    // uma jornada por rodada devedora, intercalando as competições: se a Libertadores deve 2 e a
-    // Copa do Brasil deve 1, a ordem é Lib, Copa, Lib — nunca duas finais no mesmo dia.
-    const fila=[];
-    const restante=pendentes.map(p=>({ key:p.key, faltam:Math.max(0, p.faltam|0) }));
-    let sobrou=true;
-    while(sobrou){
-      sobrou=false;
-      restante.forEach(p=>{ if(p.faltam>0){ fila.push(p.key); p.faltam--; sobrou=true; } });
-    }
-    if(!fila.length) return 0;
-    const cabe=Math.min(fila.length, teto-jaExtras);
     S.cupCalendar=S.cupCalendar||{};
-    for(let i=0;i<cabe;i++){
-      const jornada=S.sched.length;
-      S.sched.push([]);                                   // jornada sem jogo de liga
-      const key=fila[i];
-      S.cupCalendar[key]=(S.cupCalendar[key]||[]).concat([jornada]);
-    }
-    S._jornadasExtras=jaExtras+cabe;
-    return cabe;
+    const cals=()=>Object.keys(S.cupCalendar).filter(k=>k!=='_season' && Array.isArray(S.cupCalendar[k]));
+    let criadas=0, agendadas=0;
+
+    /* 1) A LIGA ESTICA ATE ALCANCAR O QUE A COPA JA TEM MARCADO.
+       As copas deixaram de ser espremidas dentro da liga: a final da Libertadores cai na
+       rodada 40 de um calendario de 38, porque a data real dela e depois do fim da liga.
+       Acrescentar rodada nova por cima disso produzia `...,36,40,38` — a final jogada ANTES
+       da meia-final. Primeiro estica, depois inventa. */
+    const maiorMarcada=cals().reduce((m,k)=>Math.max(m, ...S.cupCalendar[k]), -1);
+    while(S.sched.length<=maiorMarcada && (jaExtras+criadas)<teto){ S.sched.push([]); criadas++; }
+
+    /* 2) CADA RODADA DEVIDA SEM DIA MARCADO GANHA UMA RODADA SO DELA.
+       `p.criar` ja vem descontado dos tiques FUTUROS que a competicao tem (ver copasPendentes
+       no core) — aqui so se cria o que falta mesmo. Duas invariantes a respeitar:
+       - FAIXA: toda rodada de uma competicao tem o mesmo resto na divisao por 3 (ver
+         CUP_TICK_OFFSET). E a faixa que garante que duas copas nunca caem na mesma rodada,
+         que era o "cada humano numa competicao diferente no mesmo dia".
+       - UMA POR RODADA: nem sequer duas competicoes diferentes partilham a rodada, para a
+         sala inteira estar sempre na mesma tela. */
+    const ocupadas=new Set();
+    cals().forEach(k=>S.cupCalendar[k].forEach(j=>ocupadas.add(j)));
+    const faixaDe=(key)=>{
+      const cal=S.cupCalendar[key]||[];
+      if(cal.length) return ((cal[cal.length-1]%3)+3)%3;
+      const f=CUP_FIRST_ROUND[key];
+      return f!=null ? ((f%3)+3)%3 : 0;
+    };
+    pendentes.forEach(p=>{
+      let criar=Math.max(0, (p.criar!=null?p.criar:p.faltam)|0);
+      if(!criar) return;
+      const cal=(S.cupCalendar[p.key]||[]).slice();
+      const faixa=faixaDe(p.key);
+      let j=Math.max(S.sched.length, (cal.length?cal[cal.length-1]:(S.round||0))+1);
+      while(((j%3)+3)%3!==faixa) j++;
+      let voltas=0;
+      while(criar>0 && (jaExtras+criadas)<teto && voltas++<400){
+        if(!ocupadas.has(j)){
+          cal.push(j); ocupadas.add(j); agendadas++; criar--;
+          while(S.sched.length<=j && (jaExtras+criadas)<teto){ S.sched.push([]); criadas++; }
+        }
+        j+=3;
+      }
+      cal.sort((a,b)=>a-b);
+      S.cupCalendar[p.key]=cal;
+    });
+    S._jornadasExtras=jaExtras+criadas;
+    /* Devolve TUDO o que foi arrumado, nao so as rodadas criadas. Quando a copa devedora ja
+       tinha rodada no calendario (a liga so precisou esticar), `criadas` podia vir 0 e quem
+       chama lia isso como "nao ha nada a fazer" e fechava a temporada na mesma. */
+    return criadas+agendadas;
   }
   /* ---------- MERCADO E CAIXA DOS CLUBES DA CPU ----------
      POR QUE ESTÁ AQUI. O mercado da CPU só existia no cliente (cpuBackgroundTransfers, core.js),
@@ -688,8 +1212,9 @@ const ME = (globalThis as any).MATCH_ENGINE;
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
-  const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound,
-    buildDayPlan, DAY_MOMENTS, prorrogarPorCopasPendentes,
+  const API={ calendar, seasonStart, calDay, jornadaOfCalDate, leagueMatchDay, cupMatchDayByRound, slotsDaLiga,
+    diaDoSlot, diaParaMMDD, janelaDaCompeticao, cupMatchDayAt,
+    buildDayPlan, buildDayPlanMulti, diasDoPais, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
     cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };
@@ -697,6 +1222,301 @@ const ME = (globalThis as any).MATCH_ENGINE;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
 /* <<< WORLD_RULES:FIM >>> */
+
+/* AS OUTRAS DUAS FOLHAS COMPARTILHADAS. `UNIVERSOS` descreve os 15 países (divisões, tamanho,
+   acesso, rebaixamento) e `WORLD_CONFIG` deriva delas as tabelas por NÍVEL da pirâmide. Antes
+   deste bloco o servidor tinha a pirâmide brasileira congelada em quatro constantes, com o
+   comentário "Resenha = sempre Brasil"; agora lê o mesmo dado que o cliente. Injetadas, nunca
+   editadas aqui — ver scripts/sync-world-rules.mjs. */
+/* <<< UNIVERSOS:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   UNIVERSOS — que países são jogáveis e quais divisões cada um tem.
+   -------------------------------------------------------------------
+   Isto era um `const` no meio do core.js. Saiu para cá porque o PAINEL também
+   precisa da lista (para o editor perguntar em que país e em que divisão um
+   clube novo entra), e o painel não carrega o core.js. Copiar a lista para lá
+   criaria duas versões da mesma regra — exatamente o que world-rules.js
+   descreve como a causa dos bugs de calendário.
+
+   Consumido por engine/core.js (window.UNIVERSOS), por admin/admin.js e — desde que o
+   resolve-round deixou de ter a pirâmide brasileira congelada — pelo SERVIDOR, por injeção
+   (scripts/sync-world-rules.mjs). É por isso que o arquivo passou a atribuir em `globalThis` e
+   não em `window`: no Deno da edge function `window` não existe, e no navegador
+   `globalThis === window`, então nada muda para quem já lia.
+
+   Regra de ouro: dado, não algoritmo. Nada de S, CL ou DOM aqui.
+   =================================================================== */
+(function(root){
+'use strict';
+root.UNIVERSOS = {
+  brasil:    { order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
+               label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8 },
+  Inglaterra:{ order:['PL','CH'], size:{PL:20,CH:24}, promo:{PL:0,CH:3}, releg:{PL:3,CH:0},
+               label:{PL:'Premier League',CH:'Championship'}, lg:{PL:'ENG-1',CH:'ENG-2'}, country:'Inglaterra',
+               nat:['England','Wales','Scotland','Northern Ireland'], foreignMax:22 },
+  Espanha:   { order:['ES','ES2'], size:{ES:20,ES2:18}, promo:{ES:0,ES2:3}, releg:{ES:3,ES2:0},
+               label:{ES:'La Liga',ES2:'La Liga 2'}, lg:{ES:'ESP-1',ES2:'ESP-2'}, country:'Espanha',
+               nat:['Spain'], foreignMax:15 },
+  'Itália':  { order:['IT','IT2'], size:{IT:20,IT2:18}, promo:{IT:0,IT2:3}, releg:{IT:3,IT2:0},
+               label:{IT:'Serie A',IT2:'Serie B'}, lg:{IT:'ITA-1',IT2:'ITA-2'}, country:'Itália',
+               nat:['Italy'], foreignMax:16 },
+  Alemanha:  { order:['DE','DE2'], size:{DE:18,DE2:18}, promo:{DE:0,DE2:3}, releg:{DE:3,DE2:0},
+               label:{DE:'Bundesliga',DE2:'2. Bundesliga'}, lg:{DE:'GER-1',DE2:'GER-2'}, country:'Alemanha',
+               nat:['Germany'], foreignMax:17 },
+  Portugal:  { order:['PT','PT2'], size:{PT:18,PT2:18}, promo:{PT:0,PT2:3}, releg:{PT:3,PT2:0},
+               label:{PT:'Primeira Liga',PT2:'Liga Portugal 2'}, lg:{PT:'POR-1',PT2:'POR-2'}, country:'Portugal',
+               nat:['Portugal'], foreignMax:18 },
+  /* CONMEBOL: divisão ÚNICA (só 1ª divisão real, sem pirâmide -> sem acesso/rebaixamento);
+     clubes reais em window.CONMEBOL_LEAGUES (src:'conmebol'). Classificam pra Libertadores/
+     Sul-Americana. size = nº real de clubes raspados (Argentina cortada em 20 p/ temporada padrão). */
+  Argentina: { order:['ARG'], size:{ARG:30}, promo:{ARG:0}, releg:{ARG:0}, label:{ARG:'Liga Profesional'}, lg:{ARG:'ARG-1'}, country:'Argentina', nat:['Argentina'], foreignMax:6, src:'conmebol' },
+  Uruguai:   { order:['URU'], size:{URU:16}, promo:{URU:0}, releg:{URU:0}, label:{URU:'Primera División'}, lg:{URU:'URU-1'}, country:'Uruguai', nat:['Uruguay'], foreignMax:6, src:'conmebol' },
+  'Colômbia':{ order:['COL'], size:{COL:20}, promo:{COL:0}, releg:{COL:0}, label:{COL:'Categoría Primera A'}, lg:{COL:'COL-1'}, country:'Colômbia', nat:['Colombia'], foreignMax:5, src:'conmebol' },
+  Chile:     { order:['CHI'], size:{CHI:16}, promo:{CHI:0}, releg:{CHI:0}, label:{CHI:'Primera División'}, lg:{CHI:'CHI-1'}, country:'Chile', nat:['Chile'], foreignMax:6, src:'conmebol' },
+  Peru:      { order:['PER'], size:{PER:18}, promo:{PER:0}, releg:{PER:0}, label:{PER:'Liga 1'}, lg:{PER:'PER-1'}, country:'Peru', nat:['Peru'], foreignMax:5, src:'conmebol' },
+  Equador:   { order:['ECU'], size:{ECU:16}, promo:{ECU:0}, releg:{ECU:0}, label:{ECU:'LigaPro Serie A'}, lg:{ECU:'ECU-1'}, country:'Equador', nat:['Ecuador'], foreignMax:5, src:'conmebol' },
+  Paraguai:  { order:['PAR'], size:{PAR:12},  promo:{PAR:0}, releg:{PAR:0}, label:{PAR:'División Profesional'}, lg:{PAR:'PAR-1'}, country:'Paraguai', nat:['Paraguay'], foreignMax:6, src:'conmebol' },
+  Venezuela: { order:['VEN'], size:{VEN:14}, promo:{VEN:0}, releg:{VEN:0}, label:{VEN:'Liga FUTVE'}, lg:{VEN:'VEN-1'}, country:'Venezuela', nat:['Venezuela'], foreignMax:6, src:'conmebol' },
+  'Bolívia': { order:['BOL'], size:{BOL:16}, promo:{BOL:0}, releg:{BOL:0}, label:{BOL:'División Profesional'}, lg:{BOL:'BOL-1'}, country:'Bolívia', nat:['Bolivia'], foreignMax:6, src:'conmebol' },
+};
+
+/* código ISO da bandeira de cada universo (UNIVERSOS só guarda o nome do país) */
+root.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
+  Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
+
+if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:root.UNIVERSOS, UNIVERSO_BANDEIRA:root.UNIVERSO_BANDEIRA }; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< UNIVERSOS:FIM >>> */
+/* <<< WORLD_CONFIG:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   CONFIGURAÇÃO DE MUNDO — a segunda folha ÚNICA compartilhada cliente ⇄ servidor.
+
+   POR QUE ISTO EXISTE. O `world-rules.js` acabou com as duas versões das regras de CALENDÁRIO.
+   Faltava o mesmo para as regras de PAÍS. Hoje elas estão escritas em três lugares:
+
+     · `data/universos.js` descreve os 15 países (divisões, tamanho, acesso, rebaixamento) e o
+       cliente já os usa por `setUniverse()`;
+     · `resolve-round` tem DIV_ORDER / DIVISION_SIZE / DIVISION_PROMO / DIVISION_RELEG congelados
+       no Brasil, com o comentário "Config brasileira (Resenha = sempre Brasil)";
+     · `data/rebalance.js` e o `resolve-round` têm, CADA UM, um `BAND_BY_DIV` escrito à mão que
+       traduz PL/CH/ES/ES2/... para as faixas A/B — e que só cobre seis países.
+
+   Três cópias da mesma regra é exatamente o padrão que o cabeçalho do `world-rules.js` descreve
+   como a causa dos bugs de calendário. Esta folha é o lugar único.
+
+   A IDEIA CENTRAL: INDEXAR POR NÍVEL, NÃO PELA LETRA DA DIVISÃO.
+   `A/B/C/D` são nomes brasileiros. O que a regra realmente quer saber é a PROFUNDIDADE na
+   pirâmide — 1ª divisão, 2ª, 3ª. `UNIVERSOS[pais].order` já é essa lista, em ordem. Então:
+
+       nivel = order.indexOf(divisao)        brasil: A=0 B=1 C=2 D=3   ·   Inglaterra: PL=0 CH=1
+
+   Com isso o mapa escrito à mão desaparece e QUALQUER país novo — inclusive um criado no painel
+   admin — funciona sem tocar em código. Para o Brasil o resultado é idêntico ao de hoje, e é
+   isso que `scripts/teste-universos.mjs` prova.
+
+   REGRA DE OURO (a mesma do world-rules.js): nada de S, CL, DATA, DOM ou qualquer global do
+   jogo. `UNIVERSOS` é lido PREGUIÇOSAMENTE, dentro das funções — o painel admin carrega os
+   arquivos em paralelo, e ler no topo criaria dependência de ordem de carga.
+
+   PROPAGAÇÃO É AUTOMÁTICA: scripts/sync-world-rules.mjs injeta esta folha dentro do
+   resolve-round entre marcadores, no build e no CI. Não há porte manual.
+   =================================================================== */
+(function(root){
+  'use strict';
+
+  const PADRAO='brasil';
+  function universos(){ return root.UNIVERSOS || {}; }
+  function uniCfg(key){ const U=universos(); return U[key] || U[PADRAO] || null; }
+  /* ===== O UNIVERSO DA PIRÂMIDE ÂNCORA — não "o país da sala" =====
+     `S.intlUniverse` diz de que país é a pirâmide que mora em S.table/S.otherDivs: a que o
+     servidor resolve a cada rodada. NÃO descreve os jogadores. Num mundo com humanos em países
+     diferentes não existe "o país da sala" — o país de cada um sai do clube do assento dele.
+     Ausente = Brasil, que é o que toda sala criada até agosto/2026 é. */
+  function uniDoEstado(S){ return (S && S.intlUniverse) || PADRAO; }
+  /* Os países que existem por inteiro neste mundo. Plural de propósito: um humano ir treinar no
+     Chelsea acrescenta a Inglaterra e NÃO tira o Brasil — os outros treinadores continuam lá.
+     Saves antigos não têm a lista; nesse caso o mundo tem um país só, o da âncora. */
+  function paisesVivos(S){
+    const lista=(S && Array.isArray(S.paisesVivos) && S.paisesVivos.length) ? S.paisesVivos.slice() : [uniDoEstado(S)];
+    const set=new Set(lista); set.add(uniDoEstado(S));      // a âncora está sempre viva
+    return [...set];
+  }
+
+  /* ---------- NÍVEL NA PIRÂMIDE ---------- */
+  function nivelDaDivisao(uniKey, div){
+    const c=uniCfg(uniKey); if(!c || !c.order) return 0;
+    const i=c.order.indexOf(div);
+    return i<0 ? 0 : i;                       // divisão desconhecida conta como 1ª (nunca negativa)
+  }
+  function divisoesDe(uniKey){ const c=uniCfg(uniKey); return (c && c.order) ? c.order.slice() : ['A','B','C','D']; }
+  function tamanhoDaDivisao(uniKey, div){ const c=uniCfg(uniKey); return (c && c.size && c.size[div]) || 20; }
+  function sobemDaDivisao(uniKey, div){ const c=uniCfg(uniKey); return (c && c.promo && c.promo[div]) || 0; }
+  function descemDaDivisao(uniKey, div){ const c=uniCfg(uniKey); return (c && c.releg && c.releg[div]) || 0; }
+
+  /* ---------- TABELAS POR NÍVEL ----------
+     Os valores são EXATAMENTE os que estavam escritos por letra: para o Brasil, nível 0 = 'A',
+     1 = 'B', 2 = 'C', 3 = 'D'. Uma pirâmide mais funda que a tabela usa o último nível. */
+  const BANDA_POR_NIVEL=['A','B','C','D'];
+  const FORCA_POR_NIVEL=[[58,88],[58,80],[52,74],[48,68]];
+  const CAP_POR_NIVEL=[99,37,24,12];
+  function _porNivel(tab, n){ return tab[Math.max(0, Math.min(n, tab.length-1))]; }
+
+  function bandaDaDivisao(uniKey, div){ return _porNivel(BANDA_POR_NIVEL, nivelDaDivisao(uniKey, div)); }
+  function forcaDaDivisao(uniKey, div){ return _porNivel(FORCA_POR_NIVEL, nivelDaDivisao(uniKey, div)).slice(); }
+  function capDaDivisao(uniKey, div){ return _porNivel(CAP_POR_NIVEL, nivelDaDivisao(uniKey, div)); }
+
+  /* Tabelas prontas, com as LETRAS daquele país como chave. É o formato que o cliente e o
+     servidor já consomem (`DIVISION_FORCE_RANGE[division]`), então ligar a folha não exige
+     reescrever quem lê — só trocar de onde a tabela vem. */
+  function tabelasDoUniverso(uniKey){
+    const ordem=divisoesDe(uniKey);
+    const size={}, promo={}, releg={}, forca={}, cap={}, banda={};
+    ordem.forEach(d=>{
+      size[d]=tamanhoDaDivisao(uniKey,d); promo[d]=sobemDaDivisao(uniKey,d); releg[d]=descemDaDivisao(uniKey,d);
+      forca[d]=forcaDaDivisao(uniKey,d);  cap[d]=capDaDivisao(uniKey,d);     banda[d]=bandaDaDivisao(uniKey,d);
+    });
+    return { ordem, size, promo, releg, forca, cap, banda };
+  }
+  /* A banda de uma divisão SEM saber o país — é o que `rebalance.force(rawF, division)` tem em
+     mãos. Procura a letra em todos os universos; se dois países usarem a mesma letra, o nível é o
+     mesmo nos dois (é o que 'A'/'B' significam), então a ambiguidade não muda o resultado. */
+  function bandaDaDivisaoSemPais(div){
+    const U=universos();
+    for(const k in U){ const o=U[k] && U[k].order; if(o && o.indexOf(div)>=0) return _porNivel(BANDA_POR_NIVEL, o.indexOf(div)); }
+    return BANDA_POR_NIVEL[0];
+  }
+
+  /* ---------- CONFEDERAÇÃO E COPAS DE CADA PAÍS ----------
+     Quais copas um país disputa era decidido por três funções do cliente (isConmebolUniverse,
+     isIntlUniverse, allCupKeys em core.js) e o servidor não sabia nada disso: `rebuildContinental
+     Cups` assumia Libertadores/Sul-Americana e que `topStandings` era a Série A brasileira.
+
+     Aqui vira dado. `conf` sai do universo: `src:'conmebol'` e o Brasil são CONMEBOL, o resto é
+     UEFA — a mesma regra que o cliente aplicava, agora escrita uma vez. `copaNacional` é a copa
+     de país (só o Brasil tem uma modelada hoje).
+
+     As VAGAS são as tabelas que o cliente já tinha (LIB_SLOTS_UNI/SUL_SLOTS_UNI, core.js), aqui
+     chaveadas pelo NOME do país (`cfg.country`), como lá. O servidor usava 6 e 6 fixos. */
+  const CONFEDERACOES={
+    CONMEBOL:{ copas:['libertadores','sulamericana'],
+      vagas:{ 'Brasil':[6,6],'Argentina':[6,5],'Colômbia':[4,4],'Chile':[3,3],'Uruguai':[3,3],
+              'Peru':[3,3],'Equador':[2,2],'Paraguai':[2,2],'Venezuela':[2,2],'Bolívia':[1,2] } },
+    UEFA:{ copas:['championsLeague','europaLeague'],
+      vagas:{ 'Inglaterra':[4,2],'Espanha':[4,2],'Itália':[4,2],'Alemanha':[4,2],'Portugal':[2,2] } },
+  };
+  const COPA_NACIONAL={ brasil:'copaBrasil' };
+
+  function nomeDoPais(uniKey){ const c=uniCfg(uniKey); return (c && c.country) || (uniKey===PADRAO ? 'Brasil' : uniKey); }
+  function confederacaoDe(uniKey){
+    const c=uniCfg(uniKey);
+    if(uniKey===PADRAO || (c && c.src==='conmebol')) return 'CONMEBOL';
+    return 'UEFA';
+  }
+  function copasContinentaisDe(uniKey){ return (CONFEDERACOES[confederacaoDe(uniKey)]||{}).copas.slice(); }
+  /* TODAS as copas do país, na ordem que o cliente já usava em allCupKeys(): a nacional primeiro
+     (quando existe), depois as duas continentais. */
+  function copasDe(uniKey){
+    const nac=COPA_NACIONAL[uniKey];
+    return (nac ? [nac] : []).concat(copasContinentaisDe(uniKey));
+  }
+  /* [vagas na 1ª continental, vagas na 2ª]. País sem entrada na tabela cai em [4,2], que é o
+     padrão europeu — nunca zero, senão o país simplesmente não teria representantes. */
+  function vagasContinentais(uniKey){
+    const conf=CONFEDERACOES[confederacaoDe(uniKey)]||{};
+    const v=(conf.vagas||{})[nomeDoPais(uniKey)];
+    return v ? v.slice() : [4,2];
+  }
+
+  /* ---------- NOMES DE JOGADOR POR PAÍS ----------
+     O servidor gerava TODO regen com nomes brasileiros: `pickProcName` só conhecia BR_FIRST/
+     BR_LAST, então a virada de temporada de um save inglês devolvia "Gabriel Silva" na Premier
+     League. O cliente já tinha os pools de Espanha, Itália, Alemanha e Portugal (INTL_NAME_POOL)
+     e um genérico hispânico (INTL_FIRST/INTL_LAST) para a CONMEBOL — mas só do lado dele.
+
+     As listas do Brasil são as MESMAS que estavam nos dois arquivos (conferidas idênticas antes
+     de mover), então nada muda para quem já joga. `Inglaterra` é nova: não existia em lugar
+     nenhum. `_hispano` é o fallback dos países CONMEBOL, como o cliente já fazia.
+     `nomesDoPais` nunca devolve vazio — sem pool, cai no hispânico para não gerar nome nulo. */
+  const NAME_POOLS={
+    brasil:{ first:[
+      'Gabriel','Lucas','Matheus','Rafael','Bruno','Léo','Vitor','João','Pedro','Gustavo','Felipe','Diego',
+      'Rodrigo','Thiago','Wesley','Éverton','Caio','Igor','Vinícius','Douglas','Renato','Marcos','André',
+      'Fábio','Danilo','Kaio','Yuri','Alan','Juninho','Guilherme','Paulinho','Rennan','Éder','Wellington',
+      'Luan','Nathan','Richard','Kevin','Wanderson','Jonathan','Ronaldo','Ricardo','Fernando','Cristian',
+      'Emerson','Robson','Adriano','Cléber','Maicon','Otávio'],
+      last:[
+      'Silva','Santos','Oliveira','Souza','Pereira','Lima','Costa','Ferreira','Almeida','Ribeiro','Rodrigues',
+      'Gomes','Martins','Barbosa','Rocha','Dias','Nascimento','Araújo','Cardoso','Teixeira','Moreira',
+      'Carvalho','Cavalcante','Mendes','Freitas','Vieira','Monteiro','Nunes','Correia','Machado','Fernandes',
+      'Ramos','Azevedo','Campos','Pinto','Cunha','Moraes','Farias','Batista','Andrade'] },
+    Espanha:{ first:[
+      'Álvaro','Sergio','Javier','Carlos','Pablo','Rubén','Iker','Marcos','Adrián','Diego','Jorge','Raúl',
+      'Óscar','Iván','Mario','Hugo','Dani','Nacho'],
+      last:[
+      'García','Fernández','Martínez','López','Sánchez','Gómez','Ruiz','Torres','Navarro','Molina','Ortega',
+      'Serrano','Castro','Vidal','Herrera','Cano','Rubio','Marín','Peña','Vega','Bravo','Nieto','Gallardo',
+      'Reyes'] },
+    Itália:{ first:[
+      'Marco','Luca','Andrea','Matteo','Alessandro','Federico','Davide','Simone','Giacomo','Nicolò','Lorenzo',
+      'Riccardo','Antonio','Gabriele','Stefano','Fabio','Emanuele','Christian'],
+      last:[
+      'Rossi','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini',
+      'Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Caruso','Ferrara','Longo',
+      'Marchetti','Villa'] },
+    Alemanha:{ first:[
+      'Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan','Tobias',
+      'Marvin','Philipp','Nico','Kevin','Sven'],
+      last:[
+      'Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer','Koch',
+      'Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Lange',
+      'Werner','Krause'] },
+    Portugal:{ first:[
+      'João','Miguel','Rui','Pedro','Tiago','André','Bruno','Diogo','Ricardo','Nuno','Gonçalo','Fábio','Rafael',
+      'Hélder','Vítor','Luís','Daniel','Sérgio'],
+      last:[
+      'Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Sousa','Fonseca','Gomes',
+      'Lopes','Marques','Almeida','Ribeiro','Pinto','Carvalho','Teixeira','Moreira','Cardoso','Nunes','Correia',
+      'Machado','Tavares'] },
+    Inglaterra:{ first:[
+      'Jack','Harry','Oliver','Charlie','George','Jacob','Alfie','Freddie','Archie','Thomas','Callum','Reece',
+      'Kieran','Declan','Mason','Ollie','Josh','Lewis'],
+      last:[
+      'Smith','Jones','Taylor','Brown','Wilson','Davies','Evans','Thomas','Roberts','Walker','Wright',
+      'Robinson','Thompson','White','Hughes','Edwards','Green','Hall','Wood','Harris','Clarke','Baker','Turner',
+      'Hill'] },
+    _hispano:{ first:[
+      'Martín','Diego','Franco','Nicolás','Iván','Bruno','Gonzalo','Sebastián','Rodrigo','Emiliano','Cristian',
+      'Federico','Agustín','Maximiliano','Ezequiel','Leandro','Matías','Joaquín','Tomás','Julián','Rafael',
+      'Andrés','Carlos','Luis','Pedro'],
+      last:[
+      'Gómez','Fernández','Rodríguez','Sosa','Díaz','Romero','Torres','Núñez','Silva','Acosta','Ramírez','Vega',
+      'Cabrera','Godoy','Molina','Ortiz','Benítez','Aguirre','Suárez','Ibáñez','Herrera','Castro','Flores',
+      'Rojas','Medina'] },
+  };
+  function nomesDoPais(uniKey){
+    const c=uniCfg(uniKey);
+    return NAME_POOLS[uniKey] || NAME_POOLS[(c&&c.country)] || NAME_POOLS._hispano;
+  }
+
+  /* ---------- IDENTIDADE DE UM JOGADOR CRIADO DO ZERO ----------
+     O regen do servidor nascia sempre com `nat:'Brasil'` e `lg:'BRA-'+divisao`, mesmo num save
+     inglês. `nat` é o que decide se o jogador conta na cota de estrangeiros (playerIsForeign,
+     core.js), então um regen inglês contava como estrangeiro no próprio país. Os valores do
+     Brasil são exatamente os que estavam escritos: nat[0] de `brasil` é 'Brasil', e o Brasil não
+     tem tabela `lg`, então continua a cair em 'BRA-'+divisao. */
+  function nacionalidadeDe(uniKey){ const c=uniCfg(uniKey); return (c && c.nat && c.nat[0]) || 'Brasil'; }
+  function codigoDaLiga(uniKey, div){ const c=uniCfg(uniKey); return (c && c.lg && c.lg[div]) || ('BRA-'+div); }
+
+  const API={ PADRAO, uniCfg, uniDoEstado, paisesVivos, nivelDaDivisao, divisoesDe,
+    tamanhoDaDivisao, sobemDaDivisao, descemDaDivisao,
+    BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
+    bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
+    CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
+    vagasContinentais, NAME_POOLS, nomesDoPais, nacionalidadeDe, codigoDaLiga };
+  root.WORLD_CONFIG=API;
+  if(typeof module!=='undefined' && module.exports){ module.exports=API; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< WORLD_CONFIG:FIM >>> */
 const WR = (globalThis as any).WORLD_RULES;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -712,7 +1532,17 @@ function applyResultT(T: any, h: string, a: string, hg: number, ag: number) {
   else if (hg < ag) { T[a].W++; T[h].L++; T[a].Pts += 3; }
   else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
 }
-function recordScorers(S: any, scorers: any[]) { (scorers || []).forEach((s: any) => { S.scorers[s.name] = (S.scorers[s.name] || 0) + 1; }); }
+/* gol na artilharia geral e, quando `comp` vem, também no livro por competição — o gêmeo do
+   recordScorers do cliente (core.js). `comp` é a chave da copa (copaBrasil, libertadores...)
+   ou a divisão ('A'..'D') no jogo de liga. É o que alimenta o artilheiro POR COMPETIÇÃO da
+   virada (S._prevSeason.scorersByComp) — sem isto ele nunca existia na Resenha. */
+function recordScorers(S: any, scorers: any[], comp?: string) {
+  (scorers || []).forEach((s: any) => { S.scorers[s.name] = (S.scorers[s.name] || 0) + 1; });
+  if (!comp) return;
+  S.scorersByComp = S.scorersByComp || {};
+  const m = S.scorersByComp[comp] = S.scorersByComp[comp] || {};
+  (scorers || []).forEach((s: any) => { m[s.name] = (m[s.name] || 0) + 1; });
+}
 function findPlayerByName(S: any, clubId: string, name: string) { const sq = S.squads[clubId]; return sq && sq.find((p: any) => p.n === name); }
 function advancePlayerAvailability(S: any) {
   Object.values(S.squads).forEach((sq: any) => sq.forEach((p: any) => { if (p.suspended > 0) p.suspended--; if (p.injuredMatches > 0) p.injuredMatches--; }));
@@ -820,14 +1650,41 @@ const POS_PROFILE: any = {
 };
 function attrLevel(a: any, s: string) { const prof = POS_PROFILE[s] || POS_PROFILE.MID; let sw = 0, acc = 0; for (const k in prof) { sw += prof[k]; acc += prof[k] * (a[k] || 1); } return acc / sw; }
 function levelToForce(L: number) { return Math.max(40, Math.min(95, Math.round((L - 6) / 13 * 46 + 45))); }
+function forceToLevel(f: number) { return Math.max(1, Math.min(20, Math.round((f - 45) / 46 * 13 + 6))); }
+const ATTR_KEYS_T = ['fin','pas','dri','des','cab','cru','vis','pos','com','det','vel','res','fis','agi','ref','mao'];
+/* PORTE FIEL do genAttrs (index.html) — precisa existir aqui porque um clube de LIGA DE FUNDO
+   materializado pela 1a vez (materializeBgClubT, ex: qualificação continental) nunca passou
+   pelo attachAttrs do cliente: sem isto ficava com attr:{} pra sempre (nunca evolui, nunca
+   participa do attrFactor do motor — jogador "fantasma" de atributos). */
+function genAttrsT(p: any) {
+  const rf = (p.rawF != null ? p.rawF : p.f);
+  const R = ME.makeRng(ME.hashSeed('attr', p.n, rf, p.s));
+  const lvl = forceToLevel(rf), prof = POS_PROFILE[p.s] || POS_PROFILE.MID, a: any = {};
+  for (const k of ATTR_KEYS_T) {
+    const w = prof[k] || 0; let base: number;
+    if (w > 0) base = lvl + (w >= 15 ? 2 : w >= 8 ? 1 : 0);
+    else if ((k === 'ref' || k === 'mao') && p.s !== 'GK') base = 2 + R.random() * 3;
+    else if (p.s === 'GK' && (k === 'fin' || k === 'dri' || k === 'cru' || k === 'cab')) base = 3 + R.random() * 4;
+    else base = lvl - 3 + R.random() * 2;
+    a[k] = Math.max(1, Math.min(20, Math.round(base + (R.random() * 2 - 1) * 1.5)));
+  }
+  const shift = lvl - attrLevel(a, p.s);
+  for (const k in prof) a[k] = Math.max(1, Math.min(20, Math.round(a[k] + shift)));
+  return a;
+}
 function interp(anchors: any[], x: number) { const n = anchors.length;
   if (x <= anchors[0][0]) { const [x0, y0] = anchors[0], [x1, y1] = anchors[1]; return y0 + (x - x0) / (x1 - x0) * (y1 - y0); }
   if (x >= anchors[n - 1][0]) { const [x0, y0] = anchors[n - 2], [x1, y1] = anchors[n - 1]; return y0 + (x - x0) / (x1 - x0) * (y1 - y0); }
   for (let i = 0; i < n - 1; i++) { const [x0, y0] = anchors[i], [x1, y1] = anchors[i + 1]; if (x >= x0 && x <= x1) { const t = (x1 === x0) ? 0 : (x - x0) / (x1 - x0); return y0 + t * (y1 - y0); } }
   return anchors[n - 1][1]; }
 const BANDS: any = { A:[[48,28],[64,38],[79,49],[82,58],[85,70],[88,81],[90,90],[94,98]], B:[[46,18],[58,26],[74,37],[77,46],[81,60],[85,74],[90,90]], C:[[42,8],[52,14],[66,24],[70,32],[76,48],[82,66]], D:[[38,2],[44,4],[58,12],[63,23],[70,40]] };
-const BAND_BY_DIV: any = { A:'A',B:'B',C:'C',D:'D', PL:'A',ES:'A',IT:'A',DE:'A',PT:'A', CH:'B',ES2:'B',IT2:'B',DE2:'B',PT2:'B' };
-function rbForce(rawF: number, division: string) { const rf = (typeof rawF === 'number' && isFinite(rawF)) ? rawF : 60; const b = BANDS[BAND_BY_DIV[division] || 'A'] || BANDS.A; return Math.max(1, Math.min(99, Math.round(interp(b, rf)))); }
+/* A BANDA DE FORCA DE UMA DIVISAO — pelo NIVEL na piramide do pais, nao por um mapa de letras.
+   Era `{A:'A',...,PL:'A',CH:'B',ES2:'B',...}`, escrito a mao e limitado a seis paises: um pais
+   novo criado no painel cairia silenciosamente na banda 'A'. WORLD_CONFIG deriva a banda de
+   UNIVERSOS[pais].order, entao qualquer piramide funciona — e para as letras que ja estavam no
+   mapa o resultado e o mesmo (PL e 1a divisao => nivel 0 => banda 'A'). */
+function bandKeyDiv(division: string) { return WORLD_CONFIG.bandaDaDivisao(UNI_ATIVO, division); }
+function rbForce(rawF: number, division: string) { const rf = (typeof rawF === 'number' && isFinite(rawF)) ? rawF : 60; const b = BANDS[bandKeyDiv(division)] || BANDS.A; return Math.max(1, Math.min(99, Math.round(interp(b, rf)))); }
 const V_ANCHORS = [[5,80e3],[10,200e3],[15,450e3],[20,700e3],[25,1e6],[30,1.6e6],[35,2.5e6],[40,4e6],[45,6e6],[50,9e6],[60,18e6],[70,35e6],[80,70e6],[90,150e6],[99,260e6]];
 function ageFactor(age: number) { const a = age || 26; if (a <= 21) return 1.35; if (a <= 27) return 1.00; if (a <= 31) return 0.80; if (a <= 35) return 0.50; return 0.25; }
 function rbValue(f: number, age: number) { return Math.max(30000, Math.round(interp(V_ANCHORS as any, f) * ageFactor(age))); }
@@ -849,7 +1706,7 @@ const LEAGUE_PRIZE: any = {
   D:{champ:2e6,vice:1.3e6,top4:0.9e6,upper:0.55e6,mid:0.35e6,lower:0.2e6},
 };
 function leaguePrizeT(div: string, pos: number, n: number) {
-  const t = LEAGUE_PRIZE[BAND_BY_DIV[div] || 'A'] || LEAGUE_PRIZE.A; n = n || 20;
+  const t = LEAGUE_PRIZE[bandKeyDiv(div)] || LEAGUE_PRIZE.A; n = n || 20;
   if (pos === 1) return t.champ; if (pos === 2) return t.vice; if (pos <= 4) return t.top4;
   if (pos <= Math.ceil(n * 0.35)) return t.upper;
   if (pos <= Math.ceil(n * 0.70)) return t.mid;
@@ -972,11 +1829,16 @@ function hashC(s: any) { s = String(s); let h = 0; for (let i = 0; i < s.length;
    mesma regra mandante-autoritativa da divisão principal. Partida do humano = resultado submetido;
    as outras = motor. Os incidentes (cartão/lesão) do humano já foram aplicados globalmente no
    resolveLeagueRound (a partir de humanResultByFx), então aqui só o placar/tabela. */
-function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, preMatches?: any) {
-  if (!S.otherDivs) return; const round = S.round, season = S.season;
+/* `M` e o MUNDO do pais (ver resolverPiramideDoPais). As divisoes de baixo sao do pais; a rodada,
+   a temporada, a semente e os elencos sao do jogo inteiro. Sem M, o mundo e a propria ancora --
+   e o comportamento de sempre. Enquanto isto rodava uma vez so, a Championship ficava parada
+   enquanto a Premier jogava, e ninguem reparava ate a virada de temporada. */
+function advanceOtherDivs(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, preMatches?: any, M?: any) {
+  const mundo = M || S;
+  if (!mundo.otherDivs) return; const round = S.round, season = S.season;
   humanResultByFx = humanResultByFx || {};
-  for (const d in S.otherDivs) {
-    const od = S.otherDivs[d]; if (!od.sched || !od.sched.length) continue;
+  for (const d in mundo.otherDivs) {
+    const od = mundo.otherDivs[d]; if (!od.sched || !od.sched.length) continue;
     const oFx = od.sched[round % od.sched.length] || []; const base = hashC("rnd" + season + "-" + round + "-" + d);
     oFx.forEach((fx: any) => {
       const h = fx[0], a = fx[1]; if (h == null || a == null || !od.table[h] || !od.table[a]) return;
@@ -1028,7 +1890,7 @@ function cupTickMatchesRound(S: any, key: string, round: number) {
 const CUP_KO_SPREAD = 4, CUP_LEAGUE_TAIL = 2;
 function cupTotalRoundsS(S: any, key: string) {
   const c = S.cups && S.cups[key]; if (!c) return 0;
-  if (key === 'copaBrasil') return c.roundsTotal || 0;
+  if (key === COPA_NACIONAL_KEY()) return c.roundsTotal || 0;   // copa nacional: e o proprio bracket
   if (c.group) {
     const nG = Object.keys(c.group.groups || {}).length, adv = c.group.advancePerGroup || 2;
     const ko = Math.max(1, Math.ceil(Math.log2(Math.max(2, nG * adv))));
@@ -1039,10 +1901,11 @@ function cupTotalRoundsS(S: any, key: string) {
 /* CALENDÁRIO OFICIAL — porte fiel de CAL_2026/buildCupSchedule do core.js. As jornadas de cada
    copa saem das DATAS, não de aritmética de faixa. Se mexer em um, mexer no outro. */
 function buildCupScheduleS(key: string, total: number, _lastLeagueRound: number) {
-  return WR.buildCupSchedule(key, total, SEASON_EPOCH_2026);   // folha única (WORLD_RULES)
+  return WR.buildCupSchedule(key, total, SEASON_EPOCH_2026, UNI_ATIVO);   // folha unica (slots do pais)
 }
 function nextRoundStage(S: any) {
-  const keys = ['copaBrasil'].concat(GROUP_CUP_KEYS);
+  const nac = COPA_NACIONAL_KEY();
+  const keys = (nac ? [nac] : []).concat(GRUPO_KEYS());
   const temCopa = keys.some((k) => S.cups && S.cups[k] && cupTickMatchesRound(S, k, S.round));
   return temCopa ? 'cup' : 'league';
 }
@@ -1090,7 +1953,7 @@ function copaBrasilPhaseCash(round: number, roundsTotal: number, isChampion?: bo
   return round <= 1 ? CB_PHASE.f1 : CB_PHASE.f2;
 }
 function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<string>) {
-  if (key !== 'copaBrasil' || !t || !t.winner || t.prize) return;
+  if (key !== COPA_NACIONAL_KEY() || !t || !t.winner || t.prize) return;   // cota de fase e da copa nacional
   const loser = t.winner === t.h ? t.a : t.h;
   const isFinal = (b.roundsTotal - b.round) <= 0;
   const pagar: any[] = [[t.winner, copaBrasilPhaseCash(b.round, b.roundsTotal, true)]];
@@ -1108,7 +1971,7 @@ function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<st
    sobrescreve o S local pelo do servidor — então o gol de copa sumia da artilharia e o jogo
    nunca entrava no Historial. Aqui é o único lugar que sobrevive. */
 function cupSumula(S: any, h: string, a: string, hg: number, ag: number, scorers: any[], perf: any, roundLabel: string, caps?: any, matchMinutes?: number) {
-  recordScorers(S, scorers || []);
+  recordScorers(S, scorers || [], (roundLabel || '').split('-')[0]);   // a competição é o prefixo do label (idem advanceCupBracket)
   const R = ME.makeRng(ME.hashSeed(S.seed, 'cuprate', roundLabel, S.round, h, a));
   const capsH = (caps && caps.H) || null, capsA = (caps && caps.A) || null;
   const mm = matchMinutes || 90;
@@ -1172,7 +2035,14 @@ function realDateForDayS(day: number) {
 // CONMEBOL sorteou as oitavas em 29/mai/2026 — até lá a fase de grupos encerrada fica
 // "aguardando sorteio", igual à vida real (mesma tabela do cliente).
 const COMP_R16_DRAW_2026: any = { libertadores: new Date(2026, 4, 29), sulamericana: new Date(2026, 4, 29) };
-const GROUP_CUP_KEYS = ['libertadores', 'sulamericana'];   // Resenha é sempre Brasil (ver onlineBeginSeason)
+/* AS COPAS DO PAIS, NAO AS DO BRASIL. Era uma lista fixa com o comentario "Resenha e sempre
+   Brasil". Agora sai da folha: CONMEBOL -> Libertadores/Sul-Americana, UEFA -> Champions/Europa.
+   Funcoes (nao constantes) porque UNI_ATIVO so e conhecido depois de ler o shared_state. */
+function GRUPO_KEYS(): string[] { return WORLD_CONFIG.copasContinentaisDe(UNI_ATIVO); }
+/* A copa nacional: 'copaBrasil' no Brasil, e NENHUMA nos outros paises modelados hoje. Onde
+   estava o literal 'copaBrasil' passa a estar isto — e quem nao tem copa nacional simplesmente
+   pula o bloco em vez de ganhar uma Copa do Brasil de presente. */
+function COPA_NACIONAL_KEY(): string | null { return WORLD_CONFIG.COPA_NACIONAL[UNI_ATIVO] || null; }
 function groupTableStandingsS(g: any) {
   return Object.values(g.table || {}).sort((a: any, b: any) =>
     b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id)));
@@ -1228,21 +2098,31 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
    mesmo dia (medido: duas rodadas de grupo da Libertadores em 04/mar, e Copa do Brasil com 2ª
    fase e 16 avos juntas). O carimbo viaja no shared_state, então basta lê-lo — e escrevê-lo,
    pra uma segunda chamada do próprio servidor também ser inócua. */
-function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
-  if (!S.cups) return;
-  // trava "uma rodada por competição por jornada" — MESMAS funções que o cliente usa (folha única)
-  const jaResolvida = (k: string) => WR.cupAlreadyResolved(S._cupResolvedRound, k, S.round);
-  const marcar = (k: string) => { S._cupResolvedRound = WR.markCupResolved(S._cupResolvedRound, k, S.round); };
-  if (cupTickMatchesRound(S, 'copaBrasil', S.round) && !jaResolvida('copaBrasil')) {
-    const cb = S.cups.copaBrasil;
+/* `M` e o MUNDO do pais: as copas e o calendario de copa sao DELE. O resto -- semente, rodada,
+   dia, forca dos clubes -- e do jogo inteiro. Sem M, opera na ancora, como sempre operou.
+   Enquanto isto rodava uma vez so, a Champions do treinador ingles simplesmente nao avancava. */
+function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>, M?: any) {
+  const mundoC = M || S;
+  const uniC = (M && M.pais) || UNI_ATIVO;          // as copas sao do PAIS deste mundo
+  if (!mundoC.cups) return;
+  /* trava "uma rodada por competicao por jornada" — MESMAS funcoes que o cliente usa (folha unica).
+     A trava e por MUNDO: a Copa do Brasil e a Champions podem cair na mesma jornada sem uma
+     carimbar pela outra, porque cada pais tem a sua marca. */
+  const marcaDe = (k: string) => (M && M.pais) ? (M.pais + ':' + k) : k;
+  const jaResolvida = (k: string) => WR.cupAlreadyResolved(S._cupResolvedRound, marcaDe(k), S.round);
+  const marcar = (k: string) => { S._cupResolvedRound = WR.markCupResolved(S._cupResolvedRound, marcaDe(k), S.round); };
+  const tique = (k: string) => WR.cupTickMatchesRound(mundoC.cupCalendar, k, S.round);
+  const nacKey = WORLD_CONFIG.COPA_NACIONAL[uniC] || null;
+  if (nacKey && tique(nacKey) && !jaResolvida(nacKey)) {
+    const cb = mundoC.cups[nacKey];
     if (cb && !cupIsFinished(cb) && cb.ties && cb.ties.length) {
-      advanceCupBracket(S, cb, 'copaBrasil-r' + cb.round, cupResultByFx, humans); marcar('copaBrasil');
+      advanceCupBracket(S, cb, nacKey + '-r' + cb.round, cupResultByFx, humans); marcar(nacKey);
     }
   }
-  GROUP_CUP_KEYS.forEach((key) => {
-    if (!cupTickMatchesRound(S, key, S.round)) return;
+  WORLD_CONFIG.copasContinentaisDe(uniC).forEach((key: string) => {
+    if (!tique(key)) return;
     if (jaResolvida(key)) return;
-    const c = S.cups[key]; if (!c) return;
+    const c = mundoC.cups[key]; if (!c) return;
     if (c.group && !c.bracket) {
       if (!c.group.finished) { advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx); marcar(key); }
       if (c.group.finished) {
@@ -1266,7 +2146,9 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>) {
    servidor não simula as ligas sul-americanas, então não existe campanha nova pra respeitar, e
    reaproveitar quem já está no estado (com elenco materializado) mantém o formato de 32 clubes
    sem inventar resultado que ninguém jogou. ===== */
-const LIB_SLOTS_BR = 6, SUL_SLOTS_BR = 6;
+/* As vagas saiam daqui, fixas em 6 e 6 — os numeros do Brasil. Agora vem da folha
+   (WORLD_CONFIG.vagasContinentais), que ja tinha a tabela por pais do lado do cliente
+   (LIB_SLOTS_UNI/SUL_SLOTS_UNI em core.js): Argentina 6+5, Colombia 4+4, Portugal 2+2... */
 function prevCupTeamIds(S: any, key: string) {
   const c = S.cups && S.cups[key]; const out: string[] = [];
   if (c && c.group && c.group.groups) Object.keys(c.group.groups).forEach((k) => ((c.group.groups[k] || {}).teams || []).forEach((id: string) => out.push(id)));
@@ -1294,35 +2176,160 @@ function makeGroupStageT(groupsMap: any, advancePerGroup: number) {
   const lens = Object.keys(groups).map((k) => groups[k].sched.length);
   return { groups, round: 0, roundsTotal: Math.max(1, ...lens), finished: false, advancePerGroup: advancePerGroup || 2 };
 }
+/* ===== O CAMPEÃO DA COPA DO BRASIL TEM VAGA NA LIBERTADORES (regra do dono, 20-21/08) =====
+   Gêmeo do nationalCupFinalists do cliente (core.js). Só o CAMPEÃO — o vice não leva vaga
+   (ajuste de 21/08). A copa nacional que FECHOU vive em S._prevSeason.copaBrasil. Só o
+   Brasil tem copa nacional materializada — outro universo devolve []. */
+function nationalCupFinalistsT(S: any) {
+  try {
+    if (UNI_ATIVO !== 'brasil') return [];
+    const b = S._prevSeason && S._prevSeason.copaBrasil;
+    return (b && b.champion) ? [b.champion] : [];
+  } catch (_e) { return []; }
+}
 function rebuildContinentalCups(S: any, topStandings: string[]) {
   if (!topStandings || !topStandings.length) return;
-  const prevLib = prevCupTeamIds(S, 'libertadores'), prevSul = prevCupTeamIds(S, 'sulamericana');
-  if (!prevLib.length && !prevSul.length) return;   // save nunca teve continental (ex.: começou na D) — nada a remontar
-  const brSet = new Set(topStandings);              // todo id da Série A é brasileiro; o resto é CONMEBOL
-  const build = (key: string, br: string[], foreign: string[]) => {
-    const ids = br.concat(foreign).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, não entra
-    const uniq = Array.from(new Set(ids)).slice(0, 32);
+  /* QUAIS SAO AS DUAS CONTINENTAIS DEPENDE DA CONFEDERACAO DO PAIS. Estava escrito
+     'libertadores'/'sulamericana' em seis lugares: um save ingles remontava a Libertadores em vez
+     da Champions. A folha responde pelas duas coisas — quais copas e quantas vagas. */
+  const copas = WORLD_CONFIG.copasContinentaisDe(UNI_ATIVO);
+  const vagas = WORLD_CONFIG.vagasContinentais(UNI_ATIVO);
+  const prev = copas.map((k: string) => prevCupTeamIds(S, k));
+  if (!prev.some((l: string[]) => l.length)) return;   // save nunca teve continental (ex.: comecou na D) — nada a remontar
+  /* O campeão da primeira continental (Libertadores/Champions) DEFENDE a vaga no ano
+     seguinte, e o campeão e o vice da copa nacional entram NA FRENTE das vagas dela; a
+     tabela completa o resto e a segunda copa fica com os melhores que sobraram. `usados`
+     garante que ninguém ocupa vaga nas duas — é a mesma alocação sequencial do corte antigo.
+     Campeão de fora do país não consome vaga local: ele volta pela reciclagem dos
+     participantes (prevCupTeamIds), que já o inclui. */
+  const champDe = (i: number) => { try {
+    const c = S._prevSeason && S._prevSeason.cups && S._prevSeason.cups[copas[i]];
+    return (c && c.champion) || null;
+  } catch (_e) { return null; } };
+  const champCont = champDe(0);
+  /* o campeão da SEGUNDA continental (Sul-Americana/Europa League) SOBE para a primeira no ano
+     seguinte (regra do dono, 21/08 — a mesma da vida real). Da tabela do país, entra na
+     prioridade das vagas; estrangeiro TROCA de copa na reciclagem, logo abaixo. */
+  const champSegunda = champDe(1);
+  const finalistas = [champCont, champSegunda].filter((id) => id && topStandings.indexOf(id) >= 0)
+    .concat(nationalCupFinalistsT(S));
+  const daCasa = new Set(topStandings.concat(finalistas));  // id do pais (tabela ou final da copa); o resto e estrangeiro
+  if (champSegunda && !daCasa.has(champSegunda)) {          // campeão estrangeiro da segunda: sobe de copa
+    prev[0] = Array.from(new Set([champSegunda].concat(prev[0] || [])));
+    prev[1] = (prev[1] || []).filter((id: string) => id !== champSegunda);
+  }
+  const usados = new Set<string>();
+  const locaisDe = (n: number, prioridade: string[]) => {
+    const out: string[] = [];
+    prioridade.concat(topStandings).forEach((id) => { if (out.length < n && !usados.has(id)) { usados.add(id); out.push(id); } });
+    return out;
+  };
+  const build = (key: string, locais: string[], estrangeiros: string[]) => {
+    const ids = locais.concat(estrangeiros).filter((id) => S.squads && S.squads[id]);   // sem elenco no save, nao entra
+    let uniq = Array.from(new Set(ids)).slice(0, 32);
+    /* ===== NADA DE GRUPO DE 3 (checklist da virada, item 2) =====
+       A edicao real de 2026 da Sul-Americana tem 7 brasileiros e a cota e 6: a remontagem
+       recicla 25 estrangeiros + 6 da tabela = 31, e o fatiador de 4 em 4 deixava o grupo H
+       com 3 — para sempre, porque 31 vira 31 de novo no ano seguinte. O total agora fecha
+       em multiplo de 4: completa com o PROXIMO da tabela do pais que ainda nao tem vaga
+       (o 13o, no caso) e, so se nao houver mais ninguem, apara os ultimos reciclados. */
+    for (const id of topStandings) {
+      if (uniq.length % 4 === 0 || uniq.length >= 32) break;
+      if (usados.has(id) || uniq.indexOf(id) >= 0 || !(S.squads && S.squads[id])) continue;
+      usados.add(id); uniq.push(id);
+    }
+    if (uniq.length % 4 !== 0) uniq = uniq.slice(0, uniq.length - (uniq.length % 4));
     if (uniq.length < 4) return;
     S.cups[key] = { group: makeGroupStageT(splitIntoGroupsT(uniq, ME.hashSeed(S.seed, key + 'groups', S.season)), 2), bracket: null };
   };
-  build('libertadores', topStandings.slice(0, LIB_SLOTS_BR), prevLib.filter((id) => !brSet.has(id)));
-  build('sulamericana', topStandings.slice(LIB_SLOTS_BR, LIB_SLOTS_BR + SUL_SLOTS_BR), prevSul.filter((id) => !brSet.has(id)));
+  /* ===== ESTRANGEIROS PELA CAMPANHA REAL (item 4) =====
+     Com as ligas de fundo no estado, as vagas de cada país saem da CLASSIFICAÇÃO dele na
+     temporada que fechou — cota real por país (CONMEBOL) — em vez de reciclar os mesmos
+     clubes para sempre. Clube classificado que o servidor nunca viu é materializado do
+     elenco compacto do pacote (materializeBgClubT). Sem ligas de fundo no estado (sala
+     antiga, antes do seed chegar), vale a reciclagem de sempre. Universo europeu segue na
+     reciclagem por ora — as cotas de lá ainda não têm folha. */
+  const ehConmebol = (copas[0] === 'libertadores');
+  const paisAncora = (() => { try { const c = WORLD_CONFIG.uniCfg(UNI_ATIVO); return (c && c.country) || 'Brasil'; } catch (_e) { return 'Brasil'; } })();
+  let bgLib: string[] = [], bgSul: string[] = [], temBg = false;
+  if (ehConmebol) Object.keys(CONMEBOL_LIB_SLOTS).forEach((co) => {
+    if (co === paisAncora) return;                       // o país da âncora entra pelo topStandings
+    const ids = bgTopStandingsT(S, co); if (!ids) return; temBg = true;
+    bgLib.push(...ids.slice(0, CONMEBOL_LIB_SLOTS[co] || 0));
+    bgSul.push(...ids.slice(CONMEBOL_LIB_SLOTS[co] || 0, (CONMEBOL_LIB_SLOTS[co] || 0) + (CONMEBOL_SUL_SLOTS[co] || 0)));
+  });
+  if (temBg) {
+    // campeões estrangeiros mantêm/ganham a vaga por cima da cota do país deles
+    if (champCont && !daCasa.has(champCont) && bgLib.indexOf(champCont) < 0) bgLib.unshift(champCont);
+    if (champSegunda && !daCasa.has(champSegunda)) {
+      bgSul = bgSul.filter((id) => id !== champSegunda);
+      if (bgLib.indexOf(champSegunda) < 0) bgLib.unshift(champSegunda);
+    }
+    const naLib = new Set(bgLib); bgSul = bgSul.filter((id) => !naLib.has(id));
+    // classificado que o mundo ainda não conhece nasce agora, do elenco compacto do pacote
+    const co0f = (id: string) => Object.keys(S.bgLeagues || {}).find((co) => { const L = S.bgLeagues[co]; return L && L.elencos && L.elencos[id]; });
+    bgLib.concat(bgSul).forEach((id) => { if (!S.squads[id]) { const co = co0f(id); if (co) materializeBgClubT(S, co, id); } });
+  }
+  copas.forEach((key: string, i: number) => {
+    const estrangeiros = temBg ? (i === 0 ? bgLib : bgSul)
+      : (prev[i] || []).filter((id: string) => !daCasa.has(id));
+    build(key, locaisDe(vagas[i] || 0, i === 0 ? finalistas : []), estrangeiros);
+  });
 }
 /* ===== VIRADA DE TEMPORADA (F3.2) — promoção/rebaixamento + envelhecimento/regen + reconstrução.
    Viewer-independente (não depende de S.clubId): opera no MUNDO. Todas as 4 divisões já são
    materializadas em S.squads, então a troca só remaneja quais clubes ficam em cada divisão
    (computeDivisionSwap, provado byte-idêntico ao cliente). Servidor = autoridade: os detalhes
    cosméticos do regen (atributos) são gerados de forma simples e determinística, sem precisar
-   bater com o genAttrs do cliente. Config brasileira (Resenha = sempre Brasil). ===== */
-const DIV_ORDER = ['A', 'B', 'C', 'D'];
-const DIVISION_SIZE: any = { A: 20, B: 20, C: 20, D: 20 };
-const DIVISION_PROMO: any = { A: 0, B: 4, C: 4, D: 4 };
-const DIVISION_RELEG: any = { A: 4, B: 4, C: 4, D: 0 };
-const DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48, 68] };
-const DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
+   bater com o genAttrs do cliente. A configuração do país (pirâmide, copas, nomes) sai de
+   UNIVERSOS/WORLD_CONFIG a partir de `S.intlUniverse` — ver aplicarUniverso. ===== */
+/* ===== A PIRAMIDE DO PAIS, NAO A DO BRASIL =====
+   Estas seis tabelas eram constantes congeladas no Brasil. Agora vêm de UNIVERSOS/WORLD_CONFIG,
+   a mesma folha que o cliente lê — exatamente o que `setUniverse()` (core.js) já faz do outro
+   lado. `aplicarUniverso(S)` é chamada uma vez por pedido, logo depois de ler o shared_state.
+
+   Para o Brasil o resultado é IDÊNTICO ao que estava escrito aqui, e é isso que
+   scripts/teste-universos.mjs prova — a generalização não pode mexer no que já está no ar. */
+let UNI_ATIVO = 'brasil';
+let DIV_ORDER: string[] = ['A', 'B', 'C', 'D'];
+let DIVISION_SIZE: any = { A: 20, B: 20, C: 20, D: 20 };
+let DIVISION_PROMO: any = { A: 0, B: 4, C: 4, D: 4 };
+let DIVISION_RELEG: any = { A: 4, B: 4, C: 4, D: 0 };
+let DIVISION_FORCE_RANGE: any = { A: [58, 88], B: [58, 80], C: [52, 74], D: [48, 68] };
+let DIV_FORCE_CAP: any = { B: 37, C: 24, D: 12 };
+/* ===== O SERVIDOR RESOLVE A PIRAMIDE ANCORA =====
+   `aplicarUniverso` monta as tabelas do pais da ANCORA -- a piramide que vive em S.table/
+   S.otherDivs e que este resolvedor faz andar. NAO e "o pais da sala": num mundo com humanos em
+   paises diferentes essa frase nao existe, e o pais de cada jogador sai do clube do assento dele.
+
+   O QUE AINDA FALTA, e esta escrito aqui para nao se perder: quando houver humano num segundo
+   pais, esse pais precisa da PROPRIA piramide resolvida -- hoje ele vive em S.bgLeagues, que so
+   tem tabela e calendario, sem elencos nem virada de temporada propria. `WORLD_CONFIG.paisesVivos(S)`
+   ja devolve a lista certa; falta o resolvedor iterar sobre ela. Enquanto nao itera, um segundo
+   pais vivo roda como fundo -- e isso contraria a regra do espectador, que manda o humano
+   assistir a tudo do pais dele. E o passo seguinte da Fase 5. */
+function aplicarUniverso(S: any) {
+  const chave = WORLD_CONFIG.uniDoEstado(S);
+  /* A FOLHA DE CALENDARIO DA SALA. Vem no shared_state, carimbada por quem montou a temporada
+     (core.js: ensureCupCalendar) ja com o pacote do painel aplicado. E assim que um pais criado
+     no painel admin vale tambem no servidor, sem o servidor ter de ler pack_edits -- que seria
+     uma consulta por rodada e uma segunda porta para o mesmo dado.
+     Folha recusada pelo validador nao entra: fica a do repositorio, que e a que o cliente
+     tambem usaria (instalarCalendario aplica o mesmo criterio nos dois lados). */
+  if (S && S.calFolha && S.calFolha.pais === chave && S.calFolha.folha) {
+    const r = CALENDARIOS_API.instalarCalendario(chave, S.calFolha.folha, {});
+    if (!r.ok) console.warn('calendario da sala recusado (' + chave + '): ' + r.motivo);
+  }
+  const t = WORLD_CONFIG.tabelasDoUniverso(chave);
+  UNI_ATIVO = chave;
+  DIV_ORDER = t.ordem; DIVISION_SIZE = t.size; DIVISION_PROMO = t.promo; DIVISION_RELEG = t.releg;
+  DIVISION_FORCE_RANGE = t.forca; DIV_FORCE_CAP = t.cap;
+  return chave;
+}
 const RETIRE_CHANCE_BY_AGE: any = { 32: 0.11, 33: 0.24, 34: 0.40, 35: 0.56, 36: 0.71, 37: 0.83, 38: 0.92, 39: 0.97 };
-const BR_FIRST = ['Gabriel', 'Lucas', 'Matheus', 'Rafael', 'Bruno', 'Léo', 'Vitor', 'João', 'Pedro', 'Gustavo', 'Felipe', 'Diego', 'Rodrigo', 'Thiago', 'Wesley', 'Éverton', 'Caio', 'Igor', 'Vinícius', 'Douglas', 'Renato', 'Marcos', 'André', 'Fábio', 'Danilo', 'Kaio', 'Yuri', 'Alan', 'Juninho', 'Guilherme', 'Paulinho', 'Rennan', 'Éder', 'Wellington', 'Luan', 'Nathan', 'Richard', 'Kevin', 'Wanderson', 'Jonathan', 'Ronaldo', 'Ricardo', 'Fernando', 'Cristian', 'Emerson', 'Robson', 'Adriano', 'Cléber', 'Maicon', 'Otávio'];
-const BR_LAST = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Pereira', 'Lima', 'Costa', 'Ferreira', 'Almeida', 'Ribeiro', 'Rodrigues', 'Gomes', 'Martins', 'Barbosa', 'Rocha', 'Dias', 'Nascimento', 'Araújo', 'Cardoso', 'Teixeira', 'Moreira', 'Carvalho', 'Cavalcante', 'Mendes', 'Freitas', 'Vieira', 'Monteiro', 'Nunes', 'Correia', 'Machado', 'Fernandes', 'Ramos', 'Azevedo', 'Campos', 'Pinto', 'Cunha', 'Moraes', 'Farias', 'Batista', 'Andrade'];
+/* Os nomes de regen saem da folha (WORLD_CONFIG.NAME_POOLS), por pais. As listas do Brasil que
+   estavam aqui eram identicas as do cliente -- conferidas antes de mover -- entao nada muda para
+   quem ja joga; o que muda e que um regen ingles deixa de se chamar "Gabriel Silva". */
 const REGEN_ATTR_KEYS = ['fin', 'dri', 'vel', 'com', 'pos', 'pas', 'cab', 'agi', 'fis', 'res', 'vis', 'des', 'cru', 'ref', 'mao'];
 function sortTblT(t: any) { return Object.values(t || {}).sort((a: any, b: any) => b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id))); }
 function makeScheduleT(ids: string[]) {
@@ -1346,14 +2353,21 @@ function computeDivisionSwap(S: any) {
 }
 function ageForceFraction(a: number) { return a <= 22 ? 0.30 : a <= 29 ? 0.65 : a <= 32 ? 0.50 : 0.35; }
 function rollAgedForce(R: any, range: number[], age: number) { const t = Math.max(0, Math.min(1, ageForceFraction(age) + (R.random() * 2 - 1) * 0.28)); return Math.round(range[0] + t * (range[1] - range[0])); }
-function pickProcName(R: any, used: Set<string>) { let nm = '', tr = 0; do { const fn = BR_FIRST[Math.floor(R.random() * BR_FIRST.length)], ln = BR_LAST[Math.floor(R.random() * BR_LAST.length)]; nm = fn + ' ' + ln + (tr < 1 ? '' : ' ' + BR_LAST[Math.floor(R.random() * BR_LAST.length)]); tr++; } while (used.has(nm) && tr < 400); used.add(nm); return nm; }
+function pickProcName(R: any, used: Set<string>) {
+  const pool = WORLD_CONFIG.nomesDoPais(UNI_ATIVO); const PN = pool.first, SN = pool.last;
+  let nm = '', tr = 0;
+  do { const fn = PN[Math.floor(R.random() * PN.length)], ln = SN[Math.floor(R.random() * SN.length)];
+       nm = fn + ' ' + ln + (tr < 1 ? '' : ' ' + SN[Math.floor(R.random() * SN.length)]); tr++;
+  } while (used.has(nm) && tr < 400);
+  used.add(nm); return nm;
+}
 function makeRegen(S: any, pos: string, div: string, seedExtra: string, used: Set<string>) {
   const range = DIVISION_FORCE_RANGE[div] || DIVISION_FORCE_RANGE.D; const R = ME.makeRng(ME.hashSeed('retire-repl', (S.seed || 1), S.season, div, pos, seedExtra));
   const age = Math.round(18 + R.random() * 4); const rawF = rollAgedForce(R, range, age); const f = Math.min(rbForce(rawF, div), DIV_FORCE_CAP[div] || 99);
   const L = Math.max(1, Math.min(20, Math.round(6 + (rawF - 45) * 13 / 46))); const attr: any = {}; REGEN_ATTR_KEYS.forEach((k) => attr[k] = L);
   const mv = rbValue(f, age);
   S._pidSeq = (S._pidSeq || 0) + 1;   // pid único (identidade por ID): continua a sequência do save
-  return { n: pickProcName(R, used), pid: 'p' + S._pidSeq, p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: 'BRA-' + div, mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: 'Brasil', ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
+  return { n: pickProcName(R, used), pid: 'p' + S._pidSeq, p: pos, s: pos, f, rawF, _rb: 1, _div: div, age, lg: WORLD_CONFIG.codigoDaLiga(UNI_ATIVO, div), mv, ft: R.random() < 0.8 ? 'R' : 'L', num: String(Math.floor(R.random() * 40) + 1), nat: WORLD_CONFIG.nacionalidadeDe(UNI_ATIVO), ag: '—', moral: 70, energy: 100, attr, f0: rawF, mv0: mv, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
 }
 /* motivos de aposentadoria (item 5) — sabor. Cada aposentadoria escolhe um motivo determinístico
    (mesma seed do sorteio de aposentar), com peso por idade/valor: velho tende à idade; craque rico
@@ -1396,6 +2410,191 @@ function makeBracketT(ids: string[], seedNum: number, clubOverall: any) {
   const ties: any[] = []; for (let i = 0; i < play.length; i += 2) ties.push({ h: play[i], a: play[i + 1], hg: null, ag: null, winner: null, events: [] });
   return { round: 1, roundsTotal: Math.log2(size), byeTeams: byeTeams.slice(), ties, pendingByes: byeTeams.slice(), champion: null, eliminated: {}, history: [] };
 }
+/* ===== LIGAS DE FUNDO NO SERVIDOR (item 4, aprovado 21/08) =====
+   Todo país com bundle roda de fundo: tabela por quick-sim (overall + fator casa) e artilharia
+   estatística nos jogadores reais (pool compacto). O servidor NÃO tem os bundles — o pacote
+   (S.bgLeagues: divs/ov/pool/elencos por país) é semeado pelo CLIENTE (bgInitCountry no core):
+   sala nova traz no estado inicial; sala antiga recebe via last_result.bgSeed (uma vez).
+   É desta classificação real que saem as vagas continentais de cada país — o fim da
+   reciclagem congelada — e o arquivo ganha campeão/artilheiro/tabela por país. */
+const CONMEBOL_LIB_SLOTS: any = { 'Argentina': 6, 'Colômbia': 4, 'Chile': 3, 'Uruguai': 3, 'Peru': 3, 'Equador': 2, 'Paraguai': 2, 'Venezuela': 2, 'Bolívia': 1, 'Brasil': 6 };
+const CONMEBOL_SUL_SLOTS: any = { 'Argentina': 5, 'Colômbia': 4, 'Chile': 3, 'Uruguai': 3, 'Peru': 3, 'Equador': 2, 'Paraguai': 2, 'Venezuela': 2, 'Bolívia': 2, 'Brasil': 6 };
+function bgSortRows(t: any) { return Object.values(t || {}).sort((a: any, b: any) => b.Pts - a.Pts || (b.GF - b.GA) - (a.GF - a.GA) || b.GF - a.GF || String(a.id).localeCompare(String(b.id))); }
+function bgTopDivKey(L: any) {
+  try { const cfg = WORLD_CONFIG.uniCfg(L.uniKey || L.universe); if (cfg && cfg.order && cfg.order[0]) return cfg.order[0]; } catch (_e) {}
+  return Object.keys(L.divs || {})[0];
+}
+/* a classificação final da divisão de topo de um país de fundo — null se o país nem rodou */
+function bgTopStandingsT(S: any, co: string) {
+  const L = S.bgLeagues && S.bgLeagues[co]; if (!L) return null;
+  const d = L.divs && L.divs[bgTopDivKey(L)]; if (!d || !d.table) return null;
+  const rows = bgSortRows(d.table);
+  if (!rows.length || !(rows[0] as any).P) return null;
+  return rows.map((x: any) => x.id);
+}
+/* uma rodada de todas as ligas de fundo — gêmeo do advanceBgLeagues do cliente */
+function advanceBgLeaguesT(S: any, rIdx: number) {
+  Object.keys(S.bgLeagues || {}).forEach((country) => {
+    const L = S.bgLeagues[country];
+    Object.keys(L.divs || {}).forEach((divKey) => {
+      const d = L.divs[divKey];
+      const sched = (d.sched && d.sched.length) ? d.sched : makeScheduleT((d.clubIds || []).slice());
+      if (!sched.length) return;
+      const fx = sched[rIdx % sched.length] || [];
+      fx.forEach((pair: any) => {
+        const hId = pair[0], aId = pair[1]; if (hId == null || aId == null) return;
+        const T = d.table; if (!T[hId] || !T[aId]) return;
+        const R = ME.makeRng(ME.hashSeed(S.seed, 'bg', country, divKey, rIdx, hId, aId) >>> 0);
+        const ovDe = (id: string) => (L.ov && L.ov[id] != null) ? L.ov[id] : 70;
+        const ho = ovDe(hId), ao = ovDe(aId);
+        const hExp = Math.max(0.2, 1.35 + (ho - ao) * 0.05), aExp = Math.max(0.2, 1.05 + (ao - ho) * 0.05);
+        const pois = (lam: number) => { const Lm = Math.exp(-lam); let k = 0, p = 1; do { k++; p *= R.random(); } while (p > Lm); return k - 1; };
+        const hg = Math.min(7, pois(hExp)), ag = Math.min(7, pois(aExp));
+        T[hId].P++; T[aId].P++; T[hId].GF += hg; T[hId].GA += ag; T[aId].GF += ag; T[aId].GA += hg;
+        if (hg > ag) { T[hId].W++; T[aId].L++; T[hId].Pts += 3; }
+        else if (hg < ag) { T[aId].W++; T[hId].L++; T[aId].Pts += 3; }
+        else { T[hId].D++; T[aId].D++; T[hId].Pts++; T[aId].Pts++; }
+        // artilharia estatística nos jogadores reais (pool do init), determinística pela seed
+        const Rg = ME.makeRng(ME.hashSeed(S.seed, 'bggol', country, divKey, rIdx, hId, aId) >>> 0);
+        const marca = (clubId: string, n: number) => {
+          const pool = L.pool && L.pool[clubId]; if (!pool || !pool.length || n <= 0) return;
+          for (let i = 0; i < n; i++) {
+            let best: any = pool[0], bestW = -1;
+            pool.forEach((e: any) => { const w = (e[1] || 50) * Rg.random(); if (w > bestW) { bestW = w; best = e; } });
+            if (best) { L.scorers = L.scorers || {}; L.allTimeScorers = L.allTimeScorers || {};
+              L.scorers[best[0]] = (L.scorers[best[0]] || 0) + 1; L.allTimeScorers[best[0]] = (L.allTimeScorers[best[0]] || 0) + 1; }
+          }
+        };
+        marca(hId, hg); marca(aId, ag);
+      });
+    });
+  });
+}
+/* virada das ligas de fundo — gêmeo do rollBgLeaguesSeason do cliente: história (campeão +
+   artilheiro), promoção/rebaixamento pela config do país, tabelas e artilharia zeradas.
+   O pool/elenco NÃO é renovado aqui (só o cliente tem os bundles) — promovido de 2ª divisão
+   fica sem pool até um cliente re-semear; a tabela dele anda normal pelo overall. */
+function rollBgLeaguesSeasonT(S: any) {
+  Object.keys(S.bgLeagues || {}).forEach((country) => {
+    const L = S.bgLeagues[country];
+    let cfg: any = null; try { cfg = WORLD_CONFIG.uniCfg(L.uniKey || country); } catch (_e) {}
+    const ordem: string[] = (cfg && cfg.order) || Object.keys(L.divs || {});
+    const top = ordem[0]; if (!top || !L.divs || !L.divs[top]) return;
+    const rows = bgSortRows(L.divs[top].table);
+    const arty = Object.entries(L.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0];
+    L.history = L.history || [];
+    L.history.push({ season: L.season, champId: rows[0] && (rows[0] as any).id,
+      artilheiro: arty ? (arty[0] + ' (' + arty[1] + ')') : '—' });
+    if (ordem.length > 1 && cfg) {
+      const finalIds: any = {}; ordem.forEach((d) => finalIds[d] = bgSortRows((L.divs[d] || {}).table).map((x: any) => x.id));
+      const promoted: any = {}, relegated: any = {}, stayed: any = {};
+      ordem.forEach((d) => { const ids = finalIds[d] || []; const rN = (cfg.releg && cfg.releg[d]) || 0, pN = (cfg.promo && cfg.promo[d]) || 0;
+        promoted[d] = pN > 0 ? ids.slice(0, pN) : []; relegated[d] = rN > 0 ? ids.slice(ids.length - rN) : []; stayed[d] = ids.slice(pN, Math.max(pN, ids.length - rN)); });
+      ordem.forEach((d, i) => { const above = ordem[i - 1], below = ordem[i + 1];
+        let list = (stayed[d] || []).slice(); if (above) list = list.concat(relegated[above]); if (below) list = list.concat(promoted[below]);
+        const ids = list.slice(0, (cfg.size && cfg.size[d]) || list.length);
+        const table: any = {}; ids.forEach((id: string) => table[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+        L.divs[d] = { clubIds: ids, table }; });
+    } else {
+      const d = top; const ids = (L.divs[d].clubIds || []).slice();
+      const table: any = {}; ids.forEach((id: string) => table[id] = { id, P: 0, W: 0, D: 0, L: 0, GF: 0, GA: 0, Pts: 0 });
+      L.divs[d].table = table; delete L.divs[d].sched;
+    }
+    L.scorers = {}; L.season = (S.season || 1) + 1;
+  });
+}
+/* materializa um clube de fundo que se classificou às continentais, a partir do elenco
+   compacto do pacote (bgInitCountry no cliente). Sem elenco no pacote, devolve false —
+   o build() da copa o deixa de fora e o fecho em múltiplo de 4 cobre o buraco. */
+function materializeBgClubT(S: any, co: string, id: string) {
+  if (S.squads[id]) return true;
+  const L = S.bgLeagues && S.bgLeagues[co]; const raw = L && L.elencos && L.elencos[id];
+  if (!raw || !raw.length) return false;
+  S._pidSeq = S._pidSeq || 0;
+  S.squads[id] = raw.map((e: any) => { S._pidSeq++;
+    const pl: any = { n: e[0], pid: 'p' + S._pidSeq, p: e[1] || 'MC', s: e[2] || 'MID', f: e[3] || 50, rawF: e[3] || 50, age: e[4] || 26, mv: e[5] || 1e6, ft: 'R', num: '', nat: '', ag: '—', moral: 70, energy: 100, stats: { r3: [], g3: [], apps: 0, goals: 0, cs: 0 } };
+    pl.attr = genAttrsT(pl);   // atributos de verdade (não {}) — ver genAttrsT acima
+    return pl; });
+  S.clubPool = S.clubPool || {}; if (!S.clubPool[id]) S.clubPool[id] = { id };
+  S.clubOverall[id] = (L.ov && L.ov[id]) || Math.round(S.squads[id].reduce((s: number, p: any) => s + p.f, 0) / S.squads[id].length);
+  return true;
+}
+/* a foto dos países de fundo pro arquivo — lida ANTES do rollBgLeaguesSeasonT zerar tudo */
+function archivePaisesT(S: any) {
+  const paises: any = {};
+  Object.keys(S.bgLeagues || {}).forEach((co) => {
+    try {
+      const L = S.bgLeagues[co]; const d = L.divs && L.divs[bgTopDivKey(L)]; if (!d) return;
+      const rows = bgSortRows(d.table).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts }));
+      if (!rows.length || !rows[0].P) return;
+      const arty = Object.entries(L.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0];
+      paises[co] = { champ: rows[0].id, artilheiro: arty ? { nome: arty[0], gols: arty[1] } : null, table: rows };
+    } catch (_e) {}
+  });
+  return paises;
+}
+/* ===== O ARQUIVO PERMANENTE DA TEMPORADA (S.archive) =====
+   O _prevSeason é um buffer de UMA temporada — a virada seguinte o sobrescreve, e da
+   temporada N em N+2 já não sobrava classificação nenhuma. O archive é append-only e
+   nunca é tocado por reset algum: uma entrada por temporada fechada, com as tabelas
+   finais de todas as divisões, a artilharia (top 25) e cada copa em forma compacta
+   (campeão, tabelas finais dos grupos e os confrontos do mata-mata, SEM os `events`
+   de narração — é neles que mora o peso). Viaja no shared_state, então todo assento
+   da sala lê o mesmo arquivo. O cliente tem o gêmeo em core.js (archiveSeason). */
+function archiveCupT(c: any) {
+  if (!c) return null;
+  const br = (c.champion !== undefined) ? c : (c.bracket || null);
+  const out: any = { champion: (br && br.champion) || null };
+  if (c.group && c.group.groups) {
+    out.groups = {};
+    Object.keys(c.group.groups).forEach((g) => {
+      out.groups[g] = sortTblT(((c.group.groups[g] || {}).table) || {}).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts }));
+    });
+  }
+  if (br) {
+    const limpa = (ties: any[]) => (ties || []).map((t: any) => ({ h: t.h, a: t.a, hg: t.hg, ag: t.ag, winner: t.winner || null, pens: t.pens || null }));
+    // uma entrada por rodada, sem duplicar a que ainda vive em br.ties quando ela já foi pro history
+    const porRodada: any = {};
+    (br.history || []).forEach((h: any) => { porRodada[h.round] = limpa(h.ties); });
+    if (br.ties && br.ties.length && !porRodada[br.round]) porRodada[br.round] = limpa(br.ties);
+    out.rounds = Object.keys(porRodada).map(Number).sort((a, b) => a - b).map((r) => ({ round: r, ties: porRodada[r] }));
+  }
+  return out;
+}
+/* o artilheiro de cada competição, tirado do livro por competição: {comp:{nome,gols}} */
+function topPorCompT(scorersByComp: any) {
+  const out: any = {};
+  Object.keys(scorersByComp || {}).forEach((k) => {
+    const e = Object.entries(scorersByComp[k] || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0];
+    if (e) out[k] = { nome: e[0], gols: e[1] };
+  });
+  return out;
+}
+function archiveSeasonT(S: any, tables: any) {
+  S.archive = S.archive || [];
+  const season = S.season || 1;
+  if (S.archive.some((a: any) => a && a.season === season)) return;   // idempotente
+  const scorers = Object.entries(S.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 25);
+  const cups: any = {};
+  Object.keys(S.cups || {}).forEach((k) => { const a = archiveCupT(S.cups[k]); if (a) cups[k] = a; });
+  S.archive.push({ season, tables, scorers, cups, artPorComp: topPorCompT(S.scorersByComp), paises: archivePaisesT(S) });
+}
+/* RESGATE: sala que virou a temporada ANTES do archive existir ainda tem o _prevSeason
+   da temporada recém-fechada — a próxima virada o sobrescreveria e aí sim o dado morre.
+   Roda a cada pedido (idempotente): se o ano do _prevSeason não está no archive, entra
+   agora. Só os grupos das continentais não são recuperáveis (o _prevSeason guarda apenas
+   o mata-mata delas); tabelas de liga, artilharia e copa nacional entram inteiros. */
+function backfillArchiveT(S: any) {
+  const ps = S._prevSeason; if (!ps || ps.season == null) return;
+  S.archive = S.archive || [];
+  if (S.archive.some((a: any) => a && a.season === ps.season)) return;
+  const scorers = Object.entries(ps.scorers || {}).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 25);
+  const cups: any = {};
+  const nac = COPA_NACIONAL_KEY();
+  if (nac && ps.copaBrasil) { const a = archiveCupT(ps.copaBrasil); if (a) cups[nac as string] = a; }
+  Object.keys(ps.cups || {}).forEach((k) => { if (cups[k]) return; const a = archiveCupT(ps.cups[k]); if (a) cups[k] = a; });
+  S.archive.push({ season: ps.season, tables: ps.tables || {}, scorers, cups, artPorComp: topPorCompT(ps.scorersByComp) });
+}
 function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // 0) caixa dos clubes da CPU — ANTES do swap de divisões, com as tabelas/elencos do ano que fechou
   cpuSeasonFinances(S, humans || new Set<string>());
@@ -1407,7 +2606,7 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // cliente a partir daqui (acha a própria divisão/posição por clubId). Ver computeMyPrevSeasonPrizes.
   const _prevTables: any = {};
   DIV_ORDER.forEach((d) => { const t = (d === S.division) ? S.table : ((S.otherDivs[d] || {}).table || {}); _prevTables[d] = sortTblT(t).map((x: any) => ({ id: x.id, P: x.P, W: x.W, D: x.D, L: x.L, GF: x.GF, GA: x.GA, Pts: x.Pts })); });
-  S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && S.cups.copaBrasil) || null };
+  S._prevSeason = { season: (S.season || 1), tables: _prevTables, scorers: S.scorers || {}, copaBrasil: (S.cups && COPA_NACIONAL_KEY() && S.cups[COPA_NACIONAL_KEY() as string]) || null };
   // AS COPAS CONTINENTAIS TAMBÉM PRECISAM SOBREVIVER À VIRADA. Só a Copa do Brasil era fotografada
   // aqui, então quem era campeão da Libertadores ou da Sul-Americana perdia a taça na virada: o
   // cliente registra os títulos a partir deste snapshot (registerPrevSeasonTitles, core.js) e
@@ -1418,10 +2617,15 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
     const limpaTies = (ties: any[]) => (ties || []).map((t: any) => { const { events, ...resto } = t; return resto; });
     return { ...b, ties: limpaTies(b.ties), history: (b.history || []).map((h: any) => ({ ...h, ties: limpaTies(h.ties) })) }; };
   S._prevSeason.cups = {};
-  ['libertadores', 'sulamericana'].forEach((k) => {
+  GRUPO_KEYS().forEach((k) => {
     const c = S.cups && S.cups[k]; if (!c) return;
     S._prevSeason.cups[k] = semEventos((c.champion !== undefined) ? c : c.bracket);
   });
+  // o livro de gols POR COMPETIÇÃO viaja na foto da virada — é dele que o cliente tira o
+  // artilheiro de cada competição (artPorComp) no registerPrevSeasonTitles
+  S._prevSeason.scorersByComp = S.scorersByComp || {};
+  // arquivo permanente da temporada que fecha — antes de qualquer reset (ver archiveSeasonT)
+  archiveSeasonT(S, _prevTables);
   // acumula artilharia histórica + Historial de carreira ANTES do reset — porte fiel do
   // mesmo trecho em endSeason() (core.js). Sem isto, "melhores marcadores de sempre" e o
   // Historial (jogos/cartões/lesões) do jogador perdiam TUDO a cada virada de temporada na
@@ -1435,7 +2639,8 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // wonCup só cobre a Copa do Brasil (única copa materializada com bracket no servidor —
   // Libertadores/Sul-Americana são só overall agregado em background, sem chave própria aqui).
   const tblDiv = _prevTables[S.division] || [];
-  const wonCup = (cid: string) => !!(S.cups && S.cups.copaBrasil && S.cups.copaBrasil.champion === cid);
+  const nacW = COPA_NACIONAL_KEY();
+  const wonCup = (cid: string) => !!(nacW && S.cups && S.cups[nacW] && S.cups[nacW].champion === cid);
   Object.keys(S.squads).forEach((cid) => {
     const pos = tblDiv.findIndex((t: any) => t.id === cid) + 1; // 1-based; 0 se o clube não estava nesta tabela
     const wonDivision = tblDiv[0] && tblDiv[0].id === cid;
@@ -1464,11 +2669,14 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // acumula clubes continentais/de background materializados ao longo das temporadas (Libertadores/
   // Sul-Americana, mercado), que não disputam a Copa do Brasil e poluíam a chave.
   const cbClubs = DIV_ORDER.reduce((acc: string[], d) => acc.concat(newDiv[d]), [] as string[]);
-  S.cups = S.cups || {}; S.cups.copaBrasil = makeBracketT(cbClubs, ME.hashSeed(S.seed, 'copaBrasil', S.season), S.clubOverall); // 5) copa nova
+  S.cups = S.cups || {};
+  const nacNova = COPA_NACIONAL_KEY();   // pais sem copa nacional nao ganha uma de presente
+  if (nacNova) S.cups[nacNova] = makeBracketT(cbClubs, ME.hashSeed(S.seed, nacNova, S.season), S.clubOverall); // 5) copa nova
   // continentais da temporada nova: vagas brasileiras pela CLASSIFICAÇÃO FINAL da Série A que
   // acabou (_prevTables, capturado acima antes do reset das tabelas) — ver rebuildContinentalCups.
   rebuildContinentalCups(S, (_prevTables[DIV_ORDER[0]] || []).map((x: any) => x.id));
-  S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.negos = []; S.finished = false; // 6) reset de temporada
+  rollBgLeaguesSeasonT(S);   // vira a temporada dos países de fundo (DEPOIS do rebuild ler as tabelas finais)
+  S.round = 0; S.week = 1; S.day = 1; S.results = []; S.scorers = {}; S.scorersByComp = {}; S.negos = []; S.finished = false; // 6) reset de temporada
   buildCupCalendarS(S);   // 6b) calendário de copa da temporada NOVA (as copas acima são outras)
   Object.keys(S.squads).forEach((cid) => S.squads[cid].forEach((p: any) => { p.moral = 70; p.energy = 100; p.suspended = 0; p.injuredMatches = 0; p.stats = { r3: [], g3: [], apps: 0, goals: 0, cs: 0, yellows: 0, reds: 0, injuries: 0 }; }));
   S._roundIncidents = {};
@@ -1509,7 +2717,19 @@ function applyHumanTransfers(S: any, transfers: any[], humans?: Set<string>) {
       return;
     }
     const src = S.squads[t.from];
-    if (!Array.isArray(src)) return;
+    if (!Array.isArray(src)) {
+      /* CLUBE DE ORIGEM FORA DO MUNDO (mercado exterior, 21/08): o comprador humano navegou o
+         bundle no cliente e o clube nunca foi materializado aqui. O jogador viaja INTEIRO no
+         payload (t.player, ver recordNetTransfer) — adiciona ao destino, idempotente, mesmo
+         caminho do 'BASE'. Sem retrato não há o que aplicar (cliente antigo): nada a fazer. */
+      const dstF = t.to ? S.squads[t.to] : null;
+      if (Array.isArray(dstF) && t.player) {
+        if (dstF.some((x: any) => match(x, t) || (t.player.pid != null && x.pid === t.player.pid) || x.n === t.player.n)) return;
+        dstF.push(t.player);
+        if (dstF.length) S.clubOverall[t.to] = Math.round(dstF.reduce((s: number, x: any) => s + x.f, 0) / dstF.length);
+      }
+      return;
+    }
     const fee = Math.round(Number(t.fee) || 0);
 
     if (!t.to) {                                                  // saída do mundo (multa rescisória)
@@ -1746,34 +2966,30 @@ function cpuRoundCash(S: any, humans: Set<string>) {
     OPEX,
   });
 }
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any) {
-  const seed = S.seed, round = S.round;
-  applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
-  applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
-  applyHumanCounters(S, humanCounters || []);                     // 0d) contrapropostas (vendedor -> comprador)
-  applyHumanOfferDrops(S, humanOfferDrops || []);                 // 0e) baixas: proposta aceita/recusada/contraposta some do mundo
-  // 0f) COPA ANTES DA LIGA, NA MESMA SEMANA — porte fiel do core.js (ver playRound). Isto rodava
-  //     depois do S.round++, então a copa da semana N era resolvida junto da rodada de liga da
-  //     semana N-1 e o tique ficava numerado uma semana à frente de onde a partida era jogada.
-  //     Agora avança aqui, com a semana CORRENTE, antes das partidas de liga. Cliente e servidor
-  //     precisam concordar nesta ordem: é ela que decide qual rodada de copa pertence a qual semana.
-  //     SEMANA EM DOIS ESTÁGIOS: a quarta tem resolução própria, então aqui as copas normalmente já
-  //     foram avançadas e este passo vira no-op. A condição é "a quarta NÃO rodou", não "não existe
-  //     estágio": roundStage==='cup' significa que a quarta ficou pendente (cliente antigo, valve de
-  //     segurança do cliente, host que caiu antes de fechá-la) — nesse caso a liga avança as copas
-  //     igual sempre, e a semana se resolve de qualquer jeito. É o que impede a divisão em dois
-  //     estágios de virar um caminho onde a copa simplesmente não acontece.
-  if (S.roundStage == null || S.roundStage === 'cup') advancePendingCups(S, cupResultByFx || {}, humanClubs);
-  applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
-  const fixtures = (S.sched[round] || []);
-  advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
-  const humanEvents: any[] = [];                                  // F3.1: incidentes de TODAS as partidas humanas (qualquer divisão), não só a principal
-  Object.keys(humanResultByFx).forEach((k: string) => { humanEvents.push(...((humanResultByFx[k] || {}).events || [])); });
-  applyMatchIncidents(S, humanEvents);                            // 2) incidentes NOVOS (só partidas humanas jogadas ao vivo)
-  const rateR = ME.makeRng(ME.hashSeed(seed, round, "rate"));     // RNG única das notas da rodada (determinística)
-  // súmula da rodada por clube: quem entrou em campo e por quantos minutos (uma partida por
-  // clube por rodada). Alimenta nota, moral, energia e o "jogou" da evolução.
-  const capsByClub: Record<string, any> = {}, minsByClub: Record<string, number> = {};
+/* ===== A PIRAMIDE DE UM PAIS, RESOLVIDA =====
+   Extraido de resolveLeagueRound sem mudar uma virgula do que faz: e o passo 3 (as partidas da
+   divisao do jogador e o que elas escrevem na tabela). O que muda e de ONDE vem a tabela e o
+   calendario -- do MUNDO daquele pais, nao de S.
+
+   PORQUE ISTO EXISTE. Num mundo com humanos em paises diferentes, cada pais tem a sua piramide e
+   as partidas dele TEM de acontecer de verdade: a regra do espectador manda o treinador assistir
+   a tudo do pais dele, e nao da para assistir ao que foi resolvido por uma simulacao de fundo.
+   Com um pais vivo so -- que e toda sala existente -- o comportamento e identico ao de antes:
+   o mundo da ancora E o proprio S.
+
+   O que e do JOGO INTEIRO continua em S e continua partilhado: elencos, caixa, propostas. Um
+   jogador transferido do Fluminense para o Chelsea e o mesmo objeto nos dois mundos -- e por isso
+   que `squads` nunca entra no mundo. */
+function resolverPiramideDoPais(S: any, M: any, ctx: any) {
+  const round = ctx.round, seed = ctx.seed;
+  const humanResultByFx = ctx.humanResultByFx, humanClubs = ctx.humanClubs;
+  const humanXI = ctx.humanXI, humanTactic = ctx.humanTactic, preMatches = ctx.preMatches;
+  const rateR = ctx.rateR, capsByClub = ctx.capsByClub, minsByClub = ctx.minsByClub;
+  /* AS COPAS DESTE PAIS, ANTES DAS PARTIDAS DELE -- mesma ordem da ancora (copa na quarta, liga
+     no fim de semana). Enquanto isto rodava so na ancora, a Champions do treinador ingles nunca
+     avancava: ele veria a liga andar e a copa dele parada para sempre. */
+  if (ctx.avancarCopas) advancePendingCups(S, ctx.cupResultByFx || {}, humanClubs, M);
+  const fixtures = (M.sched && M.sched[round]) || [];
   fixtures.forEach((fx: any) => {                                 // 3) resultados: humano=submetido, CPU=motor
     const h = fx[0], a = fx[1]; if (h == null || a == null) return; const k = h + "-" + a;
     let hg: number, ag: number, scorers: any[]; let perf: any = null;
@@ -1797,7 +3013,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
     }
     capsByClub[h] = (caps && caps.H) || null; capsByClub[a] = (caps && caps.A) || null;
     minsByClub[h] = matchMinutes; minsByClub[a] = matchMinutes;
-    applyResultT(S.table, h, a, hg, ag); recordScorers(S, scorers);
+    applyResultT(M.table, h, a, hg, ag); recordScorers(S, scorers, (M.division || S.division));
     // 3b) súmula: nota + JOGO/gol/clean sheet de quem entrou em campo, dos dois lados (ver ratePlayersS)
     const xiH = S.squads[h] ? ME.resolveXI(S.squads[h], humanClubs.has(h) ? (humanXI[h] || ME.autoXINames(S.squads[h])) : null) : null;
     const xiA = S.squads[a] ? ME.resolveXI(S.squads[a], humanClubs.has(a) ? (humanXI[a] || ME.autoXINames(S.squads[a])) : null) : null;
@@ -1808,7 +3024,62 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
     // 3c) moral pós-jogo — só clube humano (mesmo alcance do solo, ver postMatchMoraleS)
     if (humanClubs.has(h)) postMatchMoraleS(S, h, capsByClub[h] ? poolH : xiH, hg, ag, scorers, capsByClub[h], matchMinutes);
     if (humanClubs.has(a)) postMatchMoraleS(S, a, capsByClub[a] ? poolA : xiA, ag, hg, scorers, capsByClub[a], matchMinutes);
-    S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers });
+    S.results.push({ round: round, h: h, a: a, hg: hg, ag: ag, scorers: scorers, pais: M.pais });
+  });
+  /* AS DIVISOES DE BAIXO DESTE PAIS. Rodava uma vez so, sobre a ancora -- a Championship ficava
+     parada enquanto a Premier jogava, e so se daria por isso na virada de temporada, quando ela
+     subisse e descesse clubes com uma tabela de zeros. */
+  advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, M);
+}
+
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any) {
+  const seed = S.seed, round = S.round;
+  applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
+  applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
+  applyHumanCounters(S, humanCounters || []);                     // 0d) contrapropostas (vendedor -> comprador)
+  applyHumanOfferDrops(S, humanOfferDrops || []);                 // 0e) baixas: proposta aceita/recusada/contraposta some do mundo
+  // 0f) COPA ANTES DA LIGA, NA MESMA SEMANA — porte fiel do core.js (ver playRound). Isto rodava
+  //     depois do S.round++, então a copa da semana N era resolvida junto da rodada de liga da
+  //     semana N-1 e o tique ficava numerado uma semana à frente de onde a partida era jogada.
+  //     Agora avança aqui, com a semana CORRENTE, antes das partidas de liga. Cliente e servidor
+  //     precisam concordar nesta ordem: é ela que decide qual rodada de copa pertence a qual semana.
+  //     SEMANA EM DOIS ESTÁGIOS: a quarta tem resolução própria, então aqui as copas normalmente já
+  //     foram avançadas e este passo vira no-op. A condição é "a quarta NÃO rodou", não "não existe
+  //     estágio": roundStage==='cup' significa que a quarta ficou pendente (cliente antigo, valve de
+  //     segurança do cliente, host que caiu antes de fechá-la) — nesse caso a liga avança as copas
+  //     igual sempre, e a semana se resolve de qualquer jeito. É o que impede a divisão em dois
+  //     estágios de virar um caminho onde a copa simplesmente não acontece.
+  /* AS COPAS PASSARAM A SER POR PAIS (ver resolverPiramideDoPais). Aqui fica so a DECISAO de se
+     elas avancam nesta chamada -- a mesma de sempre: a quarta dedicada ja as avancou, ou nao. */
+  const avancarCopas = (S.roundStage == null || S.roundStage === 'cup');
+  applyHumanMorale(S, moraleByClub || {});                        // 0b) efeito da coletiva na moral do elenco
+  const fixtures = (S.sched[round] || []);
+  advancePlayerAvailability(S);                                   // 1) cumpre suspensões/lesões
+  const humanEvents: any[] = [];                                  // F3.1: incidentes de TODAS as partidas humanas (qualquer divisão), não só a principal
+  Object.keys(humanResultByFx).forEach((k: string) => { humanEvents.push(...((humanResultByFx[k] || {}).events || [])); });
+  applyMatchIncidents(S, humanEvents);                            // 2) incidentes NOVOS (só partidas humanas jogadas ao vivo)
+  const rateR = ME.makeRng(ME.hashSeed(seed, round, "rate"));     // RNG única das notas da rodada (determinística)
+  // súmula da rodada por clube: quem entrou em campo e por quantos minutos (uma partida por
+  // clube por rodada). Alimenta nota, moral, energia e o "jogou" da evolução.
+  const capsByClub: Record<string, any> = {}, minsByClub: Record<string, number> = {};
+  /* ===== UM MUNDO POR PAIS VIVO =====
+     `paisesVivos(S)` da os paises que existem por inteiro. O da ANCORA e o proprio S (a piramide
+     que sempre esteve aqui); os outros vivem em `S.mundos[pais]`, com a mesma forma
+     {division, sched, table, otherDivs}. Enquanto ninguem cria S.mundos -- que e o caso de toda
+     sala existente -- este laco da exatamente uma volta, no proprio S, e o resultado e
+     byte-identico ao de antes. E essa a rede: a capacidade de iterar entra agora, sem mexer no
+     que ja esta no ar. */
+  const ctxPais = { round, seed, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, rateR, capsByClub, minsByClub, avancarCopas, cupResultByFx };
+  const ancora = WORLD_CONFIG.uniDoEstado(S);
+  WORLD_CONFIG.paisesVivos(S).forEach((pais: string) => {
+    if (pais === ancora) { resolverPiramideDoPais(S, { pais, sched: S.sched, table: S.table, division: S.division, otherDivs: S.otherDivs, cups: S.cups, cupCalendar: S.cupCalendar }, ctxPais); return; }
+    const m = S.mundos && S.mundos[pais];
+    if (!m || !m.sched) { console.warn('pais vivo sem mundo proprio (' + pais + '): roda como fundo nesta rodada'); return; }
+    /* ATENCAO ao proximo passo: aqui resolve-se a DIVISAO DE TOPO deste pais. As outras divisoes
+       dele ainda nao andam -- `advanceOtherDivs` roda uma vez so, sobre a ancora (passo 4c). Quem
+       for ligar o segundo mundo tem de tratar disso, senao a Championship fica parada enquanto a
+       Premier joga, e ninguem repara ate a virada de temporada. */
+    resolverPiramideDoPais(S, Object.assign({ pais }, m), ctxPais);
   });
   const Rr = ME.makeRng(ME.hashSeed(seed, round, "post"));        // 4) energia/moral
   for (const cid in S.squads) for (const p of S.squads[cid]) { p.energy = clampN((p.energy || 100) + Rr.rnd(6, 16), 0, 100); p.moral = clampN((p.moral || 70) + (70 - (p.moral || 70)) * 0.08, 0, 100); }
@@ -1822,7 +3093,8 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
     });
   });
   advanceDevelopment(S, humanClubs, humanXI, capsByClub);        // 4b) evolução/declínio dos jogadores
-  advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches); // 4c) outras divisões (CPU + override humano onde houver)
+  // 4c) as outras divisões passaram a ser resolvidas DENTRO do passo de cada país
+  advanceBgLeaguesT(S, round);                                    // 4d) as ligas de fundo de TODOS os países andam junto (item 4)
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   cpuRoundCash(S, humanClubs);                                    // 6) caixa dos rivais anda TODA rodada (ver WR.cpuCaixaRodada)
   cpuMarketRound(S, humanClubs);                                  // 6a) mercado entre clubes da CPU (ver WR.cpuMarket)
@@ -1837,20 +3109,40 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
      junto com a gravação do estado, senão o ponteiro chegaria ao fim do plano com a temporada
      ainda correndo (foi exatamente assim que a final da Copa do Brasil ficou sem dia). */
   if (Array.isArray(S.sched) && S.round >= S.sched.length) {
+    /* MESMA CONTA DO CLIENTE (ver cupRodadasQueFaltam/copasPendentes em core.js). A antiga era
+       `total da competição − vagas no calendário`, com as vagas contadas desde o começo da
+       temporada — ou seja, contava também as JÁ GASTAS. Uma copa que perdeu tiques pelo caminho
+       chegava ao fim devendo a FINAL com o calendário aparentemente cheio: `faltam` dava 0/1, a
+       prorrogação não criava dia nenhum e a temporada virava sem campeão, sem final e sem
+       cerimônia. Agora conta as rodadas que ainda NÃO foram jogadas e desconta só os dias
+       marcados DAQUI PARA A FRENTE. */
+    const agora = S.round || 0;
     const pendentes = Object.keys(S.cups || {}).map((key) => {
       const c = S.cups[key]; if (!c) return null;
       const b = (c.champion !== undefined) ? c : c.bracket;
-      if (b && cupIsFinished(b)) return null;
-      const reservadas = ((S.cupCalendar && S.cupCalendar[key]) || []).length;
-      return { key, faltam: Math.max(1, cupTotalRoundsS(S, key) - reservadas) };
+      let faltam = 0;
+      if (b) {
+        if (cupIsFinished(b)) return null;
+        if (!((b.ties || []).length)) return null;   // mata-mata emperrado não é dívida (ver core.js)
+        faltam = Math.max(1, (b.roundsTotal || 0) - (b.round || 0));
+      } else if (c.group) {
+        const faltamGrupo = Math.max(0, (c.group.roundsTotal || 0) - (c.group.round || 0));
+        const nG = Object.keys(c.group.groups || {}).length, adv = c.group.advancePerGroup || 2;
+        const ko = Math.max(1, Math.ceil(Math.log2(Math.max(2, nG * adv))));
+        faltam = faltamGrupo + 1 + ko;
+      } else faltam = 1;
+      const marcadas = (((S.cupCalendar && S.cupCalendar[key]) || []) as number[]).filter((j) => j >= agora).length;
+      return { key, faltam, marcadas, criar: Math.max(0, faltam - marcadas) };
     }).filter(Boolean) as any[];
     const antes = S.sched.length;
-    const extras = pendentes.length ? WR.prorrogarPorCopasPendentes(S, pendentes, 10) : 0;
+    const extras = pendentes.length ? WR.prorrogarPorCopasPendentes(S, pendentes, 24) : 0;
     if (extras) {
-      console.log('temporada prorrogada em ' + extras + ' jornada(s): faltava ' + pendentes.map((p: any) => p.key).join(', '));
-      for (let i = 0; i < extras; i++) {
-        const jornada = antes + i;
-        const key = Object.keys(S.cupCalendar || {}).find((k) => (S.cupCalendar[k] || []).includes(jornada));
+      console.log('temporada prorrogada: faltava ' + pendentes.map((p: any) => p.key).join(', '));
+      /* Os dias extras saem do CALENDÁRIO, não de um contador. `extras` passou a somar também os
+         tiques marcados em jornadas que já existiam (a liga só precisou esticar), então usá-lo
+         como "quantas jornadas novas" inventava dias que não existem e perdia os que existem. */
+      for (let jornada = antes; jornada < S.sched.length; jornada++) {
+        const key = Object.keys(S.cupCalendar || {}).find((k) => k !== '_season' && (S.cupCalendar[k] || []).includes(jornada));
         if (key) S._diasExtras = (S._diasExtras || []).concat([{ r: jornada, comp: key, idx: (S.cupCalendar[key] || []).indexOf(jornada) }]);
       }
     } else {
@@ -1888,6 +3180,12 @@ Deno.serve(async (req: Request) => {
     const stateObj = gameHost.shared_state;
     if (!stateObj || !stateObj.S) return json({ error: "sem estado salvo ainda" }, 409);
     const S = stateObj.S; const curVer = gameHost.state_version || 0;
+    /* O PAIS DA SALA MANDA, a partir daqui. Sala criada antes disto nao tem `intlUniverse` no
+       estado e cai em 'brasil' — que e o que ela e. Tem de vir ANTES de qualquer coisa que leia
+       DIV_ORDER, forca de divisao ou premiacao. */
+    aplicarUniverso(S);
+    // resgata pro archive a temporada fechada antes do archive existir (idempotente; ver backfillArchiveT)
+    backfillArchiveT(S);
     // idempotência: se a rodada esperada não é a atual, alguém já resolveu -> devolve o estado atual
     if (expectedRound != null && S.round !== expectedRound) return json({ ok: true, already: true, round: S.round, version: curVer });
     // IDEMPOTÊNCIA POR ESTÁGIO: se a quarta já foi resolvida (roundStage já virou 'league'), um
@@ -1907,6 +3205,10 @@ Deno.serve(async (req: Request) => {
       if (s.stadium) { S.clubStadiumCap = S.clubStadiumCap || {}; S.clubStadiumCap[s.club_id] = s.stadium; } // estádio por-humano no mundo (mesmo mecanismo do caixa acima)
       const r = s.last_result;
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [], perf: r.perf || null }; }
+      // SEMENTE DAS LIGAS DE FUNDO (item 4): sala de antes do pacote existir — o cliente manda o
+      // bgInitCountry de todos os países uma vez (ver netPublishResult) e o servidor adota. Só
+      // quando ainda não há: o pacote vivo (tabelas andando) nunca é sobrescrito por um novo.
+      if (r && !S.bgLeagues && r.bgSeed && typeof r.bgSeed === 'object' && !Array.isArray(r.bgSeed)) S.bgLeagues = r.bgSeed;
       // trocas de elenco publicadas por este humano (compra/venda) — aplicadas no mundo antes da rodada
       if (r && s.last_result_round === round && Array.isArray(r.transfers) && r.transfers.length) humanTransfers.push(...r.transfers);
       // propostas que este humano mandou pro clube de outro humano (ver sendHumanOffer no cliente)

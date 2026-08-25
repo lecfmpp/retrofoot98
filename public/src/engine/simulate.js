@@ -22,13 +22,21 @@ function matchSeed(homeId,awayId){ return hashSeed(S.seed, S.round, homeId, away
 
 /* ====================== MATCH ENGINE (Random Walk) ====================== */
 /* S_t in [-1,1]; +1 => home goal, -1 => away goal                         */
-const TACTIC_BETA={retranca:-0.09, equilibrado:0, ofensivo:0.10};
+/* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, medido na arena) =====
+   O ofensivo era só drift sem custo: 92% de vitórias contra o equilibrado com times iguais
+   (100% contra a retranca) — o "3-3-4 ganha tudo" era isto. Agora o ofensivo EXPÕE a defesa
+   e a retranca BLINDA (TACTIC_EMPHASIS multiplica OS/DS como a formação já fazia), e o drift
+   caiu junto. Medido em scripts/arena-motor.mjs (times iguais, N=3000):
+   ofensivo×equilibrado 46/28/27 (jogo aberto), retranca×equilibrado 32/30/38 (jogo fechado),
+   formações todas entre 32-40%. O time 20% melhor segue vencendo 72% — qualidade decide. */
+const TACTIC_BETA={retranca:-0.008, equilibrado:0, ofensivo:0.016};
+const TACTIC_EMPHASIS={ retranca:{OS:0.93,DS:1.20}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.04,DS:0.80} };
 const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055 -> muito mais pênaltis por partida do que o futebol de verdade
 /* ===== MOTOR 2.0: meio-campo central + índices ofensivo/defensivo + contexto =====
    Toda a matemática que decide o jogo mora aqui (helpers compartilhados), pra os DOIS
    motores (simulateMatch solo/ao-vivo e mpSim multiplayer) rodarem idêntico e determinístico.
    Calibrado por harness em massa (ver relatorios / scratchpad) pra placares realistas. */
-const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.018, convDiff:0.004 };
+const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.004, convDiff:0.004 }; // alphaMidCount era 0.018: fazia do 4-5-1 o meta silencioso (59% com times iguais)
 /* índice ofensivo: ataque alimentado pelo meio-campo; defensivo: defesa + ajuda do meio (docx) */
 function atkIndex(os,ms){ return 0.55*os + 0.45*ms; }
 function defIndex(ds,ms){ return 0.72*ds + 0.28*ms; }
@@ -101,23 +109,58 @@ function pickPenaltyTaker(pool, R){
   for(let i=0;i<list.length;i++){ r-=weights[i]; if(r<=0) return list[i]; }
   return list[list.length-1];
 }
-function penaltyConvChance(taker, gk){
-  if(!taker) return 0.75;
+/* ===== PENALTI COBRADO POR GENTE, NAO PELO MOTOR =====
+   `opts.humano` marca a cobranca que passou pelo modal -- o pênalti em campo e a
+   disputa do mata-mata. Duas coisas mudam nela:
+
+   1. O PISO SOBE PARA 72%. A curva normal desce ate 42% (batedor fraco contra
+      goleirao), o que e justo numa simulacao mas cruel na unica cobranca que o
+      utilizador VE e em que decide: a queixa era "todos os penaltis sao
+      defendidos". Com o piso em 72% e o teto em 95%, a media fica na casa dos
+      75-80% que se pediu, e continua a haver defesa.
+   2. ESCOLHER O CANTO VALE ALGUMA COISA. A tela de cobranca (rfPenaltiBatedorHTML)
+      pede o canto desde o pacote novo e o resultado ignorava-o por completo --
+      escolha sem consequencia nenhuma. Agora da +6 pontos percentuais.
+
+   O penalti simulado (o dos outros jogos, e os do proprio jogo quando nao ha
+   modal) fica exatamente como estava: mexer nele mudaria o placar de toda a liga. */
+function penaltyConvChance(taker, gk, opts){
+  if(!taker) return (opts&&opts.humano)?0.78:0.75;
   const base=0.76;
   const takerBonus=((taker.f||65)-70)/100*0.35;      // batedor mais forte que a média converte mais
   const posBonus = taker.s==='ATT'?0.05:taker.s==='MID'?0.02:taker.s==='DEF'?-0.02:-0.08; // GK batendo é raríssimo/pior
   const gkPenalty = gk ? (((gk.f||65)-65)/100)*0.22 : 0; // goleiro bom defende mais
   const moralAdj = ((taker.moral||70)-70)/100*0.12;
-  return clamp(base+takerBonus+posBonus-gkPenalty+moralAdj, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção
+  const bruto=base+takerBonus+posBonus-gkPenalty+moralAdj;
+  if(opts&&opts.humano) return clamp(bruto+(opts.canto!=null?0.06:0), 0.72, 0.95);
+  return clamp(bruto, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção
 }
 
 /* tática usada por um clube na simulação: o clube do usuário usa S.tactic; na Resenha, um clube
    de OUTRO humano usa a tática da ÚLTIMA rodada dele (S.clubTactic[id], guardada em startLiveRound)
    — assim, se ele não confirmar a tempo, o jogo dele é simulado com a tática que ele já vinha
    usando, em vez de cair no 'equilibrado' padrão. Fora isso (CPU), 'equilibrado'. */
+/* ===== SIMULACAO COMPARTILHADA: A ESCALACAO E A PUBLICADA, INCLUSIVE A MINHA =====
+   Numa partida que EU jogo, a escalacao que vale e a minha, local — sou eu que decido e sou eu
+   que publico o resultado. Mas numa resolucao de SEGUNDO PLANO (o resto de uma rodada de copa,
+   uma final que eu apenas assisto) cada cliente calcula a MESMA partida por conta propria, e ai
+   ler a minha escalacao local torna a minha conta diferente da de toda a gente.
+
+   Foi o que produziu a final da Libertadores com 4x0 num cliente e 6x0 noutro (19/08/2026): o
+   Cruzeiro era clube de um humano, entao no cliente DELE `availableXI` lia `S.xi` (a escalacao
+   viva, que ele ainda podia ter mexido) e no cliente do outro lia `S.clubXI[cruzeiro]` (a
+   publicada). Mesma semente, times diferentes, placares diferentes — e com eles a cerimonia de
+   campeao e o artilheiro.
+
+   O SERVIDOR nao tem "o meu clube": ele resolve tudo com `humanXI[id]`, a publicada. Ligar esta
+   bandeira faz o cliente calcular como o servidor calcula. Fica LIGADA so em volta das
+   resolucoes de segundo plano — a minha partida ao vivo continua a usar o meu onze. */
+let SIM_ESCALACAO_PUBLICADA=false;
+function simEscalacaoPublicada(v){ SIM_ESCALACAO_PUBLICADA=!!v; }
 function tacticForClub(id){
+  if(typeof CL!=='undefined' && CL.online && S.clubTactic && S.clubTactic[id]
+     && (id!==S.clubId || SIM_ESCALACAO_PUBLICADA)) return S.clubTactic[id];
   if(id===S.clubId) return S.tactic||'equilibrado';
-  if(typeof CL!=='undefined' && CL.online && S.clubTactic && S.clubTactic[id]) return S.clubTactic[id];
   return 'equilibrado';
 }
 function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
@@ -127,8 +170,10 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   const H0=ratings(homeId, isUser&&homeId===S.clubId), A0=ratings(awayId, isUser&&awayId===S.clubId);
   // emphasis por formação (contagem de setores no XI) — 3-5-2 domina meio, 5-3-2 defende, etc.
   const emH=formationEmphasis(hp), emA=formationEmphasis(ap);
-  const H={OS:H0.OS*emH.OS, MS:H0.MS*emH.MS, DS:H0.DS*emH.DS, mor:H0.mor};
-  const A={OS:A0.OS*emA.OS, MS:A0.MS*emA.MS, DS:A0.DS*emA.DS, mor:A0.mor};
+  const teH=TACTIC_EMPHASIS[tacticForClub(homeId)]||TACTIC_EMPHASIS.equilibrado;
+  const teA=TACTIC_EMPHASIS[tacticForClub(awayId)]||TACTIC_EMPHASIS.equilibrado;
+  const H={OS:H0.OS*emH.OS*teH.OS, MS:H0.MS*emH.MS, DS:H0.DS*emH.DS*teH.DS, mor:H0.mor};
+  const A={OS:A0.OS*emA.OS*teA.OS, MS:A0.MS*emA.MS, DS:A0.DS*emA.DS*teA.DS, mor:A0.mor};
   const betaH=TACTIC_BETA[tacticForClub(homeId)];
   const betaA=TACTIC_BETA[tacticForClub(awayId)];
   // contexto: mando por estádio + variância extra em clássico/decisão (imprevisibilidade)
@@ -148,8 +193,9 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
   function scorerFrom(id,players){
     const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');
     const pool=atk.length?atk:players;
-    let tot=pool.reduce((s,p)=>s+p.f,0), r=R.random()*tot;
-    for(const p of pool){r-=p.f;if(r<=0)return p;}
+    const w=p=>p.f*attrFactor(p,['fin'],0.82,1.28);
+    let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of pool){r-=w(p);if(r<=0)return p;}
     return pool[0];
   }
   function pickFoulPlayer(side){
@@ -280,11 +326,17 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
 function availableXI(id){
   const avail=squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0));
   let chosen=[];
-  if(id===S.clubId){
+  const publicada=(S.clubXI&&S.clubXI[id])||null;
+  /* numa resolucao compartilhada o meu clube tambem entra pela publicada (ver
+     SIM_ESCALACAO_PUBLICADA): e a unica forma de a minha conta bater com a de todos */
+  const usarPublicada = (typeof CL!=='undefined' && CL.online) && publicada && publicada.length
+    && (id!==S.clubId || SIM_ESCALACAO_PUBLICADA);
+  if(usarPublicada){
+    const ids=new Set(publicada); chosen=avail.filter(p=>ids.has(p.pid));
+  } else if(id===S.clubId){
     const ids=new Set(S.xi||[]); chosen=avail.filter(p=>ids.has(p.pid));   // S.xi = pids
   } else if(CL.online && CL.humans && CL.humans[id]){
-    const stored=(S.clubXI&&S.clubXI[id])||null;
-    const ids=new Set((stored&&stored.length)?stored:autoXI(id));
+    const ids=new Set(autoXI(id));
     chosen=avail.filter(p=>ids.has(p.pid));
   }
   if(chosen.length<11){ const have=new Set(chosen.map(p=>p.pid));
@@ -359,7 +411,7 @@ function sessionRatingsFromPlayers(players){
   const eFG=(typeof REBAL!=='undefined'&&REBAL.engForceGK)?REBAL.engForceGK:eF;
   const bySec=s=>players.filter(p=>p.s===s);
   const avg=a=>a.length?a.reduce((s,p)=>s+eF(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
-  const avgGK=a=>a.length?a.reduce((s,p)=>s+eFG(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
+  const avgGK=a=>a.length?a.reduce((s,p)=>s+eFG(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100)*attrFactor(p,['ref','mao'],0.85,1.15),0)/a.length:28;
   let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
   const mor=players.length?players.reduce((s,p)=>s+(p.moral!=null?p.moral:70),0)/players.length:70;
   if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
@@ -385,8 +437,9 @@ function liveMatchSession(homeId, awayId, seed, opts){
   const rat={H:null,A:null}, nMid={H:0,A:0};
   function recompute(side){
     const em=formationEmphasis(cur[side]);
+    const te=TACTIC_EMPHASIS[tacticForClub(side==='H'?homeId:awayId)]||TACTIC_EMPHASIS.equilibrado;
     const r0=sessionRatingsFromPlayers(cur[side]);
-    rat[side]={OS:r0.OS*em.OS, MS:r0.MS*em.MS, DS:r0.DS*em.DS, mor:r0.mor};
+    rat[side]={OS:r0.OS*em.OS*te.OS, MS:r0.MS*em.MS, DS:r0.DS*em.DS*te.DS, mor:r0.mor};
     nMid[side]=em.nMID;
   }
   recompute('H'); recompute('A');
@@ -409,8 +462,10 @@ function liveMatchSession(homeId, awayId, seed, opts){
   function currentMu(){ return matchMu(effRat('H'), effRat('A'), betaH, betaA, {nMidH:nMid.H, nMidA:nMid.A, homeAdv}); }
   function dispMin(){ return extraBase!=null ? 90+(session.minute-extraBase) : session.minute; }
   function scorerFrom(id,players){ const atk=players.filter(p=>p.s==='ATT'||p.s==='MID');
-    const pool=atk.length?atk:players; let tot=pool.reduce((s,p)=>s+p.f,0), r=R.random()*tot;
-    for(const p of pool){r-=p.f;if(r<=0)return p;} return pool[0]; }
+    const pool=atk.length?atk:players;
+    const w=p=>p.f*attrFactor(p,['fin'],0.82,1.28);
+    let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
   function pickFoulPlayer(side){ const pool=cur[side].filter(p=>p.s!=='GK');
     const list=pool.length?pool:cur[side]; if(!list.length) return null;
     const w=p=>(110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);
@@ -556,7 +611,9 @@ function liveMatchSession(homeId, awayId, seed, opts){
         || cur[side].filter(x=>x.s!=='GK').slice().sort((a,b)=>b.f-a.f)[0]
         || cur[side][0] || null;
       const R2=makeRng(hashSeed(S.seed,S.round,'pen',p.ev.min,d.batedor));
-      const scored=R2.random()<penaltyConvChance(taker,p.gk);
+      /* cobranca decidida por gente (modal local ou decisao remota da Resenha):
+         piso de 72% e bonus de canto -- ver penaltyConvChance */
+      const scored=R2.random()<penaltyConvChance(taker,p.gk,{humano:true,canto:d.canto});
       p.ev.scored=scored; p.ev.scorer=taker?taker.n:d.batedor; p.ev.scorerPid=taker?taker.pid:null;
       if(scored){ if(side==='H'){hg++;}else{ag++;} perf[side].goals++; scorers.push({id:clubIdOf[side],name:p.ev.scorer,pid:p.ev.scorerPid,min:p.ev.min}); pos=side==='H'?-0.15:0.15; }
       out=scored;

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Ações de Elenco e E-mail" description="Diálogos de resposta, arquivamento, renovação, base e treino" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes dlgIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@media (max-width:900px){ [data-gal]{grid-template-columns:minmax(0,1fr)!important} [data-gal] > aside{position:static!important} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;box-sizing:border-box;padding:20px;font-family:'Space Grotesk',system-ui,sans-serif;background:#eef0ee">
+  <div data-gal style="max-width:1180px;margin:0 auto;display:grid;grid-template-columns:264px minmax(0,1fr);gap:16px;align-items:start">
+
+    <aside style="position:sticky;top:20px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;gap:2px;padding:4px 8px 10px;border-bottom:1px solid #eef1ee">
+        <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ações de Elenco e E-mail</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap">7 DIÁLOGOS</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="7">
+          <span style="{{ it.style }}" onClick="{{ it.onClick }}">
+            <span style="flex:0 0 auto;width:18px;text-align:center;font-size:14px">{{ it.icon }}</span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.label }}</span>
+          </span>
+        </sc-for>
+      </div>
+      <span style="font-size:11px;color:#9aa79e;line-height:1.5;padding:8px;border-top:1px solid #eef1ee;text-wrap:pretty">Cada item é o diálogo que abre ao clicar no botão correspondente da tela.</span>
+    </aside>
+
+    <div style="min-width:0;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <span style="font-size:20px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">{{ curName }}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">abre em: {{ curTrigger }}</span>
+      </div>
+
+      <div style="position:relative;border-radius:20px;background:#e8f0e7;border:1px solid #d2e0d0;padding:28px;display:flex;align-items:flex-start;justify-content:center;min-height:420px;box-sizing:border-box">
+        <div style="{{ slot0 }}">
+          <div style="width:560px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">E-MAIL · RESPOSTA À DIRETORIA</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Relatório da 8ª jornada</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:11px 13px;min-width:0">
+                <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:28px;height:28px;object-fit:contain;flex:0 0 auto">
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Para: Diretoria do XV Piracicaba</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Assunto: Re: Relatório da 8ª jornada</span>
+                </span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">O QUE RESPONDER</span>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;border:1px solid #eef1ee;background:transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #c9d2ca;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:transparent"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#12201a;white-space:nowrap">Prometer o acesso</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+ torcida, + pressão · a diretoria cobra se falhar</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;border:1px solid #17458F;background:#eef3fa;cursor:pointer">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #17458F;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:#17458F"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:700;color:#12201a;white-space:nowrap">Pé no chão</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">sem efeito na moral, sem risco</span>
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;border:1px solid #eef1ee;background:transparent;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="width:18px;height:18px;border-radius:99px;border:2px solid #c9d2ca;background:#fff;flex:0 0 auto;display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:99px;background:transparent"></span></span>
+                  <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                    <span style="font-size:13px;font-weight:500;color:#12201a;white-space:nowrap">Cobrar reforços</span>
+                    <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">+ chance de verba, − segurança no cargo</span>
+                  </span>
+                </div>
+              </div>
+              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">ACRESCENTAR ALGO (OPCIONAL)</span>
+                <span style="min-height:78px;display:block;padding:12px 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;color:#9aa79e;line-height:1.6;box-sizing:border-box">Estamos a um ponto do G3 com o elenco que temos. Precisamos de um meia na próxima janela.</span>
+              </label>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">A diretoria responde na próxima jornada. O que você promete fica registrado.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Descartar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Enviar resposta</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot1 }}">
+          <div style="width:440px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">E-MAIL</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Arquivar esta mensagem?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:11px 13px;min-width:0">
+                <span style="font-size:17px;flex:0 0 auto">📋</span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Relatório da 8ª jornada</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap">Diretoria · há 2h</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">A mensagem sai da caixa de entrada e vai para Arquivadas. Nada é apagado.</span>
+              </div>              <div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer">
+                <span style="width:18px;height:18px;border-radius:5px;border:1px solid #c9d2ca;background:#fff;flex:0 0 auto"></span>
+                <span style="font-size:12px;color:#12201a;white-space:nowrap">Arquivar sempre mensagens da Diretoria</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Arquivar</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot2 }}">
+          <div style="width:520px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">ELENCO · RENOVAÇÃO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Renovar com Carlos Miguel</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">10</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 24 anos · força 79 · contrato até dez/2027</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">SALÁRIO</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#12201a;white-space:nowrap">R$ 62 mil</span>
+                </span>
+              </div>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">NOVO SALÁRIO</span>
+                <span style="height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid #17458F;border-radius:12px;background:#fff;box-sizing:border-box">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9aa79e;flex:0 0 auto">R$</span>
+                  <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">78.000</span>
+                  <span style="font-size:11px;color:#9aa79e;flex:0 0 auto;white-space:nowrap">/mês</span>
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">O jogador pede R$ 74 mil para assinar. Abaixo disso ele recusa.</span>
+              </label>              <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">ANOS DE CONTRATO</span>
+                <span style="display:flex;align-items:center;gap:8px">
+                  <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:17px;color:#5d6c62;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">−</span>
+                  <span style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#12201a;white-space:nowrap;min-width:0">3</span>
+                  <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:17px;color:#5d6c62;cursor:pointer;flex:0 0 auto" style-hover="background:#f2f7f1">＋</span>
+                </span>
+                <span style="font-size:11px;color:#9aa79e;line-height:1.45;text-wrap:pretty">Contrato de 3 anos custa R$ 90 mil de luvas.</span>
+              </label>              <div style="display:flex;flex-direction:column;gap:7px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">CHANCE DE ACEITAR</span>
+                <div style="height:9px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:81%;height:100%;border-radius:99px;background:#2fbf5f"></div></div>
+                <span style="font-size:11px;color:#9aa79e">Moral alta e três clubes sondando — ele quer ficar, mas não por menos.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Luvas à vista</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 90 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Folha depois de renovar</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">R$ 200 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Valor de mercado depois</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">R$ 1,4 mi</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">Sem renovar, ele sai de graça no fim de 2027.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Cancelar</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Oferecer renovação</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot3 }}">
+          <div style="width:440px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#2fbf5f"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">ELENCO · RENOVAÇÃO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Contrato renovado</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#d7f5e2;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#2fbf5f">✓</span>
+                <span style="font-size:12px;color:#0d3d22;line-height:1.55;text-wrap:pretty">Carlos Miguel assinou até dezembro de 2029.</span>
+              </div>              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">10</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 24 anos · força 79</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">ATÉ</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#2fbf5f;white-space:nowrap">2029</span>
+                </span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Novo salário</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 78 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Luvas pagas</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 90 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa agora</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 1,18 mi</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Moral</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">muito alta</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Continuar</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot4 }}">
+          <div style="width:460px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#c0392b"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">ELENCO · RENOVAÇÃO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Não dá para renovar agora</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Caixa insuficiente para as luvas deste contrato. A folha também passaria do limite.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Luvas pedidas</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 90 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Caixa disponível</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 62 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Folha se renovar</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 240 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Limite de folha</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">R$ 226 mil/mês</span>
+              </div>              <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #eef1ee;padding-top:12px">
+                <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">O QUE FAZER</span>
+                <div style="display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Vender Juninho</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">libera R$ 180 mil e R$ 38 mil/mês</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Esperar a bilheteria</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">R$ 92 mil na próxima jornada</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:1px;padding:8px 10px;border-radius:11px;border:1px solid #eef1ee;cursor:pointer" style-hover="background:#f5f8f4">
+                  <span style="font-size:12px;font-weight:600;color:#12201a;white-space:nowrap">Oferecer menos</span>
+                  <span style="font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ele recusa abaixo de R$ 74 mil</span>
+                </div>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Entendi</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot5 }}">
+          <div style="width:500px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">BASE · PROMOÇÃO</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Promover Wilson Júnior?</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;align-items:center;gap:12px;background:#f7faf6;border-radius:14px;padding:12px;min-width:0">
+                <span style="position:relative;width:34px;height:29px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-4px;top:3px;width:8px;height:12px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:5px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;margin-top:4px">31</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+                  <span style="font-size:15px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wilson Júnior</span>
+                  <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atacante · 17 anos · força 54 · potencial 88</span>
+                </span>
+                <span style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;flex:0 0 auto">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.1em;white-space:nowrap">PRONTO EM</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#F2B90C;white-space:nowrap">2 anos</span>
+                </span>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fdf1c8;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#F2B90C">⚠</span>
+                <span style="font-size:12px;color:#5c4a00;line-height:1.55;text-wrap:pretty">Ele ainda está dois anos longe do potencial. Promover agora ocupa uma vaga no elenco principal e o desenvolvimento fica mais lento sem jogar.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Vagas no elenco</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;flex:0 0 auto">26 de 30</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Salário no principal</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#F2B90C;white-space:nowrap;flex:0 0 auto">R$ 8 mil/mês</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Força hoje</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">54</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Força projetada em 2028</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">82</span>
+              </div>
+              <span style="font-size:11px;color:#78877c;line-height:1.55;text-wrap:pretty">Promover é definitivo — ele não volta para a base.</span>
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Deixar na base</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Promover</span>
+            </div>
+          </div>
+        </div>
+        <div style="{{ slot6 }}">
+          <div style="width:500px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(20,33,26,.45);display:flex;flex-direction:column;box-sizing:border-box">
+            <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 18px;display:flex;flex-direction:column;gap:2px;position:relative">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;margin-left:6px">TREINO ESPECIAL · SEMANA 9</span>
+              <span style="font-size:17px;font-weight:700;color:#fff;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:6px">Confirmar o treino de finalização</span>
+            </div>
+            <div style="padding:18px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:10px;min-width:0">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">10</span>
+                </span>
+                  <span style="flex:1;min-width:0;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Carlos Miguel</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#F2B90C;white-space:nowrap">energia 58% → 50%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:10px;min-width:0">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">19</span>
+                </span>
+                  <span style="flex:1;min-width:0;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alan Pedro</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#2fbf5f;white-space:nowrap">energia 97% → 89%</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:11px;background:#f7faf6;border-radius:12px;padding:10px;min-width:0">
+                  <span style="position:relative;width:28px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center">
+                  <span style="position:absolute;left:0;right:0;top:3px;bottom:0;background:#17458F;border-radius:3px 3px 4px 4px"></span>
+                  <span style="position:absolute;left:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;right:-3px;top:3px;width:7px;height:10px;background:#F2B90C;border-radius:3px"></span>
+                  <span style="position:absolute;left:50%;top:0;transform:translateX(-50%);width:10px;height:4px;background:#F2B90C;border-radius:0 0 6px 6px"></span>
+                  <span style="position:relative;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff;margin-top:3px">21</span>
+                </span>
+                  <span style="flex:1;min-width:0;font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Kauê</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#2fbf5f;white-space:nowrap">energia 93% → 85%</span>
+                </div>
+              </div>              <div style="display:flex;align-items:flex-start;gap:10px;background:#fbe3e0;border-radius:12px;padding:11px 13px">
+                <span style="font-size:13px;flex:0 0 auto;color:#c0392b">⚠</span>
+                <span style="font-size:12px;color:#7a2118;line-height:1.55;text-wrap:pretty">Carlos Miguel fica com 50% de energia a três dias do jogo contra o Cianorte. Ele entra em campo pesado.</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #eef1ee">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Custo do treino</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#c0392b;white-space:nowrap;flex:0 0 auto">R$ 12 mil</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Ganho esperado</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">+2 na finalização</span>
+              </div>              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0">
+                <span style="font-size:12px;color:#5d6c62;white-space:nowrap">Risco de lesão</span>
+                <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#2fbf5f;white-space:nowrap;flex:0 0 auto">baixo</span>
+              </div>
+              
+            </div>
+            <div style="border-top:1px solid #eef1ee;background:#f7faf6;padding:12px 18px;display:flex;align-items:center;gap:9px;box-sizing:border-box">
+              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:transparent;border:1px solid #d8e2d6;color:#5d6c62;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">Tirar Carlos Miguel</span>              <div style="flex:1"></div>              <span style="height:42px;padding:0 18px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#F2B90C;border:1px solid #F2B90C;color:#17458F;font-weight:700;font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:#ffcb2e">Confirmar treino</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { i: 0 };
+  renderVals() {
+    const ITEMS = [["↩","Responder e-mail","E-mail → Responder"],["📥","Arquivar mensagem","E-mail → Arquivar"],["📝","Renovar contrato","Elenco → Ficha → Renovar contrato…"],["✓","Contrato renovado","automático ao aceitar"],["⚠","Não dá para renovar","ao renovar sem caixa ou margem"],["🎓","Promover da base","Elenco & Base → Base → Promover"],["🏃","Confirmar treino especial","Elenco & Base → Treino especial"]];
+    const on = 'display:flex;align-items:center;gap:10px;height:40px;padding:0 11px;border-radius:11px;font-size:12px;font-weight:700;color:#fff;background:#17458F;white-space:nowrap;cursor:pointer;overflow:hidden';
+    const off = 'display:flex;align-items:center;gap:10px;height:40px;padding:0 11px;border-radius:11px;font-size:12px;font-weight:500;color:#3a473f;background:transparent;white-space:nowrap;cursor:pointer;overflow:hidden';
+    const cur = ITEMS[this.state.i] || ITEMS[0];
+    const vals = {
+      curName: cur[1],
+      curTrigger: cur[2],
+      items: ITEMS.map((r, i) => ({
+        icon: r[0], label: r[1],
+        style: i === this.state.i ? on : off,
+        onClick: () => this.setState({ i })
+      }))
+    };
+    ITEMS.forEach((_, i) => {
+      vals['slot' + i] = i === this.state.i
+        ? { width: '100%', display: 'flex', justifyContent: 'center', animation: 'dlgIn .24s ease' }
+        : { display: 'none' };
+    });
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

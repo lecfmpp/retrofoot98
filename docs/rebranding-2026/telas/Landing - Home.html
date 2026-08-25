@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Landing — Home" description="Home do RetroFoot98 na identidade 2026" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes jogarPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@media (max-width:900px){
+  [data-lp-grid]{grid-template-columns:minmax(0,1fr)!important;gap:28px!important;direction:ltr!important}
+  [data-lp-nav]{display:none}
+  [data-lp-h1]{font-size:34px!important}
+}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif">
+
+  <header style="position:sticky;top:0;z-index:20;background:rgba(238,240,238,.92);border-bottom:1px solid #dde7db;backdrop-filter:blur(8px)">
+    <div style="max-width:1180px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:16px">
+      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto;cursor:pointer">
+        <img src="uploads/pasted-1786581574687-0.png" alt="RetroFoot98" style="width:34px;height:34px;object-fit:contain">
+        <span style="font-size:17px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#17458F">98</span></span>
+      </div>
+      <nav data-lp-nav style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;min-width:0">
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">O jogo</span>
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">Modo Resenha</span>
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">Ranking</span>
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">Ligas Oficiais</span>
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">Para canais</span>
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">Blog</span>
+        <span style="font-size:13px;font-weight:500;color:#3a473f;border-radius:10px;padding:8px 12px;white-space:nowrap;cursor:pointer" style-hover="background:#e2eae1">Apoie o projeto</span>
+      </nav>
+      <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto">
+        <span style="height:40px;padding:0 14px;display:flex;align-items:center;gap:7px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;font-size:13px;font-weight:600;color:#3a473f;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">🔑 Entrar</span>
+        <span style="height:40px;padding:0 16px;display:flex;align-items:center;border-radius:12px;background:#17458F;color:#fff;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer" style-hover="background:#0e2f66">Entrar na lista</span>
+      </div>
+    </div>
+  </header>
+
+  <section style="padding:64px 0 56px">
+    <div data-lp-grid style="max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+        <span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#17458F;background:#e9eff8;border:1px solid #d6e1f1;border-radius:99px;padding:7px 14px;white-space:nowrap;align-self:flex-start"><span style="width:7px;height:7px;border-radius:99px;background:#2fbf5f"></span>100% online — nada pra instalar</span>
+        <h1 data-lp-h1 style="margin:0;font-size:46px;font-weight:700;color:#12201a;letter-spacing:-.03em;line-height:1.08;text-wrap:pretty">O clássico da sua infância,<br>agora online e com os amigos.</h1>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:#3a473f;text-wrap:pretty;max-width:520px">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com até 20 treinadores na mesma liga.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:4px">
+          <button style="height:50px;padding:0 22px;border:none;border-radius:14px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap" style-hover="background:#ffcb2e">👑 Entrar na lista de espera</button>
+          <button style="height:50px;padding:0 22px;border:1px solid #d8e2d6;border-radius:14px;background:#fff;color:#3a473f;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap" style-hover="background:#f2f7f1">⚽ Jogar agora</button>
+        </div>
+        <span style="font-size:13px;color:#78877c">Primeira versão liberada para apenas <b style="color:#12201a">500 treinadores</b>.</span>
+      </div>
+      <div style="min-width:0;position:relative;padding-bottom:96px">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:20px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(20,33,26,.5)">
+          <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:11px 16px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+            <span style="margin-left:5px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap">Rodada ao vivo</span>
+            <span style="display:flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#ff5a5a;background:rgba(217,65,65,.22);border-radius:99px;padding:3px 8px;white-space:nowrap">● AO VIVO</span>
+            <div style="flex:1"></div>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#c3d3ec;white-space:nowrap">SÉRIES A–D</span>
+          </div>
+          <div style="padding:12px 10px">
+            <span style="display:block;font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;padding:0 8px 6px">1ª DIVISÃO · SÉRIE A</span>
+                <div style="display:grid;grid-template-columns:56px minmax(0,1fr) 70px minmax(0,1fr) 34px;gap:0 8px;align-items:center;padding:0 8px;height:44px;box-sizing:border-box;border-radius:9px">
+                  <span style="display:flex;align-items:center;justify-content:flex-end;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap"><span style="position:relative;width:13px;height:9px;flex:0 0 auto;display:inline-block"><span style="position:absolute;left:0;right:0;top:0;height:4px;border-radius:7px 7px 0 0;background:#F2B90C"></span><span style="position:absolute;left:1px;right:1px;bottom:0;height:5px;border-radius:1px;background:#F2B90C;opacity:.55"></span></span>55.744</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0;justify-content:flex-end"><span style="flex:0 1 auto;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Corinthians</span><img src="assets/crests/corinthians.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto"></span>
+                  <span style="position:relative;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:4px 0;overflow:hidden"><span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .5px,transparent .6px);background-size:3px 3px"></span><span style="position:relative">1</span><span style="position:relative;color:#5a6560">:</span><span style="position:relative">0</span></span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/fluminense.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto"><span style="flex:0 1 auto;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Palmeiras</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">78'</span>
+                </div>
+                <div style="display:grid;grid-template-columns:56px minmax(0,1fr) 70px minmax(0,1fr) 34px;gap:0 8px;align-items:center;padding:0 8px;height:44px;box-sizing:border-box;border-radius:9px">
+                  <span style="display:flex;align-items:center;justify-content:flex-end;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap"><span style="position:relative;width:13px;height:9px;flex:0 0 auto;display:inline-block"><span style="position:absolute;left:0;right:0;top:0;height:4px;border-radius:7px 7px 0 0;background:#F2B90C"></span><span style="position:absolute;left:1px;right:1px;bottom:0;height:5px;border-radius:1px;background:#F2B90C;opacity:.55"></span></span>55.744</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0;justify-content:flex-end"><span style="flex:0 1 auto;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Flamengo</span><img src="assets/crests/flamengo.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto"></span>
+                  <span style="position:relative;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:4px 0;overflow:hidden"><span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .5px,transparent .6px);background-size:3px 3px"></span><span style="position:relative">2</span><span style="position:relative;color:#5a6560">:</span><span style="position:relative">2</span></span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/vasco.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto"><span style="flex:0 1 auto;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vasco da Gama</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">63'</span>
+                </div>
+            <span style="display:block;font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;padding:10px 8px 6px">2ª DIVISÃO · SÉRIE B</span>
+                <div style="display:grid;grid-template-columns:56px minmax(0,1fr) 70px minmax(0,1fr) 34px;gap:0 8px;align-items:center;padding:0 8px;height:44px;box-sizing:border-box;border-radius:9px">
+                  <span style="display:flex;align-items:center;justify-content:flex-end;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8b978d;white-space:nowrap"><span style="position:relative;width:13px;height:9px;flex:0 0 auto;display:inline-block"><span style="position:absolute;left:0;right:0;top:0;height:4px;border-radius:7px 7px 0 0;background:#F2B90C"></span><span style="position:absolute;left:1px;right:1px;bottom:0;height:5px;border-radius:1px;background:#F2B90C;opacity:.55"></span></span>55.744</span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0;justify-content:flex-end"><span style="flex:0 1 auto;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Atlético-MG</span><img src="assets/crests/atletico-mg.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto"></span>
+                  <span style="position:relative;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:8px;padding:4px 0;overflow:hidden"><span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .5px,transparent .6px);background-size:3px 3px"></span><span style="position:relative">0</span><span style="position:relative;color:#5a6560">:</span><span style="position:relative">1</span></span>
+                  <span style="display:flex;align-items:center;gap:7px;min-width:0"><img src="assets/crests/cruzeiro.png" alt="" style="width:22px;height:22px;object-fit:contain;flex:0 0 auto"><span style="flex:0 1 auto;min-width:0;font-size:12px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cruzeiro</span></span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#17458F;text-align:right;white-space:nowrap">71'</span>
+                </div>
+          </div>
+        </div>
+
+        <div style="position:absolute;right:-18px;bottom:0;width:78%;background:#fff;border:1px solid #dde7db;border-radius:18px;overflow:hidden;box-shadow:0 26px 60px -26px rgba(20,33,26,.65);transform:rotate(-1.5deg)">
+          <div style="display:flex;align-items:center;gap:9px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:10px 14px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+            <span style="margin-left:5px;font-size:13px">🎥</span>
+            <span style="font-size:13px;font-weight:700;color:#fff;white-space:nowrap">Camarote</span>
+            <span style="display:flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:#ff5a5a;background:rgba(217,65,65,.22);border-radius:99px;padding:3px 8px;white-space:nowrap">● AO VIVO</span>
+          </div>
+          <div style="position:relative;background-image:url('assets/estadios/xv-piracicaba.webp');background-size:cover;background-position:center;padding:14px">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#0e2f66 0%,rgba(14,47,102,.82) 45%,rgba(14,47,102,.35) 100%)"></div>
+            <div style="position:relative;display:flex;align-items:center;gap:12px">
+              <div style="flex:1;min-width:0;display:flex;align-items:center;justify-content:flex-end;gap:8px">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+                <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:30px;height:30px;object-fit:contain;flex:0 0 auto">
+              </div>
+              <span style="position:relative;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:#F2B90C;background:#12201a;border-radius:10px;padding:6px 14px;overflow:hidden;flex:0 0 auto"><span style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.14) .6px,transparent .7px);background-size:4px 4px"></span><span style="position:relative">1</span><span style="position:relative;color:#5a6560">:</span><span style="position:relative">1</span></span>
+              <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px">
+                <img src="assets/crests/cruzeiro.png" alt="" style="width:30px;height:30px;object-fit:contain;flex:0 0 auto">
+                <span style="font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+              </div>
+            </div>
+          </div>
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">PRESSÃO</span>
+              <div style="flex:1;min-width:0;position:relative;height:9px;border-radius:99px;overflow:hidden;display:flex"><span style="width:58%;background:#17458F"></span><span style="width:42%;background:#3a473f"></span><span style="position:absolute;left:50%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.7);transform:translateX(-50%)"></span></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 9px;border-radius:9px;background:#eef3fa">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9aa79e;flex:0 0 auto">56'</span>
+              <span style="font-size:11px;flex:0 0 auto">⚽</span>
+              <span style="flex:1;min-width:0;font-size:11px;font-weight:700;color:#12201a;line-height:1.35">GOL DO XV! Carlos Miguel empurrou pro fundo.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <section id="lp-solo" style="background:transparent;padding:64px 0">
+      <div style="max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">JOGUE DO SEU JEITO</span>
+        <h2 style="margin:0;font-size:34px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;text-wrap:pretty">Da Série D ao topo, no seu ritmo.</h2>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:#3a473f;text-wrap:pretty">Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#3a473f;line-height:1.5">Séries A, B, C e D com elencos reais</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#3a473f;line-height:1.5">Copa do Brasil, Libertadores e Sul-Americana</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#3a473f;line-height:1.5">Partida ao vivo com narração lance a lance</span></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:8px"><button style="height:50px;padding:0 22px;border:1px solid #d8e2d6;border-radius:14px;background:#fff;color:#3a473f;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap" style-hover="background:#f2f7f1">⚽ Começar uma carreira</button></div>
+        </div>
+        <div style="min-width:0">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:20px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(20,33,26,.5)">
+          <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:11px 16px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+            <span style="margin-left:5px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap">🏆 Classificação — Série D</span>
+          </div>
+          <div style="padding:16px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">CLASSIFICAÇÃO · SÉRIE D</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">4º de 64</span>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span style="font-size:11px;font-weight:600;color:#fff;background:#17458F;border:1px solid #17458F;border-radius:99px;padding:5px 11px;white-space:nowrap">Série D</span>
+                <span style="font-size:11px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:99px;padding:5px 11px;white-space:nowrap">Copa do Brasil</span>
+                <span style="font-size:11px;font-weight:600;color:#3a473f;background:#fff;border:1px solid #d8e2d6;border-radius:99px;padding:5px 11px;white-space:nowrap">Libertadores</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;padding:0 10px 2px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9aa79e;letter-spacing:.06em">
+                <span></span><span></span><span style="text-align:right">J</span><span style="text-align:right">V</span><span style="text-align:right">E</span><span style="text-align:right">D</span><span style="text-align:right">GM:GS</span><span style="text-align:right">P</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:transparent">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#2fbf5f"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8b978d">1</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nacional-PR</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">5</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">1</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">1</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">13:5</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">16</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:transparent">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#2fbf5f"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8b978d">2</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cascavel</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">4</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">3</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">0</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">10:4</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">15</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:transparent">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#2fbf5f"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8b978d">3</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cianorte</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">4</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">1</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">11:6</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">14</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:#eef3fa">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#F2B90C"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F">4</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:700;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV Piracicaba</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">3</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">9:7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">11</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:transparent">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#c9d2ca"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8b978d">5</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aimoré</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">3</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">8:8</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">11</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:transparent">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#c9d2ca"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8b978d">6</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Azuriz</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">3</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">2</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">7:8</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">9</span>
+              </div>
+              <div style="display:grid;grid-template-columns:34px minmax(0,1fr) 24px 24px 24px 24px 44px 28px;gap:0 8px;align-items:center;padding:7px 10px;border-radius:10px;background:transparent">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:3px;height:14px;border-radius:99px;background:#d94141"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8b978d">7</span></span>
+                <span style="min-width:0;font-size:13px;font-weight:500;color:#3a473f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rio Branco-PR</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">7</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">1</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">3</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8b978d;text-align:right">3</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5d6c62;text-align:right">5:10</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right">6</span>
+              </div>
+              <div style="display:flex;gap:14px;padding:2px 10px 0">
+                <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#78877c"><span style="width:12px;height:3px;border-radius:99px;background:#2fbf5f"></span>acesso</span>
+                <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#78877c"><span style="width:12px;height:3px;border-radius:99px;background:#d94141"></span>rebaixamento</span>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="lp-resenha" style="background:#12201a;padding:64px 0">
+      <div style="max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center;direction:rtl">
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0;direction:ltr">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#F2B90C;letter-spacing:.14em;white-space:nowrap">MODO RESENHA</span>
+        <h2 style="margin:0;font-size:34px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.15;text-wrap:pretty">Um campeonato com a sua turma, na mesma rodada.</h2>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:#c3d3ec;text-wrap:pretty">Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e a zoeira rolando junto.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#c3d3ec;line-height:1.5">Até 20 treinadores na mesma liga</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#c3d3ec;line-height:1.5">Rodada ao vivo para todo mundo ao mesmo tempo</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#c3d3ec;line-height:1.5">Chat da sala durante os jogos</span></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:8px"><button style="height:50px;padding:0 22px;border:none;border-radius:14px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap" style-hover="background:#ffcb2e">💬 Criar a minha sala</button></div>
+        </div>
+        <div style="min-width:0;direction:ltr">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:20px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(20,33,26,.5)">
+          <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:11px 16px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+            <span style="margin-left:5px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap">💬 Resenha — sala do canal</span>
+          </div>
+          <div style="padding:16px">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;gap:8px;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">lucão:</span><span style="font-size:13px;color:#3a473f;min-width:0">contratei o camisa 10 no leilão 🔨</span></div>
+              <div style="display:flex;gap:8px;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">tiu:</span><span style="font-size:13px;color:#3a473f;min-width:0">tomou 4 do meu time reserva kkk</span></div>
+              <div style="display:flex;gap:8px;align-items:baseline"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;white-space:nowrap">marreco:</span><span style="font-size:13px;color:#3a473f;min-width:0">sobe logo essa Série D, treinador</span></div>
+              <div style="height:36px;display:flex;align-items:center;padding:0 12px;border:1px solid #dde7db;border-radius:10px;font-size:12px;color:#9aa79e">Manda a braba na resenha…</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#78877c"><span>🟢 18 de 20 treinadores na sala</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#12201a">SALA #RF-7742</span></div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="lp-mercado" style="background:transparent;padding:64px 0">
+      <div style="max-width:1180px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">MERCADO GLOBAL</span>
+        <h2 style="margin:0;font-size:34px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;text-wrap:pretty">O leilão é onde a liga se decide.</h2>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:#3a473f;text-wrap:pretty">Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#3a473f;line-height:1.5">Leilão aberto a todos os clubes da liga</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#3a473f;line-height:1.5">Propostas e contrapropostas por jogador</span></div>
+          <div style="display:flex;align-items:flex-start;gap:10px"><span style="flex:0 0 auto;color:#F2B90C;font-size:13px;margin-top:2px">◆</span><span style="font-size:14px;color:#3a473f;line-height:1.5">Finanças de verdade: folha, bilheteria e sócios</span></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding-top:8px"><button style="height:50px;padding:0 22px;border:1px solid #d8e2d6;border-radius:14px;background:#fff;color:#3a473f;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap" style-hover="background:#f2f7f1">🔨 Ver o mercado</button></div>
+        </div>
+        <div style="min-width:0">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:20px;overflow:hidden;box-shadow:0 20px 50px -30px rgba(20,33,26,.5)">
+          <div style="display:flex;align-items:center;gap:10px;background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:11px 16px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+            <span style="margin-left:5px;font-size:13px;font-weight:700;color:#fff;white-space:nowrap">🔨 Leilão de jogadores</span>
+          </div>
+          <div style="padding:16px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:0 8px;align-items:center;padding:8px;border-radius:9px;background:#f6f8f5">
+                <span style="min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Kauã Patrick</span><span style="font-size:11px;color:#78877c;white-space:nowrap">MEI · 22</span></span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#c0392b;text-align:right;white-space:nowrap">R$ 240k</span>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:0 8px;align-items:center;padding:8px;border-radius:9px;background:transparent">
+                <span style="min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Fidel Rocha</span><span style="font-size:11px;color:#78877c;white-space:nowrap">ATA · 24</span></span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 230k</span>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:0 8px;align-items:center;padding:8px;border-radius:9px;background:transparent">
+                <span style="min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Bruno Limão</span><span style="font-size:11px;color:#78877c;white-space:nowrap">ZAG · 26</span></span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#12201a;text-align:right;white-space:nowrap">R$ 120k</span>
+              </div>
+              <div style="height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#F2B90C;color:#17458F;font-size:12px;font-weight:700;margin-top:4px">🔨 Cobrir lance</div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+  <section style="padding:64px 0">
+    <div style="max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">LIGAS OFICIAIS RETROFOOT</span>
+        <h2 style="margin:0;font-size:34px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;text-wrap:pretty">Seja um dos Embaixadores RetroFoot</h2>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:#3a473f;text-wrap:pretty;max-width:720px">Teste novos recursos antes de todo mundo e concorra a prêmios reais. Os treinadores mais bem colocados no ranking recebem convite para as Ligas Oficiais — competições fechadas, disputadas só entre embaixadores.</p>
+      <div data-lp-grid style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:100%;padding-top:14px">
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:8px;text-align:left;min-width:0">
+          <span style="font-size:24px">🎟</span>
+          <span style="font-size:16px;font-weight:700;color:#12201a;white-space:nowrap">Acesso antecipado</span>
+          <span style="font-size:14px;color:#3a473f;line-height:1.55">Recursos novos chegam primeiro para quem está no topo do ranking.</span>
+        </div>
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:8px;text-align:left;min-width:0">
+          <span style="font-size:24px">🏅</span>
+          <span style="font-size:16px;font-weight:700;color:#12201a;white-space:nowrap">Ligas fechadas</span>
+          <span style="font-size:14px;color:#3a473f;line-height:1.55">Competições só entre embaixadores, com tabela e premiação própria.</span>
+        </div>
+        <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:8px;text-align:left;min-width:0">
+          <span style="font-size:24px">💰</span>
+          <span style="font-size:16px;font-weight:700;color:#12201a;white-space:nowrap">Premiação real</span>
+          <span style="font-size:14px;color:#3a473f;line-height:1.55">As competições valem prêmios em dinheiro, produtos e patrocínio da temporada.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 0 64px">
+    <div style="max-width:1180px;margin:0 auto;padding:0 24px">
+      <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);border-radius:24px;padding:40px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:6px;background:#F2B90C"></div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#F2B90C;letter-spacing:.14em;white-space:nowrap">LISTA DE ESPERA</span>
+        <h2 style="margin:0;font-size:34px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.15;max-width:720px;text-wrap:pretty">Só 500 treinadores entram na primeira versão.</h2>
+        <p style="margin:0;font-size:15px;line-height:1.6;color:#c3d3ec;max-width:620px;text-wrap:pretty">Entre na lista, responda uma pergunta rápida e indique os amigos que você quer na sua liga. Quem indica sobe na fila.</p>
+        <div style="width:100%;max-width:460px;display:flex;flex-direction:column;gap:7px;padding-top:6px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;font-size:12px;color:#c3d3ec"><span>Vagas preenchidas</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:#fff">318 / 500</span></div>
+          <div style="height:10px;border-radius:99px;background:rgba(255,255,255,.15);overflow:hidden"><div style="width:64%;height:100%;border-radius:99px;background:#F2B90C"></div></div>
+        </div>
+        <div style="padding-top:6px"><button style="height:50px;padding:0 22px;border:none;border-radius:14px;background:#F2B90C;color:#17458F;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap" style-hover="background:#ffcb2e">⚽ Garantir minha vaga</button></div>
+        <span style="font-size:12px;color:#a9bfe0">Leva menos de um minuto. A gente avisa por e-mail quando a sua vaga abrir.</span>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background:#12201a;padding:48px 0 28px">
+    <div style="max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-direction:column;gap:32px">
+      <div data-lp-grid style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:32px">
+        <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <img src="uploads/pasted-1786581574687-0.png" alt="" style="width:30px;height:30px;object-fit:contain">
+            <span style="font-size:16px;font-weight:700;color:#fff;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#F2B90C">98</span></span>
+          </div>
+          <span style="font-size:13px;color:#8fa896;line-height:1.6;max-width:320px">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <span style="font-size:10px;font-weight:700;color:#8fa896;letter-spacing:.12em;white-space:nowrap">O JOGO</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Jogar agora</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Modo Resenha</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Ranking</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Ligas Oficiais</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <span style="font-size:10px;font-weight:700;color:#8fa896;letter-spacing:.12em;white-space:nowrap">PARA MARCAS</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Cotas de patrocínio</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Media kit</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Parceria de canal</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <span style="font-size:10px;font-weight:700;color:#8fa896;letter-spacing:.12em;white-space:nowrap">CONTEÚDO</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Blog</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Guia do jogo</span>
+          <span style="font-size:13px;color:#c3d3ec;white-space:nowrap;cursor:pointer" style-hover="color:#fff">Canais oficiais</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1)">
+        <span style="width:100%;font-size:10px;font-weight:700;color:#8fa896;letter-spacing:.12em;padding-top:20px">PÁGINAS</span>
+        <a href="/guia/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Guia do jogo</a>
+        <a href="/ranking/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Ranking de treinadores</a>
+        <a href="/historia-do-elifoot/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">História do Elifoot</a>
+        <a href="/elifoot-online/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Elifoot online</a>
+        <a href="/jogar-com-amigos/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Jogar com amigos</a>
+        <a href="/manager-futebol-brasileiro/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Futebol brasileiro</a>
+        <a href="/jogo-treinador-futebol-online/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Jogo de treinador</a>
+        <a href="/melhores-jogos-treinador-futebol/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Melhores jogos de treinador</a>
+        <a href="/jogos-parecidos-com-elifoot/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Jogos parecidos com o Elifoot</a>
+        <a href="/elifoot-vs-brasfoot/" style="font-size:12px;color:#8fa896;background:rgba(255,255,255,.06);border-radius:99px;padding:6px 12px;white-space:nowrap" style-hover="color:#fff;background:rgba(255,255,255,.12)">Elifoot vs Brasfoot</a>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:12px;border-top:1px solid rgba(255,255,255,.1)">
+        <span style="font-size:12px;color:#8fa896">© 2026 RetroFoot98 · Termos · Privacidade</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8fa896">v2026.01 — feito por quem cresceu jogando Elifoot.</span>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+</body>
+</html>

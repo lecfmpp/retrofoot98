@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Sorteio — Sul-Americana" description="Onboarding — Sorteio — Sul-Americana" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ee}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.55)}50%{box-shadow:0 0 0 10px rgba(242,185,12,0)}}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+@media (max-width:900px){ [data-wiz-cards]{grid-template-columns:minmax(0,1fr)!important} [data-wiz-steps]{display:none} }
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#eef0ee;font-family:'Space Grotesk',system-ui,sans-serif;padding:24px;box-sizing:border-box;display:flex;justify-content:center">
+  <div style="width:1080px;max-width:100%;display:flex;flex-direction:column;gap:14px">
+
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex:0 0 auto">
+        <img src="uploads/pasted-1786581574687-0.png" alt="RetroFoot98" style="width:32px;height:32px;object-fit:contain">
+        <span style="font-size:16px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap">RetroFoot<span style="font-family:'IBM Plex Mono',monospace;color:#17458F">98</span></span>
+      </div>
+      <div style="flex:1"></div>
+      
+    </div>
+
+    <div style="background:#e8f0e7;border:1px solid #d2e0d0;border-radius:24px;padding:18px;box-shadow:0 18px 40px -28px rgba(20,33,26,.35);display:flex;flex-direction:column;gap:16px">
+
+      
+
+      <div style="background:#fff;border:1px solid #dde7db;border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:20px;min-height:340px">
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#17458F;letter-spacing:.14em;white-space:nowrap">CERIMÔNIA DO SORTEIO</span>
+          <span style="font-size:28px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.15;white-space:nowrap">Copa Sul-Americana</span>
+          <span style="font-size:14px;color:#78877c;max-width:560px;line-height:1.55;text-wrap:pretty">32 clubes em 8 grupos de 4. Só o primeiro de cada grupo vai direto às oitavas; os segundos disputam o playoff com os terceiros da Libertadores.</span>
+        </div>
+        <div data-wiz-cards style="display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:12px;background:linear-gradient(160deg,#0e2f66,#17458F);border-radius:18px;padding:18px;min-width:0">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+              <span style="font-size:44px">🥈</span>
+              <span style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap">Sul-Americana</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#F2B90C;letter-spacing:.1em;white-space:nowrap">FASE DE GRUPOS · 2026</span>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,.15)"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#c3d3ec;white-space:nowrap">Campeão atual</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;white-space:nowrap">Fortaleza</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#c3d3ec;white-space:nowrap">Clubes</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;white-space:nowrap">32</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#c3d3ec;white-space:nowrap">Grupos</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;white-space:nowrap">8 de 4</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#c3d3ec;white-space:nowrap">Vagas diretas</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;white-space:nowrap">8</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:12px;color:#c3d3ec;white-space:nowrap">Premiação</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;white-space:nowrap">US$ 6 mi</span></div>
+            <div style="height:1px;background:rgba(255,255,255,.15)"></div>
+            <span style="font-size:9px;font-weight:600;letter-spacing:.12em;color:#c3d3ec;white-space:nowrap">POTES</span>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:10px;background:rgba(242,185,12,.18)">
+              <span style="width:20px;height:20px;border-radius:99px;background:#F2B90C;color:#17458F;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">1</span>
+              <span style="flex:1;min-width:0;font-size:12px;font-weight:700;color:#fff;white-space:nowrap">Pote 1</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c3d3ec;white-space:nowrap">8 cabeças</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.07)">
+              <span style="width:20px;height:20px;border-radius:99px;background:rgba(255,255,255,.15);color:#c3d3ec;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">2</span>
+              <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#fff;white-space:nowrap">Pote 2</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c3d3ec;white-space:nowrap">8 clubes</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.07)">
+              <span style="width:20px;height:20px;border-radius:99px;background:rgba(255,255,255,.15);color:#c3d3ec;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">3</span>
+              <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#fff;white-space:nowrap">Pote 3</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c3d3ec;white-space:nowrap">8 clubes</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.07)">
+              <span style="width:20px;height:20px;border-radius:99px;background:rgba(255,255,255,.15);color:#c3d3ec;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">4</span>
+              <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#fff;white-space:nowrap">Pote 4</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#c3d3ec;white-space:nowrap">8 clubes</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+              <span style="font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap">GRUPOS SORTEADOS</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">pote 1 em sorteio</span>
+            </div>
+            <div data-wiz-cards style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0">
+                <div style="display:flex;align-items:center;gap:7px;padding:0 2px 4px">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#17458F;color:#F2B90C;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">A</span>
+                  <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">GRUPO A</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Fortaleza</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0">
+                <div style="display:flex;align-items:center;gap:7px;padding:0 2px 4px">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#17458F;color:#F2B90C;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">B</span>
+                  <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">GRUPO B</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:#f6f8f5;animation:ballDrop .3s ease;min-width:0">
+                  <img src="assets/crests/corinthians.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Corinthians</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0">
+                <div style="display:flex;align-items:center;gap:7px;padding:0 2px 4px">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#17458F;color:#F2B90C;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">C</span>
+                  <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">GRUPO C</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Defensa y Justicia</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #dde7db;border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0">
+                <div style="display:flex;align-items:center;gap:7px;padding:0 2px 4px">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#17458F;color:#F2B90C;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto">D</span>
+                  <span style="font-size:11px;font-weight:700;color:#8b978d;letter-spacing:.1em;white-space:nowrap">GRUPO D</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <img src="assets/crests/vasco.png" alt="" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Vasco da Gama</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;background:transparent;min-width:0">
+                  <span style="width:20px;height:20px;border-radius:6px;background:#eef1ee;flex:0 0 auto"></span>
+                  <span style="flex:1;min-width:0;font-size:12px;font-weight:500;color:#c3ccc4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">a definir</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:1;height:8px;border-radius:99px;background:#eef1ee;overflow:hidden"><div style="width:16%;height:100%;border-radius:99px;background:#17458F;transition:width .4s ease"></div></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9aa79e;white-space:nowrap">5 / 32</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;background:#f6f8f5;border-radius:12px;padding:11px 13px">
+              <span style="font-size:14px;flex:0 0 auto">ℹ</span>
+              <span style="flex:1;min-width:0;font-size:12px;color:#5d6c62;line-height:1.45">Os terceiros colocados da Libertadores entram no playoff das oitavas — o sorteio deles acontece depois da fase de grupos.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;color:#78877c">Sorteando o pote 1… 5 de 32 clubes já caíram.</span>
+        <div style="flex:1"></div>
+        <span style="height:46px;padding:0 20px;display:flex;align-items:center;gap:8px;border-radius:13px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="background:#f2f7f1">⏩ Acelerar</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

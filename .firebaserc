@@ -5,8 +5,15 @@
   "targets": {
     "elifoot-d368d": {
       "hosting": {
-        "jogo": ["elifoot-d368d"],
-        "admin": ["retrofoot98-admin"]
+        "jogo": [
+          "elifoot-d368d"
+        ],
+        "admin": [
+          "retrofoot98-admin"
+        ],
+        "beta": [
+          "retrofoot98-beta"
+        ]
       }
     }
   }

@@ -69,14 +69,16 @@ const NET = {
   waLink(phoneDigits){ const num='55'+String(phoneDigits||'').replace(/\D/g,''); const txt=encodeURIComponent('Bora jogar RetroFoot98 comigo! 🟢 Entra na minha sala "'+((this.room&&this.room.name)||'')+'": '+this.inviteLink()); return 'https://wa.me/'+num+'?text='+txt; },
 };
 
-/* ---- chat da liga (visível no lobby e como doca no hub) ----
-   FORA DO AR NA V1. O chat sai do lançamento: a doca ficava por cima do jogo em todas as telas
-   online e o toast de mensagem nova interrompia partida ao vivo. Aqui só a INTERFACE é desligada
-   — o transporte (sendChat/onChat), o histórico em room.chat e a coluna no banco continuam
-   intactos, então voltar é trocar esta constante pra true, sem migração e sem perder conversa. */
-const CHAT_ATIVO = false;
+/* ---- chat da liga (lobby + bolha flutuante no jogo) ----
+   FICOU FORA DO AR NA V1 por dois motivos concretos: a doca ficava por cima do jogo em todas as
+   telas online, e o toast de mensagem nova interrompia a partida ao vivo. O rebranding 2026
+   ataca exatamente esses dois — a interface virou bolha/espiada/painel flutuante que não empurra
+   nada, e existe silêncio total na partida ao vivo e no Camarote (ver rfChat* em ui/rf26.js).
+   Com a causa resolvida, o chat volta. O transporte nunca foi desligado: sendChat/onChat,
+   room.chat e a coluna no banco seguem os mesmos, então nenhuma conversa se perdeu no caminho. */
+const CHAT_ATIVO = true;
 function chatMsgsHTML(){ const room=NET.room; const msgs=(room&&room.chat)||[];
-  if(!msgs.length) return '<div class="cl-chat-empty">Nenhuma mensagem ainda. Diga oi! 👋</div>';
+  if(!msgs.length) return '<div class="cl-chat-empty">Nenhuma mensagem ainda. Diga oi</div>';
   return msgs.slice(-60).map(m=>{ const c=m.clubId?clubOf(m.clubId):null; const col=c?c.color:'#666';
     return `<div class="cl-chat-msg"><span class="cl-chat-who" style="color:${col}">${escC((m.name||'').split(' ')[0])}:</span> <span class="cl-chat-txt">${escC(m.text)}</span></div>`; }).join(''); }
 function clChatSend(inputId){ const el=document.querySelector('#'+inputId); if(!el) return; const text=(el.value||'').trim(); if(!text) return;
@@ -84,19 +86,35 @@ function clChatSend(inputId){ const el=document.querySelector('#'+inputId); if(!
   Promise.resolve(NET.sendChat(text, CL.clubId||null)).then(()=>{ renderChatBoxes(); }).catch(e=>{ toastC('⚠ Mensagem não enviada: '+(e.message||'erro desconhecido')); });
 }
 function clChatKey(e,inputId){ if(e.key==='Enter'){ clChatSend(inputId); } }
-function renderChatBoxes(){ const a=document.querySelector('#cl-chat-msgs-lobby'); if(a){ a.innerHTML=chatMsgsHTML(); a.scrollTop=a.scrollHeight; }
-  const b=document.querySelector('#cl-chat-msgs-dock'); if(b){ b.innerHTML=chatMsgsHTML(); b.scrollTop=b.scrollHeight; } }
+/* atualiza SÓ a lista de mensagens, onde quer que ela esteja na tela — sem
+   redesenhar o container, pra não perder o que o usuário está digitando. */
+function renderChatBoxes(){
+  ['#cl-chat-msgs-lobby','#cl-chat-msgs-dock','#rf-chat-msgs'].forEach(sel=>{
+    const el=document.querySelector(sel);
+    if(el){ el.innerHTML=chatMsgsHTML(); el.scrollTop=el.scrollHeight; }
+  });
+}
 function chatLobbyHTML(){ return `<fieldset class="cl-chatbox"><legend>💬 Chat da sala</legend>
   <div class="cl-chat-msgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()}</div>
   <div class="cl-chat-in"><input id="cl-chat-input-lobby" class="cl-input cl-chat-input" placeholder="Escreva uma mensagem..." onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-mini'})}</div>
 </fieldset>`; }
-function clChatToggle(){ CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0; if(typeof renderChatDock==='function') renderChatDock(); else cdraw(); }
+function clChatToggle(){
+  if(typeof rfChatToggle==='function'){ rfChatToggle(); return; }
+  CL.chatOpen=!CL.chatOpen; if(CL.chatOpen) CL.chatUnread=0;
+  if(typeof renderChatDock==='function') renderChatDock(); else cdraw(); }
 /* HOST GLOBAL do chat: a doca vive num container fixo em <body>, re-renderizado a CADA cdraw —
    assim o chat aparece em TODAS as telas do jogo online (principal, ao vivo, classificação,
    sorteio de copa...), não só na tela principal. No lobby (CL.screen==='online') o chat já está
    embutido na própria tela, então lá o host fica vazio. */
 function renderChatDock(){
   if(typeof document==='undefined') return;
+  // REBRANDING 2026: quem desenha o chat dentro do jogo agora é rfChatRender()
+  // (bolha → espiada → painel). A doca antiga fica só como fallback pra o caso
+  // de rf26.js não ter carregado; o chat do LOBBY (chatLobbyHTML) não passa por aqui.
+  if(typeof rfChatRender==='function'){
+    const host=document.getElementById('cl-chatdock-host'); if(host) host.remove();
+    rfChatRender(); return;
+  }
   let host=document.getElementById('cl-chatdock-host');
   const show = CHAT_ATIVO && CL.online && CL.screen!=='online';
   if(!show){ if(host){ host.innerHTML=''; host.className=''; } return; }
@@ -203,16 +221,21 @@ function wireNet(){ NET.onState=(room)=>{ if(room && room.speedMult && !NET.isHo
     const mine = !!(msg && NET.self && msg.id===NET.self.id);
     if(CL.screen==='online'){ renderOnlineInto(); return; } // lobby: chat sempre visível, sem badge
     if(CL.chatOpen){ renderChatBoxes(); return; }           // doca aberta: só atualiza as mensagens (preserva o input)
-    // doca fechada: conta como não-lida (menos as minhas), notifica e atualiza o badge da doca
+    // FECHADO: conta como não-lida (menos as minhas) e mostra a ESPIADA — uma linha
+    // por 4 segundos. Nada de toast: toast é aviso do sistema e rouba a atenção da
+    // partida, que é justamente o que derrubou o chat na v1. O contador da bolha é o
+    // único aviso, e ele se cala sozinho na partida ao vivo e no Camarote.
     if(msg && !mine){
       CL.chatUnread=(CL.chatUnread||0)+1;
-      if(typeof toastC==='function' && msg.text){ const who=(msg.name||'').split(' ')[0]; toastC('💬 '+who+': '+(msg.text.length>60?msg.text.slice(0,60)+'…':msg.text)); }
+      if(typeof rfChatEspiada==='function') rfChatEspiada(msg);
     }
     refreshChatDock();
   }; }
 /* re-renderiza SÓ a doca do chat (bar + badge) sem redesenhar a tela toda — usado quando chega
    mensagem com a doca fechada (não há input pra preservar). */
-function refreshChatDock(){ const d=document.querySelector('.cl-chatdock'); if(d) d.outerHTML=chatDockHTML(); }
+function refreshChatDock(){
+  if(typeof rfChatRender==='function'){ rfChatRender(); return; }
+  const d=document.querySelector('.cl-chatdock'); if(d) d.outerHTML=chatDockHTML(); }
 /* SINCRONIZAR (botão): força um refetch do estado da sala e reaplica — leva o convidado do lobby
    pro jogo se o anfitrião já começou, e recarrega a rodada se ficou pra trás. Rede de segurança
    caso um evento de Realtime não chegue. */
@@ -466,8 +489,14 @@ function onlineReconcileIfBehind(room){
     if(typeof _prLog==='function') _prLog('GUEST reconcile: authRound='+(room.round||0)+' myRound='+(S.round||0)+' newer='+!!newer);
     if(!newer && typeof hideSyncLoading==='function') hideSyncLoading(); // nada pra adotar afinal -> não trava o loading
     if(newer){
-      const isTurnover = (sState.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
-      const _roundAntes = (S.round||0);                  // jornada que acabou de ser resolvida (ver queueRoundCupClassifs)
+      /* mesma regra do anfitriao (ver onlineAdoptServerRound): a virada e "ainda nao vi esta
+         temporada", nao "o numero acabou de mudar" — senao quem adotar o estado por outro
+         caminho antes deste nunca ve a tela de fim de temporada. */
+      const novaTemporada=(sState.season||0);
+      if(CL._fimTemporadaVisto==null) CL._fimTemporadaVisto=oldSeason;   // ancora, nao dispara
+      const isTurnover = novaTemporada>CL._fimTemporadaVisto;
+      if(isTurnover) CL._fimTemporadaVisto=novaTemporada;
+      const _roundAntes = (S.round||0);                  // rodada que acabou de ser resolvida (ver queueRoundCupClassifs)
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, sState);
       if(typeof restoreCareer==='function') restoreCareer(_career);
@@ -478,12 +507,13 @@ function onlineReconcileIfBehind(room){
       S.xi = resolveClubXI(CL.clubId);
       if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
       if(typeof pruneAppliedNetTransfers==='function') pruneAppliedNetTransfers(); // solta as transferências já aplicadas pelo servidor
+      if(typeof reaplicarMinhasTransferencias==='function') reaplicarMinhasTransferencias(); // o que eu já negociei vale por cima do estado adotado
       if(typeof pruneAppliedNetOffers==='function') pruneAppliedNetOffers();       // idem pras propostas mandadas a outro humano
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // finanças são individuais (ver restoreMyFinances)
-      // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-      // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+      // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+      // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
       if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
       if(typeof applyOwnPendingFinances==='function') applyOwnPendingFinances(); // F3.3: finanças da MINHA rodada (convidado)
@@ -523,7 +553,7 @@ function onlineReconcileIfBehind(room){
             if(typeof checkPendingManagerEvents==='function') checkPendingManagerEvents();
             if(typeof handleResenhaCareer==='function') handleResenhaCareer(); // demissão/convite na Resenha — idem host
           };
-          // AS COPAS DA JORNADA VÊM ANTES DA TABELA DA LIGA — E ESTE É O CAMINHO DO CONVIDADO.
+          // AS COPAS DA RODADA VÊM ANTES DA TABELA DA LIGA — E ESTE É O CAMINHO DO CONVIDADO.
           // Era AQUI que morria a regra "todo mundo vê a classificação de todas as competições":
           // queueRoundCupClassifs existia só no onlineAdoptServerRound, que é o caminho de quem
           // FECHA a rodada (o anfitrião). O convidado espelha o estado por este reconcile e ia
@@ -543,7 +573,30 @@ function onlineReconcileIfBehind(room){
 }
 
 /* cada tela do fluxo Resenha já retorna o shell completo (wizShell) — sem deskWrap/titleBar */
+/* O FLUXO DA RESENHA TEM NOVE PASSOS, NÃO UM.
+   Isto devolvia `rfLobbyHTML()` SEMPRE, ignorando `CL.net.step` — a máquina de
+   passos inteira (conta, escolha, código, minhas salas, criar sala, aprovação,
+   lobby, sorteio) ficou inalcançável, e qualquer tentativa de começar uma
+   resenha caía numa sala vazia. Foi o efeito de portar UMA tela e curto-circuitar
+   as outras oito.
+   As portadas entram por dentro dos próprios passos: `scSalaHost` devolve a
+   Onboarding 4 e `scLobby` devolve a Onboarding 5. As que ainda não têm desenho
+   novo seguem com a tela antiga — feia, mas viva, que é melhor do que um beco. */
 function renderOnline(){ const n=CL.net||{};
+  if(n.step==='escolha') return (typeof rfResenhaComecarHTML==='function') ? rfResenhaComecarHTML() : scResenhaChoice();
+  /* PORTADAS (ver src/ui/rf26-resenha-entrada.js). As antigas ficam abaixo,
+     sem chamador, ate o desenho novo passar pelo teste do usuario. */
+  if(n.step==='joincode') return (typeof rfEntrarCodigoHTML==='function') ? rfEntrarCodigoHTML() : scJoinCode();
+  if(n.step==='conta')  return scConta();
+  if(n.step==='minhassalas') return (typeof rfMinhasSalasHTML==='function') ? rfMinhasSalasHTML() : scMinhasSalas();
+  if(n.step==='sala')   return scSalaHost();     // -> rfOb4 (Criar Sala)
+  if(n.step==='midjoin') return scMidJoin();
+  if(n.step==='waitapproval') return scWaitApproval();
+  if(n.step==='lobby')  return scLobby();        // -> rfOb5 (Convites)
+  if(n.step==='reveal') return scResenhaDraw();
+  return scConta();
+}
+function renderOnlineLegado(){ const n=CL.net||{};
   if(n.step==='escolha') return scResenhaChoice();
   if(n.step==='joincode') return scJoinCode();
   if(n.step==='conta')  return scConta();
@@ -562,7 +615,7 @@ function scResenhaChoice(){
   const rooms=(CL.net.myRooms||[]).slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
   const rejoin = rooms.length ? `<button class="cl-wiz-rejoin" onclick="CL.net.step='minhassalas';cdraw()">↻ Você já joga ${rooms.length} Resenha${rooms.length>1?'s':''} — toque pra reentrar</button>` : '';
   return wizShell({
-    step:2, steps:WIZ_PASSOS.resenha, title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
+    step:rfPasso('Modo','resenha'), modo:'resenha', title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -597,7 +650,7 @@ function scJoinCode(){ const n=CL.net;
       </div>
     </div>`;
   return wizShell({
-    step:3, steps:WIZ_PASSOS.resenha, title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
+    step:rfPasso('Modo','resenha'), modo:'resenha', title:'Entrar numa Resenha', back:'clResenhaBackChoice()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Entrar','clJoinCodeGo()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})
   });
@@ -614,10 +667,20 @@ function clRequestOrJoin(code){
   const me={ name: CL.mgr||CL.net.name, email: st.email };
   toastC('Entrando na Resenha...');
   (async ()=>{ try {
+    CL.net.erro=null;
     const res = await NET.requestJoin(code, me, clOnJoinDecision);
     if(res && res.entered){ routeAfterJoin(); }
     else { CL.net.code=code; CL.net.pendingName=(res&&res.name)||''; CL.net.step='waitapproval'; cdraw(); }
-  } catch(e){ toastC('⚠ '+(e.message||'Não foi possível entrar. Confira o código.')); } })();
+  } catch(e){
+    /* A FALHA TEM DE FICAR NA TELA. Era so um toast de tres segundos numa tela que nao mudava
+       em mais nada: quem tentava entrar ficava sem saber se o pedido tinha saido, e do outro
+       lado o anfitriao nao via pedido nenhum -- os dois a olhar para telas que nao diziam nada.
+       Agora o motivo fica escrito na tela do codigo, ate a pessoa mexer no campo. */
+    const msg=(e&&e.message)||'Não foi possível entrar. Confira o código.';
+    console.error('pedido de entrada falhou:', code, e);
+    CL.net.code=code; CL.net.erro=msg; CL.net.step='joincode';
+    toastC('⚠ '+msg); cdraw();
+  } })();
 }
 /* chamado pelo poll quando o anfitrião decide o pedido */
 function clOnJoinDecision(status, roomName){
@@ -643,7 +706,9 @@ function scWaitApproval(){ const n=CL.net;
       <div class="cl-wait-sub">Aguardando o anfitrião aprovar a sua entrada na Resenha${n.pendingName?` <b>${escC(n.pendingName)}</b>`:''}.<br>Assim que ele aprovar, você entra automaticamente.</div>
       <div class="cl-wait-dots"><span></span><span></span><span></span></div>
     </div>`;
-  return wizShell({ title:'À espera de aprovação', back:'clCancelJoinReq()', backLabel:'Cancelar pedido',
+  /* SEM `back`: cancelar o pedido JA e a acao desta tela, e desde que o voltar
+     desceu para a barra de acao os dois ficavam lado a lado a dizer o mesmo. */
+  return wizShell({ step:rfPasso('Sala','resenha'), modo:'resenha', title:'À espera de aprovação',
     contentCls:'cl-wiz-center', body, actionCls:'cl-wiz-action-c',
     action: btn('Cancelar pedido','clCancelJoinReq()',{icon:'✖',cls:'cl-wiz-sairbtn'}) });
 }
@@ -654,45 +719,74 @@ function clCancelJoinReq(){
 function renderOnlineInto(){ const r=document.querySelector('#c-root'); if(!r) return; r.innerHTML=renderOnline(); const f=document.querySelector('#cl-focus'); if(f)f.focus(); }
 
 /* ---- login / criar conta (e-mail + senha reais — nunca mais anônimo) ---- */
+/* DESIGN NOVO (pedido do dono, 20/08): este passo desenhava o cartao da pele antiga
+   (cl-conta-logged / cl-authfield) dentro da regua nova — era a tela denunciada no print.
+   Agora usa as MESMAS pecas do onboarding novo (rf-ob-sessao, rfCampo/rfInput, rf-seg),
+   com os manipuladores da Resenha (CL.net + netContaSync). A caixa alta do nome e por CSS
+   (classe maiuscula) — nunca this.value=, que mata o cursor. */
 function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  const salaInfo=(join && typeof NET!=='undefined' && NET.room)
+    ? `<div class="rf-conta-sala">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>` : '';
 
   // já logado nesta sessão do navegador: mostra atalho claro em vez de pedir login de novo
   if(st.loggedIn){
-    const body=`<div class="cl-wiz-authcard">
-        <div class="cl-conta-logged">
-          <div class="cl-conta-logged-ic">✓</div>
-          <div><div class="cl-conta-logged-t">Você já está logado</div>
-          <div class="cl-conta-logged-e">${escC(st.email)}</div></div>
+    if(n.name==null||n.name==='') n.name=st.name||'';
+    const corpo=`
+      <div class="rf-wiz-mid">
+        <div class="rf-ob-sessao">
+          <span class="rf-ob-sessao-ic" aria-hidden="true">${(typeof rfIcone==='function'&&rfIcone('ok',20))||'✓'}</span>
+          <span class="rf-ob-sessao-id">
+            <span class="rf-ob-sessao-t">Você já está logado</span>
+            <span class="rf-ob-sessao-e">${escC(st.email||'')}</span>
+          </span>
         </div>
-        <div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" value="${escC(n.name||st.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>
-        ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
-        <div class="cl-conta-switch">Não é você? <a href="javascript:void(0)" onclick="clAuthSwitchAccount()">Trocar de conta</a></div>
+        <div class="rf-wiz-form">
+          ${rfCampo('Nome do treinador', `<input class="rf-campo-c maiuscula" id="cl-focus" maxlength="14"
+            value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();netContaSync()">`)}
+        </div>
+        ${salaInfo}
+        <button type="button" class="rf-ob-trocar" onclick="clAuthSwitchAccount()">
+          Não é você? <b>Entrar com outra conta</b>
+        </button>
       </div>`;
-    return wizShell({ step:3, steps:WIZ_PASSOS.resenha, title:join?'Entrar na sala':'Criar sala', back:'clGoModo()', backLabel:'Voltar',
-      contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-      action: btn(join?'Entrar':'Continuar',join?'clContaJoin()':'clContaHost()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.name}) });
+    return rfWiz({passo:rfPasso(join?'Modo':'Sala','resenha'), trilha:'resenha', contexto:'Modo Resenha', corpo,
+      sobre:'Bem-vindo de volta', titulo:join?'Entrar na sala.':'Criar a sua sala.',
+      sub:'Confirme o nome de treinador que a turma vai ver na Resenha.',
+      nota:'Dá para trocar de conta a qualquer momento.',
+      voltar:'clGoModo()', voltarLabel:'‹ Voltar',
+      cta:join?'Entrar':'Continuar', ctaOff:!n.name,
+      ctaOn:join?'clContaJoin()':'clContaHost()'});
   }
 
   const mode=n.authMode||'login'; const isSignup=(mode==='signup');
-  const body=`<div class="cl-wiz-authcard">
-      <div class="cl-conta-tabs">
-        <div class="cl-conta-tab ${!isSignup?'on':''}" onclick="CL.net.authMode='login';cdraw()">Já tenho conta</div>
-        <div class="cl-conta-tab ${isSignup?'on':''}" onclick="CL.net.authMode='signup';cdraw()">Criar conta nova</div>
+  const corpo=`
+    <div class="rf-wiz-mid">
+      <div class="rf-wiz-form">
+        <div class="rf-seg">
+          <button type="button" class="rf-seg-b ${isSignup?'on':''}" onclick="CL.net.authMode='signup';cdraw()">Criar conta</button>
+          <button type="button" class="rf-seg-b ${isSignup?'':'on'}" onclick="CL.net.authMode='login';cdraw()">Entrar</button>
+        </div>
+        ${isSignup?rfCampo('Nome do treinador', `<input class="rf-campo-c maiuscula" id="cl-focus" maxlength="14"
+          placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();netContaSync()">`):''}
+        ${rfCampo('E-mail', `<input class="rf-campo-c" ${isSignup?'':'id="cl-focus"'} type="email"
+          placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()">`)}
+        ${rfCampo('Senha', `<input class="rf-campo-c" type="password" minlength="6" placeholder="••••••••"
+          value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()"
+          onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()">`)}
       </div>
-      <div class="cl-wiz-authsub">${isSignup?'Primeira vez aqui? Crie sua conta com e-mail e senha.':'Entre com o e-mail e senha da sua conta.'}</div>
-      <div class="cl-authform">
-        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();this.value=CL.net.name;netContaSync()"></div>`:''}
-        <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()"></div>
-        <div class="cl-authfield"><label>Senha</label><input type="password" minlength="6" placeholder="••••••••" value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()" onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()"></div>
-        ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456).</div>`:''}
-      </div>
-      ${join && NET.room?`<div class="cl-conta-room">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>`:''}
+      ${salaInfo}
     </div>`;
-  return wizShell({ public:true, step:3, steps:WIZ_PASSOS.resenha, title:join?'Entrar na sala':(isSignup?'Criar conta':'Sua conta'), back:'clGoModo()', backLabel:'Voltar',
-    contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-    action: btn(isSignup?'Criar conta':'Entrar',isSignup?'clAuthDoSignup()':'clAuthDoLogin()',{icon:'✔',cls:'cl-wiz-cta',dis:!(n.email&&n.password&&(!isSignup||n.name))}) });
+  return rfWiz({passo:rfPasso('Entrar','resenha'), trilha:'resenha', contexto:'Modo Resenha', corpo,
+    sobre:join?'Entrar na sala':'Bem-vindo, treinador',
+    titulo:isSignup?'Crie sua conta e entre na Resenha.':'Entre com a sua conta.',
+    sub:'Seus jogos ficam na nuvem — dá para começar no computador e continuar no telefone.',
+    nota:isSignup?'Pelo menos 6 caracteres na senha. Evite senhas óbvias.':'A gente só usa seu e-mail para o save.',
+    voltar:'clGoModo()', voltarLabel:'‹ Voltar',
+    cta:isSignup?'Criar conta e continuar':'Entrar',
+    ctaOff:!(n.email&&n.password&&(!isSignup||n.name)),
+    ctaOn:isSignup?'clAuthDoSignup()':'clAuthDoLogin()'});
 }
-function netContaSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(!b) return;
+function netContaSync(){ const b=document.querySelector('.rf-wiz-cta, .cl-wiz-cta, .cl-btn-ok'); if(!b) return;
   const n=CL.net; const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(st.loggedIn){ b.disabled=!n.name; return; }
   const isSignup=(n.authMode||'login')==='signup';
@@ -703,7 +797,9 @@ function clAuthDoSignup(){ const n=CL.net; if(!(n.email&&n.password&&n.name)) re
   toastC('Criando conta...');
   (async ()=>{ try {
     await NET.authSignUp(n.email, n.password, n.name);
-    toastC('Conta criada!'); cdraw();
+    toastC('Conta criada!');
+    if(clSegueEntradaPorLink()) return;   // idem ao login: o convite nao pode parar aqui
+    cdraw();
   } catch(e) {
     if(e.code==='DUPLICATE_ACCOUNT'){ CL.net.authMode='login'; toastC('⚠ '+e.message); }
     else toastC('⚠ '+e.message);
@@ -715,8 +811,30 @@ function clAuthDoLogin(){ const n=CL.net; if(!(n.email&&n.password)) return;
   (async ()=>{ try {
     const user = await NET.authSignIn(n.email, n.password);
     CL.net.name = user.user_metadata?.name || n.email.split('@')[0];
-    toastC('Login feito!'); cdraw();
+    toastC('Login feito!');
+    if(clSegueEntradaPorLink()) return;   // veio de um link/código: o pedido sai agora
+    cdraw();
   } catch(e) { toastC('⚠ '+e.message); cdraw(); } })();
+}
+/* ===== O LINK DE CONVITE MORRIA NO LOGIN =====
+   Quem abre `?sala=CODIGO` cai na tela de conta com o titulo "Entrar na sala" e um botao
+   "Entrar". Esse botao era o do LOGIN. Feito o login, a mesma tela se redesenhava na variante
+   "Voce ja esta logado" -- com OUTRO botao, tambem escrito "Entrar", que era o que de facto
+   mandava o pedido ao anfitriao. Do lado de quem entra, ele ja tinha carregado em "Entrar" e a
+   tela so mudou: era natural achar que estava dentro e ficar a espera. Resultado no servidor:
+   NENHUM pedido criado, e o anfitriao sem nada para aprovar -- exatamente o que se viu numa
+   sala real (zero linhas em join_requests para o codigo dela).
+   Agora, quando a entrada veio de um link ou de um codigo, o login (ou o cadastro) emenda
+   sozinho no pedido. So segue se a sessao ficou mesmo de pe -- num cadastro que exija
+   confirmacao de e-mail nao ha sessao, e ai a tela normal continua a valer. */
+function clSegueEntradaPorLink(){
+  const n=CL.net||{};
+  if(!(n.intent==='join' && n.code)) return false;
+  const st=(typeof NET!=='undefined' && NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(!st.loggedIn) return false;
+  CL.mgr = CL.net.name || st.name || CL.mgr;
+  clRequestOrJoin(n.code);
+  return true;
 }
 function clContaHost(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.name) return;
   CL.mgr = CL.net.name;
@@ -771,7 +889,7 @@ async function clAutoSeatLobby(){
 /* ---- escolher o próprio clube: aceitar convite (pré-temporada) ou entrar
    com a liga já rolando — sempre um clube livre, CPU até então ---- */
 function scMidJoin(){
-  const room=NET.room; if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
+  const room=NET.room; if(!room) return wizShell({ step:rfPasso('Convites','resenha'), modo:'resenha', title:'Sala', back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
   const midSeason=room.phase!=='lobby';
   const free=freeClubIds();
   const msg=midSeason
@@ -784,7 +902,7 @@ function scMidJoin(){
       <div class="cl-midjoin-msg">${msg}</div>
       <div class="cl-midjoin-list" style="text-align:center;padding:14px 0">${cta}</div>
     </div>`;
-  return wizShell({ title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-top', body });
+  return wizShell({ step:rfPasso('Convites','resenha'), modo:'resenha', title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair', contentCls:'cl-wiz-top', body });
 }
 /* sorteio obrigatório: o convidado entra com um clube livre SORTEADO (não escolhe) */
 function clMidJoinRandom(){
@@ -819,7 +937,7 @@ function scMinhasSalas(){
       <div class="cl-wiz-authsub" style="text-align:left">Você já participa dessas salas ou foi convidado pra elas. Toque numa pra continuar.</div>
       <div class="cl-myrooms-list">${rows}</div>
     </div>`;
-  return wizShell({ pill:'Minhas salas', title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
+  return wizShell({ step:rfPasso('Modo','resenha'), modo:'resenha', title:'Minhas salas', back:'clResenhaBackChoice()', backLabel:'Voltar',
     contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
     action: btn('Criar sala nova','clGoNovaSala()',{icon:'➕',cls:'cl-wiz-cta'}) });
 }
@@ -874,20 +992,11 @@ function salaTestDivRow(){
   return `<div class="cl-authfield"><label>🧪 Modo teste — divisão inicial da sala</label>
     <div class="cl-divopt-row">${opts}</div></div>`;
 }
-function scSalaHost(){ const n=CL.net;
-  const body=`<div class="cl-wiz-authcard">
-      <div class="cl-authfield"><label>Nome da sala</label>
-        <input id="cl-focus" maxlength="18" placeholder="Ex: Resenha da firma" value="${escC(n.roomName||'')}" oninput="CL.net.roomName=this.value;netSalaSync()" onkeydown="if(event.key==='Enter')clOpenRoom()"></div>
-      <div class="cl-authhint">Cada jogador escolhe o próprio time ao entrar, entre os clubes ainda controlados pela CPU.</div>
-      ${(typeof patchPickerHTML==='function')?patchPickerHTML():''}
-      ${salaTestDivRow()}
-    </div>`;
-  return wizShell({
-    step:4, steps:WIZ_PASSOS.resenha, title:'Abrir sala', back:'clBackConta()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
-    action: btn('Abrir','clOpenRoom()',{icon:'✔',cls:'cl-wiz-cta',dis:!n.roomName})
-  });
+function scSalaHost(){
+  // TELA PORTADA (telas/Onboarding 4 - Criar Sala)
+  return rfOb4();
 }
+
 function netSalaSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled=!CL.net.roomName; }
 function clBackConta(){ CL.net.step='escolha'; cdraw(); }
 function clOpenRoom(){ if(!CL.net.roomName)return;
@@ -907,101 +1016,13 @@ function clOpenRoom(){ if(!CL.net.roomName)return;
    outro participante (a linha de cada um só mostra um seletor pro dono dela
    mesma, quando ainda não escolheu). "Sortear times" continua sendo um atalho
    do anfitrião pra preencher de uma vez só as vagas que ninguém pegou ainda. */
-function scLobby(){ const room=NET.room;
-  if(!room) return wizShell({ title:'Sala', back:'clLobbyExit()', backLabel:'Sair da sala',
-    contentCls:'cl-wiz-center', body:`<div class="cl-wiz-sub">A ligar à sala…</div>` });
-  const host=NET.isHost;
-  const nParts=room.participants.length;
-  const canStart=host && nParts>=2;
-  if(host) clStartHostReqPoll();
-  else clStartLobbyPoll(); // CONVIDADO: poll de segurança pra não ficar preso se o realtime falhar
-
-  // ---- lista de treinadores na sala (o time NÃO é revelado aqui — só na tela de sorteio) ----
-  const parts=room.participants.map(p=>{ const isSelf=p.id===NET.self.id;
-    const status=p.confirmed?'<span class="cl-part-st ok">● na sala</span>':'<span class="cl-part-st">○ a entrar…</span>';
-    return `<div class="cl-part">
-      <span class="cl-part-dot ${p.confirmed?'ok':''}"></span>
-      <span class="cl-part-n">${escC(p.name||'—')}${p.host?' <i>(anfitrião)</i>':''}${isSelf&&!p.host?' <i>(você)</i>':''}</span>
-      ${status}
-      <span class="cl-part-team wait">🎲 aguardando sorteio</span>
-      ${host && !isSelf ? `<button class="cl-part-kick" title="Remover da sala" onclick="clKick('${p.id}','${p.clubId||''}')">✖</button>` : ''}
-    </div>`; }).join('');
-
-  const nReq=(CL.pendingJoins&&CL.pendingJoins.length)||0;
-
-  // ======= VISÃO DO ANFITRIÃO: passo a passo em coluna única =======
-  let steps='';
-  if(host){
-    // Passo 1 — convidar
-    steps += `<section class="cl-step">
-      <div class="cl-step-h"><span class="cl-step-num">1</span><span class="cl-step-t">Convide os treinadores</span></div>
-      <div class="cl-step-b">
-        <div class="cl-wiz-invitegrid">
-          <div>
-            <div class="cl-wiz-invlbl">🟢 Por WhatsApp</div>
-            <div class="cl-wiz-invrow"><span class="cl-ddi">+55</span><input class="cl-phone" inputmode="numeric" placeholder="DDD + número" value="${escC(CL.net.phone||'')}" oninput="CL.net.phone=this.value.replace(/\\D/g,'');this.value=CL.net.phone">${btn('Enviar','clWaInvite()',{cls:'cl-btn-sm'})}</div>
-          </div>
-          <div>
-            <div class="cl-wiz-invlbl">✉ Por e-mail</div>
-            <div class="cl-wiz-invrow"><input class="cl-emailinv" type="email" placeholder="email@exemplo.com" value="${escC(CL.net.inviteEmail||'')}" oninput="CL.net.inviteEmail=this.value">${btn('Enviar','clEmailInvite()',{cls:'cl-btn-sm'})}</div>
-          </div>
-        </div>
-        <div class="cl-wiz-invlbl" style="margin-top:10px">🔍 Quem já tem conta</div>
-        <input id="cl-usersearch-input" class="cl-wiz-searchin" placeholder="Buscar por nome ou e-mail (mín. 3 letras)" oninput="clUserSearch(this.value)">
-        <div id="cl-usersearch-results" class="cl-usersearch-results"></div>
-        <div class="cl-wiz-invhint">Ou compartilhe o link: <a class="cl-wiz-invlink" href="${escC(NET.inviteLink())}" target="_blank">${escC(NET.inviteLink())}</a></div>
-      </div>
-    </section>`;
-    // Passo 2 — aprovar entradas (só aparece quando há pedidos)
-    if(nReq>0){
-      steps += `<section class="cl-step cl-step-alert">
-        <div class="cl-step-h"><span class="cl-step-num">2</span><span class="cl-step-t">Aprove os pedidos de entrada <span class="cl-step-badge">${nReq}</span></span></div>
-        <div class="cl-step-b"><div class="cl-req-list">${clReqRowsHTML()}</div></div>
-      </section>`;
-    }
-    // Passo 3 — treinadores na sala
-    steps += `<section class="cl-step">
-      <div class="cl-step-h"><span class="cl-step-num">${nReq>0?3:2}</span><span class="cl-step-t">Treinadores na sala (${nParts})</span></div>
-      <div class="cl-step-b"><div class="cl-parts">${parts}</div>
-        <div class="cl-wiz-invhint">Quando começar, cada treinador recebe um clube por sorteio — ninguém escolhe.</div>
-      </div>
-    </section>`;
-  } else {
-    // ======= VISÃO DO CONVIDADO: simples =======
-    steps += `<section class="cl-step">
-      <div class="cl-step-h"><span class="cl-step-t">Treinadores na sala (${nParts})</span></div>
-      <div class="cl-step-b"><div class="cl-parts">${parts}</div>
-        <div class="cl-wiz-invhint">Aguarde o anfitrião começar. Os clubes são sorteados na próxima tela.</div>
-      </div>
-    </section>`;
-  }
-
-  // Chat — recolhível (todos). Desligado na v1 junto com a doca (ver CHAT_ATIVO).
-  const chatOpen=CL.net.lobbyChatOpen!==false;
-  if(CHAT_ATIVO) steps += `<section class="cl-step cl-step-chat">
-      <div class="cl-step-h cl-step-h-btn" onclick="CL.net.lobbyChatOpen=${chatOpen?'false':'true'};renderOnlineInto()">
-        <span class="cl-step-t">💬 Chat da sala</span><span class="cl-step-caret">${chatOpen?'▾':'▸'}</span>
-      </div>
-      ${chatOpen?`<div class="cl-step-b">
-        <div class="cl-chat-msgs cl-wiz-chatmsgs" id="cl-chat-msgs-lobby">${chatMsgsHTML()||'<div class="cl-wiz-chatempty">Nenhuma mensagem ainda. Diga oi! 👋</div>'}</div>
-        <div class="cl-wiz-invrow"><input id="cl-chat-input-lobby" class="cl-chat-input" placeholder="Escreva uma mensagem…" onkeydown="clChatKey(event,'cl-chat-input-lobby')">${btn('Enviar',"clChatSend('cl-chat-input-lobby')",{cls:'cl-btn-sm'})}</div>
-      </div>`:''}
-    </section>`;
-
-  const action=`<span class="cl-wiz-hint">${host?(canStart?'O sorteio dos clubes acontece na próxima tela.':'Convide pelo menos mais 1 treinador pra começar.'):'À espera do anfitrião… toque em Sincronizar se ele já começou.'}</span>
-    <div class="cl-wiz-actbtns">
-      ${btn('Sair','clLobbyExit()',{icon:'✖',cls:'cl-wiz-sairbtn'})}
-      ${host?btn('Começar (sortear times)','clLobbyStart()',{icon:'🎲',cls:'cl-wiz-cta',dis:!canStart})
-            :btn('Sincronizar','clSyncResenha()',{icon:'🔄',cls:'cl-wiz-cta'})}
-    </div>`;
-  return wizShell({
-    step:4, steps:WIZ_PASSOS.resenha, title:'Sala · '+escC(room.name||''), back:'clLobbyExit()', backLabel:'Sair da sala',
-    pill:'Código '+escC(room.code||''),
-    contentCls:'cl-wiz-lobbycontent',
-    body:`<div class="cl-wiz-lobbycol">${steps}</div>`,
-    action
-  });
+function scLobby(){
+  // TELA PORTADA (telas/Onboarding 5 - Convites): a referência desenha lista,
+  // convites, link e chat; os pedidos de entrada, a busca por usuário e o
+  // remover — que só o lobby de verdade tem — entram na mesma coluna.
+  return rfOb5();
 }
+
 /* MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): qual divisão do Brasil ESTA sala usa —
    normalmente sempre D, mas o anfitrião pode ter escolhido outra em scSalaHost (netCreateRoom já
    criou os assentos nela). Fonte de verdade, em ordem: (1) o clube de QUALQUER participante já
@@ -1190,7 +1211,20 @@ function clResenhaDrawSkip(){ const d=CL.net&&CL.net.draw; if(!d||d.done) return
   resenhaDrawTick();
 }
 function scResenhaDraw(){
+  /* DESIGN NOVO: a mesma cerimonia do solo (rfCerimoniaSorteio, rf26-onboarding) — a promessa
+     "e a mesma cerimonia no solo e na resenha" estava escrita la desde o porte e a Resenha
+     continuava na pele antiga (cl-rdraw). O que muda por modo: quem sou eu na lista, a regua
+     da trilha e os botoes (Pular enquanto anda; a Resenha entra sozinha quando acaba). */
   const d=(CL.net&&CL.net.draw)||{list:[],idx:0};
+  if(typeof rfCerimoniaSorteio==='function'){
+    const meuNome=String((typeof NET!=='undefined'&&NET.self&&NET.self.name)||CL.mgr||'').toUpperCase();
+    const meuIdx=(d.list||[]).findIndex(x=>String(x&&x.name||'').toUpperCase()===meuNome);
+    return rfCerimoniaSorteio({ lista:d.list||[], feitos:d.idx||0, poolById:d.poolById||{},
+      meuIdx:(meuIdx>=0?meuIdx:0), trilha:'resenha',
+      cta:{ andando:'⏩ Pular', andandoOn:'clResenhaDrawSkip()',
+            fim:'Entrando na Resenha…', fimNota:'Preparando a temporada…' } });
+  }
+  // rede: se o onboarding novo nao carregou, a versao antiga continua funcionando
   const poolById=d.poolById||{};
   const rows=(d.list||[]).map((p,i)=>{
     const revealed=i<d.idx;
@@ -1209,6 +1243,7 @@ function scResenhaDraw(){
     ? `<span class="cl-wiz-hint">Preparando a temporada…</span>`
     : `<div class="cl-wiz-actbtns">${btn('Pular','clResenhaDrawSkip()',{icon:'⏩',cls:'cl-wiz-cta'})}</div>`;
   return wizShell({
+    step:rfPasso('Clube','resenha'), modo:'resenha',
     title:'Sorteio dos clubes',
     contentCls:'cl-wiz-center',
     body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
@@ -1256,17 +1291,68 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // MODO TESTE (TESTING_FREE_DIVISION_PICK, ui/main.js): a divisão real desta sala pode não ser D
   // (anfitrião escolheu outra em scSalaHost) — divisionOfResenhaClub deriva do PRÓPRIO clube já
   // confirmado (me.clubId), então funciona igual pro anfitrião e pra qualquer convidado.
-  if(typeof setUniverse==='function') setUniverse('brasil');
-  const startDiv = (typeof divisionOfResenhaClub==='function') ? divisionOfResenhaClub(me.clubId) : ((typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D');
-  const startClubs = (typeof resenhaStartClubs==='function' && resenhaStartClubs(startDiv).length) ? resenhaStartClubs(startDiv) : ((DATA.clubsSerieA||DATA.clubs)||[]);
+  /* ===== O PAÍS DA SALA SAI DO CLUBE, NÃO DE UM LITERAL =====
+     Isto dizia `setUniverse('brasil')` e `CL.bgCountries=[]` — as duas linhas que prendiam a
+     Resenha ao Brasil. O país agora vem do PRÓPRIO clube deste assento (universoDoClube), pelo
+     mesmo caminho que a divisão já usava (divisionOfResenhaClub): a sala não guarda o país em
+     lugar nenhum, e por isso ele nunca pode divergir do clube que foi de facto sorteado.
+
+     E os OUTROS países da sala não são fundo decorativo: pela regra do dono do jogo (18/08), um
+     país com humano é jogável por inteiro. `CL.bgCountries` recebe os países dos outros assentos
+     — é o que faz as ligas deles existirem neste cliente, para as tabelas, o mercado entre países
+     e as propostas a treinador.
+
+     `S.intlUniverse` é escrito logo após newGame porque é ELE que viaja no shared_state e é por
+     ele que o SERVIDOR sabe em que país a sala corre (WORLD_CONFIG.uniDoEstado). Sem isso o
+     resolve-round trataria uma sala inglesa como brasileira — a pirâmide, as copas e as cotas
+     todas erradas, e ninguém daria por isso até a virada de temporada. */
+  const uniDaSala = (typeof universoDoClube==='function') ? universoDoClube(me.clubId) : 'brasil';
+  if(typeof setUniverse==='function') setUniverse(uniDaSala);
+  const startDiv = (typeof divisionOfResenhaClub==='function' && uniDaSala==='brasil')
+    ? divisionOfResenhaClub(me.clubId)
+    : ((typeof DIV_ORDER!=='undefined' && DIV_ORDER.length) ? DIV_ORDER[DIV_ORDER.length-1]
+       : ((typeof RESENHA_START_DIV!=='undefined') ? RESENHA_START_DIV : 'D'));
+  const startClubs = (typeof clubesDoUniverso==='function' && clubesDoUniverso(uniDaSala, startDiv).length)
+    ? clubesDoUniverso(uniDaSala, startDiv)
+    : ((DATA.clubsSerieA||DATA.clubs)||[]);
   DATA.clubs = startClubs.slice();
-  CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
+  /* os países dos OUTROS assentos — cada um deles é um país jogável desta sala */
+  const paisesDaSala=new Set();
+  (room.participants||[]).forEach(p=>{ if(p && p.clubId && typeof universoDoClube==='function')
+    paisesDaSala.add(universoDoClube(p.clubId)); });
+  const nomeDoPais=(k)=>(k==='brasil') ? 'Brasil'
+    : (((typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS[k] && UNI_CONFIGS[k].country)) || k);
+  CL.intlUniverse = (uniDaSala==='brasil') ? false : uniDaSala;
+  CL.bgCountries = [...paisesDaSala].filter(k=>k!==uniDaSala).map(nomeDoPais);
+  CL.playCountry = nomeDoPais(uniDaSala);
   CL.clubId=me.clubId; CL.mgr=me.name||CL.mgr; // clube SEMPRE do próprio assento (guardado acima)
   // SEED: games.seed é um bigint enorme; passar direto pra newGame trunca de formas diferentes por
   // cliente (e >>>0 podia dar 0, caindo no Math.random -> competições paralelas). Derivo um seed
   // 32-bit ESTÁVEL e NÃO-ZERO da string do games.seed (FNV-1a) — igual em todos os clientes.
   const seed32=resenhaSeed32(room.seed);
   newGame(CL.clubId, startDiv, undefined, seed32); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
+  /* ===== DOIS CAMPOS COM SIGNIFICADOS DIFERENTES, E NENHUM DELES É "O PAÍS DO JOGADOR" =====
+     `S.intlUniverse` é o país da PIRÂMIDE ÂNCORA — a que mora em S.table/S.otherDivs e que o
+     servidor resolve a cada rodada. Não é "o país da sala" e muito menos "o meu país": num
+     mundo com humanos em países diferentes, essa frase não existe. Guardar um país único como
+     se descrevesse toda a gente seria uma segunda coordenada a discordar da primeira — o mesmo
+     erro que marcou a final antes da semifinal no calendário.
+
+     `S.paisesVivos` é a lista dos países que existem por inteiro neste mundo. É plural de
+     propósito: quando um humano aceita treinar no Chelsea, a Inglaterra entra aqui e o Brasil
+     CONTINUA — os outros treinadores seguem lá, com Cruzeiro e Santos, e o país deles não vira
+     "fundo" por causa da mudança de carreira de outra pessoa.
+
+     E o país de CADA jogador não se guarda em lado nenhum: sai do clube do próprio assento
+     (universoDoClube). Derivado, nunca armazenado, nunca capaz de mentir. */
+  S.intlUniverse = (uniDaSala==='brasil') ? false : uniDaSala;   // país da pirâmide âncora
+  const vivos=new Set([uniDaSala]);
+  (CL.bgCountries||[]).forEach(nome=>{
+    const k=(typeof countryUniverseKey==='function') ? countryUniverseKey(nome) : null;
+    vivos.add(k||nome);
+  });
+  S.paisesVivos=[...vivos];
+  if(CL.bgCountries && CL.bgCountries.length) S.bgCountries=CL.bgCountries.slice();
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL._playedRound=null; CL._hostPendingCommit=null; CL._hostCloseSince=0; // zera controle de rodada do save novo
   CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
@@ -1324,15 +1410,28 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
           // junto. Restaura os MEUS por cima — sem isto, toda vez que o convidado entrava na sala
           // ele voltava a ver as transações do anfitrião e as próprias sumiam (ver restoreMyFinances).
           if(typeof restoreMyFinances==='function') restoreMyFinances();
-          // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-          // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+          // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+          // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
           if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
-          // REPARO DO PASSADO: salas que já viraram de temporada ANTES de a Resenha aprender a
-          // registrar título carregam o _prevSeason da última virada, e é dele que a taça sai.
-          // Carimbado por temporada, então quem já está em dia não ganha nada duas vezes.
+          /* ===== A VIRADA QUE ACONTECEU COM ESTE ASSENTO FORA (item 1 do checklist) =====
+             Quem estava desconectado (ou recarregou) quando o servidor virou a temporada adotava
+             o estado novo EM SILÊNCIO: sem resumo, sem sala de imprensa e — pior — sem a
+             premiação em dinheiro (applyMyPrevSeasonPrizes nunca rodava por aqui). O carimbo por
+             assento é o _titlesRegisteredSeason (viaja no game_seats.career): se o registro dos
+             títulos desta virada ainda não aconteceu para MIM, a virada é minha por processar —
+             premiação + resumo agora, na entrada. Idempotente: quem já viu não vê duas vezes. */
           if(typeof registerPrevSeasonTitles==='function'){
             const _t=registerPrevSeasonTitles();
-            if(_t) console.log('títulos da temporada '+_t.season+' registrados agora (a virada aconteceu antes desta correção)');
+            if(_t){
+              const _sum=(typeof applyMyPrevSeasonPrizes==='function')?applyMyPrevSeasonPrizes():null;
+              if(typeof accrueCareerStats==='function') accrueCareerStats();
+              if(typeof persistCareer==='function') persistCareer();
+              console.log('virada da temporada '+_t.season+' processada agora (aconteceu com este assento fora da sala)');
+              setTimeout(()=>{ try{
+                if(typeof openPressRoom==='function') openPressRoom(_sum);
+                else if(typeof onlineSeasonEndDialog==='function') onlineSeasonEndDialog(_sum);
+              }catch(e){} }, 600);
+            }
           }
           console.log('✓ Jogo carregado (rodada', savedState.round, ') — clube:', CL.clubId); }
         // SEMENTE DO ESTADO COMPARTILHADO: sala nova, mundo recém-montado e NADA salvo ainda.
@@ -1566,7 +1665,7 @@ function onlineTimerLoop(){
        Segundo, e pior: o jogo se reconcilia sozinho na imensa maioria dos casos, então o modal
        aparecia e sumia sem ter feito nada — o que ensina o jogador a desconfiar do jogo.
        O convite automático agora depende de um sinal HONESTO de que este cliente está de fato
-       fora do lugar: a minha jornada diferente da jornada da sala, mantida por mais de 40s. Se as
+       fora do lugar: a minha rodada diferente da rodada da sala, mantida por mais de 40s. Se as
        duas coincidem, não há o que sincronizar — o que falta é o carimbo de alguém, e para isso
        existe o painel "esperando por X" e o botão do anfitrião.
        O botão manual continua onde sempre esteve: no menu e na própria tela de pausa. */
@@ -1575,7 +1674,7 @@ function onlineTimerLoop(){
     else if(!CL._foraSince) CL._foraSince=Date.now();
     if(_foraDoLugar && Date.now()-CL._foraSince>40000 && CL._syncOffered!==S.round && !CL.live
        && typeof clResenhaSync==='function'){
-      console.warn('minha jornada ('+(S.round||0)+') difere da sala ('+(room.round||0)+') há mais de 40s — oferecendo a sincronia');
+      console.warn('minha rodada ('+(S.round||0)+') difere da sala ('+(room.round||0)+') há mais de 40s — oferecendo a sincronia');
       clResenhaSync();
     }
     if(dt>12000 && Date.now()-(CL._waitDiagT||0)>10000){
@@ -1599,7 +1698,9 @@ function onlineTimerLoop(){
   roomDayTick();     // item 3: carimba o momento do dia que EU já cumpri (ver roomDayTick)
   if(typeof onlineMomentScreenTick==='function') onlineMomentScreenTick(); // o momento abre a tela dele
   if(typeof onlineWaitingTick==='function') onlineWaitingTick();   // "esperando por X" (ver main.js)
-  dayRoundWatch();   // item 3: confere a jornada do ponteiro contra a local (ver dayRoundWatch)
+  if(typeof clTesteTick==='function') clTesteTick();               // bancada "PULAR 30 E TESTAR" (ui/rf26-fluxo.js)
+  // (no SOLO este laço não roda — a bancada tem relógio próprio, ver clTesteEntrar)
+  dayRoundWatch();   // item 3: confere a rodada do ponteiro contra a local (ver dayRoundWatch)
   // TETO de 1s: o intervalo acompanha o ritmo, mas nos tempos lentos a conta explodia (em 'Longo'
   // dava ~6,6s entre sondagens — reconcile, cronômetro e barreira todos com essa latência).
   const intv=Math.max(100, Math.min(1000, 300/((typeof roundSpeedMult==='function'?roundSpeedMult():CL.speedMult)||1)));
@@ -1628,8 +1729,8 @@ function onlineCompleteSeasonTurnover(){
         S.xi = resolveClubXI(CL.clubId);
         if(typeof syncDataClubsFromState==='function') syncDataClubsFromState();
         if(typeof restoreMyFinances==='function') restoreMyFinances(); // ANTES da premiação: o carimbo de "já recebi" é meu, não do anfitrião
-        // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-        // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+        // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+        // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
         if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
         if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
         CL._playedRound=-1; CL.screen='main'; CL.tab='jogo';
@@ -1643,9 +1744,9 @@ function onlineCompleteSeasonTurnover(){
         if(typeof openPressRoom==='function') openPressRoom(_sum);
         else { const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division); toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.'); }
         // O CALENDÁRIO DA SALA TAMBÉM VIRA DE TEMPORADA. O plano de dias era gravado uma vez e
-        // nunca mais: na virada, o ponteiro continuava apontando pra última jornada da temporada
-        // VELHA (r=37) enquanto todo mundo já estava na jornada 0 da nova — o desacordo não se
-        // resolvia sozinho e a sala ficava presa em "acertando a jornada, um instante".
+        // nunca mais: na virada, o ponteiro continuava apontando pra última rodada da temporada
+        // VELHA (r=37) enquanto todo mundo já estava na rodada 0 da nova — o desacordo não se
+        // resolvia sozinho e a sala ficava presa em "acertando a rodada, um instante".
         // Só o anfitrião reescreve (é ele quem já grava o plano na criação da sala).
         if(NET.isHost && typeof NET.reseedDayPlan==='function') NET.reseedDayPlan();
         // reabre a fase 'ready' pra próxima rodada (senão os dois ficam presos sem conseguir jogar)
@@ -1658,31 +1759,35 @@ function onlineCompleteSeasonTurnover(){
    ITEM 1 DO CHECKLIST. Até aqui cada cliente OLHAVA O PRÓPRIO ESTADO pra decidir o que mostrar:
    "tenho confronto de copa? então copa; senão, liga". Dois humanos podiam responder essa pergunta
    de formas diferentes e os dois estarem certos pelas suas contas — foi assim que acabaram
-   jogando competições diferentes na mesma jornada. A pergunta agora tem uma resposta só, e ela
+   jogando competições diferentes na mesma rodada. A pergunta agora tem uma resposta só, e ela
    mora numa linha do banco: games.day_idx aponta pra uma entrada do calendário da sala.
 
-   O QUE O PONTEIRO DECIDE: qual COMPETIÇÃO está em campo. A jornada continua andando pelo caminho
+   O QUE O PONTEIRO DECIDE: qual COMPETIÇÃO está em campo. A rodada continua andando pelo caminho
    de sempre (games.round + fechamento). São dois eixos, e eles se encontram aqui: o ponteiro só
-   manda quando fala da MESMA jornada que eu. Se falar de outra, devolvo null e o caminho antigo
+   manda quando fala da MESMA rodada que eu. Se falar de outra, devolvo null e o caminho antigo
    assume — desalinhamento degrada pro comportamento de antes, nunca em tela parada.
 
    DESACORDO SEGURA — NUNCA DEVOLVE A DECISÃO AO CLIENTE. A primeira versão desta função devolvia
-   null quando o ponteiro falava de outra jornada, e eu chamei isso de "degradar em vez de
+   null quando o ponteiro falava de outra rodada, e eu chamei isso de "degradar em vez de
    congelar". Era uma porta de divergência disfarçada de rede de segurança: medido no harness
    (cenário 3, sala 365ZV reproduzida), 12 instantes em que o cliente voltou a decidir sozinho —
    o único vermelho da execução. Agora discordância devolve {hold} e quem recebe hold ESPERA.
 
    PONTEIRO ATRÁS: eu espero, e o CARIMBO resolve. Aqui havia o day_sync — uma segunda função
-   capaz de mover o ponteiro, e ela o movia a partir da jornada local de quem chamasse: justamente
+   capaz de mover o ponteiro, e ela o movia a partir da rodada local de quem chamasse: justamente
    o número que o ponteiro veio substituir. Medido em produção, era ele (e não os carimbos) que
-   movia o ponteiro em TODAS as jornadas, e foi ele que escondeu por dias o fato de que o carimbo
-   nunca funcionava. Não é mais preciso: um dia de jornada já passada pode ser carimbado
+   movia o ponteiro em TODAS as rodadas, e foi ele que escondeu por dias o fato de que o carimbo
+   nunca funcionava. Não é mais preciso: um dia de rodada já passada pode ser carimbado
    normalmente (ver roomDayFact), então o ponteiro anda pelo caminho normal. Se ele ficar mesmo
    parado, é porque falta o carimbo de alguém — e isso hoje tem nome e botão ("esperando por X"),
    em vez de um empurrão silencioso pelo palpite local.
 
    PONTEIRO À FRENTE: sou EU que estou velho — reconcilio o meu mundo com o da sala. */
 function roomDay(){
+  /* O PONTEIRO E DA SALA — NO SOLO ELE NAO EXISTE. NET.room sobrevive na aba depois de sair de
+     uma Resenha; um save solo aberto em seguida lia o dia da sala antiga e obedecia a ele
+     ("Acertando a rodada" num jogo sem sala, relatado a 20/08). Fora do online, nulo sempre. */
+  if(typeof CL==='undefined' || !CL.online) return null;
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   if(!d || !S) return null;                 // sala sem plano (save antigo): caminho de sempre
   const meu=S.round||0;
@@ -1705,7 +1810,12 @@ function roomDay(){
    tela e outra todo mundo está livre por um instante, e o dia virava sem ninguém ter cumprido nada.
    Agora cada assento CARIMBA o dia que viveu (day_ack) e o dia só vira quando o último carimbar.
    O caminho antigo fica como degradação pra servidor sem a função nova — nunca como preferência. */
-const DAY_ACK_IGNORAR_AUSENTES_SEG=0;   // "começar sem eles" entra no item 5, junto do modal do anfitrião
+/* O CARIMBO DE ROTINA ESPERA TODA A GENTE — zero de propósito. Dispensar ausente é outra coisa,
+   e tem dois caminhos próprios: o automático, 45s sem sinal de vida, disparado por QUALQUER
+   assento (onlineWaitingTick em ui/main.js), e o explícito do anfitrião, "começar sem eles",
+   que manda segundos negativos e o banco só aceita dele. Pôr um prazo aqui faria todo carimbo
+   normal pular quem está a escalar o time. */
+const DAY_ACK_IGNORAR_AUSENTES_SEG=0;
 /* OS TRÊS MOMENTOS VIRARAM FATOS, E CADA UM É CARIMBADO SOZINHO.
    A primeira versão fechava os três de uma vez porque nenhum deles desenhava tela — eram só um
    contador. Agora eles são a espinha do dia:
@@ -1715,7 +1825,7 @@ const DAY_ACK_IGNORAR_AUSENTES_SEG=0;   // "começar sem eles" entra no item 5, 
    Cada carimbo é um fato do MEU assento, não uma leitura do relógio nem do "ocupado" de ninguém.
    Quando o último assento carimba, o servidor — e só ele — vira o momento; virado o terceiro, vira
    o DIA e escreve games.round a partir do plano. É por isso que o momento 'classificacao' aparecer
-   no ponteiro é o sinal de que a jornada foi cumprida por todos: é ele que o anfitrião espera para
+   no ponteiro é o sinal de que a rodada foi cumprida por todos: é ele que o anfitrião espera para
    fechar a rodada (ver onlineHostCloseRound).
    Uma chamada por (dia:momento) — o carimbo é idempotente no servidor, mas martelar não adianta:
    o que falta é o carimbo DO OUTRO. */
@@ -1758,8 +1868,8 @@ function roomDayNaTelaDoClube(){
 }
 function roomDayFact(d){
   const mom=d.moment;
-  // DIA DE JORNADA JÁ PASSADA: cumprido, seja qual for o momento. Eu não tenho como "ainda dever"
-  // um dia de uma jornada que já foi resolvida — segurar aqui é segurar a sala por nada.
+  // DIA DE RODADA JÁ PASSADA: cumprido, seja qual for o momento. Eu não tenho como "ainda dever"
+  // um dia de uma rodada que já foi resolvida — segurar aqui é segurar a sala por nada.
   if(typeof S!=='undefined' && S && d.round<(S.round||0)) return true;
   /* ESCALANDO = EU DISSE QUE ESTOU PRONTO. Antes bastava eu estar na tela do clube, e isso
      esvaziava o momento: o dia virava para 'jogando' com os jogadores ainda escolhendo o time, e a
@@ -1768,7 +1878,7 @@ function roomDayFact(d){
      por um cronômetro — ele aparece no "esperando por X", com nome. */
   if(mom==='escalando') return CL._readyForStage===onlineStageKey() || onlineStageDone();
   if(mom==='jogando'){
-    // CUMPRI A COMPETIÇÃO DESTE DIA. Tem que ser por COMPETIÇÃO, não por etapa da semana: a jornada
+    // CUMPRI A COMPETIÇÃO DESTE DIA. Tem que ser por COMPETIÇÃO, não por etapa da semana: a rodada
     // 3 tem Libertadores, Sul-Americana e Copa do Brasil, e as três dividem a mesma etapa 'cup' —
     // usar onlineStageDone() aqui faria terminar a primeira valer como carimbo das outras duas, que
     // é exatamente o atalho do last_cup_round que já nos custou uma sala travada.
@@ -1779,11 +1889,11 @@ function roomDayFact(d){
       if(typeof cupDayDone!=='function') return false;
       return cupDayDone(d.comp) || roomDayNadaACumprir(d.comp);
     }
-    /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta jornada?", e ela tem que ser
+    /* DIA DE LIGA: a pergunta é "eu joguei a PARTIDA DE LIGA desta rodada?", e ela tem que ser
        respondida por fatos da partida — nunca pela etapa da semana em que eu penso estar (ver
        onlineStageDone, que hoje usa a chave do DIA: foi respondendo pela etapa da semana que a
-       jornada 2 inteira sumiu). Três respostas honestas: joguei
-       (finishLiveRound), a etapa de LIGA desta jornada está marcada, ou eu não tenho partida
+       rodada 2 inteira sumiu). Três respostas honestas: joguei
+       (finishLiveRound), a etapa de LIGA desta rodada está marcada, ou eu não tenho partida
        nenhuma porque estou desempregado. */
     if(CL.unemployed) return true;
     // onlineStageDone() agora é "este DIA já foi cumprido por mim" (ver onlineStageKey) — a mesma
@@ -1831,22 +1941,35 @@ function roomDayNadaACumprir(comp){
 }
 function roomDayTick(){
   if(!CL.online || typeof NET==='undefined' || !NET.room) return;
-  const d=NET.room.day; if(!d) return;                         // sala sem plano (save antigo)
+  const d=NET.room.day;
+  /* SALA COMECADA SEM PLANO: o anfitriao replanta. E o autorreparo da sala que nasceu com o
+     semeador falhando (ver netSeedDayPlan/netRefreshDay) — sem isto ela ficava para sempre sem
+     ponteiro. Throttle de 30s e so fora do lobby; o semeador e idempotente (sai se o plano
+     existir). */
+  if(!d && NET.isHost && NET.room.phase && NET.room.phase!=='lobby' && !NET.room.dayPlan
+     && typeof NET.reseedDayPlan==='function' && typeof S!=='undefined' && S && Array.isArray(S.sched) && S.sched.length){
+    if(Date.now()-(CL._replantioSemPlanoT||0)>30000){
+      CL._replantioSemPlanoT=Date.now();
+      console.warn('sala sem calendário de dias — replantando');
+      try{ NET.reseedDayPlan(); }catch(e){ console.warn('replantio sem plano:', e&&e.message); }
+    }
+  }
+  if(!d) return;                                               // sala sem plano (save antigo)
   if(!NET.dayAck) return;
   if(typeof S==='undefined' || !S) return;
-  /* Que dias eu posso carimbar: o da MINHA jornada — e a CAUDA da que acabou de ser resolvida.
+  /* Que dias eu posso carimbar: o da MINHA rodada — e a CAUDA da que acabou de ser resolvida.
      A segunda parte não é folga: o momento 'classificacao' do dia de liga acontece, por
      construção, DEPOIS de a rodada fechar (é a tabela que sai do fechamento), e nesse instante o
      meu S.round já é o seguinte. Sem esta linha ninguém jamais carimbaria o último momento do dia,
-     o ponteiro ficaria preso no dia da jornada velha e só a rede de segurança do day_sync o
+     o ponteiro ficaria preso no dia da rodada velha e só a rede de segurança do day_sync o
      tiraria de lá — ou seja, o palpite local voltaria a decidir justamente o que o carimbo existe
      para decidir. */
-  /* Que dias eu posso carimbar: o da MINHA jornada e QUALQUER DIA JÁ PASSADO — nunca um futuro.
+  /* Que dias eu posso carimbar: o da MINHA rodada e QUALQUER DIA JÁ PASSADO — nunca um futuro.
      A primeira versão só liberava o momento 'classificacao' de um dia atrasado, e isso congelou o
      ponteiro a temporada inteira: quando a rodada fechava por fora (o cão de guarda fechava em 6s),
      o ponteiro ficava para trás num momento 'escalando' ou 'jogando' que ninguém tinha mais o
-     direito de carimbar — e só a rede de segurança de 45s o arrancava dali, jornada após jornada.
-     Um dia de uma jornada que eu já deixei para trás está, por definição, cumprido por mim: o
+     direito de carimbar — e só a rede de segurança de 45s o arrancava dali, rodada após rodada.
+     Um dia de uma rodada que eu já deixei para trás está, por definição, cumprido por mim: o
      ponteiro tem que poder andar pelo carimbo, que é o caminho normal, em vez de pelo socorro. */
   const meu=S.round||0;
   if(d.round>meu) return;
@@ -1867,27 +1990,93 @@ function roomDayTick(){
   }).catch(()=>{});
 }
 
-/* ==================== ITEM 3, PRIMEIRA METADE: LER A JORNADA DO PONTEIRO ====================
-   HOJE quem manda na jornada é o motor local do anfitrião: playRound() incrementa S.round, o
+/* ==================== ITEM 3, PRIMEIRA METADE: LER A RODADA DO PONTEIRO ====================
+   HOJE quem manda na rodada é o motor local do anfitrião: playRound() incrementa S.round, o
    saveGame publica, e games.round + o ponteiro SEGUEM esse número. O objetivo do item 3 é inverter
-   a causa — a jornada passa a sair do dia apontado (day_ack já escreve games.round a partir do
+   a causa — a rodada passa a sair do dia apontado (day_ack já escreve games.round a partir do
    plano) e todo cliente, inclusive o anfitrião, adota o número do ponteiro.
-   Inverter isso de uma vez seria trocar o dono da jornada no escuro. Então esta metade LÊ o número
+   Inverter isso de uma vez seria trocar o dono da rodada no escuro. Então esta metade LÊ o número
    do ponteiro e o CONFERE contra o local, mantendo a escrita antiga: se os dois nunca discordarem
    de forma sustentada, cortar a escrita local vira uma troca sem surpresa; se discordarem, o
    cenário 3 acusa ANTES de o cliente publicado depender disso.
-   Divergência INSTANTÂNEA é normal e não conta: o ponteiro só larga o dia da jornada N quando o
+   Divergência INSTANTÂNEA é normal e não conta: o ponteiro só larga o dia da rodada N quando o
    último assento carimba, então logo depois do fechamento ele fica legitimamente um dia atrás por
    alguns instantes. O que não pode existir é divergência que PERSISTE — essa é o ponteiro preso
-   (ninguém carimbou) ou a jornada andando por fora dele. */
+   (ninguém carimbou) ou a rodada andando por fora dele. */
 const DAY_ROUND_DRIFT_MS=12000;
 function dayPointerRound(){
   const d=(typeof NET!=='undefined' && NET.room) ? NET.room.day : null;
   return (d && d.round!=null) ? d.round : null;
 }
+/* =====================================================================
+   RODADA SEM JOGO DE LIGA — ALGUEM TEM DE ATRAVESSA-LA
+   ---------------------------------------------------------------------
+   Desde que o calendario reserva semanas sem campeonato (a parada do meio do ano e as tres
+   semanas das finais, ver engine/calendars.js), existem rodadas em que a liga simplesmente nao
+   joga. No SOLO isso e o botao "Avancar", que empurra a rodada. Na Resenha nao havia ninguem:
+
+     · o ponteiro do dia anda quando o ultimo assento carimba, e `day_ack` grava em `games.round`
+       a rodada do dia NOVO;
+     · mas `shared_state.S.round` so anda quando o servidor RESOLVE uma rodada de liga;
+     · numa rodada sem liga nao ha rodada para resolver, entao `games.round` foi para 21 e o
+       estado ficou em 20 -- duas coordenadas a discordar, outra vez, e a sala parada no meio.
+
+   Medido na sala JGGK5 (18/08/2026): ponteiro no dia 35 (jornada 21, liga), estado na rodada 20,
+   dois humanos vivos, nenhum pronto, 28 minutos sem nada acontecer. Os clientes viam o desacordo
+   e nao tinham o que fazer com ele: quem esta atras do ponteiro espera pelo estado novo, e o
+   estado novo nunca vinha.
+
+   O servidor JA sabe resolver uma rodada vazia -- `fixtures = S.sched[round] || []` aceita lista
+   vazia e faz o resto da rodada (energia, mercado, evolucao) na mesma. So faltava alguem pedir.
+   Pede o ANFITRIAO, que e quem ja fecha as rodadas, e uma de cada vez: o laco volta a passar aqui
+   e atravessa a seguinte, se houver.
+
+   TRAVA IMPORTANTE: so atravessa quando TODAS as rodadas entre a minha e a do ponteiro estao
+   vazias. Se alguma tem jogo, o atraso e outra coisa (alguem que ainda nao jogou) e saltar por
+   cima dela seria comer uma rodada inteira da sala. */
+function onlineJornadaVaziaWatch(pt){
+  if(!CL.online || typeof S==='undefined' || !S || !Array.isArray(S.sched)) return;
+  if(typeof NET==='undefined' || !NET.isHost || typeof NET.resolveRound!=='function') return;
+  if(pt==null || pt<=(S.round||0)) return;
+  if(CL.live || CL._liveBusy || CL._vazioBusy) return;
+  for(let r=(S.round||0); r<pt; r++){
+    if(((S.sched[r]||[]).length)>0) return;          // ha jogo pelo caminho: nao e este o caso
+  }
+  const alvo=S.round||0;
+  CL._vazioBusy=true;
+  console.warn('rodada '+alvo+' nao tem jogo de liga e o ponteiro ja esta na '+pt+
+               ' — pedindo ao servidor para a atravessar');
+  (async ()=>{
+    try{
+      const res=await NET.resolveRound(alvo);
+      if(!res || res.error){
+        console.warn('atravessar rodada vazia falhou:', res && res.error, '— tenta de novo no proximo tique');
+        return;
+      }
+      if(typeof NET.refreshRoom==='function') await NET.refreshRoom();
+      /* ===== QUEM ADOTA O ESTADO NOVO E O ANFITRIAO, PELO CAMINHO DELE =====
+         Chamei aqui o `onlineReconcileIfBehind` e ele NAO faz nada para mim: a primeira linha
+         dele sai logo se `NET.isHost`. E o caminho do convidado, de proposito -- o anfitriao
+         normalmente nunca esta atras, porque e ele quem fecha a rodada e adota o resultado no
+         mesmo passo (onlineHostCloseRound -> onlineAdoptServerRound).
+         So que este passo aqui e a excecao: o servidor resolve a rodada vazia a meu pedido e eu
+         nao passo pelo fechamento. Sem adotar, eu ficava com o estado velho enquanto o servidor
+         seguia em frente -- e como sou eu quem publica o estado da sala, a sala inteira parava a
+         minha espera. Foi exatamente o que aconteceu na JGGK5: servidor na rodada 21, anfitriao
+         na 20, o outro treinador pronto ha meia hora.
+         `onlineAdoptServerRound` recarrega o estado do servidor e reaplica a minha carreira por
+         cima (a carreira e do assento, nao do mundo). O parametro dela nunca e usado. */
+      if(typeof onlineAdoptServerRound==='function') await onlineAdoptServerRound(null);
+    }catch(e){ console.warn('atravessar rodada vazia:', e && e.message); }
+    finally{ CL._vazioBusy=false; }
+  })();
+}
 function dayRoundWatch(){
   if(!CL.online || typeof S==='undefined' || !S || S.round==null){ CL._dayDriftSince=0; return; }
   const pt=dayPointerRound();
+  /* a rodada sem liga e atravessada aqui, ANTES de o desacordo virar "drift": ele nao e um
+     defeito a diagnosticar, e um dia que ninguem tinha a obrigacao de passar. */
+  onlineJornadaVaziaWatch(pt);
   if(pt==null || pt===S.round){ CL._dayDriftSince=0; return; }   // sala sem plano ou de acordo
   if(!CL._dayDriftSince){ CL._dayDriftSince=Date.now(); return; }
   if(Date.now()-CL._dayDriftSince < DAY_ROUND_DRIFT_MS) return;
@@ -1895,13 +2084,13 @@ function dayRoundWatch(){
   if(CL._dayDriftKey===k) return;                                // um aviso por par, não uma enxurrada
   CL._dayDriftKey=k;
   CL._dayDrift=(CL._dayDrift||0)+1;
-  console.warn('ponteiro e jornada local discordam há '+Math.round((Date.now()-CL._dayDriftSince)/1000)+
+  console.warn('ponteiro e rodada local discordam há '+Math.round((Date.now()-CL._dayDriftSince)/1000)+
     's: ponteiro='+pt+' eu='+(S.round||0)+' — o item 3 vai tirar essa segunda fonte de verdade');
-  // AUTORREPARO DA VIRADA DE TEMPORADA. Um desacordo em que o ponteiro está numa jornada ADIANTE
-  // e eu estou na jornada 0 só tem uma explicação: a temporada virou e o calendário da sala é o
+  // AUTORREPARO DA VIRADA DE TEMPORADA. Um desacordo em que o ponteiro está numa rodada ADIANTE
+  // e eu estou na rodada 0 só tem uma explicação: a temporada virou e o calendário da sala é o
   // da temporada passada (ele era gravado uma vez e nunca mais). Aí ninguém carimba nada, porque
   // o dia apontado pertence a um campeonato que acabou — e a sala fica parada pra sempre em
-  // "acertando a jornada". O anfitrião reescreve o calendário e devolve o ponteiro pro dia 0.
+  // "acertando a rodada". O anfitrião reescreve o calendário e devolve o ponteiro pro dia 0.
   // Só o anfitrião, e uma vez por temporada: replantar em laço rebobinaria a sala.
   if(pt>(S.round||0) && (S.round||0)===0 && typeof NET!=='undefined' && NET.isHost
      && typeof NET.reseedDayPlan==='function' && CL._replantioTemporada!==(S.season||0)){
@@ -1920,7 +2109,7 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // rodada além do calendário -> a virada não completou: completa via servidor (não joga fantasma)
   if(Array.isArray(S.sched) && (S.round||0) >= S.sched.length){ onlineCompleteSeasonTurnover(); return; }
   // JÁ CUMPRI ESTA ETAPA: fico LIVRE aguardando o fechamento — NÃO re-simulo. A checagem
-  // definitiva é o mapa por (temporada, jornada, quarta|sábado), que nenhum caminho zera (ver
+  // definitiva é o mapa por (temporada, rodada, quarta|sábado), que nenhum caminho zera (ver
   // onlineMarkStageDone); o _playedRound fica como segunda linha pros caminhos degradados.
   if(onlineStageDone()) return;
   if(CL._playedRound===S.round) return;
@@ -1980,13 +2169,13 @@ function onlineRunRound(){ if(CL.screen==='live'||CL.live||CL._liveBusy) return;
   // entra — nem pra quem não disputa aquela copa. Enquanto o dia é de liga, nenhuma copa entra.
   // É a trava que faltava: as duas ramificações abaixo consultavam só o meu estado.
   const dia=roomDay();
-  // SEGURAR É A RESPOSTA CERTA. Ponteiro e cliente discordando da jornada significa que um dos dois
+  // SEGURAR É A RESPOSTA CERTA. Ponteiro e cliente discordando da rodada significa que um dos dois
   // está velho — roomDay() já disparou a correção dos dois lados. Até eles concordarem eu não jogo
   // nada: qualquer coisa que eu decidisse aqui seria pelo meu palpite local, que é exatamente a
   // divergência que este ponteiro existe pra acabar.
   if(dia && dia.hold){
     if(CL._holdAviso!==dia.round){ CL._holdAviso=dia.round;
-      console.log('sala no dia da jornada '+dia.round+' ('+dia.comp+') e eu na '+(S.round||0) +
+      console.log('sala no dia da rodada '+dia.round+' ('+dia.comp+') e eu na '+(S.round||0) +
                   ' — esperando os dois concordarem, sem decidir nada por conta própria'); }
     return;
   }
@@ -2130,7 +2319,7 @@ function onlineOrphanCloseCheck(){
      fechava a rodada olhando "ninguém com o busy aceso" e um relógio de 6s — os mesmos palpites
      locais que o ponteiro veio substituir. No log de produção ele foi quem fechou PRATICAMENTE
      TODAS as rodadas ("rodada 2 aberta há 10s sem fechar", "rodada 5 há 15s"), inclusive com o
-     outro humano ainda em campo, e foi assim que a jornada 3 desapareceu entre a 2 e a 4.
+     outro humano ainda em campo, e foi assim que a rodada 3 desapareceu entre a 2 e a 4.
      Com ponteiro, a rodada só é "órfã" depois que o SERVIDOR disse que o dia foi cumprido — a
      mesma porta do anfitrião. Antes disso não há órfão nenhum: há gente jogando.
      E o relógio começa quando a porta abre, não antes: se o anfitrião estiver vivo ele fecha em
@@ -2187,7 +2376,7 @@ function onlineForceExpiredDecision(){
    fluxo PÓS-rodada de cada cliente (checkPendingCupDraws). Parado na tela do clube ninguém a
    consome — e a barreira lia "tem sorteio pra abrir" e declarava o jogador ocupado. Medido no
    cenário 3: os DOIS humanos na tela do clube, prontos, com ocupado='sorteio-na-fila', o anfitrião
-   sem liberar porque havia alguém "ocupado", e a sala parada na jornada 1 sem nada acontecendo.
+   sem liberar porque havia alguém "ocupado", e a sala parada na rodada 1 sem nada acontecendo.
    É a quinta repetição do mesmo padrão — pendência que só se resolve depois do avanço marcando o
    jogador como ocupado antes do avanço. A saída não é soltar a barreira (aí a cerimônia some pra
    quem tinha direito a vê-la): é RESOLVER a pendência onde ela está. Aqui a fila é aberta na
@@ -2197,6 +2386,15 @@ function onlineOpenQueuedDraw(){
   if(!CL.online || typeof S==='undefined' || !S) return;
   if(!S._pendingDrawShows || !S._pendingDrawShows.length) return;
   if(CL.screen!=='main' || CL.live || CL._liveBusy || CL._drawOpening) return;
+  /* ===== UM OVERLAY ABERTO SEGURA O SORTEIO (item 1 do checklist) =====
+     Os momentos de fim de temporada e o resumo da virada são overlays com CL.screen==='main' —
+     este guard só olhava a tela e o sorteio da copa NOVA abria por cima, engolindo a tela de
+     finalização (foi o relatado na WEBLG). Com overlay, momento ou modal aberto, o sorteio
+     espera a vez; o loop chama de novo no próximo tique. */
+  if(CL._momentoAtual || CL.acao) return;
+  if(typeof MOMENTO_FILA!=='undefined' && MOMENTO_FILA.length) return;
+  const _ov=document.getElementById('c-overlay');
+  if(_ov && _ov.style.display && _ov.style.display!=='none') return;
   if(typeof checkPendingCupDraws!=='function') return;
   CL._drawOpening=true;
   try{ checkPendingCupDraws(()=>{ CL._drawOpening=false; }); }
@@ -2207,7 +2405,7 @@ function onlineOpenQueuedDraw(){
 /* A ETAPA É O DIA. Houve um tempo em que existiam DUAS unidades para a mesma coisa: a "etapa da
    semana" (quarta de copa | sábado de liga, deduzida de um campo local e atrasado) e o DIA do
    ponteiro, que vem do servidor. As duas se contradiziam na janela em que o campo local ainda não
-   tinha sido adotado — daí a jornada que fechava sem partida e a rodada jogada duas vezes: o "já
+   tinha sido adotado — daí a rodada que fechava sem partida e a rodada jogada duas vezes: o "já
    cumpri" ficava guardado numa chave e a decisão de entrar em campo era tomada por outra. A etapa
    da semana foi removida do jogo; o dia é a única unidade. Um dia, uma coisa a cumprir, um carimbo.
    Sala sem ponteiro (save antigo) mantém a chave antiga — nada muda para ela. */
@@ -2218,10 +2416,10 @@ function onlineStageKey(){
   return temporada+':'+((typeof S!=='undefined'&&S?(S.round||0):0))+':league';
 }
 /* ---- ETAPA CUMPRIDA: O ANTI-REPETIÇÃO DEFINITIVO ----
-   Uma etapa (temporada, jornada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
+   Uma etapa (temporada, rodada, quarta|sábado) que este cliente JÁ cumpriu nunca é reentrada,
    não importa por qual caminho a fase volte a 'running' — fechamento idempotente do cão de
    guarda, adoção repetida, reconcile atrasado. O CL._playedRound (um inteiro só) não dava conta:
-   a quarta e o sábado compartilham a jornada, e qualquer caminho que o zerasse reabria a rodada
+   a quarta e o sábado compartilham a rodada, e qualquer caminho que o zerasse reabria a rodada
    inteira ("repetiu o mesmo jogo da primeira rodada várias vezes"). O mapa é só-cresce e local:
    etapa cumprida é fato MEU, não do mundo. */
 /* PERSISTE: o "Sincronizar a Resenha" recarrega a página de propósito, e um mapa só em memória
@@ -2234,7 +2432,7 @@ function onlineMarkStageDone(){ const k=onlineStageKey();
 }
 /* PERGUNTA E RESPOSTA TÊM QUE USAR A MESMA CHAVE — e por um tempo não usaram.
    Quando a etapa virou o DIA, onlineMarkStageDone passou a gravar em 'temporada:diaN', mas esta
-   função continuou perguntando por 'temporada:jornada:league' — a chave da etapa da semana, que
+   função continuou perguntando por 'temporada:rodada:league' — a chave da etapa da semana, que
    deixou de existir. Ou seja: ela respondia NÃO para tudo, sempre. O que ela protege é o
    anti-repetição (um dia cumprido nunca é reentrado) e o carimbo do dia de liga, então a falha
    silenciosa abria a porta para reentrar numa etapa já jogada. Defeito meu, da limpeza; agora as

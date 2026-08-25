@@ -1,7 +1,7 @@
 /* ====================== SALVAMENTO AUTOMÁTICO (rede de segurança) ======================
-   Guarda uma FOTO do estado do jogo ao fim de cada jornada e mantém as 3 mais recentes, mais
-   uma foto FIXA da última jornada de cada temporada encerrada. Se a virada de temporada der
-   errado — ou se qualquer coisa sair do lugar nas últimas jornadas — dá pra voltar.
+   Guarda uma FOTO do estado do jogo ao fim de cada rodada e mantém as 3 mais recentes, mais
+   uma foto FIXA da última rodada de cada temporada encerrada. Se a virada de temporada der
+   errado — ou se qualquer coisa sair do lugar nas últimas rodadas — dá pra voltar.
 
    POR QUE IndexedDB E NÃO localStorage: uma foto de S passa fácil de 500 KB (elencos de 80
    clubes, chaveamentos, histórico). Quatro fotos estouram o teto de ~5 MB do localStorage e,
@@ -9,19 +9,19 @@
    cliente, opções). O IndexedDB é assíncrono e tem espaço de sobra.
 
    POR QUE A FOTO É DO CLIENTE, E NÃO DO SERVIDOR: na Resenha o estado autoritativo é do
-   anfitrião, mas cada cliente já adota esse estado inteiro a cada jornada — então a foto local
+   anfitrião, mas cada cliente já adota esse estado inteiro a cada rodada — então a foto local
    do anfitrião É o estado da sala. Restaurar, porém, é outra história: rebobinar a sala afeta
    os dois jogadores, então só o anfitrião pode fazê-lo (ver autoSaveRestaurar).
 
    A FOTO DE FIM DE TEMPORADA não é tirada "antes da virada": na Resenha quem vira a temporada é
    o servidor, e quando o cliente descobre a virada o estado velho já não existe do lado dele. O
-   que existe é a foto da ÚLTIMA JORNADA daquela temporada, tirada minutos antes — então a virada
+   que existe é a foto da ÚLTIMA RODADA daquela temporada, tirada minutos antes — então a virada
    apenas PROMOVE essa foto a permanente (autoSaveFixarFimDeTemporada), em vez de tentar tirar
    uma que já não é possível. */
 
 const AUTOSAVE_DB='retrofoot98_snapshots';
 const AUTOSAVE_STORE='fotos';
-const AUTOSAVE_MANTER=3;            // fotos de jornada mantidas por save/sala (as mais recentes)
+const AUTOSAVE_MANTER=3;            // fotos de rodada mantidas por save/sala (as mais recentes)
 const AUTOSAVE_TEMPORADAS=3;        // fotos de fim de temporada mantidas (as mais recentes)
 
 function autoSaveLigado(){
@@ -72,14 +72,14 @@ async function autoSaveLista(save){
   }catch(e){ console.warn('autoSave lista:', e&&e.message); return []; }
 }
 
-/* Tira a foto. `tipo` é 'jornada' (rotativa) ou 'temporada' (fixa, sobrevive à poda).
-   Nunca lança: uma falha de disco não pode derrubar o fim de jornada. */
+/* Tira a foto. `tipo` é 'rodada' (rotativa) ou 'temporada' (fixa, sobrevive à poda).
+   Nunca lança: uma falha de disco não pode derrubar o fim de rodada. */
 async function autoSaveGuardar(tipo){
   if(!autoSaveLigado()) return null;
   const chave=autoSaveKey(); if(!chave || typeof S==='undefined' || !S) return null;
   try{
     const foto={
-      save:chave, tipo:tipo||'jornada', quando:Date.now(),
+      save:chave, tipo:tipo||'rodada', quando:Date.now(),
       season:S.season||0, round:S.round||0,
       clubId:(typeof CL!=='undefined'&&CL.clubId)||S.clubId||null,
       online:!!(typeof CL!=='undefined'&&CL.online),
@@ -94,13 +94,13 @@ async function autoSaveGuardar(tipo){
   }catch(e){ console.warn('autoSave guardar:', e&&e.message); return null; }
 }
 
-/* poda: mantém as N fotos de jornada mais recentes e as N de fim de temporada mais recentes */
+/* poda: mantém as N fotos de rodada mais recentes e as N de fim de temporada mais recentes */
 async function autoSavePodar(chave){
   try{
     const todas=await autoSaveLista(chave);
     const sobra=[];
-    ['jornada','temporada'].forEach(t=>{
-      const limite=(t==='jornada')?AUTOSAVE_MANTER:AUTOSAVE_TEMPORADAS;
+    ['rodada','temporada'].forEach(t=>{
+      const limite=(t==='rodada')?AUTOSAVE_MANTER:AUTOSAVE_TEMPORADAS;
       todas.filter(f=>f.tipo===t).slice(limite).forEach(f=>sobra.push(f.id));
     });
     if(!sobra.length) return;
@@ -110,7 +110,7 @@ async function autoSavePodar(chave){
 }
 
 /* A virada de temporada aconteceu: promove a foto mais recente da temporada que FECHOU a
-   permanente. É essa que responde ao "voltar pra última jornada da temporada anterior".
+   permanente. É essa que responde ao "voltar pra última rodada da temporada anterior".
    Se não houver foto daquela temporada (jogador entrou na sala já na virada), não inventa nada. */
 async function autoSaveFixarFimDeTemporada(temporadaQueFechou){
   if(!autoSaveLigado()) return null;
@@ -119,7 +119,7 @@ async function autoSaveFixarFimDeTemporada(temporadaQueFechou){
     const todas=await autoSaveLista(chave);
     const ja=todas.find(f=>f.tipo==='temporada' && f.season===temporadaQueFechou);
     if(ja) return ja;                                              // virada reprocessada: não duplica
-    const alvo=todas.find(f=>f.tipo==='jornada' && f.season===temporadaQueFechou);
+    const alvo=todas.find(f=>f.tipo==='rodada' && f.season===temporadaQueFechou);
     if(!alvo) return null;
     const {st}=await autoSaveTx('readwrite');
     alvo.tipo='temporada';
@@ -130,17 +130,17 @@ async function autoSaveFixarFimDeTemporada(temporadaQueFechou){
   }catch(e){ console.warn('autoSave fixar:', e&&e.message); return null; }
 }
 
-/* GANCHO ÚNICO DE FIM DE JORNADA. Chamado dos caminhos que fecham/adotam uma jornada, tanto no
+/* GANCHO ÚNICO DE FIM DE RODADA. Chamado dos caminhos que fecham/adotam uma rodada, tanto no
    solo quanto na Resenha. Detecta a virada de temporada comparando com a foto anterior — assim
    a promoção acontece sem cada chamador ter que saber que houve virada. */
 async function autoSaveAoFecharJornada(){
   if(!autoSaveLigado()) return;
   const chave=autoSaveKey(); if(!chave) return;
   const anteriores=await autoSaveLista(chave);
-  const ultima=anteriores.filter(f=>f.tipo==='jornada')[0];
-  if(ultima && ultima.season===(S.season||0) && ultima.round===(S.round||0)) return;  // já fotografei esta jornada
+  const ultima=anteriores.filter(f=>f.tipo==='rodada')[0];
+  if(ultima && ultima.season===(S.season||0) && ultima.round===(S.round||0)) return;  // já fotografei esta rodada
   if(ultima && (S.season||0) > ultima.season) await autoSaveFixarFimDeTemporada(ultima.season);
-  await autoSaveGuardar('jornada');
+  await autoSaveGuardar('rodada');
 }
 
 /* ---------------------------------- RESTAURAR ----------------------------------
@@ -172,7 +172,7 @@ async function autoSaveRestaurar(id){
       if(NET.rewindDayPointer) await NET.rewindDayPointer(S.round||0);
       if(NET.reopenReady) NET.reopenReady();
     } else if(typeof saveV3==='function') saveV3();
-    console.log('auto-save: estado restaurado — temporada '+(S.season||'?')+', jornada '+(S.round||0));
+    console.log('auto-save: estado restaurado — temporada '+(S.season||'?')+', rodada '+(S.round||0));
     return {ok:true, foto};
   }catch(e){ return {ok:false, erro:e&&e.message}; }
 }
@@ -184,6 +184,6 @@ function autoSaveRotulo(f){
   const hh=String(quando.getHours()).padStart(2,'0')+':'+String(quando.getMinutes()).padStart(2,'0');
   const que=(f.tipo==='temporada')
     ? ('Fim da temporada '+(f.season||'?'))
-    : ('Temporada '+(f.season||'?')+' · jornada '+((f.round||0)+1));
+    : ('Temporada '+(f.season||'?')+' · rodada '+((f.round||0)+1));
   return { que, quando:dd+' '+hh, fixa:f.tipo==='temporada' };
 }

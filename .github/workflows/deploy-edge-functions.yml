@@ -56,6 +56,27 @@ jobs:
       - name: Regras de mundo em dia (cliente = servidor)
         run: node scripts/sync-world-rules.mjs --check
 
+      # PORTÃO DO CALENDÁRIO: nenhuma competição pode aparecer no plano de dias fora da ordem em
+      # que se joga, e nenhuma rodada pode ficar sem dia. Foi assim que a final da Sul-Americana
+      # ficou agendada ANTES da própria semifinal nas três salas de agosto/2026 — o dia da final
+      # chegava sem finalistas e a temporada virava por cima da decisão.
+      - name: Calendário íntegro (a final nunca antes da semifinal)
+        run: node scripts/teste-calendario.mjs
+
+      # PORTÃO DA PIRÂMIDE: o servidor deixou de ter a pirâmide brasileira congelada e passou a
+      # lê-la de UNIVERSOS. Este teste prova que o Brasil continua byte a byte o que era — a
+      # virada de temporada roda uma vez a cada 38 jornadas, e um erro aqui só apareceria em
+      # dezembro, com a sala inteira dentro.
+      - name: Pirâmide de país íntegra (Brasil inalterado)
+        run: node scripts/teste-universos.mjs
+
+      # PORTÃO DA VIRADA: carrega o resolve-round de verdade num contexto de Node e roda a virada
+      # de temporada em três países. É o bloco mais perigoso da função — promoção, rebaixamento,
+      # aposentadoria, regen, copas novas — e roda uma vez a cada 38 jornadas, então sem isto um
+      # erro só apareceria em dezembro, com a sala inteira dentro.
+      - name: Virada de temporada íntegra
+        run: node scripts/teste-virada.mjs
+
       - name: Validar sintaxe das funções
         run: |
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm

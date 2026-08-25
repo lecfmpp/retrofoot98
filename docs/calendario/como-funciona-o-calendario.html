@@ -1,0 +1,370 @@
+<title>O calendário do RetroFoot98</title>
+<style>
+:root{
+  --ground:#EEF1F7; --surface:#FFFFFF; --surface-2:#F4F7FC; --sunken:#E7ECF5;
+  --line:#DEE4EF; --line-2:#C7D1E3;
+  --ink:#101A2B; --dim:#55617A; --faint:#8593AC;
+  --navy:#17458F; --navy-2:#0B2A5C; --lamp:#F2B90C; --gold-ink:#8A6A00;
+  --ok:#1F7A46; --atencao:#B87400; --erro:#B33A2B;
+  --cb:#1F8A4C; --lib:#A8760F; --sul:#5A6B7A;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#08142A; --surface:#0E1E38; --surface-2:#13284A; --sunken:#0A1930;
+    --line:#1D3153; --line-2:#284069;
+    --ink:#E9EFFA; --dim:#93A5C4; --faint:#6B7E9E;
+    --navy:#6FA0E8; --navy-2:#0B2A5C; --lamp:#F2B90C; --gold-ink:#F2B90C;
+    --ok:#4CC585; --atencao:#E8A93B; --erro:#E8705C;
+    --cb:#3FBF77; --lib:#D9A93A; --sul:#93A7B8;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#08142A; --surface:#0E1E38; --surface-2:#13284A; --sunken:#0A1930;
+  --line:#1D3153; --line-2:#284069;
+  --ink:#E9EFFA; --dim:#93A5C4; --faint:#6B7E9E;
+  --navy:#6FA0E8; --navy-2:#0B2A5C; --lamp:#F2B90C; --gold-ink:#F2B90C;
+  --ok:#4CC585; --atencao:#E8A93B; --erro:#E8705C;
+  --cb:#3FBF77; --lib:#D9A93A; --sul:#93A7B8;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+header{padding:76px 0 0}
+.eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:12px}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+h1{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;
+  font-size:clamp(36px,5.6vw,58px);line-height:1.03;letter-spacing:-.015em;margin:20px 0 0;text-wrap:balance}
+.lede{max-width:62ch;margin:20px 0 0;font-size:18.5px;color:var(--dim);text-wrap:pretty}
+.lede strong{color:var(--ink);font-weight:600}
+
+section{padding:60px 0 0}
+h2{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;
+  font-size:clamp(25px,3.3vw,34px);line-height:1.12;margin:0;text-wrap:balance}
+h3{font-size:17.5px;font-weight:650;margin:32px 0 0;letter-spacing:-.01em}
+p{max-width:64ch;text-wrap:pretty}
+section > p, h3 + p{margin:14px 0 0}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;margin:22px 0 0}
+.card-t{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+
+/* ---- a semana ---- */
+.semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dia{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 8px;
+  text-align:center;min-width:0}
+.dia b{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:10px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+.dia span{display:block;margin-top:8px;font-size:12.5px;font-weight:600;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis}
+.dia.tem{background:var(--surface);border-color:var(--line-2)}
+.dia.cb span{color:var(--cb)} .dia.lib span{color:var(--lib)}
+.dia.sul span{color:var(--sul)} .dia.liga span{color:var(--navy)}
+.dia.liga{border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+
+/* ---- a tira da temporada ---- */
+.tira-caixa{overflow-x:auto;padding:22px 0 2px}
+.tira{display:flex;gap:3px;min-width:640px}
+.cel{position:relative;flex:1 1 0;min-width:13px;height:66px;border-radius:4px;
+  background:var(--sunken);border:1px solid var(--line);
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;padding-bottom:3px}
+.cel .m{width:9px;height:9px;border-radius:2px;display:block}
+.cel .m.cb{background:var(--cb)} .cel .m.lib{background:var(--lib)} .cel .m.sul{background:var(--sul)}
+.cel u{position:absolute;top:-17px;left:50%;transform:translateX(-50%);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9.5px;
+  color:var(--faint);text-decoration:none}
+.cel.choque{background:color-mix(in srgb,var(--atencao) 16%,transparent);border-color:var(--atencao)}
+.cel.extra{background:transparent;border-style:dashed;border-color:var(--line-2)}
+.cel.fora{background:color-mix(in srgb,var(--erro) 16%,transparent);border-color:var(--erro);border-style:dashed}
+.legenda{display:flex;gap:18px;flex-wrap:wrap;margin:18px 0 0;font-size:13px;color:var(--dim)}
+.legenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:7px;vertical-align:-1px}
+.legenda .cb{background:var(--cb)} .legenda .lib{background:var(--lib)} .legenda .sul{background:var(--sul)}
+.legenda .ch{background:color-mix(in srgb,var(--atencao) 40%,transparent);border:1px solid var(--atencao)}
+.legenda .fo{background:color-mix(in srgb,var(--erro) 30%,transparent);border:1px dashed var(--erro)}
+.legenda .ex{background:transparent;border:1px dashed var(--line-2)}
+
+/* ---- números ---- */
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:22px 0 0}
+.nums div{background:var(--surface);padding:16px 18px}
+.nums b{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:27px;font-weight:700;line-height:1;color:var(--gold-ink)}
+.nums b.mal{color:var(--erro)}
+.nums span{display:block;margin-top:7px;font-size:13px;color:var(--dim)}
+
+/* ---- causa ---- */
+.causa{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--erro);
+  border-radius:12px;padding:20px 22px;margin:20px 0 0}
+.causa.ok{border-left-color:var(--ok)}
+.causa-t{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.causa-t b{font-size:16.5px;font-weight:650}
+.selo{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:3px 9px;
+  background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok);
+  border:1px solid color-mix(in srgb,var(--ok) 45%,transparent)}
+.selo.aberto{background:color-mix(in srgb,var(--atencao) 18%,transparent);color:var(--atencao);
+  border-color:color-mix(in srgb,var(--atencao) 45%,transparent)}
+.causa p{margin:0;color:var(--dim)}
+.causa p + p{margin-top:10px}
+.causa b.ink{color:var(--ink)}
+
+/* ---- comparação antes/depois ---- */
+.par{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0 0}
+.lado{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface-2)}
+.lado-t{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
+.lado.mal{border-color:color-mix(in srgb,var(--erro) 40%,transparent)}
+.lado.bem{border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+.lado p{margin:0;font-size:14.5px;color:var(--dim)}
+
+/* ---- tabela ---- */
+.tab-caixa{overflow-x:auto;margin:20px 0 0;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:560px;background:var(--surface)}
+th,td{padding:11px 15px;text-align:left;border-bottom:1px solid var(--line);font-size:14px}
+th{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:600}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+td.mal{color:var(--erro);font-weight:600}
+td.bom{color:var(--ok);font-weight:600}
+
+/* ---- passos do plano ---- */
+.passos{counter-reset:p;margin:22px 0 0;display:flex;flex-direction:column;gap:12px}
+.passo{counter-increment:p;position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:18px 22px 18px 62px}
+.passo::before{content:counter(p);position:absolute;left:20px;top:17px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;font-weight:700;
+  color:var(--navy);background:var(--sunken);border:1px solid var(--line-2);border-radius:8px;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.passo h4{margin:0 0 6px;font-size:16px;font-weight:650}
+.passo p{margin:0;font-size:14.5px;color:var(--dim)}
+
+footer{margin:76px 0 0;padding:26px 0 60px;border-top:1px solid var(--line);
+  color:var(--faint);font-size:13.5px;display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">RetroFoot98 · como o jogo conta o tempo</p>
+  <h1>O calendário: por que a final às vezes acontece sem você.</h1>
+  <p class="lede">Este documento explica, sem termos técnicos, <strong>como a temporada é montada</strong>,
+  em que ritmo as competições entram em campo, e <strong>por que algumas terminam sem você ver</strong>.
+  Todos os números aqui foram lidos de uma temporada de verdade, aberta agora — não são estimativas.</p>
+</header>
+
+<section>
+  <h2>A ideia central: a temporada é uma fila de semanas</h2>
+  <p>O jogo não conta dia a dia. Ele conta em <b>blocos de uma semana</b> — a que chamamos
+  <b>jornada</b>. Cada vez que você joga, a temporada anda uma jornada, e o calendário pula sete dias
+  de uma vez.</p>
+  <p>Dentro de uma jornada, cada competição tem o seu dia fixo da semana. É o que separa os jogos e
+  faz a semana parecer uma semana de verdade:</p>
+
+  <div class="card">
+    <p class="card-t">Uma jornada por dentro</p>
+    <div class="semana">
+      <div class="dia"><b>Dom</b><span>—</span></div>
+      <div class="dia"><b>Seg</b><span>—</span></div>
+      <div class="dia tem cb"><b>Ter</b><span>Copa do Brasil</span></div>
+      <div class="dia tem lib"><b>Qua</b><span>Libertadores</span></div>
+      <div class="dia tem sul"><b>Qui</b><span>Sul-Americana</span></div>
+      <div class="dia"><b>Sex</b><span>—</span></div>
+      <div class="dia tem liga"><b>Sáb</b><span>Liga</span></div>
+    </div>
+  </div>
+
+  <p>Isso responde a uma dúvida comum: <b>a liga joga toda semana</b> — são 38 jornadas, uma rodada
+  em cada. As copas não. Elas aparecem só nas semanas em que têm data marcada.</p>
+</section>
+
+<section>
+  <h2>De onde vêm as datas</h2>
+  <p>O calendário não é sorteado. Ele parte de uma <b>folha de datas reais</b> da temporada 2026 —
+  a mesma ideia de um calendário de federação. A liga tem 38 datas, de 3 de janeiro a 3 de dezembro.
+  Cada copa tem a sua lista.</p>
+  <p>Para encaixar as duas coisas, o jogo faz uma pergunta simples para cada data de copa:
+  <b>em que semana da liga esta data cai?</b> A copa entra naquela jornada. É por isso que uma
+  semana pode ter jogo de copa e jogo de liga — e é assim que deve ser.</p>
+
+  <div class="nums">
+    <div><b>38</b><span>jornadas na temporada</span></div>
+    <div><b>7</b><span>datas da Copa do Brasil</span></div>
+    <div><b>10</b><span>datas da Libertadores</span></div>
+    <div><b>10</b><span>datas da Sul-Americana</span></div>
+  </div>
+
+  <p>Guarde esses dois últimos números. <b>Eles são a origem do problema.</b></p>
+</section>
+
+<section>
+  <h2>A temporada inteira, de uma olhada</h2>
+  <p>Abaixo estão as 38 jornadas em ordem. Cada quadradinho é uma semana; cada marca colorida é uma
+  competição que entra em campo naquela semana. As semanas em <b>âmbar</b> têm mais de uma copa no
+  mesmo bloco. As duas em <b>vermelho tracejado</b>, no fim, são o ponto que interessa.</p>
+
+  <div class="card">
+    <p class="card-t">Temporada 2026 · lida do jogo</p>
+    <div class="tira-caixa"><div class="tira"><span class="cel" title="semana 1"><u>1</u></span><span class="cel" title="semana 2"><i class="m lib"></i><u></u></span><span class="cel choque" title="semana 3"><i class="m cb"></i><i class="m sul"></i><u></u></span><span class="cel choque" title="semana 4"><i class="m cb"></i><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 5"><u></u></span><span class="cel choque" title="semana 6"><i class="m cb"></i><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 7"><u>7</u></span><span class="cel" title="semana 8"><u></u></span><span class="cel choque" title="semana 9"><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 10"><u></u></span><span class="cel" title="semana 11"><u></u></span><span class="cel choque" title="semana 12"><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 13"><u>13</u></span><span class="cel" title="semana 14"><u></u></span><span class="cel choque" title="semana 15"><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 16"><u></u></span><span class="cel" title="semana 17"><u></u></span><span class="cel choque" title="semana 18"><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 19"><i class="m cb"></i><u>19</u></span><span class="cel" title="semana 20"><u></u></span><span class="cel choque" title="semana 21"><i class="m cb"></i><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 22"><u></u></span><span class="cel" title="semana 23"><u></u></span><span class="cel" title="semana 24"><u></u></span><span class="cel" title="semana 25"><u>25</u></span><span class="cel" title="semana 26"><u></u></span><span class="cel" title="semana 27"><u></u></span><span class="cel choque" title="semana 28"><i class="m lib"></i><i class="m sul"></i><u></u></span><span class="cel" title="semana 29"><u></u></span><span class="cel" title="semana 30"><u></u></span><span class="cel" title="semana 31"><u>31</u></span><span class="cel" title="semana 32"><u></u></span><span class="cel" title="semana 33"><u></u></span><span class="cel" title="semana 34"><u></u></span><span class="cel" title="semana 35"><i class="m cb"></i><u></u></span><span class="cel" title="semana 36"><u></u></span><span class="cel choque" title="semana 37"><i class="m lib"></i><i class="m sul"></i><u>37</u></span><span class="cel" title="semana 38"><i class="m cb"></i><u>38</u></span><span class="cel extra" title="semana 39"><u></u></span><span class="cel extra" title="semana 40"><u></u></span><span class="cel extra fora" title="semana 41"><i class="m lib"></i><u>41</u></span><span class="cel extra fora" title="semana 42"><i class="m sul"></i><u>42</u></span></div></div>
+    <div class="legenda">
+      <span><i class="cb"></i>Copa do Brasil</span>
+      <span><i class="lib"></i>Libertadores</span>
+      <span><i class="sul"></i>Sul-Americana</span>
+      <span><i class="ch"></i>duas ou três copas na mesma semana</span>
+      <span><i class="fo"></i>rodada fora da temporada</span>
+      <span><i class="ex"></i>semana que só existe se a temporada esticar</span>
+    </div>
+  </div>
+
+  <div class="nums">
+    <div><b>14</b><span>das 38 semanas têm copa</span></div>
+    <div><b>10</b><span>semanas com mais de uma copa</span></div>
+    <div><b>3</b><span>semanas com as três juntas</span></div>
+    <div><b class="mal">2</b><span>rodadas caem fora da temporada</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Por que a final acontece sem você</h2>
+  <p>Não é um motivo só. São três, e eles se somam. Os dois primeiros já estão corrigidos; o
+  terceiro é o que ainda incomoda.</p>
+
+  <div class="causa ok">
+    <div class="causa-t"><b>1. A conta das datas não fecha</b><span class="selo">Corrigido</span></div>
+    <p>A Libertadores tem <b class="ink">10 datas</b> na folha, mas precisa de <b class="ink">11 rodadas</b>
+    para chegar ao campeão: seis de fase de grupos, uma para o sorteio do mata-mata e quatro de
+    mata-mata. A Sul-Americana, igual.</p>
+    <p>A rodada que sobrava era sempre a <b class="ink">última</b> — a final. Sem data, ela não tinha
+    dia para acontecer, e a temporada virava sem ela.</p>
+  </div>
+
+  <div class="causa ok">
+    <div class="causa-t"><b>2. A final é depois do fim da liga</b><span class="selo">Corrigido</span></div>
+    <p>No calendário real, a final da Copa do Brasil é <b class="ink">6 de dezembro</b> e o último jogo
+    da liga é <b class="ink">3 de dezembro</b>. A final é depois — como na vida real.</p>
+    <p>O jogo antes espremia essas datas para dentro da temporada. Empurrada para trás, a final ou
+    colidia com outra rodada ou se perdia. Hoje a copa mantém a data e é a <b class="ink">temporada que
+    se estica</b> para alcançá-la. Aquelas duas caixas vermelhas do gráfico são exatamente isso: a
+    Libertadores decide na semana 40 e a Sul-Americana na 41, num calendário de 38.</p>
+  </div>
+
+  <div class="causa">
+    <div class="causa-t"><b>3. A conta de “quanto ainda falta” olhava para o lugar errado</b><span class="selo aberto">Corrigido agora</span></div>
+    <p>Antes de fechar a temporada, o jogo pergunta: <b class="ink">alguma copa ainda deve rodada?</b>
+    A conta era “total de rodadas menos vagas no calendário” — mas contava também as vagas
+    <b class="ink">já gastas</b>.</p>
+    <p>Uma copa perde vagas pelo caminho por motivos legítimos: uma semana gasta só para sortear as
+    oitavas, uma semana antes do sorteio sair, uma rodada que você jogou ao vivo e já foi resolvida.
+    Com as vagas gastas entrando na conta, a copa chegava ao fim devendo a final com o calendário
+    <b class="ink">aparentemente cheio</b>. O jogo concluía que não faltava nada e encerrava a temporada.</p>
+    <p>Resultado, do seu lado da tela: sem final, sem cerimônia, sem taça — e uma competição que
+    simplesmente sumiu.</p>
+  </div>
+
+  <div class="par">
+    <div class="lado mal"><p class="lado-t">Como era</p>
+      <p>“Faltam 11 rodadas, o calendário tem 11 vagas — então não falta nada.” E fechava a temporada
+      com a final por jogar.</p></div>
+    <div class="lado bem"><p class="lado-t">Como é agora</p>
+      <p>“Faltam 2 rodadas para o campeão, e daqui para a frente só há 0 dias marcados — então preciso
+      criar 2 semanas.” E a temporada se estica.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>E por que às vezes vejo duas competições seguidas</h2>
+  <p>Pela mesma folha de datas. Quando a Libertadores joga na quarta e a Sul-Americana na quinta da
+  <b>mesma semana</b>, você passa por duas rodadas antes de chegar ao jogo da liga no sábado. Não é
+  erro: é o calendário real.</p>
+  <p>O que <b>é</b> desconfortável é a frequência. Em <b>10 das 14 semanas com copa</b> há mais de uma
+  competição, e em três delas as três caem juntas. Metade da temporada não tem copa nenhuma e um
+  punhado de semanas concentra tudo.</p>
+
+  <div class="card">
+    <p class="card-t">O que dá para melhorar aqui</p>
+    <p>O jogo tem uma regra que espaça as copas de três em três semanas — mas ela só vale quando
+    <b>não</b> existe folha de datas reais. Com a folha do Brasil, as datas mandam, e elas se
+    amontoam. Uma folga mínima entre competições da mesma semana resolveria o desconforto sem
+    inventar datas.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Com que frequência cada coisa acontece</h2>
+  <div class="tab-caixa">
+    <table>
+      <thead><tr><th>Competição</th><th>Rodadas até o campeão</th><th>Datas na folha</th><th>Ritmo</th><th>Fecha a conta?</th></tr></thead>
+      <tbody>
+        <tr><td>Liga (Séries A a D)</td><td class="n">38</td><td class="n">38</td><td>toda semana</td><td class="bom">sim</td></tr>
+        <tr><td>Copa do Brasil</td><td class="n">7</td><td class="n">7</td><td>7 semanas ao longo do ano</td><td class="bom">sim</td></tr>
+        <tr><td>Libertadores</td><td class="n">11</td><td class="n">10</td><td>a cada 3 semanas, mais ou menos</td><td class="mal">falta 1</td></tr>
+        <tr><td>Sul-Americana</td><td class="n">11</td><td class="n">10</td><td>a cada 3 semanas, mais ou menos</td><td class="mal">falta 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>As duas continentais são as únicas que não fecham a conta — e são exatamente as duas cujas finais
+  desapareciam. Hoje a temporada se estica para acomodá-las, mas <b>a folha continua incompleta</b>:
+  o conserto acontece toda temporada, em vez de o dado estar certo desde o começo.</p>
+</section>
+
+<section>
+  <h2>O plano: um calendário que sirva a qualquer país</h2>
+  <p>Hoje existe <b>uma</b> folha de datas, a do Brasil de 2026, escrita dentro do motor. Quem joga na
+  Inglaterra ou na Argentina não tem calendário real: as copas caem de três em três semanas, sem
+  relação com nada. E no Modo Resenha todos os treinadores dividem <b>uma</b> temporada — se cada um
+  estiver num país diferente, é essa fila de semanas que precisa servir a todos.</p>
+  <p>O caminho abaixo trata a causa, não o sintoma. Cada passo é útil sozinho, e eles vêm nesta ordem
+  de propósito: o primeiro impede que o problema volte.</p>
+
+  <div class="passos">
+    <div class="passo">
+      <h4>Conferir a folha antes de jogar</h4>
+      <p>Uma verificação simples, ao montar a temporada: cada competição tem pelo menos tantas datas
+      quantas rodadas precisa? Se não tem, o jogo completa as que faltam na hora e avisa nos
+      relatórios. Hoje a falta só aparece em dezembro, quando a final não acontece.</p>
+    </div>
+    <div class="passo">
+      <h4>Uma folha por país, fora do motor</h4>
+      <p>Tirar as datas de dentro do código e pôr numa lista por país — Brasil, Inglaterra, Argentina.
+      Acrescentar um país passa a ser preencher datas, não mexer em regra. É o que abre a porta para
+      os outros calendários.</p>
+    </div>
+    <div class="passo">
+      <h4>Uma folga mínima entre competições da mesma semana</h4>
+      <p>Manter as datas reais, mas garantir que duas copas não empilhem na mesma semana quando dá
+      para separá-las por um dia. Resolve o “vi três competições seguidas” sem inventar datas.</p>
+    </div>
+    <div class="passo">
+      <h4>A temporada só fecha com todos os campeões definidos</h4>
+      <p>Já está assim, e é a rede que segura o resto: enquanto qualquer competição não tiver campeão,
+      a temporada ganha as semanas que faltarem em vez de virar por cima. Com o passo 1 no lugar,
+      essa rede quase nunca precisa entrar em ação.</p>
+    </div>
+    <div class="passo">
+      <h4>Países diferentes na mesma sala</h4>
+      <p>A fila de semanas é compartilhada; o que muda por jogador é qual competição entra em campo em
+      cada semana. Um inglês e um brasileiro avançam juntos, cada um vendo o seu calendário. É a
+      última peça, e depende dos passos 1 e 2 estarem prontos.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Em uma frase</h2>
+  <p>A temporada é uma fila de 38 semanas; as competições entram nas semanas em que a data real manda;
+  e quando a data real cai fora da temporada — ou quando falta data —, a temporada precisa esticar
+  para não deixar uma final acontecer sem ninguém ver. <b>É isso que passou a acontecer.</b></p>
+</section>
+
+<footer>
+  <span>RetroFoot98 · retrofoot98.com.br</span>
+  <span class="mono">Números lidos de uma temporada real · agosto de 2026</span>
+</footer>
+
+</div>

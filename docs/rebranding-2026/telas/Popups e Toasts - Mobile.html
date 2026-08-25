@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Popups e Toasts — Mobile" description="Popups e Toasts — Mobile — design system 2026" -->
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#c9d2cb}
+a{color:#17458F;text-decoration:none}
+a:hover{color:#0e2f66}
+@keyframes dsFadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#c9d2cb;font-family:'Space Grotesk',system-ui,sans-serif;padding:28px;box-sizing:border-box">
+  <div style="max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+      <span style="font-size:20px;font-weight:700;color:#12201a;letter-spacing:-.01em;white-space:nowrap">Mobile</span>
+      <span style="font-size:13px;color:#78877c">toast acima da barra inferior · popup vira folha de baixo, com alça e ações empilhadas</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;justify-content:center">
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:390px;height:640px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative">
+        <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+          <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:32px;height:32px;object-fit:contain;flex:0 0 auto;margin-left:5px;background:#fff;border-radius:10px;padding:3px;box-sizing:border-box">
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+            <span style="font-size:15px;font-weight:700;color:#fff;white-space:nowrap">XV Piracicaba</span>
+            <span style="font-size:10px;color:#c3d3ec;white-space:nowrap">Série D · 2026</span>
+          </div>
+        </div>
+      <div style="position:absolute;left:12px;right:12px;bottom:16px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;background:#12201a;color:#fff;border-left:4px solid #2fbf5f;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:100%">
+          <span style="flex:0 0 auto;font-size:14px">✓</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Jogo gravado na nuvem.</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#12201a;color:#fff;border-left:4px solid #F2B90C;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:100%">
+          <span style="flex:0 0 auto;font-size:14px">⚠</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Caixa insuficiente para renovar.</span>
+          
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;background:#17458F;color:#fff;border-left:4px solid #F2B90C;border-radius:12px;padding:11px 16px;min-height:44px;box-sizing:border-box;box-shadow:0 10px 30px -18px rgba(0,0,0,.7);font-size:13px;font-weight:500;max-width:100%">
+          <span style="flex:0 0 auto;font-size:14px">🔨</span>
+          <span style="flex:1;min-width:0;line-height:1.35">Kaique arrematado por 120 mil.</span>
+          <span style="flex:0 0 auto;font-size:12px;font-weight:700;color:#F2B90C;white-space:nowrap;cursor:pointer">Ver</span>
+        </div>
+      </div>
+      </div>
+      <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">Avisos — 12px das bordas, acima da barra</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:390px;height:640px;flex:0 0 auto;background:#e8f0e7;border:1px solid #d2e0d0;border-radius:28px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(20,33,26,.6);position:relative">
+        <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+          <img src="uploads/pasted-1786581574687-0.png" alt="Escudo" style="width:32px;height:32px;object-fit:contain;flex:0 0 auto;margin-left:5px;background:#fff;border-radius:10px;padding:3px;box-sizing:border-box">
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1">
+            <span style="font-size:15px;font-weight:700;color:#fff;white-space:nowrap">XV Piracicaba</span>
+            <span style="font-size:10px;color:#c3d3ec;white-space:nowrap">Série D · 2026</span>
+          </div>
+        </div>
+      <div style="position:absolute;inset:0;background:rgba(18,32,26,.55);display:flex;align-items:flex-end;justify-content:center">
+        <div style="width:100%;background:#e8f0e7;border-radius:24px 24px 0 0;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;animation:dsFadeUp .32s ease">
+          <span style="width:40px;height:4px;border-radius:99px;background:#c9d2ca;align-self:center"></span>
+          <div style="display:flex;align-items:center;gap:10px;position:relative;overflow:hidden;background:linear-gradient(100deg,#0e2f66,#17458F 62%);border-radius:16px;padding:12px 14px">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></div>
+            <span style="font-size:17px;margin-left:5px;flex:0 0 auto">🏆</span>
+            <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+              <span style="font-size:17px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Campeão da Série D!</span>
+              <span style="font-size:11px;color:#c3d3ec;white-space:nowrap">XV Piracicaba · 2026</span>
+            </div>
+            <div style="flex:1"></div>
+            <span style="flex:0 0 auto;font-size:13px;color:#fff;cursor:pointer">✖</span>
+          </div>
+          <div style="background:#fff;border:1px solid #dde7db;border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:14px;color:#3a473f;line-height:1.5">Acabou, treinador. O XV é campeão da Série D e sobe para a Série C no ano que vem.</span>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;background:#f6f8f5;border-radius:11px;padding:10px;display:flex;flex-direction:column;gap:2px"><span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em">CAMPANHA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a">18V 7E 3D</span></div>
+              <div style="flex:1;background:#f6f8f5;border-radius:11px;padding:10px;display:flex;flex-direction:column;gap:2px"><span style="font-size:9px;font-weight:700;color:#8b978d;letter-spacing:.12em">PREMIAÇÃO</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#12201a">R$ 1,4 mi</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#F2B90C;color:#17458F;font-size:14px;font-weight:700;cursor:pointer">Comemorar</span>
+            <span style="height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-size:13px;font-weight:600;cursor:pointer">Ver troféus</span>
+          </div>
+        </div>
+      </div>
+      </div>
+      <span style="font-size:12px;font-weight:600;color:#5d6c62;white-space:nowrap">Popup — bottom sheet, ação principal embaixo</span>
+    </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

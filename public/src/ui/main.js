@@ -77,7 +77,11 @@ function spellMoney(n){ n=Math.round(curConv(n));
   const word={BRL:'reais',USD:'dólares',EUR:'euros'}[curInfo().iso]||'reais';
   const joined = p.length>1 ? p.slice(0,-1).join(', ')+' e '+p[p.length-1] : p[0];
   return (neg?'-':'')+joined+' '+word; }
-function mvShort(mv){ mv=curConv(mv||0); return mv>=1e6? (mv/1e6).toFixed(mv>=1e7?0:1).replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
+/* UMA CASA DECIMAL SEMPRE, ACIMA DE 10M TAMBEM. Arredondar para inteiro a partir de 10M fazia
+   a mesma quantia aparecer com dois numeros diferentes no mesmo cartao: a proposta dizia
+   "R$ 10,60 mi" (rfDin) e a mensagem do clube, logo abaixo, "R$ 11M" — lido como se o clube
+   tivesse oferecido outra coisa. */
+function mvShort(mv){ mv=curConv(mv||0); return mv>=1e6? (mv/1e6).toFixed(1).replace(/\.0$/,'').replace('.',',')+'M' : Math.round(mv/1e3)+'k'; }
 function posLetter(s){ return ({GK:'G',DEF:'D',MID:'M',ATT:'A'})[s]||'M'; }
 /* ordena por posição (G, D, M, A) e depois por força — usado em listas de escalação/troca
    pra que jogador comprado apareça na posição certa, não no fim da lista */
@@ -134,6 +138,46 @@ function clubStripe(club){ const {col,col2}=clubColors(club);
   return `background:${col};color:${barTextColor(col,col2)}`; }
 /* acento de duas cores pra borda esquerda de linhas de lista (mercado, entrar na sala) */
 function clubEdge(club){ const {col,col2}=clubColors(club); return `border-left-color:${col2};box-shadow:inset 4px 0 0 0 ${col}`; }
+/* ===== REBRANDING 2026 · AS DUAS VARIÁVEIS QUE MUDAM POR CLUBE =====
+   Todo o resto do cromo (--surface-*, --line-*, --text-*) é FIXO e igual para
+   todos os times — foi decisão explícita do design system: o cromo não segue o
+   clube, só o conteúdo do clube segue. Aqui escrevemos no elemento raiz apenas
+   --club-primary/--club-secondary e as quatro derivadas que o CSS precisa, lidas
+   de color/color2 do banco de clubes (as mesmas que clubColors() já usa).
+   Roda a cada cdraw() porque o clube do usuário muda (sorteio, troca de emprego,
+   assento no Modo Resenha) e o custo é escrever seis propriedades num nó só. */
+function applyClubTokens(id){
+  const el=document.documentElement; if(!el) return;
+  const cl=(typeof clubOf==='function')?clubOf(id):null;
+  // sem clube (home, login, onboarding antes do sorteio) o padrão do token vale:
+  // XV Piracicaba, que é o clube em que o design foi desenhado e aprovado.
+  if(!cl){ el.removeAttribute('data-club-tokens'); ['--club-primary','--club-primary-deep','--club-primary-soft','--club-primary-line','--club-secondary','--club-secondary-hover','--club-on-primary','--club-on-secondary'].forEach(k=>el.style.removeProperty(k)); return; }
+  const {col,col2}=clubColors(cl);
+  el.style.setProperty('--club-primary',col);
+  el.style.setProperty('--club-primary-deep',shade(col,-0.35));   // topo da faixa do clube
+  el.style.setProperty('--club-primary-soft',shade(col,0.90));    // fundo de chip/linha ativa
+  el.style.setProperty('--club-primary-line',shade(col,0.78));    // hairline tingida
+  el.style.setProperty('--club-secondary',col2);
+  el.style.setProperty('--club-secondary-hover',shade(col2,0.18));
+  // A secundária É A COR DO CLUBE, e em muitos times ela é quase igual à primária
+  // (Palmeiras: verde escuro e verde). Sobre a faixa do clube — que é a primária —
+  // ela sumiria. Este token é a MESMA regra de contraste que clubStripe() já usava
+  // pro badge do time: usa a secundária quando ela contrasta, e cai pra branco/preto
+  // quando as duas cores do clube são vizinhas demais.
+  el.style.setProperty('--club-secondary-on-primary', barTextColor(col,col2));
+  // FUNDO do botão Jogar. Pela mesma razão acima: em clube cujas duas cores são
+  // vizinhas (Palmeiras, Vasco), um botão pintado com a secundária desaparece
+  // dentro do card azul/verde do clube. Quando não há contraste, o CTA cai no
+  // amarelo do design system — que é justamente o "botão de jogar" que o jogo
+  // sempre teve, e continua sendo a ação mais visível da tela.
+  const contrasta = Math.abs(lumin(col)-lumin(col2))>=0.45;
+  el.style.setProperty('--club-cta-bg', contrasta?col2:'#F2B90C');
+  el.style.setProperty('--club-cta-fg', contrasta?(lumin(col2)>0.58?'#12201a':'#ffffff'):'#12201a');
+  // texto POR CIMA de cada uma das duas — mesma regra de contraste do clubStripe()
+  el.style.setProperty('--club-on-primary',lumin(col)>0.58?'#12201a':'#ffffff');
+  el.style.setProperty('--club-on-secondary',lumin(col2)>0.58?'#12201a':'#ffffff');
+  el.setAttribute('data-club-tokens',cl.short||'');
+}
 function clubTheme(id){ const cl=clubOf(id); const {col,col2}=clubColors(cl); return { col, col2, bg:shade(col,-0.6), bg2:shade(col,-0.42),
   txt:lumin(col)>0.62?shade(col,-0.45):col, hdr:lumin(col)>0.62?'#111':'#fff' }; }
 /* formações: G-D-M-A */
@@ -246,7 +290,7 @@ function bestFormationForSquad(id){
    match-engine.js, availableXI em simulate.js). Os dois seletores abaixo montavam o onze a partir
    do elenco inteiro, então escalavam machucado e suspenso; na hora do jogo o motor filtrava de
    novo e o time entrava em campo DESFALCADO, sem o usuário entender por quê.
-   No "Selecionar descansados" era pior ainda e sistemático: quem está machucado não joga, não
+   No "Seleccionar descansados" era pior ainda e sistemático: quem está machucado não joga, não
    gasta energia e por isso aparecia no TOPO da ordenação por energia — o botão de descansar
    praticamente escolhia os lesionados. */
 function squadEscalavel(id){ return squad(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)); }
@@ -266,7 +310,7 @@ function pickXIByFormation(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3'];
   secs.forEach((sec,i)=>{ sq.filter(p=>p.s===sec).slice(0,need[i]).forEach(p=>xi.push(p.pid)); });
   return completaXI(id,xi,sq).slice(0,11); }
 /* mesma lógica de pickXIByFormation, mas ordenando por energia (menos cansados primeiro)
-   em vez de força — usada pelo botão "Selecionar descansados" */
+   em vez de força — usada pelo botão "Seleccionar descansados" */
 function pickXIByFormationRested(id,f){ const need=FORMATIONS[f]||FORMATIONS['4-3-3']; const secs=['GK','DEF','MID','ATT'];
   const nrg=p=>(p&&p.energy!=null)?p.energy:100;
   const sq=squadEscalavel(id).slice().sort((a,b)=>nrg(b)-nrg(a)||b.f-a.f); const xi=[];   // xi = lista de PIDs
@@ -340,6 +384,10 @@ function menuSairHTML(){
 function adSlotHTML(slot, opts){
   opts = typeof opts==='string' ? {cls:opts} : (opts||{});
   if(window.ADS){ const real=ADS.html(slot, {cls:'cl-ad '+(opts.cls||'')}); if(real) return real; }
+  /* espaco de venda (chave rf98.*) sem criativo: mostra o LUGAR, nao o anuncio-casa — e o
+     inventario que o painel vende, e ele tem de ser visivel para se poder conferir */
+  if(/^rf98\./.test(String(slot||'')) && typeof rfAdEspaco==='function')
+    return rfAdEspaco(slot, {cls:'cl-ad '+(opts.cls||''), formato:opts.formato||'728×90'});
   const i=Math.abs(hashC(String(slot||'')))%AD_SPONSORS.length;
   const s=AD_SPONSORS[i];
   return `<div class="cl-ad ${opts.cls||''}" data-ad-slot="${escC(slot||'')}">
@@ -358,22 +406,55 @@ function adSlotClick(slot, i){
   if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
   window.open(s.url,'_blank','noopener,noreferrer');
 }
-function dlg(title,body,opts){ opts=opts||{}; const w=opts.w||(opts.std?640:620);
-  const badge = opts.badge ? `<div class="cl-dlg-badge">${opts.badge.icon||''}<span class="cl-dlg-badge-t">${escC(opts.badge.label||'')}</span></div>` : '';
-  if(opts.std) return `<div class="cl-dlg cl-dlg-std" style="width:${w}px">
-    ${badge}
-    <div class="cl-dlg-title"><span>${escC(title)}</span><button class="cl-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✕</button></div>
-    <div class="cl-dlg-body ${opts.bodyClass||'cl-body-gray'}">
-      <div class="cl-dlg-content">${body}</div>
-      ${opts.ad?adSlotHTML(opts.ad):''}
-      ${opts.footer?`<div class="cl-dlg-foot ${opts.footerClass||''}">${opts.footer}</div>`:''}
+/* ===== DIALOG (rebranding 2026, telas/Popups e Toasts.html) =====
+   Uma peça só pra todo popup do jogo. A anatomia é a da referência:
+   cabeçalho na cor do clube com filete de 6px, glifo, título, subtítulo e
+   ✖; corpo em card branco; rodapé com as ações à direita.
+
+   Reescrever aqui converte TODOS os popups de uma vez — são ~90 chamadas de
+   dlg() espalhadas pelo main.js, e nenhuma precisou mudar: a assinatura
+   (title, body, opts) é a mesma, e `opts` só ganhou campos opcionais.
+
+   opts.glyph    emoji do cabeçalho (o único sistema de ícones do projeto)
+   opts.sub      subtítulo, abaixo do título
+   opts.badge    pílula à direita — aceita o formato antigo {icon,label}
+   opts.footer   ações; sem ele, o corpo entra inteiro (as telas antigas
+                 desenham o próprio bloco de botões dentro do body)
+   opts.tone     'light' força cabeçalho claro; o padrão é a cor do clube */
+function dlg(title,body,opts){
+  opts=opts||{};
+  const w=opts.w||(opts.std?640:620);
+  const claro=opts.tone==='light';
+  const badgeTxt = opts.badge ? (typeof opts.badge==='string'?opts.badge:(opts.badge.label||'')) : '';
+  const badgeIco = (opts.badge&&opts.badge.icon)||'';
+  const glyph = opts.glyph||badgeIco||'';
+  /* tone:'marca' -> cabecalho no azul/amarelo do JOGO, nao do clube. Serve as
+     telas que nao sao do seu clube: a sala em espera e da SALA, e num clube de
+     segunda cor branca o filete do cabecalho desaparecia (mesmo caso ja
+     corrigido na faixa do clube). */
+  const tom = claro ? '' : (opts.tone==='marca' ? 'rf-dlg-marca' : 'rf-dlg-club');
+  return `<div class="rf-dlg ${tom}" style="width:${w}px">
+    <div class="rf-dlg-hd">
+      ${claro?'':'<div class="rf-dlg-filete"></div>'}
+      ${glyph?`<span class="rf-dlg-glyph">${glyph}</span>`:''}
+      <div class="rf-dlg-ttl">
+        <span class="rf-dlg-t">${escC(title)}</span>
+        ${opts.sub?`<span class="rf-dlg-sub">${escC(opts.sub)}</span>`:''}
+      </div>
+      <div class="rf-dlg-sp"></div>
+      ${badgeTxt?`<span class="rf-dlg-badge">${escC(badgeTxt)}</span>`:''}
+      ${opts.obrigatorio?'':'<button class="rf-dlg-x" type="button" title="Fechar" aria-label="Fechar" onclick="clCloseOverlay()">✖</button>'}
     </div>
+    <div class="rf-dlg-body">${opts.ad?dlgBodyComAd(body,opts.ad):body}</div>
+    ${opts.footer?`<div class="rf-dlg-foot">${opts.footer}</div>`:''}
   </div>`;
-  return `<div class="cl-dlg" style="width:${w}px">
-    ${badge}
-    <div class="cl-dlg-title"><span>${escC(title)}</span>${opts.min?'<span class="cl-min">–</span>':''}</div>
-    <div class="cl-dlg-body ${opts.bodyClass||''}">${opts.ad?dlgBodyComAd(body,opts.ad):body}</div>
-  </div>`; }
+}
+/* blocos de número do popup de celebração (CAMPANHA · PREMIAÇÃO na referência) */
+function rfStatBlocks(pares){
+  return `<div class="rf-dlg-stats">${pares.map(([l,v])=>`<div class="rf-dlg-stat">
+    <span class="rf-label-t">${escC(l)}</span>
+    <span class="rf-dlg-stat-v">${escC(v)}</span></div>`).join('')}</div>`;
+}
 /* O SLOT FICA ACIMA DA BARRA DE AÇÃO (regra do handoff). Nas janelas simples os botões moram
    DENTRO do corpo (bloco .cl-cal-ok), então grudar o anúncio no fim jogaria ele embaixo do OK —
    o usuário passaria por cima do botão pra ver o anúncio. Aqui ele entra logo antes desse bloco;
@@ -479,13 +560,13 @@ function pausaOvertime(){ return !CL._roundSyncedAt && (nowMs()-(CL._waitSince||
    falta — gente publicando ou o servidor fechando. Era um texto fixo culpando "os outros
    treinadores" mesmo quando todos já tinham publicado e a espera era do servidor. */
 function pausaWaitLabel(){
-  if(!pausaOvertime()) return 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí…';
+  if(!pausaOvertime()) return 'Todos os treinadores voltam a jogar ao mesmo tempo. Segura aí';
   let outros=true;
   if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn && typeof S!=='undefined' && S){
     try{ outros=!!NET.allHumanResultsIn(S.round); }catch(e){ outros=true; }
   }
-  return outros ? 'Ainda sincronizando — o servidor está fechando a rodada…'
-                : 'Ainda sincronizando — esperando os resultados dos outros treinadores…';
+  return outros ? 'Ainda sincronizando — o servidor está fechando a rodada'
+                : 'Ainda sincronizando — esperando os resultados dos outros treinadores';
 }
 function pausaChecklist(){
   const it=(st,txt)=>`<div class="rf-srow"><span class="${st==='ok'?'rf-sdone':st==='wait'?'rf-swait':'rf-sdim'}">${st==='ok'?'✓':st==='wait'?'⏳':'·'}</span><span class="${st==='dim'?'rf-sdim':''}">${txt}</span></div>`;
@@ -535,13 +616,20 @@ function clAdSkip(){
 function ensureSyncFunTicker(){
   if(CL._syncFunT) return;
   CL._syncFunT=setInterval(()=>{
+    /* ===== O TIQUE MATAVA-SE A SI PROPRIO NA TELA NOVA =====
+       A condicao de vida era "existe #rf-gif". Esse elemento e a TV da pausa ANTIGA; a tela
+       portada (rfPausaHTML) nao a desenhava, entao logo no primeiro segundo o intervalo nao
+       encontrava a TV, limpava-se e ia embora -- levando com ele a barra de progresso, a
+       percentagem, o rotulo e o checklist do que o servidor esta a fazer. Era por isso que a
+       Pausa Patrocinada ficava simplesmente PARADA: nao havia nada por tras a mexer nela.
+       Quem manda na vida do tique e a TELA, nao um elemento dela. */
+    if(CL.screen!=='waitround'){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     const stage=$c('#rf-gif');
-    if(!stage){ clearInterval(CL._syncFunT); CL._syncFunT=null; return; }
     CL._pausaTick=(CL._pausaTick||0)+1;
     if(CL._pausaTick%5===0){                                  // 5s: próximo GIF + próxima piada
       CL._pausaI=((CL._pausaI||0)+1)%Math.max(PAUSA_GIFS.length,PAUSA_JOKES.length);
       const g=pausaGif();
-      stage.src=g.src;
+      if(stage) stage.src=g.src;
       const bg=$c('#rf-gifbg'); if(bg) bg.src=g.src;   // fundo desfocado acompanha o clipe
       const cap=$c('#rf-gifcap'), num=$c('#rf-gifnum'), jk=$c('#rf-joke');
       if(cap) cap.textContent=g.cap;
@@ -556,6 +644,10 @@ function ensureSyncFunTicker(){
     if(fill) fill.style.width=p+'%';
     if(lbl) lbl.textContent = pausaWaitLabel();
     if(chk) chk.innerHTML=pausaChecklist();
+    /* os passos da tela portada ("O que está acontecendo") são o mesmo dado do checklist,
+       noutro desenho — sem isto ficavam congelados no estado do primeiro segundo */
+    const pss=$c('#rf-passos');
+    if(pss && typeof rfPausaPassosHTML==='function') pss.innerHTML=rfPausaPassosHTML();
     const sk=$c('#cl-ad-skip'); if(sk && CL._adCont) sk.style.display='';   // sobrevive a um cdraw
     const esc=$c('#cl-wait-escape'); if(esc && pausaStuck()) esc.style.display=''; // destrava quem ficou preso
   }, 1000);
@@ -588,44 +680,239 @@ function hideSyncLoading(){ if(CL._syncLoadingTimer){ clearTimeout(CL._syncLoadi
    resolve para todas as ações de uma vez, em vez de remendar caso a caso.
    Só devolve se o número de listas for o mesmo antes e depois: se a tela mudou, a rolagem velha
    não tem a que pertencer. */
-const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad'];
+/* ROLAGEM ATRAVÉS DO REDESENHO.
+   Clicar num chip de filtro dentro de um bloco chama cdraw(), que remonta a
+   página inteira — e a rolagem voltava ao topo. Quem estava lendo a
+   Classificação lá embaixo era jogado para o começo da página só por ter
+   trocado a competição: o conteúdo do bloco muda, o ponto de leitura não pode
+   mudar junto.
+   `.rf-main` é o rolo da página no painel novo e `.rf-lista` é o de cada
+   lista longa; as duas primeiras são do skin antigo, que ainda tem telas
+   vivas. */
+const CDRAW_ROLAGENS=['.cl-roster','.cl-mkt-squad','.rf-lista','.rf-sq-list','.rf-cam-narra',
+  /* as duas listas do painel de substituicao: a partida continua a correr por
+     baixo e cada tique redesenha a tela, entao sem isto quem tinha descido ate
+     ao lateral-esquerdo era atirado de volta ao topo duas vezes por segundo. */
+  '.rf-ov-cols .rf-card'];
+/* O ROLO DA PÁGINA é caso à parte: restaurar sempre faria NAVEGAR de uma
+   página para outra herdar o deslocamento da anterior — aí sim o utilizador
+   cairia no meio de uma tela que nunca abriu. Só volta ao lugar quando a
+   página E a aba continuam as mesmas. */
+function rfContextoRolagem(){
+  try{
+    const st=(typeof rfState==='function')?rfState():null;
+    const pg=st?st.page:'';
+    const ab=(st&&st.tab&&pg)?(st.tab[pg]||''):'';
+    /* O SUB-PASSO DO ASSISTENTE CONTA COMO MUDANCA DE TELA. No onboarding o
+       CL.screen muitas vezes NAO muda entre um passo e o seguinte — o funil da
+       Resenha inteiro vive em screen='online' e so CL.net.step anda, e o Solo
+       usa CL.soloStep. Sem isto o contexto ficava igual, o cdraw() concluia
+       "mesma tela" e nao levava a leitura ao topo: quem carregava em
+       "Continuar" chegava ao passo seguinte a meio da pagina. (E o mesmo
+       contexto que suprime a animacao de entrada, entao os dois passam a
+       tratar o avanco do assistente como o que ele e: uma tela nova.) */
+    const passo=(CL.net&&CL.net.step)||CL.soloStep||'';
+    return String(CL.screen||'')+'|'+pg+'|'+ab+'|'+passo;
+  }catch(e){ return String(CL.screen||''); }
+}
+/* O contexto do que está NA TELA, não o que está sendo desenhado.
+   rfGo()/rfSetTab() mudam o estado ANTES de chamar cdraw(), então perguntar
+   "qual é a página?" no início do desenho já devolve o DESTINO — origem e
+   destino batiam sempre e a rolagem era restaurada até ao navegar. Este
+   guarda o contexto do último desenho concluído, que é com quem comparar. */
+let RF_CTX_DESENHADO='';
+let RF_IR_AO_TOPO=false;
+
+/* =====================================================================
+   ONDE O UTILIZADOR ESTAVA — sobrevive ao recarregar
+   `CL` e estado de sessao e nunca foi gravado: CL.screen nasce em 'abertura',
+   entao QUALQUER recarregar mandava a pessoa para a home, mesmo a meio de um
+   save. Aqui fica so a POSICAO (que save, que pagina) — nao o jogo, que
+   continua a vir da nuvem por clLoadSave.
+
+   SO A TELA PRINCIPAL se restaura. Partida ao vivo, sorteio, sala da Resenha e
+   afins tem estado que nao esta neste registo; reentrar neles a frio daria um
+   ecra meio montado. Nesses casos volta-se ao hub do clube, que e sempre
+   valido. A Resenha tem o seu proprio caminho de reentrada (ver o resync em
+   index.html) e por isso nem se grava. */
+const RF_POS_CHAVE='rf98:pos';
+function rfPosGravar(){
+  try{
+    if(CL.online) return;
+    if(CL.screen!=='main' || !CL.save) return;
+    const st=(typeof rfState==='function')?rfState():null;
+    localStorage.setItem(RF_POS_CHAVE, JSON.stringify({
+      save:CL.save, page:(st&&st.page)||'', quando:Date.now() }));
+  }catch(e){}
+}
+function rfPosLer(){
+  try{ return JSON.parse(localStorage.getItem(RF_POS_CHAVE)||'null'); }catch(e){ return null; }
+}
+function rfPosLimpar(){ try{ localStorage.removeItem(RF_POS_CHAVE); }catch(e){} }
+/* devolve true se assumiu o arranque */
+function rfPosRestaurar(){
+  const pos=rfPosLer();
+  if(!pos || !pos.save || typeof clLoadSave!=='function') return false;
+  CL._posPagina=pos.page||'';   // aplicada por clLoadSave quando o save chega
+  clLoadSave(pos.save);
+  return true;
+}
 function capturaRolagem(){
-  const m={};
+  const m={_ctx:RF_CTX_DESENHADO};
   try{ CDRAW_ROLAGENS.forEach(sel=>{ m[sel]=Array.from(document.querySelectorAll(sel)).map(el=>el.scrollTop); }); }catch(e){}
+  try{ const main=document.querySelector('.rf-main'); m._main=main?main.scrollTop:0; }catch(e){}
   return m;
 }
 function devolveRolagem(m){
+  /* A FASE ABERTA TEM DE ESTAR A VISTA. A fita de fases da chave (telemovel) rola
+     na horizontal e a fase corrente costuma ser das ultimas: sem isto, a tela
+     abria mostrando "1a FASE" enquanto os cartoes por baixo eram das oitavas. */
+  try{
+    const alvo=document.querySelector('[data-rf-centrar]');
+    if(alvo && alvo.scrollIntoView) alvo.scrollIntoView({block:'nearest',inline:'center'});
+  }catch(e){}
   try{ CDRAW_ROLAGENS.forEach(sel=>{
     const els=document.querySelectorAll(sel), vals=m[sel]||[];
     if(!els.length || els.length!==vals.length) return;
     els.forEach((el,i)=>{ if(vals[i]>0) el.scrollTop=vals[i]; });
   }); }catch(e){}
+  try{
+    const main=document.querySelector('.rf-main');
+    if(main){
+      // mesma página e mesma aba: o utilizador continua onde estava.
+      // Página ou aba diferente: começa do topo, SEMPRE e explicitamente —
+      // sem isto, o navegador deixava um resto de deslocamento e a tela nova
+      // abria no meio.
+      main.scrollTop = (m._ctx===rfContextoRolagem()) ? (m._main||0) : 0;
+      /* PEDIDO EXPLÍCITO DE ROLAGEM (CL.rolarPara). Quem quer levar o utilizador
+         a um bloco — o "Escolher tática" da barra lateral, por exemplo — não pode
+         simplesmente rolar depois de chamar cdraw(): qualquer redesenho seguinte
+         recria o `.rf-main` e a linha acima repõe o deslocamento, desfazendo tudo.
+         A intenção fica no estado e é consumida AQUI, no fim do desenho, uma vez. */
+      if(CL.rolarPara){
+        /* A intenção vale por uma JANELA, não por um desenho só. Consumida no
+           primeiro, ela era desfeita pelo redesenho seguinte (o `.rf-main` é
+           recriado e a linha acima repõe o deslocamento), e o utilizador
+           continuava a ver o topo da página. Reaplicar enquanto a janela dura
+           resolve; o posicionamento é instantâneo de propósito, porque uma
+           rolagem suave é interrompida por esse mesmo redesenho. */
+        if(Date.now()>(CL.rolarAte||0)) CL.rolarPara=null;
+        else {
+          const alvo=document.getElementById(CL.rolarPara);
+          if(alvo){
+            /* QUEM ROLA MUDA COM A LARGURA: no desktop é o `.rf-main`; no
+               telefone a barra lateral some, o painel deixa de ter altura fixa
+               e quem rola passa a ser o DOCUMENTO. Mirar sempre no `.rf-main`
+               fazia o "Formação" trocar de aba e não sair do lugar. */
+            /* A busca para no BODY de propósito: em modo padrão quem rola a
+               página é o `document.scrollingElement` (o <html>), e escrever em
+               `body.scrollTop` não move nada. Sem esta parada, o laço elegia o
+               body como "rolador" e a rolagem sumia no telefone. */
+            let cx=alvo.parentElement, rolador=null;
+            while(cx && cx!==document.body && cx!==document.documentElement){
+              const cs=getComputedStyle(cx);
+              if(/(auto|scroll)/.test(cs.overflowY) && cx.scrollHeight>cx.clientHeight+4){ rolador=cx; break; }
+              cx=cx.parentElement;
+            }
+            if(rolador){
+              const y=rolador.scrollTop + alvo.getBoundingClientRect().top - rolador.getBoundingClientRect().top
+                    - Math.max(0,(rolador.clientHeight-alvo.offsetHeight)/2);
+              rolador.scrollTop=Math.max(0,y);
+            }else{
+              const doc=document.scrollingElement||document.documentElement;
+              const y=doc.scrollTop + alvo.getBoundingClientRect().top
+                    - Math.max(0,(doc.clientHeight-alvo.offsetHeight)/2);
+              doc.scrollTop=Math.max(0,y);
+            }
+          }
+        }
+      }
+    }
+  }catch(e){}
+  /* A SUBSTITUICAO TEM DE SER VISTA. Quem acabou de trocar leva as duas listas
+     ate as linhas marcadas — e isso nao pode ser feito com um setTimeout depois
+     do cdraw(), porque a partida redesenha a tela varias vezes por segundo e a
+     restauracao acima repoe o deslocamento logo a seguir. Como o `rolarPara`, a
+     intencao vive no estado e e reaplicada AQUI, no fim de cada desenho, durante
+     uma janela curta; e instantanea de proposito, que uma rolagem suave nao
+     sobrevive ao redesenho seguinte. */
+  try{
+    if(CL._subTroca && (Date.now()-CL._subTroca.ts)<900 && typeof rfSubCentrarTroca==='function')
+      rfSubCentrarTroca();
+  }catch(e){}
+  try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  /* O PISCA-PISCA A CADA CLIQUE. Todo cdraw() recria a tela por innerHTML, e os
+     blocos com `animation: ds-fade-up` (painel de aba, grades, diálogos) tocam a
+     entrada DE NOVO — a cada clique de botão, filtro ou aba, a página parecia
+     recarregar. A animação existe para a chegada a uma tela nova, não para um
+     redesenho da mesma tela: quando o contexto (tela|página|aba) é o mesmo do
+     desenho anterior, ela é suprimida por `.rf-sem-anim` (ver rf26.css). */
+  try{
+    const mesmo = RF_CTX_DESENHADO && (RF_CTX_DESENHADO===rfContextoRolagem());
+    document.documentElement.classList.toggle('rf-sem-anim', !!mesmo);
+    /* MUDOU DE TELA/PAGINA/ABA -> a leitura recomeca do TOPO. Sem isto, quem
+       estava a meio de uma lista longa e clicava noutra pagina caia no meio da
+       pagina nova: a rolagem da janela nao se mexe sozinha quando o conteudo e
+       trocado por innerHTML. Vale tambem para os links da home que levam a
+       outras paginas. Redesenho da MESMA tela nao mexe na rolagem — senao um
+       clique num filtro atirava a pagina para cima. */
+    RF_IR_AO_TOPO = !mesmo;
+  }catch(e){}
   const _rolagem=capturaRolagem();
   // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
   if(typeof trackMyForces==='function'){ try{ trackMyForces(); }catch(e){} }
+  applyClubTokens(CL.clubId);   // ver applyClubTokens: --club-primary/--club-secondary do time do usuário
   let html='';
   switch(CL.screen){
-    case 'abertura':  html=scAbertura(); break;
-    case 'login':     html=scLogin(); break;
+    // LANDING PORTADA (telas/Landing - Home). Só a home; as páginas
+    // institucionais (sobre, ajuda, contato, termos) seguem no caminho de
+    // sempre até virem as telas delas.
+    // LANDING PORTADA: a home é rfLandingHTML; as páginas institucionais são
+    // telas/Landing - Paginas Institucionais (ver rf26-fluxo.js).
+    case 'abertura':  html=(CL.landingView&&CL.landingView!=='home')
+      ? rfInstitucionalHTML(CL.landingView) : rfLandingHTML(); break;
+    // ONBOARDING PORTADO (ver src/ui/rf26-onboarding.js): as sete telas do
+    // pacote, com a marcação da referência. O wizShell() antigo continua
+    // atendendo as telas que ainda não têm equivalente no pacote (moeda,
+    // país jogável, carregamento) — essas o pacote não traz.
+    case 'login':     html=rfOb1(); break;
     case 'resetpassword': html=scResetPassword(); break;
-    case 'modo':      html=scModoChoice(); break;
-    case 'modosolo':  html=scModoSolo(); break;
-    case 'paises':    html=scPaises(); break;
-    case 'paisJogavel': html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scPaisJogavel(),{logo:true}); break;
+    case 'recuperarsenha': html=rfRecuperarSenhaHTML(); break;
+    case 'modo':      html=rfOb2(); break;
+    /* MODO SOLO. A tela antiga perguntava "novo jogo ou continuar?" em dois
+       cartões; o pacote (Fluxo - Continuar Save) elimina a bifurcação e mostra
+       os saves direto, com "começar um save novo" como última linha da lista —
+       menos um passo para quem só quer voltar ao jogo. O roteador ainda
+       apontava para a antiga, e por isso ela continuava aparecendo.
+       O passo 'novo' (dar nome ao save) segue na tela antiga: o pacote não
+       trouxe equivalente para ele. */
+    /* UMA tela só (rfObSoloHTML): os dois cartões e os saves recentes juntos.
+       Antes isto caía em scSoloNovo() — o "EX: SAVE01" da pele antiga, desenhado
+       com o assistente velho por dentro do assistente novo. */
+    case 'modosolo':  html=rfObSoloHTML(); break;
+    case 'paises':    html=rfOb3(); break;
+    case 'paisJogavel': html=scPaisJogavel(); break;
     case 'moeda':     html=scMoeda(); break;
     case 'loading':   html=scLoading(); break;
     case 'jogadores': html=scJogadores(); break;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
-    case 'sorteio':   html=scSorteio(); break;   // cerimônia do sorteio (wizShell própria)
-    case 'boasvindas':html=titleBarTop('RetroFoot98',{logo:true})+deskWrap(scBoasVindas(),{logo:true}); break;
-    case 'main':      html=titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scMain()); break;
-    case 'waitround': html=titleBarTop('RetroFoot98')+deskWrap(scWaitRound()); break;
-    case 'imprensa':  html=titleBarTop('RetroFoot98')+deskWrap(scImprensa()); break;
-    case 'teamview':  html=titleBarTop('RetroFoot98')+deskWrap(scTeamView()); break;
-    case 'handoff':   html=titleBarTop('RetroFoot98')+deskWrap(scHandoff()); break;
-    case 'seatturn':  html=titleBarTop('RetroFoot98',{phoneHide:true})+deskWrap(scSeatTurn()); break;
+    case 'sorteio':   html=rfOb6(); break;   // 6 · sorteio do clube
+    case 'boasvindas':html=rfOb7(); break;
+    // REBRANDING 2026: a tela principal virou o ENVELOPE (sidebar + faixa do clube +
+    // área de duas colunas) e é ele que roteia as sete páginas — ver src/ui/rf26.js.
+    // A barra de título cinza do Windows não existe mais aqui: a identidade do save
+    // agora mora na faixa do clube, dentro do próprio envelope.
+    case 'main':      html=rfScreenHTML(); break;
+    case 'waitround': html=scWaitRound(); break;
+    case 'imprensa':  html=scImprensa(); break;
+    case 'teamview':  html=scTeamView(); break;
+    case 'handoff':   html=scHandoff(); break;
+    case 'entrega':   html=rfEntregaHTML(); break;
+    // o assento joga no MESMO envelope do manager 1 — trocar de cadeira não pode
+    // trocar o desenho do jogo (ver enterSeatContext, que já troca o contexto)
+    case 'seatturn':  html=rfScreenHTML(); break;
     case 'seatclassif': html=scSeatClassif(); break;
     case 'live':      html=scLive(); break;
     case 'classif':   html=scClassif(); break;
@@ -644,8 +931,26 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   // é remontada inteira a cada cdraw() e contar no desenho inflaria tudo (ver ads.js).
   if(window.ADS) ADS.scan();
   if(typeof patchPickerFill==='function') patchPickerFill();
+  /* ===== VIDEO INJETADO POR innerHTML NAO ARRANCA SOZINHO =====
+     O atributo `muted` e ignorado por alguns navegadores quando o <video> entra no DOM por
+     innerHTML — e sem `muted` reconhecido, o telefone bloqueia o autoplay e fica so o cartaz de
+     tras, pequeno no meio da moldura. Era o caso do video de boas-vindas. As duas telas que ja
+     tinham video (momento e campeao) resolviam isto a mao, cada uma na sua funcao; aqui vale
+     para qualquer video da tela, incluindo os que vierem depois. */
+  try{
+    r.querySelectorAll('video[autoplay]').forEach(v=>{
+      v.muted=true; v.volume=0; v.setAttribute('playsinline','');
+      const p=v.play(); if(p&&p.catch) p.catch(()=>{});
+    });
+  }catch(e){}
   if(CL.screen==='loading') runLoading();
   const f=$c('#cl-focus'); if(f) f.focus();
+  if(RF_IR_AO_TOPO){ RF_IR_AO_TOPO=false;
+    try{ window.scrollTo(0,0); }catch(e){}
+    /* o envelope do jogo rola por DENTRO (.rf-content), nao na janela */
+    try{ document.querySelectorAll('.rf-content,.rf-lv,.rf-stg,.rf-wiz,.rf-wiz-in,.cl-wiz-body').forEach(el=>{ el.scrollTop=0; }); }catch(e){}
+  }
+  rfPosGravar();
 }
 
 /* ================= 01 · ABERTURA (Home) =================
@@ -813,7 +1118,6 @@ function scAbertura(){
     <main class="cl-lp-main">${body}</main>
     ${landingRodapeHTML()}
     ${anchorAdHTML()}
-    ${CL.waitlistOpen?waitlistModalHTML():''}
     ${CL.mkOpen?mediaKitModalHTML():''}
     ${CL.lpZoom!=null?lpZoomHTML():''}
   </div>`;
@@ -852,20 +1156,26 @@ function landingRodapeHTML(){
    preenche, vê "pronto!" e o lead se perde. A tabela só aceita INSERT pela chave anônima — não
    existe policy de leitura, então ninguém lê a lista de volta pelo navegador. O número da barra
    de vagas vem de uma função que devolve só a contagem (retrofoot_waitlist_count). */
-function clWaitlistOpen(){
+function clWaitlistOpen(origem){
   CL.waitlistOpen=true; CL.waitlistSent=false; CL.waitlistErr=''; CL.navMenuOpen=false;
   CL.waitlistMin=false; CL.waitlistMax=false; CL.waitlistAmigosOk=false;
-  CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',amigos:[''],zap:''};
-  cdraw(); clWaitlistCount();
+  // de onde veio o lead: a lista é chamada da landing E do cartão do Modo
+  // Resenha no onboarding, e sem isto os dois chegavam ao banco iguais
+  CL.waitlistOrigem=origem||'landing';
+  CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',clube:'',amigos:[''],zap:''};
+  CL.waitlistClubeOpen=false;
+  // o formulário é um modal do desenho novo (ver rfWaitlistHTML), desenhado no
+  // overlay — não mais um pedaço do HTML da landing
+  rfWaitlistDraw(); clWaitlistCount();
 }
-function clWaitlistClose(){ CL.waitlistOpen=false; cdraw(); }
+function clWaitlistClose(){ CL.waitlistOpen=false; clCloseOverlay(); }
 function clWaitlistSet(campo,val){ CL.waitlist=CL.waitlist||{}; CL.waitlist[campo]=val; }
 function clWaitlistAmigo(i,val){ const w=CL.waitlist; if(w&&w.amigos) w.amigos[i]=val; }
 function clWaitlistAddAmigo(){ const w=CL.waitlist; if(!w) return;
   if((w.amigos||[]).length>=20){ toastC('Dá pra indicar até 20 amigos.'); return; }
-  w.amigos=(w.amigos||[]).concat(['']); cdraw(); }
+  w.amigos=(w.amigos||[]).concat(['']); rfWaitlistDraw(); }
 function clWaitlistRmAmigo(i){ const w=CL.waitlist; if(!w) return;
-  w.amigos=(w.amigos||[]).filter((_,k)=>k!==i); if(!w.amigos.length) w.amigos=['']; cdraw(); }
+  w.amigos=(w.amigos||[]).filter((_,k)=>k!==i); if(!w.amigos.length) w.amigos=['']; rfWaitlistDraw(); }
 /* o cliente do Supabase é o MESMO do jogo (supabase-adapter.js), inclusive o schema — a tabela
    da lista mora no elifoot_v3 por causa disso. Na home ele ainda não foi criado, então garante. */
 async function lpSupabase(){
@@ -876,21 +1186,32 @@ async function clWaitlistCount(){
   try{
     const cli=await lpSupabase(); if(!cli) return;
     const {data,error}=await cli.rpc('retrofoot_waitlist_count');
-    if(!error && typeof data==='number'){ CL.waitlistCount=data; cdraw(); }
+    if(!error && typeof data==='number'){
+      CL.waitlistCount=data;
+      // dois lugares mostram o número: a barra da landing (na página) e a do
+      // formulário (no overlay). Redesenha o que estiver na tela.
+      if(CL.waitlistOpen) rfWaitlistDraw();
+      else if(CL.screen==='abertura') cdraw();
+    }
   }catch(e){ /* sem número é melhor que número errado: a barra fica com "—" */ }
 }
 async function clWaitlistSubmit(){
   const w=CL.waitlist||{};
   const nome=(w.nome||'').trim(), email=(w.email||'').trim();
-  if(nome.length<2){ CL.waitlistErr='Diz como te chamam na resenha.'; cdraw(); return; }
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.waitlistErr='Confere o e-mail — é por ele que a gente avisa da vaga.'; cdraw(); return; }
-  CL.waitlistErr=''; CL.waitlistBusy=true; cdraw();
+  if(nome.length<2){ CL.waitlistErr='Diz como te chamam na resenha.'; rfWaitlistDraw(); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(email)){ CL.waitlistErr='Confere o e-mail — é por ele que a gente avisa da vaga.'; rfWaitlistDraw(); return; }
+  CL.waitlistErr=''; CL.waitlistBusy=true; rfWaitlistDraw();
   try{
     const cli=await lpSupabase();
     if(!cli) throw new Error('sem conexão');
     const {error}=await cli.from('retrofoot_waitlist').insert({
       nome, email, telefone:(w.tel||'').trim()||null, resposta:(w.resposta||'').trim()||null,
-      origem:(location&&location.pathname)||'/', user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
+      // time de coração: não existe tabela de perfil do RetroFoot (o schema é o
+      // elifoot_v3; a public.profiles é do Investbola) e quem preenche isto nem
+      // está logado — a linha da waitlist É o registro da pessoa
+      time_coracao:(w.clube||'').trim()||null,
+      origem:(CL.waitlistOrigem||'landing')+' · '+((location&&location.pathname)||'/'),
+      user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
     });
     if(error){
       // e-mail repetido não é erro pro visitante: ele já está na lista, e dizer isso é melhor
@@ -902,7 +1223,7 @@ async function clWaitlistSubmit(){
     console.warn('lista de espera:', e&&e.message);
     CL.waitlistErr='Não deu pra gravar agora. Tenta de novo em instantes ou manda um e-mail pra contato@retrofoot98.com.';
   }
-  CL.waitlistBusy=false; cdraw(); clWaitlistCount();
+  CL.waitlistBusy=false; rfWaitlistDraw(); clWaitlistCount();
 }
 function waitlistZapHref(){
   const num=String((CL.waitlist&&CL.waitlist.zap)||'').replace(/\D/g,'');
@@ -1042,7 +1363,7 @@ function mediaKitModalHTML(){
       </div>
       <div class="cl-lp-form-acts">
         <button class="cl-lp-btn" onclick="clMediaKitVolta()">‹ Voltar</button>
-        <button class="cl-lp-cta" onclick="clMediaKitEnviar()" ${CL.mkBusy?'disabled':''}>${CL.mkBusy?'Enviando…':'Pedir o media kit'}</button>
+        <button class="cl-lp-cta" onclick="clMediaKitEnviar()" ${CL.mkBusy?'disabled':''}>${CL.mkBusy?'Enviando':'Pedir o media kit'}</button>
       </div>
     </div>`;
   }
@@ -1050,16 +1371,18 @@ function mediaKitModalHTML(){
     ${janelaHTML('📈 Media kit — RetroFoot98', corpo, 'cl-lp-win-modal', acoes)}
   </div>`;
 }
-function waitlistModalHTML(){
+/* MORTAS com a portagem do formulário (ver rfWaitlistHTML em rf26-fluxo.js):
+   eram a janela do Windows 98 e os dois botões dela. */
+function waitlistModalHTMLLegado(){
   const w=CL.waitlist||{};
   const acoes={min:'clWaitlistMin()', max:'clWaitlistMax()', close:'clWaitlistClose()', minimizada:CL.waitlistMin};
   const cls='cl-lp-win-modal'+(CL.waitlistMax?' larga':'');
-  const corpo = CL.waitlistSent ? waitlistPasso2HTML(w) : waitlistPasso1HTML(w);
+  const corpo = CL.waitlistSent ? waitlistPasso2HTMLLegado(w) : waitlistPasso1HTMLLegado(w);
   return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
     ${janelaHTML('📋 Lista de espera — RetroFoot98', corpo, cls, acoes)}
   </div>`;
 }
-function waitlistPasso1HTML(w){
+function waitlistPasso1HTMLLegado(w){
   return `<div class="cl-lp-form">
     <div class="cl-lp-form-rola">
       <div class="cl-lp-aviso"><b>⚠ Vagas limitadas:</b> a primeira versão libera o jogo para <b>${WAITLIST_VAGAS} treinadores</b>. Quem indicar amigos sobe na fila.</div>
@@ -1080,12 +1403,12 @@ function waitlistPasso1HTML(w){
           oninput="clWaitlistSet('resposta',this.value)"></label>
     </div>
     <div class="cl-lp-form-acts">
-      <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Garantir minha vaga'}</button>
+      <button class="cl-lp-cta" onclick="clWaitlistSubmit()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando':'Garantir minha vaga'}</button>
       <span class="cl-lp-form-nota">A gente só usa seus dados pra avisar da vaga.</span>
     </div>
   </div>`;
 }
-function waitlistPasso2HTML(w){
+function waitlistPasso2HTMLLegado(w){
   const amigos=(w.amigos||['']).map((a,i)=>`<div class="cl-lp-amigo">
       <input type="email" value="${escC(a||'')}" placeholder="email do amigo" inputmode="email"
         autocomplete="off" oninput="clWaitlistAmigo(${i},this.value)">
@@ -1112,7 +1435,7 @@ function waitlistPasso2HTML(w){
       </div>
     </div>
     <div class="cl-lp-form-acts">
-      <button class="cl-lp-cta" onclick="clWaitlistIndicar()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando…':'Enviar indicações'}</button>
+      <button class="cl-lp-cta" onclick="clWaitlistIndicar()" ${CL.waitlistBusy?'disabled':''}>${CL.waitlistBusy?'Gravando':'Enviar indicações'}</button>
       <button class="cl-lp-btn" onclick="clWaitlistClose()">Fechar</button>
     </div>
   </div>`;
@@ -1122,13 +1445,13 @@ async function clWaitlistIndicar(){
   const w=CL.waitlist||{};
   const amigos=(w.amigos||[]).map(a=>(a||'').trim()).filter(a=>/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(a));
   if(!amigos.length){ clWaitlistClose(); return; }
-  CL.waitlistBusy=true; cdraw();
+  CL.waitlistBusy=true; rfWaitlistDraw();
   try{
     const cli=await lpSupabase();
     if(cli){ await cli.rpc('retrofoot_waitlist_indicar', {p_email:(w.email||'').trim(), p_amigos:amigos}); }
     CL.waitlistAmigosOk=true; CL.waitlist.amigos=[''];
   }catch(e){ console.warn('indicações:', e&&e.message); }
-  CL.waitlistBusy=false; cdraw();
+  CL.waitlistBusy=false; rfWaitlistDraw();
 }
 function janelaHTML(titulo, inner, extra, acoes){
   // sem `acoes` os três selos são enfeite (é uma moldura, não uma janela de verdade). Com elas,
@@ -1316,7 +1639,7 @@ function landingCriadoresHTML(){
       </div>
       <div class="cl-lp-col-img">
         ${janelaHTML('💬 Resenha — sala do canal', `<div class="cl-lp-chat">${chat}
-          <div class="cl-lp-chat-in">Manda a braba na resenha…</div>
+          <div class="cl-lp-chat-in">Manda a braba na resenha</div>
           <div class="cl-lp-chat-foot"><span>🟢 18 de 20 treinadores na sala</span><b>SALA #RF-7742</b></div>
         </div>`, 'cl-lp-win-claro')}
       </div>
@@ -1524,7 +1847,11 @@ function clGoModo(mode){
   (async ()=>{
     await netInitSupabase();
     const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
-    if(st.loggedIn){ CL.mgr=CL.mgr||st.name; CL.screen='modo'; }
+    /* O PASSO 1 NAO SE SALTA. Com sessao isto ia direto para 'modo', e quem ja
+       estava logado nunca via em que conta estava nem tinha por onde trocar.
+       Agora cai sempre em 'login', que com sessao mostra quem esta e oferece
+       as duas saidas (ver rfOb1Logado). */
+    if(st.loggedIn){ CL.mgr=CL.mgr||st.name; CL.auth=null; CL.screen='login'; }
     else { CL.auth={mode:mode||'login',name:CL.mgr||'',email:'',password:''}; CL.screen='login'; }
     cdraw();
   })();
@@ -1544,7 +1871,7 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
       </div>
       <div class="cl-wiz-authsub">${isSignup?'Crie sua conta pra salvar seus jogos na nuvem e continuar em qualquer aparelho.':'Entre pra acessar seus jogos salvos na nuvem.'}</div>
       <div class="cl-authform">
-        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" placeholder="Como quer ser chamado" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();this.value=CL.auth.name;clLoginSync()"></div>`:''}
+        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" class="maiuscula" maxlength="14" placeholder="Como quer ser chamado" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();clLoginSync()"></div>`:''}
         <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" inputmode="email" autocomplete="email" placeholder="voce@exemplo.com" value="${escC(a.email)}" oninput="CL.auth.email=this.value;clLoginSync()"></div>
         <div class="cl-authfield">
           <div class="cl-wiz-fieldhd2"><label>Senha</label>${isSignup?'':'<span class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</span>'}</div>
@@ -1581,18 +1908,13 @@ function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)
 /* ---- Esqueci minha senha: modal simples pedindo o e-mail (pré-preenchido se
    já tiver algo digitado na tela de login), manda o link de recuperação. ---- */
 function clForgotPassword(){
-  CL._resetEmail = (CL.auth&&CL.auth.email) || '';
-  overlayC(dlg('Esqueci minha senha', `<div class="cl-authbox">
-    <div class="cl-authsub">Informe seu e-mail. Vamos mandar um link pra você criar uma senha nova.</div>
-    <div class="cl-authform">
-      <div class="cl-authfield"><label>E-mail</label><input id="cl-focus" type="email" inputmode="email" autocomplete="email" value="${escC(CL._resetEmail)}" oninput="CL._resetEmail=this.value" onkeydown="if(event.key==='Enter')clSendResetLink()"></div>
-    </div>
-    <div class="cl-auth-actions">
-      ${btn('Enviar link','clSendResetLink()',{icon:'✔',cls:'cl-btn-ok cl-authbtn-primary'})}
-      ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel cl-authbtn-secondary'})}
-    </div>
-  </div>`, {w:420,bodyClass:'cl-body-green'}));
+  // TELA PORTADA (telas/Conta - Recuperar Senha): era um modal por cima do
+  // login; o pacote a desenha como tela inteira, com a mesma marca e a mesma
+  // barra de ação das outras do fluxo.
+  CL._resetEmail=(CL.auth&&CL.auth.email)||'';
+  CL.screen='recuperarsenha'; cdraw();
 }
+
 function clSendResetLink(){
   const email=(CL._resetEmail||'').trim();
   if(!email||!email.includes('@')){ toastC('⚠ Informe um e-mail válido.'); return; }
@@ -1607,28 +1929,10 @@ function clSendResetLink(){
 /* ---- Nova senha: só chega aqui via link de recuperação (evento PASSWORD_RECOVERY,
    ver netInitSupabase) — a sessão temporária do link já autentica o updateUser. ---- */
 function scResetPassword(){
-  const st=CL.resetPw||(CL.resetPw={password:'',confirm:'',focus:'password'});
-  const ok=st.password.length>=6 && st.password===st.confirm;
-  const mismatch=st.confirm.length>0 && st.password!==st.confirm;
-  // o campo com foco muda dinamicamente (não fixo em "Nova senha"), senão o cdraw()
-  // disparado a cada tecla sempre devolvia o cursor pro primeiro campo — impossível
-  // digitar "Confirmar senha" de corrido.
-  const idP = st.focus!=='confirm' ? 'id="cl-focus"' : '';
-  const idC = st.focus==='confirm' ? 'id="cl-focus"' : '';
-  const body=`<div class="cl-wiz-authcard">
-    <div class="cl-wiz-authsub">Escolha uma senha nova pra sua conta.</div>
-    <div class="cl-authform">
-      <div class="cl-authfield"><label>Nova senha</label><input ${idP} type="password" autocomplete="new-password" minlength="6" placeholder="••••••••" value="${escC(st.password)}" onfocus="CL.resetPw.focus='password'" oninput="clResetPwInput(this,'password')"></div>
-      <div class="cl-authfield"><label>Confirmar senha</label><input ${idC} type="password" autocomplete="new-password" placeholder="••••••••" value="${escC(st.confirm)}" onfocus="CL.resetPw.focus='confirm'" oninput="clResetPwInput(this,'confirm')" onkeydown="if(event.key==='Enter')clDoUpdatePassword()"></div>
-      <div class="cl-authwarn" id="cl-pwwarn" style="display:${mismatch?'':'none'}">As senhas não coincidem.</div>
-    </div>
-  </div>`;
-  return wizShell({
-    public:true, title:'Nova senha', back:'clGoAbertura()', backLabel:'Voltar ao início',
-    contentCls:'cl-wiz-authcenter', body, actionCls:'cl-wiz-action-e',
-    action: `<span id="cl-pwsave">${btn('Salvar senha','clDoUpdatePassword()',{icon:'✔',cls:'cl-wiz-cta',dis:!ok})}</span>`
-  });
+  // TELA PORTADA: a outra ponta do caminho de telas/Conta - Recuperar Senha
+  return rfNovaSenhaHTML();
 }
+
 /* SENHA SAINDO DE TRÁS PRA FRENTE: o oninput chamava cdraw(), que reescreve o innerHTML da tela
    inteira e RECRIA o <input>; o refoco por #cl-focus devolvia o cursor pra posição 0, então cada
    tecla nova entrava na FRENTE da anterior ("1234" virava "4321"). Digitar senha assim é quase
@@ -1669,9 +1973,13 @@ function _wizInline(o){ return !!(o.actionInline || (o.actionCls && String(o.act
 function wizShell(o){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   const user=st.name||CL.mgr||'jogador';
+  /* O VOLTAR VIVE NA BARRA DE ACAO, junto do avancar — o mesmo canto nos dois
+     assistentes (ver rfWiz). Estava no cabecalho do passo, longe do botao que
+     leva para a frente. Aqui devolve string vazia quando nao ha para onde
+     voltar, para nao abrir uma barra de acao so com um espacador dentro. */
   const back = o.back
     ? `<button class="cl-wiz-back" onclick="${o.back}">‹ ${escC(o.backLabel||'Voltar')}</button>`
-    : `<span class="cl-wiz-back-sp"></span>`;
+    : '';
   // navbar à direita: público (login/criar conta) mostra "Entrar"; logado mostra chip + usuário + Sair
   const navRight = o.public
     ? `<button class="cl-home-entrar" onclick="clGoAbertura()"><span>🔑</span>Entrar</button>`
@@ -1683,9 +1991,15 @@ function wizShell(o){
   // no meio (Países era 4/4 e a tela seguinte voltava pra 1/4) — o contador prometia um fim que
   // não era o fim. Agora cada fluxo declara o próprio total (ver WIZ_PASSOS): Solo tem seis
   // etapas, Resenha tem cinco, e a tela de escolha do modo — que é a bifurcação — só diz "Passo 1".
+  const totalDoModo = rfTrilhaDe(o.modo).length;
   const pill = o.pill!=null ? `<span class="cl-wiz-steppill">${o.pill}</span>`
-    : (o.step!=null ? `<span class="cl-wiz-steppill">${o.steps?`${o.step} / ${o.steps}`:`Passo ${o.step}`}</span>`
-                    : `<span class="cl-wiz-back-sp"></span>`);
+    : (o.step ? `<span class="cl-wiz-steppill">${o.step} / ${totalDoModo}</span>`
+              : `<span class="cl-wiz-back-sp"></span>`);
+  // REBRANDING 2026: no desktop o passo vira uma TRILHA NUMERADA (o caminho inteiro
+  // à vista, com o que já ficou pra trás marcado); no telefone, a mesma informação
+  // vira barra de progresso no cabeçalho. O pill "N / 7" continua existindo como
+  // fallback pras telas que não declaram passo (sala, convites com código próprio).
+  const trilha = o.step ? rfTrilhaHTML(o.step, o.modo) : '';
   return `<div class="cl-home cl-wiz ${o.rootCls||''}">
     <div class="cl-home-titlebar">
       <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
@@ -1695,14 +2009,16 @@ function wizShell(o){
       [['Início',"clWizHome('home')"],['Sobre nós',"clWizHome('sobre')"],['Como jogar',"clWizHome('ajuda')"],['Contato',"clWizHome('contato')"]],
       navRight)}
     <div class="cl-home-body cl-wiz-body">
+      ${trilha}
       ${o.noHeader?'':`<div class="cl-wiz-stephead">
-        ${o.headLeft!=null?o.headLeft:back}
+        ${o.headLeft!=null?o.headLeft:'<span class="cl-wiz-back-sp"></span>'}
         <span class="cl-wiz-steptitle">${escC(o.title)}</span>
         ${pill}
       </div>`}
-      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}${(_wizInline(o) && o.action!=null)?`<div class="cl-wiz-inlineaction ${o.actionCls||''}">${o.action}</div>`:''}</div>
-      ${(o.action!=null && !_wizInline(o))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${o.action}</div>`:''}
+      <div class="cl-wiz-content ${o.contentCls||''}">${o.body}${(_wizInline(o) && o.action!=null)?`<div class="cl-wiz-inlineaction ${o.actionCls||''}">${back}${o.action}</div>`:''}</div>
+      ${(!_wizInline(o) && (o.action!=null || back))?`<div class="cl-wiz-actionbar ${o.actionCls||''}">${back}${o.action||''}</div>`:''}
     </div>
+    ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
     <div class="cl-home-footer">
       <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>
       <div class="cl-home-foot-linha">
@@ -1719,25 +2035,100 @@ function wizShell(o){
 }
 
 /* ================= 02a · PASSO 1 — ESCOLHER MODO (Solo / Resenha) ================= */
-/* total de etapas de cada caminho — o contador do cabeçalho sai daqui */
-const WIZ_PASSOS={ solo:7, resenha:5 };
+/* ===== A RÉGUA DO ASSISTENTE — UMA POR MODO =====
+   Havia UMA lista de rótulos ('Entrar..Jogar', 7 itens) e um mapa de totais
+   ({solo:7, resenha:5}) que a CORTAVA. Duas consequências, ambas no ar:
+
+   · O Solo carregava 'Sala' e 'Convites', que ele não tem — por isso a tela do
+     nº de treinadores acendia "Sala".
+   · A Resenha era truncada a 5, perdendo justamente 'Sorteio' e 'Jogar' — o
+     modo que TEM sorteio de clube era o que não o mostrava. E como a régua
+     encurtava a meio do caminho, o jogador via 5 itens no funil de entrada e
+     7 depois, no mesmo fluxo.
+
+   Agora cada modo declara o SEU caminho. Os dois compartilham o começo
+   (Entrar · Modo) e o fim (Clube · Jogar); o meio é o que realmente difere:
+   o Solo escolhe save e país, a Resenha abre sala e convida.
+
+   E O NÚMERO NUNCA MAIS É ESCRITO À MÃO: cada tela diz o NOME do seu passo
+   (ver rfPasso), e o número cai da régua do modo ativo. É por isso que os
+   números divergiam — vinham escritos em 4 ficheiros diferentes, e telas
+   partilhadas pelos dois modos (sorteio, boas-vindas) só podiam acertar num.
+   No telefone o CSS troca a régua por barra de progresso (ver .rf-trilha). */
+const RF_TRILHAS={
+  solo:     ['Entrar','Modo','Save','País e liga','Clube','Jogar'],
+  /* "País e liga" no 3: quem cria a sala escolhe país e divisão nela (ver rfOb4).
+     Eu tinha posto "Resenha" aqui; o pacote ("Onboarding 2c - Resenha Comecar")
+     desenha a régua com "País e liga", e é a régua do desenho que manda. */
+  resenha:  ['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
+  /* QUEM ENTRA POR CÓDIGO tem caminho próprio, e curto: não escolhe país nem
+     convida ninguém — o anfitrião já fez isso. É a régua que o pacote desenha
+     em "Resenha - Entrar com Codigo" ("PASSO 3 DE 4 · CONVIDADO"). */
+  convidado:['Entrar','Modo','Código','Sala'],
+};
+/* o modo ativo, quando quem desenha a tela não o diz */
+function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
+function rfTrilhaDe(modo){ return RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo; }
+/* O PASSO PELO NOME. Devolve a posição 1-based do passo na régua do modo, ou 0
+   quando aquele modo não tem esse passo (Solo não tem 'Convites') — 0 apaga a
+   régua em vez de acender o item errado. */
+function rfPasso(nome, modo){
+  const t=rfTrilhaDe(modo); const i=t.indexOf(nome);
+  return i<0 ? 0 : i+1;
+}
+const RF_TRILHA=RF_TRILHAS.solo;   // compat: quem ainda lê a lista solta
+function rfTrilhaHTML(passo, modo){
+  const rotulos=rfTrilhaDe(modo), n=rotulos.length;
+  if(!passo || passo<1 || passo>n) return '';   // passo que nao existe neste modo: sem regua
+  const itens=[];
+  for(let i=1;i<=n;i++){
+    const feito=i<passo, atual=i===passo;
+    itens.push(`<span class="rf-trilha-i ${feito?'feito':''} ${atual?'atual':''}">
+      <span class="rf-trilha-n">${feito?'✓':i}</span>
+      <span class="rf-trilha-l">${escC(rotulos[i-1]||('Passo '+i))}</span>
+    </span>`);
+  }
+  return `<nav class="rf-trilha" aria-label="Passo ${passo} de ${n}"
+    style="--rf-trilha-pct:${Math.round(100*passo/n)}%">
+    <span class="rf-trilha-mob">Passo <b>${passo}</b> de <b>${n}</b> · ${escC(rotulos[passo-1]||'')}
+      <span class="rf-trilha-bar"><i></i></span></span>
+    ${itens.join('<span class="rf-trilha-sep"></span>')}
+  </nav>`;
+}
+/* NA BETA O MODO RESENHA É "EM BREVE" (regra do rebranding). O cartão continua
+   na tela, com a descrição inteira — esconder o modo seria esconder metade do que
+   o jogo é. O que muda é que ele não é clicável e diz por quê. Trocar esta
+   constante pra false devolve o clique, sem mexer em mais nada. */
+/* LIBERADO PARA TESTE INTERNO (2026-08-14). Enquanto era `true`, o cartão do
+   Modo Resenha aparecia travado com "Em breve" e o botão levava à lista de
+   espera. Com `false`, o cartão abre o fluxo de 6 passos — Abrir Sala, Sala
+   Aberta, sorteio e lobby — que já está implementado.
+   Para voltar a esconder da beta pública, basta trocar de novo para `true`:
+   é a ÚNICA chave, e as duas peles (rf26-onboarding e o main antigo) leem
+   daqui. */
+const RESENHA_EM_BREVE=false;
 function scModoChoice(){
-  return wizShell({ step:1, title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
+  return wizShell({ step:rfPasso('Modo','solo'), modo:'solo', title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
-      <div class="cl-wiz-h">Como você quer jogar?</div>
-      <div class="cl-wiz-sub">Você pode mudar de modo depois, a qualquer momento.</div>
+      <div class="cl-wiz-h">Comece a sua carreira contra a máquina.</div>
+      <div class="cl-wiz-sub">${RESENHA_EM_BREVE
+        ? 'O Modo Resenha, para jogar com a turma, chega em breve. Na beta, o Solo já está completo.'
+        : 'Você pode mudar de modo depois, a qualquer momento.'}</div>
       <div class="cl-wiz-cards">
-        <div class="cl-mc-card" onclick="clPickSolo()">
-          <div class="cl-mc-ic">🎮</div>
+        <div class="cl-mc-card rec" onclick="clPickSolo()">
+          <span class="rf-tag-rec">Recomendado</span>
+          <div class="cl-mc-ic">🛋️</div>
           <div class="cl-mc-t">Modo Solo</div>
-          <div class="cl-mc-d">Você contra a máquina, no estilo RetroFoot98 tradicional.</div>
+          <div class="cl-mc-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</div>
         </div>
-        <div class="cl-mc-card" onclick="clPickResenha()">
-          <div class="cl-mc-ic">👥</div>
+        <div class="cl-mc-card ${RESENHA_EM_BREVE?'embreve':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+          <span class="${RESENHA_EM_BREVE?'rf-tag-soon':'rf-tag-rec'}">${RESENHA_EM_BREVE?'Em breve':'Online'}</span>
+          <div class="cl-mc-ic">🍺</div>
           <div class="cl-mc-t">Modo Resenha</div>
-          <div class="cl-mc-d">Jogue online com amigos — cada um assume um clube, com chat da liga.</div>
+          <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</div>
+          ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`:''}
         </div>
       </div>`
   });
@@ -1763,10 +2154,9 @@ function clPickResenha(){
 function scModoSolo(){
   const step=CL.soloStep||'choice';
   if(step==='novo') return scSoloNovo();
-  if(step==='cont') return scSoloCont();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
-  const contDesc = loading?'Carregando seus jogos salvos…' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
-  return wizShell({ step:2, steps:WIZ_PASSOS.solo, title:'Modo Solo', back:'clGoModo()',
+  const contDesc = loading?'Carregando seus jogos salvos' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
+  return wizShell({ step:rfPasso('Save','solo'), modo:'solo', title:'Modo Solo', back:'clGoModo()',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
     action:`<span class="cl-wiz-hint">Toque num cartão para continuar.</span>`,
     body:`
@@ -1778,7 +2168,7 @@ function scModoSolo(){
           <div class="cl-mc-t">Novo jogo</div>
           <div class="cl-mc-d">Comece uma carreira nova do zero, contra a máquina.</div>
         </div>
-        <div class="cl-mc-card" onclick="clSoloContinue()">
+        <div class="cl-mc-card" onclick="clPickSolo()">
           <div class="cl-mc-ic">📁</div>
           <div class="cl-mc-t">Continuar</div>
           <div class="cl-mc-d">${contDesc}</div>
@@ -1789,7 +2179,7 @@ function scModoSolo(){
 /* ================= PASSO 3 · NOVO JOGO — nome do save ================= */
 function scSoloNovo(){
   const val=CL.save||''; const ok=val.trim().length>0;
-  return wizShell({ step:3, steps:WIZ_PASSOS.solo, title:'Novo jogo', back:'clSoloBackChoice()',
+  return wizShell({ step:rfPasso('Save','solo'), modo:'solo', title:'Novo jogo', back:'clSoloBackChoice()',
     contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-e',
     action:`${btn('Começar','clModoOk()',{icon:'✔',cls:'cl-btn-ok cl-wiz-cta',dis:!ok})}`,
     body:`
@@ -1808,30 +2198,11 @@ function scSoloNovo(){
   });
 }
 function clSyncCount(){ const el=document.querySelector('.cl-wiz-count'); if(el) el.textContent=(CL.save||'').length+'/8'; }
-/* Continuar: lista de saves na nuvem (variante do passo 2) */
-function scSoloCont(){
-  // MAIS RECENTE EM CIMA. O jogo que a pessoa quer continuar é, quase sempre, o último que ela
-  // tocou — a consulta já devolve por updated_at, e a ordenação aqui garante isso mesmo se a
-  // lista vier de outra fonte (cache, harness).
-  const loading=CL.soloSaves==null;
-  const saves=(CL.soloSaves||[]).slice().sort((a,b)=> new Date(b.updated_at||0) - new Date(a.updated_at||0));
-  let list;
-  if(loading) list='<div class="cl-savempty">carregando seus jogos…</div>';
-  else if(!saves.length) list='<div class="cl-savempty">Você ainda não tem jogos salvos. Comece um novo jogo!</div>';
-  else list=saves.map(s=>`<div class="cl-myroom" onclick="clLoadSave('${escC(s.name)}')">
-      <div class="cl-myroom-main">
-        <div class="cl-myroom-name">${escC(s.name)}</div>
-        <div class="cl-myroom-sub">${s.updated_at?('Salvo em '+new Date(s.updated_at).toLocaleDateString('pt-BR')+' às '+new Date(s.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})):'Jogo salvo'}</div>
-      </div>
-      <button class="cl-myroom-del" title="Apagar jogo" onclick="event.stopPropagation();clDeleteSave('${escC(s.name)}')">🗑</button>
-      <div class="cl-myroom-arrow">➜</div>
-    </div>`).join('');
-  return wizShell({ pill:'Continuar', title:'Continuar jogo', back:'clSoloBackChoice()',
-    contentCls:'cl-wiz-top', actionCls:'cl-wiz-action-c',
-    action:`<span class="cl-wiz-hint">Toque num jogo pra continuar de onde parou.</span>`,
-    body:`<div class="cl-wiz-form cl-wiz-form-wide"><div class="cl-myrooms-list">${list}</div></div>`
-  });
-}
+/* scSoloCont() e clSoloContinue() foram removidas: eram o "passo 2 variante
+   Continuar", e o roteador ('modosolo') nunca leu CL.soloStep — clicar em
+   Continuar mudava o estado e redesenhava a MESMA tela. Hoje a lista de saves
+   e a propria tela (rfObSoloHTML), sem bifurcacao. */
+
 /* apagar um jogo salvo (solo) — confirmação + delete na nuvem */
 function clDeleteSave(name){
   overlayC(dlg('Apagar jogo?', `<div class="cl-res">
@@ -1849,8 +2220,19 @@ function clDeleteSaveGo(name){
     else toastC('⚠ Não foi possível apagar o jogo. Tente de novo.');
   })();
 }
-function clSoloNew(){ CL.soloStep='novo'; cdraw(); }
-function clSoloContinue(){ CL.soloStep='cont'; cdraw(); }
+/* O desenho novo NÃO tem passo pra nomear o save — a trilha vai direto de "Modo"
+   pra "País e liga". O nome então nasce aqui, no mesmo padrão que o campo antigo
+   sugeria no placeholder (SAVE01, SAVE02…), pulando os que já existem na conta.
+   `clModoOk()` continua exigindo CL.save preenchido, e é ele que decide seguir. */
+function clSaveNomeLivre(){
+  const usados=new Set((CL.soloSaves||[]).map(s=>String(s.name||s.save_name||'').toUpperCase()));
+  for(let i=1;i<100;i++){
+    const n='SAVE'+String(i).padStart(2,'0');
+    if(!usados.has(n)) return n;
+  }
+  return 'SAVE'+Date.now().toString(36).slice(-4).toUpperCase();
+}
+function clSoloNew(){ CL.save=clSaveNomeLivre(); CL.soloStep='novo'; clModoOk(); }
 function clSoloBackChoice(){ CL.soloStep='choice'; cdraw(); }
 function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
@@ -1902,7 +2284,7 @@ function scPaises(){
   const compHelp = selCountries.length
     ? '<div class="cl-wiz-comphelp">Todas as ligas e copas de cada país selecionado entram no seu save.</div>'
     : '<div class="cl-wiz-comphelp">Selecione países à esquerda para ver as competições disponíveis.</div>';
-  return wizShell({ step:4, steps:WIZ_PASSOS.solo, title:'Selecção de Países', back:'clPaisesBack()',
+  return wizShell({ step:rfPasso('País e liga','solo'), modo:'solo', title:'Selecção de Países', back:'clPaisesBack()',
     contentCls:'cl-wiz-paises', actionCls:'',
     action:`
       ${btn('Todas','clAllCountries()',{icon:'▤',cls:'cl-btn-row'})}
@@ -1933,7 +2315,7 @@ function clPaisesBack(){ CL.screen='modosolo'; CL.soloStep='novo'; cdraw(); }
 /* competições de UM país selecionado (divisões + copas), no mesmo visual do Brasil.
    Brasil: Séries A–D + Copa do Brasil/Libertadores/Sul-Americana (ligáveis por CL.compToggle).
    Países europeus: 1ª/2ª divisão + Champions League/Europa League (inclusas com o país).
-   'início' vai na divisão de baixo (onde a jornada começa se você jogar esse país). */
+   'início' vai na divisão de baixo (onde a rodada começa se você jogar esse país). */
 function countryCompSection(country){
   const uniKey = country==='Brasil' ? 'brasil' : country;
   const cfg = (typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
@@ -2018,24 +2400,10 @@ function clPaisesOk(){
 /* ================= 03b · PAÍS JOGÁVEL (só quando 2+ países selecionados) ================= */
 const COUNTRY_FLAG={Brasil:flagImg('Brasil'),Argentina:flagImg('Argentina'),Uruguai:flagImg('Uruguai'),'Colômbia':flagImg('Colômbia'),Chile:flagImg('Chile'),Peru:flagImg('Peru'),Equador:flagImg('Equador'),Paraguai:flagImg('Paraguai'),Venezuela:flagImg('Venezuela'),'Bolívia':flagImg('Bolívia'),Alemanha:flagImg('Alemanha'),Espanha:flagImg('Espanha'),'França':flagImg('França'),'Itália':flagImg('Itália'),Portugal:flagImg('Portugal'),Inglaterra:flagImg('Inglaterra')};
 function scPaisJogavel(){
-  const playable=selectedPlayableCountries();
-  const rows=playable.map(c=>{
-    const sel=CL.playCountry===c;
-    const teams=intlTeams(c)|| (c==='Brasil'?20:0);
-    return `<div class="cl-ctry ${sel?'sel':''}" onclick="CL.playCountry='${c}';cdraw()">
-      <span class="cl-flag">${flagImg(c)}</span><span class="cl-ctry-n">${escC(c)}</span>
-      <span class="cl-ctry-t">${sel?'✔ seu time':`${teams} equipas`}</span></div>`;
-  }).join('');
-  const others=playable.filter(c=>c!==CL.playCountry);
-  // modal padrão: as ações vão pro rodapé fixo em vez de ficarem soltas no meio do conteúdo
-  return dlg('Onde você vai treinar?', `
-    <div class="cl-paises">
-      <div class="cl-ctry-list">${rows}</div>
-      <div class="cl-paises-side">
-        <div class="cl-instr">Escolha o país onde você vai comandar um clube. ${others.length?`As outras ligas (${others.map(escC).join(', ')}) rodam sozinhas no background — dá pra acompanhar tabelas, artilheiros e campeões no menu <b>Campeonatos</b>, e negociar jogadores com elas.`:''}</div>
-      </div>
-    </div>`, {std:true, w:900, footer:btn('Voltar','clGoPaises()',{icon:'↩',cls:'cl-btn-cancel'})+btn('OK','clPaisJogavelOk()',{icon:'✔',cls:'cl-btn-ok'})});
+  // TELA PORTADA (telas/Fluxo - Pais Jogavel)
+  return rfPaisHTML();
 }
+
 function clGoPaises(){ CL.screen='paises'; cdraw(); }
 function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
 
@@ -2044,40 +2412,26 @@ function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
    Só markup/estilo/navegação; a lógica (nomes, moeda, sorteio, montagem do jogo) é a mesma. */
 /* ---- 1/4 · DINHEIRO (moeda) ---- */
 function scMoeda(){
-  const cur=CL.currency||'Reais';
-  const body=`<div class="cl-wiz-form">
-    <label class="cl-wiz-label" style="display:block;margin-bottom:8px">Com que moeda vai querer jogar?</label>
-    <select class="cl-bigsel" onchange="CL.currency=this.value">
-      <option ${cur==='Reais'?'selected':''}>Reais</option>
-      <option ${cur==='Dólares'?'selected':''}>Dólares</option>
-      <option ${cur==='Euros'?'selected':''}>Euros</option>
-    </select>
-    <div class="cl-wiz-note">A moeda vale pra toda a Resenha — todo mundo negocia jogadores e vê as finanças nela.</div>
-  </div>`;
-  return wizShell({ step:5, steps:WIZ_PASSOS.solo, title:'Dinheiro', back:'clMoedaBack()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
-    action: btn('OK','clMoedaOk()',{icon:'✔',cls:'cl-wiz-cta'}) });
+  // TELA PORTADA (telas/Fluxo - Escolha de Moeda)
+  return rfMoedaHTML();
 }
+
 function clMoedaBack(){ CL.screen = selectedPlayableCountries().length>1 ? 'paisJogavel' : 'paises'; cdraw(); }
 function clMoedaOk(){ CL.screen='jogadores'; cdraw(); }
 function clGoMoeda(){ CL.screen='moeda'; cdraw(); }
 
 /* ---- 4/4 · A INICIAR O JOGO (loading + barra de progresso) ---- */
 function scLoading(){
-  // rf98.loading.splash: a tela de carregamento é o único momento em que o jogador está
-  // parado olhando por alguns segundos — é o espaço de splash do inventário. Sem criativo
-  // publicado, ADS.html devolve '' e a tela fica idêntica ao que sempre foi.
-  const splash = window.ADS ? ADS.html('rf98.loading.splash', {cls:'rf-ad-splash'}) : '';
-  const body=`<div class="cl-progwrap">
-    <div class="cl-progtitle">A iniciar o jogo…</div>
-    ${splash}
-    <div class="cl-progtrack"><div id="cl-load-fill" class="cl-progfill" style="width:0%"></div><div id="cl-load-pct" class="cl-progpct">0%</div></div>
-    <div class="cl-wiz-note" style="text-align:center;margin-top:10px">Montando tabelas, elencos e calendário da temporada.</div>
-  </div>`;
-  return wizShell({ noHeader:true, contentCls:'cl-wiz-center', body });
+  // TELA PORTADA (telas/Fluxo - Carregando)
+  return rfCarregandoHTML();
 }
+
 function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.random()*14); if(p>=100)p=100;
+  // a barra E a lista de etapas: sem CL._loadPct, os quatro itens da tela portada
+  // ficariam parados em "na fila" enquanto a barra corre (ver rfCarregandoHTML)
+  CL._loadPct=p;
   const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
+  if(typeof rfCarregandoEtapas==='function') rfCarregandoEtapas(p);
   if(p>=100){ clearInterval(t); setTimeout(()=>{
     if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
     else { CL.screen='jogadores'; cdraw(); }
@@ -2091,27 +2445,10 @@ function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.r
    só a entrada pela UI foi removida — pra não perder o trabalho se decidirmos religar depois.
    Quem quer jogar com mais gente é direcionado pro Modo Resenha (online) em vez disso. */
 function scJogadores(){
-  const body=`<div class="cl-wiz-form-wide">
-    <div class="cl-prow cl-prow-head"><span></span><span class="cl-wiz-collabel">Nome</span><span class="cl-wiz-collabel">Equipa</span></div>
-    <div class="cl-prow">
-      <span class="cl-plabel">Jogador 1</span>
-      <input class="cl-pinput cur" id="cl-focus" maxlength="12" placeholder="LEANDRO" value="${escC(CL.names[0])}" oninput="CL.names[0]=this.value.toUpperCase();this.value=CL.names[0]">
-      <span class="cl-pteam">(você)</span>
-    </div>
-    <div class="cl-wiz-note">Time vazio fica com a CPU.</div>
-    <div class="cl-resenha-banner" onclick="clPickResenha()">
-      <span class="cl-resenha-banner-ic">👥</span>
-      <div class="cl-resenha-banner-txt">
-        <b>Quer jogar com amigos?</b>
-        <span>Isso é o Modo Resenha — cada um assume um clube, online, com chat da liga.</span>
-      </div>
-      <span class="cl-resenha-banner-go">Ir pro Modo Resenha ›</span>
-    </div>
-  </div>`;
-  return wizShell({ step:6, steps:WIZ_PASSOS.solo, title:'Jogadores', back:'clGoMoeda()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, actionCls:'cl-wiz-action-e',
-    action: btn('Escolher clubes','clEscolherClubes()',{icon:'›',cls:'cl-wiz-cta'}) });
+  // TELA PORTADA (telas/Fluxo - Numero de Treinadores)
+  return rfTreinadoresHTML();
 }
+
 /* clubes reais dos países europeus selecionados (união de todas as ligas escolhidas) */
 function intlSelectedClubs(){
   const out=[]; const seen=new Set();
@@ -2194,11 +2531,11 @@ function scSorteio(){
       <span class="cl-rdraw-team" style="${c?clubStripe(c):''}">${c?escC(c.short||c.name):'—'}</span>
     </div>`;
   }).join('');
-  const sub=d.done?'Sorteio concluído! Preparando a temporada… ⚽':'Sorteando os clubes… boa sorte!';
+  const sub=d.done?'Sorteio concluído! Preparando a temporada ⚽':'Sorteando os clubes, boa sorte!';
   // SEM "PULAR": não há o que pular aqui — o clube ainda está sendo sorteado, e o botão só
   // convidava a sair da cerimônia antes de saber qual time saiu. A tela segue sozinha.
-  const action=`<span class="cl-wiz-hint">${d.done?'Preparando a temporada…':'Aguarde o sorteio…'}</span>`;
-  return wizShell({ title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
+  const action=`<span class="cl-wiz-hint">${d.done?'Preparando a temporada':'Aguarde o sorteio'}</span>`;
+  return wizShell({ step:rfPasso('Clube','solo'), modo:'solo', title:'Sorteio dos clubes', contentCls:'cl-wiz-center',
     body:`<div class="cl-rdraw"><div class="cl-rdraw-sub">${sub}</div><div class="cl-rdraw-list">${rows}</div></div>`,
     action });
 }
@@ -2221,6 +2558,12 @@ function clEntrar(){
   CL.ticket=ticketPriceForDivision(S.division);
   CL.formation=null; CL.tacticChosen=false;   // precisa escolher tática no menu p/ liberar "Jogar"
   S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  try{ if(typeof coachSpellAbrir==='function'){ S.coachSpells=[]; coachSpellAbrir(CL.clubId,'contratado'); } }catch(e){}
+  /* IDADE DE PARTIDA DO TREINADOR, escolhida no assistente (ver rfIdadeTreinador).
+     Antes a ficha mostrava sempre "36 anos" porque o dado nao existia -- era uma
+     conta fixa. Fica gravada uma vez; a partir dai ele envelhece uma temporada
+     de cada vez, como toda a gente. */
+  S.coachAge0=(typeof rfIdadeTreinadorValida==='function')?rfIdadeTreinadorValida():36;
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
   // modo solo de verdade: garante que nada do modo online "vaza" pra cá (ex: se o usuário
   // tinha entrado numa sala online antes, na mesma aba, CL.online ficava travado em true e
@@ -2268,9 +2611,10 @@ function startSeasonOpeningDraws(onDone){
     const defs=(typeof cupDrawOrder==='function') ? cupDrawOrder()
       : [['copaBrasil','bracket'],['libertadores','group'],['sulamericana','group'],['championsLeague','group'],['europaLeague','group']];
     const season=(S&&S.season)||1;
-    S._cupDrawQueued=S._cupDrawQueued||{};
     defs.forEach(([key,stage])=>{
       const c=S.cups&&S.cups[key]; if(!c) return;
+      // competição sem cerimônia (Copa do Brasil — ver CUP_SEM_CERIMONIA no core)
+      if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return;
       // SÓ OS SORTEIOS CUJA DATA JÁ CHEGOU. O calendário oficial dá uma data a cada cerimônia
       // (02/03 Libertadores, 11/03 Sul-Americana, 21/03 Copa do Brasil), sempre antes da estreia
       // da própria competição — não é mais "todos no dia 1". Os que ainda não venceram entram
@@ -2302,8 +2646,10 @@ function runNextOpeningDraw(onDone){
     console.warn('sorteio de abertura da '+item.key+' sem dados prontos — não marco no mundo, ele volta pelo queueDueCupDraws');
     return runNextOpeningDraw(onDone);      // segue a fila; a cerimônia continua devendo, para todos
   }
-  S._cupDrawQueued=S._cupDrawQueued||{};
-  S._cupDrawQueued[item.key+':'+((S&&S.season)||1)]=true;   // começou de verdade: agora sim
+  /* começou de verdade: agora sim. A marca é MINHA, não do mundo — no mundo ela impedia os
+     outros treinadores de verem a mesma cerimónia (ver sorteioJaVistoPorMim, no core). */
+  if(typeof marcarSorteioVistoPorMim==='function')
+    marcarSorteioVistoPorMim(item.key+':'+((S&&S.season)||1));
 }
 /* `opts.midSeason` = cheguei a este clube TROCANDO de time no meio da temporada (aceitei o
    convite de outro clube — ver showJobInvite). Muda só o texto: em vez de "a temporada começa
@@ -2330,9 +2676,33 @@ function clBoasVindasContinuar(tab){
    oficiais do clube com as iniciais — mesma identidade visual que clubStripe já usa em todo o
    resto do jogo. onerror também cai pro badge (link quebrado do Transfermarkt não deixa o
    escudo em branco). */
+/* O ID DO CLUBE JA CARREGA O ID DO TRANSFERMARKT — falta so montar o endereco.
+   Os 160 clubes da America do Sul (CONMEBOL_LEAGUES) vinham sem `crest` nenhum e nao estao no
+   mapa das Series B/C/D: TODOS caiam no badge de iniciais, em todas as telas. Mas o id deles e
+   `cmb_<n>` e esse `n` E o id do clube no Transfermarkt (River Plate 209, Boca 189, Penarol
+   861...), o mesmo numero que o mapa do Brasil ja usa no fim da URL. Medido: os cinco testados
+   devolvem a imagem de 180px.
+   So se deriva quando o sufixo e SO digitos — id procedural (br_D_abc) nao vira URL invalida,
+   continua a cair no mapa e, se nao houver, no badge. */
+function crestFromTmId(id){
+  const m=/^(?:cmb|intl|br_[A-D])_(\d+)$/.exec(String(id||''));
+  return m ? 'https://tmssl.akamaized.net/images/wappen/big/'+m[1]+'.png' : null;
+}
+/* ===== O ID VERDADEIRO PODE ESTAR EM `tk`, NAO EM `id` =====
+   O clube que entra numa copa continental nao e o objeto do bundle: realConmebolClub fabrica um
+   id proprio a partir do NOME (`intl_estudiantes`, `intl_cusco`) e guarda o id de origem em
+   `tk`. Dai a tabela da Libertadores e da Sul-Americana ficar sem escudo nenhum enquanto o
+   bundle tinha os 160: o escudo era procurado por um id inventado, que nao esta em mapa nenhum
+   e nao tem numero de Transfermarkt para derivar. O numero estava ali ao lado, no `tk`, desde
+   sempre. */
 function clubCrestUrl(club){
+  if(!club) return null;
   if(club.crest) return club.crest;
-  return (typeof CLUB_CREST_BRASIL_LOWER!=='undefined' && CLUB_CREST_BRASIL_LOWER[club.id]) || null;
+  const M=(typeof CLUB_CREST_BRASIL_LOWER!=='undefined')?CLUB_CREST_BRASIL_LOWER:null;
+  return (M && (M[club.id] || M[club.tk]))
+      || crestFromTmId(club.id)
+      || crestFromTmId(club.tk)
+      || null;
 }
 function clubCrestHTML(club){
   const {col,col2}=clubColors(club);
@@ -2388,7 +2758,7 @@ function scBoasVindas(){
           <div class="cl-welc-frame cl-welc-stadium">
             ${photo?`<img src="${escC(photo)}" alt="Estádio do ${escC(club.short)}">`:standSVG(cap)}
           </div>
-          <div class="cl-welc-cap">Estádio do <strong style="color:#fff">${escC(club.short)}</strong> — ${grp(cap)} lugares.</div>
+          <div class="cl-welc-cap"><strong style="color:#fff">${escC(typeof estadioNomeDe==='function'?estadioNomeDe(club):('Casa do '+club.short))}</strong> — ${grp(cap)} lugares.</div>
         </div>
       </div>
 
@@ -2470,6 +2840,10 @@ function jobInviteTableHTML(){
 }
 function showJobInvite(offer){
   CL._jobOffer=offer;
+  // MODAL PORTADO (telas/Modal - Convite para Jantar). O desenho antigo não
+  // é mais alcançável — a tela nova cobre o caso do treinador empregado e o
+  // do demitido, e é ela que vale.
+  overlayC(rfModalConviteHTML(offer)); return;
   const c=jobOfferClub(offer), me=clubOf(CL.clubId)||{short:'?'};
   const flag=offer.foreign && typeof flagImg==='function' ? flagImg(offer.country)+' ' : '';
   // SEM CLUBE (demitido na Resenha, esperando convite): a tela toda partia do princípio de que
@@ -2521,10 +2895,19 @@ function showJobInvite(offer){
       </div>
     </div>`, {w:900, bodyClass:'cl-body-green'}));
 }
-function clJobInviteAccept(){ clCloseOverlay(); showJobProposal(); }
+function clJobInviteAccept(){
+  /* guarda a oferta em mesa: o fluxo tem duas telas (jantar -> proposta) e o `CL._jobOffer` e
+     limpo pelo caminho. Ver clAcceptResenhaOffer, que a usa como rede. */
+  CL._ofertaEmMesa=CL._jobOffer||CL._ofertaEmMesa||null;
+  clCloseOverlay(); showJobProposal();
+}
 function clJobInviteDecline(){ showJobDeclined('Você agradeceu o convite e seguiu em frente.'); }
 function showJobProposal(){
-  const o=CL._jobOffer; if(!o) return;
+  /* a mesa e a rede: entre as duas telas qualquer redesenho/sincronia pode limpar CL._jobOffer */
+  const o=CL._jobOffer||CL._ofertaEmMesa||CL._pendingResenhaOffer; if(!o) return;
+  CL._jobOffer=o;
+  // MODAL PORTADO (telas/Modal - Jantar e Proposta)
+  overlayC(rfModalPropostaHTML(o)); return;
   const c=jobOfferClub(o), me=clubOf(CL.clubId)||{short:'?'};
   const semClube = !!(typeof CL!=='undefined' && CL.unemployed);   // ver showJobInvite
   // Termos REAIS do save onde existem: o salário é o que a oferta carrega e o que passa a valer
@@ -2588,6 +2971,11 @@ function showJobDeclined(msg){
   CL._jobOffer=null;
   // Resenha: recusar também limpa a pendência da sala (e o demitido volta pra fila de convites)
   if(o && o._resenha){ CL._pendingResenhaOffer=null; if(CL.unemployed) CL._unempRounds=0; }
+  CL._ofertaEmMesa=null;   // recusou: a mesa fica limpa (ver clAcceptResenhaOffer)
+  /* recusar tira o convite da caixa: ele nao pode ficar na pagina Treinador depois de recusado */
+  if(o && o.clubId && Array.isArray(S.pendingJobOffers))
+    S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==o.clubId);
+  if(typeof persistCareer==='function') persistCareer();
   overlayC(dlg('Convite recusado', `<div class="cl-res">
     <div class="cl-res-verd" style="text-align:left">✓ ${escC(msg)} O ${escC(c.short)} foi informado${semClube?' e você segue sem clube, esperando outro convite.':` e você continua no comando do ${escC(me.short)}.`}</div>
     <div class="cl-cal-ok">${btn('Voltar ao jogo','clCloseOverlay()',{icon:'↩',cls:'cl-btn-ok'})}</div>
@@ -2596,7 +2984,13 @@ function showJobDeclined(msg){
 /* aceitou de verdade: troca o clube e cai na tela de boas-vindas em variante de meio de
    temporada. Mesmo efeito do antigo clAcceptJobOffer — o que muda é só o caminho até aqui. */
 function clJobProposalAccept(){
-  const o=CL._jobOffer; if(!o) return;
+  /* ===== ASSINAR NUNCA MORRE EM SILENCIO =====
+     `CL._jobOffer` vive so em memoria e qualquer redesenho entre o jantar e a assinatura pode
+     limpa-lo; o clique entao devolvia NADA — o modal ficava aberto e "o aceitar nao funcionava"
+     (relatado a 20/08). A mesa e a pendencia da sala servem de rede; sem nenhuma das tres, o
+     jogador ouve o que houve em vez do silencio. */
+  const o=CL._jobOffer||CL._ofertaEmMesa||CL._pendingResenhaOffer;
+  if(!o){ toastC('Esse convite expirou. Ele continua na página Treinador enquanto valer.','warn'); clCloseOverlay(); return; }
   // RESENHA: assumir o clube é uma troca de ASSENTO no servidor (NET.setMyClub), não a troca
   // local do solo — applyManagerJobChange aqui deixaria o cliente com um clube que a sala não
   // reconhece. clAcceptResenhaOffer já faz tudo (assento, humanos, XI, carreira, cooldown).
@@ -2607,6 +3001,10 @@ function clJobProposalAccept(){
     text:`Contratado pelo ${String(c.short).toUpperCase()}${o.foreign?' ('+o.country+')':''}`});
   applyManagerJobChange(o.clubId, o.division, o.country); // country presente => troca de universo
   if(o.salary) S.coachSalary=o.salary;
+  /* O DESCANSO ENTRE MUDANÇAS É O MESMO DA RESENHA (ver SONDAGEM_EXTERIOR, no core). Estava
+     carimbado só no caminho da sala, então no solo a trava nunca chegava a engatar. Demissão não
+     carimba: quem foi despedido escolhe clube na hora e não pode ficar de fora do mercado. */
+  S.lastClubChangeSeason=S.season;
   // some da caixa de ofertas pendentes: aceitar por aqui resolve a mesma oferta que está lá
   if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==o.clubId);
   CL._jobOffer=null;
@@ -2628,7 +3026,13 @@ function buildPickPool(){
   const pool={};
   // as cores viajam junto: a cerimônia do sorteio (scSorteio) pinta a faixa do clube revelado a
   // partir DESTE pool — DATA.clubs ainda é o bundle da Série A quando o sorteio roda.
-  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name,color:x.color,color2:x.color2})); });
+  /* O ESCUDO TAMBEM VIAJA. Este `map` copiava cinco campos e deixava `crest` para tras, e a
+     cerimonia do sorteio desenha o clube SO a partir daqui (DATA.clubs ainda e o bundle da
+     Serie A quando ela roda). Sem o campo, clubCrestUrl caia no mapa de escudos da Serie A,
+     que nao tem os clubes das divisoes de baixo: no lugar do escudo aparecia a caixa de
+     iniciais. O clube da Serie D vinha do Supabase COM escudo — perdia-se aqui, a um passo
+     de ser desenhado. */
+  selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name,color:x.color,color2:x.color2,crest:x.crest})); });
   setUniverse('brasil'); // reset — clConfirmarClubes/clEntrar seta o universo certo depois
   return pool;
 }
@@ -2655,41 +3059,10 @@ function clEscolherClubes(){
 }
 /* ---- 3/4 · ESCOLHA OS CLUBES ---- */
 function scEscolhaClubes(){
-  const countries=selectedPlayableCountries();
-  // SORTEIO OBRIGATÓRIO em todos os modos: cada jogador só escolhe o país; o clube é sempre
-  // sorteado (nunca escolhido). Antes, com 1 jogador, ele escolhia o próprio clube.
-  const multi=true;
-  const taken=new Set((CL.pick||[]).filter(p=>p.clubId).map(p=>p.clubId));
-  const rows=(CL.pick||[]).map((p,i)=>{
-    const countrySel=countries.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('');
-    const countryCell=`<select class="cl-navysel" onchange="clPickCountry(${i},this.value)">${countrySel}</select>`;
-    const nameCell=`<span class="cl-plabel">${escC(p.name)}${i===0?' <span class="cl-pick-you">(você)</span>':''}</span>`;
-    if(multi){
-      return `<div class="cl-crow nocl">${nameCell}${countryCell}</div>`;
-    }
-    const clubs=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(c.id)||c.id===p.clubId).sort((a,b)=>a.short.localeCompare(b.short));
-    const clubSel=`<option value="">— escolha —</option>`+clubs.map(c=>`<option value="${escC(c.id)}" ${p.clubId===c.id?'selected':''}>${escC(c.short)}</option>`).join('');
-    return `<div class="cl-crow">${nameCell}${countryCell}
-      <select class="cl-navysel" onchange="clPickClub(${i},this.value)">${clubSel}</select></div>`;
-  }).join('');
-  const allChosen=(CL.pick||[]).length>0 && CL.pick.every(p=>p.clubId);
-  const head=multi
-    ? `<div class="cl-crow nocl cl-crow-head"><span class="cl-wiz-collabel">Jogador</span><span class="cl-wiz-collabel">País</span></div>`
-    : `<div class="cl-crow cl-crow-head"><span class="cl-wiz-collabel">Jogador</span><span class="cl-wiz-collabel">País</span><span class="cl-wiz-collabel">Clube</span></div>`;
-  const instr=multi
-    ? `Cada jogador escolhe seu país. Os times são <b>sorteados</b>. ${countries.length>1?'Podem estar em países diferentes.':''}`
-    : `Cada jogador escolhe seu país e um clube livre.`;
-  const action=multi
-    ? `<span class="cl-wiz-back-sp"></span><div class="cl-wiz-actbtns">${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn'})}${btn('Sortear e começar','clSortearStart()',{icon:'🎲',cls:'cl-wiz-cta'})}</div>`
-    : `${btn('Sortear','clSortearPick()',{icon:'🎲',cls:'cl-btn'})}<div class="cl-wiz-actbtns">${btn('Voltar','clGoJogadores()',{icon:'↩',cls:'cl-btn'})}${btn('Começar','clStartGame()',{icon:'✔',cls:'cl-wiz-cta',dis:!allChosen})}</div>`;
-  const body=`<div class="cl-wiz-clubes">
-    ${head}
-    ${rows}
-    <div class="cl-wiz-note">${instr}</div>
-  </div>`;
-  return wizShell({ step:7, steps:WIZ_PASSOS.solo, title:'Escolha os clubes', back:'clGoJogadores()', backLabel:'Voltar',
-    contentCls:'cl-wiz-top', body, action });
+  // TELA PORTADA (telas/Fluxo - Escolha dos Clubes)
+  return rfClubesHTML();
 }
+
 /* atribui aleatoriamente um clube livre a cada manager (respeita o país escolhido) */
 function _assignRandomClubs(){
   const taken=new Set();
@@ -2879,7 +3252,27 @@ function finishHotseatMatch(){
     caps:{H:liveCaps(m,'H'),A:liveCaps(m,'A')}, matchMinutes:liveMatchMinutes(m)};
     H.allEvents=(H.allEvents||[]).concat(m.events||[]); }
   CL.live=null; CL.subsUsed=0;
+  // TELA PORTADA (telas/Resenha - Entrega do Aparelho): antes de chamar o próximo
+  // assento, quem acabou de jogar vê o que aconteceu na vez dele e devolve o
+  // aparelho. Sem isso a tela pulava direto pro "passe para o próximo", e o
+  // jogador saía da partida sem ler o próprio resultado.
+  const seat=CL._seatContext&&CL._seatContext.seat;
+  if(seat){
+    const emCasa=m.h===seat.clubId;
+    const outro=(anyClubOf(emCasa?m.a:m.h)||{short:'—'}).short;
+    /* O pacote pede POSIÇÃO no quarto bloco, e é a informação que interessa a
+       quem acabou de jogar. Mas `tablePos` lê a tabela da divisão do UTILIZADOR
+       (S.table): num assento de outro país ou de outra divisão ela não diz nada
+       sobre este clube. Só entra quando o clube está mesmo nessa tabela; senão
+       fica o mando, que é sempre verdade. */
+    let pos=null;
+    try{ if(typeof tablePos==='function' && (S.table||[]).some(t=>t.id===seat.clubId)){
+      const k=tablePos(seat.clubId); if(k>0) pos=k+'º'; } }catch(err){}
+    CL._entrega={ nome:seat.name, adv:outro, mando:emCasa?'em casa':'fora', pos:pos,
+      placar:(emCasa?m.hg:m.ag)+'–'+(emCasa?m.ag:m.hg), att:emCasa?m.att:0 };
+  }
   exitSeatContext(); // restaura o manager 1 (persistindo a tática do assento)
+  if(CL._entrega){ CL.screen='entrega'; cdraw(); return; }
   startNextHotseatMatch();
 }
 /* rótulo da divisão do assento (no universo do país dele) */
@@ -2916,36 +3309,10 @@ function clClassifContinue(){
 /* classificação de pós-jogo de um HUMANO secundário — mesma tela do manager 1 (scClassif),
    só que com a liga do assento (fundo OU divisão primária, se mesmo país) e o clube dele em destaque. */
 function scSeatClassif(){
-  const seat=CL._classifSeat; if(!seat) return deskWrap('');
-  const country=seat.country, flag=(typeof flagImg==='function')?flagImg(country):'';
-  const cfg=UNI_CONFIGS[uniKeyOf(country)]||{}; const labels=cfg.label||{};
-  const isBg=!!(S.bgLeagues&&S.bgLeagues[country]);
-  const seatDiv=seatDivOfClub(seat);
-  const divs=isBg?Object.keys(S.bgLeagues[country].divs):(cfg.order||[S.division]);
-  const ordered=divs;   // ordem natural (A/B/C/D); a divisão do assento é destacada pela borda verde, não posta no topo
-  const rowsFor=(d)=>{
-    const tbl=isBg?bgStandings(country,d):sortedTableOf(d===S.division?S.table:((S.otherDivs&&S.otherDivs[d]&&S.otherDivs[d].table)||{}));
-    return (tbl||[]).map((t,i)=>{ const c=clubOf(t.id)||bgClubById(t.id)||{short:String(t.id)}; const me=t.id===seat.clubId;
-      return `<div class="cl-cls2-row ${me?'me':''}" style="${clubStripe(c)}">
-        <span class="cl-cls2-pos">${i+1}</span><span class="cl-cls2-n">${escC(c.short||'')}</span>
-        <span class="cl-cls2-pts">${t.Pts}</span><span class="cl-cls2-x">${t.W}</span><span class="cl-cls2-x">${t.D}</span><span class="cl-cls2-x">${t.L}</span>
-        <span class="cl-cls2-x">${t.GF}</span><span class="cl-cls2-x">${t.GA}</span></div>`; }).join('');
-  };
-  const panelHTML=(d)=>{ const open=(CL.clsDivOpen&&CL.clsDivOpen[d]!=null)?CL.clsDivOpen[d]:(d===seatDiv); const mine=d===seatDiv;
-    return `<div class="cl-clsacc ${open?'open':'collapsed'} ${mine?'mine':''}">
-      <div class="cl-clsacc-h" onclick="event.stopPropagation();clToggleDivAcc('clsDivOpen','${d}')">
-        <span class="cl-clsacc-h-title">🏆 ${escC(classifDivName(d, country))}${mine?' <span class="cl-acc-you">'+escC(seat.name)+'</span>':''}</span>
-        <span class="cl-acc-arrow ${open?'':'closed'}">▾</span></div>
-      <div class="cl-clsacc-body">
-        <div class="cl-cls2-head"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span></div>
-        ${rowsFor(d)}</div></div>`; };
-  return `<div class="cl-live cl-classif">
-    <div class="cl-classif-buttons">${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}</div>
-    <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
-    <div class="cl-live-top">${flag} ${escC(seat.name)} · Classificação - ${S.round}ª jornada</div>
-    <div class="cl-clsacc-wrap">${ordered.map(panelHTML).join('')}</div>
-  </div>`;
+  // TELA PORTADA (telas/Resenha - Classificacao do Assento)
+  return rfAssentoClassifHTML(CL._classifSeat);
 }
+
 /* TELA DO TIME do assento (hotseat): mesma pegada da tela principal — elenco à esquerda,
    tática + classificação + Jogar à direita. Reusa rosterHTML()/panSeleccao() com o contexto
    já trocado pro assento (clJogar detecta o contexto e chama clSeatPlay).
@@ -2954,7 +3321,9 @@ function scSeatClassif(){
    que é o único que passa por scMain(). Todo assento tem os mesmos direitos durante a própria
    vez — enterSeatContext() já troca S.clubId/CL.clubId pro clube do assento, então os mesmos
    painéis/menus de scMain() funcionam aqui sem mudança nenhuma neles. */
-function scSeatTurn(){
+/* MORTO desde que 'seatturn' passou a desenhar o mesmo envelope do manager 1
+   (ver o switch de cdraw). Fica só como referência do que a tela mostrava. */
+function scSeatTurnLegado(){
   const c=CL._seatContext; if(!c) return deskWrap('');
   const seat=c.seat, fx=c.fx; const cl=clubOf(seat.clubId)||bgClubById(seat.clubId)||{};
   const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=clubOf(oppId)||bgClubById(oppId)||{};
@@ -2999,7 +3368,7 @@ function scSeatTurn(){
         <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
-        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Jornada', season:S.season, chip:th.bg2})}
+        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Rodada', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -3008,25 +3377,10 @@ function scSeatTurn(){
 }
 /* tela de passagem de aparelho (hotseat) entre os treinadores humanos */
 function scHandoff(){
-  const it=CL._handoff; if(!it) return deskWrap('');
-  const seat=it.seat, fx=it.fx;
-  // clube de fundo pode ainda não estar materializado (clubOf só resolve nesse ponto após
-  // ensureBgClubMaterialized) — cai no dado real do intlClubById pra mostrar nome/cores.
-  const anyClub=id=>clubOf(id)||(typeof bgClubById==='function'?bgClubById(id):null)||{};
-  const c=anyClub(seat.clubId);
-  const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=anyClub(oppId);
-  const loc=fx.home===seat.clubId?'em casa':'fora';
-  const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
-  return dlg('Passe o aparelho', `
-    <div class="cl-handoff">
-      <div class="cl-handoff-to">Agora é a vez de</div>
-      <div class="cl-handoff-name">${escC(seat.name)}</div>
-      <div class="cl-handoff-club" style="${clubStripe?clubStripe(c):''}">${flag} ${escC(c.short||c.name||'')}</div>
-      <div class="cl-handoff-country">${flag} ${escC(seat.country)}</div>
-      <div class="cl-handoff-match">${escC(c.short||'')} <span class="cl-handoff-x">×</span> ${escC(opp.short||'')} <span class="cl-handoff-loc">(${loc})</span></div>
-      <div class="cl-handoff-actions">${btn('Continuar','clPlayHotseatMatch()',{icon:'▶',cls:'cl-btn-ok cl-btn-wide'})}</div>
-    </div>`, {w:600,bodyClass:'cl-body-green'});
+  // TELA PORTADA (telas/Resenha - Passe o Aparelho)
+  return rfPasseHTML(CL._handoff);
 }
+
 
 /* ================= SAVE / LOAD (Modo Solo — só nuvem via Supabase) =================
    Salva/carrega por nome, vinculado ao usuário logado. O estado do jogo NUNCA fica
@@ -3045,7 +3399,13 @@ async function saveV3(explicit){
   if(CL._seatContext) return; // hotseat: contexto trocado pro assento — NÃO persistir (seria salvo com o clube errado como primário)
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
   const name = CL.save||CL.mgr||'SAVE';
-  const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId, currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
+  // identidade do clube junto do save: é o que a lista de saves mostra sem baixar o estado
+  // inteiro (clubShort/clubCrest via state->>, ver netListSoloSaves)
+  const _c=(typeof clubOf==='function'&&clubOf(CL.clubId))||{};
+  const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId,
+    clubShort:_c.short||_c.name||null,
+    clubCrest:(typeof clubCrestUrl==='function'?clubCrestUrl(_c):null)||null,
+    currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
   if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
   let finishSavingOverlay=null;
   if(explicit) finishSavingOverlay=showSavingOverlay();
@@ -3088,7 +3448,7 @@ function showSavingOverlay(){
   };
 }
 function clLoadSave(name){
-  toastC('Carregando jogo…');
+  toastC('Carregando jogo','progress');
   (async ()=>{ try {
     const g = (typeof NET!=='undefined'&&NET.loadSoloSave)?await NET.loadSoloSave(name):null;
     if(!g){ toastC('⚠ Save não encontrado.'); return; }
@@ -3105,8 +3465,23 @@ function clLoadSave(name){
     if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
     setUniverse(S.intlUniverse||'brasil'); // restaura a config de divisões do universo do save (Brasil/Inglaterra/...)
     CL.intlUniverse = S.intlUniverse||false;
+    /* save quimera (a troca de pais que morreu no meio, ver repararMundoQuimera): reconstrui a
+       temporada na liga do clube do treinador antes de desenhar qualquer coisa */
+    if(typeof repararMundoQuimera==='function' && repararMundoQuimera()){
+      CL.intlUniverse=S.intlUniverse||false;
+      toastC('⚠ O save foi reparado: a temporada recomeça na liga do seu clube.');
+      if(typeof saveV3==='function') saveV3();
+    }
+    // temporada fechada antes do S.archive existir: entra pro arquivo agora (idempotente)
+    if(typeof archiveBackfill==='function'){ try{ archiveBackfill(); }catch(e){} }
+    // save de antes das ligas de fundo cobrirem TODOS os países (item 4): completa agora
+    if(typeof ensureBgLeaguesCompletas==='function'){ try{ ensureBgLeaguesCompletas(); }catch(e){} }
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
-    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; cdraw();
+    CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+    /* volta a pagina onde a pessoa estava antes de recarregar (ver rfPosRestaurar).
+       Consumida na hora: so vale para ESTE arranque. */
+    if(CL._posPagina){ try{ if(typeof rfGo==='function') rfGo(CL._posPagina); else CL.page=CL._posPagina; }catch(e){} CL._posPagina=''; }
+    cdraw();
     // sorteio de copa pode ter ficado pendente de uma sessão anterior (fila em
     // S._pendingDrawShows, ver initSeasonCups/advancePendingCups) — sem isso aqui, o
     // usuário só via o sorteio depois de terminar a PRÓXIMA rodada ao vivo (via
@@ -3149,7 +3524,7 @@ function nextUserMatch(){
   if(!uf) return null;
   const home=uf[0]===CL.clubId;
   return { kind:'league', h:uf[0], a:uf[1], oppId:home?uf[1]:uf[0], home, uf,
-    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Jornada` };
+    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Rodada` };
 }
 function scMain(){
   const cl=clubOf(CL.clubId);
@@ -3219,20 +3594,18 @@ function scMain(){
           trofeu:(nm&&nm.kind==='cup')?(trophyImg(nm.cupKey,13)||'🏆'):'',
           dia:(nm&&shortMatchDate(nm))||'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
-        ${window.ADS?ADS.html('rf98.hub.sidebar',{cls:'rf-ad-rect'}):''}
+        <!-- o retangulo 300x250 saiu daqui pelo mesmo motivo da pele nova (ver rfHubHTML):
+             esta e a tela de escalar, e o quadrado ficava no meio da decisao -->
         ${tabBar}
       </div>
     </div>
     ${anchorAdHTML()}
   </div>`;
 }
-/* rf98.anchor.bottom — faixa fixa no rodapé da Home e do Hub. É o único espaço que fica
-   POR CIMA do conteúdo (position:fixed), então duas salvaguardas: só existe quando há
-   criativo publicado, e no telefone o CSS sobe a faixa para cima da barra de abas em vez
-   de a tapar (ver .rf-anchor em main.css). */
-function anchorAdHTML(){
-  return window.ADS ? ADS.html('rf98.anchor.bottom', {cls:'rf-anchor'}) : '';
-}
+/* A FAIXA FIXA DO RODAPÉ SAIU (18/08/2026) — ver rfAncoraHTML em ui/rf26.js. Era o único
+   espaço `position:fixed`, por cima do conteúdo, em todas as páginas. Fica como função vazia
+   para o ponto de entrada continuar a existir num lugar só. */
+function anchorAdHTML(){ return ''; }
 /* cabeçalho fixo das colunas do elenco — precisa ficar em sincronia com o grid-template-columns
    de .cl-rrow (main.css): T/R · Pos · Nome · Idade · Força · Salário. Sem isto o usuário via 6
    colunas de números/letras sem saber o que cada uma significava, principalmente depois que
@@ -3319,7 +3692,7 @@ function squadTableHTML(clubId, opts){
         <span class="cl-rmark"></span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;
+        <span class="cl-rf">${p.f}${trainingIcon(clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(playerSalary(p))}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt((typeof computeVM==='function')?computeVM(p):(p.mv||0))}</span></div>`;
     }).join('')+`</div>`;
   });
   return html;
@@ -3346,7 +3719,7 @@ function rosterHTML(){
         <span class="cl-rmark ${showMarks?(starter?'t':'r'):''}">${showMarks?(starter?'T':'R'):''}</span>
         <span class="cl-rpos">${posLetter(p.s)}</span><span class="cl-rname" title="${escC(p.n)}">${escC(p.n)}${(p.age&&p.age<=20)?'*':''}${badge?' '+badge:''}</span>
         <span class="cl-rage">${p.age||'-'}</span>
-        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt(p.mv||0)}</span></div>`;}).join('')+`</div>`;
+        <span class="cl-rf">${p.f}${p._trend==='up'?'<span class="cl-rtrend up">▲</span>':p._trend==='down'?'<span class="cl-rtrend down">▼</span>':''}${trainingIcon(CL.clubId,p)}</span><span class="cl-rnota">${notaChip(p)}</span><span class="cl-rbatt">${energyCell(p)}</span><span class="cl-rv">${fmt(salary)}<span class="cl-rv-per">/sem</span></span><span class="cl-rmv">${fmt((typeof computeVM==='function')?computeVM(p):(p.mv||0))}</span></div>`;}).join('')+`</div>`;
   });
   return html;
 }
@@ -3442,10 +3815,16 @@ function myFinKey(){
 function saveMyFinances(){
   if(!CL.online || !S) return;                       // solo: o log já é meu e vai junto no save
   CL._myFin=CL._myFin||{};
-  CL._myFin.finances=S.finances||[]; CL._myFin.seasonTotals=S.seasonTotals||null;
+  // o extrato tem teto no assento: 200 lançamentos bastam pra tela e o jsonb não cresce sem fim
+  CL._myFin.finances=(S.finances||[]).slice(-200); CL._myFin.seasonTotals=S.seasonTotals||null;
   CL._myFin.prizeSeason=S._prevPrizesCreditedSeason||null;
   CL._myFin.settled=CL._myFin.settled||{};
   CL._myFinKey=myFinKey();                           // marca de qual sala+clube é o store em memória
+  /* FONTE ÚNICA É O SERVIDOR (regra do dono, 21/08): o blob viaja no assento via CAREER_KEYS
+     (game_seats.career._myFin) — sobrevive a troca de aparelho e a limpeza de navegador.
+     O localStorage continua como cache/migração, mas quem manda é o assento. */
+  S._myFin=CL._myFin;
+  if(typeof persistCareer==='function') persistCareer();
   try{ localStorage.setItem(myFinKey(), JSON.stringify(CL._myFin)); }catch(e){}
 }
 /* PROPOSTA MINHA JÁ LIQUIDADA (o jogador chegou e eu paguei). O registro é do CLIENTE, não do S:
@@ -3465,11 +3844,16 @@ function markOfferSettled(id){
 }
 function restoreMyFinances(){
   if(!CL.online || !S) return;
-  if(!CL._myFin || CL._myFinKey!==myFinKey()){       // troquei de sala/clube -> lê do storage
-    CL._myFinKey=myFinKey(); CL._myFin=null;
-    try{ const raw=localStorage.getItem(myFinKey()); if(raw) CL._myFin=JSON.parse(raw); }catch(e){}
+  /* A FONTE É O ASSENTO (game_seats.career._myFin), restaurado pelo restoreCareer que roda
+     ANTES desta função em todos os caminhos de adoção. O localStorage é só migração: quem
+     gravou por lá antes desta mudança sobe o blob pro assento na primeira passada. */
+  let doAssento = (S._myFin && typeof S._myFin==='object') ? S._myFin : null;
+  if(!doAssento){
+    try{ const raw=localStorage.getItem(myFinKey()); if(raw) doAssento=JSON.parse(raw); }catch(e){}
+    if(doAssento){ S._myFin=doAssento; if(typeof persistCareer==='function') persistCareer(); } // migra pro servidor
   }
-  if(!CL._myFin){
+  CL._myFinKey=myFinKey();
+  if(!doAssento){
     // NADA guardado ainda (sala que já estava rolando quando isto entrou, ou primeiro acesso).
     // Quem é ANFITRIÃO tem no S o próprio histórico — é dele mesmo, então vira a base do store.
     // Quem é CONVIDADO tem no S o histórico do anfitrião — esse não é dele: começa limpo, e o
@@ -3478,8 +3862,10 @@ function restoreMyFinances(){
       S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
       S._prevPrizesCreditedSeason=null;
     }
+    CL._myFin=null;
     saveMyFinances(); return;
   }
+  CL._myFin=doAssento;
   S.finances=CL._myFin.finances||[];
   if(CL._myFin.seasonTotals) S.seasonTotals=CL._myFin.seasonTotals;
   S._prevPrizesCreditedSeason=CL._myFin.prizeSeason||null;
@@ -3602,7 +3988,7 @@ function syncInbox(){
         subject:'Elenco envelhecendo — '+risco.length+' jogador'+(risco.length>1?'es':'')+' perto da aposentadoria',
         body:`Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:<br><br>`
           +risco.slice(0,6).map(x=>`<b>${escC(x.p.n)}</b> — ${x.p.age} anos, ${posLetter(x.p.s)}, força ${x.p.f} · risco <b>${Math.round(x.chance*100)}%</b> · vale ${fmt(x.p.mv||0)}`).join('<br>')
-          +(risco.length>6?`<br><span style="opacity:.7">…e mais ${risco.length-6}.</span>`:''),
+          +(risco.length>6?`<br><span style="opacity:.7">e mais ${risco.length-6}.</span>`:''),
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -3655,7 +4041,13 @@ function clInboxClearAll(){
   (CL.inbox||[]).forEach(e=>{ CL.inboxDeleted[e.key]=true; });
   CL.inbox=[]; CL.inboxOpen=null; saveInbox(); cdraw();
 }
-function inboxIcon(kind){ return {offer:'💰', job:'🤝', warn:'⚠️', prize:'🏆', retire:'👋', money:'💵', counter:'↩️'}[kind]||'✉️'; }
+/* ÍCONE DA MENSAGEM. Devolve SVG do Iconoir, não emoji: esta função alimenta
+   a lista da Caixa de entrada, onde o emoji colorido brigava com o resto. */
+function inboxIcon(kind){
+  const n={offer:'financas', job:'acordo', warn:'aviso', prize:'trofeu',
+           retire:'jogador', money:'moedas', counter:'voltar'}[kind]||'email';
+  return (typeof rfIcone==='function')?rfIcone(n,15):'';
+}
 function panCorreio(){
   syncInbox();
   const box=CL.inbox||[];
@@ -3715,6 +4107,10 @@ function clViewTab(t){ CL.viewTab=t;
 function clViewSelPlayer(n){ CL.viewSelPlayer=n; CL.viewTab='jogador'; cdraw(); }
 function fixtureFor(clubId){ return currentFixtures().find(([h,a])=>h===clubId||a===clubId); }
 function scTeamView(){
+  // TELA PORTADA (telas/Adversario - Ver Time)
+  return rfVerTimeHTML(CL.viewClubId);
+}
+function scTeamViewLegado(){
   const vid=CL.viewClubId; const c=clubOf(vid);
   if(!c){ CL.viewClubId=null; CL.screen='main'; return scMain(); }
   const th=clubTheme(vid);
@@ -3749,7 +4145,7 @@ function scTeamView(){
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.viewTab||'jogo']?'':'sem-adv'}" style="background:${th.bg}">
         ${advHeaderHTML({nome:oppId?clubOf(oppId).short:'—', home:uf?home:null,
-          fase:uf?(jornada+'ª Jornada'):'', season:S.season, chip:th.bg2})}
+          fase:uf?(jornada+'ª Rodada'):'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -3770,7 +4166,7 @@ function panViewJogo(vid,oppId,uf){
   return `<div class="cl-jogo">
     ${uf?line(vid,me,false):''}
     ${oppId?line(oppId,op,true):''}
-    ${uf?`<div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>`:'<div class="cl-jogo-empty">Sem jogo marcado nesta jornada.</div>'}
+    ${uf?`<div class="cl-blk"><div class="cl-blk-l">Árbitro</div><div class="cl-blk-v cl-strong">${escC(ref)}</div></div>`:'<div class="cl-jogo-empty">Sem jogo marcado nesta rodada.</div>'}
     <div class="cl-blk"><div class="cl-blk-l">Moral do elenco</div><div class="cl-bar cl-bar-moral" style="--val:${moral}"><div class="cl-bar-fill" style="width:${moral}%"></div></div></div>
   </div>`;
 }
@@ -3806,7 +4202,7 @@ function panViewJogador(vid){
   </div>`;
 }
 function panViewAdversario(oppId){
-  if(!oppId) return `<div class="cl-adv">Sem adversário nesta jornada.</div>`;
+  if(!oppId) return `<div class="cl-adv">Sem adversário nesta rodada.</div>`;
   const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
   const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
   return `<div class="cl-adv">
@@ -3902,7 +4298,7 @@ function forcaBlocoHTML(p){
   const total = g.atual-desde;
   const totalTxt = total>0?`+${total}`:total<0?String(total):'estável';
   const linhaMudanca = g.delta!==0
-    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª jornada)</i></div>`
+    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª rodada)</i></div>`
     : `<div class="cl-forca-sub">Sem mudança desde a última leitura.</div>`;
   const linhaTotal = g.hist.length>1
     ? `<div class="cl-forca-sub">Desde que passei a acompanhar: <b>${desde}</b> → <b>${g.atual}</b> (<b>${totalTxt}</b>)</div>`
@@ -3919,7 +4315,7 @@ function forcaBlocoHTML(p){
     ? 'Ainda não entrou em campo nesta temporada'
     : `Forma (últimas ${(p.stats.r3||[]).length}): <b>${notaTxt(forma)}</b>${forma>=6.8?' — evoluindo':''}`;
   const forcaSub = g.delta!==0
-    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª jornada: <b>${g.anterior}</b> → <b>${g.atual}</b>`
+    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª rodada: <b>${g.anterior}</b> → <b>${g.atual}</b>`
     : 'Sem mudança desde a última leitura';
   const detalhesAbertos=!!CL.jgdDetOpen;
   return `<div class="cl-forca" title="${escC(forcaImpactoTexto(p))}">
@@ -3978,7 +4374,7 @@ function growthSparkHTML(g){
   const vals=h.map(x=>x.f), min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
   const barras=h.map((x,i)=>{
     const pct=8+Math.round(92*(x.f-min)/span);
-    const quando=(x.r!=null?(x.r+1)+'ª jornada':'início');
+    const quando=(x.r!=null?(x.r+1)+'ª rodada':'início');
     return `<span class="cl-spark-b ${i===h.length-1?'now':''}" title="${quando} · força ${x.f}"><i style="height:${pct}%"></i></span>`;
   }).join('');
   return `<div class="cl-spark">
@@ -4346,8 +4742,11 @@ const VIDEOS_MOMENTO = {
   // ao contexto — o troféu vem da divisão ou da competição, e o título/manchete do estado do jogo.
   'campeao-liga'  : 'video/momento-campeao.mp4',
   'campeao-copa'  : 'video/momento-campeao.mp4',
-  'marcador-liga' : null,   // video/momento-marcador-liga.mp4
-  'marcador-copa' : null,   // video/momento-marcador-copa.mp4
+  // MESMO vídeo de artilheiro para liga e copa, e de propósito: a cena é a mesma seja o artilheiro
+  // da Série D ou o da Libertadores. O que identifica a competição no modal é o kicker, o nome no
+  // cabeçalho e o troféu — não o vídeo (ver rfArtilheiroHTML).
+  'marcador-liga' : 'video/momento-artilheiro.mp4',
+  'marcador-copa' : 'video/momento-artilheiro.mp4',
   'promovido'     : null,   // video/momento-promovido.mp4
   'rebaixado'     : null,   // video/momento-rebaixado.mp4
   'abertura-copa' : null,   // video/momento-abertura-copa.mp4
@@ -4358,15 +4757,15 @@ const VIDEOS_MOMENTO = {
    amarelo e cinza a linha de contexto é preta e o rodapé cinza-escuro; só no verde valem os tons
    claros do jogo. */
 const MOMENTO_DEFS = {
-  'campeao-liga' : { corpo:'yellow', kicker:'CAMPEÃO BRASILEIRO',        btnPri:'Comemorar',        btnSec:'Ver a tabela…',      acao:'clClassif' },
-  'campeao-copa' : { corpo:'yellow', kicker:'CAMPEÃO DA COPA DO BRASIL', btnPri:'Comemorar',        btnSec:'Ver o caminho…',     acao:'cup' },
-  'marcador-liga': { corpo:'green',  kicker:'ARTILHEIRO DA LIGA',        btnPri:'Fechado',          btnSec:'Ver o jogador…',     acao:'jogador' },
-  'marcador-copa': { corpo:'green',  kicker:'ARTILHEIRO DA COPA',        btnPri:'Fechado',          btnSec:'Ver o jogador…',     acao:'jogador' },
-  'promovido'    : { corpo:'yellow', kicker:'ACESSO CONQUISTADO',        btnPri:'Comemorar',        btnSec:'Ver o elenco…',      acao:'elenco' },
-  'rebaixado'    : { corpo:'gray',   kicker:'REBAIXAMENTO',              btnPri:'Seguir em frente', btnSec:'Ver a tabela…',      acao:'clClassif' },
-  'abertura-copa': { corpo:'green',  kicker:'A COPA COMEÇA HOJE',        btnPri:'Preparar o time',  btnSec:'Ver a escalação…',   acao:'seleccao' },
-  'final-copa'   : { corpo:'yellow', kicker:'FINAL DA COPA',             btnPri:'Entrar em campo',  btnSec:'Ver a escalação…',   acao:'seleccao' },
-  'crise'        : { corpo:'gray',   kicker:'CLIMA PESADO NO CLUBE',     btnPri:'Assumir a responsa', btnSec:'Ver a tabela…',    acao:'clClassif' },
+  'campeao-liga' : { corpo:'yellow', kicker:'CAMPEÃO BRASILEIRO',        btnPri:'Comemorar',        btnSec:'Ver a tabela',      acao:'clClassif' },
+  'campeao-copa' : { corpo:'yellow', kicker:'CAMPEÃO DA COPA DO BRASIL', btnPri:'Comemorar',        btnSec:'Ver o caminho',     acao:'cup' },
+  'marcador-liga': { corpo:'green',  kicker:'ARTILHEIRO DA LIGA',        btnPri:'Fechado',          btnSec:'Ver o jogador',     acao:'jogador' },
+  'marcador-copa': { corpo:'green',  kicker:'ARTILHEIRO DA COPA',        btnPri:'Fechado',          btnSec:'Ver o jogador',     acao:'jogador' },
+  'promovido'    : { corpo:'yellow', kicker:'ACESSO CONQUISTADO',        btnPri:'Comemorar',        btnSec:'Ver o elenco',      acao:'elenco' },
+  'rebaixado'    : { corpo:'gray',   kicker:'REBAIXAMENTO',              btnPri:'Seguir em frente', btnSec:'Ver a tabela',      acao:'clClassif' },
+  'abertura-copa': { corpo:'green',  kicker:'A COPA COMEÇA HOJE',        btnPri:'Preparar o time',  btnSec:'Ver a escalação',   acao:'seleccao' },
+  'final-copa'   : { corpo:'yellow', kicker:'FINAL DA COPA',             btnPri:'Entrar em campo',  btnSec:'Ver a escalação',   acao:'seleccao' },
+  'crise'        : { corpo:'gray',   kicker:'CLIMA PESADO NO CLUBE',     btnPri:'Assumir a responsa', btnSec:'Ver a tabela',    acao:'clClassif' },
 };
 let MOMENTO_FILA=[];
 function enfileirarMomento(id, dados){ if(!MOMENTO_DEFS[id]) return; MOMENTO_FILA.push({id,dados:dados||{}}); }
@@ -4392,6 +4791,22 @@ function momentoAcao(acao){
 function abrirMomento(id, dados, aoFechar){
   const def=MOMENTO_DEFS[id]; if(!def) return;
   dados=dados||{};
+  /* ===== O TITULO TEM TELA PROPRIA (pacote "modal celebracao copas/ligas") =====
+     Copa e liga passam pelo modal de campeao, que monta o resultado da final, a premiacao e a
+     campanha a partir do estado — em vez dos tres cartoes genericos deste momento. `dados.trofeu`
+     ja e a chave certa nos dois casos: a competicao (copaBrasil, libertadores...) ou a divisao
+     (A..D). Se por alguma razao nao houver campeao para montar, cai no momento de sempre. */
+  if((id==='campeao-copa'||id==='campeao-liga') && dados.trofeu && typeof rfCampeaoAbrir==='function'){
+    CL._momentoAtual={id, aoFechar:aoFechar||null};
+    if(rfCampeaoAbrir(dados.trofeu, aoFechar)) return;
+  }
+  /* A ARTILHARIA TEM TELA PROPRIA, como o titulo — e entra logo a seguir a ele na fila (ver
+     enfileirarMomentosCopa/FimDeTemporada). Traz o podio dos tres e veste a identidade da
+     competicao: cor, nome e trofeu saem da chave que os dados carregam. */
+  if((id==='marcador-copa'||id==='marcador-liga') && dados.podio && typeof rfArtilheiroAbrir==='function'){
+    CL._momentoAtual={id, aoFechar:aoFechar||null};
+    if(rfArtilheiroAbrir(dados, aoFechar)) return;
+  }
   CL._momentoAtual={id, aoFechar:aoFechar||null};
   const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
   const claro = def.corpo==='green';
@@ -4400,7 +4815,13 @@ function abrirMomento(id, dados, aoFechar){
   // dois catálogos diferentes no jogo. Resolve nos dois, na ordem, e some se não houver arte.
   let trof='';
   if(dados.trofeu){
-    trof=(typeof trophyImg==='function' && trophyImg(dados.trofeu,72))||'';
+    /* a arte com alfa primeiro (img/trofeus): a embutida em trophies.js e
+       achatada e aparece como quadrado preto sobre o video -- ver rfCompTrofeuHTML */
+    if(typeof rfCompTrofeuHTML==='function' && typeof rfCompInfo==='function'){
+      const info=rfCompInfo(dados.trofeu);
+      if(info && info.trofeu) trof=rfCompTrofeuHTML(info,72);
+    }
+    if(!trof) trof=(typeof trophyImg==='function' && trophyImg(dados.trofeu,72))||'';
     if(!trof && typeof divisionTrophyImg==='function') trof=divisionTrophyImg(dados.trofeu,72)||'';
   }
   const cards=(dados.stats||[]).slice(0,3).map(s=>
@@ -4480,29 +4901,88 @@ function dadosRebaixado(){
     rodape:'A diretoria quer conversar sobre o seu contrato.' };
 }
 /* ARTILHEIRO: só vira modal se for jogador DO USUÁRIO — é o que o pedido especifica. */
-function dadosArtilheiro(escopo){
-  const sc=S.scorers||{}; const nomes=Object.keys(sc); if(!nomes.length) return null;
-  const top=nomes.sort((a,b)=>sc[b]-sc[a])[0]; const gols=sc[top];
-  const p=(squad(CL.clubId)||[]).find(x=>x.n===top); if(!p) return null;   // não é meu: sem modal
-  const jogos=(p.stats&&p.stats.apps)||0;
-  const media=jogos?(gols/jogos).toFixed(2).replace('.',','):'—';
-  const liga=escopo!=='copa';
-  return { titulo:'Artilharia — '+(liga?((typeof classifDivName==='function')?classifDivName(S.division,S.intlUniverse):'Liga'):'Copa'),
-    manchete:'Ele bateu todo mundo.', trofeu:null,
-    linha:`${p.n}, ${p.age} anos, ${({GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'})[p.s]||'jogador'} — artilheiro da competição.`,
-    stats:[{k:'GOLS',v:String(gols)},{k:'JOGOS',v:String(jogos)},{k:'MÉDIA',v:media}],
-    rodape:'Renove o contrato antes que apareça proposta.' };
+/* ===== A ARTILHARIA E DE UMA COMPETICAO, E NAO E SO A MINHA =====
+   Esta funcao tinha dois defeitos, e os dois faziam o modal quase nunca aparecer certo:
+
+     · LIA O POTE UNICO. `S.scorers` junta TODOS os gols da temporada — liga e as tres copas
+       misturadas. O argumento que ela recebia so trocava a palavra do titulo, entao a Copa do
+       Brasil, a Libertadores e a Sul-Americana mostrariam o MESMO jogador com o MESMO numero, e
+       esse numero era o total do ano, nao o da competicao. O motor ja carimbava cada gol na
+       competicao onde caiu (`S.scorersByComp`, ver recordScorers) — faltava ler.
+     · SO ABRIA SE O ARTILHEIRO FOSSE MEU. Havia um `return null` com o comentario "nao e meu:
+       sem modal". Como o artilheiro de um campeonato raramente e do meu clube, o modal
+       simplesmente nao abria na maioria das temporadas. E o mesmo defeito que ja tinha sido
+       corrigido no modal de CAMPEAO de copa (ver dadosCampeaoCopa, logo abaixo): a historia da
+       competicao fecha-se mesmo quando quem a fecha e outro.
+
+   Devolve o PODIO — os tres primeiros —, porque e isso que o modal mostra. */
+function dadosArtilheiro(comp){
+  const chave=comp||'liga';
+  const mapa=(S.scorersByComp&&S.scorersByComp[chave])||null;
+  /* save antigo, ou competicao sem gol ainda: sem mapa nao ha artilharia daquela competicao, e
+     inventar com o pote geral era exatamente o defeito. Melhor nao abrir modal nenhum. */
+  if(!mapa) return null;
+  const ord=Object.entries(mapa).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(!ord.length) return null;
+  const POS={GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'};
+  const doNome=n=>{
+    const cid=(typeof findPlayerClub==='function')?findPlayerClub(n):null;
+    const p=cid?((S.squads&&S.squads[cid])||[]).find(x=>x.n===n):null;
+    return { cid, clube:(cid&&(typeof anyClubOf==='function')&&anyClubOf(cid))||null, p };
+  };
+  const podio=ord.map(([nome,gols],i)=>{
+    const d=doNome(nome);
+    return { pos:i+1, nome, gols, clubId:d.cid,
+      clube:(d.clube&&(d.clube.short||d.clube.name))||'—',
+      idade:d.p?d.p.age:null, setor:d.p?(POS[d.p.s]||'jogador'):null,
+      jogos:(d.p&&d.p.stats&&d.p.stats.apps)||0 };
+  });
+  const primeiro=podio[0];
+  const media=primeiro.jogos?(primeiro.gols/primeiro.jogos).toFixed(2).replace('.',','):'—';
+  const ehLiga=(chave==='liga');
+  const nomeComp = ehLiga
+    ? ((typeof classifDivName==='function')?classifDivName(S.division,S.intlUniverse):'Liga')
+    : (((typeof COMP_DEFS!=='undefined'&&COMP_DEFS[chave])||{}).name||chave);
+  return { comp:chave, ehLiga, nomeComp, podio,
+    titulo:'Artilharia — '+nomeComp,
+    kicker:'ARTILHEIRO '+(ehLiga?'DA ':'DA ')+String(nomeComp).toUpperCase(),
+    manchete:'Ele bateu todo mundo.',
+    trofeu: ehLiga ? S.division : chave,
+    linha:`${primeiro.nome}, ${primeiro.idade!=null?primeiro.idade+' anos, ':''}${primeiro.setor||'jogador'} — artilheiro da competição.`,
+    stats:[{k:'GOLS',v:String(primeiro.gols)},{k:'JOGOS',v:String(primeiro.jogos)},{k:'MÉDIA',v:media}],
+    rodape: (String(primeiro.clubId)===String(CL.clubId))
+      ? 'Renove o contrato antes que apareça proposta.'
+      : 'O artilheiro da competição jogou contra você nesta temporada.' };
 }
+/* ===== A FINAL DE CADA COPA TEM CERIMONIA, SEJA QUEM FOR O CAMPEAO =====
+   Isto so devolvia dados quando o campeao era o clube do utilizador; nas outras
+   vezes nao havia modal nenhum, e o que ficava na tela era a de fim de fase --
+   com "possiveis adversarios" depois da final e a campanha de um clube que
+   muitas vezes nem disputou a competicao. A taca a levantar-se e o fecho da
+   historia da competicao, mesmo quando quem a levanta e outro: e assim que o
+   jogador sabe que aquilo acabou. O video e o mesmo; muda o texto. */
 function dadosCampeaoCopa(key){
   const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{name:'Copa',short:'Copa'};
   const c=S.cups&&S.cups[key]; const b=(c&&c.champion!==undefined)?c:(c&&c.bracket);
-  if(!b || String(b.champion)!==String(CL.clubId)) return null;
-  const fin=(b.ties||[]).find(t=>t.winner!=null) || null;
+  if(!b || b.champion==null) return null;
+  const souEu=String(b.champion)===String(CL.clubId);
+  const camp=(typeof anyClubOf==='function'&&anyClubOf(b.champion))||clubOf(b.champion)||{short:String(b.champion)};
+  /* o placar da FINAL: a decisao e o ultimo confronto resolvido -- ora esta em
+     `ties` (a fase corrente, que ja fechou), ora no ultimo bloco do historico */
+  const ultimaFase=(b.history||[]).length?b.history[b.history.length-1]:null;
+  const fin=(b.ties||[]).find(t=>t.winner!=null && t.hg!=null)
+    || ((ultimaFase&&ultimaFase.ties)||[]).find(t=>t.winner!=null && t.hg!=null)
+    || (b.ties||[]).find(t=>t.winner!=null) || null;
   const placar=fin&&fin.hg!=null?`${fin.hg} × ${fin.ag}`:'—';
-  return { titulo:'Final — '+def.name, manchete:'A taça é nossa.', trofeu:key,
-    linha:`Título da ${def.short} conquistado na decisão.`,
+  return { titulo:'Final — '+def.name, trofeu:key,
+    clubId: b.champion,                       // o modal mostra o escudo de quem venceu
+    kicker: souEu ? undefined : ('CAMPEÃO DA '+String(def.short||def.name).toUpperCase()),
+    manchete: souEu?'A taça é nossa.':`${camp.short||camp.name} é campeão.`,
+    linha: souEu?`Título da ${def.short} conquistado na decisão.`
+                :`${camp.short||camp.name} levanta a ${def.short} de ${S.season}.`,
     stats:[{k:'FINAL',v:placar},{k:'FASES',v:String(b.roundsTotal||'—')},{k:'TEMPORADA',v:String(S.season)}],
-    rodape:'O clube entra na competição continental do ano que vem.' };
+    rodape: souEu?'O clube entra na competição continental do ano que vem.'
+                 :'A competição está encerrada nesta temporada.' };
 }
 function dadosCopaJogo(pending, ehFinal){
   const key=pending.key, def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[key])||{name:'Copa',short:'Copa'};
@@ -4572,7 +5052,9 @@ function enfileirarMomentosCopa(key){
     const d=dadosCampeaoCopa(key); if(!d) return;
     CL._momCopaVista[marca]=true;
     enfileirarMomento('campeao-copa', d);
-    const art=dadosArtilheiro('copa'); if(art) enfileirarMomento('marcador-copa', art);
+    /* A CHAVE DA COPA VAI JUNTO. Passava-se a palavra 'copa', que nao identifica competicao
+       nenhuma — as tres copas do save mostrariam a mesma artilharia. */
+    const art=dadosArtilheiro(key); if(art) enfileirarMomento('marcador-copa', art);
   }catch(e){ console.warn('momentos de copa:', e&&e.message); }
 }
 
@@ -4668,7 +5150,7 @@ function clTrainingScreen(){ CL.menu=null;
       <summary class="cl-trn-intro-h"><span>Como o jogador evolui</span><i>${helpOpen?'fechar':'abrir'}</i></summary>
       <div class="cl-trn-intro-b">
       <p>Ninguém ganha "força" direto. A cada rodada o jogador pode ganhar um <b>ponto de atributo</b>
-      (finalização, passe, reflexos…), e a <b>Força</b> é a média desses atributos convertida pela escala da
+      (finalização, passe, reflexos), e a <b>Força</b> é a média desses atributos convertida pela escala da
       sua divisão. Por isso ele às vezes joga bem e a Força não mexe — e às vezes <b>salta 2 ou 3 de uma vez</b>:
       nas divisões de baixo a escala é bem mais íngreme, então o mesmo ponto ganho vale muito mais Força.</p>
       <p>O que decide a velocidade, em ordem de peso:
@@ -4820,9 +5302,26 @@ const PITCH_ADS=[
   {t:'SUA MARCA',    c:'azul'},
   {t:'PATROCÍNIO',   c:'verde'},
 ];
+/* ===== AS PLACAS PASSARAM A SER INVENTARIO =====
+   Eram texto fixo da lista acima -- nao havia como um anunciante entrar nelas. Agora ha duas
+   chaves: rf98.campo.deitada (as seis de cima e de baixo) e rf98.campo.empe (as seis dos lados).
+   Publicada a arte, ela aparece nas seis placas daquele feitio, como a mesma marca se repete em
+   volta de um campo de verdade. Sem criativo, ficam os rotulos de casa -- o jogo nao muda. */
+function pitchAdArte(lado){
+  if(typeof ADS==='undefined' || !window.ADS) return '';
+  const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
+  const c = ADS.get(chave);
+  if(!c || !c.ficheiro_url) return '';
+  return `<div class="cl-pitch-ad arte" data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
+    onclick="ADS.clique('${escC(chave)}')" style="cursor:${c.link_destino?'pointer':'default'}"
+    ><img src="${escC(c.ficheiro_url)}" alt="Publicidade"></div>`;
+}
 function pitchAdsHTML(lado, n, off){
+  const arte=pitchAdArte(lado);
   let out='';
-  for(let i=0;i<n;i++){ const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
+  for(let i=0;i<n;i++){
+    if(arte){ out+=arte; continue; }
+    const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
     out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }
   return `<div class="cl-pitch-ads ${lado}">${out}</div>`;
 }
@@ -4863,14 +5362,33 @@ const PITCH_LANES={
 /* PITCH_BANDS[formação] = altura (em % do gramado) das faixas ATT, MID, DEF, GK. O goleiro
    fica colado na pequena área; as outras faixas sobem ou descem conforme o desenho: um 4-2-4
    deixa o meio mais recuado (só dois), um 4-5-1 adianta o meio e isola o centroavante. */
+/* MEIO NO CÍRCULO CENTRAL, DISTÂNCIAS IGUAIS. O elemento do jogador tem 12% da
+   altura do gramado, então o CENTRO dele é `top + 6`. Para o meio-campo cair
+   sobre o círculo (50%), a faixa dele é 44. O goleiro fica onde estava (centro
+   ~92, dentro da pequena área) e as outras duas se distribuem igualmente entre
+   os dois: centros em 29 · 50 · 71 · 92, ou seja 21 de distância entre cada par.
+   As diferenças por formação que existiam aqui (meio recuado no 4-2-4, adiantado
+   no 4-5-1) foram achatadas de propósito — o pedido é espaçamento igual. */
+/* NO TELEFONE A REGUA E OUTRA, e a razao esta no proprio comentario acima: ela
+   foi calibrada para "o elemento do jogador tem 12% da altura do gramado". A
+   caixa do jogador, porem, tem 70px FIXOS (camisa 40 + nome 13 + meta 12 + as
+   margens). No campo do desktop 70px sao mesmo ~12%; no campo do telefone, que
+   tem 327px de altura, sao 21,4% — quase o dobro. Com faixas de 21 em 21 as
+   caixas passam a encostar-se, e a de tras invadia o goleiro, que e ancorado
+   pela BASE e por isso nao desce junto.
+
+   Aqui as tres faixas de linha sobem em bloco (mantendo o espacamento igual
+   entre elas) para abrir os ~70px que o goleiro ocupa em baixo:
+   ATT 33..99 · MID 101..167 · DEF 170..236 · GK 254..320. */
+const PITCH_BANDS_MOBILE=[10,31,52,82];
 const PITCH_BANDS={
-  _        :[ 7,30,53,82],
-  '3-3-4'  :[ 6,30,54,82],
-  '3-4-3'  :[ 7,30,53,82],
-  '4-2-4'  :[ 5,32,55,82],
-  '4-3-3'  :[ 7,30,53,82],
-  '4-4-2'  :[ 8,31,54,82],
-  '4-5-1'  :[ 4,29,54,82],
+  _        :[23,44,65,82],
+  '3-3-4'  :[23,44,65,82],
+  '3-4-3'  :[23,44,65,82],
+  '4-2-4'  :[23,44,65,82],
+  '4-3-3'  :[23,44,65,82],
+  '4-4-2'  :[23,44,65,82],
+  '4-5-1'  :[23,44,65,82],
 };
 /* A LINHA DE BAIXO DA CAMISA: força em destaque + a seta de tendência, e a energia vira a
    mesma barrinha da lista de elenco. Antes era o percentual de energia em texto — número que
@@ -4885,12 +5403,17 @@ function chipMetaHTML(p, pos){
 /* a camisa (desenho + número) é a mesma peça no gramado e no banco — só muda o tamanho, que
    vem do CSS (.cl-bp .cl-pp-shirt é 60% da camisa do titular). */
 function shirtHTML(p, th, num){
-  return `<span class="cl-pp-shirt">
-    <svg viewBox="0 0 48 44" aria-hidden="true">
-      <path d="M17 3c1.6 2.6 3.9 4 7 4s5.4-1.4 7-4l7 2.5 8 6.5-6 6.5-3.5-3v25.5a1.5 1.5 0 0 1-1.5 1.5H13a1.5 1.5 0 0 1-1.5-1.5V15.5l-3.5 3-6-6.5 8-6.5z"
-        fill="${th.col}" stroke="${th.col2||'#000'}" stroke-width="2" stroke-linejoin="round"/>
-    </svg>
-    <span class="cl-pp-num" style="color:${lumin(th.col)>0.62?'#111':'#fff'}">${num||''}</span>
+  // A camisa do gramado é a MESMA peça da ficha do jogador (rf-jersey): mangas
+  // inclinadas, corpo com o numero e gola. As cores vem inline porque esta funcao
+  // tambem roda fora do hub, onde as variaveis --club-* podem nao estar montadas.
+  const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
+  // o numero usa a secundaria SÓ quando ela se le sobre a primaria (Palmeiras tem
+  // verde sobre verde); senao cai pro preto/branco que barTextColor garante.
+  const cn=barTextColor(c1,c2);
+  return `<span class="cl-pp-shirt rf-jersey" aria-hidden="true">
+    <i class="rf-j-sl l" style="background:${c2}"></i><i class="rf-j-sl r" style="background:${c2}"></i>
+    <i class="rf-j-body" style="background:${c1}"><b style="color:${cn}">${num||''}</b></i>
+    <i class="rf-j-collar" style="background:${c2}"></i>
   </span>`;
 }
 /* BANCO (duas colunas à direita do campo) — o resto do elenco, na mesma linguagem do gramado.
@@ -4899,6 +5422,7 @@ function shirtHTML(p, th, num){
    Vale a mesma regra do campo: o toque chama a função da LISTA (clSelPlayer), então tocar
    num reserva acende a linha dele no elenco. A troca é o ARRASTE (ver clDragStart). */
 function benchHTML(th, nums){
+  if(typeof rfBancoHTML==='function') return rfBancoHTML(th, nums);
   const xiSet=new Set(S.xi||[]);
   const ordem={GK:0,DEF:1,MID:2,ATT:3};
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid))
@@ -4933,11 +5457,17 @@ function benchHTML(th, nums){
 }
 function clToggleBench(){ CL.benchOpen = CL.benchOpen===false; cdraw(); }
 function pitchHTML(){
+  /* CAMPO DEITADO: só existe no palco (ver rfCampoDeitado em rf26-formacao.js). O ecrã é mais
+     largo do que alto, e o gramado em pé é mais alto do que largo — deitado ele usa o espaço que
+     sobra em vez de o desperdiçar. No cartão do Hub continua em pé, que é a leitura de sempre. */
+  const deitado=(typeof rfCampoDeitado==='function') && rfCampoDeitado();
   const xi=xiPlayers(CL.clubId);
   const th=clubTheme(CL.clubId);
   const nums=clubShirtNumbers(CL.clubId);
   // faixas de cima pra baixo: ataque, meio, defesa, goleiro (o gol do time fica embaixo)
-  const bandas=PITCH_BANDS[CL.formation]||PITCH_BANDS._;
+  const bandas=(typeof isPhone==='function'&&isPhone())
+    ? PITCH_BANDS_MOBILE
+    : (PITCH_BANDS[CL.formation]||PITCH_BANDS._);
   const linhas=[['ATT',bandas[0]],['MID',bandas[1]],['DEF',bandas[2]],['GK',bandas[3]]];
   const nodes=linhas.map(([sec,top])=>{
     const list=xi.filter(p=>p.s===sec);
@@ -4955,35 +5485,53 @@ function pitchHTML(){
       const en = Math.round(p.energy!=null?p.energy:100);
       // o goleiro é ancorado pela BASE (e com o nome acima da camisa, ver .cl-pp.gk): assim ele
       // encosta na pequena área, como no jogo, sem o nome vazar pra fora do gramado
-      const pos = sec==='GK' ? `bottom:2%` : `top:${top}%`;
+      /* ===== O MESMO ONZE, DEITADO =====
+         No campo em pé a FAIXA (ataque/meio/defesa/gol) é vertical e a PISTA é horizontal. Deitado
+         os dois eixos trocam: a faixa passa a ser a distância da esquerda e a pista, a altura.
+         `100-top` é o que põe o ataque à DIREITA — no campo em pé a faixa conta do topo (ataque),
+         e deitado a leitura natural é atacar para a direita, com o próprio gol atrás. */
+      const pos = deitado
+        ? (sec==='GK' ? `left:4%` : `left:${(100-top).toFixed(2)}%`)
+        : (sec==='GK' ? `bottom:2%` : `top:${top}%`);
+      const eixo = deitado ? `top:${left.toFixed(2)}%` : `left:${left.toFixed(2)}%`;
       return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${unavail?'unavail':''}"
-        style="left:${left.toFixed(2)}%;${pos}" data-pid="${escC(p.pid)}" data-sec="${p.s}"
+        style="${eixo};${pos}" data-pid="${escC(p.pid)}" data-sec="${p.s}"
         onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
         title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}% · arraste pro banco pra tirar">
         ${shirtHTML(p,th,nums[p.pid])}
         <span class="cl-pp-name">${escC(nome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
-        ${chipMetaHTML(p)}
+        ${typeof rfPitchMetaHTML==='function'?rfPitchMetaHTML(p):chipMetaHTML(p)}
       </button>`;
     }).join('');
   }).join('');
 
+  /* ===== AS LINHAS SÃO O MESMO DESENHO, RODADO =====
+     O campo é desenhado à mão num espaço 100×118 (em pé). Manter um segundo SVG para o deitado
+     seria manter dois desenhos em sincronia para sempre — e o segundo ia ficar para trás no dia
+     em que alguém mexesse numa linha. Em vez disso o espaço passa a 118×100 e o conteúdo roda
+     90°: `translate(118,0) rotate(90)` leva (x,y) para (118−y, x), ou seja, o topo do campo (o
+     ataque) vai parar à direita, que é a leitura natural de um campo deitado. */
+  const vb   = deitado ? '0 0 118 100' : '0 0 100 118';
+  const gAbre= deitado ? '<g transform="translate(118,0) rotate(90)">' : '';
+  const gFecha= deitado ? '</g>' : '';
   return `<div class="cl-pitch-block ${CL.benchOpen===false?'banco-fechado':''}">
   <div class="cl-pitch-wrap">
     ${pitchAdsHTML('top',3,0)}
     <div class="cl-pitch-mid">
       ${pitchAdsHTML('left',3,1)}
-      <div class="cl-pitch">
-        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true">
+      <div class="cl-pitch ${deitado?'deitado':''}">
+        ${typeof rfPitchMarcaHTML==='function'?rfPitchMarcaHTML():''}
+        <svg class="cl-pitch-lines" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true">${gAbre}
           ${[0,1,2,3,4,5,6,7,8,9].map(i=>`<rect x="0" y="${i*11.8}" width="100" height="11.8" fill="${i%2?'#2f7d34':'#35883a'}"/>`).join('')}
-        </svg>
+        ${gFecha}</svg>
         <!-- guia de setores: os quadrantes que a formação usa pra posicionar o time. Fica bem
              discreto (é orientação, não marcação de campo de verdade). -->
-        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true"
-             fill="none" stroke="rgba(255,255,255,.13)" stroke-width=".6" stroke-dasharray="2 3">
+        <svg class="cl-pitch-lines" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true"
+             fill="none" stroke="rgba(255,255,255,.13)" stroke-width=".6" stroke-dasharray="2 3">${gAbre}
           <path d="M3 24h94M3 54h94M3 84h94"/><path d="M36 3v112M67 3v112"/>
-        </svg>
-        <svg class="cl-pitch-lines" viewBox="0 0 100 118" preserveAspectRatio="none" aria-hidden="true"
-             fill="none" stroke="rgba(255,255,255,.8)" stroke-width=".7">
+        ${gFecha}</svg>
+        <svg class="cl-pitch-lines" viewBox="${vb}" preserveAspectRatio="none" aria-hidden="true"
+             fill="none" stroke="rgba(255,255,255,.8)" stroke-width=".7">${gAbre}
           <rect x="3" y="3" width="94" height="112"/>
           <path d="M3 59h94"/>
           <circle cx="50" cy="59" r="12"/><circle cx="50" cy="59" r="1" fill="rgba(255,255,255,.8)" stroke="none"/>
@@ -4996,7 +5544,7 @@ function pitchHTML(){
           <path d="M3 110a5 5 0 0 1 5 5"/><path d="M97 110a5 5 0 0 0-5 5"/>
           <rect x="42" y="0" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
           <rect x="42" y="115" width="16" height="3" stroke-width=".9" fill="rgba(255,255,255,.18)"/>
-        </svg>
+        ${gFecha}</svg>
         ${nodes}
       </div>
       ${pitchAdsHTML('right',3,2)}
@@ -5013,7 +5561,7 @@ function panSeleccao(){
   const ok=xi.length>=11 && CL.tacticChosen && gkCount===1;
   const gkWarn = (CL.tacticChosen && xi.length>=11 && gkCount!==1)
     ? `<div class="cl-sel-note" style="color:#b00">⚠ ${gkCount===0?'Nenhum goleiro escalado.':'Mais de um goleiro escalado ('+gkCount+').'} Ajuste em "Substituir" pra liberar o Jogar.</div>` : '';
-  // "Selecionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
+  // "Seleccionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
   // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
   // mas priorizando energia (menos cansados) em vez de força.
   // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
@@ -5036,7 +5584,7 @@ function panSeleccao(){
     </div>
   </div>`;
 
-  // O CAMPO ROLA, O RODAPÉ NÃO. Formações, "Selecionar descansados" e "Jogar" são as decisões
+  // O CAMPO ROLA, O RODAPÉ NÃO. Formações, "Seleccionar descansados" e "Jogar" são as decisões
   // da aba — ficam ancoradas na base, do mesmo tamanho e alinhadas, enquanto o campo e o banco
   // ocupam o espaço que sobra.
   return `<div class="cl-sel">
@@ -5048,7 +5596,7 @@ function panSeleccao(){
     <div class="cl-sel-foot">
       ${formationsBlock}
       <div class="cl-sel-acts">
-        ${btn('Selecionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-ok',dis:!CL.tacticChosen,title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
+        ${btn('Seleccionar descansados','clSelectRested()',{icon:'🔋',cls:'cl-btn-ok',dis:!CL.tacticChosen,title:'Reescala o onze priorizando quem está com mais energia, dentro da mesma formação'})}
         ${jogarBtnHTML(ok)}
       </div>
     </div>
@@ -5088,10 +5636,17 @@ function clDragMove(ev){
   if(!DRAG.moved){
     if(Math.abs(ev.clientX-DRAG.x0)+Math.abs(ev.clientY-DRAG.y0) < 6) return;   // ainda é um toque
     DRAG.moved=true;
-    const camisa=DRAG.el.querySelector('.cl-pp-shirt');
+    /* O fantasma que segue o cursor precisa achar a camisa do ORIGEM. A pele
+       antiga desenha `.cl-pp-shirt`; o banco novo (rf26-formacao) desenha
+       `.rf-bj`. Como aqui só se procurava a antiga, arrastar do banco criava um
+       fantasma VAZIO: a substituição acontecia, mas nada seguia o mouse. */
+    const camisa=DRAG.el.querySelector('.cl-pp-shirt, .rf-bj');
+    const doBanco=!!camisa && camisa.classList.contains('rf-bj');
     DRAG.ghost=document.createElement('div');
-    DRAG.ghost.className='cl-dnd-ghost';
-    DRAG.ghost.innerHTML=camisa?camisa.innerHTML:'';
+    DRAG.ghost.className='cl-dnd-ghost'+(doBanco?' de-banco':'');
+    // a camisa antiga entra pelo miolo (o CSS dimensiona o svg); a nova entra
+    // inteira, porque ela é um conjunto de caixas posicionadas entre si
+    DRAG.ghost.innerHTML = !camisa ? '' : (doBanco ? camisa.outerHTML : camisa.innerHTML);
     document.body.appendChild(DRAG.ghost);
     DRAG.el.classList.add('dragging');
     // acende só quem pode receber: mesma posição, e um dos dois tem que estar em campo
@@ -5181,23 +5736,58 @@ function onlineJogarGate(){
   return true;
 }
 function clJogar(){
+  /* ===== UMA PARTIDA DE CADA VEZ =====
+     `clJogar` reentra: a cerimônia de sorteio chama-o de volta no fim (`checkPendingCupDraws(
+     ()=>clJogar())`), e o onDone dispara mais de uma vez. Sem esta porta, a primeira volta abria
+     a partida da COPA e a segunda — encontrando a copa já carimbada — seguia para a liga e
+     escrevia por cima de `CL.live`. Medido em 18/08/2026 numa rodada 4: a Libertadores abria,
+     ficava marcada como vista, e o que aparecia na tela eram os 40 jogos da Série D. A copa
+     nunca era assistida e era resolvida em segundo plano — exatamente o "não vejo as finais".
+     Se já há partida em campo, não se começa outra. Quem termina uma partida chama o fim dela
+     (finishCupSpectate/finishCupLiveMatch/finishLiveRound), nunca este botão.
+
+     MAS A TRAVA NUNCA PODE MATAR O BOTÃO. `if(CL.live) return` era absoluto: bastava um `CL.live`
+     ficar para trás — partida encerrada cujo objeto não foi limpo, ou tela abandonada por outro
+     caminho — para Jogar / Assistir / Ver classificação deixarem de responder PARA SEMPRE, e o
+     save ficava sem saída. Foi o relatado a 18/08 ("parou de funcionar depois de uma rodada").
+     Então a trava vale só enquanto a partida está MESMO a decorrer e na tela dela; um objeto
+     órfão é limpo aqui e o jogo segue. Botão morto é pior que partida repetida. */
+  if(CL.live){
+    if(!CL.live.done && CL.screen==='live') return;      // em campo, a sério: nada entra por cima
+    console.warn('partida órfã em CL.live (done='+!!CL.live.done+', tela='+CL.screen+') — limpa para o botão voltar a responder');
+    CL.live=null;
+  }
   if(CL._seatContext){ clSeatPlay(); return; } // hotseat: "Jogar" na tela do assento inicia a partida dele
-  // CLASSIFICAÇÃO DE COPA PENDENTE: numa jornada com mais de uma competição, a fila para na tela
+  // CLASSIFICAÇÃO DE COPA PENDENTE: numa rodada com mais de uma competição, a fila para na tela
   // do clube entre uma e outra (ver cupClassifContinue). O próximo "Jogar" retoma dela — antes de
-  // qualquer partida, porque ela é da jornada que acabou de ser resolvida.
+  // qualquer partida, porque ela é da rodada que acabou de ser resolvida.
   if(CL._cupClassifQueue && CL._cupClassifQueue.length){
     showCupClassif(CL._cupClassifQueue.shift(), CL._cupClassifRound); return;
   }
-  if(!CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
+  /* RODADA SEM CAMPO NAO PEDE FORMACAO — o mesmo desvio do rotulo (ver rfProximaAcao):
+     tatica e goleiro sao condicoes para entrar em campo, e numa rodada em que o clube nao
+     joga o clique e "Avançar". Sem isto o botao dizia Avançar e o clique respondia com o
+     toast da tatica. */
+  const _semCampo = !CL.online && typeof rfNadaParaJogar==='function' && rfNadaParaJogar();
+  if(!_semCampo && !CL.tacticChosen){ toastC('Escolha a tática no menu Formação primeiro.'); CL.tab='seleccao'; cdraw(); return; }
   /* SORTEIO ANTES DE ENTRAR EM CAMPO. Cada copa tem a sua data de sorteio (ver cupSeasonDrawDays
      no core: dois dias antes da própria estreia, nunca no dia 1 e nunca a menos de 2 dias do
      sorteio de outra). Aqui, no começo da rodada, entram na fila os sorteios cuja data já chegou —
      e a cerimônia roda ANTES de qualquer partida, que é a garantia de "só há jogo depois do
      sorteio daquela copa". Se enfileirou alguma coisa, mostra e volta pra cá quando terminar. */
-  if(typeof queueDueCupDraws==='function' && queueDueCupDraws() && typeof checkPendingCupDraws==='function'){
-    checkPendingCupDraws(()=>clJogar()); return;
+  {
+    const novos=(typeof queueDueCupDraws==='function')?queueDueCupDraws():0;
+    /* A FILA COMPARTILHADA TAMBEM CONTA. S._pendingDrawShows viaja no shared_state, entao ela
+       pode chegar aqui JA CHEIA sem que queueDueCupDraws enfileire nada de novo -- e o clique
+       caia direto nas portas da sala, sem abrir sorteio nenhum: era o "Ver o sorteio" que nunca
+       ia ao sorteio. checkPendingCupDraws ja sabe dispensar entrada que eu ja vi, entao drenar
+       aqui ou mostra a cerimonia devida ou limpa a fila velha e segue. */
+    const fila=(typeof S!=='undefined' && S && S._pendingDrawShows && S._pendingDrawShows.length)||0;
+    if((novos||fila) && typeof checkPendingCupDraws==='function'){
+      checkPendingCupDraws(()=>clJogar()); return;
+    }
   }
-  { const gkc=xiGKCount(xiPlayers(CL.clubId));
+  if(!_semCampo){ const gkc=xiGKCount(xiPlayers(CL.clubId));
     if(gkc!==1){ toastC(gkc===0?'Escale um goleiro antes de jogar.':'Só pode ter 1 goleiro escalado.'); CL.tab='seleccao'; cdraw(); return; } }
   // semana de avanço de copa com partida do clube pendente: joga a copa primeiro, só
   // depois libera a rodada — ver pendingUserCupMatches/clCupResultContinue. Se houver
@@ -5221,7 +5811,7 @@ function clJogar(){
      Com o dia mandando, só existe uma pergunta: o que está em campo HOJE? Se eu tenho confronto
      nessa competição, eu jogo; se não tenho, eu assisto; se o dia é de liga, nenhuma copa entra. */
   const dia=(typeof roomDay==='function')?roomDay():null;
-  if(dia && dia.hold){ toastC('⏳ A sala está acertando a jornada — um instante.'); return; }
+  if(dia && dia.hold){ toastC('⏳ A sala está acertando a rodada — um instante.'); return; }
   /* PASSO 1: O MOMENTO MANDA NA TELA. Enquanto a sala está em 'escalando', "Jogar" quer dizer
      "ESTOU PRONTO" — e mais nada. A partida só entra em campo quando o servidor disser que o
      último assento chegou (momento 'jogando'), e aí ela entra para todos ao mesmo tempo. Era
@@ -5248,7 +5838,7 @@ function clJogar(){
   // por ela do mesmo jeito, uma competição de cada vez, antes de liberar a rodada de liga.
   // Assistir não escreve nada no estado, então cupWasSeen/cupMarkSeen é que lembram o que já foi
   // cumprido NESTA rodada — sem isso a mesma competição reapareceria a cada clique em "Jogar"
-  // (o marcador é por temporada+jornada, ver cupRoundKeyNow).
+  // (o marcador é por temporada+rodada, ver cupRoundKeyNow).
   // RODADA COLETIVA — VALE PROS DOIS MODOS. Quem não disputa a competição (ou já foi eliminado,
   // ou pegou bye) vê a MESMA rodada ao vivo que quem joga, e depois a mesma classificação. Não é
   // mais uma oferta ("quer assistir?") nem um aviso de que hoje não tem jogo pra ele: é a tela da
@@ -5264,13 +5854,121 @@ function clJogar(){
   if(idle.length){
     if(onlineJogarGate()) return;    // mesmo portão: quem assiste entra JUNTO com quem joga
     const cand=idle[0];
-    cupMarkSeen(cand.key);
     CL._pendingCupIdleQueue=idle.slice(1);
+    /* FASE 3: O CARIMBO SO DEPOIS DE A TELA ABRIR.
+       cupMarkSeen era escrito ANTES de startCupRound. Se a rodada nao chegasse a entrar em
+       campo (estado inesperado, erro no meio, o jogador a sair da tela), a competicao ficava
+       marcada como vista sem nunca ter sido mostrada — e o avanco em segundo plano resolvia-a
+       em silencio. Uma competicao inteira desaparecia da rodada. */
+    /* O CARIMBO É O FIM DA PARTIDA, NÃO O COMEÇO. Ele era escrito aqui, assim que a tela abria —
+       e "abriu" não é "foi assistida": bastava a partida ser substituída no mesmo clique para a
+       competição ficar dada como cumprida sem ninguém ter visto nada. Quem carimba agora é
+       finishCupSpectate, ao terminar. A porta acima (`if(CL.live) return`) é que garante que a
+       competição não reaparece enquanto está a ser vista.
+       No caminho de baixo o carimbo FICA: aí não há confronto nenhum para mostrar, e sem ele a
+       competição voltaria a cada clique. */
     if(startCupRound(cand.key, cand.stage, null)) return;
+    cupMarkSeen(cand.key);
     showCupIdleMessage(cand); return;   // sem confrontos pra mostrar: mantém o aviso antigo
   }
   if(CL.online){ onlineMarkReady(); return; }
+  /* REDE DE SEGURANCA: RODADA SEM NADA PARA JOGAR.
+     startLiveRound() monta a rodada a partir de S.sched[S.round]. Numa rodada
+     sem jogo de liga E sem copa pendente ele nao faz NADA — sem erro, sem
+     aviso, sem partida: o botao "Jogar" fica mudo e a temporada nunca fecha.
+     Medido: CL.live continua nulo, 0 jogos, a tela nao muda.
+
+     A rodada vazia e legitima e existe de proposito — prorrogarPorCopasPendentes
+     empurra `S.sched.push([])` para as copas devedoras jogarem. O problema e o
+     caso em que essa rodada tambem nao tem copa: por teto de prorrogacao, por
+     copa resolvida noutro caminho, ou por qualquer desvio de estado. Ai nao ha
+     o que jogar, e o certo e FECHAR a temporada em vez de ficar parado.
+     Melhor uma temporada que fecha do que um jogo que nao anda. */
+  if(typeof rfNadaParaJogar==='function' && rfNadaParaJogar()){ clAvancarDia(); return; }
   startLiveRound();
+}
+/* ===== PASSAR O DIA (fase 2 do calendario) =====
+   Rodada sem jogo de liga e sem copa. Desde que as copas deixaram de ser
+   espremidas dentro da liga, isto acontece de propria: entre o fim da liga e a
+   final da Libertadores ha semanas sem nada em campo, e a temporada precisa de
+   as atravessar. Antes o botao dizia "Jogar" e nao fazia NADA — medido: sem
+   partida, sem tela nova, sem erro. Agora ele diz "Avancar" e avanca.
+
+   E se ja nao ha mais rodada nenhuma, a temporada FECHA aqui. Melhor uma
+   temporada que termina do que um jogo que nao anda. */
+function clAvancarDia(){
+  if(CL.online) return;                        // na Resenha quem manda no dia e o servidor
+  /* ===== FASE 3: NUNCA PASSAR POR CIMA DE UM JOGO =====
+     Este botao so devia aparecer em rodada vazia, mas ele tambem e o caminho por onde
+     clJogar fecha a temporada — e uma rodada com jogo de liga ou com copa por ver nao pode
+     ser saltada nem fechar temporada nenhuma. Se ainda ha o que jogar hoje, o clique vale
+     como "Jogar". */
+  if(typeof rfNadaParaJogar==='function' && !rfNadaParaJogar()){ clJogar(); return; }
+  /* ===== FASE 3: A TEMPORADA SO ACABA DEPOIS DE TODAS AS COMPETICOES =====
+     Antes de olhar para o fim do calendario, toda competicao que ainda deve rodada ganha dia
+     marcado (ver copasPendentes/prorrogarPorCopasPendentes). E barato e so cria o que falta:
+     competicao com dias suficientes ja marcados nao mexe em nada. Sem isto, o "Avancar" da
+     ultima rodada encerrava a temporada com a final da Copa do Brasil e da Sul-Americana por
+     jogar — sem partida, sem cerimonia e sem campeao. Era o relatado. */
+  if(!S.finished && typeof prorrogarSeFaltaCopa==='function'){
+    try{ prorrogarSeFaltaCopa(); }catch(e){ console.warn('prorrogar:', e&&e.message); }
+  }
+  const total=(S.sched||[]).length;
+  /* ===== O "AVANCAR" DEPOIS DA ULTIMA RODADA NAO PODIA MORRER AQUI =====
+     Ele fechava a temporada (endSeason) e redesenhava a MESMA tela: nem o dia
+     passava nem aparecia nada -- o botao parecia morto, e clicar de novo so
+     repetia o fecho em silencio. Quem mostra o fim de temporada e
+     seasonEndDialog(), e e por la que se avanca para a temporada seguinte.
+     A temporada tambem pode ja estar fechada (o proprio playRound fecha-a na
+     ultima rodada): nesse caso nao se fecha outra vez, so se abre a tela. */
+  if(S.round>=total-1 || S.finished){
+    if(!S.finished && typeof endSeason==='function'){ try{ endSeason(); }catch(e){ console.warn('fim de temporada:', e&&e.message); } }
+    if(typeof seasonEndDialog==='function'){ seasonEndDialog(); return; }
+    cdraw(); return;
+  }
+  S.round++; S.week++; S.day+=7;
+  /* ===== O DIA NOVO PODE TER FINAL. QUEM DECIDE E A ARQUIBANCADA, NAO ESTE BOTAO. =====
+     Aqui estava o "nao vejo as finais" na sua forma final. O guarda la em cima pergunta se ha
+     jogo HOJE; passava, o dia virava, e a linha seguinte resolvia em segundo plano as copas do
+     dia NOVO -- que ninguem tinha visto ainda. Depois da rodada 38 a liga acaba e todos os
+     dias passam a ser dias de copa: um clique em "Avancar" atropelava a final da Libertadores,
+     a da Sul-Americana e a da Copa do Brasil de uma vez, e o que aparecia eram tres cerimonias
+     de campeao seguidas. Foi exatamente o relato.
+     O dia avanca e para. Se o dia novo tem copa para jogar ou para assistir, o botao passa a
+     dizer "Jogar" ou "Assistir a rodada" (ver rfJogarLabel) e a partida entra em campo pelo
+     caminho normal, com o jogador a ve-la. So um dia genuinamente sem nada para o humano e que
+     segue para o avanco em segundo plano. */
+  /* ===== A TACA DO DIA QUE ACABOU DE PASSAR VEM ANTES DE TUDO =====
+     Esta saida antecipada — a que impede o "Avancar" de atropelar a final do dia novo — foi posta
+     ANTES do `celebrarCopasDecididas` que ja existia mais abaixo. O efeito: cada dia de final era
+     um dia em que se saia por aqui, e a cerimonia nunca corria. As tacas ficavam guardadas e
+     saiam TODAS JUNTAS no fim da temporada, quando enfim aparecia um dia sem nada a cumprir.
+     Era o relato: "no solo, todas as telas de celebracao aparecem juntas no fim".
+     A regra e simples: uma copa decidida celebra-se assim que o dia dela passa, aconteca o que
+     acontecer com o dia seguinte. */
+  if(typeof celebrarCopasDecididas==='function' && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    try{ if(typeof save==='function') save(); }catch(e){}
+    momentoSeguinte(()=>{ toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):'')); cdraw(); });
+    return;
+  }
+  if(typeof rfNadaParaJogar==='function' && !rfNadaParaJogar()){
+    try{ if(typeof save==='function') save(); }catch(e){}
+    toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
+    cdraw(); return;
+  }
+  /* as copas correm na virada da rodada como em qualquer rodada — sem isto,
+     passar o dia saltaria por cima de uma rodada de copa devida */
+  try{ if(typeof advancePendingCups==='function') advancePendingCups(); }catch(e){ console.warn('copas ao passar o dia:', e); }
+  /* se alguma final foi decidida neste avanco, a taca aparece agora — passar o
+     dia nao pode engolir a cerimonia (ver celebrarCopasDecididas) */
+  if(typeof celebrarCopasDecididas==='function' && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    try{ if(typeof save==='function') save(); }catch(e){}
+    momentoSeguinte(()=>{ toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):'')); cdraw(); });
+    return;
+  }
+  try{ if(typeof save==='function') save(); }catch(e){}
+  toastC('Dia passado — '+((typeof dataCurtaDaJornada==='function')?dataCurtaDaJornada(S.round,'liga'):''));
+  cdraw();
 }
 /* ---- MARCADOR DE COPA JÁ VISTA NESTA RODADA ----
    Antes eram dois arrays (_spectatedKeysThisRound no solo, _cupIdleShownThisRound na Resenha)
@@ -5334,19 +6032,20 @@ function cupPhaseLabelFor(pending){
    O QUE NÃO SAIU: a cerimônia de abertura de fase eliminatória e a de FINAL de copa. Aquilo é
    jogo, não sincronia — aparece uma vez por confronto e continua aparecendo, encadeando direto na
    partida ao fechar. */
+/* ===== A ANTECAMARA DA PARTIDA DE COPA SAIU (17/08/2026) =====
+   Antes de cada confronto eliminatorio abria-se um momento -- "A COPA COMECA
+   HOJE / Bola sorteada, jogo marcado" -- com area de video preta (nunca houve
+   ficheiro para 'abertura-copa' nem para 'final-copa'), o trofeu achatado e uma
+   faixa de publicidade. Ou seja: uma tela a mais entre o clique e o jogo, sem
+   dizer nada que a propria partida nao diga a seguir. Decisao do dono do jogo:
+   fora. Vai-se direto para a partida.
+
+   Os momentos que FICAM sao os que fecham historia: campeao da copa (com o
+   video de comemoracao), campeao da liga, artilheiro, acesso e queda. As
+   entradas 'abertura-copa'/'final-copa' continuam definidas em MOMENTO_DEFS
+   porque nada custa e um dia pode haver video; simplesmente ja ninguem as
+   chama. */
 function showCupIntro(pending, auto){
-  if(!CL._momPreCopa){
-    const b=pending.bracket, ehFinal=!!(b && (b.roundsTotal-b.round)<=0);
-    const marca=pending.key+':'+(b?b.round:pending.stage)+':'+(S.season||1);
-    CL._momCupVista=CL._momCupVista||{};
-    const vale = ehFinal || pending.stage==='bracket';   // grupos não têm "abertura de fase"
-    if(vale && !CL._momCupVista[marca] && typeof abrirMomento==='function'){
-      CL._momCupVista[marca]=true; CL._momPreCopa=true;
-      abrirMomento(ehFinal?'final-copa':'abertura-copa', dadosCopaJogo(pending, ehFinal),
-        ()=>{ CL._momPreCopa=false; showCupIntro(pending, auto); });
-      return;
-    }
-  }
   CL._momPreCopa=false;
   startCupLiveMatch(pending);
 }
@@ -5476,9 +6175,23 @@ function finishCupSpectate(){
   CL.live=null; CL.screen='main'; cdraw();
   const q=CL._pendingCupIdleQueue||[];
   if(q.length){ const nx=q[0]; CL._pendingCupIdleQueue=q.slice(1);
-    cupMarkSeen(nx.key);
-    if(startCupRound(nx.key, nx.stage, null)) return; }
+    /* mesma regra da primeira: carimbar ao abrir daria a competição por vista sem ela ter sido.
+       Quem carimba é esta mesma função, quando ESTA partida terminar. */
+    if(startCupRound(nx.key, nx.stage, null)) return;
+    cupMarkSeen(nx.key); }
   CL._pendingCupIdleQueue=null;
+  /* ===== SOLO: A TACA SAI NO APITO FINAL, NAO NA PROXIMA TELA =====
+     Assistir a final resolve a chave e cria o campeao — mas nada celebrava ali. A cerimonia
+     ficava a espera do proximo caminho que chamasse `celebrarCopasDecididas`, e numa semana de
+     finais (que nao tem rodada de liga) esse caminho so aparecia dias depois. O pedido do dono do
+     jogo e que cada copa celebre logo apos a ULTIMA RODADA dela, como ja acontece na Resenha.
+     SO NO SOLO, de proposito: na Resenha quem enfileira a cerimonia e o fechamento da rodada
+     (queueRoundCupClassifs), que ja funciona e nao se toca. */
+  if(!CL.online && typeof celebrarCopasDecididas==='function'
+     && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    momentoSeguinte(()=>{ CL.screen='main'; CL.tab='jogo'; cdraw(); });
+    return;
+  }
   // se a fase virou 'running' enquanto eu assistia (borda perdida pelo guard CL.screen==='live'),
   // destrava a rodada de liga ao terminar de assistir.
   if(CL.online && typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
@@ -5573,7 +6286,7 @@ function buildLiveMatchObject(h,a,seed,opts){
   const isCup=CL.online && !isLeague && !!opts.cupKey;
   const netLive=isLeague||isCup;
   // A COMPETIÇÃO ENTRA NA CHAVE DA TRANSMISSÃO. Antes era só 'cp:'+mandante+'-'+visitante, e o
-  // calendário oficial põe Copa do Brasil e Sul-Americana na MESMA jornada: quando o mesmo par de
+  // calendário oficial põe Copa do Brasil e Sul-Americana na MESMA rodada: quando o mesmo par de
   // clubes se encontrava nas duas, as duas partidas nasciam com a MESMA streamKey. O onNetMatchLive
   // casa o stream pela chave (`find`), então os eventos de uma partida entravam na outra — e qual
   // das duas era "a primeira da lista" mudava de cliente pra cliente, que é exatamente o relato de
@@ -5636,10 +6349,15 @@ function buildLiveMatchObject(h,a,seed,opts){
       streamKey, streamCast:(CL.online && netLive) };
   }
   const ev = src
-    ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null }
+    ? { events:(src.events||[]).map(e=>({...e,_resolved:true})), hg:src.hg, ag:src.ag, perf:src.perf||null,
+        matchMinutes:src.matchMinutes||null }
     : simEventsC(h,a,seed);
   return { h,a,hg:0,ag:0,idx:0,events:ev.events,att:gate.att,price:gate.price,cap:gate.cap,
     ref:REFS_C[Math.floor(rnd()*REFS_C.length)], goals:[], incidents:[], fhg:ev.hg, fag:ev.ag, perf:ev.perf,
+    /* O APITO DESTA PARTIDA. `simEventsC` sempre devolveu `matchMinutes` (90 + o acrescimo
+       sorteado para ELA) e este objeto deitava fora. Sem ele, o fim de cada jogo era um palpite
+       de tabela; ver liveFimDaPartida. */
+    fimMin:ev.matchMinutes||null,
     user:opts.user!==undefined?opts.user:(h===CL.clubId||a===CL.clubId), div:opts.div, replay:!!src };
 }
 function startLiveRound(){
@@ -5657,6 +6375,18 @@ function startLiveRound(){
   if(CL.online && Array.isArray(S.sched) && (S.round||0) >= S.sched.length){
     CL._liveBusy=false;
     if(typeof onlineCompleteSeasonTurnover==='function') onlineCompleteSeasonTurnover();
+    return;
+  }
+  /* MESMA GUARDA NO SOLO — faltava, e era por isso que "Jogar" às vezes abria uma
+     tela ao vivo VAZIA, só com a faixa azul do topo. Sem rodada em `S.sched`
+     (temporada terminada, ou o diálogo de fim de temporada fechado e o botão
+     clicado de novo), `fxRaw` saía vazio, `RL.matches` também, e a tela desenhava
+     a barra e nada mais — sem erro no console e sem saída, porque o tique da
+     transmissão não tem em que pegar. Agora a rodada fantasma não chega a nascer. */
+  if(!CL.online && Array.isArray(S.sched) && (S.round||0) >= S.sched.length){
+    CL._liveBusy=false;
+    if(S.finished && typeof seasonEndDialog==='function') seasonEndDialog();
+    else toastC('A temporada acabou. Avance para a próxima.','info');
     return;
   }
   fixUserXIAvailability(); // segunda camada de proteção: nunca deixa suspenso/lesionado marcado como titular
@@ -5685,6 +6415,15 @@ function startLiveRound(){
     const oSeedBase=hashC('rnd'+S.season+'-'+S.round+'-'+d);
     oFx.forEach(([h,a])=>{ const seed=(oSeedBase+hashC(h)+hashC(a))>>>0;
       RL.matches.push(buildLiveMatchObject(h,a,seed,{user:false,div:d})); }); }); }
+  /* REDE DE SEGURANÇA. Mesmo com a guarda acima, qualquer caminho que chegue aqui
+     sem uma única partida produziria a tela vazia. Melhor recusar a entrada e
+     dizer o que houve do que deixar o utilizador preso numa tela morta. */
+  if(!RL.matches.length){
+    CL._liveBusy=false;
+    console.warn('rodada sem partidas: S.round='+S.round+' de '+((S.sched||[]).length)+' — entrada em campo cancelada');
+    toastC('Não há jogo para esta rodada.','warn');
+    return;
+  }
   RL.maxMin=Math.max(94,...RL.matches.map(m=>m.events.length?m.events[m.events.length-1].min:90));
   // FASE 1: alinha o INÍCIO da transmissão ao apito oficial do servidor (kickoff_at) — quem recebe
   // o evento de fase com um pouco de latência entra já no minuto em que os outros estão, em vez de
@@ -5740,6 +6479,42 @@ function maybeBroadcastMatch(m,force){
   if(!force && !changed && (now-m._cast.ts)<900) return;
   m._cast={ts:now,n:evN,p:pend,d:done};
   NET.broadcastMatch({ k:m.streamKey, ...m.sim.snapshot() });
+}
+/* O RESULTADO QUE O DONO DA PARTIDA PUBLICOU NO ASSENTO — para a rodada corrente e exatamente
+   este confronto. E o registo do apito que NAO viaja por broadcast (colunas de game_seats via
+   realtime), entao sobrevive a perda de qualquer snapshot. Liga usa last_result; dia de copa usa
+   last_cup_result (ver cupResultadoPublicado, no core). */
+function liveResultadoPublicadoDe(m){
+  if(!CL.online || typeof NET==='undefined' || !NET._claimed) return null;
+  const RL=CL.live;
+  if(RL && RL.cup) return (typeof cupResultadoPublicado==='function')
+    ? cupResultadoPublicado(RL.cup.key, m.h, m.a) : null;
+  for(const uid in NET._claimed){
+    const c=NET._claimed[uid]; if(!c || (c.clubId!==m.h && c.clubId!==m.a)) continue;
+    if(c.last_result_round!==(S.round||0) || !c.last_result) continue;
+    const r=c.last_result;
+    if(r && r.h===m.h && r.a===m.a && r.hg!=null) return r;
+  }
+  return null;
+}
+/* ===== O APITO FINAL E REENVIADO DEPOIS DA RODADA FECHAR =====
+   O transmissor rebatia o snapshot final "enquanto a rodada nao fecha" -- so que a rodada DELE
+   fecha quase instantaneamente depois do proprio apito (piso de 12ms sem espectador a segurar), e
+   sobravam um punhado de envios num canal sem historico. Snapshot final perdido = quem assiste
+   espera o detetor de 20s. Aqui o final continua a ser batido por ~7s DEPOIS de a rodada fechar,
+   fora do liveTick (que ja morreu) -- barato, idempotente do lado de quem recebe (cumulativo), e
+   com o caminho do resultado publicado como segunda rede. */
+function liveAgendarReenvioFinal(RL){
+  if(!CL.online || typeof NET==='undefined' || !NET.broadcastMatch) return;
+  const finais=(RL.matches||[])
+    .filter(m=>m.sim && m.sim.done && m.streamCast)
+    .map(m=>({k:m.streamKey, snap:m.sim.snapshot()}));
+  if(!finais.length) return;
+  let n=0;
+  const t=setInterval(()=>{
+    if(++n>8){ clearInterval(t); return; }
+    finais.forEach(f=>{ try{ NET.broadcastMatch({k:f.k, ...f.snap}); }catch(e){} });
+  }, 900);
 }
 /* snapshot recebido: atualiza o cache e, se for a MINHA partida assistida (visitante), anexa os
    eventos novos e abre/fecha o modal de decisão remota conforme a pendência. */
@@ -5845,6 +6620,78 @@ function kickoffWaitingMatch(RL){
   if(pronto) return null;
   return m;
 }
+/* ATE ONDE AS FONTES VIVAS CHEGARAM. Duas fontes mandam no relogio de uma rodada: a sessao
+   local (a minha partida) e as transmissoes que eu assisto. Devolve o minuto mais adiantado
+   entre elas, ou null quando nao ha nenhuma viva -- caso das rodadas em que todas as partidas
+   ja vem com os eventos prontos, em que o relogio pode correr a vontade. */
+function liveFonteMax(RL){
+  let mx=null;
+  (RL&&RL.matches||[]).forEach(m=>{
+    if(m.sim && !m.sim.done){ mx=Math.max(mx||0, m.sim.minute||0); return; }
+    if(m.streamRemote && !m.streamDone && !m.streamDead){
+      const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+      /* SO SEGURA SE ELA ESTIVER MESMO A CHEGAR. Segurar o relogio por uma transmissao que
+         nunca chega (ou que emudeceu) troca o relogio em fuga por uma rodada parada para
+         sempre -- medido: 1' durante um minuto inteiro, sem apito. Transmissao viva e a que
+         mandou snapshot ha menos de STREAM_MUDO_MS; passando disso ela deixa de mandar no
+         relogio e a rodada segue ate ao fim da partida (ver liveTetoMin). */
+      if(st && st.snap && (nowMs()-st.ts)<STREAM_MUDO_MS) mx=Math.max(mx||0, st.snap.minute||0);
+    }
+  });
+  return mx;
+}
+/* silencio a partir do qual uma transmissao deixa de contar: nem segura o relogio, nem
+   segura a rodada (ver o detetor de stream morto no laco das partidas) */
+const STREAM_MUDO_MS=20000;
+/* ===== CADA PARTIDA TEM O SEU APITO =====
+   90 mais o acrescimo sorteado para ELA, entre 1 e 4 (ver `session.step` no motor): 91, 92, 93
+   ou 94, e cada jogo sorteia o seu. Devolve null enquanto esse numero ainda nao existe -- a
+   sessao so o sorteia ao chegar aos 90, e um snapshot pode ainda nao o ter trazido. */
+function liveFimDaPartida(m){
+  if(!m) return null;
+  if(m.fimMin) return m.fimMin;   // pre-computada, ou adotado do resultado publicado (ver liveResultadoPublicadoDe)
+  if(m.sim) return m.sim.totalMinutes || null;
+  if(m.streamRemote && !m.streamDead){
+    const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+    return (st && st.snap && st.snap.totalMinutes) || null;
+  }
+  return null;
+}
+/* essa partida ja apitou? */
+function liveJogoEncerrado(m, RL){
+  if(!m) return false;
+  if(m.done) return true;
+  if(m.sim) return !!m.sim.done;
+  if(m.streamRemote){
+    const st=CL._liveStreams && CL._liveStreams[m.streamKey];
+    return !!(m.streamDone || m.streamDead || (st && st.snap && st.snap.done));
+  }
+  const fim=liveFimDaPartida(m);
+  return fim!=null && !!RL && RL.minute>=fim && m.idx>=(m.events||[]).length;
+}
+/* ===== O RELOGIO DA RODADA PARA QUANDO O ULTIMO JOGO APITA =====
+   O teto era `Math.max(96, ...)` -- um piso fixo que nao pertence a partida nenhuma. Medido numa
+   rodada de 40 jogos: o jogo do utilizador apitava aos 92 e a rodada continuava ate 94, com
+   quatro a cinco lances de outros jogos a entrar DEPOIS do apito dele. E o mesmo desencontro de
+   sempre, duas coordenadas a discordar: o fim da minha partida sai do acrescimo sorteado para
+   ela, e o fim da rodada saia de um numero de tabela.
+   Agora ha uma coordenada so. A rodada acaba no ULTIMO apito de verdade -- o maior entre os fins
+   conhecidos de cada jogo (e nunca antes do ultimo lance ja escrito na timeline). O piso de
+   96/130 fica apenas enquanto algum jogo ainda nao revelou o proprio fim: sem isso a rodada
+   podia fechar antes de um jogo que ainda nem chegou aos 90. */
+function liveTetoMin(RL){
+  const piso = (RL && RL.extraStartMinute!=null) ? 130 : 96;   // 90+acrescimos / 120+acrescimos
+  const jogos = (RL&&RL.matches) || [];
+  let mx=0, algumSemApito=false;
+  jogos.forEach(m=>{
+    const fim=liveFimDaPartida(m);
+    if(fim==null && !liveJogoEncerrado(m,RL)) algumSemApito=true;
+    if(fim!=null) mx=Math.max(mx, fim);
+    const evs=m.events||[]; if(evs.length) mx=Math.max(mx, evs[evs.length-1].min);
+  });
+  if(algumSemApito || !mx) return piso;
+  return mx;
+}
 function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused) return;
   // BARREIRA: seguro o minuto 0 até o adversário humano entrar em campo (ou o cronômetro zerar).
   {
@@ -5865,14 +6712,39 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       const m0=(RL.matches||[])[0]; if(m0 && m0.streamKey) NET.broadcastKickoff(m0.streamKey);
     }
   }
-  RL.minute+=1;
+  /* ===== O RELOGIO SEGUE A PARTIDA, NAO O RELOGIO DE PAREDE =====
+     Ele era incrementado a cada tique, aconteca o que acontecer com a simulacao. So que a
+     sessao PARA quando fica a espera de uma decisao (session.step devolve logo se houver
+     `pending`): se por qualquer motivo essa decisao nao for resolvida -- e o modal nao estiver
+     aberto, que e o unico caso em que o tique nem chega aqui --, a partida congela e o relogio
+     continua a correr sozinho. Foi isso que se viu numa liga: 90, 100, 135 minutos, sem ser
+     prorrogacao, e sem apito final. Agora, com uma partida travada a espera de decisao, o
+     relogio da rodada espera com ela. */
+  const travadaEmDecisao=(RL.matches||[]).some(m=>m.sim && !m.sim.done && m.sim.pending);
+  /* ===== E TAMBEM NAO PASSA A FRENTE DE QUEM ESTA A TRANSMITIR =====
+     A correcao acima cobriu a sessao local. Faltava a outra fonte: as partidas que eu ASSISTO
+     (streamRemote). Nessas o relogio nao vem de mim, vem dos snapshots de quem joga -- e o
+     codigo empurrava o teto com `RL.minute+2` enquanto esperava, ou seja, outra escada
+     infinita. Quando o transmissor sai da tela ao vivo, o detetor de stream morto so age aos
+     20 SEGUNDOS de silencio; com o ritmo 'Foguete' (12ms por tique) esses 20 segundos sao
+     ~1600 minutos de relogio. Foi o 1399' visto numa rodada em que o utilizador nem jogava.
+     A regra passa a ser uma so, para as duas fontes: o relogio da rodada nunca vai alem do
+     ponto a que as fontes vivas de facto chegaram. Sem fonte viva (rodada toda pre-calculada)
+     ele corre livre, como sempre. */
+  const fonte=liveFonteMax(RL);
+  if(!travadaEmDecisao && (fonte==null || RL.minute<=fonte)) RL.minute+=1;
   // FASE 3A: sessão interativa gera os eventos AO VIVO, minuto a minuto — avança até o minuto do
   // relógio (ou até uma decisão pendente travar). Enquanto a sessão não termina, o relógio da
   // rodada se estende junto (o acréscimo só é sorteado aos 90'). Eventos entram em m.events
   // (mesma referência) e são consumidos pelo laço normal abaixo — modais pausam igual sempre.
   RL.matches.forEach(m=>{ if(m.sim && !m.sim.done){
     while(!m.sim.pending && !m.sim.done && m.sim.minute<RL.minute){ m.sim.step(); }
-    if(!m.sim.done) RL.maxMin=Math.max(RL.maxMin, m.sim.totalMinutes || (RL.minute+2));
+    /* TETO DO RELOGIO VEM DA PARTIDA. Era `RL.minute+2` -- o relogio a alimentar-se de si
+       proprio: enquanto a sessao nao anunciava o total (so o faz ao chegar aos 90), cada tique
+       empurrava o teto dois minutos a frente do proprio tique, para sempre. Com a sessao
+       parada numa decisao isso e uma escada infinita. `m.sim.minute` e ate onde o jogo de
+       facto chegou, e e esse que manda. */
+    if(!m.sim.done) RL.maxMin=Math.max(RL.maxMin, m.sim.totalMinutes || (m.sim.minute+2));
     if(m.sim.done && m.sim.result){ m.fhg=m.sim.result.hg; m.fag=m.sim.result.ag; m.perf=m.sim.result.perf; }
     // FASE 3B: pendência do lado REMOTO (visitante humano) — espera a decisão dele via 'mdec'
     // por até 15s; sem resposta, aplica a padrão (o autoritativo nunca trava esperando quem caiu).
@@ -5881,8 +6753,22 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       if(m.sim.pending.ev.side!==myS){
         if(!m.sim._remoteDeadline) m.sim._remoteDeadline=nowMs()+15000;
         if(nowMs()>m.sim._remoteDeadline){ const d=m.sim.defaultDecision(); if(d) m.sim.applyDecision(d); m.sim._remoteDeadline=null; }
+      } else {
+        /* PENDENCIA MINHA SEM MODAL ABERTO -- o beco de onde a partida nao sai sozinha.
+           Quando o modal abre, ele poe RL.paused e o tique nem chega aqui; se estamos a
+           passar por esta linha, a decisao e minha, nao ha modal, e ninguem a vai resolver.
+           Acontece quando o evento pendente nao chega a ser lido (o laco de eventos para no
+           primeiro por resolver, entao um evento do outro lado ainda em aberto segura a fila
+           inteira). Vinte segundos e aplica-se a mesma decisao padrao do lado remoto -- a
+           partida tem sempre de acabar. */
+        if(!m.sim._localDeadline) m.sim._localDeadline=nowMs()+20000;
+        if(nowMs()>m.sim._localDeadline){
+          const d=m.sim.defaultDecision();
+          if(d){ m.sim.applyDecision(d); console.warn('decisão pendente sem modal — aplicada a padrão:', d.tipo); }
+          m.sim._localDeadline=null;
+        }
       }
-    } else m.sim._remoteDeadline=null;
+    } else { m.sim._remoteDeadline=null; m.sim._localDeadline=null; }
     maybeBroadcastMatch(m); // transmite o snapshot pra sala (visitante + espectadores)
   } else if(m.sim && m.sim.done){
     // FASE 3C: continua batendo o snapshot FINAL enquanto a rodada não fecha. Sem isso o apito
@@ -5894,7 +6780,28 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     // rodada espera o fim dele.
     const st=CL._liveStreams && CL._liveStreams[m.streamKey];
     if(!m.streamDone && !m.streamDead){
-      RL.maxMin=Math.max(RL.maxMin, RL.minute+2);
+      /* ===== O RESULTADO PUBLICADO ENCERRA A TRANSMISSAO NA HORA =====
+         Quando o transmissor apita, a rodada DELE fecha em milissegundos (o piso de ritmo cai
+         para 12ms sem espectador a segurar) e ele para de emitir. Se o snapshot final se perde,
+         quem assiste ficava pendurado no detetor de stream morto -- VINTE SEGUNDOS parado na
+         tela ao vivo, e depois a rodada "voltava sozinha". Era a trava relatada a 19/08.
+         So que o apito dele tem um registo que nao se perde: o resultado PUBLICADO no assento
+         (last_result/last_cup_result), que chega por realtime em ~1s. Stream em silencio curto
+         + resultado publicado do confronto = a partida acabou de verdade: adota os eventos
+         oficiais e libera o relogio, sem toast e sem espera. */
+      const _mudoMs = st ? (nowMs()-st.ts) : (nowMs()-(m._builtAt||0));
+      if(_mudoMs>2500 && typeof liveResultadoPublicadoDe==='function'){
+        const pub=liveResultadoPublicadoDe(m);
+        if(pub){
+          (pub.events||[]).slice(m.events.length).forEach(e=>m.events.push({...e,_resolved:true}));
+          m.streamDone=true; m.fhg=pub.hg; m.fag=pub.ag;
+          if(pub.perf) m.perf=pub.perf;
+          if(pub.matchMinutes) m.fimMin=pub.matchMinutes;
+          return;   // nada de anunciar kickoff nem de detetor de morte: ela terminou
+        }
+      }
+      /* teto vindo do PROPRIO stream, nao do relogio da rodada (ver liveFonteMax) */
+      RL.maxMin=Math.max(RL.maxMin, ((st&&st.snap&&st.snap.minute)||0)+2);
       // ANUNCIO QUE ESTOU EM CAMPO enquanto espero: é isto que destrava o mandante, que está
       // segurando o apito à minha espera (ver kickoffWaitingMatch).
       if(!m.spectate && typeof NET!=='undefined' && NET.broadcastKickoff) NET.broadcastKickoff(m.streamKey);
@@ -5917,7 +6824,11 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
           m.streamRemote=false; m.sim=liveMatchSession(m.h,m.a,m.seed,{}); m.events=m.sim.events; m.streamCast=true;
           toastC('⚠ Transmissão do mandante não chegou — assumindo a partida localmente.');
         }
-      } else if(st && nowMs()-st.ts>20000){
+      } else if((st && nowMs()-st.ts>STREAM_MUDO_MS)
+             || (!st && (nowMs()-(m._builtAt||0))>STREAM_MUDO_MS)){
+        /* O `!st` FALTAVA. O detetor so olhava para transmissoes que ja tinham chegado ALGUMA
+           vez; a que nunca chega caia fora dos dois ramos (o de cima exige `events.length===0`)
+           e ficava viva para sempre, segurando a rodada. Agora o silencio total conta igual. */
         m.streamDead=true; // stream morreu no meio: solta o relógio (o resultado oficial sai na classificação)
         if(m.spectate){ if(!m.events.length) fallbackSpectateToPre(m); } // partida de terceiros: sem toast (não é o jogo dele)
         else toastC('⚠ Transmissão interrompida — o resultado oficial sai na classificação.');
@@ -5949,6 +6860,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     // estatística e empurrão na barra de pressão (ver camOnEvent). Só pra partida do usuário.
     if(m.user) camOnEvent(m,e);
   } });
+  { const teto=liveTetoMin(RL); if(RL.maxMin>teto) RL.maxMin=teto; }   // ver liveTetoMin
   { const um=RL.matches.find(m=>m.user); if(um) camEndCheck(um,RL); }
   updateLive();
   if(pendingPenalty){ openPenaltyModal(pendingPenalty.m, pendingPenalty.e); return; }
@@ -5976,6 +6888,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       }
     }
     { const um=RL.matches.find(m=>m.user); if(um) camFinal(um); } // apito final na narração do Camarote
+    if(typeof liveAgendarReenvioFinal==='function') liveAgendarReenvioFinal(RL);   // o apito final continua no ar por ~7s
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
@@ -6022,7 +6935,23 @@ function onlineTickFloorMs(RL){
    pênalti do usuário aqui pausa e abre o modal normal, igual sempre). Os eventos entram
    na timeline da própria partida (deslocados +90'), então liveTick continua tocando
    normalmente — só o relógio muda de escala/rótulo (ver scLive). ---- */
+/* A PRORROGAÇÃO GANHOU TELA (telas/Modal - Prorrogacao). Ela não tinha
+   cabeçalho próprio: o relógio simplesmente passava dos 90 e o jogador
+   descobria depois. A tela avisa antes, mostra como o elenco está e libera
+   a QUARTA troca — que é a regra que só a prorrogação abre.
+   startExtraTime() agora só apresenta; quem estende o relógio é
+   startExtraTimeGo(), chamado pelo botão da tela. */
 function startExtraTime(m){
+  const RL=CL.live; if(!RL) return;
+  RL.penMatch=m; CL._extraPend=m;
+  overlayC(rfProrrogacaoHTML(RL));
+}
+function startExtraTimeGo(){
+  clCloseOverlay();
+  const m=CL._extraPend; CL._extraPend=null;
+  if(m) startExtraTimeLegado(m);
+}
+function startExtraTimeLegado(m){
   const RL=CL.live;
   RL.cup.wentExtra=true;
   // FASE 3A: sessão interativa continua na MESMA partida — mantém quem está em campo, cartões e
@@ -6138,8 +7067,38 @@ function shootoutNextKick(){
     const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,RL.pens.h.length+RL.pens.a.length));
     const taker=pickPenaltyTaker(eligible,R);
     const scored=R.random()<penaltyConvChance(taker,gk);
-    setTimeout(()=>recordShootoutKick(side,taker?taker.n:null,scored),700);
+    /* A COBRANÇA DO ADVERSÁRIO TAMBÉM SE VÊ. Antes era `setTimeout(record…,700)`:
+       o placar de bolinhas mudava sozinho e o utilizador nunca via quem bateu nem
+       se entrou — a série "piscava" e no fim aparecia um resultado que ninguém
+       tinha acompanhado. Agora passa pela MESMA revelação da cobrança dele
+       (suspense → resultado), que é o que a disputa tem de dramático. */
+    shootoutRevelar(side, taker?taker.n:null, scored);
   }
+}
+/* ===== A REVELAÇÃO DE UMA COBRANÇA, IGUAL PARA OS DOIS LADOS =====
+   Mantém `pensPicking` ligado enquanto anima: é essa bandeira que faz a tela
+   ao vivo desenhar o modal da disputa (ver liveModalHTML/shootoutPickerHTML).
+   Só ao fim é que a cobrança é REGISTADA — antes disso o placar não muda, para
+   a bolinha aparecer junto com a revelação e não antes dela. */
+function shootoutRevelar(side, takerName, scored){
+  const RL=CL.live; if(!RL || !RL.pens) return;
+  /* uma revelacao de cada vez: chamada duas vezes seguidas, a segunda apagava os relogios da
+     primeira e recomecava o suspense — a serie nunca avancava */
+  if(CL.penPhase) return;
+  if(CL._penPrazoTimer){ clearTimeout(CL._penPrazoTimer); CL._penPrazoTimer=null; }
+  if(CL._penRevealTimer) clearTimeout(CL._penRevealTimer);
+  if(CL._penCloseTimer) clearTimeout(CL._penCloseTimer);
+  RL.pensPicking=true;
+  CL.penPhase='suspense'; CL.penResultScorer=takerName; CL.penResultScored=scored;
+  cdraw();
+  const rapido=!!CL.penAuto;               // "⏩ Simular o resto" continua a valer
+  CL._penRevealTimer=setTimeout(()=>{
+    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
+    CL._penCloseTimer=setTimeout(()=>{
+      CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
+      recordShootoutKick(side, takerName, scored);
+    }, rapido?350:1800);
+  }, rapido?200:1200);
 }
 function openShootoutPickerModal(){
   const RL=CL.live;
@@ -6152,11 +7111,31 @@ function openShootoutPickerModal(){
   const takers=shootoutEligibleTakers(pool, takenNames);
   const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
   CL.penSel=best?best.n:(takers[0]&&takers[0].n)||null;
+  /* CADA COBRANÇA COMEÇA SEM CANTO ESCOLHIDO. `CL.penCanto` é global e sobrevive à cobrança
+     anterior — sem zerar, a 2ª batida da série já nasceria com o canto da 1ª marcado na baliza e
+     levaria o bônus de escolha (penaltyConvChance, +6 pontos) sem o jogador ter escolhido nada. */
+  CL.penCanto=null;
   CL.penDeadline=Date.now()+10000;
   RL.pensPicking=true;
   sfx('penalti'); cdraw();
+  /* modo automatico ligado pelo "Simular o resto": nao espera os dez segundos,
+     bate com o batedor pre-escolhido e segue para a proxima */
+  if(CL.penAuto){ setTimeout(()=>resolveShootoutKick(CL.penSel), 220); return; }
   if(CL._penTimer) clearInterval(CL._penTimer);
   CL._penTimer=setInterval(shootoutPenaltyTick,200);
+  /* ===== A COBRANCA NAO PODE DEPENDER SO DO INTERVALO =====
+     O prazo de 10s vivia unicamente dentro de shootoutPenaltyTick, um setInterval que (a) escreve
+     num elemento `#cl-pen-count` que a pele nova JA NAO DESENHA e (b) se apaga sozinho sempre que
+     `pensPicking` pisca para falso. Morto o intervalo, NADA mais resolvia a cobranca:
+     resolveShootoutKick so e chamado por ele ou pelo clique em "Bater". A disputa ficava parada
+     para sempre a espera, com a tela ao vivo a redesenhar por tras — era o "piscando em loop".
+     Medido: prazo vencido ha 51 segundos, intervalo inexistente, zero cobrancas registadas.
+     Agora o prazo tem um relogio proprio, que dispara mesmo que o intervalo tenha morrido. */
+  if(CL._penPrazoTimer) clearTimeout(CL._penPrazoTimer);
+  CL._penPrazoTimer=setTimeout(()=>{
+    const R2=CL.live;
+    if(R2 && R2.pensPicking && !CL.penPhase) resolveShootoutKick(CL.penSel);
+  }, Math.max(300, CL.penDeadline-Date.now()+120));
 }
 function shootoutPenaltyTick(){ const RL=CL.live; if(!RL||!RL.pensPicking){ clearInterval(CL._penTimer); return; }
   const left=Math.max(0,CL.penDeadline-Date.now()); const secs=Math.ceil(left/1000);
@@ -6179,19 +7158,14 @@ function resolveShootoutKick(takerName){
   const gk=squad(oppId).find(p=>p.s==='GK')||null;
   const kickIdx=RL.pens.h.length+RL.pens.a.length;
   const R=makeRng(hashSeed(S.seed,S.round,'pens',m.h,m.a,side,kickIdx,takerName));
-  const scored=R.random()<penaltyConvChance(taker,gk);
-  CL.penPhase='suspense'; CL.penResultScorer=taker?taker.n:takerName; CL.penResultScored=scored;
-  cdraw();
-  CL._penRevealTimer=setTimeout(()=>{
-    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
-    CL._penCloseTimer=setTimeout(()=>{
-      CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
-      recordShootoutKick(side, taker?taker.n:takerName, scored);
-    },2200);
-  },1400);
+  const scored=R.random()<penaltyConvChance(taker,gk,{humano:true,canto:CL.penCanto});
+  /* mesma revelação da cobrança do adversário — uma função só para os dois lados */
+  shootoutRevelar(side, taker?taker.n:takerName, scored);
 }
 function recordShootoutKick(side,takerName,scored){
   const RL=CL.live; if(!RL||!RL.pens) return;
+  if(CL._penPrazoTimer){ clearTimeout(CL._penPrazoTimer); CL._penPrazoTimer=null; }
+  if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
   RL.pensPicking=false;
   (side==='H'?RL.pens.h:RL.pens.a).push({name:takerName,scored});
   RL.pens.turn = side==='H' ? 'A' : 'H';
@@ -6199,6 +7173,7 @@ function recordShootoutKick(side,takerName,scored){
   setTimeout(shootoutNextKick,1200);
 }
 function finishPenaltyShootout(){
+  CL.penAuto=false;                     // o modo automatico vale so para esta disputa
   const RL=CL.live; const P=RL.pens;
   P.finalH=P.h.filter(k=>k.scored).length; P.finalA=P.a.filter(k=>k.scored).length;
   // se bateu o teto de segurança (20 cobranças cada) ainda empatado — praticamente
@@ -6237,7 +7212,7 @@ function resolvePenalty(takerName){
     // FASE 3B (visitante): mando a escolha do batedor pro mandante e fico no suspense — a
     // revelação chega pelo stream (closeRemoteDecision). Timer de segurança fecha se nada vier.
     if(typeof NET!=='undefined' && NET.broadcastDecision && CL._remoteDecision)
-      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.penMatch.h===CL.clubId?'H':'A'), decision:{tipo:'penalti', batedor:takerName} });
+      NET.broadcastDecision({ k:CL._remoteDecision.k, side:(RL.penMatch.h===CL.clubId?'H':'A'), decision:{tipo:'penalti', batedor:takerName, canto:CL.penCanto} });
     CL.penPhase='suspense'; CL.penResultScorer=takerName; CL.penResultScored=null;
     cdraw();
     CL._penRevealTimer=setTimeout(()=>{ if(CL.penPhase==='suspense'){ CL._remoteDecision=null; closePenaltyModal(); } }, 9000);
@@ -6246,14 +7221,14 @@ function resolvePenalty(takerName){
   let scored;
   if(RL.penMatch && RL.penMatch.sim){
     // FASE 3A: a SESSÃO decide (mesma RNG determinística de sempre) e já aplica placar/artilheiro/log
-    scored=RL.penMatch.sim.applyDecision({tipo:'penalti', batedor:takerName});
+    scored=RL.penMatch.sim.applyDecision({tipo:'penalti', batedor:takerName, canto:CL.penCanto});
     e._resolved=true;
   } else {
     const taker=findP(takerName,CL.clubId);
     const oppId = RL.penMatch.h===CL.clubId ? RL.penMatch.a : RL.penMatch.h;
     const gk=squad(oppId).find(p=>p.s==='GK')||null;
     const R=makeRng(hashSeed(S.seed,S.round,'pen',e.min,takerName));
-    const pConv=penaltyConvChance(taker,gk);
+    const pConv=penaltyConvChance(taker,gk,{humano:true,canto:CL.penCanto});
     scored=R.random()<pConv;
     e.scored=scored; e.scorer=taker?taker.n:e.scorer; e._resolved=true;
   }
@@ -6355,6 +7330,10 @@ function injuryClubStyle(){
   return `style="--inj-bg:linear-gradient(165deg,${col} 45%,${col2} 100%);--inj-fg:${txtOn(col)}"`;
 }
 function injurySubHTML(m,e){
+  // TELA PORTADA (telas/Modal - Lesao)
+  return rfLesaoHTML(m,e);
+}
+function injurySubHTMLLegado(m,e){
   const posName={GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'}[e.pos]||'Jogador';
   const secsLeft=Math.max(0, Math.ceil(((CL.injDeadline||0)-Date.now())/1000)); // auto-avanço (ver injuryTick)
   const opts=injurySubOptions(e);
@@ -6510,6 +7489,10 @@ function resolveRedConfirm(){
   cdraw(); CL._liveTimer=setTimeout(liveTick,420);
 }
 function redCardHTML(m,e){
+  // TELA PORTADA (telas/Modal - Cartao Vermelho)
+  return rfExpulsaoHTML(m,e);
+}
+function redCardHTMLLegado(m,e){
   const secsLeft=Math.max(0, Math.ceil(((CL.redDeadline||0)-Date.now())/1000));
   const bench=redCardBench(m,e);
   const canReorg=bench.length>0;
@@ -6550,7 +7533,14 @@ function liveDoSub(){ if(!CL.subOut||!CL.subIn){ toastC('Escolha um titular e um
   S.xi=(S.xi||[]).map(x=>x===CL.subOut?CL.subIn:x); CL.subsUsed=(CL.subsUsed||0)+1;
   if(outP&&inP) toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]); CL.subOut=CL.subIn=null; updateLive(); }
 function txtOn(hex){ return lumin(hex)>0.58?'#111':'#fff'; }
-function liveScoreCells(m){ return `<b>${m.hg}</b><b>${m.ag}</b>`; }
+/* O PLACAR É UMA PEÇA SÓ, e ela é a da tela nova (painel escuro com dígitos
+   amarelos, ver rfLvPlacarHTML). Esta função é o ponto por onde o placar é
+   redesenhado a cada minuto — se ela continuasse devolvendo dois <b>, o
+   primeiro tique da partida apagaria o painel que o render inicial montou. */
+function liveScoreCells(m){
+  if(typeof rfLvPlacarHTML==='function') return rfLvPlacarHTML(m.hg||0, m.ag||0, true);
+  return `<b>${m.hg}</b><b>${m.ag}</b>`;
+}
 /* ---- accordion por divisão (ranking + jogos ao vivo): a divisão do usuário
    fica no topo e aberta por padrão; as outras começam colapsadas. ---- */
 function divAccOpen(key,d){ const st=CL[key]; if(st && st[d]!=null) return st[d]; return d===S.division; }
@@ -6576,12 +7566,16 @@ function kickoffWaitHTML(RL){
   const nome=(CL.humans&&CL.humans[opp])||((clubOf(opp)||{}).short)||'o adversário';
   return `<div class="cl-kickwait">
     <span class="cl-kickwait-spin">⏳</span>
-    <span class="cl-kickwait-t">Aguardando <b>${escC(nome)}</b> entrar em campo…</span>
+    <span class="cl-kickwait-t">Aguardando <b>${escC(nome)}</b> entrar em campo</span>
     <span class="cl-kickwait-c">${secs}s</span>
     <span class="cl-kickwait-sub">Quando o cronômetro zerar, a partida começa de qualquer forma.</span>
   </div>`;
 }
 function scLive(){ const RL=CL.live; if(!RL) return '';
+  // PARTIDA AO VIVO: a tela nova desenha TODOS os casos, inclusive pênaltis,
+  // prorrogação e partida avulsa de copa. Não há caminho de volta pro desenho
+  // antigo — ele não deve reaparecer em nenhuma situação de borda.
+  return rfLiveHTML(RL);
   const rowHTML=(m,i)=>{const hc=clubOf(m.h),ac=clubOf(m.a);
     return `<div class="cl-lrow" onclick="liveRowClick(${i})">
       <span class="cl-latt">${grp(m.att)}</span>
@@ -6622,18 +7616,18 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   // cabeçalho da partida de assento (hotseat): nome do treinador + clube + país
   const hsTop = RL.humanSeat ? (function(){ const st=RL.humanSeat.seat; const c=clubOf(st.clubId)||{}; const fl=(typeof flagImg==='function')?flagImg(st.country):'';
     return `<div class="cl-live-cup-top">${camSw}<div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
-      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Jornada</div></div>`; })() : '';
-  // o dia entra junto da jornada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
+      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Rodada</div></div>`; })() : '';
+  // o dia entra junto da rodada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
   // (quarta de copa ou fim de semana de liga), não de um bloco de semana indistinto.
   const _liveDay = (typeof calRowDate==='function') ? calRowDate(Math.max(0,(RL.jornada||1)-1), RL.cup?(RL.cup.key||true):null) : '';
-  const topLabel = `${RL.jornada}ª Jornada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
+  const topLabel = `${RL.jornada}ª Rodada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   const camAberto = !!(userMatch && camOn());
   return `<div class="cl-live${camAberto?' rf-cam-open':''}">${kickoffWaitHTML(RL)}${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
-    ${window.ADS?ADS.html('rf98.live.inline',{cls:'rf-ad-inline'}):''}
+    ${rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'468×60'})}
     ${camAberto?camaroteHTML(userMatch):''}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;
@@ -6673,7 +7667,25 @@ function camOn(){ const RL=CL.live; return !!(RL && RL.camarote!==false) && camS
 function camMatch(){ const RL=CL.live; return RL ? (RL.matches||[]).find(m=>m.user) : null; }
 function camToggle(){ if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
   const RL=CL.live; if(!RL) return;
-  RL.camarote=!camOn(); cdraw(); }
+  RL.camarote=!camOn(); cdraw();
+  /* O RELOGIO TEM DE CONTINUAR A ANDAR AO TROCAR DE MODO. camToggle so mudava
+     a bandeira e redesenhava — nao mexia no temporizador. E liveTick NAO SE
+     REAGENDA quando sai cedo (done/paused/userPaused): basta a cadeia morrer
+     uma vez para o relogio parar de vez, e ai so um clique que por acaso
+     chamasse o tique e que o fazia andar. Era o relatado: sair do Camarote
+     para "ver todos os jogos" e o cronometro ficar parado, avancando so ao
+     clicar. Aqui a cadeia e sempre devolvida. */
+  liveRetomaRelogio(); }
+/* ---- devolve a batida do relogio se ela tiver morrido ----
+   Chamar isto e sempre seguro: se a partida acabou ou esta pausada de
+   proposito, nao faz nada; e o clearTimeout antes evita duas cadeias a correr
+   ao mesmo tempo, que fariam o minuto saltar de dois em dois. */
+function liveRetomaRelogio(){
+  const RL=CL.live;
+  if(!RL || RL.done || RL.paused || RL.userPaused) return;
+  clearTimeout(CL._liveTimer);
+  CL._liveTimer=setTimeout(liveTick,200);
+}
 function camSpeedHint(){
   return CL.online
     ? '🎥 Camarote indisponível: o anfitrião está no Usain Bolt. Disponível até Ultrassônico.'
@@ -6749,7 +7761,7 @@ function camOnEvent(m,e){
   else if(e.type==='cartao'){ if(e.cardType==='vermelho'){ A.red++; m.presBias+=(e.side==='H'?-8:8); } else A.yellow++; }
   else if(e.type==='sub'){ A.subs++; }
   const l=RF_NARRA.narrate(e,{...ctx,out});
-  if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind}); m._camLastLine=e.min; }
+  if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind,side:e.side}); m._camLastLine=e.min; }
   m.pres=Math.max(-100,Math.min(100,(m.pres||0)+RF_NARRA.pressureOf(e,out)));
 }
 function camPush(m,kind,extra,mn){
@@ -6841,23 +7853,9 @@ function camSwitchHTML(){
 }
 /* ---- a janela do Camarote ---- */
 function camaroteHTML(m){
-  const RL=CL.live; const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  camEnsure(m);
-  return `<div class="rf-cam-ov" onclick="camBackdrop(event)"><div class="rf-cam-win">
-    <div class="rf-cam-title">
-      <span class="rf-cam-title-t">🎥 Camarote — ${escC(hc.short||'')} × ${escC(ac.short||'')}</span>
-      <span class="rf-cam-onair" id="rf-cam-onair" ${camMatchOver(m)?'hidden':''}>● AO VIVO</span>
-      <span class="rf-cam-sp"></span>
-      <button class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">✖</button>
-    </div>
-    <div id="rf-cam-dyn">${camDynHTML(m)}</div>
-    <div class="rf-cam-ads"><div class="rf-cam-ads-box">
-      <span class="rf-cam-ads-lbl">CAMAROTE APRESENTADO POR</span>
-      ${AD_SPONSORS.map((s,i)=>`<img class="rf-cam-ad ${i===camAdIdx()?'on':''}" src="${s.src}" alt="${escC(s.nome)}">`).join('')}
-      <button class="rf-cam-cta" id="rf-cam-cta" style="${camCtaStyle()}" onclick="camAdClick()">${escC(AD_SPONSORS[camAdIdx()].cta)}</button>
-    </div></div>
-    <div class="rf-cam-foot"><span>Esc ou ✖ pra voltar à rodada</span><span class="rf-cam-sp"></span><span>Os outros jogos seguem rolando ao fundo</span></div>
-  </div></div>`;
+  // CAMAROTE PORTADO (telas/Modo Camarote). O desenho antigo não é mais
+  // alcançável — a sobreposição inteira vem de rfCamHTML.
+  return rfCamHTML(CL.live||{matches:[m]});
 }
 function camAdIdx(){ const RL=CL.live; return Math.floor(((RL&&RL.minute)||0)/8)%AD_SPONSORS.length; }
 /* o botão veste as cores da marca em destaque (o relevo 98 vem do bevel de cada uma) */
@@ -6872,42 +7870,10 @@ function camAdClick(){
   if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
   window.open(s.url,'_blank','noopener,noreferrer');
 }
-/* tudo que muda a cada minuto vive aqui dentro (um innerHTML só em updateLive) */
-function camDynHTML(m){
-  const RL=CL.live, hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  const tab=CL.camTab||'panorama';
-  const mn=camMinuteNow(m,RL), over=camMatchOver(m);
-  const period = RL.pens ? 'PÊNALTIS'
-    : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
-    : over ? (m.streamRemote && m.streamDead && !m.streamDone ? 'SEM SINAL' : 'ENCERRADO')
-    : mn<=45 ? '1º TEMPO' : mn<=90 ? '2º TEMPO' : 'ACRÉSCIMOS';
-  const showNarr = tab!=='estatisticas', showStats = tab!=='comentarios';
-  const tabBtn=(k,lbl)=>`<button class="rf-cam-tab ${tab===k?'on':''}" onclick="camTab('${k}')">${lbl}</button>`;
-  // "Fim" já quando a partida DELE acaba, mesmo que a rodada siga esperando as transmissões
-  // dos outros humanos (RL.done ainda false).
-  const playBtn = CL.online
-    ? `<span class="rf-cam-sync" title="No Resenha o ritmo é o do anfitrião">⏱ ritmo da sala</span>`
-    : `<button class="rf-cam-play" onclick="camTogglePlay()" ${over?'disabled':''}>${over?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar')}</button>`;
-  return `<div class="rf-cam-board">
-      <div class="rf-cam-side home">
-        <span class="rf-cam-where">EM CASA</span>
-        <span class="rf-cam-club" style="${clubStripe(hc)}">${escC(hc.short||'')}</span>
-        <span class="rf-cam-g" id="rf-cam-hg">${m.hg}</span>
-      </div>
-      <div class="rf-cam-clock"><div class="rf-cam-min" id="rf-cam-min">${mn}'</div><div class="rf-cam-period" id="rf-cam-period">${period}</div></div>
-      <div class="rf-cam-side away">
-        <span class="rf-cam-g" id="rf-cam-ag">${m.ag}</span>
-        <span class="rf-cam-club" style="${clubStripe(ac)}">${escC(ac.short||'')}</span>
-        <span class="rf-cam-where">VISITANTE</span>
-      </div>
-    </div>
-    ${camPressureHTML(m)}
-    <div class="rf-cam-tabs">${tabBtn('panorama','Panorama do Jogo')}${tabBtn('comentarios','Comentários')}${tabBtn('estatisticas','Estatísticas')}<span class="rf-cam-sp"></span>${playBtn}</div>
-    <div class="rf-cam-body" style="grid-template-columns:${showNarr&&showStats?'1fr 320px':'1fr'}">
-      ${showNarr?camFeedHTML(m):''}
-      ${showStats?camStatsHTML(m):''}
-    </div>`;
-}
+/* tudo que muda a cada minuto vive aqui dentro (um innerHTML só em camUpdate).
+   O DESENHO é o da leva nova, em rf26-live.js — aqui fica só a ponte, porque é
+   este nome que camUpdate chama. */
+function camDynHTML(m){ return rfCamDynHTML(m); }
 /* cores das barras (pressão e estatística): dois clubes de cor parecida — CSA × Nacional,
    dois azuis — deixavam as duas metades da barra indistinguíveis, e aí ela não informa nada.
    Quando as cores colidem, o visitante cai pra segunda cor dele e, se ainda assim colar,
@@ -6926,82 +7892,8 @@ function camBarColors(hc,ac){
   }
   return {colH,colA};
 }
-/* ---- BARRA DE PRESSÃO: quem manda no jogo AGORA, pelos fatos da partida ---- */
-function camPressureHTML(m){
-  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  const sh=camShare(m);
-  const {colH,colA}=camBarColors(hc,ac);
-  const tag = sh>=64 ? escC(hc.short||'')+' PRESSIONA' : sh<=36 ? escC(ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO';
-  return `<div class="rf-cam-pres">
-    <span class="rf-cam-pres-lbl">PRESSÃO</span>
-    <span class="rf-cam-pres-bar">
-      <span class="rf-cam-pres-h" id="rf-cam-presh" style="width:${sh}%;background:${colH}"></span>
-      <span class="rf-cam-pres-a" id="rf-cam-presa" style="width:${100-sh}%;background:${colA}"></span>
-      <span class="rf-cam-pres-mid"></span>
-    </span>
-    <span class="rf-cam-pres-tag" id="rf-cam-prestag">${tag}</span>
-  </div>`;
-}
-/* ---- NARRAÇÃO AO VIVO (mais recente no topo) ----
-   As linhas vivem num container PRÓPRIO (#rf-cam-lines) porque o camUpdate só ACRESCENTA as
-   novas, nunca redesenha as antigas: a animação de entrada é por linha, e redesenhar o feed
-   inteiro a cada minuto fazia TODAS re-animarem juntas — o texto piscava sem parar. */
-function camLineHTML(l){
-  return `<div class="rf-cam-line k-${l.kind}">
-      <span class="rf-cam-lmin">${l.min}'</span><span class="rf-cam-lic">${l.icon}</span><span class="rf-cam-ltx">${escC(l.text)}</span>
-    </div>`;
-}
-function camFeedHTML(m){
-  const hc=clubOf(m.h)||{};
-  const rows=m.narr.slice().reverse().map(camLineHTML).join('');
-  return `<div class="rf-cam-feed" id="rf-cam-feed">
-    <div class="rf-cam-feed-hd"><b>NARRAÇÃO AO VIVO</b><span>Casa do ${escC(hc.short||'')} · ${grp(m.att||0)} pagantes</span></div>
-    <div id="rf-cam-lines" data-n="${m.narr.length}">${rows||'<div class="rf-cam-empty">O árbitro já vai apitar…</div>'}</div>
-  </div>`;
-}
-/* ---- ESTATÍSTICAS: tudo derivado dos eventos que de fato aconteceram ----
-   Posse vem do motor quando a partida roda/transmite aqui (sessão interativa ou stream);
-   no replay de um resultado já publicado pelo adversário, o motor não manda posse minuto a
-   minuto — aí a linha vira "Domínio em campo", medido pela própria barra de pressão. */
-function camStatsHTML(m){
-  const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
-  const {colH,colA}=camBarColors(hc,ac);
-  const live=(m.sim&&m.sim.perf)||m.livePerf||null;
-  let possLbl='Domínio em campo', ph, pa;
-  if(live && ((live.H.poss+live.A.poss)>0)){ possLbl='Posse de bola';
-    const t=live.H.poss+live.A.poss; ph=Math.round(100*live.H.poss/t); pa=100-ph; }
-  else { const t=(m.domH+m.domA)||1; ph=Math.round(100*m.domH/t); pa=100-ph; }
-  const H=m.camStats.H, A=m.camStats.A;
-  const row=(lbl,a,b,va,vb)=>{ const mx=Math.max(va,vb,1);
-    return `<div class="rf-cam-st">
-      <div class="rf-cam-st-top"><span>${a}</span><span class="rf-cam-st-lbl">${lbl}</span><span>${b}</span></div>
-      <div class="rf-cam-st-bars">
-        <span class="rf-cam-st-b l"><i style="width:${Math.round(100*va/mx)}%;background:${colH}"></i></span>
-        <span class="rf-cam-st-b r"><i style="width:${Math.round(100*vb/mx)}%;background:${colA}"></i></span>
-      </div></div>`; };
-  const cards=s=>(s.yellow+s.red);
-  const cardTxt=s=>`${s.yellow}🟨${s.red?' '+s.red+'🟥':''}`;
-  const subsLeft=Math.max(0,3-(CL.subsUsed||0));
-  return `<div class="rf-cam-stats">
-    <fieldset class="rf-cam-fs"><legend>Estatísticas</legend>
-      <div class="rf-cam-st-hd"><span>${escC(hc.short||'')}</span><span>${escC(ac.short||'')}</span></div>
-      ${row(possLbl,ph+'%',pa+'%',ph,pa)}
-      ${row('Finalizações',H.shots,A.shots,H.shots,A.shots)}
-      ${row('No alvo',H.onTarget,A.onTarget,H.onTarget,A.onTarget)}
-      ${row('Defesas',H.saves,A.saves,H.saves,A.saves)}
-      ${row('Cartões',cardTxt(H),cardTxt(A),cards(H),cards(A))}
-      ${row('Substituições',H.subs,A.subs,H.subs,A.subs)}
-    </fieldset>
-    <fieldset class="rf-cam-fs"><legend>Ficha</legend>
-      <div class="rf-cam-ficha">
-        Árbitro: <b>${escC(m.ref||'—')}</b><br>
-        Público: <b class="rf-mono">${grp(m.att||0)}</b>${m.price?` · Ingresso: <b class="rf-mono">${grp(m.price)}</b>`:''}<br>
-        Sua tática: <b>${escC(CAM_TATICA[S.tactic]||S.tactic||'—')}</b><br>
-        Substituições: <b>${(CL.subsUsed||0)} de 3</b> · restam <b>${subsLeft}</b>
-      </div>
-    </fieldset>
-  </div>`;
-}
+function camLineHTML(l){ return rfCamLinhaHTML(l); }
+function camStatsHTML(m){ return rfCamStatsHTML(m); }
 /* ---- atualização da janela: NO LUGAR, não redesenhando ----
    Antes isto fazia `host.innerHTML=camDynHTML(m)` a cada minuto. Recriar os nós zera as animações
    e transições: TODAS as linhas de narração re-animavam juntas (o texto piscava sem parar) e a
@@ -7013,9 +7905,9 @@ function camUpdate(){
   const host=document.querySelector('#rf-cam-dyn'); if(!host) return;
   const tab=CL.camTab||'panorama';
   if(host.dataset.tab!==tab || !host.querySelector('#rf-cam-lines')){
-    const old=host.querySelector('#rf-cam-feed'); const sc=old?old.scrollTop:0;
+    const old=host.querySelector('#rf-cam-lines'); const sc=old?old.scrollTop:0;
     host.innerHTML=camDynHTML(m); host.dataset.tab=tab;
-    const nw=host.querySelector('#rf-cam-feed'); if(nw) nw.scrollTop=sc;
+    const nw=host.querySelector('#rf-cam-lines'); if(nw) nw.scrollTop=sc;
   } else {
     camPatchBoard(m); camPatchFeed(m);
     const st=host.querySelector('.rf-cam-stats'); // sem animação: redesenho aqui não pisca
@@ -7035,6 +7927,9 @@ function camPatchBoard(m){
   const RL=CL.live; const set=(id,v)=>{ const el=document.querySelector(id); if(el && el.textContent!==v) el.textContent=v; };
   const mn=camMinuteNow(m,RL), over=camMatchOver(m);
   set('#rf-cam-hg', String(m.hg)); set('#rf-cam-ag', String(m.ag)); set('#rf-cam-min', mn+"'");
+  // o anel do relógio anda por variável CSS — trocar o style inteiro mataria a transição
+  const anel=document.querySelector('#rf-cam-anel');
+  if(anel) anel.style.setProperty('--pct', String(liveClockPct(RL)));
   set('#rf-cam-period', RL.pens ? 'PÊNALTIS'
     : RL.extraStartMinute!=null ? 'PRORROGAÇÃO'
     : over ? (m.streamRemote && m.streamDead && !m.streamDone ? 'SEM SINAL' : 'ENCERRADO')
@@ -7045,7 +7940,7 @@ function camPatchBoard(m){
   if(a) a.style.width=(100-sh)+'%';
   const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
   set('#rf-cam-prestag', sh>=64 ? (hc.short||'')+' PRESSIONA' : sh<=36 ? (ac.short||'')+' PRESSIONA' : 'JOGO EQUILIBRADO');
-  const play=document.querySelector('.rf-cam-play');
+  const play=document.querySelector('.rf-cam-pausar');
   if(play){ const lbl=over?'Fim':(RL.userPaused?'▶ Jogar':'⏸ Pausar');
     if(play.textContent!==lbl) play.textContent=lbl; play.disabled=!!over; }
 }
@@ -7055,21 +7950,34 @@ function camPatchFeed(m){
   const antes=parseInt(box.dataset.n||'0',10), agora=m.narr.length;
   if(agora===antes) return;
   if(agora<antes){ box.innerHTML=m.narr.slice().reverse().map(camLineHTML).join(''); box.dataset.n=String(agora); return; }
-  const vazio=box.querySelector('.rf-cam-empty'); if(vazio) vazio.remove();
+  const vazio=box.querySelector('.rf-cam-vazio'); if(vazio) vazio.remove();
   // insere de trás pra frente pra manter a ordem (mais recente sempre no topo)
   m.narr.slice(antes).forEach(l=>box.insertAdjacentHTML('afterbegin', camLineHTML(l)));
   box.dataset.n=String(agora);
 }
 
 /* % do relógio circular — a prorrogação usa uma escala PRÓPRIA (34min: 30 + acréscimos),
-   proporcional ao tempo real dela, em vez da escala de 94min do tempo normal. */
+   proporcional ao tempo real dela, em vez da escala de 94min do tempo normal.
+   O 94 fixo era outra coordenada solta: o anel fechava aos 94 numa rodada que apitava aos 92
+   (e ficava a 97% numa que ia até lá). A escala passa a ser o FIM DE VERDADE desta rodada — o
+   mesmo teto que manda o apito (ver liveTetoMin). */
 function liveClockPct(RL){
   if(RL.extraStartMinute!=null) return Math.min(100, Math.round((RL.minute-RL.extraStartMinute)/34*100));
-  return Math.min(100, Math.round(RL.minute/94*100));
+  const fim=(typeof liveTetoMin==='function')?liveTetoMin(RL):94;
+  return Math.min(100, Math.round(RL.minute/Math.max(1,fim)*100));
 }
 /* placar da disputa de pênaltis: uma linha de bolinhas por time, ✔ verde quando converte,
    ✖ vermelho quando desperdiça/defende — cresce cobrança a cobrança, igual ao clássico. */
+/* O PLACAR COMPACTO NAO PODE SER A TELA INTEIRA. Isto devolvia rfDisputaHTML -- um
+   rfOverlay de ecra cheio -- e quem chama embutia o resultado DENTRO de outro modal
+   (escolha do batedor, suspense, revelacao). Overlay dentro de overlay: o de dentro
+   tapava o de fora em todas as fases, e a disputa parecia congelada numa tela so.
+   Agora a tela cheia da disputa e desenhada por shootoutPickerHTML, uma vez so, e
+   este continua a ser apenas a fita de bolinhas do caminho antigo. */
 function shootoutScoreboardHTML(RL){
+  return shootoutScoreboardHTMLLegado(RL);
+}
+function shootoutScoreboardHTMLLegado(RL){
   const m=RL.matches[0], hc=clubOf(m.h), ac=clubOf(m.a);
   const dot=k=>`<span class="cl-pens-dot ${k.scored?'ok':'miss'}">${k.scored?'✔':'✖'}</span>`;
   return `<div class="cl-pens-board">
@@ -7127,7 +8035,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
   // FASE 3B (mandante): a sessão está pausada esperando a decisão do VISITANTE (pênalti/lesão/
   // expulsão dele) — aviso com o teto de 15s (depois a decisão padrão é aplicada sozinha).
   const remoteWaitHTML=(m.sim && m.sim.pending && m.sim.pending.ev && m.sim.pending.ev.side!==(m.h===CL.clubId?'H':'A'))
-    ? `<div class="cl-ht-timer">📡 Aguardando a decisão do adversário… (automática em até 15s)</div>` : '';
+    ? `<div class="cl-ht-timer">📡 Aguardando a decisão do adversário (automática em até 15s)</div>` : '';
   return `<div class="cl-lm-title">${escC(hc.short)}, ${m.hg} - ${escC(ac.short)}, ${m.ag}</div>
     <div class="cl-lm-top">
       <div class="cl-lm-events">${incHTML}</div>
@@ -7157,6 +8065,10 @@ function penaltyClubStyle(){
 function penaltyPickerHTML(){
   if(CL.penPhase==='suspense') return penaltySuspenseHTML();
   if(CL.penPhase==='result') return penaltyResultHTML();
+  // TELA PORTADA (telas/Modal - Penalti Batedor)
+  return rfPenaltiBatedorHTML();
+}
+function penaltyPickerHTMLLegado(){
   const takers=penaltyTakerPool((CL.live&&CL.live.penMatch)||null, CL.clubId);
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const rows=takers.map(p=>`<div class="cl-pen-row ${CL.penSel===p.n?'sel':''}" onclick="penaltySelect('${escC(p.n)}')">
@@ -7179,17 +8091,21 @@ function penaltyPickerHTML(){
    `extra` pras 3 fases (escolha/suspense/revelação) — só aparece nas variantes de
    DISPUTA de pênaltis; o pênalti normal em campo (penaltyPickerHTML) não passa `extra`. */
 function shootoutPickerHTML(){
+  // TELA PORTADA (telas/Modal - Disputa de Penaltis) -- UMA tela para as tres fases da
+  // cobranca (escolher, suspense, resultado). Ver rfDisputaHTML: e la que a fase decide
+  // o corpo e se ha botao. Antes daqui saiam tres modais diferentes com o placar embutido
+  // dentro deles, e o placar (que e ecra cheio) tapava os tres.
+  return rfDisputaHTML(CL.live);
+}
+function shootoutPickerHTMLLegado(){
   const RL=CL.live;
-  const board=shootoutScoreboardHTML(RL);
+  const board=shootoutScoreboardHTMLLegado(RL);
   if(CL.penPhase==='suspense') return penaltySuspenseHTML(board);
   if(CL.penPhase==='result') return penaltyResultHTML(board);
   const pool=penaltyTakerPool(RL.matches[0], CL.clubId);
-  // quem já bateu NESTA disputa fica desabilitado na lista (regra oficial: só pode bater
-  // de novo depois que todo mundo elegível já bateu uma vez) — mas continua visível, só
-  // sem poder ser escolhido, pro treinador entender por que sumiu da seleção normal.
   const takenNames=new Set((RL.pens.turn==='H'?RL.pens.h:RL.pens.a).map(k=>k.name));
   const eligible=shootoutEligibleTakers(pool, takenNames);
-  const cycleReset = eligible.length===pool.length; // ninguém bateu ainda, ou o ciclo reabriu (todo mundo já bateu 1x)
+  const cycleReset = eligible.length===pool.length;
   const secsLeft=Math.max(0,Math.ceil((CL.penDeadline-Date.now())/1000));
   const kickNum=(RL.pens.h.length+RL.pens.a.length)+1;
   const rows=pool.map(p=>{
@@ -7208,6 +8124,10 @@ function shootoutPickerHTML(){
 }
 /* fase 2: suspense — só o título, sem revelar nada ainda (a pausa dramática que faltava) */
 function penaltySuspenseHTML(extra){
+  // TELA PORTADA (telas/Modal - Penalti Suspense)
+  return rfPenaltiSuspenseHTML(extra);
+}
+function penaltySuspenseHTMLLegado(extra){
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     ${extra||''}
     <div class="cl-pen-title">PENALTI</div>
@@ -7216,6 +8136,10 @@ function penaltySuspenseHTML(extra){
 }
 /* fase 3: revelação — mesma cor do clube em todas as fases; só o texto GOLO/Defendeu muda */
 function penaltyResultHTML(extra){
+  // TELA PORTADA (telas/Modal - Penalti Resultado)
+  return rfPenaltiResultadoHTML(extra);
+}
+function penaltyResultHTMLLegado(extra){
   const scored=CL.penResultScored;
   return `<div class="cl-pen-overlay"><div class="cl-pen-modal" ${penaltyClubStyle()}>
     ${extra||''}
@@ -7245,10 +8169,14 @@ function incidentLines(m){
       return {min:inc.min,html:`✚ ${escC(inc.player)}${suf} ${inc.min}'`}; }
     return null;
   }).filter(Boolean).sort((a,b)=>b.min-a.min);
-  if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda…</div>';
+  if(!rows.length) return '<div class="cl-lm-noinc">Sem incidentes ainda</div>';
   return rows.map(r=>`<div>${r.html}</div>`).join('');
 }
-function subPanelHTML(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.pid)).sort(bySquadOrder);
+function subPanelHTML(m){
+  // TELA PORTADA (telas/Modal - Substituicao). O painel antigo some.
+  return rfSubHTML(m);
+}
+function subPanelHTMLLegado(m){ const id=CL.clubId; const xiSet=new Set(S.xi||[]); const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder); const bench=squad(id).filter(p=>!xiSet.has(p.pid)).sort(bySquadOrder);
   const rowP=(p,side)=>`<div class="cl-sub-row ${((side==='out')?CL.subOut:CL.subIn)===p.pid?'sel':''}" onclick="liveSubPick('${side}','${escC(p.pid)}')"><span class="cl-sub-p">${posLetter(p.s)}</span><span class="cl-sub-n">${escC(p.n)}</span><b>${p.f}</b></div>`;
   return `<fieldset class="cl-sub"><legend>${escC(clubOf(id).short)}</legend>
     <div class="cl-sub-cols"><div class="cl-sub-c">${xi.map(p=>rowP(p,'out')).join('')}</div><div class="cl-sub-c">${bench.map(p=>rowP(p,'in')).join('')}</div></div>
@@ -7289,6 +8217,10 @@ function classifDivName(d, country){
   return legend[d] || labels[d] || d;
 }
 function scClassif(){
+  // TELA PORTADA (telas/Pos-Rodada - Classificacao)
+  return rfPosRodadaHTML();
+}
+function scClassifLegado(){
   // accordion vertical: divisão do usuário no topo e aberta; as outras colapsadas.
   const panelHTML=(d)=>{
     const isMine = d===S.division;
@@ -7317,15 +8249,25 @@ function scClassif(){
       ${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
     </div>
     <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
-    <div class="cl-live-top">Classificação - ${S.round}ª jornada</div>
+    <div class="cl-live-top">Classificação - ${S.round}ª rodada</div>
     <div class="cl-clsacc-wrap">${DIV_ORDER.map(panelHTML).join('')}</div>
   </div>`;
 }
 function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(CL._liveTimer); if(CL._classifTimer){clearTimeout(CL._classifTimer);CL._classifTimer=null;} clearInjuryTimer(); clearCupFlowTimer(); CL.live=null; CL.subsUsed=0; CL._liveBusy=false; CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||CL.selPlayer; cdraw();
   if(CL.lastGate) toastC('Bilheteira: +'+grp(CL.lastGate)+' reais'); CL.lastGate=0;
   // notificação de propostas de compra recebidas nesta rodada (toast no topo, ~3s cada) — só as do MEU clube
-  const myToasts=(S._offerToastsByClub&&S._offerToastsByClub[S.clubId])||[];
-  if(myToasts.length){ myToasts.forEach((m,i)=>setTimeout(()=>toastC(m), 500+i*400)); if(S._offerToastsByClub) S._offerToastsByClub[S.clubId]=[]; }
+  /* SO AVISA O QUE AINDA EXISTE. A fila acumula enquanto o jogador nao entra em campo, e
+     disparava tudo junto — incluindo propostas ja expiradas, que ele ia procurar em Propostas
+     e nao encontrava. Agora cada aviso carrega o id e e conferido contra a lista viva.
+     (entradas antigas, guardadas como texto, sao descartadas: nao da para as verificar) */
+  const fila=(S._offerToastsByClub&&S._offerToastsByClub[S.clubId])||[];
+  if(fila.length){
+    let vivas=[];
+    try{ vivas=(typeof myIncomingOffers==='function')?myIncomingOffers().map(o=>o.id):[]; }catch(e){}
+    const mostrar=fila.filter(t=>t && typeof t==='object' && vivas.indexOf(t.id)>=0);
+    mostrar.forEach((t,i)=>setTimeout(()=>toastC(t.msg), 500+i*400));
+    if(S._offerToastsByClub) S._offerToastsByClub[S.clubId]=[];
+  }
   // cronômetro soberano: QUALQUER cliente reabre a rodada seguinte (não só o host) — ver reopen_ready
   if(CL.online && typeof NET!=='undefined' && NET.gameId && !S.finished){
     if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local
@@ -7371,16 +8313,8 @@ function seasonEndDialog(){
       <div class="cl-prize-total"><span>Total recebido</span><span>+${fmt(pz.total)}</span></div>
       ${pz.art&&pz.art.mine?`<div class="cl-prize-art">👟 <b>${escC(pz.art.name)}</b> foi artilheiro (${pz.art.goals} gols) e valorizou: ${fmt(pz.art.valFrom)} → <b>${fmt(pz.art.valTo)}</b></div>`:''}
     </div>` : '';
-  overlayC(dlg('Fim da temporada!', `<div class="cl-res">
-    <div class="cl-res-score">${escC(champ)} é campeão</div>
-    <div class="cl-res-verd">Você terminou em ${myPos}º na ${escC(divisionLabel())}${qualMsg?'<br>'+escC(qualMsg):''}</div>
-    ${prizeBlock}
-    <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
-      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
-      ${rows}
-    </div>
-    <div class="cl-cal-ok">${btn('Nova temporada','clAdvanceSeason()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-  </div>`,{w:620,bodyClass:'cl-body-green'}));
+  // TELA PORTADA (telas/Fim de Temporada): rfStage 1080px, sem modal.
+  overlayC(rfFimTemporadaHTML());
 }
 function clAdvanceSeason(){
   clCloseOverlay();
@@ -7435,18 +8369,8 @@ function onlineSeasonEndDialog(sum){
       <div class="cl-prizes-h">👋 Aposentadorias no elenco</div>
       ${rets.map(r=>`<div class="cl-prize-row"><span class="cl-prize-ic">🎽</span><span class="cl-prize-c">${escC(r.name)} <span style="opacity:.7">(${r.age||'?'} anos)</span></span><span class="cl-prize-p" style="flex:2;text-align:left;opacity:.85">${escC(r.reason||'')}</span></div>`).join('')}
     </div>` : '';
-  overlayC(dlg('Fim da temporada!', `<div class="cl-res">
-    <div class="cl-res-score">${escC(champ)} é campeão</div>
-    <div class="cl-res-verd">Você terminou em ${sum.myPos}º na ${escC(sum.divLbl)}</div>
-    ${prizeBlock}
-    ${retireBlock}
-    <div class="cl-seasontbl-wrap" style="max-height:340px;overflow-y:auto;margin-top:10px">
-      <div class="cl-cls2-head ${hasQual?'hasqual':''}"><span class="cl-cls2-pos">#</span><span class="cl-cls2-n">Equipa</span><span class="cl-cls2-pts">P</span><span class="cl-cls2-x">V</span><span class="cl-cls2-x">E</span><span class="cl-cls2-x">D</span><span class="cl-cls2-x">GP</span><span class="cl-cls2-x">GC</span>${hasQual?'<span></span>':''}</div>
-      ${rows}
-    </div>
-    <div class="cl-cal-ok">${btn('Nova temporada','clOnlineSeasonContinue()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-    <div class="cl-classif-autohint">avança sozinho em <span id="cl-season-count">15</span>s...</div>
-  </div>`,{w:620,bodyClass:'cl-body-green'}));
+  // TELA PORTADA (telas/Fim de Temporada): mesma tela, alimentada pelo resumo do assento.
+  overlayC(rfFimTemporadaHTML(sum));
   armSeasonEndTimer(); // auto-avança pra não segurar o outro jogador / a próxima rodada
 }
 /* contador regressivo do modal de fim de temporada (online): 15s e auto-avança pra tela
@@ -7526,6 +8450,10 @@ function pressFinish(){
   CL.screen='main'; CL.tab='seleccao'; cdraw();
 }
 function scImprensa(){
+  // TELA PORTADA (telas/Imprensa)
+  return rfImprensaHTML(CL._press);
+}
+function scImprensaLegado(){
   const P=CL._press; if(!P) return '';
   const b=P.b, cnt=`<span id="cl-press-count">${Math.max(0,CL._pressLeft!=null?CL._pressLeft:25)}</span>`;
   const hint=`<div class="cl-classif-autohint">avança sozinho em ${cnt}s</div>`;
@@ -7675,8 +8603,11 @@ function finishLiveRound(){
   // entra no caixa via processFinances()/pushFinanceEntry() (ver core.js), que lê o mesmo
   // CL.live.matches e loga isso na aba Finanças, então NÃO soma direto no S.budget aqui
   // (fazia isso duas vezes: aqui E de novo na renda-base da rodada).
-  let gate=0; if(uf && uf[0]===CL.clubId){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]); if(um){ gate=um.att*um.price; } }
+  let gate=0; if(uf && uf[0]===CL.clubId){ const um=RL.matches.find(m=>m.h===uf[0]&&m.a===uf[1]); if(um){ gate=um.att*um.price; CL.lastAtt=um.att; } }
   CL.lastGate=gate;
+  // CL.lastGate é zerado logo depois pelo toast da bilheteira; a tela "À espera da
+  // rodada" precisa do valor DEPOIS disso, então ele fica guardado aqui também.
+  CL._ultimaRenda={ att:CL.lastAtt||0, gate };
   // FASE 2 (hotseat solo): se há OUTROS humanos com jogo nesta rodada, cada um joga a SUA
   // partida ao vivo (passando o aparelho) ANTES de commitar a rodada. Guarda o contexto do
   // manager 1 e enfileira; ao esvaziar a fila, _commitLeagueRound roda com os resultados deles.
@@ -7732,6 +8663,19 @@ function nowMs(){ try{ return Date.now(); }catch(e){ return 0; } }
    não fecha a rodada enquanto alguém está ocupado — ficaria em deadlock. Tem escape manual
    (clWaitRoundSkip) pra ninguém ficar preso se algo travar do outro lado. */
 function scWaitRound(){
+  ensureSyncFunTicker();
+  // DUAS TELAS PORTADAS PRO MESMO ESTADO (telas/Resenha - Pausa Patrocinada e
+  // Resenha - A Espera da Rodada). A janela de 10s do patrocinador é a PAUSA;
+  // passada ela, se o que falta são os OUTROS treinadores, a tela vira a sala
+  // de espera — que é onde a informação útil é quem já jogou, não a barra.
+  let faltaGente=false;
+  if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn){
+    try{ faltaGente=!NET.allHumanResultsIn(S.round); }catch(e){ faltaGente=false; }
+  }
+  return (pausaOvertime() && faltaGente) ? rfEsperaHTML() : rfPausaHTML();
+}
+function scWaitRoundLegado(){
+
   ensureSyncFunTicker();
   const g=pausaGif(), n=(CL._pausaI||0)%PAUSA_GIFS.length;
   return `<div class="rf-view">
@@ -7818,22 +8762,22 @@ function onlineHostCloseRound(){
   // (netMergeParticipants) e, se nenhum evento do realtime chegar depois, um "true" velho ficava
   // pra sempre — o anfitrião esperava um jogador que já tinha saído da partida e a sala inteira
   // parava na pausa técnica. O busy_until é timestamp: comparado agora, expira sozinho.
-  /* ===== ITEM 3: QUEM DIZ QUE A JORNADA FOI CUMPRIDA É O SERVIDOR =====
+  /* ===== ITEM 3: QUEM DIZ QUE A RODADA FOI CUMPRIDA É O SERVIDOR =====
      Até aqui o anfitrião decidia sozinho a hora de fechar, por dois palpites LOCAIS: "ninguém está
      com o busy aceso" e "os resultados que eu enxergo já chegaram". Os dois são fotos do instante —
-     e foi exatamente delas que nasceram as salas paradas e as jornadas descasadas: bastava um
+     e foi exatamente delas que nasceram as salas paradas e as rodadas descasadas: bastava um
      cliente estar entre duas telas para o anfitrião ler "todo mundo livre" e fechar por cima de
      quem ainda não tinha jogado.
      Agora a decisão tem uma fonte só: o ponteiro do dia. Cada assento CARIMBA o momento que
      cumpriu (ver roomDayTick); quando o último carimba 'jogando', o SERVIDOR — e mais ninguém —
      vira o momento para 'classificacao'. Ver esse momento no ponteiro é o único sinal de que a
-     jornada foi de fato jogada por todos, e é ele que libera o fechamento aqui.
+     rodada foi de fato jogada por todos, e é ele que libera o fechamento aqui.
      Sala sem plano de dias (save antigo) continua no caminho de antes: degrada, não trava. */
   const _dia = (NET.room && NET.room.day) || null;
   if(_dia){
-    /* UMA PORTA SÓ: o dia de LIGA desta jornada com o momento já em 'classificacao' — o servidor
+    /* UMA PORTA SÓ: o dia de LIGA desta rodada com o momento já em 'classificacao' — o servidor
        dizendo que todos cumpriram a partida. Havia duas, porque existia a "quarta de copa" como um
-       fechamento à parte; ela acabou (ver docs/sincronia-resenha.md). As copas da jornada são
+       fechamento à parte; ela acabou (ver docs/sincronia-resenha.md). As copas da rodada são
        resolvidas neste mesmo fechamento, como sempre foi antes da divisão em dois estágios. */
     const portaAberta = (_dia.round===round && _dia.comp==='liga' && _dia.moment==='classificacao');
     if(!portaAberta){
@@ -7880,7 +8824,7 @@ function onlineHostCloseRound(){
       // ESTÁGIO: fechando a quarta-feira, o servidor resolve SÓ as copas e devolve a semana no
       // estágio de sábado; fechando o sábado, resolve a rodada inteira como sempre. Estado sem
       // roundStage (save antigo) cai no caminho de sempre — stage indefinido = 'league'.
-      const _stage=undefined;   // não existe mais quarta/sábado: um fechamento por jornada (ver docs/sincronia-resenha.md)
+      const _stage=undefined;   // não existe mais quarta/sábado: um fechamento por rodada (ver docs/sincronia-resenha.md)
       let res=null; try{ res=await NET.resolveRound(round, _stage); }catch(e){ res={error:(e&&e.message)||'erro'}; }
       if(!res || res.error){
         // NUNCA MAIS COMITAR LOCALMENTE. Aqui havia um fallback que chamava _commitLeagueRound —
@@ -7927,7 +8871,7 @@ function onlineHostCloseRound(){
    (eu ausente — o resolve-round simula a partida). O servidor carimba t.prize mas NÃO mexe no
    caixa de humano, porque a autoridade desse caixa é o assento (game_seats.budget), escrito só
    pelo meu cliente. Então o crédito sai daqui, ao adotar a rodada. Dois freios contra pagar duas
-   vezes: (1) só confronto carimbado com a jornada que acabou de ser resolvida, e (2) um registro
+   vezes: (1) só confronto carimbado com a rodada que acabou de ser resolvida, e (2) um registro
    em memória no CL — que é por-cliente e nunca viaja no shared_state (um contador dentro de S
    vazaria do anfitrião pros convidados no adopt). Quando EU jogo a partida ao vivo, quem paga é
    finishCupLiveMatch e este caminho não acha nada pendente. */
@@ -7964,7 +8908,19 @@ async function onlineAdoptServerRound(RL){
     CL._adoptedVer=(typeof NET!=='undefined' && NET._loadedVersion)||CL._adoptedVer||0; // versão do estado que acabei de adotar
     if(saved && saved.S){
       const oldSeason = S.season||0;
-      isTurnover = (saved.S.season||0) > oldSeason; // VIRADA de temporada (rodada volta a 0)
+      /* ===== A VIRADA E "AINDA NAO VI ESTA TEMPORADA", NAO "O NUMERO ACABOU DE MUDAR" =====
+         `season > oldSeason` so e verdade para quem estiver a olhar no INSTANTE em que o numero
+         muda. Basta o estado novo ter sido adotado por outro caminho antes deste — e ha varios
+         (o reconcile, o watch da rodada sem liga, uma sincronia manual) — para este teste dar
+         falso e a tela de fim de temporada nunca aparecer. Foi o relatado pelo anfitriao a
+         19/08/2026: a temporada virou e ele nao viu nada.
+         O carimbo e por cliente e por temporada, entao a tela aparece uma vez e so uma. */
+      const novaTemporada=(saved.S.season||0);
+      /* a primeira adocao ANCORA no que eu ja tinha, em vez de disparar: sem isto, entrar numa
+         sala a meio da temporada mostrava a tela de fim de temporada logo a chegada. */
+      if(CL._fimTemporadaVisto==null) CL._fimTemporadaVisto=oldSeason;
+      isTurnover = novaTemporada>CL._fimTemporadaVisto;
+      if(isTurnover) CL._fimTemporadaVisto=novaTemporada;
       const _career=(typeof snapshotCareer==='function')?snapshotCareer():null; // carreira é minha, não do anfitrião (ver CAREER_KEYS)
       Object.assign(S, saved.S);
       if(typeof restoreCareer==='function') restoreCareer(_career);
@@ -7977,11 +8933,11 @@ async function onlineAdoptServerRound(RL){
       if(typeof pruneAppliedNetCounters==='function') pruneAppliedNetCounters(); // idem pras contrapropostas
       if(typeof pruneAppliedNetOfferDrops==='function') pruneAppliedNetOfferDrops(); // idem pras baixas de proposta
       if(typeof restoreMyFinances==='function') restoreMyFinances();               // meu log de finanças por cima do que veio do anfitrião
-      // rede de segurança: foto do estado ao fim da jornada (ver autosave.js). Idempotente por
-      // (temporada, jornada), então chamar de mais de um caminho de adoção não duplica nada.
+      // rede de segurança: foto do estado ao fim da rodada (ver autosave.js). Idempotente por
+      // (temporada, rodada), então chamar de mais de um caminho de adoção não duplica nada.
       if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
       if(typeof settleMyOutgoingOffers==='function') settleMyOutgoingOffers(); // debita o caixa se alguma proposta MINHA foi aceita
-      if(typeof persistCareer==='function') persistCareer();   // a carreira mudou nesta jornada: grava no meu assento
+      if(typeof persistCareer==='function') persistCareer();   // a carreira mudou nesta rodada: grava no meu assento
     }
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
@@ -8017,7 +8973,7 @@ async function onlineAdoptServerRound(RL){
   if((S.round||0)===_roundAntes){
     checkPendingCupDraws(()=>{
       hideSyncLoading();
-      // LIBERA A RODADA DE LIGA DESTA MESMA JORNADA — mas SÓ se eu ainda não a joguei.
+      // LIBERA A RODADA DE LIGA DESTA MESMA RODADA — mas SÓ se eu ainda não a joguei.
       // Este ramo é "a rodada voltou igual", e isso acontece em dois casos bem diferentes: o
       // fechamento da quarta (copas resolvidas, a liga ainda por jogar) e um fechamento
       // IDEMPOTENTE, quando o cão de guarda (onlineOrphanCloseCheck) reexecuta o resolve-round de
@@ -8038,7 +8994,7 @@ async function onlineAdoptServerRound(RL){
   checkPendingCupDraws(()=>{
     hideSyncLoading();
     adGate(()=>{                                   // janela de publicidade: segura a classificação (ver adGate)
-      // as copas da jornada vêm ANTES da tabela da liga — mesma ordem em que foram jogadas na
+      // as copas da rodada vêm ANTES da tabela da liga — mesma ordem em que foram jogadas na
       // semana (quarta antes de sábado). Na semana de dois estágios elas já foram vistas no
       // fechamento da quarta e são puladas; aqui cobrem a semana que degradou pra um estágio só.
       queueRoundCupClassifs(_roundAntes, ()=>{
@@ -8088,10 +9044,10 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   // Depois da classificação, se houver demissão/proposta pendente desta rodada, mostra o modal.
   queueSeasonCupDrawsIfNew(); // host (caminho local sem edge function): idem
   checkPendingCupDraws(()=>{
-    // RODADA COLETIVA (solo e hotseat): as copas que entraram em campo nesta jornada mostram a
+    // RODADA COLETIVA (solo e hotseat): as copas que entraram em campo nesta rodada mostram a
     // classificação delas ANTES da tabela da liga, mesmo pra quem não disputa a competição —
     // esse vê o painel de dicas + patrocinador. Ver queueRoundCupClassifs.
-    // rede de segurança: foto do estado com a jornada já fechada (ver autosave.js)
+    // rede de segurança: foto do estado com a rodada já fechada (ver autosave.js)
     if(typeof autoSaveAoFecharJornada==='function') autoSaveAoFecharJornada();
     queueRoundCupClassifs(_roundJogado, ()=>{
       const seats=CL._postRoundSeats||[]; CL._postRoundSeats=null;
@@ -8126,14 +9082,19 @@ function resolveCupRoundRest(key){
   const c=S.cups[key]; if(!c) return;
   if(WORLD_RULES.cupAlreadyResolved(S._cupResolvedRound, key, S.round)) return;   // folha única
   try{
+    /* false = o avanco ESPEROU (falta o resultado publicado de um confronto de outro humano,
+       ver advanceCupBracket) -- nada foi tocado, entao nada e marcado como resolvido: a proxima
+       passada (ou o estado do servidor) completa. */
+    let ok=true;
     if(key==='copaBrasil'){
-      if(!cupIsFinished(c) && (c.ties||[]).length) advanceCupBracket(c,'copaBrasil-r'+c.round);
+      if(!cupIsFinished(c) && (c.ties||[]).length) ok=advanceCupBracket(c,'copaBrasil-r'+c.round,'copaBrasil')!==false;
     } else if(c.group && !c.bracket){
-      if(!c.group.finished) advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round);
+      if(!c.group.finished) ok=advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key)!==false;
     } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
-      advanceCupBracket(c.bracket, key+'-r'+c.bracket.round);
+      ok=advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key)!==false;
     }
-    S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
+    if(ok) S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
+    else console.log('avanço da '+key+' aguarda resultado publicado de outro humano');
   }catch(e){ console.warn('resolveCupRoundRest('+key+'):', e && e.message); }
 }
 function finishCupLiveMatch(){
@@ -8141,7 +9102,7 @@ function finishCupLiveMatch(){
   applyMatchIncidents(m.events);
   const scorers=m.events.filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
   const Rm=makeRng(hashSeed(S.seed,'cuprate',pending.key,S.round,m.h,m.a));
-  if(typeof recordScorers==='function') recordScorers(scorers); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
+  if(typeof recordScorers==='function') recordScorers(scorers, pending.key); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
   const mm=liveMatchMinutes(m);
   ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A,liveCaps(m,'H'),mm); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H,liveCaps(m,'A'),mm);
   if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga
@@ -8208,7 +9169,7 @@ function finishCupLiveMatch(){
     if(m.hg>m.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
     else if(m.hg<m.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
     else { T[h].D++; T[a].D++; T[h].Pts++; T[a].Pts++; }
-    markMyCupTurnDone(pending.key); // cumpri esta competição NESTA jornada (ver myCupTurnDone no core)
+    markMyCupTurnDone(pending.key); // cumpri esta competição NESTA rodada (ver myCupTurnDone no core)
     // AS OUTRAS PARTIDAS DA MESMA RODADA, AGORA. Sem isto a tabela mostrada logo depois do jogo
     // tinha só os pontos do usuário: o resto da rodada da competição só era simulado quando a
     // rodada de LIGA rodasse (sábado), então a classificação do pós-jogo de quarta ficava com
@@ -8369,9 +9330,9 @@ function finishCupResultFlow(){
    fechá-lo, uma tela de chaveamento. Agora é uma tela só (cupScreenHTML): o resultado da
    partida entra como faixa no topo e a chave/grupos ocupa o resto — o usuário termina a
    rodada da copa e continua exatamente onde estava, sem fechar nada. ---- */
-/* A FAIXA DE RESULTADO SOBREVIVE ATÉ O FECHAMENTO, mas só da PRÓPRIA jornada: quem jogou a copa
+/* A FAIXA DE RESULTADO SOBREVIVE ATÉ O FECHAMENTO, mas só da PRÓPRIA rodada: quem jogou a copa
    guarda o placar em CL._cupResultByKey no fim da partida e só o vê na classificação coletiva,
-   que vem depois. Sem o carimbo de jornada, um placar da semana passada reapareceria na tela
+   que vem depois. Sem o carimbo de rodada, um placar da semana passada reapareceria na tela
    desta semana. */
 function cupResultForKey(key){
   if(!CL._cupResultByKey) return null;
@@ -8384,7 +9345,7 @@ function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=k
   // O MARCADOR DE "JÁ VI" É GRAVADO NA SAÍDA (cupClassifContinue), NÃO AQUI.
   // Ele persiste em disco, e marcar na ABERTURA queimava a tela sem o jogador ter visto nada: se
   // o fluxo fosse interrompido no meio — rodada repetindo, reload, sala travada —, a competição
-  // ficava marcada como vista para sempre e a classificação nunca mais aparecia naquela jornada.
+  // ficava marcada como vista para sempre e a classificação nunca mais aparecia naquela rodada.
   // Foi o que apagou as telas de classificação depois das sessões quebradas.
   // abre na aba da fase que ele acabou de jogar (sem fase de grupos, só existe o mata-mata)
   CL.cupTab = !cupHasGroupTab(key,c) ? 'chave' : (r ? (r.stage==='bracket'?'chave':'grupos') : (c.bracket?'chave':'grupos'));
@@ -8397,25 +9358,30 @@ function showCupClassif(key, round){ CL.screen='cupclassif'; CL._cupClassifKey=k
   armCupFlowTimer(cupClassifContinue, CUP_CLASSIF_AUTO_MS);
 }
 function scCupClassif(){
-  const key=CL._cupClassifKey, c=S.cups&&S.cups[key];
-  if(!c) return '';
-  const r=cupResultForKey(key);
-  // MESMA TELA PROS DOIS: quem jogou lê a faixa do próprio placar; quem não disputa a
-  // competição lê, no mesmo lugar, o painel de dicas + patrocinador (ver cupIdlePanelHTML).
-  const result = r ? `<div class="cl-cupres ${escC(r.tone)}">
-      <span class="cl-cupres-sc">${escC(r.score)}</span>
-      <span class="cl-cupres-msg">${escC(r.msg)}</span></div>` : cupIdlePanelHTML(key);
-  const actions = btn('Continuar','cupClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})
-    + (CL.online?'<span class="cl-cupscr-auto">avança sozinho em alguns segundos...</span>':'');
-  return cupScreenHTML(key, {actions, result, live:true});
+  // TELA PORTADA (telas/Copa - Classificacao da Fase)
+  return rfCopaFaseHTML(CL._cupClassifKey);
 }
+
 function cupClassifContinue(){
   clearCupFlowTimer();
+  /* CERIMONIA DA FINAL, mesmo quando o campeao e outro (ver dadosCampeaoCopa):
+     a tela de fim de fase que se estava a fechar era a da FINAL, entao a
+     competicao acabou aqui -- e o fecho dela e a taca, nao um "Continuar". */
+  try{
+    const k=CL._cupClassifKey;
+    if(k && typeof enfileirarMomentosCopa==='function'){
+      const c=S.cups&&S.cups[k], b=(c&&c.champion!==undefined)?c:(c&&c.bracket);
+      if(b && b.champion!=null){
+        enfileirarMomentosCopa(k);
+        if(MOMENTO_FILA.length){ momentoSeguinte(()=>cupClassifContinue()); return; }
+      }
+    }
+  }catch(e){ console.warn('cerimonia da final:', e&&e.message); }
   // AGORA SIM: a tela foi de fato mostrada e o jogador está saindo dela (no botão ou no
-  // auto-avanço). Só neste ponto a competição conta como vista nesta jornada — ver showCupClassif.
+  // auto-avanço). Só neste ponto a competição conta como vista nesta rodada — ver showCupClassif.
   if(CL._cupClassifKey) cupClassifMarkShown(CL._cupClassifKey, CL._cupClassifRound);
   const queue=CL._cupClassifQueue||[];
-  // ENTRE UMA COMPETIÇÃO E OUTRA, PASSA PELA TELA DO ELENCO. Numa jornada com duas competições
+  // ENTRE UMA COMPETIÇÃO E OUTRA, PASSA PELA TELA DO ELENCO. Numa rodada com duas competições
   // (Libertadores na quinta e Copa do Brasil na sexta, por exemplo) a fila emendava a
   // classificação de uma na da outra, e o jogador saltava de competição pra competição sem nunca
   // voltar ao time. Agora a fila para na tela do clube e o próximo "Jogar" pega a competição
@@ -8442,19 +9408,19 @@ function cupClassifContinue(){
    calendário diário veio resolver.
    A regra agora é uma só, pra qualquer país, liga ou copa: ao fim de uma rodada, TODO humano
    passa pela tela de classificação de TODAS as competições que entraram em campo naquela
-   jornada — jogue ele ou não. Quem jogou vê a faixa do próprio resultado; quem não disputa vê,
+   rodada — jogue ele ou não. Quem jogou vê a faixa do próprio resultado; quem não disputa vê,
    no mesmo lugar, o painel de dicas + patrocinador. Ninguém vê a mesma competição duas vezes na
-   mesma jornada (o marcador abaixo lembra o que já foi mostrado), então quem acabou de jogar a
+   mesma rodada (o marcador abaixo lembra o que já foi mostrado), então quem acabou de jogar a
    copa e já leu a chave logo depois do apito não repete a tela no fechamento. */
 const CUP_CLASSIF_ORDER=['copaBrasil','libertadores','sulamericana','championsLeague','europaLeague'];
-/* marcador por (temporada, jornada) — a jornada é sempre a da RODADA JOGADA, não a corrente:
+/* marcador por (temporada, rodada) — a rodada é sempre a da RODADA JOGADA, não a corrente:
    no fechamento de sábado o S.round já avançou, e sem isso a copa que o jogador acabou de ver na
    quarta apareceria de novo. */
 function cupClassifRoundKey(round){ return (S.season||1)+'-'+(round!=null?round:(S.round||0)); }
 /* O MARCADOR TAMBÉM PERSISTE (mesmo balde por save/sala do drawSeenKey). Só em memória ele não
    sobrevivia a um reload — e o botão "Sincronizar a Resenha" recarrega a página de propósito —,
    então a classificação da MESMA rodada reaparecia depois de sincronizar: a rodada parecia
-   acontecer duas vezes. Guardado por (temporada, jornada, competição), reabrir o jogo devolve o
+   acontecer duas vezes. Guardado por (temporada, rodada, competição), reabrir o jogo devolve o
    jogador ao ponto onde estava sem repetir tela nenhuma. */
 /* prefixo 'cls2': os marcadores gravados pela versão anterior foram escritos na ABERTURA da tela,
    então há telas marcadas como vistas que ninguém viu (as sessões que travaram queimaram várias).
@@ -8471,7 +9437,7 @@ function cupClassifWasShown(key, round){
   if(CL._cupClsSeen && CL._cupClsSeen.rk===rk && CL._cupClsSeen.keys.includes(key)) return true;
   return (typeof drawAlreadySeen==='function') && drawAlreadySeen(cupClassifSeenMark(key, round));
 }
-/* esta competição de fato entrou em campo NESTA jornada? Lê o carimbo `jornada` que cliente e
+/* esta competição de fato entrou em campo NESTA rodada? Lê o carimbo `rodada` que cliente e
    servidor gravam em todo confronto de mata-mata e em todo resultado de grupo — é o único sinal
    que vale nos dois modos. Perguntar só "é a semana dela" (cupTickMatchesRound) traria também a
    copa já encerrada, que bate o tique e não joga nada. */
@@ -8492,10 +9458,10 @@ function cupKeysPlayedInRound(round){
   if(!S || !S.cups) return [];
   return CUP_CLASSIF_ORDER.filter(k=>S.cups[k] && cupPlayedInRound(k, round));
 }
-/* mostra, uma depois da outra, a classificação de cada competição que teve rodada nesta jornada
+/* mostra, uma depois da outra, a classificação de cada competição que teve rodada nesta rodada
    e que este jogador ainda não viu — e só então chama `done` (a classificação da liga, ou a tela
    do clube). Ponto ÚNICO da regra: os três caminhos de fim de rodada passam por aqui. */
-/* A ORDEM DAS COMPETIÇÕES DE UMA JORNADA É A DO CALENDÁRIO DA SALA — o plano de dias, que mora no
+/* A ORDEM DAS COMPETIÇÕES DE UMA RODADA É A DO CALENDÁRIO DA SALA — o plano de dias, que mora no
    servidor e por isso é igual em todo cliente. Cada cliente ordenava pela sua própria lista, e
    assim os dois humanos viam as mesmas classificações em sequências diferentes. Sala sem plano
    (save antigo) cai na ordem do calendário do mundo (cupDrawOrder), que também é comum a todos. */
@@ -8504,8 +9470,69 @@ function cupOrderForRound(round){
   if(plan && plan.length) return plan.filter(e=>e && e.r===round && e.comp!=='liga').map(e=>e.comp);
   return (typeof cupDrawOrder==='function') ? cupDrawOrder().map(x=>x[0]) : [];
 }
+/* ===== TODA COPA DECIDIDA TEM CERIMONIA, TENHA EU JOGADO OU NAO =====
+   A cerimonia da taca so era enfileirada por dois caminhos: quem acabou de
+   jogar a final (clCupResultContinue) e quem passou pela tela de fim de fase
+   (cupClassifContinue). Uma final resolvida em segundo plano -- competicao em
+   que o clube nem entrou, ou rodada avancada pelo botao "Avancar" -- nao passa
+   por nenhum dos dois, e a temporada acabava sem nunca dizer quem levantou a
+   Copa do Brasil ou a Sul-Americana. Agora quem manda e o FATO: existe campeao
+   e ainda nao foi celebrado nesta temporada -> entra na fila.
+   O carimbo vive no SAVE (nao em CL): recarregar a pagina nao pode fazer a
+   cerimonia repetir, nem sumir. */
+/* ===== A TACA E A ARTILHARIA SAO DE CADA TREINADOR =====
+   O carimbo de "esta copa ja foi celebrada" vivia em `S._copaCelebrada` — o estado
+   COMPARTILHADO. Numa sala isso quer dizer que o PRIMEIRO cliente a chegar aqui carimba a
+   competicao para toda a gente, e os outros nunca veem a taca nem o artilheiro. Foi o relatado a
+   19/08/2026: "o modal de artilheiro so apareceu para o anfitriao", e "apareceu em momentos
+   diferentes para cada um" — porque cada um chegava aqui na sua hora e so o primeiro passava.
+
+   E o mesmo defeito do sorteio, no mesmo dia e pela mesma razao: cerimonia e UI, e UI nao viaja
+   no mundo. A marca passa para o registo POR CLIENTE (localStorage por sala+temporada, o mesmo
+   `rememberDrawSeen`/`drawAlreadySeen` dos sorteios), com um prefixo proprio.
+
+   O titulo na carreira anda junto e tambem esta certo assim: a carreira e do ASSENTO, entao cada
+   cliente tem de registar o seu — com o carimbo no mundo, quem chegasse depois ficava sem a taca
+   na estante. */
+function tacaJaCelebradaPorMim(marca){
+  const m='taca:'+marca;
+  if((CL._copaCelebrada||{})[m]) return true;
+  return (typeof drawAlreadySeen==='function') && drawAlreadySeen(m);
+}
+function marcarTacaCelebradaPorMim(marca){
+  const m='taca:'+marca;
+  CL._copaCelebrada=CL._copaCelebrada||{}; CL._copaCelebrada[m]=true;
+  if(typeof rememberDrawSeen==='function') rememberDrawSeen(m);
+}
+function celebrarCopasDecididas(){
+  try{
+    if(!S || !S.cups || typeof enfileirarMomentosCopa!=='function') return 0;
+    let n=0;
+    (typeof allCupKeys==='function'?allCupKeys():Object.keys(S.cups)).forEach(k=>{
+      const c=S.cups[k]; if(!c) return;
+      const b=(c.champion!==undefined)?c:c.bracket;
+      if(!b || b.champion==null) return;
+      const marca=k+':'+(S.season||1);
+      if(tacaJaCelebradaPorMim(marca)) return;
+      marcarTacaCelebradaPorMim(marca);
+      /* O TITULO ENTRA NA CARREIRA NA HORA, nao no fim da temporada. Uma taca ganha em maio
+         ficava invisivel na Sala, na Carreira e na Historia ate a temporada fechar. */
+      try{ if(String(b.champion)===String(CL.clubId) && typeof coachSpellTitulo==='function'){
+             if(typeof coachSpellsMigrar==='function') coachSpellsMigrar();
+             coachSpellTitulo(k); } }catch(e){ console.warn('titulo na carreira:', e&&e.message); }
+      enfileirarMomentosCopa(k); n++;
+    });
+    return n;
+  }catch(e){ console.warn('celebrar copas:', e&&e.message); return 0; }
+}
 function queueRoundCupClassifs(round, done){
   done=done||function(){};
+  /* a taca vem ANTES da classificacao da rodada: primeiro o fecho da historia,
+     depois a tabela. Se houver cerimonia por mostrar, ela abre e esta funcao e
+     retomada quando a fila esvaziar. */
+  if(celebrarCopasDecididas() && MOMENTO_FILA.length){
+    momentoSeguinte(()=>queueRoundCupClassifs(round, done)); return;
+  }
   let keys=[];
   try{ keys=cupKeysPlayedInRound(round).filter(k=>!cupClassifWasShown(k, round)); }
   catch(e){ console.warn('classificação de copa da rodada:', e&&e.message); keys=[]; }
@@ -8522,7 +9549,7 @@ function queueRoundCupClassifs(round, done){
    Ocupa exatamente o lugar da faixa de resultado na tela de classificação da copa. Em vez de
    fingir um placar que não existe, usa o espaço pra ensinar o que o jogador pode fazer com a
    semana livre — treino, rodízio, base, mercado, estádio — e pra dar uma inserção de marca. A
-   dica e a marca são escolhidas pela JORNADA, não por sorteio: assim todo mundo na sala vê a
+   dica e a marca são escolhidas pela RODADA, não por sorteio: assim todo mundo na sala vê a
    mesma coisa ao mesmo tempo, que é o ponto da rodada coletiva (e vira assunto de resenha). */
 const CUP_IDLE_DICAS=[
   { ic:'🏋', t:'Treino especial', d:'Em Jogador ▸ Treino especial dá pra pôr até 3 atletas ganhando chance extra de evolução a cada rodada. Jovem com ritmo rápido é onde o treino rende mais.' },
@@ -8544,11 +9571,22 @@ function cupIdlePanelHTML(key){
       <div class="cl-cupidle-dica"><span class="cl-cupidle-ic">${d.ic}</span>
         <span><b>${escC(d.t)}:</b> ${escC(d.d)}</span></div>
     </div>
-    <div class="cl-cupidle-ad">
-      <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
-      <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
-      <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
-    </div>
+    ${(function(){
+      /* MESMO PATROCINIO DAS OUTRAS FAIXAS (rf98.pausa.barra): quem compra a apresentacao leva
+         o Camarote, a pausa e esta tela. Sem criativo, ficam as marcas de casa. */
+      const c=(typeof ADS!=='undefined'&&window.ADS)?ADS.get('rf98.pausa.barra'):null;
+      if(c && c.ficheiro_url) return `<div class="cl-cupidle-ad"
+        data-ad-chave="rf98.pausa.barra" data-ad-id="${escC(c.id)}">
+        <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
+        <img class="cl-cupidle-logo" src="${escC(c.ficheiro_url)}" alt="Patrocinador">
+        ${c.link_destino?`<button class="cl-cupidle-cta" onclick="ADS.clique('rf98.pausa.barra')">Conhecer o patrocinador</button>`:''}
+      </div>`;
+      return `<div class="cl-cupidle-ad">
+        <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
+        <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
+        <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
+      </div>`;
+    })()}
     <div class="cl-cupidle-ad2" data-ad-slot="tela-${escC(key)}-apresenta-300x90">
       <b>${escC(s.nome)}</b>
       <span>${escC(s.cta)}</span>
@@ -8566,8 +9604,47 @@ function cupIdleAdClick(){
 function updateLive(){ const RL=CL.live; if(!RL) return;
   const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', liveClockPct(RL));
   RL.matches.forEach((m,i)=>{ const sc=document.querySelector('#cl-lm-'+i); if(sc) sc.innerHTML=liveScoreCells(m);
-    const lg=document.querySelector('#cl-lg-'+i); if(lg){ const inc=(m.incidents||[])[m.incidents.length-1]; lg.textContent=inc?lastIncidentTxt(inc):''; } });
+    // A LINHA DO JOGO TEM ALTURA FIXA (56px, ver .cl-lrow no rebranding): o fato mais
+    // recente aparece por extenso e os anteriores viram um contador "+N". Sem isso, num
+    // jogo de 4 a 3 a linha crescia e empurrava a lista inteira pra baixo no meio da
+    // transmissão — a tabela dançava enquanto o usuário tentava ler o placar.
+    /* OS FATOS NAO MORAM MAIS AQUI. `#cl-lg-` era a celula de gol da pele
+       antiga, e na pele nova esse id ficou na coluna MIN, de 46px. Este bloco
+       continuava a despejar la dentro o texto do fato com as classes antigas
+       (cl-lgoal-*), que nao tem limite de largura nenhum: a cada tique o fato
+       era injectado na coluna do minuto e transbordava para fora do card, do
+       lado direito da tela.
+       Na pele nova cada fato e uma pastilha ao lado do NOME do seu time — a do
+       mandante a esquerda, a do visitante a direita — e e isso que se
+       actualiza. A coluna do minuto volta a mostrar o minuto. */
+    /* o minuto e da RODADA (RL.minute), nao da partida: `m.min` nunca existiu e
+       a coluna saia vazia. Jogo terminado mostra o apito final. */
+    /* FIM E POR JOGO, NAO POR RODADA. A coluna mostrava o relogio da rodada em TODAS as linhas,
+       entao um jogo que ja tinha apitado aos 91 continuava a marcar 92, 93, 94 -- a rodada
+       inteira parecia estar em campo ate ao ultimo segundo. Ver liveJogoEncerrado. */
+    const lg=document.querySelector('#cl-lg-'+i);
+    if(lg){ const fim=(typeof liveJogoEncerrado==='function') && liveJogoEncerrado(m,RL);
+      lg.textContent = (m.done||fim) ? 'FIM' : ((m.min!=null?m.min:(RL.minute||RL.min||0))+"'"); }
+    if(typeof rfLvFatosDeJogo==='function' && typeof rfLvFatosHTML==='function'){
+      const f=rfLvFatosDeJogo(m);
+      const fh=document.querySelector('#rf-lv-fh-'+i); if(fh) fh.innerHTML=rfLvFatosHTML(f.casa,'esq');
+      const fa=document.querySelector('#rf-lv-fa-'+i); if(fa) fa.innerHTML=rfLvFatosHTML(f.fora,'dir');
+    } });
   if(RL.sel!=null){ const box=document.querySelector('#cl-livemodal'); if(box) box.innerHTML=liveModalHTML(RL.matches[RL.sel]); }
+  /* O RELOGIO DA RODADA, na faixa do topo. Era escrito so no desenho da tela e
+     nunca mais tocado: o updateLive remendava o minuto de CADA JOGO mas nao
+     este. Quem joga nao dava por isso — o Camarote tem o seu proprio relogio,
+     que camUpdate atualiza. Mas quem SO ASSISTE nao tem partida com m.user,
+     entao camMatch() devolve undefined, camUpdate() sai na primeira linha, e
+     nenhum relogio andava na tela. Era o relatado: "o relogio nao anda quando
+     o usuario so assiste". Agora a faixa e remendada sempre. */
+  if(RL){
+    const mn=(RL.minute!=null?RL.minute:0);
+    const el=document.querySelector('#rf-lv-min');
+    if(el){ const txt=mn+"'"; if(el.textContent!==txt) el.textContent=txt; }
+    const anel=document.querySelector('#rf-lv-anel');
+    if(anel && typeof liveClockPct==='function') anel.style.setProperty('--pct', String(liveClockPct(RL)));
+  }
   camUpdate(); // Modo Camarote: relógio, placar, barra de pressão, narração e estatística
 }
 function lastIncidentTxt(inc){
@@ -8579,7 +9656,7 @@ function lastIncidentTxt(inc){
 
 /* ---- painel: ADVERSÁRIO (+ Calendário) ---- */
 function panAdversario(oppId){
-  if(!oppId) return `<div class="cl-adv">Sem adversário nesta jornada.</div>`;
+  if(!oppId) return `<div class="cl-adv">Sem adversário nesta rodada.</div>`;
   const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
   const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
   return `<div class="cl-adv">
@@ -8605,14 +9682,14 @@ function userCalendar(){ const out=[]; (S.sched||[]).forEach((rd,i)=>{ const m=r
    em core.js — Copa do Brasil, Libertadores e Sul-Americana ficam defasadas por 1 rodada
    cada, 7 dias no calendário do jogo, bem acima do mínimo de 2 dias pra não parecer que
    clubes jogam duas competições no mesmo dia). Um confronto de copa só fica jogável ao
-   vivo na véspera do avanço daquela competição específica. Dá pra prever em QUAL jornada
-   de liga cada confronto pendente vai rolar: a próxima jornada em que essa competição bate
+   vivo na véspera do avanço daquela competição específica. Dá pra prever em QUAL rodada
+   de liga cada confronto pendente vai rolar: a próxima rodada em que essa competição bate
    (cupTickMatchesRound), +3 pra cada avanço seguinte (2º confronto de grupo pendente, 3º,
    ...) — é isso que permite intercalar copa e liga no calendário na ordem certa. */
-/* próxima jornada em que esta copa entra em campo, e as seguintes. Antes a conta era "acha a
-   próxima jornada da faixa e soma 3 por rodada", que só valia enquanto o passo era fixo. Agora as
-   jornadas vêm da tabela do calendário (S.cupCalendar, ver ensureCupCalendar no core) — o passo
-   estica no mata-mata, então somar 3 daria a jornada errada. Sem tabela (save antigo), a conta
+/* próxima rodada em que esta copa entra em campo, e as seguintes. Antes a conta era "acha a
+   próxima rodada da faixa e soma 3 por rodada", que só valia enquanto o passo era fixo. Agora as
+   rodadas vêm da tabela do calendário (S.cupCalendar, ver ensureCupCalendar no core) — o passo
+   estica no mata-mata, então somar 3 daria a rodada errada. Sem tabela (save antigo), a conta
    antiga continua valendo. */
 function nextCupJornada(key, stepsAhead){
   const cal=(S.cupCalendar&&S.cupCalendar[key])||null;
@@ -8629,20 +9706,20 @@ function nextCupJornada(key, stepsAhead){
   let j=S.round+1; while(!cupTickMatchesRound(key,j)) j++;
   return j + (stepsAhead||0)*3;
 }
-/* jornada em que a r-ésima rodada de uma copa foi/será jogada (r começa em 1). Serve de
+/* rodada em que a r-ésima rodada de uma copa foi/será jogada (r começa em 1). Serve de
    fallback pros confrontos JÁ jogados de saves antigos, que não têm o carimbo t.jornada
-   (ver advanceCupBracket): a competição bate a cada 3 jornadas, na jornada ≡ CUP_TICK_OFFSET
-   (mod 3), e a primeira batida acontece na primeira jornada >= 1 com esse resto. */
+   (ver advanceCupBracket): a competição bate a cada 3 rodadas, na rodada ≡ CUP_TICK_OFFSET
+   (mod 3), e a primeira batida acontece na primeira rodada >= 1 com esse resto. */
 /* SEMANA EM QUE A RODADA DE COPA É DE FATO JOGADA.
-   Existiu por causa de uma defasagem: os tiques eram numerados pela jornada em que a competição
+   Existiu por causa de uma defasagem: os tiques eram numerados pela rodada em que a competição
    AVANÇA (advancePendingCups rodava depois do S.round++) enquanto o jogador jogava a partida uma
-   sessão ANTES, então a semana certa era tique-1 e o Calendário mostrava tudo uma jornada à frente.
+   sessão ANTES, então a semana certa era tique-1 e o Calendário mostrava tudo uma rodada à frente.
    A defasagem foi desfeita na raiz: o avanço de copa passou pro COMEÇO da rodada (ver playRound no
    core) e pendingUserCupMatches olha a semana corrente — tique e semana são a mesma coisa agora.
    A função fica como ponto único de tradução: se a relação voltar a mudar, muda só aqui, e não nos
-   cinco lugares que exibem jornada de copa. */
+   cinco lugares que exibem rodada de copa. */
 function cupWeekOfTick(tick){ return Math.max(0, tick||0); }
-/* O Calendário rotula jornada de liga a partir de 1 (userCalendar: n=i+1) e a semana interna é
+/* O Calendário rotula rodada de liga a partir de 1 (userCalendar: n=i+1) e a semana interna é
    0-based. As linhas de copa carregavam a semana crua como rótulo, então copa e liga da MESMA
    semana apareciam com números diferentes — e, pior, a data que eu derivava do rótulo saía uma
    semana adiantada nas linhas de liga. Agora cada linha leva as duas coisas: `n` é o rótulo
@@ -8654,12 +9731,12 @@ function cupJornadaOfRound(key, r){
   if(cal && cal.length){
     if(i<cal.length) return cal[i];
     // FORA DA TABELA: extrapola em vez de grampear no último slot. O Math.min de antes fazia
-    // TODAS as rodadas excedentes caírem na MESMA jornada — várias linhas da mesma competição
+    // TODAS as rodadas excedentes caírem na MESMA rodada — várias linhas da mesma competição
     // no mesmo dia do Calendário, que é o "dois jogos de Sul-Americana no mesmo dia" relatado.
     return cal[cal.length-1] + (i-(cal.length-1))*3;
   }
   const off=CUP_TICK_OFFSET[key]||0;
-  const first=off>=1?off:3;              // offset 0 -> só bate na jornada 3 (jornada 0 não existe)
+  const first=off>=1?off:3;              // offset 0 -> só bate na rodada 3 (jornada 0 não existe)
   return first + i*3;
 }
 /* TODOS os confrontos de copa JÁ JOGADOS do clube do usuário, com placar — em qualquer
@@ -8713,12 +9790,38 @@ function userCupPlayedRows(){
    chaveamento antes de ser sorteado. Agora cada competição só entra na lista depois da data do
    seu sorteio (02/03, 11/03, 21/03 — ver cupSeasonDrawDays). Antes disso o que aparece é a linha
    da própria cerimônia (userCupDrawRows), que é a informação honesta naquele momento. */
-/* "hoje" é o dia da jornada que estou jogando (leagueMatchDay), não o dia da própria copa —
-   cupDrawReleased compara com a data da COMPETIÇÃO, o que é certo pra liberar a partida e cedo
-   demais pra exibir no Calendário (a Libertadores sorteia 02/03 e estreia 04/03: no dia 01/03 o
-   confronto ainda não pode aparecer). */
+/* ===== A DATA NAO E A REVELACAO; A CERIMONIA E =====
+   Esta pergunta ja existia, mas media a coisa errada: comparava a DATA do sorteio com o dia de
+   hoje. Com o calendario por slots as datas de sorteio andaram para o comeco da temporada (a
+   Libertadores sorteia no dia do slot 2 menos dois), entao a data ja tinha passado enquanto a
+   cerimonia ainda estava por acontecer — e o Calendario e os Campeonatos mostravam o grupo da
+   Libertadores antes de o utilizador ver uma bola sair. Foi o relatado a 19/08.
+
+   A regua passa a ser a mesma que decide se a cerimonia ainda te deve alguma coisa:
+   `sorteioJaVistoPorMim`, por cliente e por temporada. E o unico marcador honesto — a data diz
+   quando o sorteio PODE sair, so a marca diz que ele JA SAIU PARA MIM. Numa sala cada humano
+   tem a sua marca, entao ninguem ve o grupo do outro antes da propria cerimonia.
+
+   Duas saidas de seguranca, porque esconder a competicao inteira e caro se a marca faltar:
+   competicao sem cerimonia (CUP_SEM_CERIMONIA) volta a regra da data; e competicao que JA
+   ROLOU BOLA aparece sempre — save antigo a meio da temporada, ou quem entrou na sala depois,
+   nao pode ficar com a copa invisivel. */
+function cupJaRolouBola(c){
+  try{
+    if(!c) return false;
+    if(c.group && ((c.group.round||0)>0 || c.group.finished)) return true;
+    const b=c.bracket||((c.ties||c.history)?c:null);
+    if(b && (((b.history||[]).length>0) || (b.ties||[]).some(t=>t&&t.winner))) return true;
+    return false;
+  }catch(e){ return false; }
+}
 function cupRevelada(key){
   try{
+    if(typeof S==='undefined' || !S || !S.cups || !S.cups[key]) return true;
+    if(cupJaRolouBola(S.cups[key])) return true;
+    if(typeof cupTemCerimonia==='function' && cupTemCerimonia(key)
+       && typeof sorteioJaVistoPorMim==='function')
+      return !!sorteioJaVistoPorMim(key+':'+((S.season)||1));
     const dia=(typeof cupSeasonDrawDays==='function')?cupSeasonDrawDays()[key]:null;
     if(dia==null) return true;
     const hoje=(typeof leagueMatchDay==='function')?leagueMatchDay(S.round||0):(1+(S.round||0)*7);
@@ -8768,9 +9871,11 @@ function userCupDrawRows(){
   // 1) sorteio de ABERTURA de cada copa (ver cupSeasonDrawDays no core): aparece no calendário
   //    enquanto não aconteceu, dois dias antes da estreia da competição
   if(typeof cupSeasonDrawDays==='function'){
-    const dias=cupSeasonDrawDays(), feitos=S._cupDrawQueued||{}, season=S.season||1;
+    const dias=cupSeasonDrawDays(), season=S.season||1;
+    const feito=k=>(typeof sorteioJaVistoPorMim==='function') && sorteioJaVistoPorMim(k+':'+season);
     Object.keys(dias).forEach(key=>{
-      if(!S.cups[key] || feitos[key+':'+season]) return;
+      if(!S.cups[key] || feito(key)) return;
+      if(typeof cupDoMeuUniverso==='function' && !cupDoMeuUniverso(key)) return;
       const dia=dias[key];
       out.push({key, n:Math.max(1,Math.floor((dia-1)/7)+1), date:realDateForDay(dia), abertura:true});
     });
@@ -8784,7 +9889,7 @@ function userCupDrawRows(){
   return out;
 }
 /* DATA REAL DE CADA LINHA DO CALENDÁRIO — é o que torna o "calendário por dia" visível.
-   O Calendário listava só o número da jornada ("3ª"), então copa e liga da mesma semana apareciam
+   O Calendário listava só o número da rodada ("3ª"), então copa e liga da mesma semana apareciam
    com o MESMO rótulo e nada dizia que uma era no meio da semana e a outra no fim. Era exatamente a
    confusão entre competições: duas linhas iguais, dias diferentes.
    O modelo de dias (validado numa temporada inteira, 131 clubes, zero choques): dentro da semana N
@@ -8793,7 +9898,7 @@ function userCupDrawRows(){
 /* DIA DO PRÓXIMO JOGO — o mesmo modelo do Calendário, para o fluxo que o usuário percorre a cada
    rodada. O jogo passou a acontecer POR DIA (copa na quarta, liga no fim de semana da mesma
    semana), mas isso só aparecia na lista do Calendário: na tela do clube, na entrada em campo e na
-   partida ao vivo continuava tudo em "jornada", como se a semana fosse um bloco só. Aqui o dia
+   partida ao vivo continuava tudo em "rodada", como se a semana fosse um bloco só. Aqui o dia
    acompanha o jogador em todas essas telas, que é o que faz a mecânica nova ficar entendível. */
 function nextMatchDayLabel(nm){
   if(!nm || typeof calRowDate!=='function') return '';
@@ -8802,7 +9907,7 @@ function nextMatchDayLabel(nm){
 /* `comp`: chave da competição de copa, ou nada/false pra rodada de liga. O dia da semana é FIXO
    por competição (COMP_WEEKDAY/leagueMatchDay no core) — liga gira segunda/quarta/sábado,
    Sul-Americana joga terça, Libertadores quinta, Copa do Brasil sexta. Como o dia sai só da
-   competição e da jornada, todos os clubes que disputam a mesma competição veem a MESMA data. */
+   competição e da rodada, todos os clubes que disputam a mesma competição veem a MESMA data. */
 function calRowDay(n, comp){
   return comp
     ? (typeof cupMatchDay==='function' ? cupMatchDay(typeof comp==='string'?comp:null, n||0) : 1+(n||0)*7+3)
@@ -8819,7 +9924,7 @@ function calRowDate(n, comp){
    dispute o clube ou não. Antes, o dia de uma competição que eu não jogo simplesmente NÃO EXISTIA
    no meu Calendário — sumia da lista, e não havia como saber que havia rodada rolando naquela
    data (nem por que os outros clubes tinham jogo e eu não). Agora o dia aparece igual, vazio e
-   marcado como Folga: vale pra copa que eu não disputo (ou de que fui eliminado) e pra jornada de
+   marcado como Folga: vale pra copa que eu não disputo (ou de que fui eliminado) e pra rodada de
    liga em que o meu clube pegou bye. */
 function calFolgaRows(cupRows, ligaRows){
   const out=[];
@@ -8847,8 +9952,8 @@ function calFolgaRows(cupRows, ligaRows){
   return out;
 }
 function clCalendar(){
-  // intercala copa, sorteio e liga por jornada (ver nextCupJornada/jornadaForRealDate) —
-  // na mesma jornada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
+  // intercala copa, sorteio e liga por rodada (ver nextCupJornada/jornadaForRealDate) —
+  // na mesma rodada, a(s) partida(s) de copa vêm antes da de liga, igual à ordem real de
   // jogo (clJogar() enfileira as partidas de copa pendentes antes de liberar a rodada de
   // liga); sorteios entram como um marco à parte, sem confronto associado.
   // jogado (com placar) + pendente, na MESMA linha visual da liga — chip V/D/E e o placar,
@@ -8892,7 +9997,7 @@ function clCalendar(){
       <span class="cl-cal-r">${chip}${score}</span><span class="cl-cal-cf">${r.home?'C':'F'}</span></div>`};
   });
   // ORDENA PELO DIA DE VERDADE. Com um dia da semana próprio por competição, "copa antes da liga
-  // na mesma jornada" deixou de ser a ordem real: a Libertadores é quinta e a liga da mesma
+  // na mesma rodada" deixou de ser a ordem real: a Libertadores é quinta e a liga da mesma
   // semana pode cair na segunda. `ord` fica só como desempate de linhas do mesmo dia.
   const rows=cupRows.concat(drawRows).concat(ligaRows).concat(calFolgaRows(cupRows, ligaRows))
     .sort((a,b)=>(a.dia!=null&&b.dia!=null ? a.dia-b.dia : a.n-b.n) || a.n-b.n || a.ord-b.ord)
@@ -8905,7 +10010,7 @@ function clCalendar(){
 /* ---- menu dropdown (topo) ---- */
 /* rótulo de cada aba da tela principal — usado pelo hambúrguer pra dizer ONDE o jogador está
    (a barra de abas do rodapé mostra só ícones no telefone). */
-/* O cabeçalho "Adversário" (nome, mando, data, jornada) ocupa ~110px no telefone. Ele é contexto
+/* O cabeçalho "Adversário" (nome, mando, data, rodada) ocupa ~110px no telefone. Ele é contexto
    pro PRÓXIMO JOGO, então vale nas abas onde isso está em questão — Jogo, Formação (escalar
    contra alguém, dentro ou fora de casa, é a hora em que essa informação mais importa) e o
    próprio Adversário. Em Jogador, Finanças e E-mail é só espaço gasto antes do conteúdo. */
@@ -8965,7 +10070,11 @@ function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
    mudar — os convidados ficam travados no valor que ele escolheu (games.speed_mult, já
    sincronizado/restrito por RLS ao host — ver netSetSpeed). Baseline 'Usain Bolt'=1x preserva o
    comportamento padrão de hoje pra quem nunca mexeu na opção (games.speed_mult nasce em 1). */
-const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37};
+/* 'Foguete' e o degrau acima do Usain Bolt, para atravessar temporadas depressa e ver o que
+   acontece no fim delas. 6ms por minuto de jogo bate no piso do proprio navegador (setTimeout
+   nao desce abaixo de ~4ms) e quem manda passa a ser o desenho de cada minuto: da a partida em
+   cerca de um segundo. E de TESTE — a opcao diz isso na tela. */
+const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37,Foguete:6};
 /* PADRÃO (solo e sala nova): Ultrassônico. 'Usain Bolt' (37ms) resolve a rodada em ~3,5s — rápido
    demais pra acompanhar qualquer coisa e, na prática, deixaria o Modo Camarote TRANCADO por padrão
    (ver camSpeedOk), escondendo o modo de quem nunca abriu as Opções. Ultrassônico (110ms, ~10s de
@@ -8983,11 +10092,22 @@ const TEMPO_DEFAULT='Ultrassônico';
 
    Enquanto estiver ligado, a tela de Opções mostra o aviso (ver renderOptions) pra ninguém
    passar meia hora achando que a preferência dele quebrou. */
-const TEMPO_TESTE='Ultrassônico';   // ← null desliga
+/* LIGADO EM 'Foguete' (18/08/2026), A PEDIDO, PARA TESTES. Vale para TODAS as competicoes
+   (liga e copas correm no mesmo liveTick) e para os dois modos, Solo e Resenha -- na Resenha
+   ele passa por cima tanto da opcao de cada jogador como do ritmo escolhido pelo anfitriao,
+   que e justamente o ponto: todos correm igual, depressa, sem combinar nada.
+   ENQUANTO ESTIVER ASSIM, a escolha em Opcoes -> Tempo de jogo NAO tem efeito (a propria tela
+   avisa isso). Voltar a `null` devolve o comando a quem joga -- foi por isso que ele esteve
+   desligado desde 17/08. */
+const TEMPO_TESTE='Foguete';   // ← rótulo (ex.: 'Ultrassônico') liga a trava de bancada
 /* rótulo de ritmo que vale AGORA (o de teste, quando ligado; senão a opção do save) */
 function tempoLabelAtual(){
   if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return TEMPO_TESTE;
-  return (CL.options&&CL.options.tempo)||TEMPO_DEFAULT;
+  const salvo=(CL.options&&CL.options.tempo);
+  /* RITMO SALVO QUE JA NAO EXISTE CAI NO PADRAO. Quem experimentou o 'Foguete' tem o rotulo
+     gravado no save; sem esta rede, TEMPO_MS[rotulo] vinha undefined e o relogio da partida
+     ficava sem intervalo. */
+  return (salvo && TEMPO_MS[salvo]) ? salvo : TEMPO_DEFAULT;
 }
 /* A Resenha usa a MESMA escala do solo: o rótulo escolhido pelo ANFITRIÃO vale ms por ms pra todo
    mundo (viaja em games.speed_mult = TEMPO_MS['Usain Bolt']/TEMPO_MS[rótulo], então
@@ -9004,7 +10124,7 @@ function clSetTempo(label){
   renderOptions();
 }
 function clOptions(){ CL.menu=null; CL.optTab='geral';
-  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 jornadas',som:'Sim',
+  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 rodadas',som:'Sim',
     subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   // LIGADO por padrão pra todo mundo, inclusive pra quem já tinha CL.options gravado antes de o
   // salvamento automático existir — daí o preenchimento aqui e não só no objeto acima.
@@ -9015,14 +10135,14 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
   const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
     <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
-    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 jornadas','Sempre'],o.gravar)}</div>
+    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 rodadas','Sempre'],o.gravar)}</div>
     <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>
-    <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas jornadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
+    <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas rodadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
     <div class="cl-orow"><span>Voltar a um ponto guardado</span>${btn('Ver pontos guardados','clAutoSaveAbrir()',{icon:'⏪'})}</div>`;
   const amHost=typeof NET!=='undefined' && NET.isHost;
   const tempoRow = (CL.online && !amHost)
     ? `<div class="cl-orow"><span>Tempo de jogo</span><span class="cl-oval-locked">🔒 ${escC(tempoLabelFromMult(CL.speedMult))} <i>(definido pelo Anfitrião)</i></span></div>`
-    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
+    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
   const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
     <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
     ${tempoRow}${avisoTeste}`;
@@ -9047,7 +10167,7 @@ function clAutoSaveAbrir(){
       const r=autoSaveRotulo(f);
       const acao=(online && !souAnfitriao) ? '' : btn('Voltar aqui','clAutoSaveVoltar('+f.id+')',{icon:'⏪'});
       return `<div class="cl-orow"><span>${r.fixa?'📌 ':''}${escC(r.que)}<br><i>guardado em ${escC(r.quando)}</i></span>${acao}</div>`;
-    }).join('') : '<div class="cl-orow"><span>Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima jornada.</span></div>';
+    }).join('') : '<div class="cl-orow"><span>Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima rodada.</span></div>';
     overlayC(dlg('Pontos guardados', `<div class="cl-opt"><div class="cl-opanel">${trava}${aviso}${linhas}</div>
       <div class="cl-oside">${btn('Fechar','clOptions()',{icon:'✖',cls:'cl-btn-cancel'})}</div></div>`,
       {w:700,bodyClass:'cl-body-gray',min:true}));
@@ -9069,7 +10189,7 @@ function clAutoSaveVoltarOk(id){
   autoSaveRestaurar(id).then(res=>{
     if(!res.ok){ toastC('Não deu para voltar: '+(res.erro||'erro desconhecido')); return; }
     clCloseOverlay(); CL.screen='main'; CL.tab='jogo'; cdraw();
-    toastC('⏪ Voltou para a temporada '+(S.season||'?')+', jornada '+((S.round||0)+1)+'.');
+    toastC('⏪ Voltou para a temporada '+(S.season||'?')+', rodada '+((S.round||0)+1)+'.');
   });
 }
 function clOptOk(){ saveV3(); clCloseOverlay(); toastC('Opções guardadas.'); }
@@ -9166,6 +10286,12 @@ function enterResenhaUnemployment(){
   CL._firedFrom=CL.clubId; CL.unemployed=true; CL._unempRounds=0; CL._pendingResenhaOffer=null;
   S.coachHistory=S.coachHistory||[];
   S.coachHistory.push({season:S.season, type:'demissao', text:`Demitido pelo ${String((clubOf(CL._firedFrom)||{}).short||'clube').toUpperCase()}`});
+  /* a passagem pelo clube fecha AQUI e fecha como demissão — quem for demitido fica sem clube por
+     algumas rodadas, e esperar pela contratação seguinte para a fechar deixava a Carreira a
+     mostrar uma passagem "em curso" num clube que já não é dele. */
+  try{ if(typeof coachSpellsMigrar==='function') coachSpellsMigrar();
+       if(typeof coachSpellFechar==='function') coachSpellFechar('demitido'); }
+  catch(e){ console.warn('passagem (demissão):', e&&e.message); }
   if(typeof persistCareer==='function') persistCareer();   // a carreira mudou: grava no assento (ver #13)
   // libera o clube no servidor (vira CPU); se falhar, desfaz o estado local pra não travar o jogador
   if(typeof NET!=='undefined' && NET.setMyClub){
@@ -9191,14 +10317,42 @@ function showResenhaOffer(offer){
   showJobInvite(offer);
 }
 function clAcceptResenhaOffer(){
-  const offer=CL._pendingResenhaOffer; if(!offer){ clCloseOverlay(); return; }
+  /* ===== A OFERTA QUE ESTA NA TELA VALE COMO REDE =====
+     `CL._pendingResenhaOffer` vive so em memoria: recarregar a pagina (ou uma sincronia da sala,
+     que recarrega) apaga-o. Quem tivesse o convite aberto carregava em "Aceitar" e o codigo saia
+     por aqui em silencio — o modal fechava e nada acontecia. Era o relatado a 19/08/2026.
+     A oferta que o jantar esta a mostrar (`CL._jobOffer`) e a mesma coisa e nao se perde entre
+     as duas telas do fluxo, entao serve de segunda fonte. */
+  const offer=CL._pendingResenhaOffer || CL._jobOffer || CL._ofertaEmMesa;
+  if(!offer || !offer.clubId){
+    console.warn('aceitar convite da sala: nao ha oferta em memoria — o modal fecha sem trocar de clube');
+    toastC('Esse convite expirou. Espere a próxima sondagem.','warn');
+    clCloseOverlay(); return;
+  }
+  CL._pendingResenhaOffer=offer;
   if(typeof NET==='undefined' || !NET.setMyClub){ toastC('Recurso indisponível.'); return; }
   const from = CL.unemployed ? CL._firedFrom : CL.clubId; // sondagem aceita por quem está empregado: o clube que fica pra trás é o ATUAL
   toastC('Assumindo o clube...');
   NET.setMyClub(offer.clubId).then(r=>{
     if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
-    CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null;
+    CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null; CL._ofertaEmMesa=null;
+    if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==offer.clubId);
     CL.clubId=offer.clubId; S.clubId=offer.clubId;
+    /* ===== CONVITE DE OUTRO PAÍS: O MUNDO DE LÁ NASCE AGORA =====
+       Enquanto ninguém joga num país, ele pode viver de simulação de fundo. A partir do momento
+       em que um treinador assume um clube lá, não pode: a regra é que ele assiste a todas as
+       partidas das competições do país dele, e uma quick-sim não dá partida para assistir.
+       `criarMundoDoPais` monta as divisões com elencos, calendário e tabela — reaproveitando a
+       tabela em curso da liga de fundo, para a temporada não recomeçar do zero no meio do ano.
+       O país ANTIGO continua vivo: os outros treinadores da sala seguem lá. */
+    try{
+      const uniNovo=(typeof universoDoClube==='function')?universoDoClube(offer.clubId):null;
+      const uniAtual=(typeof activeUniverseKey==='function')?activeUniverseKey():'brasil';
+      if(uniNovo && uniNovo!==uniAtual && typeof criarMundoDoPais==='function'){
+        criarMundoDoPais(uniNovo, offer.division||null);
+        if(typeof setUniverse==='function') setUniverse(uniNovo);   // a MINHA visão passa a ser a de lá
+      }
+    }catch(e){ console.warn('mundo do país novo:', e && e.message); }
     if(CL.humans){ if(from!=null) delete CL.humans[from]; CL.humans[offer.clubId]=CL.mgr; }
     if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
     S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
@@ -9502,15 +10656,15 @@ function salaResenhaHTML(){
 }
 function clCoachRanking(){ CL.menu=null;
   migrateCoachCareerStats();   // save antigo (acumulado ainda em CL): adota antes de desenhar
-  const TITLE_BONUS=50; // um título vale ~50 pts no critério de desempate (só pesa quando tem título)
+  // pontuacao com o peso real das conquistas — ver coachRankingScore no core
   const rows=DATA.clubs.map((c,i)=>{
     const t=S.table[c.id]||{Pts:0};
-    const career=(S.coachCareerStats&&S.coachCareerStats[c.id])||{pts:0,titles:0};
-    const totalPts=career.pts + (t.Pts||0);          // pontos somados totais (temporadas anteriores + atual)
-    return {name:coachName(c.id,i),club:clubOf(c.id).short,pts:totalPts,titles:career.titles,human:!!(CL.humans&&CL.humans[c.id])};
-  }).sort((a,b)=> (b.pts + b.titles*TITLE_BONUS) - (a.pts + a.titles*TITLE_BONUS) || b.pts-a.pts);
+    const sc=(typeof coachRankingScore==='function')?coachRankingScore(c.id, t.Pts||0)
+      :{titles:0, total:(t.Pts||0)};
+    return {name:coachName(c.id,i),club:clubOf(c.id).short,pts:sc.total,titles:sc.titles,human:!!(CL.humans&&CL.humans[c.id])};
+  }).sort((a,b)=>b.pts-a.pts);
   const list=rows.map((r,i)=>`<div class="cl-rank-row ${r.human?'me':''}"><span class="cl-rank-p">${i+1}</span><span class="cl-rank-c">${escC(r.name)}</span><span class="cl-rank-t">${escC(r.club)}</span><span class="cl-rank-n">${r.titles?('🏆 '+r.titles):'—'}</span><span class="cl-rank-n b">${r.pts} pts</span></div>`).join('');
-  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank-head" style="font-size:12px;color:#666;padding:2px 10px 6px">Por pontos somados (todas as temporadas) — títulos desempatam.</div><div class="cl-rank">${list}</div>
+  overlayC(dlg('Ranking de Treinadores', `<div class="cl-rank-head" style="font-size:12px;color:#666;padding:2px 10px 6px">Pontos de jogo somados (todas as temporadas) + títulos com o peso real de cada competição.</div><div class="cl-rank">${list}</div>
     <div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div>`,{ad:'modal-ranking-728x90',w:780,bodyClass:'cl-body-gray',min:true})); }
 
 /* ---- Treinador > Ofertas ---- */
@@ -9565,6 +10719,11 @@ function clJobOffers(){ CL.menu=null;
 function clAcceptPendingOffer(idx){
   const o=S.pendingJobOffers[idx]; if(!o) return;
   clCloseOverlay();
+  /* NA SALA, TODA OFERTA E DA SALA. `showJobInvite` sem esta marca leva o "aceitar" pelo caminho
+     do SOLO (applyManagerJobChange local), e ai o cliente fica com um clube que a sala nao
+     reconhece — de fora, "assumir o clube nao funcionou". Quem chega pela caixa de ofertas
+     entrava exatamente por aqui. */
+  if(CL.online) o._resenha=true;
   showJobInvite(o);
 }
 function clDeclinePendingOffer(idx){
@@ -9586,7 +10745,7 @@ function clInviteResenha(){ CL.menu=null; if(!CL.online){ toastC('Modo Resenha r
   const link=(typeof NET!=='undefined')?NET.inviteLink():'';
   // rf98.resenha.invite (1200×630): o cartão que acompanha o convite partilhado. Aqui ele
   // aparece como pré-visualização do que o amigo vai receber — vazio, o modal fica igual.
-  const cartao = window.ADS ? ADS.html('rf98.resenha.invite', {cls:'rf-ad-card'}) : '';
+  const cartao = rfAdEspaco('rf98.resenha.invite', {cls:'rf-ad-card', formato:'1200×630'});
   overlayC(dlg('Chamar pra Resenha', `<div class="cl-invres">
     <div class="cl-invres-msg">Convide amigos para assumir times de CPU nesta partida. Eles entrarão agora mesmo na sua sala de jogo.</div>
     ${cartao}
@@ -9629,11 +10788,11 @@ function clCopyResenhaLink(){
 function clSendResenhaInvite(){ const phone=(document.querySelector('#cl-invres-phone')?.value||'').replace(/\D/g,'');
   if(phone.length<10){ toastC('Informe um telefone válido.'); return; }
   const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem pra minha Resenha do RetroFoot98! Um time é sorteado pra você. '+link);
-  try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp…'); }
+  try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp','progress'); }
 function clSendResenhaEmailInvite(){ const email=(document.querySelector('#cl-invres-email')?.value||'').trim();
   if(!email || !email.includes('@')){ toastC('Informe um e-mail válido.'); return; }
   if(typeof NET==='undefined' || !NET.sendEmailInvite){ toastC('Convite por e-mail requer jogo online.'); return; }
-  toastC('Enviando convite por e-mail…');
+  toastC('Enviando convite por e-mail','progress');
   (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
     catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
 function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
@@ -9672,7 +10831,7 @@ function exitModalHTML(online){
   const footer = online
     ? `${btn('Sair','clExitConfirm(false)',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}`
     : `${btn('Sair sem gravar','clExitConfirm(false)',{icon:'✖',cls:'cl-btn-cancel',dis:saving})}
-       ${btn(saving?'Gravando…':'Gravar e sair','clExitConfirm(true)',{icon:'✔',cls:'cl-btn-ok',dis:saving})}
+       ${btn(saving?'Gravando':'Gravar e sair','clExitConfirm(true)',{icon:'✔',cls:'cl-btn-ok',dis:saving})}
        ${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel',dis:saving})}`;
   return dlg('Sair para o menu', `<div class="cl-exit-txt">${escC(text)}</div>`,
     {std:true, footer, footerClass:'cl-exit-foot'});
@@ -10010,7 +11169,15 @@ function cupBracketStageHTML(c, key, opts){
   // no sorteio quem manda no troféu é o painel lateral da cerimônia (ver cupDrawSideHTML) —
   // duas taças na mesma tela só competiriam entre si.
   const trofeu=opts.draw?'':`<div class="cl-cuptrophy" style="left:${CUP_STAGE_W/2-90}px">
-      <div class="cl-cuptrophy-box${champ?'':' pending'}">${trophyImg(key,104)||'🏆'}</div>
+      <!-- A ARTE DO TROFEU VEM DO ARQUIVO, NAO DO trophies.js. A embutida e
+           achatada (fundo preto na Serie A e na Libertadores, branco na Serie D)
+           e no meio da chave aparecia como um quadrado escuro. Os .webp de
+           img/trofeus tem alfa e recortam -- mesma regra da faixa da rodada ao
+           vivo (ver rfCompTrofeuHTML). -->
+      <div class="cl-cuptrophy-box${champ?'':' pending'}">${
+        (typeof rfCompTrofeuHTML==='function' && typeof rfCompInfo==='function' && (rfCompInfo(key)||{}).trofeu)
+          ? rfCompTrofeuHTML(rfCompInfo(key),104)
+          : (trophyImg(key,104)||'🏆')}</div>
       <div class="cl-cuptrophy-lbl">${champ?'CAMPEÃO':'A TAÇA'}</div>
       ${champ?`<div class="cl-cuptrophy-club" style="${clubStripe(champCl)}">${escC(champCl?champCl.short:champ)}</div>`
              :`<div class="cl-cuptrophy-club pending">${escC(cupPhaseLabel(b.round,b.roundsTotal))}</div>`}
@@ -10361,6 +11528,11 @@ function cupDrawSideHTML(key, dr){
     ${ultimo}</aside>`;
 }
 function cupDrawScreenHTML(key, dr, actions){
+  // CERIMÔNIA PORTADA (ver src/ui/rf26-sorteio.js): as telas Sorteio 2..6 do
+  // pacote. O Brasileirão (Sorteio 1) fica de fora de propósito — aquele
+  // formato já vem pronto de base no jogo, e a tela de referência dele não
+  // deve substituir o que já existe.
+  if(key!=='brasileirao') return rfSorteioHTML(key, dr);
   const c=S.cups&&S.cups[key]; if(!c) return '';
   CL._cupKey=key;
   const hasGroup=cupHasGroupTab(key,c) && dr.stage==='group';
@@ -10369,8 +11541,14 @@ function cupDrawScreenHTML(key, dr, actions){
   const fim=dr.idx>=dr.reveal.length;
   return cupLightShell(key, {
     tab, hasGroup, tabsOn:false, body, actions, fim,
+    // A CERIMÔNIA PRECISA DE UMA BARRA, NÃO SÓ DE UM CONTADOR (regra do rebranding):
+    // "2/32" não diz quanto falta sem fazer conta; a barra diz de relance. O número
+    // continua ao lado, em mono, porque quem acompanha sorteio quer os dois.
     status: fim ? `<span>Sorteio encerrado</span><span class="cl-cup2-ok">✓</span>`
-                : `<span>Sorteando ${dr.idx}/${dr.reveal.length}</span>`,
+                : `<span class="rf-draw-prog">
+                     <span class="rf-draw-bar"><i style="width:${Math.round(100*dr.idx/Math.max(1,dr.reveal.length))}%"></i></span>
+                     <span class="rf-draw-n">${dr.idx}/${dr.reveal.length}</span>
+                   </span>`,
     side: cupDrawSideHTML(key,dr),
   });
 }
@@ -10383,10 +11561,23 @@ function clCupView(key, tab){ CL.menu=null; clCloseOverlay();
   CL.screen='cupview'; cdraw();
 }
 function scCupView(){
+  // TELA PORTADA (telas/Competicao - Visao Geral)
+  return rfCompeticaoHTML(CL._cupKey);
+}
+function scCupViewLegado(){
   const key=CL._cupKey; if(!key || !(S.cups&&S.cups[key])) { CL.screen='main'; return scMain(); }
   return cupScreenHTML(key, {actions:btn('Voltar','clCupViewBack()',{icon:'◀',cls:'cl-btn-cancel cl-btn-sm'})});
 }
-function clCupViewBack(){ CL.screen=CL._seatContext?'seatturn':'main'; CL._cupTie=null; cdraw(); clCompList(); }
+/* FECHAR A COMPETICAO VOLTA AO JOGO, e mais nada. Ao sair da tela de uma copa
+   abria-se por cima o dialogo antigo "Minhas competicoes" -- a lista das quatro
+   competicoes com o selo de estado. Ele fazia sentido quando era a UNICA porta
+   para as copas; hoje a pagina Campeonatos tem as abas (Minhas competicoes,
+   Calendario, Artilharia, Historia) e o cartao de cada competicao, ou seja: a
+   lista reaparecia por cima da tela que a substituiu.
+
+   `clCompList` continua a existir -- e a servir o menu antigo (Campeonatos >
+   Minhas competicoes), que ainda e a navegacao do desktop legado. */
+function clCupViewBack(){ CL.screen=CL._seatContext?'seatturn':'main'; CL._cupTie=null; cdraw(); }
 /* ---- leitura do estado da cerimônia (CL.cupDraw) pelos componentes da tela ---- */
 function cupDrawLast(dr){ return dr && dr.drawn.length ? dr.drawn[dr.drawn.length-1] : null; }
 function cupDrawHasTie(dr, t){ return !!(dr && dr.drawn.some(p=>!p.bye && p.group==null && p.h===t.h && p.a===t.a)); }
@@ -10468,7 +11659,12 @@ function cupFitStage(){
    um único destaque no modo solo, ou um por jogador humano (cores do próprio clube) na Resenha. */
 /* fila de sorteios a mostrar: cada item é {key, stage} — stage 'group' (fase de grupos,
    time -> grupo) ou 'bracket' (mata-mata, pares/isento). */
-function queueDrawShow(key, stage){ S._pendingDrawShows=S._pendingDrawShows||[]; stage=stage||'bracket';
+function queueDrawShow(key, stage){
+  /* PORTA UNICA DA FILA DE CERIMONIAS: competicao sem cerimonia nunca entra,
+     venha o pedido de onde vier (abertura da temporada, data do sorteio, ou o
+     sorteio do mata-mata das continentais). Ver CUP_SEM_CERIMONIA, no core. */
+  if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return;
+  S._pendingDrawShows=S._pendingDrawShows||[]; stage=stage||'bracket';
   if(!S._pendingDrawShows.some(x=>(x&&x.key)===key && (x&&x.stage||'bracket')===stage)) S._pendingDrawShows.push({key, stage}); }
 /* ONLINE: cada cliente enfileira o sorteio da copa NOVA da temporada por conta própria.
    Antes o sorteio dependia de S._pendingDrawShows, uma fila de UI que vivia no cliente que
@@ -10557,6 +11753,13 @@ function sortPendingDrawShows(){
   S._pendingDrawShows.sort((a,b)=>pos((a&&a.key)||a)-pos((b&&b.key)||b));
 }
 function checkPendingCupDraws(onDone){
+  /* LIMPA A FILA DAS COMPETICOES QUE JA NAO TEM CERIMONIA. A fila mora no SAVE
+     (S._pendingDrawShows): quem ja tinha a Copa do Brasil enfileirada antes de
+     ela deixar de ter sorteio continuava a ver a tela antiga a cada carregamento
+     -- a porta de entrada foi fechada, mas quem ja estava dentro ficou. */
+  if(S._pendingDrawShows && S._pendingDrawShows.length && typeof cupTemCerimonia==='function'){
+    S._pendingDrawShows=S._pendingDrawShows.filter(x=>cupTemCerimonia((x&&x.key)||x));
+  }
   if(!S._pendingDrawShows || !S._pendingDrawShows.length){ if(onDone) onDone(); return false; }
   sortPendingDrawShows();
   const item=S._pendingDrawShows.shift();
@@ -10567,6 +11770,8 @@ function checkPendingCupDraws(onDone){
   // O marcador vive em CL (não persiste): após recarregar a página, um sorteio pendente de verdade
   // ainda aparece normalmente.
   const mark=key+':'+stage+':'+(S.season||1);
+  // copa que nao e do MEU universo (fui treinar fora): a entrada e drenada sem cerimonia
+  if(typeof cupDoMeuUniverso==='function' && !cupDoMeuUniverso(key)) return checkPendingCupDraws(onDone);
   // o marcador também é lido do armazenamento (ver drawAlreadySeen): sem isso, a fila que veio no
   // shared_state re-exibia a cerimônia depois de um reload — inclusive o do botão de sincronizar.
   if((CL._drawPlayedSeason||{})[mark] || drawAlreadySeen(mark)) return checkPendingCupDraws(onDone);
@@ -10596,6 +11801,10 @@ function checkPendingCupDraws(onDone){
    por aqui cedo demais. */
 function startCupDrawReplay(key, stage, onDone){
   if(typeof stage==='function'){ onDone=stage; stage='bracket'; } // retrocompat
+  /* competicao sem cerimonia (ver CUP_SEM_CERIMONIA, no core): devolve false e
+     quem chamou segue em frente -- e o mesmo caminho de quando os dados do
+     sorteio ainda nao existem, ja tratado por todos os chamadores. */
+  if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return false;
   const c=S.cups&&S.cups[key];
   let reveal=[], remaining=[];
   if(stage==='group'){
@@ -10709,7 +11918,7 @@ function clCancelarPronto(){
 }
 /* CL.xiModo guarda QUAL BOTÃO foi apertado ('auto'/'best'/null); CL.formation guarda sempre uma
    formação de verdade. Antes CL.formation virava o texto 'Automático'/'Melhores', e aí o campo
-   caía nas faixas genéricas (PITCH_BANDS._) e o "Selecionar descansados" reescalava num 4-3-3
+   caía nas faixas genéricas (PITCH_BANDS._) e o "Seleccionar descansados" reescalava num 4-3-3
    que ninguém pediu — os jogadores mudavam de lugar sem o usuário mexer em nada. */
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation=coherentFormation(CL.clubId,'4-3-3');
@@ -10724,7 +11933,7 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   const rotulo = CL.xiModo==='best' ? ('Melhores de cada posição ('+CL.formation+')')
                : CL.xiModo==='auto' ? ('Automático ('+CL.formation+')') : ('Tática '+CL.formation);
   toastC(adjustedFrom ? `Sem jogadores pro ${adjustedFrom} — ajustado pra ${CL.formation}.` : rotulo+' seleccionada.'); }
-/* "Selecionar descansados": reaplica a formação já escolhida trocando o critério de escala
+/* "Seleccionar descansados": reaplica a formação já escolhida trocando o critério de escala
    de força (p.f) por energia (menos cansados primeiro), respeitando os setores da formação.
    Disponível só depois que uma formação foi escolhida (CL.tacticChosen) — funciona igual em
    solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
@@ -10764,18 +11973,24 @@ function renderStadium(built){ const st0=myStadium(); const cap=(st0&&st0.capaci
     ${built?`<div class="cl-est-note">As novas bancadas só estarão disponíveis para o próximo jogo</div>`:''}
     ${atMax?`<div class="cl-est-note">⚠ Estádio no teto para o porte atual do clube. Cresça o clube pra ampliar mais.</div>`:seasonFull?`<div class="cl-est-note">⚠ Limite de obras da temporada atingido — o resto só na próxima temporada (obra é lenta).</div>`:''}
   </div>`,{w:660,bodyClass:'cl-body-estadio',min:true})); }
-function clBuildStand(){
+/* `silencioso` existe para a obra em SERIE: a calculadora do estádio (ver rfEstConstruirGo em
+   rf26-acoes.js) contrata várias bancadas de uma vez e chama esta função uma vez por bancada.
+   Sem ele, cada volta reabria o diálogo antigo por cima do novo. As regras não mudam — quem cobra
+   o caixa, sobe a capacidade, publica na sala e escreve nas finanças continua a ser esta função,
+   uma bancada de cada vez. Devolve `false` quando recusa, para quem está em série poder parar. */
+function clBuildStand(silencioso){
+  const _recusa=(msg)=>{ if(!silencioso){ toastC(msg); renderStadium(false); } return false; };
   S.clubStadiumCap=S.clubStadiumCap||{};
   if(!S.clubStadiumCap[CL.clubId])S.clubStadiumCap[CL.clubId]={capacity:STAND_START,builtThisSeason:0};
   const st=S.clubStadiumCap[CL.clubId]; const cap=st.capacity||STAND_START; const cost=standCost();
-  if(cap+STAND_SEATS>stadiumMaxCapacity()){ toastC('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.'); renderStadium(false); return; }
-  if(((st.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT){ toastC('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.'); renderStadium(false); return; }
-  if((S.budget||0)<cost){ toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return; }
+  if(cap+STAND_SEATS>stadiumMaxCapacity()) return _recusa('⚠ Estádio no teto para o porte do clube — cresça o clube (título/elenco) pra poder ampliar mais.');
+  if(((st.builtThisSeason||0)+STAND_SEATS)>SEASON_BUILD_LIMIT) return _recusa('⚠ Obra é lenta: só '+grp(SEASON_BUILD_LIMIT)+' lugares por temporada. Continue na próxima.');
+  if((S.budget||0)<cost){ if(!silencioso) toastC('Caixa insuficiente para construir ('+fmt(cost)+').'); return false; }
   S.budget-=cost; commitBudget();                      // publica: senão o custo da obra é revertido na próxima rodada
   st.capacity+=STAND_SEATS; st.builtThisSeason=(st.builtThisSeason||0)+STAND_SEATS;
   commitStadium();                                      // publica: senão a bancada some na próxima rodada (Resenha)
   pushFinanceEntry({stadium:cost, log:[`🏟️ Bancada construída: +${grp(STAND_SEATS)} lugares (${fmt(cost)})`]});
-  saveV3(); renderStadium(true); }
+  saveV3(); if(!silencioso) renderStadium(true); return true; }
 
 /* ---- Jogador > Vender (painel na aba + leilão) ---- */
 function windowClosedMsg(){ const st=transferWindowStatus();
@@ -10923,8 +12138,13 @@ function clSellConfirm(){
   const buyers=DATA.clubs.filter(c=>c.id!==CL.clubId && !(CL.online && CL.humans && CL.humans[c.id]));
   const buyer=buyers[Math.floor(rnd()*buyers.length)];
   const base=Math.round(p.mv/1000); const ask=Math.round((parseInt(CL.sellPrice,10)||0)/1000); // sellPrice em reais -> milhares
-  let feeK=Math.max(1,Math.round(base*(0.7+rnd()*0.7)));           // proposta do mercado em milhares
-  if(ask>0 && ask<=feeK*1.2) feeK=Math.max(ask,Math.round(feeK*0.9)); else if(ask>feeK*1.2) feeK=Math.round(feeK*0.85);
+  /* VENDER DEIXOU DE SER CASTIGO. A faixa era 0,7-1,4x do valor de mercado e,
+     pior, pedir acima de 1,2x da proposta cortava-a para 0,85x: quem escrevia o
+     preco que queria recebia MENOS do que quem nao escrevia nada. Agora a faixa
+     e 0,85-1,55x, o pedido e coberto ate 1,35x, e pedir acima disso custa 8% em
+     vez de 15% -- continua a haver limite, mas pedir o justo passa a compensar. */
+  let feeK=Math.max(1,Math.round(base*(0.85+rnd()*0.7)));          // proposta do mercado em milhares
+  if(ask>0 && ask<=feeK*1.35) feeK=Math.max(ask,feeK); else if(ask>feeK*1.35) feeK=Math.round(feeK*0.92);
   const fee=feeK*1000;
   const preOpen=inPreWindow();
   if(!inTransferWindow() && preOpen){
@@ -10946,34 +12166,20 @@ function clSellConfirm(){
   pushFinanceEntry({playerSales:fee, log:[`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`]});
   S.roundNews=S.roundNews||[]; S.roundNews.push(`💰 ${p.n} vendido ao ${clubOf(buyer.id).short} por ${fmt(fee)}.`);
   saveV3(); auctionDialog(p,buyer,feeK); }
+/* A TELA DE VENDA PASSOU PARA A PELE NOVA (ver 'mkt-vendido' em rf26-acoes.js). Era a ultima
+   do Mercado que ainda abria em overlay legado — fundo amarelo, cabecalho preto — e mostrava
+   dados que o motor nao produz (a nacionalidade vinha escrita "Brasil" para todo jogador).
+   O jogador ja saiu do elenco aqui, por isso os dados dele viajam no objeto do dialogo. */
 function auctionDialog(p,buyer,feeK){
-  const st=p.stats||{}; const beh=playerBehaviorLabel(p);
-  overlayC(dlg('Venda de jogador por leilão', `<div class="cl-leilao">
-    <div class="cl-lei-grid">
-      <div class="cl-lei-l">
-        <div class="cl-lei-row"><span>Equipa</span><b class="cl-lei-team" style="${clubStripe(clubOf(CL.clubId))}">${escC(clubOf(CL.clubId).short)}</b></div>
-        <div class="cl-lei-row"><span>Jogador</span><b>${escC(p.n)}</b></div>
-        <div class="cl-lei-row"><span>Posição</span><b>${({GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'})[p.s]||'Meia'}</b></div>
-        <div class="cl-lei-row"><span>Força</span><b class="cl-lei-big">${p.f}</b></div>
-        <div class="cl-lei-row" style="margin-top:14px"><span>Salário pretendido</span><b>${curSym()} ${moneyDisp(Math.round(p.mv*0.0006))}</b></div>
-        <div class="cl-lei-row"><span>Preço base</span><b>zero</b></div>
-      </div>
-      <div class="cl-lei-r">
-        <div class="cl-lei-row"><span>Nacionalidade</span><b>${flagImg('Brasil')} Brasil</b></div>
-        <div class="cl-lei-row"><span>Comportamento</span><b>${beh}</b></div>
-        <div class="cl-lei-row"><span>Gols nesta temporada</span><b>${(S.scorers&&S.scorers[p.n])||0}</b></div>
-        <fieldset class="cl-hist" style="max-width:300px;color:#000"><legend style="color:#000">Historial</legend>
-          <div class="cl-hist-row"><span>Jogos</span><b>${st.apps||0}</b></div>
-          <div class="cl-hist-row"><span>Gols</span><b>${st.goals||0}</b></div>
-          <div class="cl-hist-row"><span>Cartões amarelos</span><b>${st.yellows||0}</b></div>
-          <div class="cl-hist-row"><span>Cartões vermelhos</span><b>${st.reds||0}</b></div>
-          <div class="cl-hist-row"><span>Lesões</span><b>${st.injuries||0}</b></div>
-        </fieldset>
-      </div>
-    </div>
-    <div class="cl-lei-sold">Vendido ao ${escC(buyer.short.toUpperCase())} por ${spellMoney(feeK*1000)}</div>
-    <div class="cl-lei-ok">${btn('OK','clCloseAuction()',{icon:'✔',cls:'cl-btn-ok'})}</div>
-  </div>`,{w:760,bodyClass:'cl-body-yellow',min:true})); }
+  const sq=squad(CL.clubId);
+  const sub=sq.filter(x=>x.s===p.s).sort((a,b)=>(b.f||0)-(a.f||0))[0];
+  const dados={ player:p.n, buyer:(clubOf(buyer.id)||buyer).short||'', fee:feeK*1000,
+    salario:(p.contract&&p.contract.salary)||0,
+    vm:(typeof computeVM==='function')?computeVM(p):(p.mv||0),
+    sub:sub?(sub.n+' (força '+sub.f+')'):'' };
+  if(typeof rfAcAbrir==='function'){ rfAcAbrir('mkt-vendido', dados); return; }
+  toastC('Jogador vendido.'); cdraw();
+}
 function clCloseAuction(){ clCloseOverlay(); CL.rightMode=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; cdraw(); toastC('Jogador vendido.'); }
 
 /* ---- Jogador (aba) > Renovar contrato (painel) ---- */
@@ -11242,11 +12448,31 @@ function onlineWaitingTick(){
   /* QUEM FECHOU A ABA NÃO PODE CONGELAR A SALA. Agora que ninguém entra em campo antes de o
      último assento carimbar, um jogador que simplesmente sumiu pararia a sala para sempre — o
      cronômetro, que antes o pulava, não pula mais ninguém (e é isso que a gente quer).
-     Passados 45s, o anfitrião dispensa automaticamente SÓ quem não dá sinal de vida há 45s. Quem
+     Passados 45s, o assento que não dá sinal de vida há 45s é dispensado e a sala segue. Quem
      está com o jogo aberto continua sendo esperado, com nome, no painel abaixo: presença é
-     respeitada, ausência não trava. */
-  if(NET.isHost && NET.dayAck && Date.now()-(CL._waitSince||0) > 45000
-     && Date.now()-(CL._absentTryT||0) > 15000){
+     respeitada, ausência não trava.
+
+     QUALQUER ASSENTO DISPARA ISTO, NÃO SÓ O ANFITRIÃO. Enquanto era `NET.isHost`, a saída da sala
+     dependia de UM navegador estar aberto — e o anfitrião é tão capaz de fechar a aba quanto os
+     outros. Quando era ele quem sumia, ninguém restante conseguia destravar: a sala esperava para
+     sempre, que é exatamente o que esta rede existe para impedir.
+
+     É seguro porque QUEM DECIDE É O SERVIDOR, não este cliente: a RPC `day_ack` com segundos
+     POSITIVOS só desconta assentos cujo `last_seen` já passou do prazo, e quem está com o jogo
+     aberto continua a contar. A liberação que dispensa gente PRESENTE é a de segundos negativos
+     ("começar sem eles"), e essa a própria função restringe ao anfitrião, no banco
+     (`v_host is not distinct from auth.uid()`) — a checagem no cliente é reforço, não a tranca.
+
+     O intervalo entre tentativas é escalonado por assento (0 a ~6s a partir do id) para os três
+     clientes não baterem na mesma linha no mesmo instante: a função tranca a sala com
+     `for update`, e disparar em uníssono é fila garantida sem ganho nenhum. */
+  const _meuOffset = (function(){
+    const id=(typeof NET!=='undefined' && NET.uid) ? String(NET.uid) : '';
+    let h=0; for(let i=0;i<id.length;i++) h=(h*31+id.charCodeAt(i))|0;
+    return Math.abs(h)%6000;
+  })();
+  if(NET.dayAck && Date.now()-(CL._waitSince||0) > 45000
+     && Date.now()-(CL._absentTryT||0) > 15000+_meuOffset){
     CL._absentTryT=Date.now();
     Promise.resolve(NET.dayAck(d.idx, d.moment, 45)).then(r=>{
       if(r && r.faltam===0) console.warn('assento sem sinal de vida há 45s dispensado — a sala segue');
@@ -11269,41 +12495,20 @@ function onlineWaitingTick(){
    jogador; "escolhendo o time" quer. */
 const ESPERA_MOMENTO={ escalando:'escolhendo o time', jogando:'em campo', classificacao:'vendo a classificação' };
 function showResenhaWaiting(st){
-  const nomes=(st.nomes_faltando||[]).filter(Boolean);
-  const n=nomes.length||st.faltam||0;
-  const ehLiga=(st.competicao==='liga');
-  const comp = ehLiga ? 'Brasileirão'
-    : ((typeof COMP_DEFS!=='undefined' && COMP_DEFS[st.competicao] && COMP_DEFS[st.competicao].short) || 'Copa');
-  const trof = (!ehLiga && typeof trophyImg==='function') ? trophyImg(st.competicao,64) : '';
-  const oQue = ESPERA_MOMENTO[st.momento] || st.momento || '';
-  const manchete = n===1 ? 'Falta 1 treinador' : 'Faltam '+n+' treinadores';
-  const inicial = s => (String(s||'?').trim()[0]||'?').toUpperCase();
-  const lista = (nomes.length ? nomes : Array.from({length:n}, ()=>'Treinador')).map(nome=>`
-    <div class="cl-esp-quem">
-      <span class="cl-esp-av">${escC(inicial(nome))}</span>
-      <span class="cl-esp-nome">${escC(nome)}</span>
-      <span class="cl-esp-st">${escC(oQue)}<i class="cl-esp-dots"></i></span>
-    </div>`).join('');
   const ehHost=(typeof NET!=='undefined' && NET.isHost);
-  const corpo=`
-    <div class="cl-esp">
-      <div class="cl-esp-top">
-        <div>
-          <div class="cl-mom-kicker">SALA EM ESPERA</div>
-          <div class="cl-mom-manchete">${escC(manchete)}</div>
-          <div class="cl-esp-ctx">Jornada ${escC(String((st.jornada!=null?st.jornada:0)+1))} · ${escC(comp)}</div>
-        </div>
-        ${trof?`<div class="cl-esp-trofeu">${trof}</div>`:''}
-      </div>
-      <div class="cl-esp-lista">${lista}</div>
-      <div class="cl-esp-nota">A rodada não começa sem eles — e ninguém é pulado enquanto você
-        espera. Todos continuam exatamente no mesmo ponto do jogo.</div>
-    </div>`;
-  const pe = `<div class="cl-esp-foot-nota">${ehHost?'Você é o anfitrião da sala.':'Só o anfitrião pode seguir sem eles.'}</div>`
-    + btn('Aguardar','clWaitMore()',{icon:'⏳',cls:'cl-btn-ok'})
-    + (ehHost ? btn('Começar sem eles','clWaitSkipAbsent()',{icon:'⏭',cls:'cl-btn-cancel'}) : '');
+  const corpo=(typeof rfSalaEsperaHTML==='function') ? rfSalaEsperaHTML(st) : '';
+  const pe = `<span class="rf-esp-foot-nota">${ehHost?'Você é o anfitrião da sala.'
+        :'Só o anfitrião pode seguir sem eles.'}</span><div class="rf-sp"></div>`
+    + `<button type="button" class="rf-ov-cta" onclick="clWaitMore()">⏳ Aguardar</button>`
+    + (ehHost?`<button type="button" class="rf-ov-b2" onclick="clWaitSkipAbsent()">⏭ Começar sem eles</button>`:'');
   CL._waitOpen=true;
-  overlayC(dlg('Resenha — sala em espera', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
+  /* no telefone o título completo não cabe na barra e saía "Resenha — sala em es…" */
+  const tit=(typeof isPhone==='function'&&isPhone())?'Sala em espera':'Resenha — sala em espera';
+  /* 520 E A LARGURA PADRAO dos dialogos (.rf-dlg no CSS, e o w por omissao do
+     rfAcao). Este estava a 560 — so ele e mais um —, entao entre as telas da
+     Resenha o modal mudava de largura sem motivo. O glifo e o ponto do
+     desenho, nao a ampulheta: a ampulheta repete-se no botao "Aguardar". */
+  overlayC(dlg(tit, corpo, {w:520, glyph:'●', tone:'marca', footer:pe}));
 }
 /* O AVISO PARA QUEM ESTÁ SEGURANDO A SALA. Mesma linguagem visual do painel de espera, mensagem
    invertida — e com o botão que resolve, para o jogador não ter de adivinhar o que o jogo quer. */
@@ -11325,7 +12530,7 @@ function showResenhaWaitingMe(d){
         <div>
           <div class="cl-mom-kicker">A SALA ESTÁ ESPERANDO</div>
           <div class="cl-mom-manchete">Por você</div>
-          <div class="cl-esp-ctx">Jornada ${escC(String((d.round!=null?d.round:0)+1))} · ${escC(comp)}</div>
+          <div class="cl-esp-ctx">Rodada ${escC(String((d.round!=null?d.round:0)+1))} · ${escC(comp)}</div>
         </div>
         ${trof?`<div class="cl-esp-trofeu">${trof}</div>`:''}
       </div>
@@ -11342,7 +12547,19 @@ function showResenhaWaitingMe(d){
      passou a semana tirando do jogo. A ação vive num lugar só — o botão da tela do clube. Aqui
      fica o aviso e o caminho: feche e faça. */
   const pe = btn('Entendi','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'});
-  overlayC(dlg('Resenha — a sala espera por você', corpo, {w:560, std:true, footer:pe, bodyClass:'cl-body-green'}));
+  /* MESMO TOM E MESMA LARGURA DO IRMÃO (showResenhaWaiting, logo acima). Este modal ficou para
+     trás em três coisas ao mesmo tempo, e por isso destoava do resto da Resenha:
+       · sem `tone:'marca'`, o cabeçalho saía na cor do CLUBE. Num clube vermelho a tela da SALA
+         ficava vermelha — e a sala não é de ninguém. É exatamente o caso que o tom de marca
+         existe para atender (ver o comentário em dlg()).
+       · `w:560` quando o padrão é 520, então o modal mudava de largura entre uma tela da Resenha
+         e a seguinte. O irmão já tinha sido corrigido e o comentário de lá diz "só ele e mais
+         um" — este era o mais um.
+       · `std:true` era inerte (só decide a largura PADRÃO, e havia `w`), e `bodyClass` o dlg()
+         não lê — quem lê essa opção é o cartão da Home (cl-home-pagebox-b, ~linha 1783). Outras
+         chamadas de dlg() também a passam e também a perdem; não foram tocadas aqui porque é
+         varredura à parte, não defeito deste modal. */
+  overlayC(dlg('Resenha — a sala espera por você', corpo, {w:520, glyph:'●', tone:'marca', footer:pe}));
 }
 function clWaitMore(){ CL._waitSnoozeUntil=Date.now()+10000; CL._waitOpen=false; CL._waitAssin=null; clCloseOverlay(); }
 function clWaitSkipAbsent(){
@@ -11357,9 +12574,18 @@ function clWaitSkipAbsent(){
     .catch(e=>console.warn('começar sem eles:', e && e.message));
 }
 /* ---- overlays / toasts ---- */
-function overlayC(html){ let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=clCloseOverlay; document.body.appendChild(o); }
+/* ===== MODAL OBRIGATORIO: A DECISAO NAO PODE SER DISPENSADA =====
+   Todo modal do jogo tem tres saidas — o X no cabecalho, o clique fora e o Esc — e isso esta
+   certo para 99% deles: modal que se pode fechar e modal que nao esta a pedir nada. A janela da
+   demissao nao e desse tipo. Ela pergunta "qual e o seu proximo clube?" e, fechada sem resposta,
+   deixava o treinador no clube que acabou de o despedir: o jogo seguia como se nada fosse.
+   `obrigatorio` fecha as tres saidas de uma vez. Quem abre um modal assim TEM de dar um caminho
+   de saida dentro do corpo — senao o jogo tranca. */
+function overlayC(html, opts){ opts=opts||{};
+  let o=$c('#c-overlay'); if(!o){ o=document.createElement('div'); o.id='c-overlay'; o.className='cl-overlay'; o.onclick=()=>{ if(!o.dataset.obrigatorio) clCloseOverlay(); }; document.body.appendChild(o); }
+  if(opts.obrigatorio) o.dataset.obrigatorio='1'; else delete o.dataset.obrigatorio;
   o.innerHTML=`<div class="cl-overlay-in" onclick="event.stopPropagation()">${html}</div>`; o.style.display='flex'; }
-function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ o.style.display='none'; o.innerHTML=''; } }
+function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ delete o.dataset.obrigatorio; o.style.display='none'; o.innerHTML=''; } }
 /* Esc fecha o modal aberto — o terceiro caminho de fechamento do padrão de modais (os outros
    dois, ✕ na barra e clique fora, já existem). Alcance idêntico ao do clique fora: só o
    #c-overlay, que é sempre dispensável; o overlay de sincronização da rodada é outro elemento
@@ -11367,15 +12593,77 @@ function clCloseOverlay(){ const o=$c('#c-overlay'); if(o){ o.style.display='non
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape') return;
   const o=$c('#c-overlay'); if(!o || o.style.display==='none' || !o.innerHTML) return;
+  if(o.dataset.obrigatorio) return;                 // ver overlayC: decisao que nao se dispensa
   clCloseOverlay();
 });
 function resultDialog(score,verd){ overlayC(dlg('RetroFoot98', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>
   <div class="cl-res-verd">${escC(verd)}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,{w:520,bodyClass:'cl-body-green'})); }
-function toastC(msg){ let t=$c('#c-toast'); if(!t){ t=document.createElement('div'); t.id='c-toast'; document.body.appendChild(t); }
-  const d=document.createElement('div'); d.className='cl-toast'; d.textContent=msg; t.appendChild(d); setTimeout(()=>d.remove(),2600); }
+/* ===== TOAST (rebranding 2026) — cinco tons, um glifo fixo por tom =====
+   Escuro, filete de 4px à esquerda na cor do tom, UMA frase, some sozinho.
+   Toast NUNCA pede decisão — decisão é Dialog (ver a regra "página ou popup").
+
+   A assinatura antiga toastC('texto') continua valendo nos 200+ lugares que já
+   chamam assim: quando o tom não é informado, ele é DEDUZIDO da própria frase,
+   porque o jogo já escrevia o glifo no texto ("⚠ ...", "✓ ...") e já usava
+   reticências pra processo em curso ("Conectando…"). Assim a migração não exige
+   tocar em cada chamada, e o glifo duplicado é removido do texto — quem escreveu
+   "⚠ Caixa insuficiente" vira tom `warn` com o ⚠ vindo do componente, não do texto.
+
+   opts: {action, onAction, ms} — ação à direita existe só no tom `info`. */
+const TOAST_TONES={
+  info:    {glyph:''},
+  success: {glyph:'✓'},
+  warn:    {glyph:'⚠'},
+  danger:  {glyph:'✖'},
+  progress:{glyph:''}
+};
+function toastTone(msg){
+  const m=String(msg||'');
+  if(/^\s*[⚠️]/.test(m)) return 'warn';
+  if(/^\s*[✖✕❌]/.test(m)) return 'danger';
+  if(/^\s*[✓✔]/.test(m)) return 'success';
+  /* Antes o tom `progress` era deduzido de reticências no fim da frase
+     ("Conectando…"). As reticências saíram da interface inteira, então o tom
+     agora vem EXPLÍCITO na chamada: toastC('Carregando jogo','progress'). O
+     teste continua aqui só para não quebrar chamada antiga que ainda escreva
+     assim — mas nada novo deve depender dele. */
+  if(/(…|\.\.\.)\s*$/.test(m)) return 'progress';
+  return 'info';
+}
+function toastC(msg, tone, opts){
+  opts=opts||{};
+  let txt=String(msg==null?'':msg);
+  tone=tone||toastTone(txt);
+  // tira o glifo do TEXTO — quem desenha o glifo agora é o componente
+  txt=txt.replace(/^\s*[⚠️✖✕❌✓✔]\uFE0F?\s*/,'');
+  const t=$c('#c-toast')||(()=>{ const n=document.createElement('div'); n.id='c-toast'; document.body.appendChild(n); return n; })();
+  const cfg=TOAST_TONES[tone]||TOAST_TONES.info;
+  const glyph=(opts.glyph!==undefined)?opts.glyph:cfg.glyph;
+  const d=document.createElement('div');
+  d.className='rf-toast rf-toast-'+tone;
+  d.innerHTML=`${glyph?`<span class="rf-toast-ico">${escC(glyph)}</span>`:''}<span class="rf-toast-t"></span>${opts.action?`<span class="rf-toast-act">${escC(opts.action)}</span>`:''}`;
+  d.querySelector('.rf-toast-t').textContent=txt;   // textContent: a frase nunca é HTML
+  if(opts.action&&opts.onAction){ d.querySelector('.rf-toast-act').onclick=()=>{ opts.onAction(); toastFecha(d); }; }
+  t.appendChild(d);
+  setTimeout(()=>toastFecha(d), opts.ms||2600);
+}
+/* O toast some com animação de saída (rf-toast-sai, 280ms) em vez de sumir de
+   uma vez: a remoção do nó só acontece quando a animação termina. O `dataset`
+   é a trava — sem ela, o clique na ação e o temporizador disparariam a saída
+   duas vezes e a segunda reiniciaria a animação já no fim. */
+const TOAST_SAI_MS=280;
+function toastFecha(d){
+  if(!d||!d.parentNode||d.dataset.saindo) return;
+  d.dataset.saindo='1';
+  d.classList.add('rf-toast-saindo');
+  setTimeout(()=>d.remove(), TOAST_SAI_MS);
+}
 
 /* fechar dropdown ao clicar fora */
 document.addEventListener('click',()=>{
+  // o dropdown do time de coração vive no overlay do modal, que se redesenha
+  // sozinho — fechar com cdraw() aqui apagaria o modal inteiro
+  if(CL.waitlistClubeOpen){ CL.waitlistClubeOpen=false; rfWaitlistDraw(); return; }
   if(CL.shareOpen){ CL.shareOpen=false; cdraw(); return; }
   if(CL.mobMenuOpen && isPhone()){ closeMobMenu(); return; }   // gaveta sai deslizando, não some
   if(CL.menu||CL.mobMenuOpen){ CL.menu=null; CL.mobMenuOpen=false; cdraw(); }
@@ -11408,6 +12696,16 @@ document.addEventListener('keydown', (e)=>{
   if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return; // não atrapalha quem tá digitando
   // Esc fecha o Modo Camarote e devolve a visão de tabela (todos os jogos da rodada)
   if(e.key==='Escape' && CL.screen==='live' && camOn() && camMatch()){ camToggle(); e.preventDefault(); return; }
+  /* ESC FECHA O QUE ESTIVER ABERTO — a mesma saida do X (ver rfOvFecharPadrao):
+     dialogo de acao, ou a sobreposicao de partida aplicando a decisao mais
+     conservadora, para a partida nunca ficar em pausa sem dono. */
+  if(e.key==='Escape'){
+    if(CL.acao && typeof rfAcFechar==='function'){ rfAcFechar(); e.preventDefault(); return; }
+    const RL=CL.live;
+    if(RL && (RL.injEvent||RL.redEvent||RL.penEvent||RL.pensPicking) && typeof rfOvFecharPadrao==='function'){
+      rfOvFecharPadrao(); e.preventDefault(); return;
+    }
+  }
   if(FKEY_INV[e.key] && handleTacticShortcut(e.key)) e.preventDefault(); // evita F1=ajuda do navegador, F5=recarregar, etc.
 });
 

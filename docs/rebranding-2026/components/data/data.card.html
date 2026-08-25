@@ -1,0 +1,40 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Data — barras e tabelas" subtitle="StatBar, EnergyBar, StandingsTable" -->
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--surface-desk);font-family:var(--font-sans);padding:16px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const DS = (function(){
+  const guess = ['RetroFoot98DesignSystem2026','RetroFootDesignSystem','RetroFoot98DesignSystem','DS'];
+  for (const g of guess) { try { const v = window[g]; if (v && typeof v === 'object') return v; } catch(e){} }
+  for (const k of Object.getOwnPropertyNames(window)) {
+    try { const v = window[k]; if (v && typeof v === 'object' && (v.HubScreen || v.Jersey || v.ClubBadge || v.StatBar || v.Button)) return v; } catch(e){}
+  }
+  return {};
+})();
+const { StatBar, EnergyBar, StandingsTable, Card } = DS;
+const rows = [
+  {pos:3,name:'Cianorte',j:7,v:4,e:2,d:1,goals:'11:6',points:14,zone:'var(--zone-promo)'},
+  {pos:4,name:'XV Piracicaba',j:7,v:3,e:2,d:2,goals:'9:7',points:11,zone:'var(--club-secondary)',mine:true},
+  {pos:5,name:'Aimoré',j:7,v:3,e:2,d:2,goals:'8:8',points:11},
+  {pos:6,name:'Azuriz',j:7,v:2,e:3,d:2,goals:'7:8',points:9}
+];
+function Demo(){
+  return (<div style={{display:'flex',flexDirection:'column',gap:14}}>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+      <Card><StatBar label="MORAL DO PLANTEL" value={72} note="V V E D V"/></Card>
+      <Card><StatBar label="SEGURANÇA NO CARGO" value={54} note="direção neutra" color="var(--club-secondary)"/></Card>
+    </div>
+    <Card><div style={{display:'flex',flexDirection:'column',gap:8}}>
+      {[92,76,58,44,31].map(v => <EnergyBar key={v} value={v} prefix="M"/>)}
+    </div></Card>
+    <Card><StandingsTable rows={rows}/></Card>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

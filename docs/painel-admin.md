@@ -76,23 +76,47 @@ o jogo já usa (com o e-mail da marca, via Resend).
 
 ## 3. Publicidade — o inventário e a ligação com o jogo
 
-O contrato entre painel e jogo é a **chave** do espaço. Os oito espaços estão em
-`elifoot_v3.ad_spaces`:
+O contrato entre painel e jogo é a **chave** do espaço. Os onze espaços estão em
+`elifoot_v3.ad_spaces` — e as medidas são as que o **jogo de facto desenha** (conferidas no
+navegador, não deduzidas do código):
 
 | Chave | Onde aparece no jogo | Desktop | Celular | Formatos | Peso |
 |---|---|---|---|---|---|
-| `rf98.anchor.bottom` | faixa fixa no rodapé da Home e do Hub | 970×250 | 320×50 | JPG, PNG, WEBP | 150 KB |
-| `rf98.hub.sidebar` | coluna direita do Hub + Sala de Troféus | 300×250 | 300×250 | JPG, PNG, WEBP | 120 KB |
-| `rf98.match.halftime` | modal do intervalo da partida | 640×480 | 320×480 | + MP4 (≤15 s) | 800 KB |
-| `rf98.copa.sponsor` | modais de copa (sorteio, grupos, chave) | 250×250 | 160×160 | PNG, WEBP | 80 KB |
-| `rf98.auction.footer` | modal de leilão | 728×90 | 320×100 | JPG, PNG, WEBP | 120 KB |
-| `rf98.loading.splash` | tela “A iniciar o jogo…” | 1280×720 | 720×1280 | JPG, WEBP | 400 KB |
-| `rf98.live.inline` | partida ao vivo, abaixo das divisões | 234×60 | 234×60 | JPG, PNG, WEBP | 60 KB |
+| `rf98.top.970x90` | topo de **todas** as páginas | 970×90 | 320×100 | JPG, PNG, WEBP | 120 KB |
+| `rf98.anchor.bottom` | faixa fixa no rodapé, todas as páginas | 970×90 | 320×50 | JPG, PNG, WEBP | 150 KB |
+| `rf98.hub.sidebar` | coluna do Hub, junto da classificação | 300×250 | 300×250 | JPG, PNG, WEBP | 120 KB |
+| `rf98.match.halftime` | modal do intervalo da partida | 728×90 | 320×50 | + MP4 (≤15 s) | 800 KB |
+| `rf98.copa.sponsor` | modais de copa (sorteio, grupos, chave) | 728×90 | 320×50 | JPG, PNG, WEBP | 120 KB |
+| `rf98.auction.footer` | modal de leilão | 728×90 | 320×50 | JPG, PNG, WEBP | 120 KB |
+| `rf98.loading.splash` | tela “A iniciar o jogo…” | 1280×720 | 1280×720 | JPG, WEBP | 400 KB |
+| `rf98.live.inline` | rodada ao vivo, abaixo da faixa da competição | 468×60 | 468×60 | JPG, PNG, WEBP | 60 KB |
 | `rf98.resenha.invite` | cartão do convite da Resenha | 1200×630 | 1200×630 | JPG, PNG | 300 KB |
+| `rf98.rail.esq` | rodada ao vivo e Camarote, à esquerda | 160×600 | 160×600 | JPG, PNG, WEBP | 120 KB |
+| `rf98.rail.dir` | idem, à direita | 160×600 | 160×600 | JPG, PNG, WEBP | 120 KB |
 
-**Regra de ouro:** espaço sem criativo **não é desenhado**. Enquanto ninguém publicar nada, o
-jogo fica exatamente como estava — os espaços de modal continuam a mostrar o anúncio-casa
-(`AD_SPONSORS`), que é o comportamento que já existia.
+Fora deste inventário há as **placas do campo** (6 horizontais de 169×22 e 6 verticais de
+19×192, no cartão de Formação) e a **barra de patrocínio do Camarote**. As duas são desenhadas
+pelo jogo a partir de `AD_SPONSORS`, não passam pelo painel — se forem para venda, precisam de
+chave própria em `ad_spaces` como as outras.
+
+**Os três espaços de modal são a mesma faixa.** Intervalo, cabeçalho de copa e rodapé do
+leilão passam todos pelo mesmo bloco, que reserva 90px de altura — por isso os três são
+728×90. O inventário descrevia um interstitial 640×480 e um logo quadrado 250×250 que o jogo
+não desenha: uma arte nessas medidas passava na validação do painel e entrava esmagada.
+
+**O splash é 16:9 nas duas larguras.** O retrato 720×1280 que estava no inventário entraria
+com tarjas — a caixa mantém a proporção do cinema em qualquer tela.
+
+**Os trilhos precisam de largura.** O direito só aparece acima de 1420px e ambos somem abaixo
+de 1180px: em portátil pequeno e telefone eles não existem, e é por isso que valem menos que a
+faixa de topo, que aparece sempre.
+
+**O espaço é sempre visível.** Até agosto de 2026 a regra era o contrário — “espaço sem
+criativo não é desenhado” — e o efeito era que oito das dez chaves não existiam na tela: não
+dava para ver o inventário nem conferir se ele cabia no desenho. Agora o jogo desenha o espaço
+com a arte quando há criativo publicado e com um marcador do formato quando não há (ver
+`rfAdEspaco` em `public/src/ui/rf26.js`). O marcador tem a medida exata do anúncio, então
+publicar não mexe no layout: só troca o conteúdo do lugar que já estava reservado.
 
 ### Ciclo de vida
 

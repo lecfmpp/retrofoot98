@@ -70,11 +70,32 @@ function copiar(destino, patch, permitidos){
 
 /* aplica uma lista de edições sobre o catálogo em memória. Idempotente: é
    atribuição, não incremento — reaplicar o mesmo pacote não acumula efeito. */
+/* CHAVE DAS LINHAS DE CALENDÁRIO no pacote: uma por país. `pack_edits` é indexado por
+   (pack_id, club_id), então o país entra no lugar do id do clube. É o que permite um pacote
+   trazer vários países sem tabela nova. */
+const PREFIXO_CALENDARIO = '__calendario__:';
+
 function aplicar(edits){
   if(!Array.isArray(edits) || !edits.length) return 0;
   let n = 0;
   for(const e of edits){
     try{
+      /* FOLHA DE CALENDÁRIO — o que faz "acrescentar um país" ser trabalho de painel e não de
+         código. Passa pelo validador antes de entrar: folha com erro é RECUSADA e a do
+         repositório continua a valer, porque um calendário torto vindo do banco só se descobre
+         em dezembro, quando a final não acontece. */
+      if(typeof e.club_id === 'string' && e.club_id.indexOf(PREFIXO_CALENDARIO) === 0){
+        const pais = e.club_id.slice(PREFIXO_CALENDARIO.length);
+        const API = (typeof globalThis!=='undefined') && globalThis.CALENDARIOS_API;
+        if(API && API.instalarCalendario && e.patch){
+          const uni = (window.UNIVERSOS||{})[pais];
+          const r = API.instalarCalendario(pais, e.patch, { divisoes: uni && uni.size });
+          if(r.ok) n++;
+          else console.warn('pacote: calendário de '+pais+' recusado — '+r.motivo,
+                            r.problemas.filter(x=>x.nivel==='erro').map(x=>x.texto));
+        }
+        continue;
+      }
       if(e.novo){
         const alvo = listaDestino((e.patch||{}).pais, e.divisao);
         if(!alvo || acharClube(e.club_id)) continue;
