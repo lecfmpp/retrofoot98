@@ -5153,7 +5153,7 @@ function modalFotosIA(item){
       (a montagem); o rosto solto fica guardado para remontar barato na troca de clube.
       A idade vem do elenco. ~US$ 0,08 por jogador (rosto + montagem).
       <b>No primeiro jogador do clube, confira o encaixe:</b> escudo e patrocinador podem
-      precisar de ajuste de posição — clique no 🛡 da linha dele, arraste e salve; a posição
+      precisar de ajuste de posição — clique em "Posicionar" na linha dele, arraste e salve; a posição
       vale para o elenco inteiro.</div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--bd2);border-radius:10px">
       <span data-torso-thumb ${torso()?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${torso()
