@@ -8460,3 +8460,28 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   box-sizing:border-box;border-radius:6px;background:rgba(10,22,14,.85);color:#fff;
   font-size:9.5px;font-weight:700;line-height:15px;text-align:center;display:inline-block}
 .rf-pl-clicavel:hover{background:rgba(20,60,35,.06)}
+
+/* ficha do jogador na visita a outro clube */
+.rf-vt-ficha .rf-vt-fx{display:flex;gap:12px;align-items:center;margin:4px 0 12px}
+.rf-vt-fx-foto{width:64px;height:96px;border-radius:12px;overflow:hidden;background:#e8e8e4;flex:0 0 auto}
+.rf-vt-fx-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 6%;display:block}
+.rf-vt-fx-id{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rf-vt-fx-id>b{font-size:16px;font-weight:700}
+.rf-vt-fx-id>span{font-size:12px;color:var(--text-dim,#68766c)}
+.rf-vt-lista .rf-pl.sel{background:rgba(20,60,35,.10)}
+
+/* ===== componente padrão foto+número do jogador =====
+   selo do número em VERDE VIVO para leitura imediata sobre qualquer foto */
+.rf-fotonum{position:relative;display:inline-block;width:38px;height:38px;border-radius:10px;
+  overflow:hidden;background:#e8e8e4;flex:0 0 auto;vertical-align:middle}
+.rf-fotonum img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+.rf-fotonum .rf-fnum{position:absolute;right:3px;bottom:3px;min-width:15px;height:15px;padding:0 4px;
+  box-sizing:border-box;border-radius:6px;background:#2fd96a;color:#06240f;
+  font-size:9.5px;font-weight:800;line-height:15px;text-align:center;display:inline-block;
+  box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.rf-fotonum.m{width:29px;height:29px;border-radius:8px;margin-right:4px}
+.rf-fotonum.m .rf-fnum{right:2px;bottom:2px;min-width:13px;height:13px;line-height:13px;font-size:8.5px;padding:0 3px}
+.rf-fotonum.el{width:34px;height:34px;border-radius:9px}
+.rf-fotonum.g{width:52px;height:52px;border-radius:12px}
+.rf-fotonum.g .rf-fnum{min-width:17px;height:17px;line-height:17px;font-size:10.5px;right:4px;bottom:4px}
+.rf-fotonum.eln{width:40px;height:40px;border-radius:10px}

@@ -138,7 +138,7 @@ function rfMkCamisaHTML(num, p){ return rfElCamisa(num,'m', p); }
    nome quando o jogador tem foto do Estúdio; sem foto, nada muda */
 function rfMkFotoMini(p, clubId){
   const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, clubId) : null;
-  return foto ? `<img class="rf-mkt-foto" src="${escC(foto)}" alt="" loading="lazy" draggable="false">` : '';
+  return foto ? (rfFotoNumHTML(foto, p&&p.num, 'm')+' ') : '';
 }
 
 /* =====================================================================
@@ -360,7 +360,7 @@ function rfMktComprarTabelaHTML(){
     const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
     const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
     return `<div class="rf-mkt-row" onclick="${propor}">
-    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${escC(p.n)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
+    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
     ${nac}
@@ -426,7 +426,7 @@ function rfMktLeilaoHTML(){
     const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
     const meu=l.leader===S.clubId;
     return `<div class="rf-mkt-row ${meu?'destaque':''}">
-      <span class="rf-mkt-n">${rfMkFotoMini(p, l.sellerId)}${escC(p.n)}</span>
+      <span class="rf-mkt-n">${rfMkFotoMini(p, l.sellerId)}${rfLinkJogador(p.n, l.sellerId)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
@@ -483,7 +483,7 @@ function rfMktPropostasHTML(){
       <div class="rf-prop2-hd">
         <span class="rf-prop2-crest">${rfCrest(anyClubOf(o.buyerId)||{short:o.buyerName||'—'},44)}</span>
         <div class="rf-prop2-id">
-          <span class="rf-prop2-t">${escC(o.buyerName||'Um clube')} quer o ${escC(o.playerName)}</span>
+          <span class="rf-prop2-t">${escC(o.buyerName||'Um clube')} quer o ${rfLinkJogador(o.playerName, CL.clubId)}</span>
           <!-- no telefone o prazo entra curto: "resposta em 2 rodadas" quebrava a
                linha em duas e o desenho mostra o contexto numa linha só.
                Fica "rodadas", que é a unidade real do motor — o desenho escreve
@@ -597,7 +597,7 @@ function rfMktVenderHTML(){
        Marca de seleção que não corresponde a uma escolha do utilizador confunde
        em vez de orientar. */
     return `<div class="rf-mkt-row" onclick="rfMkListar('${escC(p.pid)}')">
-      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num, p)}<b>${escC(p.n)}</b></span>
+      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num, p)}${rfLinkJogador(p.n, CL.clubId, `<b>${escC(p.n)}</b>`)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
       ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}

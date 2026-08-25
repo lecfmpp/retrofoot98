@@ -1129,14 +1129,15 @@ function rfVerTimeHTML(clubId){
              trava de negociado etc.). No próprio clube a linha segue inerte. */
           const foto=(typeof rfFotoDe==='function')?rfFotoDe(p, clubId):null;
           const deOutro = clubId!==CL.clubId;
-          const clique = deOutro ? ` onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}','')" title="Fazer proposta por ${escC(p.n)}"` : '';
+          /* o clique abre a FICHA (a proposta mora dentro dela) */
+          const clique = ` onclick="clViewSelPlayer('${escC(p.pid)}')" title="Ver a ficha de ${escC(p.n)}"`;
           /* 1ª coluna: a MINIATURA com o número dentro (canto inferior direito,
              com folga das bordas); sem foto, o crachá verde de sempre */
           const numTxt=escC(String(p.num!=null?p.num:'—'));
           const retrato = foto
-            ? `<span class="rf-vt-foto"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false"><b>${numTxt}</b></span>`
+            ? rfFotoNumHTML(foto, p.num, '')
             : `<span class="rf-pl-num">${numTxt}</span>`;
-          return `<div class="rf-pl${deOutro?' rf-pl-clicavel':''}" style="cursor:${deOutro?'pointer':'default'}"${clique}>
+          return `<div class="rf-pl rf-pl-clicavel ${CL.viewSelPlayer===p.pid?'sel':''}" style="cursor:pointer"${clique}>
             ${retrato}
             <span class="rf-pl-id"><span class="rf-pl-n">${escC(p.n)}</span></span>
             <span class="rf-pl-pos">${escC(posLetter(p.s))}</span>
@@ -1146,6 +1147,29 @@ function rfVerTimeHTML(clubId){
         }).join('')}</div>
       </div>
       <div class="rf-vt-dir">
+        ${(function(){
+          /* FICHA DO JOGADOR na visita: o nome leva para cá, e é AQUI que mora o
+             botão de transferência — o modal de proposta não abre mais direto. */
+          const p = sq.find(x=>x.pid===CL.viewSelPlayer);
+          if(!p) return '';
+          const foto=(typeof rfFotoDe==='function')?rfFotoDe(p, clubId):null;
+          const ask=(typeof playerAsk==='function')?playerAsk(p, clubId):(p.mv||0);
+          const deOutro = clubId!==CL.clubId;
+          const en=Math.round(p.energy!=null?p.energy:100);
+          return `<div class="rf-card rf-vt-ficha">
+            <div class="rf-label"><span class="rf-label-t">Ficha do jogador</span></div>
+            <div class="rf-vt-fx">
+              ${foto?`<span class="rf-vt-fx-foto"><img src="${escC(foto)}" alt="${escC(p.n)}"></span>`:''}
+              <div class="rf-vt-fx-id">
+                <b>${escC(p.n)}</b>
+                <span>${escC(posLetter(p.s))} · ${p.age||'—'} anos · força ${p.f} · energia ${en}%</span>
+                <span>Pedido do clube: <b>${escC(rfDin(ask))}</b></span>
+              </div>
+            </div>
+            ${deOutro?`<button type="button" class="rf-btn rf-btn-cta" style="width:100%"
+              onclick="rfMkPropor('${escC(clubId)}','${escC(p.n)}','')">Fazer proposta</button>`:''}
+          </div>`;
+        })()}
         <div class="rf-card">
           <span class="rf-label-t">Quem pode te machucar</span>
           ${perigo.map(p=>{

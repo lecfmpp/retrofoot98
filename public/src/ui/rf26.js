@@ -311,6 +311,40 @@ function rfCrestEnvolve(club, dentro){
 }
 /* nome do clube CLICÁVEL (mesma porta do escudo): abre o plantel do clube em
    todo lugar onde nome+escudo aparecem juntos. Fora da partida ao vivo. */
+/* NOME DO JOGADOR LEVA À FICHA (regra de navegação): o clique no nome nunca
+   abre negociação direto — abre a ficha do jogador (a do próprio elenco ou a
+   da visita ao clube dele), onde moram os botões de transferência. */
+/* COMPONENTE PADRÃO da foto de jogador: quadrado arredondado com o NÚMERO
+   dentro (canto inferior direito, selo verde vivo, sem encostar nas bordas).
+   Tamanhos: '' 38px · m 29px · el 34px · g 52px · eln 40px. */
+function rfFotoNumHTML(foto, num, cls){
+  if(!foto) return null;
+  const badge=(num!=null && String(num)!=='' && String(num)!=='—')
+    ? `<b class="rf-fnum">${escC(String(num))}</b>` : '';
+  return `<span class="rf-fotonum ${cls||''}"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false">${badge}</span>`;
+}
+function rfVerFichaJogador(nome, clubId){
+  const cid = clubId || ((typeof findPlayerClub==='function')?findPlayerClub(nome):null);
+  if(!cid){ if(typeof toastC==='function') toastC('Não achei o clube desse jogador.'); return; }
+  if(String(cid)===String(CL.clubId)){
+    if(typeof clGoSquad==='function') clGoSquad();
+    const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
+    if(p){ if(typeof rfSelPlayer==='function') rfSelPlayer(p.pid);
+           if(typeof rfSetTab==='function') rfSetTab('elenco','ficha'); }
+    return;
+  }
+  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
+  if(typeof ensureForeignClub==='function' && arguments.length>2 && arguments[2]) ensureForeignClub(arguments[2], cid);
+  const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
+  if(typeof clViewTeam==='function') clViewTeam(cid);
+  if(p && typeof clViewSelPlayer==='function') clViewSelPlayer(p.pid);
+}
+function rfLinkJogador(nome, clubId, html, pais){
+  const acao=`rfVerFichaJogador('${escC(String(nome))}','${escC(String(clubId||''))}'${pais?`,'${escC(String(pais))}'`:''})`;
+  return `<span class="rf-clicavel" role="link" tabindex="0" title="Ver a ficha de ${escC(nome)}"
+    onclick="event.stopPropagation();${acao}"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();${acao}}">${html||escC(nome)}</span>`;
+}
 function rfNomeClube(c, cls){
   const nome = escC((c && (c.short||c.name)) || '—');
   return rfCrestEnvolve(c||{}, `<span class="${cls||''}">${nome}</span>`);

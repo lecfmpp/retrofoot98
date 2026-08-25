@@ -61,9 +61,7 @@ function rfAcFichaHTML(p, rotulo, valor, num){
   const setor=({GK:'Goleiro',DEF:'Defesa',MID:'Meio-campo',ATT:'Atacante'})[p&&p.s]||'—';
   const foto=rfAcFotoDoJogador(p);
   const retrato = foto
-    ? `<span class="rf-ac-cam rf-ac-foto" aria-hidden="true">
-        <img src="${escC(foto)}" alt="" loading="lazy" draggable="false">
-      </span>`
+    ? rfFotoNumHTML(foto, num, 'g')
     : `<span class="rf-ac-cam" aria-hidden="true">
       <i class="rf-ac-cam-b" style="background:${c1}"></i>
       <i class="rf-ac-cam-l" style="background:${c2}"></i><i class="rf-ac-cam-r" style="background:${c2}"></i>

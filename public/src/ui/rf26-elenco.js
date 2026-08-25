@@ -36,7 +36,7 @@ function rfFotoDe(p, clubId){
 function rfElCamisa(num, tam, p, clubId){
   const cls = tam===true ? 'g' : (tam||'');
   const foto = rfFotoDe(p, clubId);
-  if(foto) return `<span class="rf-el-camisa foto ${cls}"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false"></span>`;
+  if(foto) return rfFotoNumHTML(foto, num, 'el');
   return `<span class="rf-el-camisa ${cls}">
     <i class="c-corpo"></i><i class="c-mgesq"></i><i class="c-mgdir"></i><i class="c-gola"></i>
     <b>${escC(String(num||''))}</b>
@@ -170,7 +170,10 @@ function rfElElencoHTML(){
     const tit=false;
     return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')">
       <span class="rf-eln-jog">
-        <span class="rf-eln-avwrap"><img class="rf-eln-av" src="${rfFxFoto(p)}" alt="" loading="lazy"><i class="rf-eln-num">${escC(String(nums[p.pid]||p.num||''))}</i></span>
+        ${(function(){ const f=rfFxFoto(p), n=nums[p.pid]||p.num||'';
+          return f!=='img/jogador-perfil.png'
+            ? rfFotoNumHTML(f, n, 'eln')
+            : `<span class="rf-eln-avwrap"><img class="rf-eln-av" src="${f}" alt="" loading="lazy"><i class="rf-eln-num">${escC(String(n))}</i></span>`; })()}
         <b class="rf-eln-nome">${escC(p.n)}</b>
         ${emTreino?'<img class="rf-eln-cone" src="img/treino-especial-cone.webp" width="13" height="13" alt="Em treino especial" title="Em treino especial — chance extra de evolução a cada rodada">':''}
         ${(p.suspended>0)?' 🟥':''}${(p.injuredMatches>0)?' ✚':''}
