@@ -4488,10 +4488,10 @@ function promptRosto(item, p, at){
 /* os 5 estilos de camisa — a variedade visual do jogo nasce aqui. Cada entrada
    vira a frase da camisa dentro do prompt, sempre a partir das cores do clube. */
 const ESTILOS_CAMISA = [
-  ['vertical',  'Listras verticais',        (a,b)=>`a football jersey with classic vertical stripes in ${a} and ${b}`],
-  ['horizontal','Listras horizontais',      (a,b)=>`a football jersey with wide horizontal hoops (large horizontal stripes) in ${a} and ${b}`],
-  ['mangas',    'Lisa + mangas/gola',       (a,b)=>`a plain ${a} football jersey with the sleeves and the collar in ${b}`],
-  ['diagonal',  'Faixa diagonal',           (a,b)=>`a plain ${a} football jersey with a single wide ${b} diagonal sash crossing the chest from the shoulder down to the bottom hem`],
+  ['vertical',  'Listras verticais',        (a,b)=>`a football jersey with classic vertical stripes in ${a} and ${b} — stripes of EQUAL width, evenly spaced, perfectly symmetrical, covering the ENTIRE jersey from the left side seam to the right side seam`],
+  ['horizontal','Listras horizontais',      (a,b)=>`a football jersey with wide horizontal hoops in ${a} and ${b} — hoops of EQUAL height, evenly spaced, running straight across the ENTIRE jersey and both sleeves`],
+  ['mangas',    'Lisa + mangas/gola',       (a,b)=>`a plain ${a} football jersey with BOTH sleeves entirely in ${b} and the collar in ${b}, clean color blocking`],
+  ['diagonal',  'Faixa diagonal',           (a,b)=>`a plain ${a} football jersey with ONE single wide ${b} diagonal sash crossing the ENTIRE chest corner to corner — starting at the wearer's right shoulder seam and reaching the left bottom hem, edge to edge`],
   ['lisa',      'Cor única',                (a,b)=>`a plain solid ${a} football jersey with no secondary color`]
 ];
 function promptTorso(item, estiloChave, corA, corB){
@@ -4528,12 +4528,11 @@ const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do
 async function garantirMolde(item, estilo){
   let molde = D.fotos[MOLDE_KEY+'|'+estilo];
   if(molde) return molde;
-  const camisaM = descrCamisa(estilo, 'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)');
-  const ref = moldeReferencia();
-  const urlMolde = ref
-    ? await gerarImagemIA('montagem', promptCamisaNaReferencia(camisaM) + AVISO_MARCADOR, 'medium', [ref.url])
-    : await gerarImagemIA('torso', promptTorso(item, estilo,
-        'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
+  /* SEMPRE do zero: gerar por edição da referência "remenda" o desenho (faixa
+     que não atravessa, listras tortas e assimétricas). O enquadramento fica por
+     conta do prompt do torso, que já trava corte, pose e fundo. */
+  const urlMolde = await gerarImagemIA('torso', promptTorso(item, estilo,
+    'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium');
   molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos:{ recorte:'molde', estilo } };
   const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(rM.error) throw new Error(erroMsg(rM.error));
