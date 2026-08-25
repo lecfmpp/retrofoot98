@@ -5473,7 +5473,12 @@ function modalUniformeIA(item){
       <div class="col" style="gap:10px;align-items:center">
         <div id="wz-preview" title="Clique para ver em tela expandida" style="cursor:zoom-in">
           ${(wiz.pv || t()) ? compostoHTML(wiz.pv || t().url, null, 250, 12, wiz.patroUrl, escudoEscolhido(), at.patro, at.escudo)
-            : `<div style="width:250px;height:250px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--bd2);border-radius:12px;font-size:12px;color:var(--dim3);text-align:center;padding:14px">a prévia aparece ao escolher estilo e cores</div>`}
+            : `<div style="width:250px;height:250px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--bd2);border-radius:12px;background:#d9d9d9">
+                <svg viewBox="0 0 100 100" style="width:150px;height:150px;opacity:.45">
+                  <path fill="#8a8a8a" d="M35 12 L44 8 Q50 14 56 8 L65 12 L86 24 L79 42 L68 37 L68 92 L32 92 L32 37 L21 42 L14 24 Z"/>
+                </svg>
+                <small style="font-size:11.5px;color:#777">sem uniforme ainda — a prévia aparece ao salvar o estilo e as cores</small>
+              </div>`}
         </div>
         <small style="font-size:11.5px;color:var(--dim3);text-align:center;max-width:250px">
           ${wiz.pv?'Prévia pintada aqui no navegador — nada foi salvo ainda.':(t()?(at.rascunho?'Rascunho salvo.':'Uniforme atual do clube.'):'')}</small>
@@ -5481,11 +5486,16 @@ function modalUniformeIA(item){
     </div>
     <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
 
-  /* prévia local: com molde do estilo, pinta no canvas a cada mudança — zero IA */
+  /* prévia local: com molde do estilo, pinta no canvas a cada mudança — zero IA.
+     A CHAVE inclui a URL do molde: molde regenerado invalida a prévia antiga
+     (era o que deixava o desenho velho preso na tela). */
   async function pintarPrevia(){
     const molde = D.fotos[MOLDE_KEY+'|'+wiz.estilo];
-    if(!molde) return;
-    const chave = wiz.estilo+'|'+wiz.corA+'|'+wiz.corB;
+    if(!molde){
+      if(wiz.pv){ if(wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv); wiz.pv=null; wiz.pvChave=''; abrir(); }
+      return;
+    }
+    const chave = molde.url+'|'+wiz.estilo+'|'+wiz.corA+'|'+wiz.corB;
     if(wiz.pvChave === chave && wiz.pv) return;
     try{
       const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
