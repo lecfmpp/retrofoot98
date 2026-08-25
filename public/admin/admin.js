@@ -4353,16 +4353,59 @@ async function removerFundoDeImagem(arquivo){
 /* chama a edge function e devolve a URL pública da imagem já no Storage.
    `imagens` (opcional) alimenta a montagem: URLs do nosso Storage que a função
    manda para a OpenAI como imagens de entrada (images/edits). */
-async function gerarImagemIA(tipo, prompt, qualidade, imagens){
-  const { data, error } = await sb.functions.invoke('generate-image',
-    { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens } });
-  if(error){
-    let msg = error.message || 'Falha ao gerar a imagem.';
-    try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
-    throw new Error(msg);
+/* ===== pílula de progresso: enquanto qualquer geração está no ar, uma pílula
+   fixa no rodapé diz a etapa e o tempo decorrido. Várias em paralelo somam. ===== */
+const IA_ROTULOS = {
+  escudo:   'Desenhando o escudo…',
+  torso:    'Gerando o uniforme…',
+  rosto:    'Gerando o rosto do jogador…',
+  jogador:  'Gerando a foto do jogador…',
+  montagem: 'Costurando rosto e uniforme…'
+};
+const IA_FILA = [];   // rótulos das gerações em andamento
+let iaTimer = null;
+function iaDesenha(){
+  let p = el('ia-status');
+  if(!IA_FILA.length){
+    if(p) p.remove();
+    if(iaTimer){ clearInterval(iaTimer); iaTimer = null; }
+    return;
   }
-  if(!data || !data.url) throw new Error((data && data.error) || 'A função não devolveu imagem.');
-  return data.url;
+  if(!p){
+    p = document.createElement('div'); p.id = 'ia-status';
+    document.body.appendChild(p);
+  }
+  const atual = IA_FILA[IA_FILA.length-1];
+  const seg = Math.round((Date.now()-atual.inicio)/1000);
+  p.innerHTML = `<span class="giro"></span><span>${h(atual.rotulo)}</span>
+    <small>${seg}s · normalmente até 1 min${IA_FILA.length>1?` · ${IA_FILA.length} na fila`:''}</small>`;
+}
+function iaComeca(rotulo){
+  const item = { rotulo, inicio: Date.now() };
+  IA_FILA.push(item);
+  iaDesenha();
+  if(!iaTimer) iaTimer = setInterval(iaDesenha, 1000);
+  return item;
+}
+function iaTermina(item){
+  const ix = IA_FILA.indexOf(item);
+  if(ix >= 0) IA_FILA.splice(ix, 1);
+  iaDesenha();
+}
+
+async function gerarImagemIA(tipo, prompt, qualidade, imagens){
+  const carga = iaComeca(IA_ROTULOS[tipo] || 'Gerando imagem…');
+  try{
+    const { data, error } = await sb.functions.invoke('generate-image',
+      { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens } });
+    if(error){
+      let msg = error.message || 'Falha ao gerar a imagem.';
+      try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
+      throw new Error(msg);
+    }
+    if(!data || !data.url) throw new Error((data && data.error) || 'A função não devolveu imagem.');
+    return data.url;
+  } finally { iaTermina(carga); }
 }
 
 const ESTILOS_ESCUDO = [

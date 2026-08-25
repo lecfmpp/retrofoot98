@@ -351,3 +351,14 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .kbcol-ghost{position:fixed;z-index:80;pointer-events:none;transform:rotate(2deg) scale(.98);
   box-shadow:0 18px 34px rgba(0,0,0,.55);border-color:var(--verde);opacity:.95;overflow:hidden}
 .kbcol-slot{flex:none;border:1px dashed var(--verde);background:#14301f66;border-radius:14px}
+
+/* ===== pílula de progresso da IA (Estúdio) — aparece enquanto alguma imagem
+   está sendo gerada no backend; o texto diz exatamente a etapa ===== */
+#ia-status{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:10000;
+  display:flex;align-items:center;gap:11px;padding:11px 18px;border-radius:99px;
+  background:var(--card);border:1px solid var(--verde-bd);box-shadow:0 10px 34px #000c;
+  font-size:13px;color:var(--fg);white-space:nowrap;max-width:92vw}
+#ia-status .giro{width:16px;height:16px;flex:0 0 16px;border-radius:99px;
+  border:2px solid var(--verde2);border-top-color:transparent;animation:ia-giro .8s linear infinite}
+#ia-status small{color:var(--dim2);font-size:11.5px}
+@keyframes ia-giro{to{transform:rotate(360deg)}}
