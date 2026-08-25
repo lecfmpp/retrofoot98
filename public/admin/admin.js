@@ -4372,6 +4372,37 @@ function modalConteudo(c){
    abrirModal de propósito: ele substituiria o modal de fotos/escudo em curso.
    Esc fecha só o lightbox (captura + stopImmediatePropagation, senão o Esc
    também derrubaria o modal de trás). */
+/* CONFIRMAÇÃO COM A CARA DO PAINEL (substitui o confirm() nativo, que parece
+   erro do navegador e não explica o que vai acontecer). Devolve Promise<bool>;
+   abre POR CIMA do modal em curso, sem substituí-lo. */
+function rfConfirm(o){
+  o=o||{};
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.style.cssText='position:fixed;inset:0;z-index:10001;background:#000b;display:flex;align-items:center;justify-content:center;padding:24px';
+    ov.innerHTML = `
+      <div class="card" style="max-width:${o.w||520}px;width:100%;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div class="tt" style="font-size:15px">${h(o.titulo||'Confirmar')}</div>
+          ${o.texto?`<div class="st" style="line-height:1.65;margin-top:6px">${o.texto}</div>`:''}
+        </div>
+        ${o.detalhe?`<div class="st" style="background:var(--card2);border:1px solid var(--bd2);border-radius:10px;padding:10px 12px;line-height:1.6">${o.detalhe}</div>`:''}
+        <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-ghost" data-rf-nao style="flex:0 0 auto">${h(o.nao||'Cancelar')}</button>
+          <button class="btn ${o.perigo?'':''}" data-rf-sim style="flex:0 0 auto${o.perigo?';background:var(--vermelho);color:#fff':''}">${h(o.sim||'Confirmar')}</button>
+        </div>
+      </div>`;
+    const fecha = (v) => { ov.remove(); document.removeEventListener('keydown', esc, true); resolve(v); };
+    const esc = e => { if(e.key==='Escape'){ e.stopImmediatePropagation(); fecha(false); } };
+    ov.onclick = e => { if(e.target===ov) fecha(false); };
+    document.addEventListener('keydown', esc, true);
+    document.body.appendChild(ov);
+    ov.querySelector('[data-rf-nao]').onclick = () => fecha(false);
+    ov.querySelector('[data-rf-sim]').onclick = () => fecha(true);
+    ov.querySelector('[data-rf-sim]').focus();
+  });
+}
+
 function abrirLightboxHTML(miolo){
   const lb = document.createElement('div');
   lb.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;align-items:center;justify-content:center;cursor:zoom-out;padding:24px';
@@ -4687,7 +4718,12 @@ async function prepararEstilos(btn){
     if(!D.fotos[MOLDE_KEY+'|mini-'+chave]) faltam.push(['miniatura', chave]);
   }
   if(!faltam.length) return toast('Os 5 estilos já estão prontos (uniforme + miniatura).');
-  if(!confirm(`Gerar ${faltam.length} molde(s) que faltam (~US$ ${(faltam.length*0.05).toFixed(2)})? Depois disso os 5 estilos ficam prontos para todos os clubes. Confira cada um no wizard — molde torto se refaz pelos links ↻.`)) return;
+  if(!await rfConfirm({ titulo:'Preparar os estilos de uniforme',
+    texto:`Faltam <b>${faltam.length} molde(s)</b> (uniforme e/ou miniatura). Gerando agora, os 5 estilos
+           ficam prontos e cada clube passa a ser <b>pintado na hora, sem IA</b>.`,
+    detalhe:`Custo único: <b>~US$ ${(faltam.length*0.05).toFixed(2)}</b>. Molde que sair torto pode ser
+             refeito pelos links ↻ dentro do wizard.`,
+    nao:'Agora não', sim:`Gerar ${faltam.length} molde(s)` })) return;
   btn.disabled = true; const rot = btn.textContent;
   let ok=0, erros=0;
   for(const [tipo, chave] of faltam){
@@ -4716,9 +4752,14 @@ async function repintarTodosUniformes(btn){
   if(!alvos.length) return toast('Nenhum uniforme de molde para repintar.', true);
   const estilos = Array.from(new Set(alvos.map(a=>a.t.atributos.estilo)));
   const faltam = estilos.filter(e => !D.fotos[MOLDE_KEY+'|'+e]);
-  if(!confirm(`Repintar ${alvos.length} uniformes com os moldes atuais?`+
-    (faltam.length?` ${faltam.length} molde(s) serão gerados por IA antes (~US$ ${(faltam.length*0.04).toFixed(2)}).`:' Sem custo — é tudo pintura local.')+
-    ' As posições salvas de escudo/patrocínio são preservadas.')) return;
+  if(!await rfConfirm({ titulo:'Repintar todos os uniformes',
+    texto:`Vou repintar <b>${alvos.length} uniformes</b> (e as miniaturas do campo) com os moldes atuais,
+           mantendo as cores de cada clube.`,
+    detalhe:(faltam.length
+      ? `<b>${faltam.length} molde(s)</b> serão gerados por IA antes (~US$ ${(faltam.length*0.04).toFixed(2)}); o resto é pintura local, sem custo.`
+      : 'Sem custo: é tudo pintura local.')+
+      ' As posições salvas de escudo e patrocínio são preservadas, e <b>as fotos dos jogadores não são tocadas</b>.',
+    nao:'Cancelar', sim:`Repintar ${alvos.length} uniformes` })) return;
   btn.disabled = true; const rot = btn.textContent;
   let ok=0, erros=0;
   try{
@@ -5316,7 +5357,10 @@ function modalFotosIA(item){
     const fila = faltantes();
     if(!fila.length) return toast('Todo o elenco já tem foto.');
     const custo = (fila.length*(torso()?0.08:0.04)).toFixed(2);
-    if(!confirm(`Gerar ${fila.length} fotos agora? Custo estimado ~US$ ${custo}. Uma por vez, dá para acompanhar.`)) return;
+    if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
+      texto:`Vou gerar <b>${fila.length} foto(s)</b> de jogador — rosto sorteado e costura com o uniforme do clube.`,
+      detalhe:`Custo estimado: <b>~US$ ${custo}</b>. Sai uma por vez, dá para acompanhar o progresso.`,
+      nao:'Agora não', sim:`Gerar ${fila.length} fotos` })) return;
     btTodos.disabled = true;
     let ok = 0, erroN = 0;
     for(const p of fila){
@@ -5846,7 +5890,10 @@ function modalUniformeIA(item){
     };
     const rf = el('wz-refazer-molde');
     if(rf) rf.onclick = async () => {
-      if(!confirm('Refazer o molde deste estilo (~US$ 0,04)? O molde atual é descartado; depois use "Repintar todos" na aba Uniformes para atualizar os clubes que já usam este estilo.')) return;
+      if(!await rfConfirm({ titulo:'Refazer o molde deste estilo',
+        texto:'O molde atual é descartado e um novo é gerado por IA.',
+        detalhe:'Custo: <b>~US$ 0,04</b>. Depois use <b>Repintar todos</b> na aba Uniformes para os clubes que já usam este estilo pegarem o molde novo.',
+        nao:'Cancelar', sim:'Refazer molde (~US$ 0,04)' })) return;
       rf.textContent = 'Refazendo o molde…';
       try{
         const del = await jogo('player_photos').delete()
@@ -5887,7 +5934,10 @@ function modalUniformeIA(item){
     desenharMini();
     const rfM = el('wz-mini-refazer');
     if(rfM) rfM.onclick = async () => {
-      if(!confirm('Refazer o molde da miniatura deste estilo (~US$ 0,04)? Ele será extraído do molde do uniforme — mesmo padrão de listras.')) return;
+      if(!await rfConfirm({ titulo:'Refazer a miniatura deste estilo',
+        texto:'A miniatura é extraída do molde do uniforme, mantendo o mesmo padrão da camisa.',
+        detalhe:'Custo: <b>~US$ 0,04</b>. As fotos dos jogadores não são afetadas.',
+        nao:'Cancelar', sim:'Refazer miniatura (~US$ 0,04)' })) return;
       rfM.textContent = 'Refazendo…';
       try{
         const del = await jogo('player_photos').delete()
@@ -5994,7 +6044,10 @@ function modalUniformeIA(item){
       try{
         let molde = D.fotos[MOLDE_KEY+'|'+wiz.estilo];
         if(!molde){
-          if(!confirm('Primeiro uniforme neste estilo: o molde é gerado por IA UMA vez (~US$ 0,04) e todos os clubes deste estilo passam a ser pintados na hora, sem IA. Continuar?')){
+          if(!await rfConfirm({ titulo:'Primeiro uniforme neste estilo',
+            texto:'O molde deste estilo ainda não existe — ele é gerado por IA <b>uma única vez</b>.',
+            detalhe:'Custo: <b>~US$ 0,04</b>. Depois disso, todo clube deste estilo é pintado na hora, sem IA.',
+            nao:'Cancelar', sim:'Gerar molde e salvar' })){
             bts.forEach(b=>b.disabled=false); return;
           }
           el('wz-estado').textContent = 'Gerando o molde deste estilo (uma vez só)…';
@@ -6035,7 +6088,17 @@ function modalUniformeIA(item){
         if(aplicar){
           const comFoto = (c.squad||[]).map(p => D.fotos[c.id+'|'+p.n])
             .filter(f => f && f.atributos && f.atributos.recorte==='rosto');
-          if(comFoto.length && confirm(`Uniforme aplicado. Recosturar as ${comFoto.length} fotos do elenco com o uniforme novo agora? ~US$ ${(comFoto.length*0.04).toFixed(2)} (os rostos são os mesmos — nada é sorteado de novo).`)){
+          const custoRe = (comFoto.length*0.04).toFixed(2);
+          const refazer = comFoto.length ? await rfConfirm({
+            titulo:'Uniforme aplicado no jogo',
+            texto:`O uniforme novo já está valendo no jogo. As <b>${comFoto.length} fotos</b> do elenco
+                   ainda mostram a camisa anterior — elas só mudam se você refizer a montagem agora.`,
+            detalhe:`<b>Refazer</b> usa os <b>mesmos rostos</b> (nada é sorteado de novo) e custa
+                     <b>~US$ ${custoRe}</b>. <b>Manter</b> não gasta nada: o uniforme e a camisa do
+                     campo já estão atualizados, só as fotos ficam com a camisa antiga.`,
+            nao:'Manter as fotos atuais',
+            sim:`Refazer as ${comFoto.length} fotos (~US$ ${custoRe})`, w:560 }) : false;
+          if(refazer){
             let ok=0, falhas=0;
             for(const f of comFoto){
               el('wz-estado').textContent = `Aplicando novo uniforme nos jogadores atuais — ${ok+falhas+1}/${comFoto.length} (${f.jogador})…`;
@@ -6064,7 +6127,10 @@ function modalUniformeIA(item){
     if(el('wz-aplicar')) el('wz-aplicar').onclick = () => salvar(true);
     const rmU = el('wz-remover');
     if(rmU) rmU.onclick = async () => {
-      if(!confirm('Remover o uniforme deste clube? Ele volta à silhueta (sem uniforme). As fotos já costuradas do elenco continuam com a camisa antiga até serem refeitas.')) return;
+      if(!await rfConfirm({ titulo:'Remover o uniforme deste clube',
+        texto:'O clube volta à silhueta (sem uniforme) e a camisa do campo volta ao desenho padrão.',
+        detalhe:'As fotos já costuradas do elenco continuam com a camisa antiga até serem refeitas.',
+        nao:'Cancelar', sim:'Remover uniforme', perigo:true })) return;
       const { error } = await jogo('player_photos').delete()
         .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
       if(error) return toast(erroMsg(error), true);
