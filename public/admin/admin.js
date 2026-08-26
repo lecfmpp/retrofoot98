@@ -2378,6 +2378,8 @@ function abrirClube(id){
   const item = (D.catalogo||[]).find(x => String(x.c.id)===String(id));
   if(!item) return;
   const c = item.c, ed = D.edits[id], editar = podeEditar('dados');
+  /* o escudo EFETIVO é o do patch (o que o jogo mostra), não o de fábrica */
+  const crestAtual = (ed && ed.patch && ed.patch.crest) || c.crest || '';
   const sq = (c.squad||[]).slice().sort((a,b)=>(b.f||0)-(a.f||0));
 
   abrirModal(`
@@ -2397,13 +2399,14 @@ function abrirClube(id){
         ${campoCor('c-color2','Cor secundária', c.color2||'#ffffff')}
       </div>
       <div id="c-preview" style="padding:2px 0"></div>
-      <label class="f">Escudo (URL)
-        <input class="f" id="c-crest" value="${h(c.crest||'')}" placeholder="https://… ou envie um arquivo" ${editar?'':'disabled'}>
+      <label class="f">Escudo
+        <input class="f" id="c-crest" value="${h(crestAtual)}" readonly
+          title="O escudo é gerenciado na aba Escudos — aqui é só leitura" style="opacity:.8">
       </label>
-      ${editar?`<div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn-sm btn-ghost" id="c-escudo-btn">Enviar escudo (PNG/WEBP, até 1 MB)</button>
-        <input type="file" id="c-escudo" accept=".png,.webp,.jpg,.jpeg" style="display:none">
-        <span id="c-escudo-prev">${c.crest?`<img src="${h(c.crest)}" style="width:28px;height:28px;object-fit:contain">`:''}</span>
+      ${editar?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-ghost" id="c-escudo-btn">Alterar escudo (aba Escudos)</button>
+        <span id="c-escudo-prev">${crestAtual?`<img src="${h(crestAtual)}" style="width:28px;height:28px;object-fit:contain">`:''}</span>
+        <small style="font-size:11.5px;color:var(--dim3)">lá o arquivo é padronizado em WebP 512×512</small>
       </div>`:''}
       <div class="g4" style="gap:10px">
         ${[['OS','Ataque'],['MS','Meio'],['DS','Defesa'],['overall','Geral']].map(([k,l])=>
@@ -2457,19 +2460,9 @@ function abrirClube(id){
     if(m) el('c-overall').value = m;
   }; });
 
-  el('c-escudo-btn').onclick = () => el('c-escudo').click();
-  el('c-escudo').onchange = async () => {
-    const f = el('c-escudo').files[0]; if(!f) return;
-    if(f.size > 1024*1024) return toast('Escudo acima de 1 MB.', true);
-    const ext = (f.name.split('.').pop()||'png').toLowerCase();
-    const caminho = `${c.id}-${Date.now()}.${ext}`;
-    const up = await sb.storage.from('escudos').upload(caminho, f, { upsert:false, cacheControl:'3600' });
-    if(up.error) return toast(erroMsg(up.error), true);
-    const url = sb.storage.from('escudos').getPublicUrl(caminho).data.publicUrl;
-    el('c-crest').value = url;
-    el('c-escudo-prev').innerHTML = `<img src="${h(url)}" style="width:28px;height:28px;object-fit:contain">`;
-    toast('Escudo enviado — salve para valer.');
-  };
+  /* UMA PORTA SÓ: o escudo é enviado/tratado no modal da aba Escudos, que grava
+     direto no patch; ao voltar, a ficha do clube reabre já com o escudo novo. */
+  el('c-escudo-btn').onclick = () => modalEscudoIA(item, () => abrirClube(c.id));
   el('c-add-jog').onclick = () => {
     const div = document.createElement('div');
     div.innerHTML = linhaJogador({ n:'', p:'MC', s:'MID', f:30, age:22, mv:100000 }, true, true);
