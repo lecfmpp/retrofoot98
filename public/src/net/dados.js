@@ -149,6 +149,7 @@ function buscarEdits(packId){
 window.RF_FOTOS = window.RF_FOTOS || {};
 window.RF_FOTOS_NOME = window.RF_FOTOS_NOME || {};
 window.RF_UNIFORMES = window.RF_UNIFORMES || {};
+window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 function buscarFotos(packId){
   if(!packId) return;
   fetch(REST + 'player_photos?select=club_id,jogador,url,atributos&pack_id=eq.'+encodeURIComponent(packId),
@@ -165,6 +166,10 @@ function buscarFotos(packId){
         }
         const foto = at.montagem || null;   // só a foto FINAL entra na UI
         if(!foto) continue;
+        /* ajuste de camadas SÓ desta foto: a costura por IA nunca devolve o
+           enquadramento no mesmo pixel, então o Estúdio deixa acertar escudo,
+           patrocinador e fabricante foto a foto. Vazio = segue o clube. */
+        if(at.pos) window.RF_FOTO_POS[String(f.club_id)+'|'+f.jogador] = at.pos;
         window.RF_FOTOS[String(f.club_id)+'|'+f.jogador] = foto;
         window.RF_FOTOS_NOME[f.jogador] = foto;
       }

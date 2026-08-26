@@ -120,6 +120,8 @@ function rfFxFotoComposta(p, crest){
   if(foto === 'img/jogador-perfil.png')
     return `<img src="${foto}" alt="${escC(p.n)}">`;
   const uni = (window.RF_UNIFORMES||{})[String(CL.clubId)] || {};
+  /* ajuste próprio da foto (Estúdio -> "Salvar só neste jogador") ganha do clube */
+  const ex = (window.RF_FOTO_POS||{})[String(CL.clubId)+'|'+((p&&p.n)||'')] || {};
   const camada = (url, pos, padrao) => {
     if(!url) return '';
     const v = rfFxPosFoto(Object.assign({}, padrao, pos||{}));
@@ -128,9 +130,9 @@ function rfFxFotoComposta(p, crest){
   };
   return `<span class="rf-fx-quadro" aria-hidden="true">
     <img src="${escC(foto)}" alt="${escC(p.n)}">
-    ${camada(crest, uni.escudo, RF_POS_PADRAO.escudo)}
-    ${camada(uni.fabricanteUrl, uni.fabricante, RF_POS_PADRAO.fabricante)}
-    ${camada(uni.patroUrl, uni.patro, RF_POS_PADRAO.patro)}
+    ${camada(crest, ex.escudo || uni.escudo, RF_POS_PADRAO.escudo)}
+    ${camada(uni.fabricanteUrl, ex.fabricante || uni.fabricante, RF_POS_PADRAO.fabricante)}
+    ${camada(uni.patroUrl, ex.patro || uni.patro, RF_POS_PADRAO.patro)}
   </span>`;
 }
 function rfFxFoto(p){
