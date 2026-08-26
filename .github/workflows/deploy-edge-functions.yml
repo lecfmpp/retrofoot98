@@ -88,10 +88,9 @@ jobs:
           version: latest
 
       # Deploy NOMEADO, não "todas": as outras funções do projeto (send-invite-email,
-      # fetch-division-data, send-password-reset, verify-round-result) não estão neste
-      # repositório, e send-password-reset roda com verify_jwt=false. Um deploy genérico
-      # poderia reescrever essa configuração.
-      # Sem --no-verify-jwt de propósito: resolve-round exige JWT (o padrão da CLI).
+      # fetch-division-data, verify-round-result) não estão neste repositório, e um
+      # deploy genérico poderia reescrever a configuração delas.
+      # Sem --no-verify-jwt de propósito: estas três exigem JWT (o padrão da CLI).
       - name: Deploy resolve-round e kickoff-round
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -99,6 +98,16 @@ jobs:
           supabase functions deploy resolve-round --project-ref "$PROJECT_REF"
           supabase functions deploy kickoff-round --project-ref "$PROJECT_REF"
           supabase functions deploy generate-image --project-ref "$PROJECT_REF"
+
+      # send-password-reset é a EXCEÇÃO e vai sozinha: quem esqueceu a senha não tem
+      # sessão, então ela precisa continuar pública. Sem --no-verify-jwt o deploy a
+      # trancaria atrás de um JWT que o usuário não tem, e o "esqueci minha senha"
+      # morreria com 401 — por isso a flag não é opcional aqui.
+      - name: Deploy send-password-reset (pública, sem JWT)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy send-password-reset --project-ref "$PROJECT_REF" --no-verify-jwt
 
       # As funções têm que SUBIR, não só compilar. Sem Authorization o gateway responde 401 —
       # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
@@ -116,3 +125,20 @@ jobs:
             done
             if [ "$ok" != "1" ]; then echo "FALHOU: esperava 401 ($fn no ar), veio $code"; exit 1; fi
           done
+
+      # send-password-reset é pública: 401 aqui seria BUG, não saúde. Sem e-mail no
+      # corpo ela responde 400 ("Informe um e-mail válido") — é esse 400 que prova
+      # ao mesmo tempo que o worker subiu E que continua sem exigir JWT.
+      - name: Verificar que send-password-reset sobe e segue pública
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
+              "https://${PROJECT_REF}.supabase.co/functions/v1/send-password-reset" \
+              -H 'Content-Type: application/json' -d '{}')
+            echo "send-password-reset tentativa $i -> HTTP $code : $(head -c 160 /tmp/r.txt)"
+            if [ "$code" = "400" ]; then echo "OK: no ar e pública"; ok=1; break; fi
+            if [ "$code" = "401" ]; then echo "FALHOU: subiu exigindo JWT — o link de recuperação quebraria"; exit 1; fi
+            sleep 5
+          done
+          if [ "$ok" != "1" ]; then echo "FALHOU: esperava 400, veio $code"; exit 1; fi
