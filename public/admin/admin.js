@@ -5374,7 +5374,6 @@ function modalFotosIA(item){
       <span style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-erro" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         <button class="btn btn-sm btn-ghost" data-escudo title="Arrastar e soltar escudo/logos no uniforme desta foto" ${f&&f.atributos&&f.atributos.montagem?'':'disabled'}>Posicionar</button>
-        <button class="btn btn-sm btn-ghost" data-ver title="Ver em tela expandida" ${f?'':'disabled'}>Ver</button>
         ${editar?`<button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
       </span>
     </div>`;
@@ -5419,13 +5418,13 @@ function modalFotosIA(item){
     const t = torso();
     const lado = Math.min(520, Math.floor(Math.min(innerWidth*0.9, innerHeight*0.85/RATIO_FOTO)));
     if(f.atributos && f.atributos.montagem)
-      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, camadasClube(), true));
+      abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, camadasClube(f), true));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
-      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, camadasClube()));
+      abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, camadasClube(f)));
     else abrirLightbox(f.url, alt);
   };
   el('ft-lista').addEventListener('click', ev => {
-    if(!ev.target.closest('[data-ver], [data-thumb]')) return;
+    if(!ev.target.closest('[data-thumb]')) return;
     const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
     const f = D.fotos[c.id+'|'+linha.dataset.fotoJog];
     if(f) verExpandido(f, linha.dataset.fotoJog);
@@ -5476,7 +5475,6 @@ function modalFotosIA(item){
       th.innerHTML = thumbHTML(reg, 40);
       th.style.cursor = 'zoom-in'; th.title = 'Ver em tela expandida';
       const bt = linha.querySelector('[data-gerar]'); if(bt) bt.textContent = 'Refazer';
-      const bv = linha.querySelector('[data-ver]'); if(bv) bv.disabled = false;
       const be = linha.querySelector('[data-escudo]'); if(be) be.disabled = !at.montagem;
     }
   }
