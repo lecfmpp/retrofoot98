@@ -2299,12 +2299,16 @@ function abaClubes(editar){
         <span style="text-align:right">Neste patch</span>
       </div>
       ${lista.length ? lista.slice(0,120).map(x => {
-        const e = D.edits[x.c.id]; const cor = x.c.color || '#333';
+        const e = D.edits[x.c.id]; const cor = (e && e.patch && e.patch.color) || x.c.color || '#333';
+        /* MOSTRA O QUE O JOGO MOSTRA: escudo, nome e cor do PATCH quando existem
+           (a lista exibia sempre o de fábrica e parecia desatualizada). */
+        const crest = (e && e.patch && e.patch.crest) || x.c.crest;
+        const nome = (e && e.patch && (e.patch.short || e.patch.name)) || x.c.short || x.c.name;
         return `<div class="row" style="grid-template-columns:44px 1.6fr .9fr .7fr .7fr .8fr .9fr;cursor:pointer" data-clube="${h(x.c.id)}">
-          <span>${x.c.crest
-            ? `<img src="${h(x.c.crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
-            : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(x.c.short||x.c.name))}</i>`}</span>
-          <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(x.c.short||x.c.name)}</b>
+          <span>${crest
+            ? `<img src="${h(crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
+            : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(nome))}</i>`}</span>
+          <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(nome)}</b>
             <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}</small></span>
           <span style="font-size:12px;color:var(--dim)">${h(x.pais)}</span>
           <span class="mono" style="font-size:12px;text-align:center">${h(x.div)}</span>
