@@ -4387,9 +4387,16 @@ async function validarMontagem(url){
     const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
     const d = cx.getImageData(0, 0, W, H).data;
     const cor = (x,y) => { const i=((y*W)+x)*4; return [d[i],d[i+1],d[i+2]]; };
-    /* o fundo é o cinza de estúdio: pego a mediana dos quatro cantos */
-    const cantos = [cor(3,3), cor(W-4,3), cor(3,H-4), cor(W-4,H-4)];
-    const fundo = [0,1,2].map(k => cantos.map(c=>c[k]).sort((a,b)=>a-b)[1]);
+    /* o fundo é o cinza de estúdio — e ele só existe garantido na FAIXA DE CIMA,
+       nos lados de fora da cabeça. Os cantos de baixo são o próprio jogador (o
+       enquadramento é do peito pra cima), então incluí-los envenena a medida. */
+    const amostras = [];
+    [0.01, 0.03, 0.06].forEach(fy => [0.02, 0.06, 0.10, 0.90, 0.94, 0.98].forEach(fx =>
+      amostras.push(cor(Math.round(W*fx), Math.round(H*fy)))));
+    const fundo = [0,1,2].map(k => {
+      const v = amostras.map(c=>c[k]).sort((a,b)=>a-b);
+      return v[Math.floor(v.length/2)];
+    });
     const eFundo = c => Math.abs(c[0]-fundo[0])+Math.abs(c[1]-fundo[1])+Math.abs(c[2]-fundo[2]) < 60;
 
     /* perfil por linha: onde começa e onde termina o jogador em cada altura.
@@ -5452,19 +5459,28 @@ function modalFotosIA(item){
          automaticamente quando sai errada (cabeça solta/ausente). Até 2
          tentativas extras — passou disso, marca para revisão em vez de
          queimar tokens em silêncio. */
-      let tentativas = 0, aprovada = null, ultimoMotivo = '', medidas = null;
+      let tentativas = 0, aprovada = null, ultimoMotivo = '', medidas = null, ultimaImagem = null;
       while(tentativas < 3 && !aprovada){
         tentativas++;
         try{
           const cand = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
             caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-foto');
+          ultimaImagem = cand;
           const v = await validarMontagem(cand);
           if(v.ok){ aprovada = cand; medidas = v.medidas || null; }
           else { ultimoMotivo = v.motivo; console.warn('montagem reprovada ('+p.n+'):', v.motivo, '— refazendo'); }
         }catch(err){ ultimoMotivo = err.message; console.warn('montagem falhou:', err.message); break; }
       }
-      if(aprovada){ at.montagem = aprovada; at.tentativas = tentativas; at.medidas = medidas; }
-      else { at.revisar = ultimoMotivo || 'montagem não aprovada'; }
+      at.tentativas = tentativas;
+      if(aprovada){ at.montagem = aprovada; at.medidas = medidas; }
+      else if(ultimaImagem){
+        /* reprovou nas 3, mas a imagem está paga: fica a última e a linha do
+           jogador nasce marcada — melhor uma foto para você decidir do que
+           três gerações jogadas fora */
+        at.montagem = ultimaImagem;
+        at.revisar = ultimoMotivo || 'montagem fora do gabarito';
+      }
+      else at.revisar = ultimoMotivo || 'montagem não gerada';
     }
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
