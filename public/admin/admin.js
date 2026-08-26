@@ -4570,18 +4570,32 @@ function caminhoClube(item){
           chaveNome(item.c.short||item.c.name)||String(item.c.id).toLowerCase()].join('/');
 }
 
+/* recusa por excesso de chamadas — não custa token, mas perde o jogador se
+   a gente desistir na hora. Como dá para rodar vários clubes em abas ao mesmo
+   tempo, vale esperar e tentar de novo em vez de marcar como falha. */
+const ehLimiteDeChamadas = m => /rate.?limit|429|too many requests|slow down/i.test(String(m||''));
+
 async function gerarImagemIA(tipo, prompt, qualidade, imagens, nome, rotulo){
   const carga = iaComeca(rotulo || IA_ROTULOS[tipo] || 'Gerando imagem…');
   try{
-    const { data, error } = await sb.functions.invoke('generate-image',
-      { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens, nome } });
-    if(error){
-      let msg = error.message || 'Falha ao gerar a imagem.';
-      try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
-      throw new Error(msg);
+    for(let tent = 1; ; tent++){
+      const { data, error } = await sb.functions.invoke('generate-image',
+        { body:{ tipo, prompt, qualidade: qualidade||'medium', imagens, nome } });
+      if(error){
+        let msg = error.message || 'Falha ao gerar a imagem.';
+        try{ const j = await error.context.json(); if(j && j.error) msg = j.error; }catch(_e){}
+        if(ehLimiteDeChamadas(msg) && tent < 5){
+          const espera = 4000 * tent;   /* 4s, 8s, 12s, 16s */
+          carga.rotulo = `Fila cheia na OpenAI — tento de novo em ${espera/1000}s…`;
+          iaDesenha();
+          await new Promise(r=>setTimeout(r, espera));
+          continue;
+        }
+        throw new Error(msg);
+      }
+      if(!data || !data.url) throw new Error((data && data.error) || 'A função não devolveu imagem.');
+      return data.url;
     }
-    if(!data || !data.url) throw new Error((data && data.error) || 'A função não devolveu imagem.');
-    return data.url;
   } finally { iaTermina(carga); }
 }
 
