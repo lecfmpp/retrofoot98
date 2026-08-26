@@ -5334,10 +5334,15 @@ function modalFotosIA(item){
     return (e && e.patch && e.patch.crest) || c.crest || null;
   };
   /* as camadas do clube num lugar só: URLs salvas no uniforme + posições */
-  const camadasClube = () => {
+  /* `f` opcional: a linha da foto do jogador. Se ela tiver ajuste próprio
+     (atributos.pos), ele ganha do padrão do clube — só nas camadas, as URLs
+     continuam sendo as do clube. */
+  const camadasClube = (f) => {
     const t0 = torso(), at0 = (t0 && t0.atributos) || {};
+    const ex = (f && f.atributos && f.atributos.pos) || {};
     return { patroUrl: at0.patroUrl || ST.patroTeste, escudoUrl: escudoClube(), fabUrl: at0.fabricanteUrl,
-             patro: at0.patro, escudo: at0.escudo, fabricante: at0.fabricante };
+             patro: ex.patro || at0.patro, escudo: ex.escudo || at0.escudo,
+             fabricante: ex.fabricante || at0.fabricante };
   };
 
   /* miniatura: rosto composto sobre a camisa do clube quando as duas camadas
@@ -5349,7 +5354,7 @@ function modalFotosIA(item){
        patrocinador continuam entrando como camadas por cima: a costura mantém a
        camisa idêntica à do uniforme, então as posições valem também aqui */
     if(f && f.atributos && f.atributos.montagem)
-      return compostoHTML(f.atributos.montagem, null, px, 8, camadasClube(), true);
+      return compostoHTML(f.atributos.montagem, null, px, 8, camadasClube(f), true);
     if(f && f.atributos && f.atributos.recorte==='rosto')
       return t ? compostoHTML(t.url, f.url, px, 8, camadasClube())
                : `<span style="display:inline-block;width:${px}px;height:${px}px;border-radius:8px;background:#d9d9d9;overflow:hidden"><img src="${h(f.url)}" style="width:100%;height:100%;object-fit:contain"></span>`;
@@ -5482,7 +5487,7 @@ function modalFotosIA(item){
     if(ev.target.closest('[data-escudo]')){
       const f = D.fotos[c.id+'|'+p.n];
       if(f && f.atributos && f.atributos.montagem)
-        modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true);
+        modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true, p.n);
       return;
     }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
@@ -5703,7 +5708,11 @@ function modalLoteEscudos(){
    substituiria). O logo é arrastável no palco e o tamanho vem do controle
    deslizante; salvar grava {x, y, w} em atributos.patro do uniforme — é essa
    posição que todas as montagens (e depois o jogo) usam para este clube. */
-function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
+/* Ajuste de camadas. Sem `jogador`, mexe no padrão do CLUBE (vale para todo o
+   elenco). Com `jogador`, o ajuste vira EXCEÇÃO daquela foto: a montagem por IA
+   nunca sai com o enquadramento no mesmo pixel, então cada camisa pode pedir
+   um encaixe seu. A exceção não apaga o padrão do clube — só ganha dele. */
+function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
   const c = item.c;
   const t = D.fotos[c.id+'|'+TORSO_KEY];
   /* sem uniforme salvo, as posições vivem PENDENTES no wizard (D.wiz.posPend)
@@ -5725,7 +5734,10 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
   }
   const e = D.edits[c.id];
   const escudoUrl = (e && e.patch && e.patch.crest) || c.crest || null;
-  const at0 = t ? (t.atributos || {}) : (pend.posPend || {});
+  const fJog = jogador ? D.fotos[c.id+'|'+jogador] : null;
+  const atClube = t ? (t.atributos || {}) : (pend.posPend || {});
+  /* a foto do jogador começa de onde o clube parou e só se afasta se você mexer */
+  const at0 = fJog ? Object.assign({}, atClube, fJog.atributos && fJog.atributos.pos || {}) : atClube;
   const fabUrl = ST.fabTeste || at0.fabricanteUrl || null;
   /* as posições SALVAS são do quadro do uniforme; quando o fundo do editor é a
      FOTO do jogador, mostramos/arrastamos no quadro da foto e convertemos de
@@ -5759,7 +5771,11 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
         <input data-w="fabricante" type="range" min="4" max="30" step="0.5" value="${pos.fabricante.w}" style="width:130px">`:''}
       ${ST.patroTeste?`<span style="color:#35c46a">Logo</span>
         <input data-w="patro" type="range" min="8" max="60" step="0.5" value="${pos.patro.w}" style="width:150px">`:''}
-      <button class="btn btn-sm" id="aj-salvar">Salvar posições</button>
+      ${jogador ? `<button class="btn btn-sm" id="aj-salvar">Salvar só em ${h(jogador)}</button>
+                   <button class="btn btn-sm btn-ghost" id="aj-salvar-todos">Salvar para o elenco todo</button>
+                   ${fJog && fJog.atributos && fJog.atributos.pos
+                     ? `<button class="btn btn-sm btn-ghost" id="aj-padrao">Voltar ao padrão do clube</button>` : ''}`
+                : `<button class="btn btn-sm" id="aj-salvar">Salvar posições</button>`}
       <button class="btn btn-sm btn-ghost" id="aj-cancelar" style="color:#fff">Cancelar</button>
     </div>
     <small style="color:#fff8;text-align:center;max-width:${lado}px">
@@ -5789,9 +5805,39 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
   document.addEventListener('keydown', esc, true);
   ov.querySelector('#aj-cancelar').onclick = fechar;
 
-  ov.querySelector('#aj-salvar').onclick = async () => {
+  const medir = () => {
     const lim = o => { const v = doQuadroDaFoto(o); return { x:+v.x.toFixed(2), y:+v.y.toFixed(2), w:+v.w.toFixed(2) }; };
-    const novas = { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) };
+    return { patro: lim(pos.patro), escudo: lim(pos.escudo), fabricante: lim(pos.fabricante) };
+  };
+
+  /* exceção da foto: grava em atributos.pos da linha do jogador */
+  const btSoEle = ov.querySelector('#aj-salvar-todos') ? ov.querySelector('#aj-salvar') : null;
+  if(btSoEle) btSoEle.onclick = async () => {
+    if(!fJog) return toast('Gere a foto deste jogador primeiro.', true);
+    const at = Object.assign({}, fJog.atributos, { pos: medir() });
+    const { error } = await jogo('player_photos').update({ atributos: at })
+      .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', jogador);
+    if(error) return toast(erroMsg(error), true);
+    fJog.atributos = at;
+    registrar('estudio.camadas.pos.jogador', c.id+'|'+jogador, at.pos);
+    toast(`Posições ajustadas só na foto de ${jogador}.`);
+    fechar(); if(onSalvo) onSalvo();
+  };
+
+  const btPadrao = ov.querySelector('#aj-padrao');
+  if(btPadrao) btPadrao.onclick = async () => {
+    const at = Object.assign({}, fJog.atributos); delete at.pos;
+    const { error } = await jogo('player_photos').update({ atributos: at })
+      .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', jogador);
+    if(error) return toast(erroMsg(error), true);
+    fJog.atributos = at;
+    toast(`${jogador} volta a seguir o padrão do clube.`);
+    fechar(); if(onSalvo) onSalvo();
+  };
+
+  const btTodos2 = ov.querySelector('#aj-salvar-todos') || ov.querySelector('#aj-salvar');
+  btTodos2.onclick = async () => {
+    const novas = medir();
     if(!t){
       pend.posPend = novas;
       toast('Posições guardadas — serão salvas junto com o uniforme.');
@@ -5804,7 +5850,8 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto){
     if(error) return toast(erroMsg(error), true);
     t.atributos = at;
     registrar('estudio.camadas.pos', String(c.id), at);
-    toast('Posições salvas — valem para todo o elenco.');
+    toast('Posições salvas — valem para todo o elenco'
+      + (jogador ? ' (a exceção desta foto continua valendo; apague-a no botão do lado)' : '') + '.');
     fechar(); if(onSalvo) onSalvo();
   };
 }
