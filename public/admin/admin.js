@@ -4387,29 +4387,63 @@ async function validarMontagem(url){
     const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
     const d = cx.getImageData(0, 0, W, H).data;
     const cor = (x,y) => { const i=((y*W)+x)*4; return [d[i],d[i+1],d[i+2]]; };
-    const fundo = cor(3,3);
-    const perto = (c) => Math.abs(c[0]-fundo[0])+Math.abs(c[1]-fundo[1])+Math.abs(c[2]-fundo[2]) < 60;
-    /* faixa central: 9 colunas em volta do meio, para não depender de 1 pixel */
-    const xs = [];
-    for(let k=-4;k<=4;k++) xs.push(Math.round(W/2 + k*W*0.01));
-    const conteudo = [];
-    for(let y=0; y<H; y+=Math.max(1,Math.round(H/300))){
-      let n=0; xs.forEach(x=>{ if(!perto(cor(x,y))) n++; });
-      conteudo.push({ y, cheio: n >= 5 });
+    /* o fundo é o cinza de estúdio: pego a mediana dos quatro cantos */
+    const cantos = [cor(3,3), cor(W-4,3), cor(3,H-4), cor(W-4,H-4)];
+    const fundo = [0,1,2].map(k => cantos.map(c=>c[k]).sort((a,b)=>a-b)[1]);
+    const eFundo = c => Math.abs(c[0]-fundo[0])+Math.abs(c[1]-fundo[1])+Math.abs(c[2]-fundo[2]) < 60;
+
+    /* perfil por linha: onde começa e onde termina o jogador em cada altura.
+       Ignoro sujeirinha solta exigindo uma corrida mínima de pixels opacos. */
+    const passo = Math.max(1, Math.round(H/400));
+    const MIN = Math.max(3, Math.round(W*0.02));
+    const perfil = [];
+    for(let y=0; y<H; y+=passo){
+      let ini=-1, fim=-1, corrida=0;
+      for(let x=0; x<W; x++){
+        if(!eFundo(cor(x,y))){
+          corrida++;
+          if(corrida>=MIN){ if(ini<0) ini = x-corrida+1; fim = x; }
+        } else corrida = 0;
+      }
+      perfil.push({ y, ini, fim, larg: ini<0 ? 0 : (fim-ini+1) });
     }
-    const prim = conteudo.find(r=>r.cheio);
-    if(!prim) return { ok:false, motivo:'imagem vazia' };
-    const topo = prim.y / H;
-    if(topo > 0.42) return { ok:false, motivo:'sem cabeça (conteúdo começa em '+Math.round(topo*100)+'%)' };
-    /* buraco de fundo entre a cabeça e a camisa = cabeça descolada */
-    let vazioSeguido = 0, maiorVazio = 0;
-    conteudo.filter(r=>r.y>prim.y && r.y < H*0.75).forEach(r=>{
-      if(!r.cheio){ vazioSeguido++; maiorVazio = Math.max(maiorVazio, vazioSeguido); }
-      else vazioSeguido = 0;
+    const cheias = perfil.filter(r=>r.larg>0);
+    if(!cheias.length) return { ok:false, motivo:'imagem vazia' };
+
+    const f = v => v/H, fw = v => v/W;
+
+    /* 1. onde começa a cabeça */
+    const topo = f(cheias[0].y);
+    const tolT = 0.05;
+    if(Math.abs(topo-ENQ.topoCabeca) > tolT)
+      return { ok:false, motivo:`topo da cabeça em ${pc(topo)} (gabarito ${pc(ENQ.topoCabeca)})` };
+
+    /* 2. tamanho da cabeça — maior largura dentro da faixa da cabeça */
+    const faixaCab = perfil.filter(r => r.y > cheias[0].y && f(r.y) < ENQ.topoCabeca+ENQ.altCabeca);
+    const largCab = fw(Math.max(0, ...faixaCab.map(r=>r.larg)));
+    if(Math.abs(largCab-ENQ.largCabeca) > 0.08)
+      return { ok:false, motivo:`cabeça com ${pc(largCab)} de largura (gabarito ${pc(ENQ.largCabeca)})` };
+
+    /* 3. pescoço colado na camisa: nenhum vão de fundo entre a cabeça e a gola */
+    let vazio=0, maiorVazio=0;
+    perfil.filter(r => r.y>cheias[0].y && f(r.y) < 0.75).forEach(r=>{
+      if(r.larg===0){ vazio++; maiorVazio=Math.max(maiorVazio,vazio); } else vazio=0;
     });
-    const alturaVazio = maiorVazio * Math.max(1,Math.round(H/300)) / H;
-    if(alturaVazio > 0.04) return { ok:false, motivo:'cabeça descolada (vão de '+Math.round(alturaVazio*100)+'%)' };
-    return { ok:true };
+    if(f(maiorVazio*passo) > 0.03)
+      return { ok:false, motivo:`cabeça descolada (vão de ${pc(f(maiorVazio*passo))})` };
+
+    /* 4. ombros: largura na linha do peito, onde o escudo vai morar */
+    const noPeito = perfil.find(r => f(r.y) >= ENQ.linhaPeito) || perfil[perfil.length-1];
+    const largOmb = fw(noPeito.larg);
+    if(Math.abs(largOmb-ENQ.largOmbros) > 0.12)
+      return { ok:false, motivo:`ombros com ${pc(largOmb)} (gabarito ${pc(ENQ.largOmbros)})` };
+
+    /* 5. braço encostando na borda — o recorte apertou e o escudo sai de lugar */
+    const encosta = perfil.some(r => r.larg>0 && f(r.y) > ENQ.linhaGola &&
+      (fw(r.ini) < ENQ.folgaBraco*0.4 || fw(W-1-r.fim) < ENQ.folgaBraco*0.4));
+    if(encosta) return { ok:false, motivo:'braço encostando na borda (recorte apertado)' };
+
+    return { ok:true, medidas:{ topo:pc(topo), cabeca:pc(largCab), ombros:pc(largOmb) } };
   }catch(e){ return { ok:true, motivo:'não deu para validar ('+e.message+')' }; }
 }
 
@@ -4643,6 +4677,40 @@ function resumoAtributos(at){
    · TORSO (a camisa do clube, sem cabeça) — UM por clube, a base única.
    A imagem final é a sobreposição rosto-sobre-torso. É o que faz a troca de
    clube ser automática: muda a base, o rosto é o mesmo — sem gerar nada. */
+/* ===== GABARITO DE ENQUADRAMENTO =====
+   Todo jogador é fotografado no MESMO quadro: mesma altura de cabeça, mesma
+   linha de peito, mesmo pescoço, mesma folga dos braços até a borda. É isso que
+   faz o escudo cair sempre no mesmo ponto da camisa — a posição do escudo é
+   guardada em porcentagem do quadro, então quadro igual = escudo igual.
+   Frações do quadro retrato 2:3 (H = 1,5 × L). Estes números alimentam os
+   prompts e a conferência por pixel; mexer aqui muda os dois juntos. */
+const ENQ = {
+  topoCabeca: 0.06,   // topo da cabeça a 6% da borda de cima
+  altCabeca:  0.26,   // coroa→queixo = 26% da altura  (queixo em 32%)
+  linhaGola:  0.40,   // base do pescoço / gola em 40%  (pescoço = 8%)
+  linhaPeito: 0.62,   // linha do peito (onde o escudo mora) em 62%
+  largCabeca: 0.27,   // largura da cabeça = 27% da largura
+  largOmbros: 0.66,   // ombro a ombro = 66% da largura
+  folgaBraco: 0.08    // braço nunca encosta: 8% de fundo de cada lado
+};
+const pc = f => Math.round(f*100)+'%';
+
+/* a mesma especificação escrita para o modelo — sai igual no torso e na montagem */
+function textoEnquadramento(){
+  return [
+    `FIXED FRAMING SPEC — this exact geometry is mandatory and identical for every player,`,
+    `because a club crest is overlaid later at fixed coordinates:`,
+    `PORTRAIT 2:3 frame.`,
+    `Top of the head at exactly ${pc(ENQ.topoCabeca)} from the top edge.`,
+    `Head from crown to chin exactly ${pc(ENQ.altCabeca)} of the frame height and ${pc(ENQ.largCabeca)} of the frame width — same head size for every player, never larger, never smaller.`,
+    `Base of the neck / jersey collar line at exactly ${pc(ENQ.linhaGola)} from the top — the neck is always the same length.`,
+    `Chest line at ${pc(ENQ.linhaPeito)} from the top.`,
+    `Shoulder-to-shoulder width exactly ${pc(ENQ.largOmbros)} of the frame width, centered horizontally.`,
+    `The arms NEVER touch the left or right edge: keep at least ${pc(ENQ.folgaBraco)} of empty studio background on each side, all the way down.`,
+    `Identical crop and zoom for every player — treat every player as having the same torso height and the same neck length. Do not zoom in or out to fit a taller or shorter player.`
+  ].join(' ');
+}
+
 function promptRosto(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
   const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
@@ -4673,7 +4741,8 @@ function promptTorso(item, estiloChave, corA, corB){
     `Wearing ${camisa}.`,
     'The jersey is COMPLETELY CLEAN: no club crest, no badge, no sponsor, no text, no logos anywhere — plain fabric only, because the club crest and the sponsor logo will be overlaid later as separate layers.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
-    'FRAMING IS FIXED (this exact layout is required): PORTRAIT 2:3 frame; the jersey occupies ONLY the lower 60% of the frame — the collar sits at 40% from the top, neckline centered horizontally — and the upper 40% of the frame is NOTHING but plain light gray studio background, left empty where the head would be in an official chest-up portrait.',
+    textoEnquadramento(),
+    `The upper ${pc(ENQ.linhaGola)} of the frame is NOTHING but plain light gray studio background, left completely empty where the head will be added later — the jersey starts at the collar line and fills the frame below it.`,
     'Soft professional studio lighting, sharp focus, DSLR photo quality.'
   ].join(' ');
 }
@@ -4688,6 +4757,7 @@ function promptMontagem(){
     'correct head size and position for the body, seamless neck-to-collar transition, unified soft studio lighting and color grading.',
     'CRITICAL: do NOT move, scale, crop or reframe the jersey — it must stay in EXACTLY the same position and size as in the first image, pixel-aligned, same pattern and colors, completely clean (no crest, sponsor, text or logos added).',
     'The head goes into the empty background space ABOVE the collar, where the first image is blank — the final framing is identical to the first image, just with the head filled in.',
+    textoEnquadramento(),
     'Plain light gray studio background, facing the camera, sharp focus, DSLR quality.'
   ].join(' ');
 }
@@ -5378,18 +5448,18 @@ function modalFotosIA(item){
          automaticamente quando sai errada (cabeça solta/ausente). Até 2
          tentativas extras — passou disso, marca para revisão em vez de
          queimar tokens em silêncio. */
-      let tentativas = 0, aprovada = null, ultimoMotivo = '';
+      let tentativas = 0, aprovada = null, ultimoMotivo = '', medidas = null;
       while(tentativas < 3 && !aprovada){
         tentativas++;
         try{
           const cand = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
             caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-foto');
           const v = await validarMontagem(cand);
-          if(v.ok){ aprovada = cand; }
+          if(v.ok){ aprovada = cand; medidas = v.medidas || null; }
           else { ultimoMotivo = v.motivo; console.warn('montagem reprovada ('+p.n+'):', v.motivo, '— refazendo'); }
         }catch(err){ ultimoMotivo = err.message; console.warn('montagem falhou:', err.message); break; }
       }
-      if(aprovada){ at.montagem = aprovada; at.tentativas = tentativas; }
+      if(aprovada){ at.montagem = aprovada; at.tentativas = tentativas; at.medidas = medidas; }
       else { at.revisar = ultimoMotivo || 'montagem não aprovada'; }
     }
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
