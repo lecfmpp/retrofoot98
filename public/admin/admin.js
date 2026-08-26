@@ -5771,7 +5771,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
         <input data-w="fabricante" type="range" min="4" max="30" step="0.5" value="${pos.fabricante.w}" style="width:130px">`:''}
       ${ST.patroTeste?`<span style="color:#35c46a">Logo</span>
         <input data-w="patro" type="range" min="8" max="60" step="0.5" value="${pos.patro.w}" style="width:150px">`:''}
-      ${jogador ? `<button class="btn btn-sm" id="aj-salvar">Salvar só em ${h(jogador)}</button>
+      ${jogador ? `<button class="btn btn-sm" id="aj-salvar" title="${h(jogador)}">Salvar nesta camisa apenas</button>
                    <button class="btn btn-sm btn-ghost" id="aj-salvar-todos">Salvar para o elenco todo</button>
                    ${fJog && fJog.atributos && fJog.atributos.pos
                      ? `<button class="btn btn-sm btn-ghost" id="aj-padrao">Voltar ao padrão do clube</button>` : ''}`
@@ -5820,7 +5820,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
     if(error) return toast(erroMsg(error), true);
     fJog.atributos = at;
     registrar('estudio.camadas.pos.jogador', c.id+'|'+jogador, at.pos);
-    toast(`Posições ajustadas só na foto de ${jogador}.`);
+    toast(`Posições salvas nesta camisa apenas (${jogador}).`);
     fechar(); if(onSalvo) onSalvo();
   };
 
