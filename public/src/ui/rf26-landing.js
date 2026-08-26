@@ -126,6 +126,11 @@ function rfLpNavHTML(extra){
    nao teria nada a perguntar (ver rfOb1Logado, que e a porta de quem chega
    pelo "Entrar" da landing sem sessao aberta na cabeca). */
 function rfIrParaModo(){ CL.screen='modo'; cdraw(); }
+/* onclick de qualquer CTA que leva ao jogo: na fase de lista de espera ele
+   vira um atalho para a lista, para o botão não prometer o que não cumpre. */
+function rfLpEntrarOn(chamada){
+  return rfSoLista() ? "rfLpIr('lista')" : chamada;
+}
 function rfLpIr(k){
   const el=document.getElementById('rf-lp-'+k);
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -275,7 +280,7 @@ function rfLandingHTML(){
         <p class="rf-lp-p">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com até 20 treinadores na mesma liga.</p>
         <div class="rf-lp-ctas">
           <button type="button" class="rf-wiz-cta" onclick="rfLpIr('lista')">👑 Entrar na lista de espera</button>
-          <button type="button" class="rf-wiz-b2" onclick="clGoModo('solo')">⚽ Jogar agora</button>
+          <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar agora</button>
         </div>
         <span class="rf-lp-nota">Primeira versão liberada para apenas <b>500 treinadores</b>.</span>
       </div>
@@ -289,7 +294,7 @@ function rfLandingHTML(){
       ${rfLpSecaoHTML({eyebrow:'Jogue do seu jeito', titulo:'Da Série D ao topo, no seu ritmo.',
         prosa:'Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
         itens:['Séries A, B, C e D com elencos reais','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
-        cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:"clGoModo('solo')"})}
+        cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpMaqueteTabelaHTML()}
     </section>
 
@@ -298,14 +303,14 @@ function rfLandingHTML(){
       ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma semana.',
         prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma semana ao vivo, com tabela, mercado e a zoeira rolando junto.',
         itens:['Até 20 treinadores na mesma liga','Semana ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
-        cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:"clGoModo('resenha')"})}
+        cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:rfLpEntrarOn("clGoModo('resenha')")})}
     </section>
 
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
         prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria e sócios'],
-        cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:"clGoModo('solo')"})}
+        cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpMaqueteLeilaoHTML()}
     </section>
 

@@ -1843,6 +1843,15 @@ function clNoop(){}
    sessão salva, vai direto pra escolha de modo; senão mostra a tela de login. */
 function clGoModo(mode){
   CL.navMenuOpen=false;
+  /* FASE DE LISTA DE ESPERA: enquanto o jogo não abriu ao público, nenhuma
+     porta leva ao login — todas levam à lista. A trava mora AQUI, na única
+     entrada, e não em cada botão: proteger botão por botão foi justamente o
+     que deixou quatro CTAs passarem batido. Quem tem a chave de teste
+     (?acesso=…) faz rfSoLista() virar false e entra normalmente. */
+  if(typeof rfSoLista==='function' && rfSoLista()){
+    if(typeof rfLpIr==='function') rfLpIr('lista');
+    return;
+  }
   toastC('Conectando...');
   (async ()=>{
     await netInitSupabase();
