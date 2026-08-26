@@ -4369,6 +4369,50 @@ function modalConteudo(c){
    abrirModal de propósito: ele substituiria o modal de fotos/escudo em curso.
    Esc fecha só o lightbox (captura + stopImmediatePropagation, senão o Esc
    também derrubaria o modal de trás). */
+/* ===== CONTROLE DE QUALIDADE DA MONTAGEM (sem custo) =====
+   O defeito recorrente é a cabeça sair solta ou nem aparecer. Isso dá para
+   VER por pixel: no quadro canônico a coluna central tem que ir do topo da
+   cabeça até a camisa SEM uma faixa de fundo no meio, e a cabeça precisa
+   começar na metade de cima. Assim o lote refaz sozinho o que saiu torto,
+   em vez de você conferir foto a foto. */
+async function validarMontagem(url){
+  try{
+    const img = await new Promise((ok, erro) => {
+      const i = new Image(); i.crossOrigin = 'anonymous';
+      i.onload = () => ok(i); i.onerror = () => erro(new Error('cors'));
+      i.src = url + (url.includes('?') ? '&' : '?') + 'v=1';
+    });
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0);
+    const d = cx.getImageData(0, 0, W, H).data;
+    const cor = (x,y) => { const i=((y*W)+x)*4; return [d[i],d[i+1],d[i+2]]; };
+    const fundo = cor(3,3);
+    const perto = (c) => Math.abs(c[0]-fundo[0])+Math.abs(c[1]-fundo[1])+Math.abs(c[2]-fundo[2]) < 60;
+    /* faixa central: 9 colunas em volta do meio, para não depender de 1 pixel */
+    const xs = [];
+    for(let k=-4;k<=4;k++) xs.push(Math.round(W/2 + k*W*0.01));
+    const conteudo = [];
+    for(let y=0; y<H; y+=Math.max(1,Math.round(H/300))){
+      let n=0; xs.forEach(x=>{ if(!perto(cor(x,y))) n++; });
+      conteudo.push({ y, cheio: n >= 5 });
+    }
+    const prim = conteudo.find(r=>r.cheio);
+    if(!prim) return { ok:false, motivo:'imagem vazia' };
+    const topo = prim.y / H;
+    if(topo > 0.42) return { ok:false, motivo:'sem cabeça (conteúdo começa em '+Math.round(topo*100)+'%)' };
+    /* buraco de fundo entre a cabeça e a camisa = cabeça descolada */
+    let vazioSeguido = 0, maiorVazio = 0;
+    conteudo.filter(r=>r.y>prim.y && r.y < H*0.75).forEach(r=>{
+      if(!r.cheio){ vazioSeguido++; maiorVazio = Math.max(maiorVazio, vazioSeguido); }
+      else vazioSeguido = 0;
+    });
+    const alturaVazio = maiorVazio * Math.max(1,Math.round(H/300)) / H;
+    if(alturaVazio > 0.04) return { ok:false, motivo:'cabeça descolada (vão de '+Math.round(alturaVazio*100)+'%)' };
+    return { ok:true };
+  }catch(e){ return { ok:true, motivo:'não deu para validar ('+e.message+')' }; }
+}
+
 /* CONFIRMAÇÃO COM A CARA DO PAINEL (substitui o confirm() nativo, que parece
    erro do navegador e não explica o que vai acontecer). Devolve Promise<bool>;
    abre POR CIMA do modal em curso, sem substituí-lo. */
@@ -5239,6 +5283,7 @@ function modalFotosIA(item){
       <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.n)}</b>
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
       <span style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+        ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-erro" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         <button class="btn btn-sm btn-ghost" data-escudo title="Arrastar e soltar escudo/logos no uniforme desta foto" ${f&&f.atributos&&f.atributos.montagem?'':'disabled'}>Posicionar</button>
         <button class="btn btn-sm btn-ghost" data-ver title="Ver em tela expandida" ${f?'':'disabled'}>Ver</button>
         ${editar?`<button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
@@ -5315,9 +5360,23 @@ function modalFotosIA(item){
        permite refazer a montagem barata quando o jogador trocar de clube. */
     const t = torso();
     if(t){
-      try{ at.montagem = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
-        caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-foto'); }
-      catch(err){ console.warn('montagem falhou, fica a prévia por camadas:', err.message); }
+      /* COSTURA COM CONFERÊNCIA: a montagem é validada por pixel e refeita
+         automaticamente quando sai errada (cabeça solta/ausente). Até 2
+         tentativas extras — passou disso, marca para revisão em vez de
+         queimar tokens em silêncio. */
+      let tentativas = 0, aprovada = null, ultimoMotivo = '';
+      while(tentativas < 3 && !aprovada){
+        tentativas++;
+        try{
+          const cand = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
+            caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-foto');
+          const v = await validarMontagem(cand);
+          if(v.ok){ aprovada = cand; }
+          else { ultimoMotivo = v.motivo; console.warn('montagem reprovada ('+p.n+'):', v.motivo, '— refazendo'); }
+        }catch(err){ ultimoMotivo = err.message; console.warn('montagem falhou:', err.message); break; }
+      }
+      if(aprovada){ at.montagem = aprovada; at.tentativas = tentativas; }
+      else { at.revisar = ultimoMotivo || 'montagem não aprovada'; }
     }
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
@@ -5356,18 +5415,30 @@ function modalFotosIA(item){
     const custo = (fila.length*(torso()?0.08:0.04)).toFixed(2);
     if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
       texto:`Vou gerar <b>${fila.length} foto(s)</b> de jogador — rosto sorteado e costura com o uniforme do clube.`,
-      detalhe:`Custo estimado: <b>~US$ ${custo}</b>. Sai uma por vez, dá para acompanhar o progresso.`,
+      detalhe:`Cada montagem é <b>conferida por pixel</b> (cabeça presa à camisa) e <b>refeita sozinha</b>
+               se sair torta — até 2 tentativas extras. Sai uma por vez, com respiro entre elas.
+               Custo estimado: <b>~US$ ${custo}</b> (sobe um pouco nas que precisarem refazer).
+               No fim eu listo o que ficou marcado para revisão.`,
       nao:'Agora não', sim:`Gerar ${fila.length} fotos` })) return;
     btTodos.disabled = true;
-    let ok = 0, erroN = 0;
+    let ok = 0, erroN = 0; const revisar = [];
     for(const p of fila){
       el('ft-progresso').textContent = `Gerando ${ok+erroN+1}/${fila.length} — ${p.n}…`;
       const linha = el('ft-lista').querySelector(`[data-foto-jog="${CSS.escape(p.n)}"]`);
-      try{ await gerarPara(p, linha); ok++; }
+      try{
+        await gerarPara(p, linha); ok++;
+        const f = D.fotos[c.id+'|'+p.n];
+        if(f && f.atributos && f.atributos.revisar) revisar.push(p.n);
+      }
       catch(err){ erroN++; console.warn('foto falhou:', p.n, err.message); }
+      /* respiro entre jogadores: um lote grande sem pausa esbarra no limite de
+         chamadas da OpenAI, e chamada recusada custa tempo do mesmo jeito */
+      await new Promise(r=>setTimeout(r, 1200));
     }
-    registrar('estudio.foto.lote', String(c.id), { pacote: ST.packId, geradas: ok, falhas: erroN });
-    el('ft-progresso').textContent = `Pronto: ${ok} geradas${erroN?`, ${erroN} falharam`:''}.`;
+    registrar('estudio.foto.lote', String(c.id), { pacote: ST.packId, geradas: ok, falhas: erroN, revisar: revisar.length });
+    el('ft-progresso').textContent = `Pronto: ${ok} geradas${erroN?`, ${erroN} falharam`:''}`
+      + (revisar.length ? ` · ${revisar.length} para revisar` : ' · todas aprovadas') + '.';
+    if(revisar.length) toast(`${revisar.length} foto(s) pedem revisão: ${revisar.slice(0,3).join(', ')}${revisar.length>3?'…':''}`, true);
     btTodos.disabled = false; btTodos.textContent = `Gerar os que faltam (${faltantes().length})`;
   };
 }
