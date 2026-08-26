@@ -190,8 +190,13 @@ function rfWizHead(sobre, titulo, sub){
   </div>`;
 }
 /* campo de formulário: rótulo em cima, controle de 44px embaixo */
-function rfCampo(rotulo, input){
-  return `<label class="rf-campo"><span class="rf-campo-l">${escC(rotulo)}</span>${input}</label>`;
+function rfCampo(rotulo, input, extra){
+  /* `extra` é o encaixe à direita do rótulo — hoje só o "Esqueci minha senha",
+     que precisa ficar colado no campo de senha, e não solto no rodapé. */
+  const l = extra
+    ? `<span class="rf-campo-hd"><span class="rf-campo-l">${escC(rotulo)}</span>${extra}</span>`
+    : `<span class="rf-campo-l">${escC(rotulo)}</span>`;
+  return `<label class="rf-campo">${l}${input}</label>`;
 }
 function rfInput(id, ph, valor, tipo, oninput){
   return `<input class="rf-campo-c" id="${id}" type="${tipo||'text'}" placeholder="${escC(ph||'')}"
@@ -221,7 +226,8 @@ function rfOb1(){
         </div>
         ${criando?rfCampo('Nome do treinador', rfInput('rf-ob-n','Gringo',a.name,'text',"rfObSet('name',this.value)")):''}
         ${rfCampo('E-mail', rfInput('rf-ob-e','voce@email.com',a.email,'email',"rfObSet('email',this.value)"))}
-        ${rfCampo('Senha', rfInput('rf-ob-s','mínimo 8 caracteres',a.password,'password',"rfObSet('password',this.value)"))}
+        ${rfCampo('Senha', rfInput('rf-ob-s','mínimo 8 caracteres',a.password,'password',"rfObSet('password',this.value)"),
+            criando ? '' : `<span class="rf-campo-link" onclick="event.preventDefault();clForgotPassword()">Esqueci minha senha</span>`)}
         ${criando?`<div class="rf-check" onclick="rfObSet('aviso',!(CL.auth.aviso))">
           <span class="rf-check-b ${a.aviso!==false?'on':''}">${a.aviso!==false?rfIcone('ok',14):''}</span>
           <span class="rf-check-t">Quero receber aviso quando abrir vaga nas Ligas Oficiais.</span>

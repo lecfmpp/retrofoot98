@@ -2005,6 +2005,10 @@
 /* ----- campo de formulário ----- */
 .rf-campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .rf-campo-l{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-3);white-space:nowrap}
+.rf-campo-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-campo-link{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--club-primary);
+  cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.rf-campo-link:hover{opacity:.8}
 .rf-campo-c{height:44px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
   background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body);
   color:var(--text-1);box-sizing:border-box;width:100%}
