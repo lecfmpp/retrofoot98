@@ -278,11 +278,14 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
      Puramente numérico: nenhuma tela lê p.attr hoje (ver ATTR_LABEL/ATTR_GROUP, index.html) —
      é o dado pronto pra quando decidirmos mostrar isso ao usuário. */
   function forceToLevel(f){ return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6))); }
-  function attrFactor(p,keys,lo,hi){
+  function attrFactor(p,keys,lo,hi,vies){
     const a=p&&p.attr; if(!a) return 1;
     let sv=0,n=0; for(const k of keys){ if(a[k]!=null){ sv+=a[k]; n++; } }
     if(!n) return 1;
-    const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f);
+    /* `vies` desconta a elevação que o perfil da posição já dá ao atributo em
+       genAttrs — sem ele o fator nasceria ~1,04 para todo mundo (inflação, não
+       diferenciação). Ver comentário longo em index.html. */
+    const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f)+(vies||0);
     return clamp(1+(rel-base)/22, lo, hi);
   }
   function isAvail(p){ return !(p.suspended>0) && !(p.injuredMatches>0); }
@@ -296,13 +299,21 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       used = xiAvail.length ? xiAvail : best11(avail); }
     else { used = best11(avail); }
     const bySec=function(s){return used.filter(function(p){return p.s===s;});};
-    const avg=function(a){return a.length?a.reduce(function(s,p){return s+engForce(p.f)*(0.6+0.4*p.energy/100);},0)/a.length:28;};
+    /* ATRIBUTOS DE LINHA NA NOTA DO SETOR (26/08) — mesmo padrão que o goleiro já usava:
+       drible puxa o ataque, passe+visão o meio, desarme+posicionamento a defesa. Faixa
+       0,90–1,10 (mais estreita que fin 0,82–1,28 e goleiro 0,85–1,15) porque aqui o fator
+       incide sobre a média do SETOR INTEIRO, não sobre um jogador. O 4º argumento desconta
+       o viés do perfil — sem ele isto seria inflação geral, não diferenciação. */
+    const avg=function(a,fx){return a.length?a.reduce(function(s,p){return s+engForce(p.f)*(0.6+0.4*p.energy/100)*(fx?fx(p):1);},0)/a.length:28;};
+    const fxATT=function(p){return attrFactor(p,['dri'],0.90,1.10,0.92);};
+    const fxMID=function(p){return attrFactor(p,['pas','vis'],0.96,1.04,0.94);};
+    const fxDEF=function(p){return attrFactor(p,['des','pos'],0.90,1.10,0.86);};
     /* goleiro comprime com a curva LEVE (engForceGK), como o ratings() do cliente: só há um em
        campo, então o motivo da compressão (empilhar craques) não se aplica — sem isto o goleiro
        craque valia menos nas partidas resolvidas aqui do que nas ao vivo (divergência achada na
        validação de 21/08). */
     const avgGK=function(a){return a.length?a.reduce(function(s,p){return s+engForceGK(p.f)*(0.6+0.4*p.energy/100)*attrFactor(p,['ref','mao'],0.85,1.15);},0)/a.length:28;};
-    let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+    let OS=avg(bySec('ATT'),fxATT), MS=avg(bySec('MID'),fxMID), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'),fxDEF)*0.65);
     const mor= used.length ? used.reduce(function(s,p){return s+(p.moral!=null?p.moral:70);},0)/used.length : 70;
     if(mor<50){ OS*=0.85; MS*=0.85; DS*=0.85; }
     return {OS:OS,MS:MS,DS:DS,mor:mor};

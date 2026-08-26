@@ -410,9 +410,19 @@ function sessionRatingsFromPlayers(players){
   const eF=(typeof REBAL!=='undefined'&&REBAL.engForce)?REBAL.engForce:(f=>f);
   const eFG=(typeof REBAL!=='undefined'&&REBAL.engForceGK)?REBAL.engForceGK:eF;
   const bySec=s=>players.filter(p=>p.s===s);
-  const avg=a=>a.length?a.reduce((s,p)=>s+eF(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100),0)/a.length:28;
+/* ATRIBUTOS DE LINHA NA NOTA DO SETOR (26/08) — mesmo padrão que o goleiro já usava:
+   drible puxa o ataque, passe+visão o meio, desarme+posicionamento a defesa. Faixas
+   estreitas (ataque/defesa 0,90–1,10; meio 0,96–1,04) porque o fator incide sobre a média
+   do SETOR INTEIRO, não sobre um jogador — e o meio é mais estreito ainda porque MS pesa
+   nas DUAS pontas do matchMu (domina a posse E protege a defesa): medido, ±4% no meio
+   rende o mesmo ~12% que ±10% no ataque. O 4º argumento desconta
+   o viés do perfil — sem ele isto seria inflação geral, não diferenciação. */
+  const avg=(a,fx)=>a.length?a.reduce((s,p)=>s+eF(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100)*(fx?fx(p):1),0)/a.length:28;
+  const fxATT=p=>attrFactor(p,['dri'],0.90,1.10,0.92);
+  const fxMID=p=>attrFactor(p,['pas','vis'],0.96,1.04,0.94);
+  const fxDEF=p=>attrFactor(p,['des','pos'],0.90,1.10,0.86);
   const avgGK=a=>a.length?a.reduce((s,p)=>s+eFG(p.f)*(0.6+0.4*(p.energy!=null?p.energy:100)/100)*attrFactor(p,['ref','mao'],0.85,1.15),0)/a.length:28;
-  let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+  let OS=avg(bySec('ATT'),fxATT), MS=avg(bySec('MID'),fxMID), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'),fxDEF)*0.65);
   const mor=players.length?players.reduce((s,p)=>s+(p.moral!=null?p.moral:70),0)/players.length:70;
   if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
   return {OS,MS,DS,mor};
