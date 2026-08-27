@@ -99,27 +99,27 @@ function rfFimTemporadaHTML(sum){
     demitido:'Fim de ciclo no '+cl.short+'.'}[d];
 
   return rfStage({
-    w:1080, comp:S.division,
+    w:1240, comp:S.division,
     contexto:`${classifDivName(S.division)} ${S.season||''} · temporada encerrada`,
     titulo:'Fim da temporada',
     corpo:`<div class="rf-ft-cols">
-      <div class="rf-card rf-ft-esq">
-        <!-- O VIDEO E O DESFECHO DO CLUBE, nao ilustracao. Titulo/acesso puxam a taca, queda e
-             demissao puxam a crise; meio de tabela nao tem video proprio e fica com a
-             moldura. A caixa de especificacao ("1280x720, ate 12s") era anotacao de desenho e
-             saiu -- estava a ser mostrada ao jogador. -->
-        <div class="rf-ft-video">
-          ${video?`<video class="rf-ft-vid" src="${escC(video)}" autoplay muted loop playsinline
-             onerror="this.style.display='none'"></video><i class="rf-ft-vshade"></i>`:`
-            <span class="rf-ft-claquete">🎬</span>
-            <span class="rf-ft-vt">${escC(classifDivName(S.division))} ${escC(String(S.season||''))}</span>`}
+      <!-- FAIXA HORIZONTAL, NAO COLUNA. O video vivia num cartao estreito a esquerda, curto,
+           ao lado de uma pilha alta de cartoes: sobrava um vazio enorme embaixo dele. Agora
+           ele e a faixa do topo, com a manchete por cima — mesmo idioma do modal de titulo
+           (rf-cmp-arte) — e os cartoes correm em colunas por baixo.
+           O VIDEO E O DESFECHO DO CLUBE, nao ilustracao: titulo/acesso puxam a taca, queda e
+           demissao puxam a crise; meio de tabela nao tem video proprio e fica com a moldura. -->
+      <div class="rf-ft-hero ${video?'com-video':''}">
+        ${video?`<video class="rf-ft-vid" src="${escC(video)}" autoplay muted loop playsinline
+           onerror="this.style.display='none'"></video><i class="rf-ft-vshade"></i>`:''}
+        <div class="rf-ft-hero-txt">
           <span class="rf-ft-selo">${escC(info.selo)}</span>
-          ${rfTrofeuHTML('serie'+(S.division||'D'), 52)}
+          <span class="rf-ft-h">${escC(titulo)}</span>
+          <p class="rf-ft-p">${escC(rfFimTexto(d,pos,total))}</p>
+          <span class="rf-ft-objetivo ${d==='rebaixado'||d==='demitido'?'ruim':''}">${
+            d==='rebaixado'||d==='demitido'?'Objetivo não cumprido':'Objetivo cumprido'}</span>
         </div>
-        <span class="rf-ft-h">${escC(titulo)}</span>
-        <p class="rf-ft-p">${escC(rfFimTexto(d,pos,total))}</p>
-        <span class="rf-ft-objetivo ${d==='rebaixado'||d==='demitido'?'ruim':''}">${
-          d==='rebaixado'||d==='demitido'?'Objetivo não cumprido':'Objetivo cumprido'}</span>
+        <span class="rf-ft-hero-trofeu">${rfTrofeuHTML('serie'+(S.division||'D'), 64)}</span>
       </div>
       <div class="rf-ft-dir">
         <div class="rf-card">

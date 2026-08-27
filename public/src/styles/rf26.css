@@ -3765,10 +3765,38 @@
 .rf-trofeu-arte img{width:var(--s,104px);height:var(--s,104px);object-fit:contain;display:block}
 
 /* ---- fim de temporada ---- */
-.rf-ft-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start}
-.rf-ft-dir{display:flex;flex-direction:column;gap:14px;min-width:0}
-.rf-ft-esq{align-items:center;text-align:center;gap:14px;padding-bottom:8px}
-.rf-ft-esq>.rf-ft-video{width:100%}
+/* ===== FIM DE TEMPORADA: faixa em cima, colunas embaixo (26/08) =====
+   Era 2 colunas: um cartao curto com o video a esquerda e uma pilha alta de cartoes a
+   direita — o lado esquerdo acabava e sobrava um vazio da altura de meia tela. Agora a
+   faixa ocupa a largura toda e os cartoes correm em colunas, que e o que a tela pede:
+   sao blocos independentes, nao uma leitura de cima a baixo. */
+.rf-ft-cols{display:flex;flex-direction:column;gap:14px;
+  /* a regra antiga era grade com align-items:start; num flex de COLUNA esse start passa a ser
+     o eixo horizontal e encolhe faixa e cartoes a largura do conteudo. Precisa ser explicito. */
+  align-items:stretch}
+.rf-ft-dir{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
+  gap:14px;align-items:start;min-width:0}
+
+.rf-ft-hero{position:relative;overflow:hidden;border-radius:var(--r-card,14px);
+  background:var(--surface-sunken);border:1px solid var(--line-2);
+  min-height:190px;display:flex;align-items:flex-end;gap:16px;padding:20px 22px}
+.rf-ft-hero.com-video{border-color:transparent}
+.rf-ft-hero .rf-ft-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.rf-ft-hero .rf-ft-vshade{position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(8,16,12,.86) 0%,rgba(8,16,12,.72) 46%,rgba(8,16,12,.30) 100%)}
+.rf-ft-hero-txt{position:relative;z-index:1;display:flex;flex-direction:column;
+  align-items:flex-start;gap:8px;max-width:60ch;flex:1;min-width:0}
+.rf-ft-hero-trofeu{position:relative;z-index:1;flex:0 0 auto;opacity:.9;
+  display:flex;align-items:flex-end}
+/* sobre video o texto e claro; sem video, a moldura e clara e o texto volta ao normal */
+/* DUAS PILULAS AMARELAS COLADAS DIZIAM O MESMO. Na faixa, o selo do desfecho vira
+   sobrancelha discreta (e o nome do que aconteceu) e a unica pilula colorida fica sendo o
+   veredito — cumprido / nao cumprido. Hierarquia: sobrancelha, manchete, texto, veredito. */
+.rf-ft-hero .rf-ft-selo{background:none;padding:0;color:var(--text-4);
+  font-size:var(--fs-label);letter-spacing:.12em}
+.rf-ft-hero.com-video .rf-ft-selo{color:rgba(255,255,255,.72)}
+.rf-ft-hero.com-video .rf-ft-h{color:#fff}
+.rf-ft-hero.com-video .rf-ft-p{color:rgba(255,255,255,.86)}
 .rf-ft-video{position:relative;aspect-ratio:16/9;border-radius:var(--r-inner);
   background:var(--surface-sunken);border:1px dashed var(--line-2);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
@@ -3781,10 +3809,11 @@
 .rf-ft-vs{font-size:var(--fs-label);color:var(--text-faint)}
 .rf-ft-video .rf-trofeu-arte{position:absolute;right:12px;bottom:12px;opacity:.55}
 .rf-ft-pills{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
-.rf-ft-h{font-family:var(--font-serif);font-size:26px;font-weight:var(--fw-bold);color:var(--text-1);
-  line-height:1.2;text-align:center}
-.rf-ft-p{margin:0;font-size:var(--fs-body-sm);color:var(--text-4);line-height:1.55;text-align:center;max-width:340px;align-self:center}
-.rf-ft-objetivo{align-self:center;font-family:var(--font-mono);font-size:var(--fs-label);
+.rf-ft-h{font-family:var(--font-serif);font-size:clamp(22px,2.6vw,30px);font-weight:var(--fw-bold);
+  color:var(--text-1);line-height:1.15;text-align:left;text-wrap:balance}
+.rf-ft-p{margin:0;font-size:var(--fs-body-sm);color:var(--text-4);line-height:1.55;
+  text-align:left;max-width:52ch}
+.rf-ft-objetivo{align-self:flex-start;font-family:var(--font-mono);font-size:var(--fs-label);
   font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
   color:var(--club-on-secondary);background:var(--club-secondary);border-radius:var(--r-pill);padding:5px 12px}
 .rf-ft-objetivo.ruim{color:#fff;background:var(--danger)}
@@ -3946,7 +3975,12 @@
 .rf-vt-hm{font-size:var(--fs-label);color:var(--text-faint);text-align:right}
 
 @media (max-width:900px){
-  .rf-ft-cols,.rf-cp-cols,.rf-cf-cols,.rf-im-cols,.rf-vt-cols{grid-template-columns:minmax(0,1fr)}
+  /* .rf-ft-cols saiu daqui: virou flex-column, e os cartoes de baixo ja colapsam sozinhos
+     pelo auto-fit da grade. */
+  .rf-cp-cols,.rf-cf-cols,.rf-im-cols,.rf-vt-cols{grid-template-columns:minmax(0,1fr)}
+  .rf-ft-hero{min-height:0;flex-direction:column;align-items:flex-start;gap:12px}
+  .rf-ft-hero-trofeu{display:none}
+  .rf-ft-hero .rf-ft-vshade{background:linear-gradient(180deg,rgba(8,16,12,.55) 0%,rgba(8,16,12,.88) 100%)}
   .rf-cp-segue{grid-template-columns:1fr}
 }
 @media (max-width:760px){
