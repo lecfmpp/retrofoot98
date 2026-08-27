@@ -42,6 +42,26 @@ const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaqu
 };
 const FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80; // 0-100, 80 é leve sem serrilhar
 
+
+/* ===== CUSTO REAL, NAO ESTIMADO =====
+   gpt-image-1 e' cobrado POR TOKEN, e a resposta traz `usage`. A tabela por
+   imagem que existia acertava a saida e IGNORAVA a entrada inteira — em
+   especial as imagens de entrada do images/edits, que a montagem manda de
+   duas em duas. No periodo 25-27/08 isso subestimou a fatura em 11,9%.
+   Precos por 1M de tokens; se a OpenAI mexer neles, e' aqui que se mexe. */
+const TOK_USD = { texto_in: 5.0, imagem_in: 10.0, imagem_out: 40.0 };
+function custoDoUsage(usage: any) {
+  const det = usage?.input_tokens_details || {};
+  const tIn = Number(det.text_tokens ?? usage?.input_tokens ?? 0);
+  const iIn = Number(det.image_tokens ?? 0);
+  const out = Number(usage?.output_tokens ?? 0);
+  if (!out && !tIn && !iIn) return null;   // sem usage: cai na estimativa antiga
+  return {
+    tokens_in_texto: tIn, tokens_in_imagem: iIn, tokens_out: out,
+    custo_usd: (tIn * TOK_USD.texto_in + iIn * TOK_USD.imagem_in + out * TOK_USD.imagem_out) / 1e6,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return resp(405, { error: "Método não suportado" });
@@ -169,9 +189,14 @@ Deno.serve(async (req) => {
     "1024x1024": { low: 0.011, medium: 0.042, high: 0.167 },
     "1024x1536": { low: 0.016, medium: 0.063, high: 0.25 },
   };
-  const custo = PRECOS[cfg.size]?.[qualidade] ?? 0.042;
+  const real = custoDoUsage(out?.usage);
+  const custo = real ? real.custo_usd : (PRECOS[cfg.size]?.[qualidade] ?? 0.042);
   const { error: logErr } = await admin.schema("elifoot_v3").from("ia_custos").insert({
     tipo, qualidade, tamanho: cfg.size, custo_usd: custo, quem: userData.user.id,
+    tokens_in_texto: real?.tokens_in_texto ?? null,
+    tokens_in_imagem: real?.tokens_in_imagem ?? null,
+    tokens_out: real?.tokens_out ?? null,
+    custo_fonte: real ? "tokens" : "tabela",
   });
   if (logErr) console.error("registro de custo falhou:", logErr.message);
 
