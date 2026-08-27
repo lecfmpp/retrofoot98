@@ -25,8 +25,9 @@ const AUTOSAVE_MANTER=3;            // fotos de rodada mantidas por save/sala (a
 const AUTOSAVE_TEMPORADAS=3;        // fotos de fim de temporada mantidas (as mais recentes)
 
 function autoSaveLigado(){
-  if(typeof CL==='undefined' || !CL.options) return true;   // padrão LIGADO pra todo mundo
-  return (CL.options.autoSave||'Sim')!=='Não';
+  if(typeof CL==='undefined') return true;                  // padrão LIGADO pra todo mundo
+  const o=(typeof clOpcoes==='function')?clOpcoes():CL.options;
+  return ((o&&o.autoSave)||'Sim')!=='Não';
 }
 /* identifica o save/sala + o clube — mesma régua do inbox e das finanças do cliente: duas salas
    diferentes, ou o mesmo save com clubes diferentes, não podem compartilhar fotos. */

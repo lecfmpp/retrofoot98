@@ -962,8 +962,18 @@ function rfEstConstruirGo(){
 
 /* ===== AS OPÇÕES ===== */
 function rfOpcoesSet(k,v){
+  /* O SOM E DO MOTOR, NAO DA INTERFACE. Ele le S.config.sound (ver Audio_ em core.js); guardar
+     em CL.options.som deixava este interruptor a mentir enquanto o da pagina funcionava. */
+  if(k==='som'){
+    if(typeof S!=='undefined' && S){ S.config=S.config||{}; S.config.sound=(v==='Sim'); }
+    if(typeof rfGravar==='function') rfGravar();
+    cdraw(); return;
+  }
+  if(!CL.options && typeof clOpcoesCarregar==='function') clOpcoesCarregar();
   if(!CL.options) CL.options={};
   CL.options[k]=v;
+  /* a casa definitiva e S.config.opcoes: CL e sessao e nao vai para o disco */
+  if(typeof clOpcoesGravar==='function') clOpcoesGravar();
   /* NAO chamar clSetTempo(): ele termina em renderOptions(), que reabre o overlay
      de 98 por tras deste dialogo. O que ele faz de util e so a linha abaixo —
      publicar o ritmo para a sala, e so o anfitriao pode. */
@@ -985,17 +995,22 @@ const RF_ACOES_EXTRA = {
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',
     gravar:'De 3 em 3 semanas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   if(!CL.options.autoSave) CL.options.autoSave='Sim';
-  const o=CL.options, aba=d.aba||'geral';
+  const o=(typeof clOpcoes==='function')?clOpcoes():(CL.options||{}), aba=d.aba||'geral';
   const online=!!CL.online, anfitriao=(typeof NET!=='undefined' && NET.isHost);
   // na sala, só o anfitrião mexe no ritmo — a partida é uma só para todos
   const trava = (online && !anfitriao)
     ? ((typeof tempoLabelFromMult==='function')?tempoLabelFromMult(CL.speedMult):(o.tempo||'—')) : null;
 
+  /* SAIRAM DAQUI (27/08): "Chicotadas psicologicas", "Ver sorteio da taca", "Gravar o jogo" e
+     "Ver desempates por penalties". As quatro gravavam em CL.options e NINGUEM as lia — mexer
+     nelas nao mudava nada no jogo. Interruptor que nao faz nada e pior do que nao existir:
+     ensina o jogador a desconfiar dos que funcionam.
+     O "Som" agora escreve no mesmo sitio que o motor le (S.config.sound, via rfOpcoesSet) —
+     antes havia dois interruptores de som em duas telas gravando em campos diferentes, e so
+     o da pagina de Configuracoes desligava som. */
   const geral =
-      rfAcSegHTML('Chicotadas psicológicas','chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)
-    + rfAcSegHTML('Ver sorteio da taça','sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)
-    + rfAcSegHTML('Gravar o jogo','gravar',['Nunca','De 3 em 3 semanas','Sempre'],o.gravar)
-    + rfAcSegHTML('Som','som',['Sim','Não'],o.som)
+      rfAcSegHTML('Som','som',['Sim','Não'],
+        ((typeof rfPrefDef==='function')?rfPrefDef('som',true):true)?'Sim':'Não')
     + rfAcSegHTML('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
         'As 3 últimas semanas e o fim de cada temporada.')
     /* a dica daqui saiu: o botao ao lado ja diz o que acontece ("Escolher ponto…") */
@@ -1006,8 +1021,6 @@ const RF_ACOES_EXTRA = {
 
   const jogo =
       rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
-    + rfAcSegHTML('Ver desempates por penalties','penaltisCPU',['Sim','Não'],o.penaltisCPU,
-        'Só nos jogos sem humanos.')
     + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'],
         o.tempo, trava?'Na resenha, quem define o ritmo é o anfitrião.'
           :'Foguete é de teste: a partida passa num segundo.', trava)

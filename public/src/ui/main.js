@@ -6978,7 +6978,7 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
   if(pendingRed){ openRedCardModal(pendingRed.m, pendingRed.e); return; }
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
     const ui=RL.matches.findIndex(m=>m.user);
-    if(ui>=0 && (!CL.options || CL.options.subsIntervalo!=='Não')){ RL.paused=true; RL.sel=ui;
+    if(ui>=0 && clOpcoes().subsIntervalo!=='Não'){ RL.paused=true; RL.sel=ui;
       if(CL.online) startHalftimeCountdown(); // Resenha: intervalo dura no máximo 10s (mantém todos sincronizados)
       cdraw(); return; } }
   if(RL.minute>=RL.maxMin){
@@ -10210,11 +10210,11 @@ const TEMPO_DEFAULT='Ultrassônico';
    ENQUANTO ESTIVER ASSIM, a escolha em Opcoes -> Tempo de jogo NAO tem efeito (a propria tela
    avisa isso). Voltar a `null` devolve o comando a quem joga -- foi por isso que ele esteve
    desligado desde 17/08. */
-const TEMPO_TESTE='Foguete';   // ← rótulo (ex.: 'Ultrassônico') liga a trava de bancada
+const TEMPO_TESTE=null;   // ← rótulo (ex.: 'Foguete') liga a trava de bancada; null devolve o comando a quem joga
 /* rótulo de ritmo que vale AGORA (o de teste, quando ligado; senão a opção do save) */
 function tempoLabelAtual(){
   if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return TEMPO_TESTE;
-  const salvo=(CL.options&&CL.options.tempo);
+  const salvo=clOpcoes().tempo;
   /* RITMO SALVO QUE JA NAO EXISTE CAI NO PADRAO. Quem experimentou o 'Foguete' tem o rotulo
      gravado no save; sem esta rede, TEMPO_MS[rotulo] vinha undefined e o relogio da partida
      ficava sem intervalo. */
@@ -10230,38 +10230,37 @@ const TEMPO_MULT={}; Object.keys(TEMPO_MS).forEach(k=>TEMPO_MULT[k]=TEMPO_MS['Us
 function tempoLabelFromMult(mult){ const m=mult||1; let best='Usain Bolt',bd=Infinity;
   Object.keys(TEMPO_MULT).forEach(k=>{ const d=Math.abs(TEMPO_MULT[k]-m); if(d<bd){bd=d;best=k;} }); return best; }
 function clSetTempo(label){
-  CL.options.tempo=label;
+  clOpcoes().tempo=label; clOpcoesGravar();
   if(CL.online && typeof NET!=='undefined' && NET.isHost && typeof clSetSpeed==='function') clSetSpeed(TEMPO_MULT[label]||1);
-  renderOptions();
+  cdraw();
 }
-function clOptions(){ CL.menu=null; CL.optTab='geral';
-  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 semanas',som:'Sim',
-    subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
-  // LIGADO por padrão pra todo mundo, inclusive pra quem já tinha CL.options gravado antes de o
-  // salvamento automático existir — daí o preenchimento aqui e não só no objeto acima.
-  if(!CL.options.autoSave) CL.options.autoSave='Sim';
-  renderOptions(); }
-function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
-  const avisoTeste = TEMPO_TESTE ? `<div class="cl-opt-teste">🧪 <b>Modo de teste:</b> o ritmo está travado em <b>${escC(TEMPO_TESTE)}</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.</div>` : '';
-  const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
-  const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
-    <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
-    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 semanas','Sempre'],o.gravar)}</div>
-    <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>
-    <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas rodadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
-    <div class="cl-orow"><span>Voltar a um ponto guardado</span>${btn('Ver pontos guardados','clAutoSaveAbrir()',{icon:'⏪'})}</div>`;
-  const amHost=typeof NET!=='undefined' && NET.isHost;
-  const tempoRow = (CL.online && !amHost)
-    ? `<div class="cl-orow"><span>Tempo de jogo</span><span class="cl-oval-locked">🔒 ${escC(tempoLabelFromMult(CL.speedMult))} <i>(definido pelo Anfitrião)</i></span></div>`
-    : `<div class="cl-orow"><span>Tempo de jogo${CL.online?' <i>(vale pra todos)</i>':''}</span><select class="cl-osel" onchange="clSetTempo(this.value)">${['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'].map(x=>`<option ${x===o.tempo?'selected':''}>${escC(x)}</option>`).join('')}</select></div>`;
-  const jogo=`<div class="cl-orow"><span>Substituições ao intervalo</span>${sel('subsIntervalo',['Sim','Não'],o.subsIntervalo)}</div>
-    <div class="cl-orow"><span>Ver os desempates por penalties<br>nos jogos sem treinadores humanos</span>${sel('penaltisCPU',['Sim','Não'],o.penaltisCPU)}</div>
-    ${tempoRow}${avisoTeste}`;
-  overlayC(dlg('Opções', `<div class="cl-opt">
-    <div class="cl-otabs"><span class="cl-otab ${tab==='geral'?'on':''}" onclick="CL.optTab='geral';renderOptions()">Geral</span><span class="cl-otab ${tab==='jogo'?'on':''}" onclick="CL.optTab='jogo';renderOptions()">Jogo</span></div>
-    <div class="cl-opanel">${tab==='geral'?geral:jogo}</div>
-    <div class="cl-oside">${btn('OK','clOptOk()',{icon:'✔',cls:'cl-btn-ok'})}${btn('Cancelar','clCloseOverlay()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
-  </div>`,{w:740,bodyClass:'cl-body-gray',min:true})); }
+/* ===== OPCOES: UMA SO TELA (27/08) =====
+   Existiam TRES superficies para as mesmas opcoes: esta (pele de 98, `renderOptions`), o modal
+   novo (rf26-acoes) e a pagina de Configuracoes. A pele nova sobrescreve `window.clOptions`
+   (ver rf26-acoes.js), entao este dialogo nunca abria — ficou aqui a duplicar rotulos e a
+   convidar a corrigir bug no lado errado. Foi apagado.
+   Fica so o carregamento das opcoes, que o modal novo e os consumidores usam. */
+
+/* AS OPCOES PASSAM A SOBREVIVER AO RECARREGAMENTO. `CL.options` e estado de SESSAO: nada
+   dali ia para o disco, entao Tempo de jogo, Salvamento automatico e Substituicoes ao
+   intervalo — as tres que funcionam de verdade — voltavam ao padrao a cada F5, e o botao
+   "Guardar" gravava o save sem gravar as opcoes. Agora a casa delas e `S.config.opcoes`,
+   que viaja no save; `CL.options` e so a copia de trabalho. */
+const CL_OPCOES_PADRAO={ som:'Sim', autoSave:'Sim', subsIntervalo:'Sim', tempo:TEMPO_DEFAULT };
+function clOpcoesCarregar(){
+  const guardado=(typeof S!=='undefined' && S && S.config && S.config.opcoes) || {};
+  CL.options=Object.assign({}, CL_OPCOES_PADRAO, guardado);
+  return CL.options;
+}
+/* chamada por quem le CL.options: garante que a copia existe e reflete o save */
+function clOpcoes(){ return CL.options || clOpcoesCarregar(); }
+/* escreve na casa definitiva — sem isto a opcao muda na tela e morre no recarregamento */
+function clOpcoesGravar(){
+  if(typeof S==='undefined' || !S) return;
+  S.config=S.config||{};
+  S.config.opcoes=Object.assign({}, S.config.opcoes, CL.options);
+}
+
 /* ---- RetroFoot98 > Opções > Voltar a um ponto guardado ----
    Lista as fotos que o salvamento automático guardou (ver autosave.js). Voltar é destrutivo por
    natureza — o que veio depois do ponto some —, então a confirmação diz exatamente o que se

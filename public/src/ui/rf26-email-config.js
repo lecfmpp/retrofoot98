@@ -176,11 +176,11 @@ function rfCfOpcoesHTML(){
       </div>
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">AVISOS E SOM</span></div>
+        <!-- SAIRAM DAQUI (27/08): "Aviso de proposta recebida", "Aviso de lesao", "Chat da
+             Resenha durante o jogo" e "Confirmar antes de gravar". Os quatro gravavam em
+             S.config.ui e NINGUEM os lia — o interruptor mudava na tela e o jogo seguia igual.
+             Sobra o Som, que e o unico que o motor le (S.config.sound). -->
         ${rfCfSwitch('som','Som da partida',true)}
-        ${rfCfSwitch('avisoOfertas','Aviso de proposta recebida',true)}
-        ${rfCfSwitch('avisoLesao','Aviso de lesão',true)}
-        ${rfCfSwitch('chatNaPartida','Chat da Resenha durante o jogo',false)}
-        ${rfCfSwitch('confirmarGravar','Confirmar antes de gravar',false)}
       </div>
     </div>
     <div class="rf-card">
