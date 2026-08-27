@@ -364,8 +364,6 @@ function rfFxMotorHTML(p){
   return `<div class="rf-fx-motor">
     <div class="rf-fx-mt-t">O que decide as partidas dele</div>
     ${linhas}
-    <div class="rf-fx-mt-nota">O traço marca a média da posição na divisão. Os demais
-      atributos evoluem e alimentam a força, mas ainda não têm efeito próprio no resultado.</div>
   </div>`;
 }
 /* ponto forte/fraco: maior e menor atributo. Jogador de linha não concorre nos

@@ -8294,8 +8294,6 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fx-mt-b>u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text-4);
   border-radius:1px;transform:translateX(-1px)}
 .rf-fx-mt-onde{font-size:var(--fs-caption);color:var(--text-4)}
-.rf-fx-mt-nota{font-size:var(--fs-caption);line-height:1.5;color:var(--text-4);
-  border-top:1px solid var(--line-3);padding-top:10px;margin-top:2px}
 @media (prefers-reduced-motion: reduce){ .rf-fx-mt-b>i{transition:none} }
 
 /* hexágono + forte/fraco */
