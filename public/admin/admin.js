@@ -4787,6 +4787,33 @@ function promptTorso(item, estiloChave, corA, corB){
 /* a MONTAGEM IA costura rosto + uniforme numa foto só (images/edits com as duas
    imagens de entrada) — é ela que fica realmente natural. As camadas CSS seguem
    como prévia barata; a montagem salva em atributos.montagem é a foto final. */
+/* ===== O CAMINHO DE UMA CHAMADA SO' =====
+   Hoje uma foto custa DUAS imagens pagas: o rosto recortado e a montagem dele
+   sobre o uniforme (US$ 0,114). Isto faz o mesmo em UMA (US$ 0,070): manda o
+   torso do clube como entrada e descreve o rosto por texto, em vez de gerar o
+   rosto antes e costurar depois.
+
+   O que se perde: o rosto recortado deixa de existir como peca reaproveitavel.
+   Na transferencia de clube, em vez de recosturar o rosto guardado, manda-se a
+   FOTO ANTIGA como referencia — mesmo numero de chamadas, mesma conta.
+
+   Existe para ser COMPARADO lado a lado com o caminho de duas chamadas antes
+   de trocar nada: a diferenca real e' visual, nao aritmetica. */
+function promptDireto(item, p, at){
+  const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
+  const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
+  return [
+    'Take the input photo of a football player\'s torso and ADD A HEAD in the empty studio background above the collar,',
+    'turning it into one photorealistic official club media day portrait.',
+    `The head is a fictional professional football player from ${pais}: ${at.idade} years old, ${at.pele}, ${cab}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    'Facing the camera directly, natural neck-to-collar transition, unified soft studio lighting and color grading.',
+    'CRITICAL: do NOT move, scale, crop or reframe the jersey — it must stay in EXACTLY the same position and size as in the input image, pixel-aligned, same pattern and colors, completely clean (no crest, sponsor, text or logos added).',
+    textoEnquadramento(),
+    'Plain light gray studio background, sharp focus, DSLR quality.',
+    'This is a completely fictional person, not resembling any real footballer or celebrity.'
+  ].join(' ');
+}
+
 function promptMontagem(){
   return [
     'Combine the two input images into ONE photorealistic official club media day portrait:',
@@ -5416,6 +5443,62 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
 }
 
 /* ---------- página ---------- */
+/* ===== COMPARADOR DOS DOIS CAMINHOS =====
+   Gera O MESMO jogador pelos dois metodos e poe lado a lado. Os atributos sao
+   sorteados UMA vez e usados nos dois, senao a comparacao seria entre pessoas
+   diferentes e nao entre metodos.
+
+   NAO GRAVA NADA em player_photos: e' um teste, e um teste que sobrescreve a
+   foto boa do elenco nao e' teste, e' acidente. As imagens ficam no Storage
+   (ja' foram pagas) e as URLs aparecem na tela. */
+async function compararMetodos(item, p){
+  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  if(!t) return toast('Este clube precisa de uniforme antes: o torso é a entrada dos dois métodos.', true);
+  if(!await rfConfirm({ titulo:'Comparar os dois métodos',
+    texto:`Vou gerar <b>${h(p.n)}</b> pelos dois caminhos, com os <b>mesmos atributos</b>, para você ver a diferença.`,
+    detalhe:`<b>Duas chamadas</b> (rosto + montagem): US$ 0,114 &nbsp;·&nbsp; <b>Uma chamada</b> (direto no uniforme): US$ 0,070.<br>
+             Total do teste: <b>~US$ 0,18</b>. Nada é salvo no elenco — é só para olhar.`,
+    nao:'Agora não', sim:'Gerar os dois (~US$ 0,18)' })) return;
+
+  const at = sortearAtributos(p);
+  const base = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
+  let duas = null, uma = null, erro = null;
+  try{
+    /* CAMINHO A — o de hoje: rosto recortado e depois a costura */
+    const rosto = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium', null, base+'-rosto',
+      'Método A: gerando o rosto…');
+    duas = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, rosto], base+'-duas',
+      'Método A: costurando…');
+    /* CAMINHO B — uma chamada: o rosto nasce ja' na camisa */
+    uma = await gerarImagemIA('montagem', promptDireto(item, p, at), 'medium', [t.url], base+'-uma',
+      'Método B: gerando direto no uniforme…');
+  }catch(err){ erro = err.message; }
+
+  const cartao = (rot, url, custo, nota) => `<div class="col" style="gap:8px;min-width:0;flex:1">
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <b style="font-size:13px">${h(rot)}</b>
+        <span class="mono" style="font-size:11.5px;color:var(--dim3)">US$ ${custo}</span>
+      </div>
+      ${url ? `<img src="${h(url)}" alt="${h(rot)}" data-ver="${h(url)}"
+                style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:var(--bd3);cursor:zoom-in">`
+            : `<div class="vazio" style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">não saiu</div>`}
+      <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">${nota}</small>
+    </div>`;
+
+  abrirModal(`
+    <div class="card-h"><b>${h(p.n)} — dois métodos, mesmos atributos</b></div>
+    <div class="card-p col" style="gap:14px">
+      ${erro?`<div class="erro">${h(erro)}</div>`:''}
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        ${cartao('A · duas chamadas', duas, '0,114', 'Rosto recortado + costura. O rosto fica guardado e serve de peça quando o jogador troca de clube.')}
+        ${cartao('B · uma chamada', uma, '0,070', 'O rosto nasce direto na camisa. <b>39% mais barato.</b> Não sobra rosto recortado: na transferência, a foto antiga vira a referência.')}
+      </div>
+      <div class="st" style="line-height:1.6">${h(resumoAtributos(at))}</div>
+      <small style="font-size:12px;color:var(--dim2)">Nenhuma das duas foi salva no elenco. Clique numa imagem para ampliar.</small>
+    </div>`, 'xl');   // abrirModal(html, CLASSE) — 'xl' e' a caixa larga, as duas fotos lado a lado
+  document.querySelectorAll('[data-ver]').forEach(x => x.onclick = () => abrirLightbox(x.dataset.ver, p.n));
+}
+
 /* ---------- aba TREINADORES: a oficina das 10 faces padrao ----------
    Nao e' lista de clube: as faces sao globais do pacote, iguais para todo
    jogador. Por isso ela substitui o card de clubes inteiro (ver pgEstudio)
@@ -5887,6 +5970,7 @@ function modalFotosIA(item){
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
+        ${editar? botao('data-comparar','⚖','Comparar') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
     </div>`;
@@ -6017,6 +6101,7 @@ function modalFotosIA(item){
         modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true, p.n);
       return;
     }
+    if(ev.target.closest('[data-comparar]')){ compararMetodos(item, p); return; }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
     const antes = rotuloDe(bt);
     bt.disabled = true; rotulo(bt, 'Gerando…', '·');
