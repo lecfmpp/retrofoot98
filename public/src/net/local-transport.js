@@ -1363,6 +1363,15 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // igual ao solo: boas-vindas -> sorteios de abertura de TODAS as competições -> tela do clube.
   // Antes a Resenha entrava direto no clube e as cerimônias apareciam semanas adentro, cada uma na
   // véspera da estreia da sua competição (ver startSeasonOpeningDraws em ui/main.js).
+  /* O CAIXA TEM QUE SER O MEU ANTES DA PRIMEIRA TELA. O estado compartilhado traz
+     S.budget do ANFITRIÃO (é a cópia local dele que viaja no shared_state); o caixa
+     de cada humano vive em S.budgets[clube] e no assento. Sem esta linha, o convidado
+     via o caixa do anfitrião na tela de boas-vindas E o levava para dentro do jogo —
+     as outras chamadas de applyViewerDivision só acontecem na adoção de rodada, então
+     o número errado valia a primeira rodada inteira, mercado incluído.
+     Medido em 26/08 na sala GAYDT: S.budget do estado = 11.960.071 (clube do anfitrião),
+     enquanto S.budgets[2462] = 10.293.102 e S.budgets[585] = 12.903.734. */
+  if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
   if(fresh && typeof showBoasVindas==='function') showBoasVindas(()=>{ if(typeof startSeasonOpeningDraws==='function') startSeasonOpeningDraws(); });
   else { CL.screen='main'; cdraw(); }
 
