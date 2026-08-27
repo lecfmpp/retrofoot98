@@ -410,8 +410,10 @@ function rfFxDestaques(p){
       + c('GOLS SOFRIDOS', String(ga), jgs?('do time · '+String(Math.round(10*ga/Math.max(1,jgs))/10).replace('.',',')+' por jogo'):'do time na temporada')
       + c('CARTÕES', cart, beh?(beh+' · '+risco):'');
   }
-  /* assistências o motor não regista — número ESTÁVEL derivado de gols+jogos (não é aleatório) */
-  const assist=Math.max(0, Math.round(gols*0.6+apps*0.08));
+  /* assistência REAL desde 26/08: o motor sorteia quem deu o passe do gol e grava em
+     st.assists. Elenco criado antes disso não tem o campo — aí mostra 0, que é honesto
+     (ninguém sabe quem assistiu naqueles jogos), e passa a contar da próxima partida. */
+  const assist=(st.assists!=null)?st.assists:0;
   return c('GOLS', String(gols), apps?('em '+apps+' jogos'):'ainda sem jogos', true)
     + c('NOTA MÉDIA', forma!=null?notaTxt(forma):'—', notas?('últimos '+notas+' jogos'):'ainda sem nota')
     + c('JOGOS', String(apps), (apps*90).toLocaleString('pt-BR')+' minutos')

@@ -103,6 +103,24 @@
       const w=function(p){return p.f*attrFactor(p,['fin'],0.82,1.28);};
       let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
       for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
+    /* ASSISTÊNCIA (26/08) — antes o motor não conhecia o passe para gol e a ficha
+     mostrava um número inventado (gols×0,6 + jogos×0,08). Agora o lance tem dois
+     nomes. Regras: pênalti nunca tem assistência (o gol nasce da falta), goleiro
+     não assiste, e nem todo gol é assistido — 68%, que é a faixa do futebol real.
+     O peso é passe+visão, SEM desconto de viés de propósito: o perfil já eleva
+     esses dois no meio-campista, e é exatamente ele quem deve assistir mais. */
+    /* PESO DO PAPEL. Só o atributo não basta: com atributos iguais o sorteio vira
+       proporcional à quantidade de gente, e zagueiro (são 4) assistia mais que meia.
+       Quem cria a jogada é o meio e quem tabela na frente é o ataque; zagueiro
+       assiste, mas é a exceção. Referência do futebol real: meio ~45-50%,
+       ataque ~30-35%, defesa ~15-20%. */
+      const PAPEL={MID:1.00, ATT:0.85, DEF:0.32, GK:0};
+    function assistFrom(players, sc){ if(R.random()>=0.68) return null;
+      const pool=players.filter(function(p){ return p.s!=='GK' && p!==sc && p.pid!==sc.pid; });
+      if(!pool.length) return null;
+      const w=function(p){return p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);};
+      let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
+      for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
     function pickFoulPlayer(side){ const pool=activePool(side).filter(function(p){return p.s!=='GK';});
       const list=pool.length?pool:activePool(side); if(!list.length) return null;
       const w=function(p){return (110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);};
@@ -154,7 +172,8 @@
           if(conv>=0.5) perf[hSide].big++;
           if(R.random()<conv){
             if(home2){hg++;} else {ag++;} perf[hSide].goals++;
-            scorers.push({id:atkId,name:sc.n,min:minute}); pos=home2?-0.15:0.15;
+            const as3=assistFrom(atkPool, sc);
+            scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:minute,assist:as3?as3.n:null,assistPid:as3?as3.pid:null}); pos=home2?-0.15:0.15;
             ev={type:'gol',side:hSide,min:minute,scorer:sc.n,team:atkId,stoppage:stoppage};
           } else { perf[hSide].chances++; ev={type:'chance',side:hSide,min:minute,scorer:sc.n,team:atkId,pos:pos}; }
         }
@@ -226,11 +245,15 @@
     return players.map(function(p){
       const share=clamp((p.mins||0)/total, 0, 1);
       const goals=scorers.filter(function(s){ return s.id===input.clubId && s.name===p.n; }).length;
+      /* assistência vale menos que gol na nota (1.3), mas não é zero: quem deu o
+         passe participou do lance tanto quanto quem finalizou. */
+      const assists=scorers.filter(function(s){ return s.id===input.clubId && s.assist===p.n; }).length;
       const back=(p.s==='GK'||p.s==='DEF');
       let r=6.0+((p.f||65)-65)*0.045+R.gauss(0,0.75);
       if(won) r+=0.5*share; else if(lost) r-=0.5*share;
       r+=dom*share;
       r+=goals*1.3;
+      r+=assists*0.7;
       if(cs&&back) r+=0.6*share;
       const myInc=inc[p.n];
       if(myInc){
@@ -240,7 +263,7 @@
       // o CONTADOR de jogos sem sofrer gol (p.stats.cs) exige ter jogado a maior parte da
       // partida — diferente do bônus na nota, que é contínuo. Goleiro que entrou aos 80' num
       // 0x0 leva o bônus proporcional, mas não fica com a estatística inteira no Historial.
-      return { pid:p.pid, n:p.n, mins:p.mins||0, share:share, goals:goals,
+      return { pid:p.pid, n:p.n, mins:p.mins||0, share:share, goals:goals, assists:assists,
                cs:!!(cs&&back&&share>=0.5), r:+clamp(r,3,10).toFixed(1) };
     });
   }

@@ -17,6 +17,11 @@ const ALVO = resolve(raiz, 'supabase/functions/resolve-round/index.ts');
    `world-config.js` lê UNIVERSOS preguiçosamente (dentro das funções), mas manter a ordem de
    dependência declarada evita ter de descobrir isso de novo mais tarde. */
 const FOLHAS = [
+  /* O MOTOR DE PARTIDA. Era colado na mão, e o comentário dizia "fonte única" como
+     promessa: bastava esquecer a cópia para cliente e servidor decidirem partidas
+     de formas diferentes. Agora é injetado como as outras folhas, e o --check
+     reprova o build se divergirem. */
+  { nome: 'MATCH_ENGINE', arquivo: 'public/src/engine/match-engine.js' },
   { nome: 'CALENDARIOS',  arquivo: 'public/src/engine/calendars.js' },
   { nome: 'WORLD_RULES',  arquivo: 'public/src/engine/world-rules.js' },
   { nome: 'UNIVERSOS',    arquivo: 'public/src/data/universos.js' },

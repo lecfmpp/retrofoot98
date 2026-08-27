@@ -15,12 +15,12 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = '319bc8437d28';
+/* @motor-ver */ const MOTOR_VER = '4dfa26ca76b9';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-/* ===== MOTOR DE PARTIDA COMPARTILHADO (colado de public/src/engine/match-engine.js — fonte única) ===== */
+/* <<< MATCH_ENGINE:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
 /* ===================================================================
    MOTOR DE PARTIDA PURO — fonte ÚNICA compartilhada cliente ⇄ servidor.
    Espelha simulate.js (simulateMatch), mas SEM globais: recebe os inputs
@@ -40,9 +40,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       gauss:(mu,sd)=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return mu+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);},
       int:(n)=>Math.floor(r()*n), pick:(arr)=>arr[Math.floor(r()*arr.length)] }; }
 
-  /* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, medido na arena) =====
-     O ofensivo ganha menos drift e passa a EXPOR a defesa; a retranca perde menos drift e
-     passa a BLINDAR. Ver TACTIC_EMPHASIS logo abaixo e scripts/arena-motor.mjs. */
+  /* ===== TÁTICA É TROCA, NÃO BOTÃO DE VITÓRIA (rebalance 21/08, ver simulate.js/arena) ===== */
   const TACTIC_BETA={retranca:-0.008, equilibrado:0, ofensivo:0.016};
   const TACTIC_EMPHASIS={ retranca:{OS:0.93,DS:1.20}, equilibrado:{OS:1,DS:1}, ofensivo:{OS:1.04,DS:0.80} };
   const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0.025}; // era 0.055
@@ -86,13 +84,16 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     let tot=weights.reduce(function(a,b){return a+b;},0), r=R.random()*tot;
     for(let i=0;i<list.length;i++){ r-=weights[i]; if(r<=0) return list[i]; }
     return list[list.length-1]; }
-  function penaltyConvChance(taker, gk){ if(!taker) return 0.75;
+  /* espelho do de simulate.js, incluindo o `opts.humano` (ver la o porque) */
+  function penaltyConvChance(taker, gk, opts){ if(!taker) return (opts&&opts.humano)?0.78:0.75;
     const base=0.76;
     const takerBonus=((taker.f||65)-70)/100*0.35;
     const posBonus = taker.s==='ATT'?0.05:taker.s==='MID'?0.02:taker.s==='DEF'?-0.02:-0.08;
     const gkPenalty = gk ? (((gk.f||65)-65)/100)*0.22 : 0;
     const moralAdj = ((taker.moral||70)-70)/100*0.12;
-    return clamp(base+takerBonus+posBonus-gkPenalty+moralAdj, 0.42, 0.93); }
+    const bruto=base+takerBonus+posBonus-gkPenalty+moralAdj;
+    if(opts&&opts.humano) return clamp(bruto+(opts.canto!=null?0.06:0), 0.72, 0.95);
+    return clamp(bruto, 0.42, 0.93); }
 
   /* ===== a PARTIDA (espelho fiel de simulateMatch/simEventsC) =====
      side H/A: { rat:{OS,MS,DS,mor}, xi:[{n,f,s,energy,moral,behavior}], tactic, cap, short }
@@ -123,6 +124,24 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     function scorerFrom(id,players){ const atk=players.filter(function(p){return p.s==='ATT'||p.s==='MID';});
       const pool=atk.length?atk:players;
       const w=function(p){return p.f*attrFactor(p,['fin'],0.82,1.28);};
+      let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
+      for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
+    /* ASSISTÊNCIA (26/08) — antes o motor não conhecia o passe para gol e a ficha
+     mostrava um número inventado (gols×0,6 + jogos×0,08). Agora o lance tem dois
+     nomes. Regras: pênalti nunca tem assistência (o gol nasce da falta), goleiro
+     não assiste, e nem todo gol é assistido — 68%, que é a faixa do futebol real.
+     O peso é passe+visão, SEM desconto de viés de propósito: o perfil já eleva
+     esses dois no meio-campista, e é exatamente ele quem deve assistir mais. */
+    /* PESO DO PAPEL. Só o atributo não basta: com atributos iguais o sorteio vira
+       proporcional à quantidade de gente, e zagueiro (são 4) assistia mais que meia.
+       Quem cria a jogada é o meio e quem tabela na frente é o ataque; zagueiro
+       assiste, mas é a exceção. Referência do futebol real: meio ~45-50%,
+       ataque ~30-35%, defesa ~15-20%. */
+      const PAPEL={MID:1.00, ATT:0.85, DEF:0.32, GK:0};
+    function assistFrom(players, sc){ if(R.random()>=0.68) return null;
+      const pool=players.filter(function(p){ return p.s!=='GK' && p!==sc && p.pid!==sc.pid; });
+      if(!pool.length) return null;
+      const w=function(p){return p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);};
       let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
       for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
     function pickFoulPlayer(side){ const pool=activePool(side).filter(function(p){return p.s!=='GK';});
@@ -176,7 +195,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
           if(conv>=0.5) perf[hSide].big++;
           if(R.random()<conv){
             if(home2){hg++;} else {ag++;} perf[hSide].goals++;
-            scorers.push({id:atkId,name:sc.n,min:minute}); pos=home2?-0.15:0.15;
+            const as3=assistFrom(atkPool, sc);
+            scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:minute,assist:as3?as3.n:null,assistPid:as3?as3.pid:null}); pos=home2?-0.15:0.15;
             ev={type:'gol',side:hSide,min:minute,scorer:sc.n,team:atkId,stoppage:stoppage};
           } else { perf[hSide].chances++; ev={type:'chance',side:hSide,min:minute,scorer:sc.n,team:atkId,pos:pos}; }
         }
@@ -248,11 +268,15 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     return players.map(function(p){
       const share=clamp((p.mins||0)/total, 0, 1);
       const goals=scorers.filter(function(s){ return s.id===input.clubId && s.name===p.n; }).length;
+      /* assistência vale menos que gol na nota (1.3), mas não é zero: quem deu o
+         passe participou do lance tanto quanto quem finalizou. */
+      const assists=scorers.filter(function(s){ return s.id===input.clubId && s.assist===p.n; }).length;
       const back=(p.s==='GK'||p.s==='DEF');
       let r=6.0+((p.f||65)-65)*0.045+R.gauss(0,0.75);
       if(won) r+=0.5*share; else if(lost) r-=0.5*share;
       r+=dom*share;
       r+=goals*1.3;
+      r+=assists*0.7;
       if(cs&&back) r+=0.6*share;
       const myInc=inc[p.n];
       if(myInc){
@@ -262,7 +286,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
       // o CONTADOR de jogos sem sofrer gol (p.stats.cs) exige ter jogado a maior parte da
       // partida — diferente do bônus na nota, que é contínuo. Goleiro que entrou aos 80' num
       // 0x0 leva o bônus proporcional, mas não fica com a estatística inteira no Historial.
-      return { pid:p.pid, n:p.n, mins:p.mins||0, share:share, goals:goals,
+      return { pid:p.pid, n:p.n, mins:p.mins||0, share:share, goals:goals, assists:assists,
                cs:!!(cs&&back&&share>=0.5), r:+clamp(r,3,10).toFixed(1) };
     });
   }
@@ -355,7 +379,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
   root.MATCH_ENGINE=API;
 })(typeof globalThis!=='undefined'?globalThis:this);
-
+/* <<< MATCH_ENGINE:FIM >>> */
 
 const ME = (globalThis as any).MATCH_ENGINE;
 
@@ -1619,6 +1643,7 @@ function ratePlayersS(S: any, id: string, xi: any[], gf: number, ga: number, sco
     st.r3.push(nota.r); if (st.r3.length > 3) st.r3.shift();
     st.g3.push(nota.goals); if (st.g3.length > 3) st.g3.shift();
     st.apps = (st.apps || 0) + 1; st.goals = (st.goals || 0) + nota.goals;
+    st.assists = (st.assists || 0) + (nota.assists || 0);   // espelha core.js
     if (nota.cs) st.cs = (st.cs || 0) + 1;
   });
 }

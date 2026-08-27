@@ -198,6 +198,27 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
     for(const p of pool){r-=w(p);if(r<=0)return p;}
     return pool[0];
   }
+  /* ASSISTÊNCIA (26/08) — antes o motor não conhecia o passe para gol e a ficha
+     mostrava um número inventado (gols×0,6 + jogos×0,08). Agora o lance tem dois
+     nomes. Regras: pênalti nunca tem assistência (o gol nasce da falta), goleiro
+     não assiste, e nem todo gol é assistido — 68%, que é a faixa do futebol real.
+     O peso é passe+visão, SEM desconto de viés de propósito: o perfil já eleva
+     esses dois no meio-campista, e é exatamente ele quem deve assistir mais. */
+  /* PESO DO PAPEL. Só o atributo não basta: com atributos iguais o sorteio vira
+       proporcional à quantidade de gente, e zagueiro (são 4) assistia mais que meia.
+       Quem cria a jogada é o meio e quem tabela na frente é o ataque; zagueiro
+       assiste, mas é a exceção. Referência do futebol real: meio ~45-50%,
+       ataque ~30-35%, defesa ~15-20%. */
+    const PAPEL={MID:1.00, ATT:0.85, DEF:0.32, GK:0};
+  function assistFrom(players, sc){
+    if(R.random()>=0.68) return null;
+    const pool=players.filter(p=>p.s!=='GK' && p!==sc && p.pid!==sc.pid);
+    if(!pool.length) return null;
+    const w=p=>p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);
+    let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of pool){r-=w(p);if(r<=0)return p;}
+    return pool[0];
+  }
   function pickFoulPlayer(side){
     const pool=activePool(side).filter(p=>p.s!=='GK');
     const list=pool.length?pool:activePool(side); if(!list.length) return null;
@@ -252,7 +273,8 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
       if(conv>=0.5) perf[hSide].big++; // grande chance
       if(R.random()<conv){
         if(home){hg++;} else {ag++;} perf[hSide].goals++;
-        scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:minute}); pos=home?-0.15:0.15;
+        const as1=assistFrom(atkPool, sc);
+        scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:minute,assist:as1?as1.n:null,assistPid:as1?as1.pid:null}); pos=home?-0.15:0.15;
         ev={type:'gol',side:hSide,min:minute,scorer:sc.n,scorerPid:sc.pid,team:atkId,stoppage};
       } else {
         perf[hSide].chances++;
@@ -476,6 +498,18 @@ function liveMatchSession(homeId, awayId, seed, opts){
     const w=p=>p.f*attrFactor(p,['fin'],0.82,1.28);
     let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
     for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
+  /* ASSISTÊNCIA (26/08) — antes o motor não conhecia o passe para gol e a ficha
+     mostrava um número inventado (gols×0,6 + jogos×0,08). Agora o lance tem dois
+     nomes. Regras: pênalti nunca tem assistência (o gol nasce da falta), goleiro
+     não assiste, e nem todo gol é assistido — 68%, que é a faixa do futebol real.
+     O peso é passe+visão, SEM desconto de viés de propósito: o perfil já eleva
+     esses dois no meio-campista, e é exatamente ele quem deve assistir mais. */
+  function assistFrom(players, sc){ if(R.random()>=0.68) return null;
+    const pool=players.filter(p=>p.s!=='GK' && p!==sc && p.pid!==sc.pid);
+    if(!pool.length) return null;
+    const w=p=>p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);
+    let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+    for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
   function pickFoulPlayer(side){ const pool=cur[side].filter(p=>p.s!=='GK');
     const list=pool.length?pool:cur[side]; if(!list.length) return null;
     const w=p=>(110-p.f)*(BEHAVIOR_CARD_MULT[p.behavior]||1);
@@ -539,7 +573,8 @@ function liveMatchSession(homeId, awayId, seed, opts){
         if(conv>=0.5) perf[hSide].big++;
         if(R.random()<conv){
           if(home){hg++;}else{ag++;} perf[hSide].goals++;
-          scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:dispMin()}); pos=home?-0.15:0.15;
+          const as2=assistFrom(atkPool, sc);
+          scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:dispMin(),assist:as2?as2.n:null,assistPid:as2?as2.pid:null}); pos=home?-0.15:0.15;
           ev=pushEv({type:'gol',side:hSide,min:dispMin(),scorer:sc.n,scorerPid:sc.pid,team:atkId,stoppage});
         } else { perf[hSide].chances++; ev=pushEv({type:'chance',side:hSide,min:dispMin(),scorer:sc.n,scorerPid:sc.pid,team:atkId,pos}); }
       }

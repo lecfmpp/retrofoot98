@@ -5231,9 +5231,10 @@ function mpRate(xi,gf,ga,scorers,cid,R,myPerf,oppPerf,caps,matchMinutes){
   notas.forEach((nota,i)=>{
     const p=lista[i].p;
     const st=p.stats||(p.stats={r3:[],g3:[],apps:0,goals:0,cs:0});
+    if(st.assists==null) st.assists=0;   // elencos anteriores a 26/08 não tinham o campo
     st.r3.push(nota.r);if(st.r3.length>3)st.r3.shift();
     st.g3.push(nota.goals);if(st.g3.length>3)st.g3.shift();
-    st.apps++;st.goals+=nota.goals;if(nota.cs)st.cs++;
+    st.apps++;st.goals+=nota.goals;st.assists+=(nota.assists||0);if(nota.cs)st.cs++;
   });
 }
 function mpFinances(state,cid,xi,gf,ga,scorers){
