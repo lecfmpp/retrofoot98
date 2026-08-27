@@ -5065,8 +5065,8 @@ function modalAjusteTreinador(genero, i){
   };
 }
 
-/* gera UMA face e grava. `refazer` pula o atalho do que ja' existe — e' o
-   que o link de Refazer usa quando a imagem sai torta. */
+/* gera UMA face e grava. `refazer` pula o atalho do que ja' existe — e' o que
+   o link Gerar usa para produzir uma face nova por cima da atual. */
 async function garantirFaceTreinador(genero, i, refazer){
   const chave = faceChave(genero, i);
   const est = ESTILOS_TREINADOR[i];
@@ -5112,13 +5112,15 @@ async function prepararFacesTreinador(btn){
   pgEstudio();
 }
 
-/* refazer uma face solta, do cartao */
+/* GERAR uma face solta. Nao existe "refazer": gerar de novo e' sempre uma
+   geracao nova, paga, que substitui a anterior — e a confirmacao diz isso com
+   todas as letras. A ideia de "corrigir" e' que fazia parecer barato repetir. */
 async function refazerFaceTreinador(genero, i){
   const est = ESTILOS_TREINADOR[i];
   const existe = !!D.fotos[TREINADOR_KEY+'|'+faceChave(genero, i)];
-  if(existe && !await rfConfirm({ titulo:'Refazer esta face',
-    texto:`A face <b>${h(faceNome(genero, est[0]))}</b> vai ser gerada de novo e a atual é substituída.`,
-    detalhe:'Custo: <b>~US$ 0,04</b>.', nao:'Agora não', sim:'Refazer' })) return;
+  if(existe && !await rfConfirm({ titulo:'Gerar esta face de novo',
+    texto:`Isto é uma <b>geração nova</b> de <b>${h(faceNome(genero, est[0]))}</b>, e ela substitui a atual.`,
+    detalhe:'Custo: <b>~US$ 0,04</b>. A imagem de agora é perdida.', nao:'Agora não', sim:'Gerar de novo' })) return;
   try{
     await garantirFaceTreinador(genero, i, true);
     toast('Face gerada.');
@@ -5421,7 +5423,7 @@ function faceCartaoHTML(genero, i){
   const pode = podeEditar('dados');
   const acao = pode
     ? `${linha?`<span class="link" style="font-size:11.5px" data-face-pos="${genero}:${i}" title="Arrastar escudo e marca">✥</span>`:''}
-       <span class="link" style="font-size:11.5px" data-face-refazer="${genero}:${i}">↻ ${linha?'Refazer':'Gerar'}</span>`
+       <span class="link" style="font-size:11.5px" data-face-refazer="${genero}:${i}">✦ Gerar</span>`
     : '';
   const moldura = linha
     ? `border:1px solid var(--bd);background:var(--card2)`
@@ -5881,7 +5883,7 @@ function modalFotosIA(item){
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
-        ${editar? botao('data-gerar', f?'↻':'✦', f?'Refazer':'Gerar') :''}
+        ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
     </div>`;
   };
@@ -5957,12 +5959,18 @@ function modalFotosIA(item){
        permite refazer a montagem barata quando o jogador trocar de clube. */
     const t = torso();
     if(t){
-      /* COSTURA COM CONFERÊNCIA: a montagem é validada por pixel e refeita
-         automaticamente quando sai errada (cabeça solta/ausente). Até 2
-         tentativas extras — passou disso, marca para revisão em vez de
-         queimar tokens em silêncio. */
+      /* UMA TENTATIVA, SEM CORREÇÃO AUTOMÁTICA.
+         Este laço já rodou até 3 vezes por jogador, refazendo sozinho a
+         montagem reprovada pelo pixel. O extrato de 25-27/08 mostrou o preço
+         disso: 1.839 das 3.134 chamadas foram refação — US$ 130,16 de
+         US$ 200,54, ou 64,9% da fatura. E a montagem refeita é a chamada MAIS
+         cara do sistema (duas imagens de entrada + saída 2:3).
+         Agora sai uma, e só uma. Se a conferência reprovar, a imagem paga
+         FICA e a linha nasce marcada para revisão — quem decide se vale
+         gastar de novo é a pessoa, olhando o resultado, não o laço. */
+      const TENTATIVAS_MONTAGEM = 1;
       let tentativas = 0, aprovada = null, ultimoMotivo = '', medidas = null, ultimaImagem = null;
-      while(tentativas < 3 && !aprovada){
+      while(tentativas < TENTATIVAS_MONTAGEM && !aprovada){
         tentativas++;
         try{
           const cand = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
@@ -5970,15 +5978,14 @@ function modalFotosIA(item){
           ultimaImagem = cand;
           const v = await validarMontagem(cand);
           if(v.ok){ aprovada = cand; medidas = v.medidas || null; }
-          else { ultimoMotivo = v.motivo; console.warn('montagem reprovada ('+p.n+'):', v.motivo, '— refazendo'); }
+          else { ultimoMotivo = v.motivo; console.warn('montagem reprovada ('+p.n+'):', v.motivo, '— marcada para revisão'); }
         }catch(err){ ultimoMotivo = err.message; console.warn('montagem falhou:', err.message); break; }
       }
       at.tentativas = tentativas;
       if(aprovada){ at.montagem = aprovada; at.medidas = medidas; }
       else if(ultimaImagem){
-        /* reprovou nas 3, mas a imagem está paga: fica a última e a linha do
-           jogador nasce marcada — melhor uma foto para você decidir do que
-           três gerações jogadas fora */
+        /* reprovou, mas a imagem está paga: fica, e a linha nasce marcada —
+           melhor uma foto para você decidir do que a conta de refazer */
         at.montagem = ultimaImagem;
         at.revisar = ultimoMotivo || 'montagem fora do gabarito';
       }
@@ -5992,7 +5999,7 @@ function modalFotosIA(item){
       const th = linha.querySelector('[data-thumb]');
       th.innerHTML = thumbHTML(reg, 40);
       th.style.cursor = 'zoom-in'; th.title = 'Ver em tela expandida';
-      const bt = linha.querySelector('[data-gerar]'); if(bt) rotulo(bt, 'Refazer', '↻');
+      const bt = linha.querySelector('[data-gerar]'); if(bt) rotulo(bt, 'Gerar', '✦');
       const be = linha.querySelector('[data-escudo]'); if(be) be.disabled = !at.montagem;
     }
   }
@@ -6010,21 +6017,23 @@ function modalFotosIA(item){
     const antes = rotuloDe(bt);
     bt.disabled = true; rotulo(bt, 'Gerando…', '·');
     try{ await gerarPara(p, linha); registrar('estudio.foto', c.id+'|'+p.n, { pacote: ST.packId }); toast('Foto salva.'); }
-    catch(err){ rotulo(bt, antes, antes==='Refazer'?'↻':'✦'); toast(err.message||'Falha ao gerar.', true); }
-    bt.disabled = false; if(rotuloDe(bt)==='Gerando…') rotulo(bt, 'Refazer', '↻');
+    catch(err){ rotulo(bt, antes, '✦'); toast(err.message||'Falha ao gerar.', true); }
+    bt.disabled = false; if(rotuloDe(bt)==='Gerando…') rotulo(bt, 'Gerar', '✦');
   });
 
   const btTodos = el('ft-todos');
   if(btTodos) btTodos.onclick = async () => {
     const fila = faltantes();
     if(!fila.length) return toast('Todo o elenco já tem foto.');
-    const custo = (fila.length*(torso()?0.08:0.04)).toFixed(2);
+    /* valores MEDIDOS na fatura (rosto US$ 0,044 + montagem US$ 0,070), nao a
+       tabela antiga por imagem, que subestimava a montagem em 11%. */
+    const custo = (fila.length*(torso()?0.114:0.044)).toFixed(2);
     if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
       texto:`Vou gerar <b>${fila.length} foto(s)</b> de jogador — rosto sorteado e costura com o uniforme do clube.`,
-      detalhe:`Cada montagem é <b>conferida por pixel</b> (cabeça presa à camisa) e <b>refeita sozinha</b>
-               se sair torta — até 2 tentativas extras. Sai uma por vez, com respiro entre elas.
-               Custo estimado: <b>~US$ ${custo}</b> (sobe um pouco nas que precisarem refazer).
-               No fim eu listo o que ficou marcado para revisão.`,
+      detalhe:`Cada montagem é <b>conferida por pixel</b> (cabeça presa à camisa). Saindo torta,
+               ela <b>não é refeita sozinha</b>: fica marcada para revisão e você decide.
+               Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe.
+               No fim eu listo o que ficou marcado.`,
       nao:'Agora não', sim:`Gerar ${fila.length} fotos` })) return;
     btTodos.disabled = true;
     let ok = 0, erroN = 0; const revisar = [];
@@ -6857,7 +6866,7 @@ function modalUniformeIA(item){
         if(aplicar){
           const comFoto = (c.squad||[]).map(p => D.fotos[c.id+'|'+p.n])
             .filter(f => f && f.atributos && f.atributos.recorte==='rosto');
-          const custoRe = (comFoto.length*0.04).toFixed(2);
+          const custoRe = (comFoto.length*0.07).toFixed(2);   // montagem medida na fatura
           const refazer = comFoto.length ? await rfConfirm({
             titulo:'Uniforme aplicado no jogo',
             texto:`O uniforme novo já está valendo no jogo. As <b>${comFoto.length} fotos</b> do elenco
