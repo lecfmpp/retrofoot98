@@ -8277,6 +8277,27 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fx-retrato-f b{font-family:var(--font-mono,monospace);font-weight:700;font-size:26px;line-height:1;color:#fff}
 .rf-fx-retrato-f i{font-family:var(--font-mono,monospace);font-style:normal;font-weight:600;font-size:10px;letter-spacing:.12em;color:#a8b79c}
 
+/* ===== gráfico do motor: só os atributos que decidem a partida ===== */
+.rf-fx-motor{display:flex;flex-direction:column;gap:14px;padding:4px 2px 2px}
+.rf-fx-mt-t{font-size:var(--fs-caption);font-weight:var(--fw-semibold);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-3)}
+.rf-fx-mt-l{display:flex;flex-direction:column;gap:5px}
+.rf-fx-mt-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-fx-mt-rot{font-size:var(--fs-body);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-fx-mt-v{font-family:var(--font-mono,ui-monospace,monospace);font-size:19px;font-weight:700;
+  color:var(--text-2);font-variant-numeric:tabular-nums;line-height:1}
+.rf-fx-mt-v.alto{color:var(--club-primary)}
+.rf-fx-mt-b{position:relative;height:9px;border-radius:999px;background:var(--surface-sunken);
+  border:1px solid var(--line-3);overflow:visible}
+.rf-fx-mt-b>i{display:block;height:100%;border-radius:999px;background:var(--club-primary);
+  transition:width .35s ease}
+.rf-fx-mt-b>u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text-4);
+  border-radius:1px;transform:translateX(-1px)}
+.rf-fx-mt-onde{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-fx-mt-nota{font-size:var(--fs-caption);line-height:1.5;color:var(--text-4);
+  border-top:1px solid var(--line-3);padding-top:10px;margin-top:2px}
+@media (prefers-reduced-motion: reduce){ .rf-fx-mt-b>i{transition:none} }
+
 /* hexágono + forte/fraco */
 .rf-fx-hexcol{display:flex;flex-direction:column;gap:12px;min-width:0}
 .rf-fx-hex{width:100%;flex:1;min-height:230px;display:block;overflow:visible}

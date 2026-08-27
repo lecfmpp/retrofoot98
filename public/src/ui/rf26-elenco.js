@@ -318,47 +318,55 @@ function rfElChanceRenovar(p, novo){
    gols sofridos do goleiro = GA do TIME na temporada (o motor não separa
    por goleiro); ano de fundação = determinístico por clube.
    ===================================================================== */
-const RF_FX_EIXOS_LINHA=[['FINALIZAÇÃO',['fin','cab']],['PASSE',['pas','cru','vis']],['DRIBLE',['dri','agi']],['DEFESA',['des','pos']],['FÍSICO',['vel','fis','res']],['MENTAL',['com','det']]];
-const RF_FX_EIXOS_GK=[['REFLEXOS',['ref']],['MÃOS',['mao']],['POSICIONAMENTO',['pos']],['AGILIDADE',['agi']],['PASSE',['pas','cru','vis']],['FÍSICO',['vel','fis','res']]];
-function rfFxEixos(p){ return p.s==='GK'?RF_FX_EIXOS_GK:RF_FX_EIXOS_LINHA; }
-function rfFxEixoVal(a,keys){ let s=0,n=0; keys.forEach(k=>{ if(a&&a[k]!=null){ s+=a[k]; n++; } }); return n?Math.max(1,Math.min(20,Math.round(s/n))):10; }
-/* o polígono tracejado é REAL: média dos eixos de todos os jogadores da MESMA posição
-   nos elencos da divisão do usuário (DATA.clubs) — é o "média dos goleiros da série" */
-function rfFxMediaEixos(p){
-  const eixos=rfFxEixos(p); const sum=eixos.map(()=>0); let n=0;
+/* ===== O GRÁFICO DO MOTOR (26/08) =====
+   Antes isto era um hexágono de 6 eixos que MISTURAVA atributos lidos pelo motor
+   com atributos que não têm efeito nenhum (físico, mental, cabeceio, cruzamento).
+   O desenho prometia o que o jogo não entrega.
+   Agora ele lê ATTR_MOTOR (index.html) e mostra SÓ o que decide as partidas
+   daquele jogador. Não é mais radar porque não pode ser: nenhuma posição usa mais
+   de 3 atributos, e polígono com 2 pontas não existe. Réguas funcionam com 2, 3 ou
+   6 — quando a v2 ligar novos atributos, a tela acompanha sem redesenho. */
+function rfFxMotorEixos(p){
+  const M=(typeof ATTR_MOTOR!=='undefined')?ATTR_MOTOR:null;
+  if(!M) return [];
+  return M[p&&p.s] || M.MID;
+}
+/* média REAL daquele atributo entre os jogadores da MESMA posição na divisão */
+function rfFxMediaAttr(p, chave){
+  let soma=0, n=0;
   (DATA.clubs||[]).forEach(c=>{ (squad(c.id)||[]).forEach(x=>{
-    if(x.s===p.s&&x.attr){ n++; eixos.forEach((e,i)=>{ sum[i]+=rfFxEixoVal(x.attr,e[1]); }); } }); });
-  return n?sum.map(v=>v/n):null;
+    if(x.s===p.s && x.attr && x.attr[chave]!=null){ soma+=x.attr[chave]; n++; } }); });
+  return n?soma/n:null;
 }
-function rfFxHexPts(vals){
-  const U=[[0,-1],[0.866,-0.5],[0.866,0.5],[0,1],[-0.866,0.5],[-0.866,-0.5]];
-  return vals.map((v,i)=>{ const r=110*Math.max(0,Math.min(20,v))/20;
-    return (150+U[i][0]*r).toFixed(1)+','+(150+U[i][1]*r).toFixed(1); }).join(' ');
-}
-function rfFxHexSVG(p){
-  const eixos=rfFxEixos(p);
-  const vals=eixos.map(e=>rfFxEixoVal(p.attr,e[1]));
-  const media=rfFxMediaEixos(p);
-  const anel=f=>{ const U=[[0,-1],[0.866,-0.5],[0.866,0.5],[0,1],[-0.866,0.5],[-0.866,-0.5]];
-    return U.map(u=>(150+u[0]*110*f).toFixed(2)+','+(150+u[1]*110*f).toFixed(2)).join(' '); };
-  const pts=rfFxHexPts(vals).split(' ');
-  const lbl=[[150,14,31,'middle'],[262,80,97,'start'],[262,212,229,'start'],[150,278,295,'middle'],[38,212,229,'end'],[38,80,97,'end']];
-  return `<svg viewBox="-74 4 448 300" preserveAspectRatio="xMidYMid meet" class="rf-fx-hex">
-    <polygon points="${anel(1)}" fill="#f7faf5" stroke="#e6ece4" stroke-width="1.5"></polygon>
-    <polygon points="${anel(0.75)}" fill="none" stroke="#e6ece4" stroke-width="1.5"></polygon>
-    <polygon points="${anel(0.5)}" fill="none" stroke="#e6ece4" stroke-width="1.5"></polygon>
-    <polygon points="${anel(0.25)}" fill="none" stroke="#e6ece4" stroke-width="1.5"></polygon>
-    <g stroke="#e6ece4" stroke-width="1.5">${anel(1).split(' ').map(pt=>`<line x1="150" y1="150" x2="${pt.split(',')[0]}" y2="${pt.split(',')[1]}"></line>`).join('')}</g>
-    ${media?`<polygon points="${rfFxHexPts(media)}" fill="none" stroke="#c3ccc5" stroke-width="2" stroke-dasharray="5 4"></polygon>`:''}
-    <polygon points="${rfFxHexPts(vals)}" fill="rgba(139,154,31,.20)" stroke="#8b9a1f" stroke-width="2.5" stroke-linejoin="round"></polygon>
-    <g fill="#8b9a1f">${pts.map((pt,i)=>`<circle cx="${pt.split(',')[0]}" cy="${pt.split(',')[1]}" r="${i===0?4.5:i===1?4:3.5}"></circle>`).join('')}</g>
-    <g font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" font-weight="600" letter-spacing="0.1em" fill="#9aa79e">
-      ${eixos.map((e,i)=>`<text x="${lbl[i][0]}" y="${lbl[i][1]}" text-anchor="${lbl[i][3]}">${escC(e[0])}</text>`).join('')}
-    </g>
-    <g font-family="IBM Plex Mono, ui-monospace, monospace" font-size="15" font-weight="700">
-      ${vals.map((v,i)=>`<text x="${lbl[i][0]}" y="${lbl[i][2]}" text-anchor="${lbl[i][3]}" fill="${v>=15?'#6f7d18':'#3c4a41'}">${v}</text>`).join('')}
-    </g>
-  </svg>`;
+function rfFxMotorHTML(p){
+  const eixos=rfFxMotorEixos(p);
+  if(!eixos.length) return '';
+  const linhas=eixos.map(([rot,chave,onde])=>{
+    const v=(p.attr&&p.attr[chave]!=null)?p.attr[chave]:1;
+    const med=rfFxMediaAttr(p,chave);
+    const pc=Math.max(0,Math.min(100,100*v/20));
+    const pcM=med!=null?Math.max(0,Math.min(100,100*med/20)):null;
+    /* acima da média da posição = destaque; abaixo = neutro. O jogador é comparado
+       com os iguais dele, não com o elenco inteiro. */
+    const acima=med!=null && v>med+0.5;
+    return `<div class="rf-fx-mt-l">
+      <div class="rf-fx-mt-cab">
+        <span class="rf-fx-mt-rot">${escC(rot)}</span>
+        <span class="rf-fx-mt-v ${acima?'alto':''}">${v}</span>
+      </div>
+      <div class="rf-fx-mt-b">
+        <i style="width:${pc.toFixed(1)}%"></i>
+        ${pcM!=null?`<u style="left:${pcM.toFixed(1)}%" title="média dos ${escC(p.s)} da divisão: ${med.toFixed(1)}"></u>`:''}
+      </div>
+      <span class="rf-fx-mt-onde">${escC(onde)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="rf-fx-motor">
+    <div class="rf-fx-mt-t">O que decide as partidas dele</div>
+    ${linhas}
+    <div class="rf-fx-mt-nota">O traço marca a média da posição na divisão. Os demais
+      atributos evoluem e alimentam a força, mas ainda não têm efeito próprio no resultado.</div>
+  </div>`;
 }
 /* ponto forte/fraco: maior e menor atributo. Jogador de linha não concorre nos
    atributos de goleiro (ref/mao são baixos por construção — seria sempre o "fraco"). */
@@ -539,7 +547,7 @@ function rfElFichaHTML(clubIdArg, pidArg){
             </span>
           </div>
           <div class="rf-fx-hexcol">
-            ${rfFxHexSVG(p)}
+            ${rfFxMotorHTML(p)}
             ${ff?`<div class="rf-fx-ff">
               <span class="rf-fx-ffchip forte"><b>${ff.hi.v}</b><span><i>PONTO FORTE</i>${escC(ff.hi.n)}</span></span>
               <span class="rf-fx-ffchip fraco"><b>${ff.lo.v}</b><span><i>PONTO FRACO</i>${escC(ff.lo.n)}</span></span>

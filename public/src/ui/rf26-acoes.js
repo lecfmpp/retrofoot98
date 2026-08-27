@@ -644,7 +644,7 @@ const RF_ACOES = {
   const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
   const ask=(typeof playerAsk==='function')?playerAsk(p,cid):vm;
   const sal=(p.contract&&p.contract.salary)||p.salary||0;
-  const hex=(typeof rfFxHexSVG==='function')?rfFxHexSVG(p):'';
+  const hex=(typeof rfFxMotorHTML==='function')?rfFxMotorHTML(p):'';
   const foto=(typeof rfFotoDe==='function')?rfFotoDe(p,cid):null;
   const linha=(rot,val,sub)=>`<div class="rf-jp-l"><span>${escC(rot)}</span><b>${escC(String(val))}</b>${sub?`<i>${escC(sub)}</i>`:''}</div>`;
   return rfAcao({

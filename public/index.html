@@ -316,6 +316,31 @@ const ATTR_KEYS=['fin','pas','dri','des','cab','cru','vis','pos','com','det','ve
 const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab:'Cabeceio',cru:'Cruzamento',
   vis:'Visão de jogo',pos:'Posicionamento',com:'Compostura',det:'Determinação',
   vel:'Velocidade',res:'Resistência',fis:'Força física',agi:'Agilidade',ref:'Reflexos (GOL)',mao:'Defesa/mãos (GOL)'};
+/* ===== O QUE O MOTOR REALMENTE LÊ — FONTE ÚNICA DA VERDADE =====
+   Dos 16 atributos, só estes entram no resultado hoje; os outros existem, evoluem
+   e alimentam a força (attrLevel), mas não têm efeito PRÓPRIO na partida.
+   A ficha do jogador desenha o gráfico A PARTIR DAQUI, então a tela nunca promete
+   um efeito que o motor não entrega.
+
+   PARA LIGAR UM ATRIBUTO NOVO NA v2, em ordem:
+     1. implemente o fator no motor — attrFactor(...) nas 5 cópias (ver bíblia);
+     2. meça o efeito com scripts/arena-linha.mjs (antes × depois);
+     3. acrescente a linha aqui. A tela acompanha sozinha, sem tocar em UI.
+   Terceiro campo = onde entra, mostrado ao usuário como legenda. */
+const ATTR_MOTOR={
+  ATT:[['Finalização','fin','decide quem marca'],
+       ['Drible','dri','nota de ataque']],
+  MID:[['Finalização','fin','decide quem marca'],
+       ['Passe','pas','nota de meio-campo'],
+       ['Visão de jogo','vis','nota de meio-campo']],
+  DEF:[['Desarme','des','nota de defesa'],
+       ['Posicionamento','pos','nota de defesa']],
+  GK :[['Reflexos','ref','nota de defesa'],
+       ['Defesa/mãos','mao','nota de defesa']]
+};
+/* conjunto plano — usado para marcar na lista dos 16 quem já pesa no resultado */
+const ATTR_MOTOR_SET=(function(){ const s={}; for(const k in ATTR_MOTOR) ATTR_MOTOR[k].forEach(e=>{ (s[k]||(s[k]=[])).push(e[1]); }); return s; })();
+
 const ATTR_GROUP={'Técnicos':['fin','pas','dri','des','cab','cru'],'Mentais':['vis','pos','com','det'],'Físicos':['vel','res','fis','agi'],'Goleiro':['ref','mao']};
 const POS_PROFILE={
   ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,cab:7,agi:7,fis:5,res:5},
