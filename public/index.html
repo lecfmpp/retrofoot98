@@ -316,6 +316,12 @@ const ATTR_KEYS=['fin','pas','dri','des','cab','cru','vis','pos','com','det','ve
 const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab:'Cabeceio',cru:'Cruzamento',
   vis:'Visão de jogo',pos:'Posicionamento',com:'Compostura',det:'Determinação',
   vel:'Velocidade',res:'Resistência',fis:'Força física',agi:'Agilidade',ref:'Reflexos (GOL)',mao:'Defesa/mãos (GOL)'};
+/* CARIMBO DO MOTOR — preenchido por scripts/versao-motor.mjs no build. Muda só
+   quando o código que decide partida muda; edição de tela não mexe nele.
+   Serve para detectar dois humanos na mesma sala com motores diferentes (aba
+   aberta antes do deploy). Ver netMotorDivergente(). */
+/* @motor-ver */ const RF_MOTOR_VER = '319bc8437d28';
+
 /* ===== O QUE O MOTOR REALMENTE LÊ — FONTE ÚNICA DA VERDADE =====
    Dos 16 atributos, só estes entram no resultado hoje; os outros existem, evoluem
    e alimentam a força (attrLevel), mas não têm efeito PRÓPRIO na partida.

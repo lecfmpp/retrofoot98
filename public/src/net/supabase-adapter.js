@@ -581,6 +581,9 @@ async function netPublishResult(round, result){
     // humana (é ele que roda a sessão ao vivo, com as substituições); sem mandar, o servidor
     // recalcularia nota/energia/moral pelo onze submetido no apito e ignoraria quem entrou ou
     // saiu no meio do jogo. Ver ratePlayersS/rateAppearances.
+    /* com que motor este placar foi simulado — o servidor descarta o que vier de
+       versão diferente da dele em vez de misturar dois jogos no mesmo campeonato */
+    motorVer:(typeof RF_MOTOR_VER!=='undefined')?RF_MOTOR_VER:null,
     caps:result.caps||null, matchMinutes:result.matchMinutes||null,
     transfers:_tr, morale:_mo, offers:_of, counters:_ct, offerDrops:_dr, training:_trn };
   try{
@@ -1308,11 +1311,44 @@ async function netSaveGame(stateObj){
   } catch(e) { console.error('saveGame erro:', e); }
 }
 
+/* MOTOR DIVERGENTE: verdade quando esta aba está rodando um motor diferente do que
+   resolve a sala. Acontece com aba aberta desde antes de um deploy. Só é conhecida
+   depois da primeira rodada resolvida (é o servidor que carimba o estado). */
+NET._motorSala = null;
+/* O AVISO. Barra fixa, uma vez por aba: quem está com motor velho precisa recarregar,
+   e precisa SABER disso — senão continua jogando um jogo que o servidor vai descartar.
+   Desenhada aqui, sem depender de nada da UI, para não quebrar tela nenhuma. */
+let _avisoMotor=false;
+function netAvisarMotorVelho(){
+  console.warn('motor divergente: sala em '+NET._motorSala+', esta aba em '+RF_MOTOR_VER);
+  if(_avisoMotor || typeof document==='undefined') return;
+  _avisoMotor=true;
+  const b=document.createElement('div');
+  b.setAttribute('role','alert');
+  b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#F2B90C;'+
+    'color:#17458F;font:600 14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;'+
+    'padding:13px 18px;display:flex;gap:14px;align-items:center;justify-content:center;'+
+    'flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,.18)';
+  b.innerHTML='<span>O jogo foi atualizado enquanto esta aba estava aberta. '+
+    'Recarregue para continuar — seus resultados não valem até lá.</span>'+
+    '<button type="button" style="background:#17458F;color:#fff;border:0;border-radius:8px;'+
+    'padding:9px 18px;font:inherit;cursor:pointer">Recarregar agora</button>';
+  b.querySelector('button').onclick=()=>location.reload();
+  document.body.appendChild(b);
+}
+function netMotorDivergente(){
+  const meu = (typeof RF_MOTOR_VER!=='undefined') ? RF_MOTOR_VER : null;
+  if(!meu || !NET._motorSala) return false;   // sem carimbo dos dois lados, não há o que comparar
+  return NET._motorSala !== meu;
+}
+
 async function netLoadGame(){
   try {
     const { data, error } = await sb.from('games').select('shared_state,state_version').eq('id', NET.gameId).single();
     if(error) return null;
     NET._loadedVersion = data?.state_version || 0;   // versão do que acabei de baixar (ver CL._adoptedVer)
+    NET._motorSala = (data && data.shared_state && data.shared_state.motorVer) || null;
+    if(netMotorDivergente()) netAvisarMotorVelho();
     return data?.shared_state || null;
   } catch(e) { console.error('loadGame erro:', e); return null; }
 }
@@ -1766,6 +1802,7 @@ NET.kick = netKick;
 NET.sendChat = netSendChat;
 NET.saveGame = netSaveGame;
 NET.loadGame = netLoadGame;
+NET.motorDivergente = netMotorDivergente;   // a UI pode travar o "resolver rodada" com isto
 NET.isOnlineUser = netIsOnline;
 NET.authStatus = netAuthStatus;
 NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
