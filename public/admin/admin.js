@@ -4446,36 +4446,40 @@ async function validarMontagem(url){
 
     const f = v => v/H, fw = v => v/W;
 
-    /* 1. onde começa a cabeça */
-    const topo = f(cheias[0].y);
-    const tolT = 0.05;
-    if(Math.abs(topo-ENQ.topoCabeca) > tolT)
-      return { ok:false, motivo:`topo da cabeça em ${pc(topo)} (gabarito ${pc(ENQ.topoCabeca)})` };
+    /* ===== O GABARITO DEIXOU DE REPROVAR =====
+       Havia aqui cinco medidas contra o ENQ (topo da cabeça, largura da
+       cabeça, ombros, braço na borda). Elas existiam por UM motivo: o escudo
+       era posto por coordenada fixa, então todo jogador precisava sair no
+       mesmo quadro. Com o escudo arrastável por foto, essa amarra perdeu a
+       razão de ser.
 
-    /* 2. tamanho da cabeça — maior largura dentro da faixa da cabeça */
+       E a régua estava torta. Das 677 fotos marcadas, 621 caíram na mesma
+       regra — a largura da cabeça. Medida contra medida: o conferidor lia
+       entre 40% e 46% em TODAS as 621, e o gabarito aceitava de 19% a 35%.
+       Nenhuma imagem podia passar; a menor leitura foi 36%. O alvo não
+       existia, e as fotos reprovadas estão boas (conferido a olho).
+
+       Fica só o que denuncia imagem INUTILIZÁVEL — quadro vazio e cabeça
+       solta no ar. Essas duas nunca deram falso positivo em 715 fotos, e são
+       o defeito que motivou a conferência.
+
+       As medidas continuam sendo CALCULADAS e devolvidas: custam nada (é
+       canvas local) e servem para você olhar. Só não reprovam mais nada. */
+
+    const topo = f(cheias[0].y);
     const faixaCab = perfil.filter(r => r.y > cheias[0].y && f(r.y) < ENQ.topoCabeca+ENQ.altCabeca);
     const largCab = fw(Math.max(0, ...faixaCab.map(r=>r.larg)));
-    if(Math.abs(largCab-ENQ.largCabeca) > 0.08)
-      return { ok:false, motivo:`cabeça com ${pc(largCab)} de largura (gabarito ${pc(ENQ.largCabeca)})` };
+    const noPeito = perfil.find(r => f(r.y) >= ENQ.linhaPeito) || perfil[perfil.length-1];
+    const largOmb = fw(noPeito.larg);
 
-    /* 3. pescoço colado na camisa: nenhum vão de fundo entre a cabeça e a gola */
+    /* cabeça descolada: vão de fundo entre a cabeça e a gola. É o defeito de
+       verdade — a montagem que sai com a cabeça flutuando. */
     let vazio=0, maiorVazio=0;
     perfil.filter(r => r.y>cheias[0].y && f(r.y) < 0.75).forEach(r=>{
       if(r.larg===0){ vazio++; maiorVazio=Math.max(maiorVazio,vazio); } else vazio=0;
     });
     if(f(maiorVazio*passo) > 0.03)
       return { ok:false, motivo:`cabeça descolada (vão de ${pc(f(maiorVazio*passo))})` };
-
-    /* 4. ombros: largura na linha do peito, onde o escudo vai morar */
-    const noPeito = perfil.find(r => f(r.y) >= ENQ.linhaPeito) || perfil[perfil.length-1];
-    const largOmb = fw(noPeito.larg);
-    if(Math.abs(largOmb-ENQ.largOmbros) > 0.12)
-      return { ok:false, motivo:`ombros com ${pc(largOmb)} (gabarito ${pc(ENQ.largOmbros)})` };
-
-    /* 5. braço encostando na borda — o recorte apertou e o escudo sai de lugar */
-    const encosta = perfil.some(r => r.larg>0 && f(r.y) > ENQ.linhaGola &&
-      (fw(r.ini) < ENQ.folgaBraco*0.4 || fw(W-1-r.fim) < ENQ.folgaBraco*0.4));
-    if(encosta) return { ok:false, motivo:'braço encostando na borda (recorte apertado)' };
 
     return { ok:true, medidas:{ topo:pc(topo), cabeca:pc(largCab), ombros:pc(largOmb) } };
   }catch(e){ return { ok:true, motivo:'não deu para validar ('+e.message+')' }; }
