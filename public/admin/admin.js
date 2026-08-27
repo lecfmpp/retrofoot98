@@ -340,9 +340,10 @@ function renderNav(){
 }
 function irPara(tab, forcar){
   if(!podeVer(tab)) tab = 'visao';
-  ST.tab = tab; renderNav();
+  ST.tab = tab; renderNav(); menuLateral(false);
   const n = NAV.find(x=>x.id===tab);
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
+  el('mob-tit').textContent = n.tit;
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
                financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
@@ -2089,7 +2090,16 @@ function abrirModal(html, cls){
   Array.from(box.childNodes).forEach(n => { if(n !== titulo) corpo.appendChild(n); });
   if(acoes && corpo.contains(acoes)) acoes.remove();
   box.appendChild(corpo);
-  if(titulo) titulo.classList.add('box-hd');
+  if(titulo){
+    titulo.classList.add('box-hd');
+    /* FECHAR SEMPRE À MÃO: no telemóvel o modal ocupa a tela inteira — não há
+       "fora do modal" para clicar, nem Esc para carregar. */
+    const x = document.createElement('button');
+    x.type = 'button'; x.className = 'box-x'; x.textContent = '✕';
+    x.setAttribute('aria-label', 'Fechar'); x.title = 'Fechar';
+    x.onclick = fecharModal;
+    titulo.appendChild(x);
+  }
   if(acoes){ acoes.classList.add('box-ft'); box.appendChild(acoes); }
 
   m.onclick = ev => { if(ev.target===m) fecharModal(); };
@@ -2098,6 +2108,23 @@ function abrirModal(html, cls){
 }
 function fecharModal(){ el('modais').innerHTML=''; document.removeEventListener('keydown', escFechar); }
 function escFechar(e){ if(e.key==='Escape') fecharModal(); }
+
+/* ============================ gaveta do telemóvel ============================ */
+/* A navegação é a MESMA da barra lateral — abaixo de 900px o CSS tira a barra do
+   fluxo e ela entra por cima. Fecha em tudo o que significa "já escolhi": item do
+   menu (ver irPara), fundo escuro, Esc, e ao voltar para a largura de desktop. */
+function menuLateral(abrir){
+  const app = el('app'), bt = el('mob-menu');
+  app.classList.toggle('menu-on', abrir);
+  if(bt) bt.setAttribute('aria-expanded', String(!!abrir));
+  document.body.style.overflow = abrir ? 'hidden' : '';
+}
+el('mob-menu').onclick = () => menuLateral(!el('app').classList.contains('menu-on'));
+el('side-fundo').onclick = () => menuLateral(false);
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape' && el('app').classList.contains('menu-on')) menuLateral(false);
+});
+addEventListener('resize', () => { if(innerWidth > 900) menuLateral(false); });
 
 /* ============================ arranque ============================ */
 el('sair').onclick = async () => { await sb.auth.signOut(); ME=null; ST.authMode='login'; mostrarAuth(); };
@@ -5368,27 +5395,42 @@ function modalFotosIA(item){
     return `<img src="${h(f.url)}" style="width:${px}px;height:${px}px;border-radius:8px;object-fit:cover">`;
   };
 
-  /* linha enxuta: foto, nome e botões com TEXTO — o visual sorteado do jogador
-     continua existindo (influencia a geração), mas vive só no backend */
+  /* linha enxuta: foto, nome e botões. Os botões são ÍCONE + rótulo: no telemóvel
+     o CSS esconde o rótulo e sobra um quadrado de 38px — assim os dois botões
+     cabem lado a lado em qualquer largura, e todas as linhas ficam da mesma
+     altura (com o texto, o segundo botão caía para baixo em telas estreitas). */
+  const botao = (attr, ic, lb, extra) =>
+    `<button class="btn btn-sm btn-ico ${attr==='data-escudo'?'btn-ghost':''}" ${attr} ${extra||''}
+       title="${h(lb)}" aria-label="${h(lb)}"><span class="ic">${ic}</span><span class="lb">${h(lb)}</span></button>`;
+  /* o rótulo agora vive num <span>: trocar textContent do botão apagaria o ícone */
+  const rotulo = (bt, txt, ic) => {
+    const l = bt.querySelector('.lb'), i = bt.querySelector('.ic');
+    if(l){ l.textContent = txt; bt.title = txt; bt.setAttribute('aria-label', txt); } else bt.textContent = txt;
+    if(i && ic) i.textContent = ic;
+  };
+  const rotuloDe = (bt) => { const l = bt.querySelector('.lb'); return l ? l.textContent : bt.textContent; };
+
   const linhaFoto = (p) => {
     const f = D.fotos[c.id+'|'+p.n];
-    return `<div class="row" style="grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:center" data-foto-jog="${h(p.n)}">
+    const temMontagem = !!(f && f.atributos && f.atributos.montagem);
+    return `<div class="row ft-row" data-foto-jog="${h(p.n)}">
       <span data-thumb ${f?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${f
         ? thumbHTML(f, 40)
         : `<i class="av" style="width:40px;height:40px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:12px">${h(iniciais(p.n))}</i>`}</span>
       <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(p.n)}</b>
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
-      <span style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
-        ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-erro" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
-        <button class="btn btn-sm btn-ghost" data-escudo title="Arrastar e soltar escudo/logos no uniforme desta foto" ${f&&f.atributos&&f.atributos.montagem?'':'disabled'}>Posicionar</button>
-        ${editar?`<button class="btn btn-sm" data-gerar>${f?'Refazer':'Gerar'}</button>`:''}
+      <span class="ft-acoes">
+        ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
+        ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
+        ${editar? botao('data-gerar', f?'↻':'✦', f?'Refazer':'Gerar') :''}
       </span>
     </div>`;
   };
 
   abrirModal(`
     <h3>Fotos por IA — ${h(c.short||c.name)}</h3>
-    <div class="st" style="line-height:1.6;margin-bottom:10px">
+    <details class="ajuda"><summary>Como funciona e quanto custa</summary>
+    <div class="st" style="line-height:1.6;margin:8px 0 0">
       A foto é em DUAS camadas: o <b>rosto</b> (recortado, um por jogador) sobre a
       <b>camisa do clube</b> (base única para o elenco inteiro). Trocou de clube?
       O visual do rosto (pele, cabelo, barba, sorriso, brinco, tatuagem) é sorteado automaticamente
@@ -5397,8 +5439,9 @@ function modalFotosIA(item){
       A idade vem do elenco. ~US$ 0,08 por jogador (rosto + montagem).
       <b>No primeiro jogador do clube, confira o encaixe:</b> escudo e patrocinador podem
       precisar de ajuste de posição — clique em "Posicionar" na linha dele, arraste e salve; a posição
-      vale para o elenco inteiro.</div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;border:1px solid var(--bd2);border-radius:10px">
+      vale para o elenco inteiro. Dentro do ajuste dá para <b>passar de jogador em jogador</b> com as
+      setas, e salvar já leva para o seguinte.</div></details>
+    <div class="ft-uni">
       <span data-torso-thumb ${torso()?'style="cursor:zoom-in" title="Ver em tela expandida"':''}>${torso()
         ? compostoHTML(torso().url, null, 44, 8, camadasClube())
         : `<i class="av" style="width:44px;height:44px;border-radius:8px;background:${h(c.color||'#333')};color:#fff;font-size:11px">⚽</i>`}</span>
@@ -5490,7 +5533,7 @@ function modalFotosIA(item){
       const th = linha.querySelector('[data-thumb]');
       th.innerHTML = thumbHTML(reg, 40);
       th.style.cursor = 'zoom-in'; th.title = 'Ver em tela expandida';
-      const bt = linha.querySelector('[data-gerar]'); if(bt) bt.textContent = 'Refazer';
+      const bt = linha.querySelector('[data-gerar]'); if(bt) rotulo(bt, 'Refazer', '↻');
       const be = linha.querySelector('[data-escudo]'); if(be) be.disabled = !at.montagem;
     }
   }
@@ -5505,10 +5548,11 @@ function modalFotosIA(item){
       return;
     }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
-    bt.disabled = true; const rotulo = bt.textContent; bt.textContent = '…';
+    const antes = rotuloDe(bt);
+    bt.disabled = true; rotulo(bt, 'Gerando…', '·');
     try{ await gerarPara(p, linha); registrar('estudio.foto', c.id+'|'+p.n, { pacote: ST.packId }); toast('Foto salva.'); }
-    catch(err){ bt.textContent = rotulo; toast(err.message||'Falha ao gerar.', true); }
-    bt.disabled = false; if(bt.textContent==='…') bt.textContent = 'Refazer';
+    catch(err){ rotulo(bt, antes, antes==='Refazer'?'↻':'✦'); toast(err.message||'Falha ao gerar.', true); }
+    bt.disabled = false; if(rotuloDe(bt)==='Gerando…') rotulo(bt, 'Refazer', '↻');
   });
 
   const btTodos = el('ft-todos');
@@ -5635,7 +5679,7 @@ function modalLoteEscudos(){
       ${selHTML(i, p)}
       <span style="text-align:right;display:flex;gap:6px;justify-content:flex-end">${p.salvo
         ? '<span class="tag t-ok">salvo ✓</span>'
-        : p.erro ? `<span class="tag t-erro" title="${h(p.erro)}">erro</span>`
+        : p.erro ? `<span class="tag t-bad" title="${h(p.erro)}">erro</span>`
         : `<button class="btn btn-sm btn-ghost" data-semfundo="${i}" title="Remover o fundo — a miniatura mostra o resultado">◌</button>
            <button class="btn btn-sm" data-conf="${i}" ${p.clube?'':'disabled'}>Confirmar</button>`}</span>
     </div>`;
@@ -5764,12 +5808,41 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
     fabricante: noQuadroDaFoto(Object.assign({}, FAB_POS_PADRAO,    at0.fabricante || {}))
   };
 
-  const lado = Math.min(420, Math.floor(Math.min(innerWidth*0.85, (innerHeight*0.72)/RATIO_FOTO)));
+  /* o palco encolhe no telemóvel para caber ele + o painel de controles na
+     mesma tela: antes o palco tomava 72% da altura e os botões ficavam abaixo
+     da dobra, num overlay que não rolava */
+  const estreito = innerWidth <= 640;
+  const lado = Math.max(160, Math.floor(Math.min(420, innerWidth - (estreito?34:60),
+    (innerHeight * (estreito?0.46:0.58)) / RATIO_FOTO)));
   const ladoAlt = Math.round(lado*RATIO_FOTO);
+
+  /* NAVEGAÇÃO ENTRE JOGADORES — a mesma ordem da lista do modal de fotos (força
+     decrescente, de cima para baixo). Só entram os que já têm montagem: sem foto
+     costurada não há camisa onde encaixar as camadas. */
+  const ordem = (c.squad||[]).slice().sort((a,b)=>(b.f||0)-(a.f||0)).map(p=>p.n)
+    .filter(n => { const f = D.fotos[c.id+'|'+n]; return !!(f && f.atributos && f.atributos.montagem); });
+  const iAtual = jogador ? ordem.indexOf(jogador) : -1;
+
+  const sliderHTML = (chave, cor, rot, min, max) =>
+    `<label class="aj-sl"><span style="color:${cor}">${rot}</span>
+      <input data-w="${chave}" type="range" min="${min}" max="${max}" step="0.5" value="${pos[chave].w}"></label>`;
+
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:#000d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px';
+  ov.className = 'aj-ov';
   ov.innerHTML = `
-    <div style="position:relative;width:${lado}px;height:${ladoAlt}px;border-radius:12px;overflow:hidden;background:#d9d9d9;touch-action:none">
+    <div class="aj-topo">
+      ${iAtual>=0 ? `<button class="aj-nav" id="aj-ant" ${iAtual<=0?'disabled':''}
+          title="Jogador anterior" aria-label="Jogador anterior">‹</button>` : ''}
+      <span class="aj-quem">
+        <b>${h(iAtual>=0 ? jogador : 'Posição das camadas')}</b>
+        <small>${iAtual>=0 ? `${iAtual+1} de ${ordem.length} · ${h(c.short||c.name)}`
+                           : `${h(c.short||c.name)} · vale para o elenco todo`}</small>
+      </span>
+      ${iAtual>=0 ? `<button class="aj-nav" id="aj-prox" ${iAtual>=ordem.length-1?'disabled':''}
+          title="Próximo jogador" aria-label="Próximo jogador">›</button>` : ''}
+      <button class="aj-nav" id="aj-x" title="Fechar" aria-label="Fechar">✕</button>
+    </div>
+    <div class="aj-palco" style="width:${lado}px;height:${ladoAlt}px">
       <img src="${h(base)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
       ${escudoUrl?`<img data-alvo="escudo" src="${h(escudoUrl)}" draggable="false"
         style="position:absolute;left:${pos.escudo.x}%;top:${pos.escudo.y}%;width:${pos.escudo.w}%;cursor:grab;outline:2px dashed #e3b23c;outline-offset:3px">`:''}
@@ -5778,23 +5851,23 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
       ${ST.patroTeste?`<img data-alvo="patro" src="${h(ST.patroTeste)}" draggable="false"
         style="position:absolute;left:${pos.patro.x}%;top:${pos.patro.y}%;width:${pos.patro.w}%;cursor:grab;outline:2px dashed #35c46a;outline-offset:3px">`:''}
     </div>
-    <div style="display:flex;align-items:center;gap:14px;color:#fff;font-size:13px;flex-wrap:wrap;justify-content:center">
-      ${escudoUrl?`<span style="color:#e3b23c">Escudo</span>
-        <input data-w="escudo" type="range" min="5" max="40" step="0.5" value="${pos.escudo.w}" style="width:150px">`:''}
-      ${fabUrl?`<span style="color:#7dd3fc">Fabricante</span>
-        <input data-w="fabricante" type="range" min="4" max="30" step="0.5" value="${pos.fabricante.w}" style="width:130px">`:''}
-      ${ST.patroTeste?`<span style="color:#35c46a">Logo</span>
-        <input data-w="patro" type="range" min="8" max="60" step="0.5" value="${pos.patro.w}" style="width:150px">`:''}
-      ${jogador ? `<button class="btn btn-sm" id="aj-salvar" title="${h(jogador)}">Salvar nesta camisa apenas</button>
-                   <button class="btn btn-sm btn-ghost" id="aj-salvar-todos">Salvar para o elenco todo</button>
-                   ${fJog && fJog.atributos && fJog.atributos.pos
-                     ? `<button class="btn btn-sm btn-ghost" id="aj-padrao">Voltar ao padrão do clube</button>` : ''}`
-                : `<button class="btn btn-sm" id="aj-salvar">Salvar posições</button>`}
-      <button class="btn btn-sm btn-ghost" id="aj-cancelar" style="color:#fff">Cancelar</button>
+    <div class="aj-ctrl">
+      ${escudoUrl? sliderHTML('escudo','#e3b23c','Escudo',5,40) : ''}
+      ${fabUrl? sliderHTML('fabricante','#7dd3fc','Fabricante',4,30) : ''}
+      ${ST.patroTeste? sliderHTML('patro','#35c46a','Patrocínio',8,60) : ''}
+      <div class="aj-bts">
+        ${jogador ? `<button class="btn btn-sm" id="aj-salvar" title="${h(jogador)}">Salvar nesta camisa</button>
+                     <button class="btn btn-sm btn-ghost" id="aj-salvar-todos">Salvar no elenco todo</button>
+                     ${fJog && fJog.atributos && fJog.atributos.pos
+                       ? `<button class="btn btn-sm btn-ghost" id="aj-padrao">Voltar ao padrão</button>` : ''}`
+                  : `<button class="btn btn-sm" id="aj-salvar">Salvar posições</button>`}
+        <button class="btn btn-sm btn-ghost" id="aj-cancelar">Cancelar</button>
+      </div>
     </div>
-    <small style="color:#fff8;text-align:center;max-width:${lado}px">
-      Arraste o escudo (amarelo), o fabricante (azul) e o patrocinador (verde) até encaixarem
-      — as posições salvas valem para todas as fotos do clube.
+    <small class="aj-dica">
+      Arraste o escudo (amarelo), o fabricante (azul) e o patrocinador (verde) até encaixarem.
+      ${iAtual>=0 ? 'Salvar já leva para o próximo jogador da lista.'
+                  : 'As posições salvas valem para todas as fotos do clube.'}
     </small>`;
   document.body.appendChild(ov);
 
@@ -5818,6 +5891,30 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
   const esc = e2 => { if(e2.key==='Escape'){ e2.stopImmediatePropagation(); fechar(); } };
   document.addEventListener('keydown', esc, true);
   ov.querySelector('#aj-cancelar').onclick = fechar;
+  ov.querySelector('#aj-x').onclick = fechar;
+
+  /* PASSAR DE JOGADOR sem voltar à lista: fecha este palco e abre o do vizinho.
+     `refrescar` redesenha a lista atrás — depois de salvar, as miniaturas mudam. */
+  const abrirJogador = (i, refrescar) => {
+    const n = ordem[i]; if(n == null) return false;
+    const f = D.fotos[c.id+'|'+n];
+    if(!(f && f.atributos && f.atributos.montagem)) return false;
+    fechar();
+    if(refrescar && onSalvo) onSalvo();
+    modalAjustePatrocinio(item, onSalvo, f.atributos.montagem, true, n);
+    return true;
+  };
+  const btAnt = ov.querySelector('#aj-ant');
+  if(btAnt) btAnt.onclick = () => abrirJogador(iAtual-1);
+  const btProx = ov.querySelector('#aj-prox');
+  if(btProx) btProx.onclick = () => abrirJogador(iAtual+1);
+
+  /* SALVOU, SEGUE: conferir o elenco camisa a camisa é o trabalho real aqui —
+     voltar à lista a cada uma custava dois cliques por jogador. No último (ou
+     quando o ajuste é do clube), encerra e devolve a lista atualizada. */
+  const concluir = () => {
+    if(iAtual < 0 || !abrirJogador(iAtual+1, true)){ fechar(); if(onSalvo) onSalvo(); }
+  };
 
   const medir = () => {
     const lim = o => { const v = doQuadroDaFoto(o); return { x:+v.x.toFixed(2), y:+v.y.toFixed(2), w:+v.w.toFixed(2) }; };
@@ -5835,7 +5932,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
     fJog.atributos = at;
     registrar('estudio.camadas.pos.jogador', c.id+'|'+jogador, at.pos);
     toast(`Posições salvas nesta camisa apenas (${jogador}).`);
-    fechar(); if(onSalvo) onSalvo();
+    concluir();
   };
 
   const btPadrao = ov.querySelector('#aj-padrao');
@@ -5855,7 +5952,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
     if(!t){
       pend.posPend = novas;
       toast('Posições guardadas — serão salvas junto com o uniforme.');
-      fechar(); if(onSalvo) onSalvo();
+      concluir();
       return;
     }
     const at = Object.assign({}, t.atributos, novas);
@@ -5866,7 +5963,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
     registrar('estudio.camadas.pos', String(c.id), at);
     toast('Posições salvas — valem para todo o elenco'
       + (jogador ? ' (a exceção desta foto continua valendo; apague-a no botão do lado)' : '') + '.');
-    fechar(); if(onSalvo) onSalvo();
+    concluir();
   };
 }
 

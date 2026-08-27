@@ -204,8 +204,10 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   box-shadow:0 18px 34px rgba(0,0,0,.55);border-color:var(--verde);opacity:.96;cursor:grabbing}
 
 /* ---------- modais / toast ---------- */
+/* z-index: gaveta do telemóvel 55/60 · modal 70 · toast 90 — o modal tem de
+   passar por cima da gaveta, e o aviso por cima do modal */
 .modal{position:fixed;inset:0;background:rgba(4,8,6,.7);display:flex;align-items:center;
-  justify-content:center;z-index:50;padding:20px}
+  justify-content:center;z-index:70;padding:20px}
 /* o modal é uma coluna de três partes: cabeçalho e rodapé fixos, miolo rolando.
    max-height garante que ele NUNCA passe da janela (ver abrirModal, que monta as três) */
 .modal .box{width:440px;max-width:100%;max-height:calc(100vh - 40px);
@@ -256,13 +258,12 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .drop .ic{font-size:22px;margin-bottom:6px}
 .drop .t{font-size:13px;font-weight:700}
 .drop .s{font-size:11.5px;color:var(--dim3);margin-top:4px}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:60;
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:90;
   background:var(--verde-bg);border:1px solid var(--verde-bd);color:var(--verde2);
   border-radius:10px;padding:11px 18px;font-size:13px;font-weight:600}
 #toast.err{background:#2b1418;border-color:#5a1f2a;color:var(--vermelho)}
 
 @media (max-width:1100px){
-  .app{grid-template-columns:1fr} aside{position:static;height:auto}
   .g4{grid-template-columns:1fr 1fr} .g3,.g2{grid-template-columns:1fr}
   .auth{grid-template-columns:1fr} .auth-l{display:none}
 }
@@ -362,3 +363,157 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   border:2px solid var(--verde2);border-top-color:transparent;animation:ia-giro .8s linear infinite}
 #ia-status small{color:var(--dim2);font-size:11.5px}
 @keyframes ia-giro{to{transform:rotate(360deg)}}
+
+/* ============================================================================
+   TELEMÓVEL — a barra lateral vira gaveta, o modal vira folha inteira
+   No desktop nada muda: a barra continua fixa e os modais continuam caixas.
+   Abaixo de 900px a lateral saía do lugar e empurrava a página inteira para
+   baixo (era preciso rolar meia tela antes de ver qualquer dado); agora ela
+   sai do fluxo e só entra por cima quando o hambúrguer pede.
+   ============================================================================ */
+.mob-top, .side-fundo{ display:none }
+
+@media (max-width:900px){
+  /* uma coluna e DUAS linhas explícitas: com linhas automáticas o grid tem
+     min-height:100vh e o align-content:stretch reparte a sobra entre elas — a
+     barra do topo ficava com 190px de altura e o painel começava no meio da tela */
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .mob-top{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:40;
+    padding:9px 12px;background:var(--card2);border-bottom:1px solid var(--bd)}
+  .mob-top img{width:26px;height:26px;flex:none}
+  .mob-top b{flex:1;min-width:0;font-size:14px;font-weight:800;letter-spacing:-.2px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mob-btn{flex:none;width:40px;height:40px;border-radius:10px;background:var(--card);
+    border:1px solid var(--bd2);color:var(--fg);font-size:17px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .mob-btn:active{background:var(--bd3)}
+  /* a gaveta: fora do fluxo, deslizando por cima — o conteúdo da página nunca desce */
+  aside{position:fixed;top:0;left:0;bottom:0;height:100dvh;width:268px;max-width:84vw;z-index:60;
+    transform:translateX(-100%);transition:transform .22s ease;overflow-y:auto;
+    box-shadow:0 0 46px #000a;padding:18px 12px}
+  .app.menu-on aside{transform:none}
+  .app.menu-on .side-fundo{display:block;position:fixed;inset:0;z-index:55;background:#040806bf}
+  .nav-i{padding:11px 10px;font-size:14px}
+  header{padding:16px 16px 0;flex-wrap:wrap;gap:10px}
+  /* título na linha inteira; os períodos descem em vez de espremê-lo */
+  header > div{flex:1 1 100%}
+  header h1{font-size:19px}
+  .page{padding:16px 16px 34px;gap:14px}
+  .card-h{flex-wrap:wrap;padding:14px 16px}
+  .card-p{padding:16px}
+  .row,.rowh{padding-left:14px;padding-right:14px}
+  .kpi{padding:14px 15px}
+  .kpi .v{font-size:22px}
+  /* seletores e buscas dos cabeçalhos vêm com largura fixa inline — no telemóvel
+     cada um ocupa a sua linha inteira, senão sobra meia palavra visível */
+  .card-h .busca{width:100% !important}
+  .per{flex-wrap:wrap}
+}
+@media (max-width:520px){
+  /* dois KPIs por linha até no telemóvel: um por linha empurrava a lista de
+     clubes três telas para baixo */
+  .kpi{padding:12px 13px}
+  .kpi .l{font-size:11.5px}
+  .kpi .v{font-size:19px;letter-spacing:-.5px}
+  .kpi .d{font-size:11px}
+  .g4{gap:10px}
+}
+
+/* ---------- botão de fechar do modal ----------
+   O ✕ vive no cabeçalho fixo: no telemóvel o clique fora do modal não existe
+   (a folha ocupa a tela toda) e o Esc não tem teclado. */
+.modal .box > .box-hd{position:relative;padding-right:56px}
+.box-x{position:absolute;top:14px;right:16px;width:34px;height:34px;border-radius:10px;
+  background:var(--bd3);border:1px solid var(--bd2);color:var(--dim);font-size:13px;
+  line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.box-x:hover{background:var(--bd2);color:var(--fg)}
+
+@media (max-width:640px){
+  .modal{padding:0;align-items:stretch;justify-content:stretch}
+  .modal .box,.modal .box.lg,.modal .box.xl{width:100%;max-width:100%;height:100dvh;
+    max-height:100dvh;border-radius:0;border:none}
+  .modal .box > .box-hd{padding:14px 56px 12px 16px;font-size:15.5px}
+  .modal .box > .box-corpo{padding:14px 16px}
+  .modal .box > .box-ft{padding:12px 16px calc(14px + env(safe-area-inset-bottom))}
+  .box-x{top:11px;right:12px}
+  .modal .acoes{flex-wrap:wrap}
+  /* a lista de jogadores tinha rolagem PRÓPRIA dentro de um modal que já rolava:
+     no telemóvel o dedo movia o modal e a lista ficava presa nos 340px. Aqui ela
+     desenrola e quem rola é a folha inteira, uma barra só. */
+  .jog-wrap{max-height:none;overflow:visible}
+}
+
+/* ---------- Estúdio: linha de jogador (foto, nome, ações) ----------
+   Os botões ficam numa coluna própria, alinhados à direita e sem quebrar linha.
+   No telemóvel viram só o ícone: o texto empurrava o segundo botão para baixo e
+   cada linha da lista ganhava uma altura diferente. */
+.ft-row{grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center}
+.ft-acoes{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:none}
+.btn-ico{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn-ico .ic{font-size:12.5px;line-height:1}
+@media (max-width:640px){
+  .ft-row{grid-template-columns:38px minmax(0,1fr) auto;gap:9px;padding-left:12px;padding-right:12px}
+  .btn-ico .lb{display:none}
+  .btn-ico{width:38px;height:36px;padding:0;gap:0}
+  .btn-ico .ic{font-size:14px}
+  .ft-acoes .tag{font-size:10px;padding:2px 7px}
+}
+
+/* ---------- Estúdio: editor de camadas (escudo / patrocinador / fabricante) ----------
+   Palco em cima, controles num painel embaixo e a navegação entre jogadores no
+   topo. Antes era tudo uma fileira só de controles, que no telemóvel virava seis
+   linhas soltas sobre o fundo escuro. */
+/* alinhado ao TOPO, não centrado: o palco mais o painel de controles passam da
+   altura da janela em telas baixas, e centrar cortava a barra de navegação em
+   cima e os botões embaixo — com o topo fixo, a rolagem alcança tudo */
+.aj-ov{position:fixed;inset:0;z-index:9999;background:#000d;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;gap:12px;padding:20px;overflow-y:auto}
+.aj-topo{display:flex;align-items:center;gap:10px;width:100%;max-width:500px;color:#fff;flex:none}
+.aj-nav{width:38px;height:38px;flex:none;border-radius:99px;background:#ffffff14;
+  border:1px solid #ffffff30;color:#fff;font-size:17px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center}
+.aj-nav:hover:not(:disabled){background:#ffffff26}
+.aj-nav:disabled{opacity:.28;cursor:default}
+.aj-quem{flex:1;min-width:0;text-align:center;line-height:1.25}
+.aj-quem b{display:block;font-size:14px;font-weight:700;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.aj-quem small{font-size:11.5px;color:#ffffff8f}
+.aj-palco{position:relative;flex:none;border-radius:12px;overflow:hidden;background:#d9d9d9;
+  touch-action:none}
+.aj-ctrl{width:100%;max-width:500px;flex:none;display:flex;flex-direction:column;gap:10px;
+  background:#0f1613f5;border:1px solid var(--bd2);border-radius:14px;padding:12px 14px}
+.aj-sl{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;color:#fff}
+.aj-sl span{width:82px;flex:none}
+.aj-sl input{flex:1;min-width:0;accent-color:#35c46a}
+.aj-bts{display:flex;gap:8px;flex-wrap:wrap}
+.aj-bts .btn{flex:1 1 130px;padding:10px 12px}
+.aj-dica{max-width:500px;color:#ffffff8f;font-size:11.5px;line-height:1.55;text-align:center}
+@media (max-width:640px){
+  .aj-ov{justify-content:flex-start;padding:12px 12px calc(12px + env(safe-area-inset-bottom));gap:10px}
+  .aj-dica{display:none}
+  .aj-ctrl{padding:11px 12px;gap:9px}
+  .aj-sl span{width:70px;font-size:12px}
+}
+
+/* ---------- ajuda dobrável dentro do modal ----------
+   O texto de apoio é longo e, no telemóvel, empurrava a lista de jogadores para
+   fora da primeira tela. Fica fechado por padrão e abre quando faz falta. */
+.ajuda{border:1px solid var(--bd);background:var(--card2);border-radius:11px;
+  padding:10px 13px;margin-bottom:12px}
+.ajuda > summary{font-size:12.5px;font-weight:700;color:var(--dim);cursor:pointer;
+  list-style:none;display:flex;align-items:center;gap:7px}
+.ajuda > summary::-webkit-details-marker{display:none}
+.ajuda > summary::before{content:'›';font-size:15px;color:var(--verde2);
+  transition:transform .15s ease;display:inline-block}
+.ajuda[open] > summary::before{transform:rotate(90deg)}
+.ajuda > summary:hover{color:var(--fg2)}
+
+/* ---------- Estúdio: faixa do uniforme do clube (topo do modal de fotos) ----------
+   No telemóvel o botão comprimia o texto numa coluna de duas palavras — aqui ele
+   desce para a linha de baixo, inteiro. */
+.ft-uni{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:10px 12px;
+  border:1px solid var(--bd2);border-radius:10px}
+@media (max-width:640px){
+  .ft-uni{flex-wrap:wrap}
+  .ft-uni > .btn{flex:1 1 100%}
+}
