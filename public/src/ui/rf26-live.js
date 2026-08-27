@@ -319,8 +319,8 @@ function rfCamHTML(RL){
             </div>
             <div class="rf-sp"></div>
             <span class="rf-cam-nota">os outros jogos seguem rolando ao fundo</span>
-            <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à rodada (Esc)">
-              <b class="rf-so-desktop">✖ Voltar à rodada</b><b class="rf-so-mobile">✖</b></button>
+            <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à semana (Esc)">
+              <b class="rf-so-desktop">✖ Voltar à semana</b><b class="rf-so-mobile">✖</b></button>
           </div>
           ${rfTrilhoHTML(CL.live)}
           <!-- A BANDA DE PATROCINIO SOBE PARA CIMA DO CONTEUDO. Estava entre o
@@ -331,8 +331,8 @@ function rfCamHTML(RL){
           ${rfCamPatroHTML()}
           <div id="rf-cam-dyn" data-tab="${escC(CL.camTab||'panorama')}">${camDynHTML(m)}</div>
           <div class="rf-cam-rodape">
-            <span>Esc ou ✖ para voltar à rodada</span>
-            <span>O Camarote mostra só o seu jogo — a rodada inteira continua ao fundo</span>
+            <span>Esc ou ✖ para voltar à semana</span>
+            <span>O Camarote mostra só o seu jogo — a semana inteira continua ao fundo</span>
           </div>
         </div>
       </div>
@@ -373,7 +373,7 @@ function rfCamBoardHTML(m,mn,periodo){
   const euEmCasa = m.h===CL.clubId;
   const onze=(typeof xiPlayers==='function')?xiPlayers(CL.clubId).length:11;
   const meuSub=`${escC(CL.formation||'—')} · onze ${onze}/11`;
-  const eleSub=`${RL.jornada||((S.round||0)+1)}ª rodada`;
+  const eleSub=`${RL.jornada||((S.round||0)+1)}ª semana`;
   const pct=(typeof liveClockPct==='function')?liveClockPct(RL):0;
   return `<div class="rf-cam-board"${foto?` style="background-image:url('${escC(foto)}')"`:''}>
     <span class="rf-cam-veu"></span>

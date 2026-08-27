@@ -33,7 +33,7 @@ function rfSalaEstado(r){
   const cl=r.clubId && typeof clubOf==='function' ? clubOf(r.clubId) : null;
   const nome=(cl && (cl.short||cl.name)) || r.name || r.code || '—';
   const papel=r.isHost ? 'anfitrião' : 'convidado';
-  const jornada=r.round ? (r.round+'ª rodada') : '';
+  const jornada=r.round ? (r.round+'ª semana') : '';
   let selo, onde, chama=false;
   if(r.pending){ selo='espera'; onde='convite pendente'; chama=true; }
   else if(r.phase==='finished'){ selo='fim'; onde='sala encerrada'; }
@@ -362,9 +362,9 @@ function rfResenhaComecarHTML(){
           ${rfSalaEscudoHTML(e)}
           <span class="rf-rc-id">
             <span class="rf-rc-n">${escC(r.name||e.clube)}</span>
-            <span class="rf-rc-sub">${escC(r.code)}${e.temClube?(' · '+escC(e.clube)):''}<span class="rf-rc-sub-jor">${escC(r.round?(' · '+r.round+'ª rodada'):'')}</span></span>
+            <span class="rf-rc-sub">${escC(r.code)}${e.temClube?(' · '+escC(e.clube)):''}<span class="rf-rc-sub-jor">${escC(r.round?(' · '+r.round+'ª semana'):'')}</span></span>
           </span>
-          <span class="rf-rc-jor">${escC(r.round?(r.round+'ª rodada'):'')}</span>
+          <span class="rf-rc-jor">${escC(r.round?(r.round+'ª semana'):'')}</span>
           <span class="rf-rc-est ${e.chama?'chama':''}">${escC(e.curto)}</span>
           <span class="rf-rc-volta ${i===0?'forte':''}">Voltar</span>
         </div>`; }).join('')}

@@ -23,29 +23,39 @@ function rfNotasHTML(){
   const comNota=sq.filter(p=>notaDe(p)!=null);
   const destaque=comNota.slice().sort((a,b)=>notaDe(b)-notaDe(a))[0];
   const baixa=sq.slice().sort((a,b)=>(a.energy!=null?a.energy:100)-(b.energy!=null?b.energy:100))[0];
-  const linha=(rot,nome,sub,valor)=>`<div class="rf-nota">
-    <div class="rf-nota-id">
-      <span class="rf-nota-r">${escC(rot)}</span>
-      <span class="rf-nota-n">${escC(nome)}</span>
-      <span class="rf-nota-s">${escC(sub)}</span>
-    </div>
-    <span class="rf-nota-v">${escC(String(valor))}</span>
-  </div>`;
+  /* a foto entra GRANDE aqui: é um cartão de destaque, não uma tabela — e o
+     nome/foto levam ao perfil do jogador, como no resto do jogo */
+  const linha=(rot,nome,sub,valor,p)=>{
+    const foto=(p&&typeof rfFotoDe==='function')?rfFotoDe(p, CL.clubId):null;
+    const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
+    const retrato=(foto&&typeof rfFotoNumHTML==='function')
+      ? `<span class="rf-nota-foto">${rfFotoNumHTML(foto, (p&&(nums[p.pid]||p.num))||'', 'nota')}</span>` : '';
+    const nomeHTML=(p&&typeof rfLinkJogador==='function') ? rfLinkJogador(p.n, CL.clubId, escC(nome)) : escC(nome);
+    return `<div class="rf-nota${foto?' com-foto':''}">
+      ${retrato}
+      <div class="rf-nota-id">
+        <span class="rf-nota-r">${escC(rot)}</span>
+        <span class="rf-nota-n">${nomeHTML}</span>
+        <span class="rf-nota-s">${escC(sub)}</span>
+      </div>
+      <span class="rf-nota-v">${escC(String(valor))}</span>
+    </div>`;
+  };
   const jogos=(S.round||0);
   const assist=(artilheiro&&artilheiro.stats&&artilheiro.stats.assists)||0;
   return `<div class="rf-card rf-notas">
     ${gols
       ? linha('Artilheiro do clube', artilheiro.n,
-          'gols em '+jogos+(jogos===1?' jogo':' jogos')+(assist?' · '+assist+' assistências':''), gols)
+          'gols em '+jogos+(jogos===1?' jogo':' jogos')+(assist?' · '+assist+' assistências':''), gols, artilheiro)
       : linha('Artilheiro do clube','—','ninguém marcou ainda','0')}
     ${destaque
-      ? linha('Destaque da rodada', destaque.n, 'nota do último jogo',
-          String(notaDe(destaque)).replace('.',','))
-      : linha('Destaque da rodada','—','a primeira rodada ainda não foi jogada','—')}
+      ? linha('Destaque da semana', destaque.n, 'nota do último jogo',
+          String(notaDe(destaque)).replace('.',','), destaque)
+      : linha('Destaque da semana','—','a primeira semana ainda não foi jogada','—')}
     ${baixa
       ? linha('Em baixa', baixa.n,
           (baixa.injuredMatches>0?'lesionado':baixa.suspended>0?'suspenso':'energia baixa'),
-          Math.round(baixa.energy!=null?baixa.energy:100)+'%')
+          Math.round(baixa.energy!=null?baixa.energy:100)+'%', baixa)
       : ''}
   </div>`;
 }
@@ -66,7 +76,7 @@ function rfAdversarioCardHTML(){
         <span class="rf-adv-l">Esta semana</span>
         <span class="rf-adv-d">${S.season||''}</span>
       </div>
-      <span class="rf-adv-livre">O seu clube não entra em campo nesta rodada.</span>
+      <span class="rf-adv-livre">O seu clube não entra em campo nesta semana.</span>
       <button type="button" class="rf-adv-jogar" onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
     </div>`;
   }
@@ -92,7 +102,7 @@ function rfAdversarioCardHTML(){
       <span class="rf-adv-selo">${rfCrest(opp,36)}</span>
       <span class="rf-adv-id">
         <span class="rf-adv-nome">${escC(opp.short||'')}</span>
-        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(divisionLabel())} · ${((S.round||0)+1)}ª RODADA</span>
+        <span class="rf-adv-sub">${nm.home?'CASA':'FORA'} · ${escC(nm.comp||divisionLabel())} · ${escC(nm.fase||(((S.round||0)+1)+'ª Semana'))}</span>
       </span>
     </div>
     <div class="rf-adv-tab">

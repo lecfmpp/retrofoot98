@@ -1023,6 +1023,12 @@ function sendHumanOffer(targetSellerId, playerName, fee){
   if(!canNegotiate()) return {ok:false,msg:'A janela de transferências está fechada.'};
   const p=findP(playerName,targetSellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
   if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi negociado recentemente e ainda não pode ser negociado de novo.`};
+  /* A COTA DE ESTRANGEIROS VALE TAMBÉM ENTRE HUMANOS. Os três caminhos de compra da CPU
+     (negociação, lance, resolução de leilão) já checavam; a proposta a clube de OUTRO
+     treinador não — dava pra estourar a cota da liga comprando só de gente. Checa no envio
+     (acceptCounterOffer também passa por aqui), que é o único portão possível: quando a
+     resposta chega, o jogador já foi movido no estado do mundo pelo cliente do vendedor. */
+  const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg};
   fee=Math.round(fee||0); if(fee<=0) return {ok:false,msg:'Informe um valor de proposta.'};
   if(fee>S.budget) return {ok:false,msg:'Caixa insuficiente pra essa proposta.'};
   S.incomingOffersByClub=S.incomingOffersByClub||{};
@@ -1690,6 +1696,16 @@ function advanceCupBracket(b, roundLabel, comp){
   if((b.ties||[]).some(t=>!t.winner
       && (clubeDeOutroHumano(t.h)||clubeDeOutroHumano(t.a))
       && !(cupResultadoPublicado(comp,t.h,t.a)||{}).winner)) return false;
+  /* ===== REGRA DA RESENHA: RESULTADO ÚNICO, SEMPRE (21/08) =====
+     Confronto CPU×CPU (nenhum lado é humano) só é decidido pelo SERVIDOR — nunca aqui. Mesma
+     causa do bug documentado logo abaixo (escalação divergente entre clientes), só que pra
+     confronto que nenhum humano publica nada: cada cliente simulava por conta própria, e o
+     anfitrião podia nem chegar a rodar isto (ties ficavam "— de disputa") enquanto o outro
+     humano já tinha um placar inventado localmente — foi o relato das Oitavas da Sul-Americana
+     em 21/08 (um lado sem nenhum resultado, o outro com a chave inteira preenchida). Enquanto
+     restar qualquer confronto assim nesta chave, o avanço LOCAL espera por inteiro. Ver a mesma
+     regra em advanceGroupStageRound; NUNCA remover — é a garantia de resultado único da Resenha. */
+  if(CL.online && (b.ties||[]).some(t=>!t.winner && !clubeDeOutroHumano(t.h) && !clubeDeOutroHumano(t.a))) return false;
   /* ===== TODA A GENTE TEM DE CHEGAR AO MESMO PLACAR =====
      Esta funcao roda em CADA cliente, por conta propria, sobre a mesma chave e com a mesma
      semente. Para o resultado bater, os TIMES tambem tem de bater — e nao batiam: no cliente do
@@ -1834,6 +1850,19 @@ function advanceGroupStageRound(mg, roundLabel, comp){
     if(_jaGravada(g,h,a)) return false;
     if(!(clubeDeOutroHumano(h)||clubeDeOutroHumano(a))) return false;
     return !cupResultadoPublicado(comp,h,a);
+  }))) return false;
+  /* ===== REGRA DA RESENHA: RESULTADO ÚNICO, SEMPRE (21/08) =====
+     Confronto que NENHUM humano disputa só é decidido pelo SERVIDOR — nunca aqui. Cada cliente
+     rodava esta função por conta própria, mesma seed mas com o estado (energia/moral) que TINHA
+     na hora — e cada humano via uma tabela diferente pro MESMO clube de fundo (relato do dono,
+     21/08: Botafogo 4 pts fora da zona pra um, 7 pts dentro pra outro). Enquanto restar QUALQUER
+     confronto CPU×CPU por decidir nesta rodada, o avanço LOCAL espera por inteiro — só
+     resolve-round decide. Ver a mesma regra em advanceCupBracket; NUNCA remover este bloqueio
+     nem "otimizar" preenchendo local de novo — é a garantia de resultado único do modo Resenha. */
+  if(CL.online && Object.values(mg.groups).some(g=>((g.sched[mg.round])||[]).some(([h,a])=>{
+    if(h==null||a==null) return false;
+    if(_jaGravada(g,h,a)) return false;
+    return !(clubeDeOutroHumano(h)||clubeDeOutroHumano(a));
   }))) return false;
   /* mesma regra da chave (ver advanceCupBracket): resolucao que cada cliente faz por conta
      propria tem de usar a escalacao PUBLICADA, senao o dono de um clube humano calcula um
@@ -2608,27 +2637,43 @@ function intlContinentalQualification(userFinish){
   // vagas por liga (como a UEFA na vida real), não um ranking global por overall — senão a
   // Premier (mais rica) dominaria as duas copas. 7+7+6+6+6 = 32 pra cada competição.
   const CL_SLOTS={'ENG-1':7,'ESP-1':7,'ITA-1':6,'GER-1':6,'POR-1':6};
+  const uid=S.clubId;
+  /* A VAGA ACOMPANHA A DIVISÃO (correção 21/08, relato do dono): rebaixado da 1ª divisão não
+     joga Champions no ano seguinte — e quem terminou do 7º pra baixo também não fica com a vaga
+     "por overall" (o fallback antigo devolvia a vaga a qualquer clube grande, não importava a
+     campanha nem a divisão). O fallback por overall passa a valer SÓ na 1ª temporada (sem tabela
+     anterior, userFinish=0) e com o clube na divisão de topo. Quem sai do pote é herdado pelo
+     próximo clube da mesma liga, e a reserva completa qualquer buraco — as copas seguem com 32. */
+  const topDiv=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER[0]:'A';
+  const naPrimeira = !uid || S.division===topDiv;
+  const qualCL = naPrimeira && userFinish>=1 && userFinish<=4;
+  const qualEL = naPrimeira && userFinish>=5 && userFinish<=6;
+  const semTabela = naPrimeira && !userFinish;
   const byLg={};
-  intlTopDivisionClubs().forEach(c=>{ (byLg[c.lg]=byLg[c.lg]||[]).push(c); });
+  intlTopDivisionClubs().forEach(c=>{
+    if(uid && c.id===uid && !qualCL && !qualEL && !semTabela) return;  // sem vaga por direito: fora do pote
+    (byLg[c.lg]=byLg[c.lg]||[]).push(c);
+  });
   Object.keys(byLg).forEach(lg=>byLg[lg].sort((a,b)=>(b.overall||0)-(a.overall||0)));
-  let cl=[], el=[];
+  let cl=[], el=[]; const reserva=[];
   Object.keys(CL_SLOTS).forEach(lg=>{
     const clubs=byLg[lg]||[]; const n=CL_SLOTS[lg];
     cl.push(...clubs.slice(0, n).map(c=>c.id));       // top N -> Champions
     el.push(...clubs.slice(n, n+n).map(c=>c.id));     // próximos N -> Europa
+    reserva.push(...clubs.slice(n+n).map(c=>c.id));   // o resto: completa buraco (nunca grupo de 3)
   });
-  const uid=S.clubId;
-  if(uid){
-    // garante a vaga do usuário conforme classificação doméstica (1º-4º Champions; 5º-6º Europa);
-    // na 1ª temporada (userFinish 0) mantém a vaga já obtida por overall, se houver.
+  if(uid && (qualCL||qualEL||semTabela)){
     const already = cl.indexOf(uid)>=0 ? 'cl' : (el.indexOf(uid)>=0 ? 'el' : null);
     cl=cl.filter(id=>id!==uid); el=el.filter(id=>id!==uid);
-    if(userFinish>=1 && userFinish<=4){ cl.unshift(uid); }
-    else if(userFinish>=5 && userFinish<=6){ el.unshift(uid); }
-    else if(already==='cl'){ cl.unshift(uid); }
+    if(qualCL){ cl.unshift(uid); }
+    else if(qualEL){ el.unshift(uid); }
+    else if(already==='cl'){ cl.unshift(uid); }       // 1ª temporada: mantém a vaga por overall
     else if(already==='el'){ el.unshift(uid); }
   }
-  return { championsLeague:cl.slice(0,32), europaLeague:el.slice(0,32) };
+  cl=cl.slice(0,32); el=el.slice(0,32);
+  while(cl.length<32 && reserva.length) cl.push(reserva.shift());
+  while(el.length<32 && reserva.length) el.push(reserva.shift());
+  return { championsLeague:cl, europaLeague:el };
 }
 /* monta Champions + Europa (fase de grupos). Chamado por initSeasonCups no universo intl. */
 function initIntlCups(){
@@ -3338,7 +3383,11 @@ function clubDivisionOf(clubId){
 /* jogador é estrangeiro no universo de um país? (nat doméstico definido em UNI_CONFIGS) */
 function playerIsForeign(p, uniKey){
   const cfg=UNI_CONFIGS[uniKey||ACTIVE_UNI]; if(!cfg||!cfg.nat) return false;
-  return cfg.nat.indexOf(p&&p.nat)<0;
+  /* SEM NACIONALIDADE = DOMÉSTICO, nunca estrangeiro. `indexOf(undefined)<0` é true, então um
+     jogador de save antigo sem o campo `nat` contava na cota — e podia BLOQUEAR contratação
+     ("cota cheia") contando gente que nem é estrangeira. Na dúvida, não conta. */
+  if(!p || !p.nat) return false;
+  return cfg.nat.indexOf(p.nat)<0;
 }
 function squadForeignCount(clubId, uniKey){
   return (S.squads[clubId]||[]).filter(p=>playerIsForeign(p, uniKey)).length;
@@ -3348,7 +3397,9 @@ function checkForeignQuota(p){
   const cfg=activeUniCfg(); if(!cfg||!cfg.foreignMax) return {ok:true};
   if(!playerIsForeign(p, ACTIVE_UNI)) return {ok:true}; // doméstico nunca conta cota
   const cur=squadForeignCount(S.clubId, ACTIVE_UNI);
-  if(cur>=cfg.foreignMax) return {ok:false, msg:`Cota de estrangeiros cheia (máx. ${cfg.foreignMax} na ${cfg.label[DIV_ORDER[0]]||'liga'}). Venda/dispense um estrangeiro ou contrate um nacional.`};
+  /* a cota é DO PAÍS, não de uma divisão — a mensagem dizia "na Primeira Liga" até pra quem
+     joga a segunda divisão do mesmo país, parecendo regra de outra competição */
+  if(cur>=cfg.foreignMax) return {ok:false, msg:`Cota de estrangeiros cheia (${cur} de ${cfg.foreignMax} no futebol ${cfg.country?('de '+cfg.country):'brasileiro'}). Venda/dispense um estrangeiro ou contrate um nacional.`};
   return {ok:true};
 }
 /* materializa o elenco de um clube de background sob demanda (pra ver/negociar no mercado) */
@@ -3537,6 +3588,17 @@ function rollAgedForce(R,range,age){
    mínimos se mantêm nas temporadas seguintes). */
 const MIN_POS={ GK:3, DEF:6, MID:6, ATT:4 };
 const POS_LABEL={ GK:'GOL', DEF:'ZAG', MID:'MEI', ATT:'ATA' };
+/* A NACIONALIDADE DE UM JOGADOR GERADO É A DO PAÍS DO UNIVERSO ATIVO, nunca 'Brasil' fixo.
+   Os três geradores procedurais (reposição de posição, clube procedural, regen de
+   aposentadoria) carimbavam a nacionalidade brasileira fixa — num save de Portugal, o garoto que substituía um
+   aposentado na virada chegava "brasileiro", isto é, ESTRANGEIRO: quem estava certinho em
+   18/18 na cota acordava em 19/18 sem ter contratado ninguém (relato do dono, 22/08). O
+   servidor da Resenha já gera o regen com a nacionalidade do país (teste-virada, item 4);
+   este é o mesmo acerto no caminho solo/cliente. */
+function domesticNat(){
+  const cfg=(typeof activeUniCfg==='function')?activeUniCfg():null;
+  return (cfg && cfg.nat && cfg.nat[0]) || 'Brasil';
+}
 function makeRawPlayer(division, pos, clubKey, idx){
   const R=makeRng(hashSeed('pos-topup', String(clubKey||'x'), pos, idx));
   /* A FAIXA NUNCA PODE SAIR UNDEFINED. setUniverse reescreve DIVISION_FORCE_RANGE com as chaves
@@ -3548,7 +3610,7 @@ function makeRawPlayer(division, pos, clubKey, idx){
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99);
   const lg=(typeof MARKET!=='undefined' && MARKET.divisionToLeague)?MARKET.divisionToLeague(division):('BRA-'+division);
   return { n:pickProcPlayerName(R), p:POS_LABEL[pos]||pos, s:pos, f, rawF, _rb:1, _div:division, age, lg,
-    mv:REBAL.value(f,age), ft:R.random()<0.5?'R':'L', num:String(30+idx), nat:'Brasil', ag:'—', moral:70, energy:100 };
+    mv:REBAL.value(f,age), ft:R.random()<0.5?'R':'L', num:String(30+idx), nat:domesticNat(), ag:'—', moral:70, energy:100 };
 }
 function ensureClubPositions(club){
   if(!club || club._posTopped) return;
@@ -3583,7 +3645,7 @@ function proceduralDivisionClubs(division, n){
       const lg=MARKET.divisionToLeague(division);
       squad.push({n:pickProcPlayerName(R),
         p:pos,s:pos,f,rawF,_rb:1,_div:division,age,lg,mv:REBAL.value(f,age),ft:R.random()<0.8?'R':'L',
-        num:String(Math.floor(R.random()*40)+1),nat:'Brasil',ag:'—',moral:70,energy:100}); } });
+        num:String(Math.floor(R.random()*40)+1),nat:domesticNat(),ag:'—',moral:70,energy:100}); } });
     const overall=Math.round(squad.reduce((s,p)=>s+p.f,0)/squad.length);
     clubs.push({id,tk:id,name,short:real?real.short:name.split(' ')[0].slice(0,12),
       color:real?real.color:'#'+Math.floor(R.random()*16777215).toString(16).padStart(6,'0'),
@@ -4055,8 +4117,17 @@ function switchToDivision(newDivision, promotedOrRelegated){
   // mantém a identidade do clube do usuário (nome/cor/escudo reais), só troca o elenco de adversários
   DATA.clubs = [myClub, ...newClubs];
   S.division = newDivision;
+  /* MESCLA, NUNCA SUBSTITUI. squads{} só cobre as 20 clubes da divisão NOVA (DATA.clubs) — um
+     `S.squads = squads` aqui APAGAVA o elenco de toda e qualquer clube que não estivesse nessa
+     lista: as outras três divisões inteiras. buildOtherDivisions() (linha de baixo) via os
+     elencos delas "sumidos" e recriava cada um do ZERO, direto do bundle original — qualquer
+     transferência, evolução de atributo, contrato, tudo que tinha acontecido àquele clube nas
+     temporadas anteriores desaparecia, e o jogador comprado por uma CPU "voltava" pro clube de
+     origem porque o elenco dele tinha sido reconstruído do bundle puro. Acontecia em TODA
+     promoção/rebaixamento do usuário — ou seja, quase toda temporada (relato do dono, 22/08:
+     "jogadores voltam pros seus clubes de origem" depois de algumas temporadas). */
   const squads={}; DATA.clubs.forEach(c=>{ squads[c.id] = c.id===S.clubId ? myPlayers : (S.squads[c.id] || gkSquad(c).map(p=>attachAttrs(initStats({...p}), newDivision))); }); // banda = divisão nova (ver buildOtherDivisions)
-  S.squads = squads;
+  S.squads = {...S.squads, ...squads};
   const ids = DATA.clubs.map(c=>c.id);
   S.sched = makeSchedule(ids);
   S.table = {}; DATA.clubs.forEach(c=>S.table[c.id]={id:c.id,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
@@ -4899,8 +4970,17 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   }
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
-  // caixa ao trocar de clube = faixa da nova divisão (item 4)
-  S.budget=REBAL.budget(S.division, makeRng(hashSeed(S.seed,'budget',newClubId,S.season)));
+  /* A CAIXA TEM DE SER A QUE A PROPOSTA PROMETEU. O convite pro jantar e o modal da proposta
+     mostram "Caixa do clube" lendo S.budgets[clubId] — o caixa DE VERDADE daquele clube,
+     simulado temporada a temporada (applyCpuSeasonFinances). Aqui, na hora de assumir de
+     verdade, o caixa era RE-SORTEADO do zero pela faixa da divisão nova — um número genérico
+     que ignora tudo que o clube acumulou, quase sempre bem menor do que o prometido (relato do
+     dono, 22/08: proposta dizia R$17 mi, o clube chegou com R$4 mi e pouco). Usa o caixa real
+     quando ele existe; só recai no sorteio por divisão pra clube que nunca foi simulado (troca
+     de país, ou clube materializado agora pela primeira vez). */
+  S.budget=(S.budgets && S.budgets[newClubId]!=null)
+    ? S.budgets[newClubId]
+    : REBAL.budget(S.division, makeRng(hashSeed(S.seed,'budget',newClubId,S.season)));
   // inicializa salário do treinador baseado no overall do clube
   const clubOverallVal=clubOverall(newClubId);
   S.coachSalary=Math.round(100000 + clubOverallVal*5000); // salário base + bonus por força do clube
@@ -6178,7 +6258,7 @@ function retirementReplacement(position, division, seedExtra){
   const rawF=rollAgedForce(R,range,age); const f=Math.min(REBAL.force(rawF,division), DIV_FORCE_CAP[division]||99); // item 4 + trava de cap por divisão
   const lg=MARKET.divisionToLeague(division);
   return { n:pickProcPlayerName(R), p:position, s:position, f, rawF, _rb:1, _div:division, age, lg, mv:REBAL.value(f,age),
-    ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:'Brasil', ag:'—',
+    ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:domesticNat(), ag:'—',
     moral:70, energy:100 };
 }
 /* envelhecimento + aposentadoria + reancoragem de valorização — uma vez por temporada,

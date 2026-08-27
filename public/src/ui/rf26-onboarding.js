@@ -190,8 +190,13 @@ function rfWizHead(sobre, titulo, sub){
   </div>`;
 }
 /* campo de formulário: rótulo em cima, controle de 44px embaixo */
-function rfCampo(rotulo, input){
-  return `<label class="rf-campo"><span class="rf-campo-l">${escC(rotulo)}</span>${input}</label>`;
+function rfCampo(rotulo, input, extra){
+  /* `extra` é o encaixe à direita do rótulo — hoje só o "Esqueci minha senha",
+     que precisa ficar colado no campo de senha, e não solto no rodapé. */
+  const l = extra
+    ? `<span class="rf-campo-hd"><span class="rf-campo-l">${escC(rotulo)}</span>${extra}</span>`
+    : `<span class="rf-campo-l">${escC(rotulo)}</span>`;
+  return `<label class="rf-campo">${l}${input}</label>`;
 }
 function rfInput(id, ph, valor, tipo, oninput){
   return `<input class="rf-campo-c" id="${id}" type="${tipo||'text'}" placeholder="${escC(ph||'')}"
@@ -221,7 +226,8 @@ function rfOb1(){
         </div>
         ${criando?rfCampo('Nome do treinador', rfInput('rf-ob-n','Gringo',a.name,'text',"rfObSet('name',this.value)")):''}
         ${rfCampo('E-mail', rfInput('rf-ob-e','voce@email.com',a.email,'email',"rfObSet('email',this.value)"))}
-        ${rfCampo('Senha', rfInput('rf-ob-s','mínimo 8 caracteres',a.password,'password',"rfObSet('password',this.value)"))}
+        ${rfCampo('Senha', rfInput('rf-ob-s','mínimo 8 caracteres',a.password,'password',"rfObSet('password',this.value)"),
+            criando ? '' : `<span class="rf-campo-link" onclick="event.preventDefault();clForgotPassword()">Esqueci minha senha</span>`)}
         ${criando?`<div class="rf-check" onclick="rfObSet('aviso',!(CL.auth.aviso))">
           <span class="rf-check-b ${a.aviso!==false?'on':''}">${a.aviso!==false?rfIcone('ok',14):''}</span>
           <span class="rf-check-t">Quero receber aviso quando abrir vaga nas Ligas Oficiais.</span>
@@ -311,7 +317,7 @@ function rfOb2(){
             <span class="rf-modo-tag">Multi-player</span>
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</span>
+          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Jogar com a galera'}</button>
         </div>
       </div>
@@ -398,7 +404,7 @@ function rfObSaveOnde(sv){
 }
 function rfObSaveJornada(sv){
   const r=sv.round!=null?sv.round:(sv.meta&&sv.meta.round);
-  return r!=null?((r+1)+'ª rodada'):'—';
+  return r!=null?((r+1)+'ª semana'):'—';
 }
 
 /* =====================================================================
@@ -513,7 +519,7 @@ function rfOb4(){
       ${rfTrofeuHTML('serie'+d,42)}
       <span class="rf-sl-div-id">
         <span class="rf-sl-div-n">${escC(lbl)}</span>
-        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' rodadas':''}</span>
+        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' semanas':''}</span>
       </span>
       <span class="rf-sl-selo ${teste?'teste':'padrao'}">${teste?'TESTE':'PADRÃO'}</span>
     </button>`;
@@ -576,7 +582,7 @@ function rfOb4(){
             ${rfIcone('aviso',16)}
             <span>Estas ligas rodam por inteiro no mundo da sala e podem sondar você como treinador.
               Um país só ganha elencos completos quando alguém for treinar lá — aí custa cerca de
-              <b>1 MB</b> no estado da sala, lido e gravado a cada rodada.</span>
+              <b>1 MB</b> no estado da sala, lido e gravado a cada semana.</span>
           </div>`:''}
         </div>`;
       })()}

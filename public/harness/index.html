@@ -223,6 +223,24 @@ async function scenario2(){
     assert(saw('B',s=>s.live&&s.cupKey==='sulamericana'&&s.round===2),'B esteve AO VIVO na Sul-Americana (r2)');
     assert(saw('A',s=>s.screen==='cupclassif'&&s.round===1)&&saw('B',s=>s.screen==='cupclassif'&&s.round===1),'classificação da Lib nos DOIS (r1)');
     assert(saw('A',s=>s.screen==='cupclassif'&&s.round===2)&&saw('B',s=>s.screen==='cupclassif'&&s.round===2),'classificação da Sula nos DOIS (r2)');
+    // ---------- "BOTAFOGO 4 PTS PRA UM, 7 PRA OUTRO" (relato do dono, 21/08) ----------
+    // Compara, clube a clube, os pontos que A e B enxergam na MESMA tela de classificação de
+    // copa — não só se os dois chegaram lá (isso já passava). Qualquer clube com número
+    // diferente entre A e B é o bug relatado, e o log lista quais.
+    const gruposA=hist.A.filter(s=>s.screen==='cupclassif'&&s.grupoPts);
+    const gruposB=hist.B.filter(s=>s.screen==='cupclassif'&&s.grupoPts);
+    log('snapshots de grupo A='+gruposA.length+' B='+gruposB.length,'info');
+    const divergencias=[];
+    gruposA.forEach(sa=>{
+      const sb=gruposB.find(x=>x.round===sa.round);
+      if(!sb) return;
+      Object.keys(sa.grupoPts).forEach(clubeId=>{
+        const pa=sa.grupoPts[clubeId], pb=sb.grupoPts[clubeId];
+        if(pb!=null && pa!==pb) divergencias.push(`rodada ${sa.round} · ${clubeId}: A=${pa} × B=${pb}`);
+      });
+    });
+    if(divergencias.length) log('DIVERGÊNCIAS: '+divergencias.join(' | '),'fail');
+    assert(divergencias.length===0,'A e B veem os MESMOS pontos pra cada clube do grupo, sempre');
     assert(saw('A',s=>s.live&&!s.cupKey&&s.round===1)&&saw('B',s=>s.live&&!s.cupKey&&s.round===1),'liga da r1 nos DOIS (sábado depois da quarta)');
     // ---------- DETECTOR DE LOOP ----------
     const eA=entryCounts('A'), eB=entryCounts('B');

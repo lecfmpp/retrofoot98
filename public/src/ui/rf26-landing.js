@@ -36,9 +36,28 @@ function rfContaEhPro(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return st.pro===true;
 }
+/* FASE LISTA DE ESPERA: com a flag ligada, quem NÃO tem sessão não vê o
+   "Entrar" — a única porta é a lista de espera. Quem já tem conta (sessão
+   aberta) continua entrando normalmente. Desligar = voltar o login. */
+const RF_SO_LISTA = true;
+/* PORTA DE TESTE dos admins: abrir /?acesso=embaixador98 UMA vez libera o
+   "Entrar" neste navegador (fica no localStorage). É trava de fase, não
+   segurança — serve para o público não ver porta de cadastro; quem tem o
+   link testa normalmente. Revogar = trocar o código aqui. */
+(function(){
+  try{
+    if(new URLSearchParams(location.search).get('acesso') === 'embaixador98')
+      localStorage.setItem('rf_acesso_teste', '1');
+  }catch(e){}
+})();
+function rfSoLista(){
+  if(!RF_SO_LISTA) return false;
+  try{ return localStorage.getItem('rf_acesso_teste') !== '1'; }catch(e){ return true; }
+}
 function rfContaChipHTML(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){
+    if(rfSoLista()) return '';
     return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
@@ -79,9 +98,9 @@ function rfLpMenu(){
       </div>
       <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
         <span class="rf-nav-l">Sair da conta</span></button>`
-    : `<div class="rf-sheet-sep"></div>
+    : (rfSoLista() ? '' : `<div class="rf-sheet-sep"></div>
       <button type="button" class="rf-sheet-i" onclick="clCloseOverlay();clGoModo('solo')">
-        <span class="rf-nav-l">Entrar na minha conta</span></button>`;
+        <span class="rf-nav-l">Entrar na minha conta</span></button>`);
   if(typeof rfSheet==='function') rfSheet('Menu', `<div class="rf-sheet-list">${links}${lista}${conta}</div>`);
 }
 /* `extra` é o encaixe da DIREITA do cabeçalho: dentro do assistente é ali que
@@ -107,6 +126,11 @@ function rfLpNavHTML(extra){
    nao teria nada a perguntar (ver rfOb1Logado, que e a porta de quem chega
    pelo "Entrar" da landing sem sessao aberta na cabeca). */
 function rfIrParaModo(){ CL.screen='modo'; cdraw(); }
+/* onclick de qualquer CTA que leva ao jogo: na fase de lista de espera ele
+   vira um atalho para a lista, para o botão não prometer o que não cumpre. */
+function rfLpEntrarOn(chamada){
+  return rfSoLista() ? "rfLpIr('lista')" : chamada;
+}
 function rfLpIr(k){
   const el=document.getElementById('rf-lp-'+k);
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -138,7 +162,7 @@ function rfLpMaqueteAoVivoHTML(){
     <span class="rf-lpm-min">${min}'</span>
   </div>`;
   return `<div class="rf-lpm rf-lpm-live">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">Rodada ao vivo</span>
+    <div class="rf-lpm-hd"><span class="rf-lpm-t">Semana ao vivo</span>
       <span class="rf-lv-aovivo">● Ao vivo</span><div class="rf-sp"></div>
       <span class="rf-lpm-s">Séries A–D</span></div>
     <div class="rf-lpm-body">
@@ -256,7 +280,7 @@ function rfLandingHTML(){
         <p class="rf-lp-p">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com até 20 treinadores na mesma liga.</p>
         <div class="rf-lp-ctas">
           <button type="button" class="rf-wiz-cta" onclick="rfLpIr('lista')">👑 Entrar na lista de espera</button>
-          <button type="button" class="rf-wiz-b2" onclick="clGoModo('solo')">⚽ Jogar agora</button>
+          <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar agora</button>
         </div>
         <span class="rf-lp-nota">Primeira versão liberada para apenas <b>500 treinadores</b>.</span>
       </div>
@@ -270,23 +294,23 @@ function rfLandingHTML(){
       ${rfLpSecaoHTML({eyebrow:'Jogue do seu jeito', titulo:'Da Série D ao topo, no seu ritmo.',
         prosa:'Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
         itens:['Séries A, B, C e D com elencos reais','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
-        cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:"clGoModo('solo')"})}
+        cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpMaqueteTabelaHTML()}
     </section>
 
     <section class="rf-lp-sec invertida" id="rf-lp-resenha">
       ${rfLpMaqueteChatHTML()}
-      ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma rodada.',
-        prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e a zoeira rolando junto.',
-        itens:['Até 20 treinadores na mesma liga','Rodada ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
-        cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:"clGoModo('resenha')"})}
+      ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma semana.',
+        prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma semana ao vivo, com tabela, mercado e a zoeira rolando junto.',
+        itens:['Até 20 treinadores na mesma liga','Semana ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
+        cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:rfLpEntrarOn("clGoModo('resenha')")})}
     </section>
 
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
-        prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.',
+        prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria e sócios'],
-        cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:"clGoModo('solo')"})}
+        cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpMaqueteLeilaoHTML()}
     </section>
 

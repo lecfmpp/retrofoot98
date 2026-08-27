@@ -565,7 +565,7 @@ function pausaWaitLabel(){
   if(CL.online && typeof NET!=='undefined' && NET.allHumanResultsIn && typeof S!=='undefined' && S){
     try{ outros=!!NET.allHumanResultsIn(S.round); }catch(e){ outros=true; }
   }
-  return outros ? 'Ainda sincronizando — o servidor está fechando a rodada'
+  return outros ? 'Ainda sincronizando — o servidor está fechando a semana'
                 : 'Ainda sincronizando — esperando os resultados dos outros treinadores';
 }
 function pausaChecklist(){
@@ -580,7 +580,7 @@ function pausaChecklist(){
   }
   return it('ok','Sua partida')
     +it((sincronizou||outros)?'ok':'wait','Resultados dos outros treinadores')
-    +it(sincronizou?'ok':'wait','Fechamento da rodada no servidor')
+    +it(sincronizou?'ok':'wait','Fechamento da semana no servidor')
     +it(sincronizou?'ok':'dim','Tabela, finanças e propostas');
 }
 function adTilesHTML(){        // 6 ladrilhos (3 marcas repetidas) — marquee do handoff
@@ -663,7 +663,7 @@ function showSyncLoading(msg){
   el.className='cl-syncover';
   el.innerHTML=`<div class="cl-syncover-box">
     <div class="cl-syncover-tt">⏸ ${escC(msg||'Pausa técnica')}</div>
-    <div class="cl-syncover-sub">Sincronizando a rodada com todos os treinadores</div>
+    <div class="cl-syncover-sub">Sincronizando a semana com todos os treinadores</div>
     <div class="cl-syncover-bar"><i></i></div>
   </div>`;
   // rede de segurança: nunca deixa o usuário PRESO atrás do overlay se algo no meio do
@@ -979,7 +979,7 @@ const LANDING_PAGINAS=[
   ['ranking','Ranking de treinadores','Como funcionam os pontos de carreira e os troféus.'],
   ['historia-do-elifoot','História do Elifoot','Do disquete de 1994 à resenha online — a trajetória do clássico.'],
   ['elifoot-online','Elifoot online','Jogue no navegador, de graça, sem instalar nada.'],
-  ['jogar-com-amigos','Jogar com amigos','O Modo Resenha: um campeonato com a sua turma, na mesma rodada.'],
+  ['jogar-com-amigos','Jogar com amigos','O Modo Resenha: um campeonato com a sua turma, na mesma semana.'],
   ['manager-futebol-brasileiro','Futebol brasileiro','Séries A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana.'],
   ['jogo-treinador-futebol-online','Jogo de treinador','Elencos reais, tática, mercado e partida ao vivo.'],
   ['melhores-jogos-treinador-futebol','Melhores jogos de treinador','O que existe hoje, grátis e online, e onde cada um se sai melhor.'],
@@ -1043,7 +1043,7 @@ const LANDING_VIDEO_ID='';
 const LANDING_SECOES=[
   { id:'resenha', kicker:'MODO RESENHA', dir:'esq',
     h:'A liga da galera, até 20 treinadores na mesma competição.',
-    p:'Monte a liga do grupo do trabalho, da turma da faculdade ou da sua comunidade inteira. Todo mundo joga a mesma rodada ao vivo, com tabela, mercado e a zoeira rolando junto.',
+    p:'Monte a liga do grupo do trabalho, da turma da faculdade ou da sua comunidade inteira. Todo mundo joga a mesma semana ao vivo, com tabela, mercado e a zoeira rolando junto.',
     badge:'img/badge-liga.webp', chip:'até 20 treinadores', chipCls:'navy',
     janela:'Sala do Modo Resenha', img:'hub' },
   { id:'solo', kicker:'MODO SOLO', dir:'dir',
@@ -1053,7 +1053,7 @@ const LANDING_SECOES=[
     janela:'Formação e escalação — Modo Solo', img:'formacao' },
   { id:'chat', kicker:'CHAT AO VIVO', dir:'esq',
     h:'A zoeira faz parte do jogo.',
-    p:'Chat em tempo real durante a rodada: os gols pingam na tela e todo mundo comenta ao mesmo tempo. É a resenha do grupo, dentro do jogo.',
+    p:'Chat em tempo real durante a semana: os gols pingam na tela e todo mundo comenta ao mesmo tempo. É a resenha do grupo, dentro do jogo.',
     badge:'img/badge-chat.webp', chip:'tempo real', chipCls:'ouro',
     janela:'Partida ao vivo', img:'partida' },
   { id:'copas', kicker:'CAMPEONATOS', dir:'dir',
@@ -1081,7 +1081,7 @@ const LANDING_TELAS=[
    link. Sem url o cartão vira texto (não vira link quebrado). */
 const LANDING_CANAIS=[
   { ic:'▶️', nome:'YouTube',   d:'Bastidores, ligas e tutoriais',    arroba:'@retrofoot98', url:'' },
-  { ic:'📸', nome:'Instagram', d:'Novidades e recortes das rodadas', arroba:'@retrofoot98', url:'' },
+  { ic:'📸', nome:'Instagram', d:'Novidades e recortes das semanas', arroba:'@retrofoot98', url:'' },
   { ic:'🎵', nome:'TikTok',    d:'Os melhores momentos da resenha',  arroba:'@retrofoot98', url:'' },
 ];
 const LANDING_COTAS=[
@@ -1547,7 +1547,7 @@ function landingTelasHTML(){
   return `<section class="cl-lp-wrap cl-lp-sec" id="lp-telas">
     <div class="cl-lp-kicker">TELAS DO JOGO</div>
     <h2 class="cl-lp-h2">Veja por dentro antes de entrar.</h2>
-    <p class="cl-lp-p">Janelinha, placar em mono e tabela na tela — do jeito que você lembra. Estas são as telas que você vai usar em cada rodada.</p>
+    <p class="cl-lp-p">Janelinha, placar em mono e tabela na tela — do jeito que você lembra. Estas são as telas que você vai usar em cada semana.</p>
     <div class="cl-lp-track-nav">
       <button class="cl-lp-btn cl-lp-btn-sq" onclick="clLpTrack(-1)" aria-label="Tela anterior">◀</button>
       <button class="cl-lp-btn cl-lp-btn-sq" onclick="clLpTrack(1)" aria-label="Próxima tela">▶</button>
@@ -1625,7 +1625,7 @@ function landingCriadoresHTML(){
   const chat=[
     ['lucão:','contratei o camisa 10 no leilão 🔨'],
     ['bia_tec:','meu goleiro tá com moral no chão, socorro'],
-    ['canal:','rodada começa em 2 min, escala aí galera'],
+    ['canal:','semana começa em 2 min, escala aí galera'],
     ['rafa:','se eu ganhar hoje subo pra Série B 🟢'],
   ].map(([u,t])=>`<div class="cl-lp-chat-l"><span>${escC(u)}</span><span>${escC(t)}</span></div>`).join('');
   return `<section class="cl-lp-band escura" id="lp-criadores">
@@ -1843,6 +1843,15 @@ function clNoop(){}
    sessão salva, vai direto pra escolha de modo; senão mostra a tela de login. */
 function clGoModo(mode){
   CL.navMenuOpen=false;
+  /* FASE DE LISTA DE ESPERA: enquanto o jogo não abriu ao público, nenhuma
+     porta leva ao login — todas levam à lista. A trava mora AQUI, na única
+     entrada, e não em cada botão: proteger botão por botão foi justamente o
+     que deixou quatro CTAs passarem batido. Quem tem a chave de teste
+     (?acesso=…) faz rfSoLista() virar false e entra normalmente. */
+  if(typeof rfSoLista==='function' && rfSoLista()){
+    if(typeof rfLpIr==='function') rfLpIr('lista');
+    return;
+  }
   toastC('Conectando...');
   (async ()=>{
     await netInitSupabase();
@@ -2127,7 +2136,7 @@ function scModoChoice(){
           <span class="${RESENHA_EM_BREVE?'rf-tag-soon':'rf-tag-rec'}">${RESENHA_EM_BREVE?'Em breve':'Online'}</span>
           <div class="cl-mc-ic">🍺</div>
           <div class="cl-mc-t">Modo Resenha</div>
-          <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma rodada ao vivo, com tabela, mercado e zoeira no chat.</div>
+          <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</div>
           ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`:''}
         </div>
       </div>`
@@ -2874,7 +2883,7 @@ function showJobInvite(offer){
               <div class="cl-jobinv-note" style="margin-top:0">Você está <strong style="color:var(--yellow)">sem clube</strong> desde a demissão do ${escC((clubOf(CL._firedFrom)||{}).short||'seu último clube')}.<br><br>
               O ${escC(c.short)} tem a vaga aberta na ${escC(jobOfferDivLabel(offer))} e procurou você para a próxima temporada.</div>
             </fieldset>`
-          : `<fieldset class="cl-welc-facts cl-jobinv-tabela"><legend>${escC(classifDivName(S.division,S.intlUniverse))} — ${(S.round||0)}ª rodada</legend>
+          : `<fieldset class="cl-welc-facts cl-jobinv-tabela"><legend>${escC(classifDivName(S.division,S.intlUniverse))} — ${(S.round||0)}ª semana</legend>
               <div class="cl-jobinv-grid">${jobInviteTableHTML()}</div>
               <div class="cl-jobinv-note">${myPos?`Você é <strong style="color:var(--yellow)">${myPos}º</strong> — é essa campanha que chamou a atenção do ${escC(c.short)}.`:''}</div>
             </fieldset>`}
@@ -3070,6 +3079,30 @@ function _assignRandomClubs(){
     if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(pk.id); } });
 }
 function clSortearPick(){ _assignRandomClubs(); cdraw(); }
+/* ===== MODO TESTE (só quem entrou por /?acesso=...) =====
+   O testador ESCOLHE o próprio clube e pula o sorteio: o clube escolhido vai
+   para o manager 1, os demais managers recebem clube aleatório, e o jogo parte
+   direto para o loading — sem cerimônia. Jogador comum nunca vê esta porta. */
+function rfTesteAcesso(){ try{ return localStorage.getItem('rf_acesso_teste')==='1'; }catch(e){ return false; } }
+function rfTesteComecar(){
+  if(!rfTesteAcesso()) return;
+  const alvo=CL.pickTeste;
+  if(!alvo){ toastC('Escolha o clube de teste primeiro.'); return; }
+  /* o <select> devolve STRING; o mundo compara ids com o tipo original (número
+     para os clubes do bundle). Resolve o clube no pool e usa o id NATIVO —
+     senão o newGame não acha o clube e o sorteio "vence" de novo. */
+  const pool0=((CL._pickPool||{})[(CL.pick&&CL.pick[0]&&CL.pick[0].country)||'Brasil']||[]);
+  const clubeAlvo=pool0.find(c=>String(c.id)===String(alvo));
+  if(!clubeAlvo){ toastC('Clube de teste não encontrado no pote — sorteie normalmente.'); return; }
+  const idAlvo=clubeAlvo.id;
+  const taken=new Set([String(idAlvo)]);
+  (CL.pick||[]).forEach((p,i)=>{
+    if(i===0){ p.clubId=idAlvo; return; }
+    const pool=((CL._pickPool||{})[p.country]||[]).filter(c=>!taken.has(String(c.id)));
+    if(pool.length){ const pk=pool[Math.floor(Math.random()*pool.length)]; p.clubId=pk.id; taken.add(String(pk.id)); }
+  });
+  clStartGame();
+}
 /* clubes -> loading (4/4) -> lança o jogo. Começar (1 jogador, clubes escolhidos) */
 function clStartGame(){ if(!(CL.pick||[]).every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
 /* multi-jogador: sorteia os times, MOSTRA o sorteio e só então começa */
@@ -3368,7 +3401,7 @@ function scSeatTurnLegado(){
         <div class="cl-roster cl-acc-body">${rosterHTML()}</div>
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.tab]?'':'sem-adv'}" style="background:${th.bg}">
-        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Rodada', season:S.season, chip:th.bg2})}
+        ${advHeaderHTML({nome:opp.short||'—', home, comp:divisionLabel(), fase:((S.round||0)+1)+'ª Semana', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -3478,6 +3511,14 @@ function clLoadSave(name){
     if(typeof ensureBgLeaguesCompletas==='function'){ try{ ensureBgLeaguesCompletas(); }catch(e){} }
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
     CL.screen='main'; CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+    /* ABRIR UM SAVE SEMPRE VOLTA PRA FORMAÇÃO. CL.rf.page (o roteador novo) só muda quando
+       CL.tab de fato MUDA de valor (ver rfSyncFromLegacyTab) — e CL.tab já era 'jogo' na
+       maioria dos casos, então a linha acima não disparava nada. Quem abria outro save pela
+       tela "Sair do jogo" (que lista "Outros saves") ficava PRESO nessa mesma tela depois do
+       load, em vez de ir pra Formação (relato do dono, 21/08). rfGo('hub') força a página
+       certa sempre, incondicional — CL._posPagina (abaixo) ainda tem a palavra final quando
+       existe (é o caminho de reload de página, que deve voltar pra onde a pessoa estava). */
+    if(typeof rfGo==='function') rfGo('hub');
     /* volta a pagina onde a pessoa estava antes de recarregar (ver rfPosRestaurar).
        Consumida na hora: so vale para ESTE arranque. */
     if(CL._posPagina){ try{ if(typeof rfGo==='function') rfGo(CL._posPagina); else CL.page=CL._posPagina; }catch(e){} CL._posPagina=''; }
@@ -3524,7 +3565,7 @@ function nextUserMatch(){
   if(!uf) return null;
   const home=uf[0]===CL.clubId;
   return { kind:'league', h:uf[0], a:uf[1], oppId:home?uf[1]:uf[0], home, uf,
-    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Rodada` };
+    comp:(typeof divisionLabel==='function')?divisionLabel():'', fase:`${(S.round||0)+1}ª Semana` };
 }
 function scMain(){
   const cl=clubOf(CL.clubId);
@@ -4091,6 +4132,13 @@ function panCorreio(){
 function clViewTeam(clubId){
   clCloseOverlay();
   CL.viewClubId=clubId; CL.viewTab='jogo'; CL.viewSelPlayer=null;
+  /* VISITA DENTRO DO JOGO: a página Elenco & Base atende o clube visitado
+     (sem financeiro, sem Base/Treino) — o usuário não sai da estrutura de
+     menu para uma tela solta. O rf26 é a pele em produção; sem ela, cai na
+     tela antiga. */
+  if(typeof rfGo==='function' && typeof rfSetTab==='function'){
+    CL.screen='main'; rfGo('elenco'); rfSetTab('elenco','elenco'); return;
+  }
   CL.screen='teamview'; cdraw();
 }
 // hotseat: "voltar" durante a vez de um assento tem que devolver pra scSeatTurn, não pra
@@ -4145,7 +4193,7 @@ function scTeamViewLegado(){
       </div>
       <div class="cl-main-right ${ADV_HDR_TABS[CL.viewTab||'jogo']?'':'sem-adv'}" style="background:${th.bg}">
         ${advHeaderHTML({nome:oppId?clubOf(oppId).short:'—', home:uf?home:null,
-          fase:uf?(jornada+'ª Rodada'):'', season:S.season, chip:th.bg2})}
+          fase:uf?(jornada+'ª Semana'):'', season:S.season, chip:th.bg2})}
         <div class="cl-panel">${panel}</div>
         ${tabBar}
       </div>
@@ -4298,7 +4346,7 @@ function forcaBlocoHTML(p){
   const total = g.atual-desde;
   const totalTxt = total>0?`+${total}`:total<0?String(total):'estável';
   const linhaMudanca = g.delta!==0
-    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª rodada)</i></div>`
+    ? `<div class="cl-forca-sub">Antes <b>${g.anterior}</b> → agora <b>${g.atual}</b> ${seta} <i>(mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª semana)</i></div>`
     : `<div class="cl-forca-sub">Sem mudança desde a última leitura.</div>`;
   const linhaTotal = g.hist.length>1
     ? `<div class="cl-forca-sub">Desde que passei a acompanhar: <b>${desde}</b> → <b>${g.atual}</b> (<b>${totalTxt}</b>)</div>`
@@ -4315,7 +4363,7 @@ function forcaBlocoHTML(p){
     ? 'Ainda não entrou em campo nesta temporada'
     : `Forma (últimas ${(p.stats.r3||[]).length}): <b>${notaTxt(forma)}</b>${forma>=6.8?' — evoluindo':''}`;
   const forcaSub = g.delta!==0
-    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª rodada: <b>${g.anterior}</b> → <b>${g.atual}</b>`
+    ? `Mudou na ${(g.desdeR!=null?g.desdeR+1:'?')}ª semana: <b>${g.anterior}</b> → <b>${g.atual}</b>`
     : 'Sem mudança desde a última leitura';
   const detalhesAbertos=!!CL.jgdDetOpen;
   return `<div class="cl-forca" title="${escC(forcaImpactoTexto(p))}">
@@ -4374,7 +4422,7 @@ function growthSparkHTML(g){
   const vals=h.map(x=>x.f), min=Math.min(...vals), max=Math.max(...vals), span=(max-min)||1;
   const barras=h.map((x,i)=>{
     const pct=8+Math.round(92*(x.f-min)/span);
-    const quando=(x.r!=null?(x.r+1)+'ª rodada':'início');
+    const quando=(x.r!=null?(x.r+1)+'ª semana':'início');
     return `<span class="cl-spark-b ${i===h.length-1?'now':''}" title="${quando} · força ${x.f}"><i style="height:${pct}%"></i></span>`;
   }).join('');
   return `<div class="cl-spark">
@@ -4807,10 +4855,24 @@ function abrirMomento(id, dados, aoFechar){
     CL._momentoAtual={id, aoFechar:aoFechar||null};
     if(rfArtilheiroAbrir(dados, aoFechar)) return;
   }
+  /* A CRISE TEM TELA PROPRIA (pacote "modal moderno", 21/08) — o cl-mom genérico abaixo é o
+     desenho antigo (botões cl-btn-*, publicidade no rodapé), e o "Assumir a responsa" não fazia
+     nada além de fechar o modal. rfCriseAbrir usa a MESMA família visual dos modais de convite
+     (.rf-of), sem anúncio, e troca o botão sem efeito por duas perguntas da diretoria que mexem
+     de verdade na moral do elenco — ver CRISE_PERGUNTAS. */
+  if(id==='crise' && typeof rfCriseAbrir==='function'){
+    CL._momentoAtual={id, aoFechar:aoFechar||null};
+    if(rfCriseAbrir(dados, aoFechar)) return;
+  }
   CL._momentoAtual={id, aoFechar:aoFechar||null};
   const clube=clubOf(dados.clubId!=null?dados.clubId:CL.clubId)||{short:'—'};
   const claro = def.corpo==='green';
-  const vid=VIDEOS_MOMENTO[id];
+  // override do painel de admin (por país/divisão/competição) vence; sem ele, o arquivo de sempre
+  let vid=VIDEOS_MOMENTO[id];
+  if(typeof MOMENTO_VIDEOS!=='undefined'){
+    const ov=MOMENTO_VIDEOS.url(id, MOMENTO_VIDEOS.ctxDeTrofeu(dados.trofeu));
+    if(ov) vid=ov;
+  }
   // o troféu pode ser de COMPETIÇÃO (copaBrasil, libertadores…) ou de DIVISÃO (A, B, C, D) — são
   // dois catálogos diferentes no jogo. Resolve nos dois, na ordem, e some se não houver arte.
   let trof='';
@@ -4875,29 +4937,68 @@ function clMomentoSec(acao){
    artilheiro não é meu, etc). É o que garante que o modal só aparece quando é verdade. */
 function momentoClassif(){ return (typeof sortedTable==='function')?sortedTable():[]; }
 function momentoCampanha(t){ return t?`${t.W}V ${t.D}E ${t.L}D`:''; }
+/* A TABELA FINAL DE VERDADE É A DE ONTEM, NÃO A DE HOJE. Estas três funções rodam DEPOIS do
+   adopt da virada (enfileirarMomentosFimDeTemporada, chamada de dentro de
+   onlineAdoptServerRound/newSeasonReset) — a essa altura S.table já é a tabela ZERADA da
+   temporada NOVA (e S.division já é a divisão nova, pra quem subiu/desceu). Ler sortedTable()/
+   S.table aqui é ler zero a zero: numa tabela toda 0x0, o desempate por id (sortTableRows)
+   "elege" campeão quem quer que ordene primeiro alfabeticamente — sem relação nenhuma com a
+   campanha real. Foi assim que um clube REBAIXADO viu "A taça é nossa" com premiação de
+   campeão (relato do dono, 21/08: Bahia rebaixado, comemoração de campeão da própria Série B
+   pra onde ele caiu). A fonte certa, que já existe e já é usada em computeMyPrevSeasonPrizes/
+   registerPrevSeasonTitles/buildPressBriefing, é S._prevSeason.tables — o retrato que o
+   SERVIDOR tira da tabela final ANTES de zerar. Nunca trocar de volta pra sortedTable()/S.table
+   nestas três funções. */
+function momentoPrevSeasonPos(){
+  const pv=S._prevSeason; if(!pv || !pv.tables || !CL.clubId) return null;
+  const order=(typeof DIV_ORDER!=='undefined'&&DIV_ORDER.length)?DIV_ORDER:['A','B','C','D'];
+  let div=null, pos=0, table=null;
+  order.forEach(d=>{ const rows=pv.tables[d]; if(!rows||!rows.length) return;
+    const i=rows.findIndex(r=>r.id===CL.clubId); if(i>=0){ div=d; pos=i+1; table=rows; } });
+  if(!div) return null;
+  return { div, pos, t:table[pos-1], total:table.length };
+}
+/* PROMOVIDO/REBAIXADO, DA MESMA FOTO QUE A POSIÇÃO EXIBIDA — nunca de S._promoRelegNews.
+   Esse campo só nasce dentro de switchToDivision() (core.js), chamada por newSeasonReset() —
+   e newSeasonReset() só roda quando o jogador clica em "continuar" na tela de resumo, BEM
+   DEPOIS de enfileirarMomentosFimDeTemporada() (chamada logo após endSeason(), pra montar o
+   modal). Nesse intervalo, S._promoRelegNews ainda tinha o veredito da ÚLTIMA virada — um
+   clube que subiu ano passado e caiu pro Z-4 agora via "Subimos de divisão" de novo, com a
+   posição (17º) certa e o veredito da temporada ERRADO (relato do dono, 22/08). Na Resenha o
+   problema era pior: switchToDivision nunca roda no cliente (quem vira é o servidor), então
+   S._promoRelegNews podia nem existir. Calculando aqui, direto da MESMA leitura de
+   momentoPrevSeasonPos() que decide a posição exibida, os dois nunca mais podem discordar. */
+function momentoPromoRelegOutcome(){
+  const m=momentoPrevSeasonPos(); if(!m) return null;
+  const promoN=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[m.div])||0;
+  const relegN=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[m.div])||0;
+  if(promoN>0 && m.pos<=promoN) return 'promoted';
+  if(relegN>0 && m.pos>m.total-relegN) return 'relegated';
+  return null;
+}
 function dadosCampeaoLiga(){
-  const tb=momentoClassif(); const t=tb[0]; if(!t || String(t.id)!==String(CL.clubId)) return null;
+  const m=momentoPrevSeasonPos(); if(!m || m.pos!==1) return null;
   const nome=(clubOf(CL.clubId)||{}).short||'O clube';
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
-    manchete:`${nome} é campeão.`, trofeu:S.division,
-    linha:`Título conquistado na ${S.sched?S.sched.length:38}ª rodada da competição.`,
-    stats:[{k:'PONTOS',v:String(t.Pts)},{k:'CAMPANHA',v:momentoCampanha(t)},{k:'SALDO',v:String((t.GF||0)-(t.GA||0))}],
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
+    manchete:`${nome} é campeão.`, trofeu:m.div,
+    linha:`Título conquistado na ${S.sched?S.sched.length:38}ª semana da competição.`,
+    stats:[{k:'PONTOS',v:String(m.t.Pts)},{k:'CAMPANHA',v:momentoCampanha(m.t)},{k:'SALDO',v:String((m.t.GF||0)-(m.t.GA||0))}],
     rodape:'A vaga continental está garantida.' };
 }
 function dadosPromovido(){
-  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0; const t=momentoClassif()[pos-1];
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
-    manchete:'Subimos de divisão.', trofeu:S.division,
-    linha:`${pos}º lugar. Ano que vem o clube joga a divisão de cima.`,
-    stats:[{k:'POSIÇÃO',v:pos+'º'},{k:'PONTOS',v:t?String(t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(t)}],
+  const m=momentoPrevSeasonPos(); if(!m) return null;
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
+    manchete:'Subimos de divisão.', trofeu:m.div,
+    linha:`${m.pos}º lugar. Ano que vem o clube joga a divisão de cima.`,
+    stats:[{k:'POSIÇÃO',v:m.pos+'º'},{k:'PONTOS',v:m.t?String(m.t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(m.t)}],
     rodape:'A verba de reforços foi reajustada.' };
 }
 function dadosRebaixado(){
-  const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0; const t=momentoClassif()[pos-1];
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(S.division,S.intlUniverse):'Liga'),
+  const m=momentoPrevSeasonPos(); if(!m) return null;
+  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
     manchete:'A queda foi confirmada.', trofeu:null,
-    linha:`${pos}º lugar. O clube disputa a divisão de baixo na próxima temporada.`,
-    stats:[{k:'POSIÇÃO',v:pos+'º'},{k:'PONTOS',v:t?String(t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(t)}],
+    linha:`${m.pos}º lugar. O clube disputa a divisão de baixo na próxima temporada.`,
+    stats:[{k:'POSIÇÃO',v:m.pos+'º'},{k:'PONTOS',v:m.t?String(m.t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(m.t)}],
     rodape:'A diretoria quer conversar sobre o seu contrato.' };
 }
 /* ARTILHEIRO: só vira modal se for jogador DO USUÁRIO — é o que o pedido especifica. */
@@ -5016,7 +5117,7 @@ function dadosCrise(){
   return { titulo:'A diretoria quer falar com você',
     manchete:'O clima azedou.', trofeu:null,
     linha:`${pos}º lugar e vestiário em baixa. A diretoria do ${nome} está de olho nas próximas rodadas.`,
-    stats:[{k:'SEGURANÇA',v:js+'%'},{k:'POSIÇÃO',v:pos?pos+'º':'—'},{k:'MORAL DO ELENCO',v:moral+'%'}],
+    stats:[{k:'Segurança no cargo',v:js+'%'},{k:'Posição',v:pos?pos+'º':'—'},{k:'Moral do elenco',v:moral+'%'}],
     rodape:'Abaixo de 15% de segurança, a demissão entra em sorteio a cada rodada.' };
 }
 /* enfileira o momento de crise se ele se aplica AGORA e ainda não apareceu nesta temporada */
@@ -5039,7 +5140,7 @@ function enfileirarMomentosFimDeTemporada(){
   try{
     const camp=dadosCampeaoLiga(); if(camp) enfileirarMomento('campeao-liga', camp);
     const art=dadosArtilheiro('liga'); if(art) enfileirarMomento('marcador-liga', art);
-    const pr=S._promoRelegNews;
+    const pr=momentoPromoRelegOutcome();
     if(pr==='promoted') enfileirarMomento('promovido', dadosPromovido());
     else if(pr==='relegated') enfileirarMomento('rebaixado', dadosRebaixado());
   }catch(e){ console.warn('momentos de fim de temporada:', e&&e.message); }
@@ -5410,6 +5511,15 @@ function shirtHTML(p, th, num){
   // o numero usa a secundaria SÓ quando ela se le sobre a primaria (Palmeiras tem
   // verde sobre verde); senao cai pro preto/branco que barTextColor garante.
   const cn=barTextColor(c1,c2);
+  // MINIATURA DO ESTÚDIO: quando o clube tem a camisa gerada no painel (transparente,
+  // pintada nas cores), ela substitui o desenho CSS — mesmo tamanho, número por cima.
+  const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)];
+  if(uni && uni.miniatura){
+    return `<span class="cl-pp-shirt rf-jersey rf-jersey-img" aria-hidden="true">
+      <img src="${escC(uni.miniatura)}" alt="" loading="lazy" draggable="false">
+      <b>${num||''}</b>
+    </span>`;
+  }
   return `<span class="cl-pp-shirt rf-jersey" aria-hidden="true">
     <i class="rf-j-sl l" style="background:${c2}"></i><i class="rf-j-sl r" style="background:${c2}"></i>
     <i class="rf-j-body" style="background:${c1}"><b style="color:${cn}">${num||''}</b></i>
@@ -6012,7 +6122,7 @@ function cupPhaseLabelFor(pending){
   if(pending.stage==='group'){
     const mg=pending.group;
     const tot=(mg&&mg.roundsTotal)||6;
-    return `Fase de grupos · ${(mg?mg.round:0)+1}ª rodada de ${tot}`;
+    return `Fase de grupos · ${(mg?mg.round:0)+1}ª semana de ${tot}`;
   }
   const b=pending.bracket;
   return b ? cupPhaseLabel(b.round, b.roundsTotal) : 'Mata-mata';
@@ -7616,11 +7726,11 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
   // cabeçalho da partida de assento (hotseat): nome do treinador + clube + país
   const hsTop = RL.humanSeat ? (function(){ const st=RL.humanSeat.seat; const c=clubOf(st.clubId)||{}; const fl=(typeof flagImg==='function')?flagImg(st.country):'';
     return `<div class="cl-live-cup-top">${camSw}<div class="cl-live-cup-name">${escC(st.name)} · ${escC(c.short||c.name||'')}</div>
-      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Rodada</div></div>`; })() : '';
+      <div class="cl-live-cup-stage">${fl} ${escC(st.country)} · ${RL.jornada}ª Semana</div></div>`; })() : '';
   // o dia entra junto da rodada: na partida ao vivo o jogador vê que aquele jogo é de um DIA
   // (quarta de copa ou fim de semana de liga), não de um bloco de semana indistinto.
   const _liveDay = (typeof calRowDate==='function') ? calRowDate(Math.max(0,(RL.jornada||1)-1), RL.cup?(RL.cup.key||true):null) : '';
-  const topLabel = `${RL.jornada}ª Rodada - ${S.season}${_liveDay?' · '+_liveDay:''}`;
+  const topLabel = `${RL.jornada}ª Semana - ${S.season}${_liveDay?' · '+_liveDay:''}`;
   const shootoutBoard = RL.pens ? shootoutScoreboardHTML(RL) : '';
   const camAberto = !!(userMatch && camOn());
   return `<div class="cl-live${camAberto?' rf-cam-open':''}">${kickoffWaitHTML(RL)}${cupTop}${hsTop}${single?'':`<div class="cl-live-top">${divisionTrophyImg(S.division,20)} ${topLabel}${camSw}</div>`}
@@ -8249,7 +8359,7 @@ function scClassifLegado(){
       ${btn('Continuar','clClassifContinue()',{icon:'✔',cls:'cl-btn-ok cl-btn-sm'})}
     </div>
     <div class="cl-classif-autohint">avança sozinho em alguns segundos...</div>
-    <div class="cl-live-top">Classificação - ${S.round}ª rodada</div>
+    <div class="cl-live-top">Classificação - ${S.round}ª semana</div>
     <div class="cl-clsacc-wrap">${DIV_ORDER.map(panelHTML).join('')}</div>
   </div>`;
 }
@@ -8955,7 +9065,7 @@ async function onlineAdoptServerRound(RL){
     // registra os TÍTULOS da temporada que fechou — na Resenha o endSeason() do cliente
     // (que sempre fez isso) nunca roda: quem vira a temporada é o servidor.
     if(typeof registerPrevSeasonTitles==='function') registerPrevSeasonTitles();
-    queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª rodada da temporada nova)
+    queueSeasonCupDrawsIfNew(); // virada: enfileira o sorteio da copa NOVA (mostra na 1ª semana da temporada nova)
     hideSyncLoading();
     cdraw();
     // MOMENTOS DE FIM DE TEMPORADA (título / artilheiro / acesso ou queda) vêm ANTES da sala de
@@ -9089,6 +9199,7 @@ function resolveCupRoundRest(key){
     if(key==='copaBrasil'){
       if(!cupIsFinished(c) && (c.ties||[]).length) ok=advanceCupBracket(c,'copaBrasil-r'+c.round,'copaBrasil')!==false;
     } else if(c.group && !c.bracket){
+      // regra de resultado único: ver o bloqueio CPU×CPU dentro de advanceGroupStageRound (core.js)
       if(!c.group.finished) ok=advanceGroupStageRound(c.group, key+'-grupo-r'+c.group.round, key)!==false;
     } else if(c.bracket && !cupIsFinished(c.bracket) && (c.bracket.ties||[]).length){
       ok=advanceCupBracket(c.bracket, key+'-r'+c.bracket.round, key)!==false;
@@ -9234,7 +9345,7 @@ function armCupFlowTimer(fn, ms){
     // GUARDA DE TELA (o armClassifTimer sempre teve, este não): em 10s o jogador pode já ter
     // saído da copa e estar NA PARTIDA DE LIGA. Sem a guarda, este timer velho disparava
     // finishCupResultFlow no meio do jogo dele — a tela piscava e voltava pra principal, e a
-    // rodada seguia rodando invisível (bug do "não assisti a 3ª rodada", 01/ago).
+    // rodada seguia rodando invisível (bug do "não assisti a 3ª semana", 01/ago).
     if(CUP_FLOW_SCREENS.indexOf(CL.screen)<0) return;
     try{ fn(); }catch(e){ console.warn('cup flow auto:', e&&e.message); } }, ms||10000);
 }
@@ -10124,7 +10235,7 @@ function clSetTempo(label){
   renderOptions();
 }
 function clOptions(){ CL.menu=null; CL.optTab='geral';
-  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 rodadas',som:'Sim',
+  if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',gravar:'De 3 em 3 semanas',som:'Sim',
     subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
   // LIGADO por padrão pra todo mundo, inclusive pra quem já tinha CL.options gravado antes de o
   // salvamento automático existir — daí o preenchimento aqui e não só no objeto acima.
@@ -10135,7 +10246,7 @@ function renderOptions(){ const o=CL.options; const tab=CL.optTab||'geral';
   const sel=(id,opts,val)=>`<select class="cl-osel" onchange="CL.options['${id}']=this.value">${opts.map(x=>`<option ${x===val?'selected':''}>${escC(x)}</option>`).join('')}</select>`;
   const geral=`<div class="cl-orow"><span>Mostrar chicotadas psicológicas</span>${sel('chicotadas',['Nunca','Dos humanos','De todos'],o.chicotadas)}</div>
     <div class="cl-orow"><span>Ver sorteio da taça</span>${sel('sorteio',['Nunca','Quando houver humanos','Sempre'],o.sorteio)}</div>
-    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 rodadas','Sempre'],o.gravar)}</div>
+    <div class="cl-orow"><span>Gravar o jogo</span>${sel('gravar',['Nunca','De 3 em 3 semanas','Sempre'],o.gravar)}</div>
     <div class="cl-orow"><span>Habilitar som</span>${sel('som',['Sim','Não'],o.som)}</div>
     <div class="cl-orow"><span>Salvamento automático<br><i>Guarda as 3 últimas rodadas e o fim de cada temporada</i></span>${sel('autoSave',['Sim','Não'],o.autoSave||'Sim')}</div>
     <div class="cl-orow"><span>Voltar a um ponto guardado</span>${btn('Ver pontos guardados','clAutoSaveAbrir()',{icon:'⏪'})}</div>`;
@@ -11282,7 +11393,7 @@ function cupGroupCardHTML(g, label, mine, opts){
   };
   const jogos = res.length
     ? res.map(matchRow).join('')
-    : `<div class="cl-cup2-m vazio">aguardando a 1ª rodada</div>`;
+    : `<div class="cl-cup2-m vazio">aguardando a 1ª semana</div>`;
   const standings=groupTableStandings(grp);
   const adv=g.advancePerGroup||2;
   // A TABELA COMPLETA, não só os pontos: jogos, saldo e pontos. Quem olha uma fase de grupos

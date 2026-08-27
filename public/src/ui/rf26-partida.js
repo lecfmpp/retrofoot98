@@ -109,6 +109,10 @@ function rfStage(o){
       <div class="rf-stg-shell">${o.corpo||''}</div>
       ${o.acoes?`<div class="rf-stg-foot">${o.acoes}</div>`:''}
     </div>
+    ${/* MODAL DE AÇÃO DENTRO DA TELA CHEIA: rfAcAbrir só guarda o estado e
+         redesenha — sem esta chamada, um "Fazer proposta" aberto a partir da
+         visita a outro clube (ou de qualquer rf-stg) não desenhava nada. */
+      (typeof rfAcaoHTML==='function') ? rfAcaoHTML() : ''}
   </div>`;
 }
 
@@ -122,7 +126,13 @@ function rfPlLinhaHTML(p, opts){
   const en=Math.round(p.energy!=null?p.energy:100);
   return `<div class="rf-pl ${opts.sel?'sel':''} ${opts.off?'off':''} ${opts.marca?'trocou '+opts.marca:''}"
       ${opts.on?`onclick="${opts.on}"`:''}>
-    <span class="rf-pl-num">${escC(String(nums[p.pid]||''))}</span>
+    ${(function(){ const n=nums[p.pid]||p.num||'';
+        const f=(typeof rfFotoDe==='function')?rfFotoDe(p, CL.clubId):null;
+        /* mesma miniatura padrão das outras telas (foto + número dentro);
+           sem foto, o crachá numérico de sempre */
+        return (f && typeof rfFotoNumHTML==='function')
+          ? rfFotoNumHTML(f, n, '')
+          : `<span class="rf-pl-num">${escC(String(n))}</span>`; })()}
     <span class="rf-pl-id">
       <span class="rf-pl-n">${escC(p.n)}</span>
       ${opts.marca?`<span class="rf-pl-marca">${
@@ -526,7 +536,7 @@ function rfPosRodadaHTML(){
       <span class="rf-pr-placar">${r.hg}–${r.ag}</span>
       <span class="rf-pr-lado">${rfCrest(a,18)}<span class="rf-pr-jn">${escC(a.short)}</span></span>
     </div>`;
-  }).join(''):'<span class="rf-note">Os resultados aparecem quando a rodada fechar.</span>';
+  }).join(''):'<span class="rf-note">Os resultados aparecem quando a semana fechar.</span>';
 
   // o que mudou para você
   const antes=CL._posAntes!=null?CL._posAntes:minha;
@@ -575,13 +585,13 @@ function rfPosRodadaHTML(){
 
   return rfStage({
     w:1080, comp:abaAtual==='tabela'?S.division:abaAtual,
-    contexto:`${(S.round||0)}ª rodada encerrada · ${classifDivName(S.division)} ${S.season||''}`,
+    contexto:`${(S.round||0)}ª semana encerrada · ${classifDivName(S.division)} ${S.season||''}`,
     titulo:'Como ficou a tabela',
     corpo:`<div class="rf-pr-cols ${abaAtual==='tabela'?'':'chave'}">
       <div class="rf-card">${abas}${esquerda}</div>
       <div class="rf-pr-dir">
         <div class="rf-card"><div class="rf-label">
-          <span class="rf-label-t">Resultados da rodada</span>
+          <span class="rf-label-t">Resultados da semana</span>
           <span class="rf-label-r">${res.length} jogo${res.length===1?'':'s'}</span></div>${resultados}</div>
         <div class="rf-card"><span class="rf-label-t">O que mudou para você</span>${mudou}</div>
       </div>
@@ -693,7 +703,7 @@ function rfLobbyHTML(){
             <div class="rf-lb-r"><span class="rf-ov-res-t">Divisão</span>
               <span class="rf-lb-rv">${escC(rfDivisaoSala(room))}</span></div>
             <div class="rf-lb-r"><span class="rf-ov-res-t">Janela</span>
-              <span class="rf-lb-rv">a cada 10 rodadas</span></div>
+              <span class="rf-lb-rv">a cada 10 semanas</span></div>
           </div>
         </div>
       </div>

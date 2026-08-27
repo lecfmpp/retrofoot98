@@ -98,13 +98,18 @@ const RF_PAGES=[
            {k:'contra',  l:()=>'Contrapropostas',build:()=>rfMktContraHTML()},
            {k:'transf',  l:()=>'Transferências', build:()=>rfMktTransfHTML()} ] },
 
+  /* ELENCO — a MESMA página serve o meu clube e a VISITA a outro (rfElVisita()):
+     na visita some o financeiro do subtítulo e as abas Base/Treino especial, e
+     o elenco entra em leitura. Assim ver o adversário não tira o usuário do
+     jogo para uma tela solta fora do menu. */
   { key:'elenco', ico:'elenco', label:'Elenco & Base', curto:'Elenco',
-    titulo:'Elenco & Base', sub:()=>rfElSubHTML(),
+    titulo:()=>rfElVisita()?('Elenco · '+((anyClubOf(rfElVisita())||{}).short||'clube')):'Elenco & Base',
+    sub:()=>rfElSubHTML(),
     acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
-           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML()},
-           {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML()},
-           {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML()} ] },
+           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML(), show:()=>!rfElVisita()},
+           {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML(), show:()=>!rfElVisita()},
+           {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML(), show:()=>!rfElVisita()} ] },
 
   { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
     titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
@@ -309,6 +314,46 @@ function rfCrestEnvolve(club, dentro){
     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();${acao}}"
   >${dentro}</span>`;
 }
+/* nome do clube CLICÁVEL (mesma porta do escudo): abre o plantel do clube em
+   todo lugar onde nome+escudo aparecem juntos. Fora da partida ao vivo. */
+/* NOME DO JOGADOR LEVA À FICHA (regra de navegação): o clique no nome nunca
+   abre negociação direto — abre a ficha do jogador (a do próprio elenco ou a
+   da visita ao clube dele), onde moram os botões de transferência. */
+/* COMPONENTE PADRÃO da foto de jogador: quadrado arredondado com o NÚMERO
+   dentro (canto inferior direito, selo verde vivo, sem encostar nas bordas).
+   Tamanhos: '' 38px · m 29px · el 34px · g 52px · eln 40px. */
+function rfFotoNumHTML(foto, num, cls){
+  if(!foto) return null;
+  const badge=(num!=null && String(num)!=='' && String(num)!=='—')
+    ? `<b class="rf-fnum">${escC(String(num))}</b>` : '';
+  return `<span class="rf-fotonum ${cls||''}"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false">${badge}</span>`;
+}
+function rfVerFichaJogador(nome, clubId){
+  const cid = clubId || ((typeof findPlayerClub==='function')?findPlayerClub(nome):null);
+  if(!cid){ if(typeof toastC==='function') toastC('Não achei o clube desse jogador.'); return; }
+  if(String(cid)===String(CL.clubId)){
+    if(typeof clGoSquad==='function') clGoSquad();
+    const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
+    if(p){ if(typeof rfSelPlayer==='function') rfSelPlayer(p.pid);
+           if(typeof rfSetTab==='function') rfSetTab('elenco','ficha'); }
+    return;
+  }
+  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
+  if(typeof ensureForeignClub==='function' && arguments.length>2 && arguments[2]) ensureForeignClub(arguments[2], cid);
+  const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
+  /* jogador de OUTRO clube: perfil limitado em MODAL, sem sair da página */
+  if(typeof rfAcAbrir==='function') rfAcAbrir('jogador-perfil', { clubId:cid, pid:p?p.pid:null, nome });
+}
+function rfLinkJogador(nome, clubId, html, pais){
+  const acao=`rfVerFichaJogador('${escC(String(nome))}','${escC(String(clubId||''))}'${pais?`,'${escC(String(pais))}'`:''})`;
+  return `<span class="rf-clicavel" role="link" tabindex="0" title="Ver a ficha de ${escC(nome)}"
+    onclick="event.stopPropagation();${acao}"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();event.stopPropagation();${acao}}">${html||escC(nome)}</span>`;
+}
+function rfNomeClube(c, cls){
+  const nome = escC((c && (c.short||c.name)) || '—');
+  return rfCrestEnvolve(c||{}, `<span class="${cls||''}">${nome}</span>`);
+}
 function rfCrest(club, size){
   club=club||{};
   const {col,col2}=clubColors(club);
@@ -449,7 +494,7 @@ function rfFaixaEstadoHTML(){
   const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral||70),0)/sq.length):0;
   const j=(typeof transferWindowStatus==='function')?transferWindowStatus():null;
   let janela='';
-  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'rodada':'rodadas'}</span>`;
+  if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'semana':'semanas'}</span>`;
   else if(j&&j.opensIn!=null) janela=`<span class="rf-fx-chip">Janela abre em ${j.opensIn}</span>`;
   else if(j) janela=`<span class="rf-fx-chip">Janela fechada</span>`;
   return `<div class="rf-faixa-estado">
@@ -653,7 +698,7 @@ function rfSemanaHTML(){
       ${info?`<em class="rf-sem-c">${escC(info.curto)}</em>`:'<em class="rf-sem-c vazio">—</em>'}
     </span>`;
   }).join('');
-  return `<div class="rf-semana" aria-label="Os sete dias desta rodada">
+  return `<div class="rf-semana" aria-label="Os sete dias desta semana">
     <div class="rf-semana-l">
       <span class="rf-label-t">Esta semana</span>
       <span class="rf-semana-r">${temAlgo?'o dia colorido e o seu jogo':'semana sem jogos — o botao passa a semana'}</span>
@@ -771,12 +816,12 @@ function rfProximaAcao(){
     }
     // 6) os momentos da SALA (Resenha)
     const dia=(typeof roomDay==='function')?roomDay():null;
-    if(dia && dia.hold) return R('espera','relogio','Acertando a rodada','Aguarde');
+    if(dia && dia.hold) return R('espera','relogio','Acertando a semana','Aguarde');
     if(dia && dia.moment==='escalando'){
       const pronto=(typeof estouPronto==='function' && estouPronto());
       return pronto ? R('pronto','ok','Pronto') : R('marcarpronto','jogar','Quase pronto','Quase');
     }
-    if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a rodada','Aguarde');
+    if(dia && dia.moment==='classificacao') return R('fechando','relogio','Fechando a semana','Aguarde');
     const diaDeLiga=!!(dia && dia.comp==='liga');
     const copaDoDia=(dia && dia.comp!=='liga') ? dia.comp : null;
     // 7) tenho partida de copa HOJE (a do dia, nao a primeira da minha lista)
@@ -788,7 +833,7 @@ function rfProximaAcao(){
       const assisto=cupRoundsUserSitsOut()
         .filter(c=>typeof cupWasSeen!=='function' || !cupWasSeen(c.key))
         .filter(c=>!diaDeLiga && (!copaDoDia || c.key===copaDoDia));
-      if(assisto.length) return R('assistir','camarote','Assistir à rodada','Assistir');
+      if(assisto.length) return R('assistir','camarote','Assistir à semana','Assistir');
     }
     // 9) Resenha sem mais nada a cumprir: digo que estou pronto
     if(CL.online) return R('marcarpronto','jogar','Quase pronto','Quase');
@@ -944,7 +989,7 @@ function rfCompLinha(info,RL){
   const dia=rfCompDia(info);
   if(info.copa) return [dia,rfCompFase(info),temporada].filter(Boolean).join(' · ');
   const jor=RL.jornada||(((typeof S!=='undefined'&&S.round)||0)+1);
-  return [dia,jor+'ª rodada',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
+  return [dia,jor+'ª semana',temporada,rfCompTamanho(info.id)].filter(Boolean).join(' · ');
 }
 /* o segundo andar da pastilha do trilho */
 function rfCompMeta(info){
@@ -1024,7 +1069,7 @@ function rfPageHeadHTML(def){
   return `<div class="rf-pagehead">
     <div class="rf-pagehead-top">
       <div class="rf-pagehead-id">
-        <span class="rf-pagehead-t">${escC(def.titulo||def.label)}</span>
+        <span class="rf-pagehead-t">${escC((typeof def.titulo==='function'?def.titulo():def.titulo)||def.label)}</span>
         ${sub?`<span class="rf-pagehead-s">${escC(sub)}</span>`:''}
       </div>
       ${acoes||(pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:'')}
@@ -1058,7 +1103,11 @@ function rfHubHTML(){
         'var(--brand-primary)', moralTipText())}
       ${rfSegurancaHTML()}
     </div>
-    <div class="rf-card rf-card-grow" data-hub="classificacao">${rfClassifHTML()}</div>`;
+    <div class="rf-card" data-hub="classificacao">${rfClassifHTML()}</div>
+    <!-- DESTAQUES DEBAIXO DA CLASSIFICACAO: a tabela deixou de esticar (rf-card-grow)
+         e os destaques do plantel sobem para o espaco vazio que sobrava aqui — quem
+         quer ver artilheiro e quem esta em baixa nao precisa mais rolar a pagina. -->
+    <div class="rf-card rf-card-grow" data-hub="destaques">${rfNotasHTML()}</div>`;
   /* O RETANGULO 300x250 SAIU DA FORMACAO, no telefone e no computador. Esta e a tela de
      trabalho do treinador — escalar o time e escolher o esquema —, e o quadrado ficava logo
      abaixo da tabela, no caminho de quem esta a decidir. Os outros espacos do inventario
@@ -1103,9 +1152,7 @@ function rfHubHTML(){
            </div>`
         : pitchHTML()}
     </div>
-    <div class="rf-hub-baixo" data-hub="destaques">
-      ${rfNotasHTML()}
-    </div>`;
+`;
 
   /* NO TELEFONE O HUB TEM ABAS — Formação · Elenco · Jogo (ver os três mobiles do
      pacote). Não é a mesma página rolando: cada aba mostra o seu conteúdo e o
@@ -1132,17 +1179,32 @@ function rfHubAbasHTML(){
   ).join('')}</div>`;
 }
 
+/* A RÉGUA DE TÁTICA embaixo de cada formação: retranca/equilibrado/ofensivo não é uma escolha
+   à parte no jogo — sai direto da formação (tacticPosture(f), main.js), então quem olha só pro
+   nome "3-3-4" não tem como saber que aquilo joga ofensivo. Três tarjetas fixas (mesma cor em
+   toda pastilha) com a que vale pra ESTA formação acesa; a apagada mostra a régua inteira sem
+   pesar na leitura do chip. Tooltip só no hover, uma linha, sem novo componente global. */
+const TATICA_DESC={
+  ofensivo:{l:'Ofensivo', d:'Ataca mais, mas abre mais chances pro rival'},
+  equilibrado:{l:'Equilibrado', d:'Não pesa pra nenhum lado'},
+  retranca:{l:'Retranca', d:'Segura mais atrás, cria menos chances'},
+};
 /* as oito pastilhas de formação (seis + Auto + Melhores), com o atalho embaixo */
 function rfFormacoesHTML(){
-  const opts=Object.keys(FORMATIONS).map(f=>({sel:!CL.xiModo&&CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f]}))
+  const opts=Object.keys(FORMATIONS).map(f=>({sel:!CL.xiModo&&CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f],
+      tat:(typeof tacticPosture==='function')?tacticPosture(f):null}))
     .concat([
       {sel:CL.xiModo==='auto', on:"clSelFormation('auto');cdraw()", l:'Auto', h:'A', t:'Escalação automática'},
       {sel:CL.xiModo==='best', on:"clSelFormation('best');cdraw()", l:'11+', h:'Melhores', t:'O melhor de cada posição'},
     ]);
-  return `<div class="rf-formgrid">${opts.map(o=>
-    `<button type="button" class="rf-chip rf-chip-hint ${o.sel?'on':''}" title="${escC(o.t)}" onclick="${o.on}">
-      <span class="rf-chip-l">${escC(o.l)}</span><span class="rf-chip-h">${escC(o.h)}</span>
-    </button>`).join('')}</div>`;
+  return `<div class="rf-formgrid">${opts.map(o=>{
+    const info=o.tat && TATICA_DESC[o.tat];
+    const regua=o.tat?`<span class="rf-tat-regua rf-tat-${o.tat}"><i></i><i></i><i></i></span>`:'';
+    const tip=info?`<span class="rf-tat-tip"><b>${escC(info.l)}</b>${escC(info.d)}</span>`:'';
+    return `<button type="button" class="rf-chip rf-chip-hint ${o.sel?'on':''} ${o.tat?'rf-chip-tat':''}" title="${escC(o.t)}" onclick="${o.on}">
+      <span class="rf-chip-l">${escC(o.l)}</span><span class="rf-chip-h">${escC(o.h)}</span>${regua}${tip}
+    </button>`;
+  }).join('')}</div>`;
 }
 
 /* classificação compacta da coluna esquerda, com as competições como chips */
@@ -1219,7 +1281,7 @@ function rfClTabelaHTML(linhas){
 function rfClassifLigaHTML(){
   const ids=Object.keys(S.table||{});
   if(!ids.length) return {meta:'a começar',
-    html:'<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>'};
+    html:'<div class="rf-empty">A tabela aparece depois da primeira semana.</div>'};
   const rows=ids.map(id=>({id,t:S.table[id]}))
     .sort((a,b)=>(b.t.Pts-a.t.Pts)||((b.t.GF-b.t.GA)-(a.t.GF-a.t.GA))||(b.t.GF-a.t.GF));
   const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
@@ -1317,7 +1379,7 @@ function rfVenderHTML(){
 /* aba Modo Resenha dentro de Clube & Sistema */
 function rfResenhaHTML(){
   if(!CL.online) return `<div class="rf-empty">Você está no <b>Modo Solo</b>.<br>
-    <small>O Modo Resenha é o campeonato com a sua turma, na mesma rodada.</small></div>`;
+    <small>O Modo Resenha é o campeonato com a sua turma, na mesma semana.</small></div>`;
   const acts=[];
   if(typeof NET!=='undefined' && NET.isHost){
     const nr=(CL.pendingJoins&&CL.pendingJoins.length)||0;
@@ -2075,12 +2137,12 @@ function rfMktLeilaoCard(lim){
     </div>`;
   }).join('');
   const corpo=`
-    ${lim?'':'<span class="rf-note">Cubra a maior oferta antes das rodadas acabarem — se o seu lance ficar abaixo, a concorrência cobre na rodada seguinte.</span>'}
+    ${lim?'':'<span class="rf-note">Cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.</span>'}
     <div class="rf-auc-head"><span>JOGADOR</span><span>FRC</span><span>SEU LANCE</span><span>MAIOR</span><span></span></div>
-    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta rodada.</div>'}</div>
+    <div class="rf-auc-list">${linhas||'<div class="rf-empty">Nenhum leilão aberto nesta semana.</div>'}</div>
     ${lim&&lots.length>lim?`<button type="button" class="rf-vermais" onclick="rfSetTab('mercado','leilao')">
       Ver os ${lots.length} leilões abertos</button>`:''}`;
-  return rfCard('Leilão de jogadores', corpo, {right: lots.length?'fecha em 2 rodadas':''});
+  return rfCard('Leilão de jogadores', corpo, {right: lots.length?'fecha em 2 semanas':''});
 }
 /* o RESUMO da página: coluna 1 com venda + leilão, coluna 2 com o trilho */
 function rfMercadoResumoHTML(){
@@ -2106,7 +2168,7 @@ function rfPropostaCardHTML(o){
       <span class="rf-prop-n">${escC(o.playerName)}</span>
       <span class="rf-prop-fee">${escC(mvShort(o.fee))}</span>
     </div>
-    <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} rodada(s)</span>
+    <span class="rf-prop-sub">${escC(p?rfPosLabel(p.s):'—')} · ${o.playerForce} força · ${escC(o.buyerName||'')} · expira em ${rodadas} semana(s)</span>
     ${o.lastMsg?`<span class="rf-prop-msg">${rfIcone('chat',16)} ${escC(o.lastMsg)}</span>`:''}
     <div class="rf-prop-acts">
       <button type="button" class="rf-btn rf-btn-primary rf-prop-b" onclick="clAcceptOffer(${o.id})">Aceitar</button>
@@ -2181,7 +2243,7 @@ function rfElencoHTML(so){ return rfBlocos(null, RF_BL_ELENCO, so); }
 /* base: quem dá pra subir agora, com o custo e o botão */
 function rfBaseHTML(){
   const disp=(typeof youthAvailable==='function')&&youthAvailable();
-  if(!disp) return `<span class="rf-note">A base não tem ninguém pronto nesta rodada.</span>`;
+  if(!disp) return `<span class="rf-note">A base não tem ninguém pronto nesta semana.</span>`;
   return `<span class="rf-note">Suba um jogador da base para o elenco principal. Cada promoção vale por temporada.</span>
     <div class="rf-acts">${btn('Ver jogadores da base','clPromoteYouth()',{cls:'cl-btn-ok'})}</div>`;
 }
@@ -2203,7 +2265,7 @@ function rfDiasJanela(){
   if(typeof transferWindowStatus!=='function') return null;
   try{ const st=transferWindowStatus(); return st&&st.closesIn?st.closesIn:null; }catch(e){ return null; }
 }
-function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'s':'')) : null; }
+function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' semana'+(d>1?'s':'')) : null; }
 
 /* =====================================================================
    SQUADTABLE — a tabela de elenco do design system
@@ -2221,6 +2283,16 @@ function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' rodada'+(d>1?'
 function rfDinCurto(v){
   const sim=(typeof curSym==='function')?curSym():'R$';
   return sim+' '+((typeof mvShort==='function')?mvShort(v||0):String(v||0));
+}
+/* ===== COLUNA NAC — a bandeira da nacionalidade em TODA lista de jogador (regra do dono,
+   22/08). A cota de estrangeiros é regra de verdade em cada liga (checkForeignQuota), então a
+   nacionalidade tem de estar à vista onde houver jogador: Formação, Elenco, Mercado. O title
+   diz o país e o lado da cota — a MESMA régua do motor (playerIsForeign), nunca outra. */
+function rfNacHTML(p, cls){
+  const temNat=!!(p&&p.nat);
+  const estr=temNat && (typeof playerIsForeign==='function') && playerIsForeign(p);
+  const t=temNat?(p.nat+(estr?' · estrangeiro (conta na cota)':' · não conta na cota')):'nacionalidade desconhecida';
+  return `<span class="${cls||''} rf-nac" title="${escC(t)}">${(temNat&&typeof flagImg==='function')?flagImg(p.nat):'—'}</span>`;
 }
 const RF_SQUAD_COLS={
   /* A GRADE LITERAL DO PACOTE NÃO CABE NOS 380px QUE ESTA COLUNA TEM.
@@ -2244,8 +2316,9 @@ const RF_SQUAD_COLS={
      .rf-cols): a coluna da tabela ganhou ~250px, e o que era aperto -- a barra
      de energia colada ao "100%", o valor em 52px, a nota em 40 -- deixou de
      precisar de ser. O NOME continua a ficar com todo o resto. */
-  hub:    {grid:'20px 24px minmax(0,1fr) 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
-  elenco: {grid:'22px 26px minmax(0,1fr) 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
+  /* +24px de NAC (a bandeira) logo após o nome — sai da folga do NOME, que segue com o resto */
+  hub:    {grid:'20px 24px minmax(0,1fr) 24px 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
+  elenco: {grid:'22px 26px minmax(0,1fr) 24px 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
 };
 function rfSquadTableHTML(modo, opts){
   opts=opts||{};
@@ -2257,7 +2330,7 @@ function rfSquadTableHTML(modo, opts){
   // a densidade vai na CLASSE, não só na grade inline: é por ela que o CSS
   // enxuga a tabela do Hub quando a coluna aperta, sem tocar na do Elenco.
   const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'}">
-    <span></span><span>POS</span><span>NOME</span>
+    <span></span><span>POS</span><span>NOME</span><span>NAC</span>
     <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
     ${cfg.sal?'<span>SAL.</span>':''}<span>VALOR</span>
   </div>`;
@@ -2273,6 +2346,7 @@ function rfSquadTableHTML(modo, opts){
       <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
       <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
       <span class="rf-sq-name">${escC(p.n)}${indisp?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      ${rfNacHTML(p,'rf-sq-nac')}
       <span class="rf-sq-id">${p.age||''}</span>
       <span class="rf-sq-frc">${p.f}</span>
       <span class="rf-sq-nota ${rfNotaTom(nota)}">${nota!=null?escC(String(nota).replace('.',',')):'–'}</span>
@@ -2297,6 +2371,14 @@ function rfNotaTom(n){ return n==null?'':(n>=7?'boa':n>=5?'media':'ruim'); }
    salário e gols. Nada de painel escuro: é card claro como o resto.
    ===================================================================== */
 function rfJerseyHTML(num){
+  // camisa do Estúdio quando o clube tem (mesma regra do gramado); CSS de fallback
+  const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)];
+  if(uni && uni.miniatura){
+    return `<div class="rf-jersey rf-jersey-img" aria-hidden="true">
+      <img src="${escC(uni.miniatura)}" alt="" loading="lazy" draggable="false">
+      <b>${escC(String(num||''))}</b>
+    </div>`;
+  }
   return `<div class="rf-jersey" aria-hidden="true">
     <i class="rf-j-sl l"></i><i class="rf-j-sl r"></i>
     <i class="rf-j-body"><b>${escC(String(num||''))}</b></i>
@@ -2323,7 +2405,7 @@ function rfFichaHTML(){
       ${rfJerseyHTML(nums[p.pid])}
       <div class="rf-ficha-nm">
         <span class="rf-ficha-n">${escC(p.n)}</span>
-        <span class="rf-ficha-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
+        <span class="rf-ficha-s">${p.nat?rfNacHTML(p)+' '+escC(p.nat)+' · ':''}${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
       </div>
     </div>
     <div class="rf-ficha-bars">
@@ -2362,7 +2444,7 @@ function rfZonaTabela(pos, total){
    dele, não o líder. Sem `lim`, a tabela inteira. */
 function rfTabelaHTML(lim){
   const linhas=(typeof sortedTable==='function')?sortedTable():[];
-  if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira rodada.</div>';
+  if(!linhas.length) return '<div class="rf-empty">A tabela aparece depois da primeira semana.</div>';
   const total=linhas.length;
   // a janela do resumo: eu no meio, os vizinhos em volta
   let mostra=linhas.map((t,i)=>({t,i}));
@@ -2452,7 +2534,7 @@ const RF_BL_CAMPEONATOS=[
     dir:()=>rfMinhaPosicao()?rfMinhaPosicao()+'º de '+Object.keys(S.table||{}).length:'' },
   { k:'calendario', t:'Calendário', col:1, corpo:()=>rfCalendarioHTML(),
     dir:()=>{ const nm=(typeof nextUserMatch==='function')?nextUserMatch():null;
-              return nm? ((S.round||0)+1)+'ª rodada em '+(shortMatchDate(nm)||'') : ''; } },
+              return nm? ((S.round||0)+1)+'ª semana em '+(shortMatchDate(nm)||'') : ''; } },
   { k:'artilharia', t:()=>'Artilharia da '+divisionLabel(), col:2, lim:4,
     corpo:l=>rfArtilhariaHTML(S.scorers,null,l) },
   { k:'historia',   t:'Últimos vencedores', col:2, corpo:()=>rfVencedoresHTML() },
@@ -2496,7 +2578,7 @@ function rfFinancasKpisHTML(){
   const ult=(S.finances||[])[0];
   const delta=ult?((ult.income||0)+(ult.playerSales||0)-((ult.salaries||0)+(ult.bonuses||0)+(ult.opex||0)+(ult.playerPurchases||0)+(ult.stadium||0))):0;
   return `<div class="rf-kpis">
-    ${rfKpiHTML('Em caixa', fmt(S.budget||0), (delta>=0?'+ ':'− ')+fmt(Math.abs(delta))+' na rodada')}
+    ${rfKpiHTML('Em caixa', fmt(S.budget||0), (delta>=0?'+ ':'− ')+fmt(Math.abs(delta))+' na semana')}
     ${rfKpiHTML('Folha salarial', fmt(folhaSem), 'por semana · '+sq.length+' jogadores','neg')}
     ${rfKpiHTML('Sócios', grp(socios), 'estimativa sobre a capacidade')}
     ${rfKpiHTML('Estádio', grp(cap), 'lugares')}
@@ -2782,7 +2864,7 @@ function rfTreinadorHTML(so){
 function rfInbox(){ if(typeof syncInbox==='function'){ try{ syncInbox(); }catch(e){} } return CL.inbox||[]; }
 function rfQuandoHTML(e){
   const r=(e.round||0)+1;
-  return 'rodada '+r+(e.season?(' · '+e.season):'');
+  return 'semana '+r+(e.season?(' · '+e.season):'');
 }
 function rfListaEmailsHTML(){
   const box=rfInbox();
@@ -2824,7 +2906,7 @@ function rfOpcaoHTML(titulo, explica, controle){
 function rfOpcoesHTML(){
   const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
   const moeda=(typeof curSym==='function')?curSym():'R$';
-  return rfOpcaoHTML('Tempo de jogo','Velocidade da rodada ao vivo — o Camarote trava no Usain Bolt',
+  return rfOpcaoHTML('Tempo de jogo','Velocidade da semana ao vivo — o Camarote trava no Usain Bolt',
       `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(tempo)}</button>`)
     + rfOpcaoHTML('Moeda','Símbolo usado em todo valor da tela',
       `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(moeda)}</button>`)
@@ -2839,7 +2921,7 @@ function rfJogoHTML(){
     `<button type="button" class="rf-acao perigo" onclick="clExit()">↩ Sair para o menu</button>`,
   ].filter(Boolean).join('');
   return `<div class="rf-acoes">${acoes}</div>
-    <span class="rf-note">O jogo grava sozinho a cada rodada. "Gravar jogo" força a gravação agora e mostra os saves guardados.</span>`;
+    <span class="rf-note">O jogo grava sozinho a cada semana. "Gravar jogo" força a gravação agora e mostra os saves guardados.</span>`;
 }
 /* Clube & Sistema inverte as colunas (a lista de e-mails é a de 340). O
    bloco de LEITURA não tem aba: ele é o corpo do e-mail selecionado na
@@ -2958,6 +3040,99 @@ function rfFichaLinha(l,v){
   return `<div class="rf-of-linha"><span class="rf-of-l">${escC(l)}</span>
     <span class="rf-of-v">${escC(String(v))}</span></div>`;
 }
+
+/* =====================================================================
+   MODAL DE CRISE — "A diretoria quer falar com você" (21/08)
+   Substitui o cl-mom genérico (desenho antigo, cl-btn-*, anúncio no rodapé) pela mesma família
+   visual dos modais de convite (.rf-of), sem anúncio. O botão "Assumir a responsa" não fazia
+   NADA além de fechar o modal — vira duas perguntas da diretoria, 3 respostas cada, e a escolha
+   mexe de verdade na moral do elenco (adjTeamMoral). Terceira opção de cada pergunta é sempre a
+   mais dura (maior queda de moral); a diplomática segura o vestiário. ===================== */
+const CRISE_PERGUNTAS=[
+  { q:'Por que os resultados pioraram?', opts:[
+      {t:'A responsabilidade é minha — vou rever a estratégia.', d:+3},
+      {t:'Ninguém está livre de cobrança, todos precisam melhorar.', d:-3},
+      {t:'O grupo é bom, faltou entrega em campo.', d:-8},
+    ]},
+  { q:'Qual o plano para a próxima semana?', opts:[
+      {t:'Manter a base e confiar no trabalho que vem sendo feito.', d:+2},
+      {t:'Mudar o sistema tático para reagir.', d:-2},
+      {t:'Cobrar mais intensidade nos treinos.', d:-5},
+    ]},
+];
+function rfCriseHTML(){
+  const dados=CL._criseDados||{};
+  const resp=CL._criseResp||[null,null];
+  const pergHTML=(p,qi)=>`<div class="rf-crise-perg">
+    <span class="rf-crise-q">${escC(p.q)}</span>
+    <div class="rf-crise-opts">${p.opts.map((o,oi)=>
+      `<button type="button" class="rf-crise-opt ${resp[qi]===oi?'on':''}" onclick="rfCriseEscolher(${qi},${oi})">${escC(o.t)}</button>`).join('')}</div>
+  </div>`;
+  const pronto=resp.every(x=>x!=null);
+  return `<div class="rf-of rf-of-crise">
+    <div class="rf-of-hd">
+      <div class="rf-band-filete"></div>
+      <span class="rf-of-glyph">🗣️</span>
+      <div class="rf-of-ttl">
+        <span class="rf-of-t">${escC(dados.titulo||'A diretoria quer falar com você')}</span>
+        <span class="rf-of-sub">${escC(dados.manchete||'O clima azedou.')}</span>
+      </div>
+    </div>
+    <div class="rf-of-body">
+      <div class="rf-of-esq">
+        <p class="rf-of-p">${escC(dados.linha||'')}</p>
+        ${CRISE_PERGUNTAS.map(pergHTML).join('')}
+      </div>
+      <div class="rf-of-dir">
+        <div class="rf-card">
+          <span class="rf-label-t">A situação</span>
+          ${(dados.stats||[]).map(s=>rfFichaLinha(s.k,s.v)).join('')}
+        </div>
+        <div class="rf-card rf-card-quiet">
+          <p class="rf-of-p2">${escC(dados.rodape||'')}</p>
+        </div>
+      </div>
+    </div>
+    <div class="rf-of-foot">
+      <span class="rf-of-nota">${pronto?'As respostas vão sentir no vestiário.':'Responda as duas perguntas da diretoria.'}</span>
+      <div class="rf-sp"></div>
+      <button type="button" class="rf-wiz-b2" onclick="rfCriseVerTabela()">Ver a tabela</button>
+      <button type="button" class="rf-wiz-cta" onclick="rfCriseSubmeter()" ${pronto?'':'disabled'}>Falar com a diretoria</button>
+    </div>
+  </div>`;
+}
+function rfCriseAbrir(dados, aoFechar){
+  CL._criseDados=dados||{}; CL._criseResp=[null,null]; CL._criseFechar=aoFechar||null;
+  overlayC(rfCriseHTML());
+  return true;
+}
+function rfCriseEscolher(qi,oi){
+  if(!CL._criseResp) return;
+  CL._criseResp[qi]=oi;
+  overlayC(rfCriseHTML());
+}
+function rfCriseFechar(){
+  CL._momentoAtual=null;
+  const f=CL._criseFechar; CL._criseDados=null; CL._criseResp=null; CL._criseFechar=null;
+  clCloseOverlay();
+  if(typeof f==='function') f();
+}
+function rfCriseVerTabela(){
+  rfCriseFechar();
+  if(typeof momentoAcao==='function') momentoAcao('clClassif');
+}
+function rfCriseSubmeter(){
+  if(!CL._criseResp || CL._criseResp.some(x=>x==null)) return;
+  const total=CRISE_PERGUNTAS.reduce((s,p,qi)=>s+p.opts[CL._criseResp[qi]].d, 0);
+  if(typeof adjTeamMoral==='function') adjTeamMoral(CL.clubId, total);
+  /* a diretoria também ouve: assumir a responsabilidade acalma a direção (metade do efeito da
+     moral, na mesma direção) — jogar a culpa no grupo pode segurar o vestiário de ninguém e
+     ainda piorar o cargo. Mesma régua de jobSecurity do resto do jogo (0-100). */
+  if(S.jobSecurity!=null) S.jobSecurity=Math.max(0,Math.min(100,S.jobSecurity+Math.round(total/2)));
+  if(typeof saveV3==='function') saveV3();
+  rfCriseFechar();
+}
+
 /* ---- 1 · CONVITE PARA JANTAR ---- */
 function rfModalConviteHTML(o){
   const c=(typeof jobOfferClub==='function')?jobOfferClub(o):{short:'—'};
@@ -2973,7 +3148,7 @@ function rfModalConviteHTML(o){
         <span class="rf-of-sub">O empresário ligou — querem conversar com você.</span>
       </div>
       <div class="rf-sp"></div>
-      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <span class="rf-of-clube">${rfCrest(c,22)}${rfNomeClube(c)}</span>
       <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
     </div>
     <div class="rf-of-body">
@@ -3024,7 +3199,7 @@ function rfModalPropostaHTML(o){
         <span class="rf-of-sub">Eles puseram os termos na mesa.</span>
       </div>
       <div class="rf-sp"></div>
-      <span class="rf-of-clube">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>
+      <span class="rf-of-clube">${rfCrest(c,22)}${rfNomeClube(c)}</span>
       <button type="button" class="rf-dlg-x" onclick="clCloseOverlay()" aria-label="Fechar">✖</button>
     </div>
     <div class="rf-of-body">

@@ -99,7 +99,7 @@ const RF_LOAD_ETAPAS=[
 ];
 const RF_LOAD_DICAS=[
   'Na Série D o mercado é curto. Guarde caixa para a segunda janela.',
-  'Time cansado rende menos: rode o elenco nas rodadas seguidas.',
+  'Time cansado rende menos: rode o elenco nas semanas seguidas.',
   'Jogador com contrato acabando sai de graça — renove antes da última janela.',
   'Vitória em casa rende bilheteria: encher o estádio é dinheiro no caixa.',
 ];
@@ -190,7 +190,7 @@ function rfTreinadoresHTML(){
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
       <div class="rf-ft-grid tres">
-        <div class="rf-ft-b"><span class="rf-ov-res-t">Rodada</span>
+        <div class="rf-ft-b"><span class="rf-ov-res-t">Semana</span>
           <span class="rf-ft-bv sm">1 por sessão</span></div>
         <div class="rf-ft-b"><span class="rf-ov-res-t">Clubes humanos</span>
           <span class="rf-ft-bv sm">${n} de ${rfClubesNaDivisao()}</span></div>
@@ -256,6 +256,19 @@ function rfClubesHTML(){
             ${paises.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('')}
           </select>
         </div>`).join('')}
+        ${(typeof rfTesteAcesso==='function' && rfTesteAcesso())?(()=>{
+          const poolMeu=(((CL._pickPool||{})[(pick[0]||{}).country]||[]).slice()
+            .sort((a,b)=>String(a.short||a.name).localeCompare(String(b.short||b.name),'pt-BR')));
+          return `<div class="rf-cb-lin" style="border:1px dashed #b8862c;border-radius:10px;padding:10px">
+            <span class="rf-cb-n">🧪 TESTE <i>(escolher o SEU clube e pular o sorteio)</i></span>
+            <select class="rf-campo-c" onchange="CL.pickTeste=this.value">
+              <option value="">— sortear normalmente —</option>
+              ${poolMeu.map(c=>`<option value="${escC(String(c.id))}" ${String(CL.pickTeste||'')===String(c.id)?'selected':''}>${escC(c.short||c.name)}</option>`).join('')}
+            </select>
+          </div>
+          <button type="button" class="rf-btn rf-btn-secondary" style="align-self:flex-start"
+            onclick="rfTesteComecar()">⚡ Começar com este clube (teste)</button>`;
+        })():''}
       </div>`;
     return rfWiz({ corpo, passo:rfPasso('Clube'), titulo:'De onde sai cada clube?',
       sub:'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.',
@@ -421,7 +434,7 @@ function rfInstitucionalCorpo(view){
     const passos=[
       ['1','Escolha o modo.','Solo contra a máquina ou Modo Resenha, com a liga da galera.'],
       ['2','Pegue um clube.','Elencos reais das quatro divisões. O clube é sorteado.'],
-      ['3','Monte a tática e jogue.','Escale os titulares, ajuste a formação e mande ver na rodada.'],
+      ['3','Monte a tática e jogue.','Escale os titulares, ajuste a formação e mande ver na semana.'],
     ];
     return passos.map(([n,t,d])=>`<div class="rf-in-passo">
       <span class="rf-in-pn">${n}</span>
@@ -486,9 +499,9 @@ function rfWaitlistHTML(){
         <div class="rf-wl-ok">
           <span class="rf-wl-ok-i">✓</span>
           <span class="rf-wl-ok-d">
-            <span class="rf-wl-ok-t">Vaga garantida.</span>
-            <span class="rf-note">A gente avisa por e-mail quando a sua vaga entre os
-              ${vagas} primeiros for liberada.</span></span>
+            <span class="rf-wl-ok-t">Obrigado — vaga garantida!</span>
+            <span class="rf-note">Vamos te avisar por e-mail quando o jogo for lançado
+              para os primeiros embaixadores — você está entre os ${vagas} primeiros.</span></span>
         </div>
         ${CL.waitlistAmigosOk?'<div class="rf-aviso"><span class="rf-aviso-i">✓</span><span>Indicações guardadas.</span></div>':''}
         <p class="rf-in-p">Agora chama a galera: <b>cada amigo indicado sobe você na fila</b> —
@@ -682,8 +695,8 @@ function rfObSoloHTML(){
     const serie=(s.division&&typeof divisionLabelOf==='function'&&/^[A-D]$/.test(String(s.division)))
       ? divisionLabelOf(s.division) : (st.divisionLabel||s.division||st.division||'');
     const ano=s.season||st.season||'';
-    const onde=(s.round!=null&&s.round!=='')?`${Number(s.round)+1}ª rodada`
-      : (st.roundLabel||(st.round?`${st.round}ª rodada`:'')||s.round_label||'');
+    const onde=(s.round!=null&&s.round!=='')?`${Number(s.round)+1}ª semana`
+      : (st.roundLabel||(st.round?`${st.round}ª semana`:'')||s.round_label||'');
     const sub=[serie,ano].filter(Boolean).join(' · ');
     return `<div class="rf-sv2 ${i===0?'me':''}" role="button" tabindex="0"
       onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')"

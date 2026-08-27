@@ -89,7 +89,7 @@ function rfMkFechaEm(roundsLeft){
   if(roundsLeft==null) return '—';
   const d=rfMkDataDaJornada((S.round||0)+roundsLeft);
   if(d) return d;
-  return roundsLeft+(roundsLeft===1?' rodada':' rodadas');
+  return roundsLeft+(roundsLeft===1?' semana':' semanas');
 }
 /* mesma fonte unica do calendario (ver dataCurtaDaJornada). Tinha aqui a sua
    propria conta `1+i*7+6`, que e a da LIGA — e por isso o mercado e o
@@ -133,7 +133,16 @@ function rfMkBt(rot, acao, cta){
 /* MESMA CAMISA DO RESTO DO JOGO. Aqui havia um segundo desenho — 34×30, sem
    gola, número em 11px preso ao corpo — e o número saía miúdo e desalinhado em
    relação ao das outras listas. Agora é a peça canónica, no tamanho médio. */
-function rfMkCamisaHTML(num){ return rfElCamisa(num,'m'); }
+function rfMkCamisaHTML(num, p){ return rfElCamisa(num,'m', p); }
+/* miniatura de foto nas TABELAS do mercado (comprar/leilão): entra antes do
+   nome quando o jogador tem foto do Estúdio; sem foto, nada muda */
+function rfMkFotoMini(p, clubId){
+  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, clubId) : null;
+  if(!foto) return '';
+  /* foto e nome levam ao MESMO lugar: a ficha do jogador (a proposta é só
+     pelo botão Propor da linha ou pelo botão dentro da ficha) */
+  return rfLinkJogador(p.n, clubId, rfFotoNumHTML(foto, p&&p.num, 'm'))+' ';
+}
 
 /* =====================================================================
    1 · COMPRAR
@@ -157,6 +166,12 @@ const RF_MKT_FILTROS=[
                                 ['50','50+'],['60','60+'],['70','70+'],['80','80+'],['90','90+']] },
   { k:'idade', l:'Idade',   op:[['all','qualquer'],['23','até 23'],['27','até 27'],['30','até 30']] },
   { k:'preco', l:'Preço',   op:[['all','qualquer'],['caixa','o que cabe no caixa'],['meio','até metade do caixa']] },
+  /* ===== NACIONALIDADE (regra do dono, 22/08) =====
+     Cada liga tem cota de estrangeiros (UNI_CONFIGS.foreignMax) e a compra é BLOQUEADA quando
+     ela enche — então quem está com a cota apertada precisa achar os nacionais de relance.
+     Os dois primeiros degraus são exatamente os lados da cota (nacional = fora da cota,
+     estrangeiro = conta); o resto é a lista real de nacionalidades do mercado escolhido. */
+  { k:'nac',   l:'Nacionalidade', op:()=>rfMktNacOp() },
   /* o pacote traz CINCO filtros; faltava o de clube */
   { k:'clube', l:'Clube',   op:()=>rfMktClubesOp() },
 ];
@@ -167,6 +182,21 @@ const RF_MKT_FILTROS=[
 function rfMktPaisesOp(){
   const paises=(typeof foreignMarketCountries==='function')?foreignMarketCountries():[];
   return [['meu','o meu campeonato']].concat(paises.map(p=>[p,p]));
+}
+/* nacionalidades que de facto existem no mercado escolhido — da MESMA fonte crua que o
+   filtro de clube (nunca da lista já filtrada, senão escolher uma prende a caixa nela) */
+function rfMktNacOp(){
+  const f=rfMktF();
+  const fora = f.pais && f.pais!=='meu';
+  const clubes = (fora && typeof foreignClubsOf==='function') ? foreignClubsOf(f.pais) : (DATA.clubs||[]);
+  const set=new Set();
+  clubes.forEach(c=>{
+    if(c.id===CL.clubId) return;
+    const elenco = fora ? ((S.squads&&S.squads[c.id]) || c.squad || []) : (squad(c.id)||[]);
+    (elenco||[]).forEach(p=>{ if(p&&p.nat) set.add(p.nat); });
+  });
+  const lista=[...set].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')).map(n=>[n,n]);
+  return [['all','qualquer'],['nac','nacionais (fora da cota)'],['estr','estrangeiros (contam na cota)']].concat(lista);
 }
 function rfMktClubesOp(){
   const f=rfMktF();
@@ -179,14 +209,14 @@ function rfMktClubesOp(){
     .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
   return [['all','qualquer']].concat(lista);
 }
-function rfMktF(){ return CL.mktF||(CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}); }
+function rfMktF(){ const f=CL.mktF||(CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}); if(f.nac==null) f.nac='all'; return f; }
 function rfMktSetF(k,v){
   const f=rfMktF(); f[k]=v;
-  if(k==='pais') f.clube='all';   // o filtro de clube é DO país escolhido — trocar de país o zera
+  if(k==='pais'){ f.clube='all'; f.nac='all'; }  // clube e nacionalidade são DO país escolhido — trocar de país os zera
   if(f.pais==null) f.pais='meu';  // filtro salvo antes do país existir
   CL._mktCache2=null; cdraw();
 }
-function rfMktLimpar(){ CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}; CL._mktCache2=null; cdraw(); }
+function rfMktLimpar(){ CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',nac:'all',clube:'all',q:''}; CL._mktCache2=null; cdraw(); }
 /* ===== BUSCA POR NOME =====
    "Buscar jogador", no Resumo, levava para a aba Comprar e mais nada: nao havia
    campo nenhum onde escrever um nome. Quem procura alguem em concreto tinha de
@@ -218,6 +248,30 @@ function rfMktBusca(v){
   if(cnt) cnt.textContent=rfMktConta();
 }
 /* o mercado inteiro, com os filtros da referência aplicados */
+/* PRÉVIA CALIBRADA DO ELENCO ESTRANGEIRO AINDA NÃO MATERIALIZADO. O bundle de um país
+   (leagues-intl.js/leagues-conmebol.js) guarda a força REAL, crua (ex.: 72) — a mesma
+   escala que `attachAttrs` (index.html) sempre remapeia via REBAL.force(rawF,'A') na hora
+   de materializar o clube (ensureForeignClub). Antes desta função, a lista de Comprar
+   mostrava o jogador com a força CRUA (72) porque o clube só é materializado quando a
+   negociação abre — daí "chegou com 72 lá fora e virou 44 no meu elenco", o mesmo número,
+   só que visto ANTES e DEPOIS do mesmo remapeamento. Aqui aplicamos o MESMO remapeamento
+   (força + valor) só para EXIBIR, numa cópia rasa — sem tocar no objeto do bundle nem
+   materializar nada, então "olhar" continua sem custo (ver o comentário de
+   ensureForeignClub: nada entra no mundo só de ser visto). */
+function rfMktCalibPreview(p){
+  if(!p || p._rb) return p;   // já materializado (ou sem REBAL disponível): os campos já são os certos
+  if(typeof REBAL==='undefined' || !REBAL.force) return p;
+  const rawF=p.rawF!=null?p.rawF:p.f;
+  const f=REBAL.force(rawF,'A');
+  let mv=REBAL.value(f,p.age);
+  /* O COMPORTAMENTO TAMBÉM ENTRA NO VALOR (attachAttrs, index.html) — de 0,65x
+     (Casca-Grossa) a 1,35x (Exemplar) — e é sorteado de forma DETERMINÍSTICA
+     (hash do nome+posição, nunca Math.random()), então dá pra prever aqui o
+     mesmo resultado que a materialização real vai dar, sem materializar nada. */
+  const behavior=(typeof assignBehavior==='function')?assignBehavior({...p,rawF,f}):null;
+  if(behavior && typeof BEHAVIOR_MV_MULT!=='undefined') mv=Math.round(mv*(BEHAVIOR_MV_MULT[behavior]||1));
+  return {...p, rawF, f, mv, behavior};
+}
 function rfMktMercado(){
   const f=rfMktF();
   const teto=S.budget||0;
@@ -229,12 +283,22 @@ function rfMktMercado(){
   const clubes = (fora && typeof foreignClubsOf==='function') ? foreignClubsOf(f.pais) : (DATA.clubs||[]);
   clubes.forEach(c=>{
     if(c.id===CL.clubId) return;
+    const jaMaterializado = !!(S.squads&&S.squads[c.id]);
     const elenco = fora
-      ? ((S.squads&&S.squads[c.id]) || (typeof gkSquad==='function'?gkSquad(c):(c.squad||[])))
+      ? (S.squads&&S.squads[c.id] || (typeof gkSquad==='function'?gkSquad(c):(c.squad||[])))
       : (squad(c.id)||[]);
-    (elenco||[]).forEach(p=>{
+    (elenco||[]).forEach(p0=>{
+      const p = (fora && !jaMaterializado) ? rfMktCalibPreview(p0) : p0;
       if(typeof isTradeLocked==='function' && isTradeLocked(p)) return;
       if(f.pos!=='all' && p.s!==f.pos) return;
+      /* nacionalidade: os dois degraus da cota usam a MESMA régua do motor (playerIsForeign,
+         contra o universo do MEU campeonato) — o filtro nunca discorda do bloqueio real */
+      if(f.nac && f.nac!=='all'){
+        const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
+        if(f.nac==='nac' && estr) return;
+        else if(f.nac==='estr' && !estr) return;
+        else if(f.nac!=='nac' && f.nac!=='estr' && p.nat!==f.nac) return;
+      }
       if(f.forca!=='all' && (p.f||0)<Number(f.forca)) return;
       if(f.idade!=='all' && (p.age||0)>Number(f.idade)) return;
       let ask=p.mv||0;
@@ -294,24 +358,30 @@ function rfMktComprarTabelaHTML(){
   const mostra=rfMktMercado().slice(0,60);
   const linhas=mostra.map(({p,clubId,ask,pais,clube,gols})=>{
     const propor=`rfMkPropor('${escC(clubId)}','${escC(p.n)}','${escC(pais||'')}')`;
-    return `<div class="rf-mkt-row" onclick="${propor}">
-    <span class="rf-mkt-n">${escC(p.n)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
+    /* bandeira + o lado da cota no title: quem está com a cota cheia enxerga de relance
+       quem pode e quem não pode contratar (mesma régua do motor — playerIsForeign) */
+    const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
+    const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
+    return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(clubId))}'${pais?`,'${escC(String(pais))}'`:''})" title="Ver a ficha de ${escC(p.n)}">
+    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${rfMkPos(p)}
+    ${nac}
     <span class="rf-mkt-x">${p.age||'—'}</span>
     ${rfMkClube(clubId, pais?clube:null, pais)}
     <span class="rf-mkt-v">${escC(rfDin(ask))}</span>
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
     ${rfMkBt('Propor',propor)}
   </div>`;});
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   const vazio=(rfMktF().q||'').trim()
     ? 'Nenhum jogador com esse nome — e os filtros de posicao, forca e preco tambem contam.'
     : 'Nenhum jogador com esses filtros.';
   /* GRADE LITERAL DO PACOTE (Mercado - Abas): duas colunas flexiveis (1.3fr e
      1fr) repartem nome e clube. */
-  return rfMkTabela('minmax(0,1.3fr) 28px 34px 34px minmax(0,1fr) 96px 84px 74px',
+  return rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 34px minmax(0,1fr) 96px 84px 74px',
     cabecalho, linhas, vazio, 'mkt-mercado');
 }
 function rfMktConta(){
@@ -325,6 +395,14 @@ function rfMktComprarHTML(){
   const teto=S.budget||0;
   const folha=rfFolha();
   const sq=squad(CL.clubId);
+  /* a cota de estrangeiros da liga, SEMPRE à vista: era invisível até o bloqueio acontecer,
+     e o "cota cheia" parecia erro. Mesma conta do motor (squadForeignCount/foreignMax). */
+  const cfgUni=(typeof activeUniCfg==='function')?activeUniCfg():null;
+  const cotaMax=(cfgUni&&cfgUni.foreignMax)||0;
+  const cotaAtual=(cotaMax&&typeof squadForeignCount==='function')?squadForeignCount(CL.clubId):0;
+  const kpiCota=cotaMax?rfKpiHTML('Estrangeiros', cotaAtual+' de '+cotaMax,
+    cotaAtual>=cotaMax?'cota cheia — só nacionais':'vagas na cota da liga',
+    cotaAtual>=cotaMax?'ruim':''):'';
   return rfMktGavetaHTML(['oferta']) + rfCol(
     rfCard('Jogadores no mercado',
       rfMktFiltrosHTML() + rfMktComprarTabelaHTML(),
@@ -335,6 +413,7 @@ function rfMktComprarHTML(){
         ${rfKpiHTML('Folha atual', rfDin(folha)+'/mês')}
         ${rfKpiHTML('Margem de salário', rfDin(Math.max(0,Math.round(teto/12)-folha))+'/mês')}
         ${rfKpiHTML('Elenco', sq.length+' de 30')}
+        ${kpiCota}
       </div>`)
   );
 }
@@ -351,9 +430,10 @@ function rfMktLeilaoHTML(){
     const p=(typeof findP==='function')?findP(l.player,l.sellerId):null; if(!p) return '';
     const meu=l.leader===S.clubId;
     return `<div class="rf-mkt-row ${meu?'destaque':''}">
-      <span class="rf-mkt-n">${escC(p.n)}</span>
+      <span class="rf-mkt-n">${rfMkFotoMini(p, l.sellerId)}${rfLinkJogador(p.n, l.sellerId)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
+      ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
       <span class="rf-mkt-x">${p.age||'—'}</span>
       ${rfMkClube(l.sellerId)}
       <span class="rf-mkt-v">${escC(rfDin(l.bid))}</span>
@@ -362,7 +442,8 @@ function rfMktLeilaoHTML(){
       ${rfMkBt(meu?'Cobrir':'Dar lance',`rfMkLance('${escC(l.sellerId)}','${escC(l.player)}')`, meu)}
     </div>`;
   };
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span>
     <span>CLUBE</span><span class="dir">LANCE ATUAL</span><span class="dir">SEU LANCE</span>
     <span class="dir">FECHA</span><span></span>`;
   const arrematados=fechados.map(l=>{
@@ -379,8 +460,8 @@ function rfMktLeilaoHTML(){
   }).join('');
   return rfMktGavetaHTML(['lance']) + rfCol(
     rfCard('Lotes abertos',
-      rfMkTabela('minmax(0,1fr) 44px 48px 48px minmax(0,160px) 116px 108px 92px 104px',
-        cabecalho, abertos.map(linha), 'Nenhum leilão aberto nesta rodada.', 'mkt-leilao'),
+      rfMkTabela('minmax(0,1fr) 44px 48px 40px 48px minmax(0,160px) 116px 108px 92px 104px',
+        cabecalho, abertos.map(linha), 'Nenhum leilão aberto nesta semana.', 'mkt-leilao'),
       {right: abertos.length? abertos.length+' ativos':''})
     + rfCard('Arrematados recentemente',
       arrematados || '<span class="rf-note">Ainda não houve arremate nesta temporada.</span>')
@@ -407,13 +488,13 @@ function rfMktPropostasHTML(){
       <div class="rf-prop2-hd">
         <span class="rf-prop2-crest">${rfCrest(anyClubOf(o.buyerId)||{short:o.buyerName||'—'},44)}</span>
         <div class="rf-prop2-id">
-          <span class="rf-prop2-t">${escC(o.buyerName||'Um clube')} quer o ${escC(o.playerName)}</span>
+          <span class="rf-prop2-t">${escC(o.buyerName||'Um clube')} quer o ${rfLinkJogador(o.playerName, CL.clubId)}</span>
           <!-- no telefone o prazo entra curto: "resposta em 2 rodadas" quebrava a
                linha em duas e o desenho mostra o contexto numa linha só.
                Fica "rodadas", que é a unidade real do motor — o desenho escreve
                "dias", mas dia não quer dizer nada aqui e seria falso. -->
           <span class="rf-prop2-s">${escC(rfPosInicial(p.s))} · ${p.age||'—'} anos · força ${o.playerForce||p.f||'—'} · ${
-            (typeof isPhone==='function'&&isPhone())?'':'resposta em '}${rodadas} rodada${rodadas===1?'':'s'}</span>
+            (typeof isPhone==='function'&&isPhone())?'':'resposta em '}${rodadas} semana${rodadas===1?'':'s'}</span>
         </div>
         <div class="rf-sp"></div>
         <div class="rf-prop2-acts">
@@ -520,10 +601,11 @@ function rfMktVenderHTML(){
        estivesse selecionado, mas ninguém o selecionou — era só o mais valioso.
        Marca de seleção que não corresponde a uma escolha do utilizador confunde
        em vez de orientar. */
-    return `<div class="rf-mkt-row" onclick="rfMkListar('${escC(p.pid)}')">
-      <span class="rf-mkt-nome">${rfMkCamisaHTML(nums[p.pid]||p.num)}<b>${escC(p.n)}</b></span>
+    return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(CL.clubId))}')" title="Ver a ficha de ${escC(p.n)}">
+      <span class="rf-mkt-n">${rfMkFotoMini(p, CL.clubId)}${rfLinkJogador(p.n, CL.clubId)}</span>
       <span class="rf-mkt-f">${p.f}</span>
       ${rfMkPos(p)}
+      ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-mkt-x'):''}
       <span class="rf-mkt-x">${p.age||'—'}</span>
       <span class="rf-mkt-v">${escC(rfDin(vm))}</span>
       <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
@@ -532,7 +614,8 @@ function rfMktVenderHTML(){
   });
   /* FIM DE CONTRATO e INTERESSE saíram: com nove colunas o botão Listar só
      aparecia depois de rolar. As duas continuam na ficha do jogador. */
-  const cabecalho=`<span>JOGADOR</span><span>FOR</span><span>POS</span><span>IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span>
     <span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   // QUEM VOCÊ NÃO DEVERIA VENDER: o titular mais caro de repor
   const chave=[...xi].map(pid=>sq.find(p=>p.pid===pid)).filter(Boolean).filter(p=>{
@@ -543,7 +626,7 @@ function rfMktVenderHTML(){
   const golsTime=sq.reduce((t,p)=>t+((p.stats&&p.stats.goals)||0),0);
   return rfMktGavetaHTML(['listar']) + rfCol(
     rfCard('Seu elenco à venda',
-      rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 96px 92px 74px',
+      rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 34px 96px 92px 74px',
         cabecalho, linhas, 'Elenco vazio.', 'mkt-vender'),
       {right: sq.length+' jogadores'})
     + rfCard('Quem você não deveria vender',
@@ -601,11 +684,11 @@ function rfMktTransfHTML(){
   return rfCol(
     rfCard('Janela de transferências', `
       <div class="rf-jan-l">
-        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª rodada':'Fechada'}</span>
+        <span class="rf-jan-t">${aberta?'Aberta desde a 1ª semana':'Fechada'}</span>
         <span class="rf-jan-p">${pct}%</span>
       </div>
       <div class="rf-jan-trilho"><i style="width:${pct}%"></i></div>`,
-      {right: aberta?('fecha em '+faltam+' rodada'+(faltam===1?'':'s')):'fechada'})
+      {right: aberta?('fecha em '+faltam+' semana'+(faltam===1?'':'s')):'fechada'})
     + rfCard('Movimentações da divisão',
       rfMkTabela('minmax(0,1fr) 44px 48px minmax(0,150px) 28px minmax(0,150px) 116px 116px',
         /* CHAVE PRÓPRIA. Esta tabela usava 'mkt-contra', a mesma das
@@ -694,8 +777,15 @@ function rfAcPreparar(clubId, nome){
   if(typeof isTradeLocked==='function' && isTradeLocked(p)){
     toastC(`${p.n} já foi negociado nesta temporada.`); return; }
   const ask=(typeof playerAsk==='function')?playerAsk(p,clubId):(p.mv||0);
-  // reaproveita a negociação já aberta com este jogador, se houver
-  const idx=(S.negos||[]).findIndex(n=>n && n.clubId===clubId && n.player===nome && !n.done);
+  /* REAPROVEITA A NEGOCIACAO JA ABERTA, SE HOUVER — mas o campo do vendedor no nego é
+     `sellerId` (ver startNego, core.js), nunca `clubId`. Este filtro comparava com
+     `n.clubId`, que não existe em nenhum nego: a busca nunca achava nada, então CADA
+     clique em "Propor" (mesmo no MESMO jogador, com contraproposta em aberto) começava
+     um negócio do zero, com o campo voltando a nascer no PEDIDO CHEIO (100% do ask) —
+     era isso que parecia "o valor sobe sozinho a cada clique". Também trocado `!n.done`
+     (campo que também não existe) por `n.stage!=='done'`, que é como o motor marca
+     negociação encerrada (aceita, recusada ou expirada — ver clubRespond/finalizeTransfer). */
+  const idx=(S.negos||[]).findIndex(n=>n && n.sellerId===clubId && n.player===nome && n.stage!=='done');
   CL.market={step:'offer', clubId, player:nome,
     offer: idx>=0 ? (S.negos[idx].clubCounter||S.negos[idx].offerFee) : Math.round(ask/1000)*1000,
     negoIdx: idx>=0?idx:null};
@@ -855,7 +945,7 @@ function rfMkLanceHTML(){
   return rfMkGavetaHTML('Lance por '+escC(p.n),
     `${escC(rfPosInicial(p.s))} · força ${p.f} · ${escC(c.short)} · ${lot.interest} clubes na disputa`, `
     <div class="rf-mkg-aviso">Maior lance agora: <b>${escC(mvShort(lot.bid))}</b> ${meu?'(seu)':'(concorrência)'}
-      · fecha em <b>${lot.roundsLeft} rodada${lot.roundsLeft===1?'':'s'}</b></div>
+      · fecha em <b>${lot.roundsLeft} semana${lot.roundsLeft===1?'':'s'}</b></div>
     <div class="rf-mkg-linha">
       ${rfMkCampoHTML('rf-mk-lance','Seu lance',sugerido,'precisa passar de '+escC(mvShort(lot.bid))+' · caixa '+escC(rfDin(S.budget||0)))}
       <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkLanceGo()">Confirmar lance</button>

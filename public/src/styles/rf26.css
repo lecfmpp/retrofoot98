@@ -104,6 +104,46 @@
 .rf-chip-hint>.rf-chip-l{font-family:var(--font-mono);font-size:var(--fs-caption)}
 .rf-chip-h{font-family:var(--font-mono);font-size:var(--fs-label-xs);font-weight:var(--fw-medium);color:var(--text-faint)}
 .rf-chip.on .rf-chip-h{color:var(--club-secondary)}
+/* régua de tática (retranca·equilibrado·ofensivo) embutida no chip de formação — ver
+   rfFormacoesHTML/TATICA_DESC. Três tarjetas fixas, a que vale pra esta formação acesa. */
+.rf-chip-tat{position:relative}
+.rf-tat-regua{display:flex;gap:2px;width:100%;margin-top:3px;height:3px}
+.rf-tat-regua i{flex:1;border-radius:2px;background:currentColor;opacity:.22;transition:opacity var(--dur-fast) var(--ease)}
+.rf-tat-regua i:nth-child(1){background:#3E7FD1}
+.rf-tat-regua i:nth-child(2){background:var(--text-faint)}
+.rf-tat-regua i:nth-child(3){background:var(--warn)}
+.rf-tat-regua.rf-tat-retranca i:nth-child(1),
+.rf-tat-regua.rf-tat-equilibrado i:nth-child(2),
+.rf-tat-regua.rf-tat-ofensivo i:nth-child(3){opacity:1}
+.rf-chip.on .rf-tat-regua i{opacity:.32}
+.rf-chip.on .rf-tat-regua.rf-tat-retranca i:nth-child(1),
+.rf-chip.on .rf-tat-regua.rf-tat-equilibrado i:nth-child(2),
+.rf-chip.on .rf-tat-regua.rf-tat-ofensivo i:nth-child(3){opacity:1}
+.rf-tat-tip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);
+  width:168px;background:var(--text-1);color:var(--text-on-dark);text-align:left;
+  font-family:var(--font-sans);font-size:11px;font-weight:var(--fw-medium);line-height:1.4;
+  white-space:normal;word-wrap:break-word;
+  padding:7px 10px;border-radius:8px;box-shadow:var(--shadow-shell);box-sizing:border-box;
+  opacity:0;pointer-events:none;transition:opacity var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease);z-index:40}
+.rf-tat-tip b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--text-on-dark-soft);margin-bottom:2px}
+.rf-tat-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:var(--text-1)}
+.rf-chip-tat:hover .rf-tat-tip,.rf-chip-tat:focus-visible .rf-tat-tip{opacity:1;transform:translate(-50%,0)}
+/* grid de formações é sempre 2 colunas (desktop e telefone) — o chip da direita colado na
+   borda faria a dica de 150px vazar pra fora da tela. Ancora pela ponta em vez do centro. */
+.rf-formgrid>.rf-chip-tat:nth-child(2n) .rf-tat-tip{left:auto;right:-6px;transform:translate(0,4px)}
+.rf-formgrid>.rf-chip-tat:nth-child(2n) .rf-tat-tip::after{left:auto;right:16px;transform:none}
+.rf-formgrid>.rf-chip-tat:nth-child(2n):hover .rf-tat-tip,.rf-formgrid>.rf-chip-tat:nth-child(2n):focus-visible .rf-tat-tip{transform:translate(0,0)}
+.rf-formgrid>.rf-chip-tat:nth-child(odd) .rf-tat-tip{left:-6px;transform:translate(0,4px)}
+.rf-formgrid>.rf-chip-tat:nth-child(odd) .rf-tat-tip::after{left:16px;transform:none}
+.rf-formgrid>.rf-chip-tat:nth-child(odd):hover .rf-tat-tip,.rf-formgrid>.rf-chip-tat:nth-child(odd):focus-visible .rf-tat-tip{transform:translate(0,0)}
+/* sem tooltip no telefone: a fita de formações vira faixa horizontal com scroll, e o balão
+   cortava nas pontas — toque também não dispara :hover de forma confiável. A régua colorida
+   (que não depende de hover) continua de pé. */
+@media (max-width:760px){
+  .rf-tat-tip{display:none}
+}
 
 /* números: SEMPRE mono, e à direita quando é coluna de tabela */
 .rf-num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
@@ -1965,6 +2005,10 @@
 /* ----- campo de formulário ----- */
 .rf-campo{display:flex;flex-direction:column;gap:6px;min-width:0}
 .rf-campo-l{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-3);white-space:nowrap}
+.rf-campo-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-campo-link{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--club-primary);
+  cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.rf-campo-link:hover{opacity:.8}
 .rf-campo-c{height:44px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
   background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body);
   color:var(--text-1);box-sizing:border-box;width:100%}
@@ -2575,6 +2619,16 @@
 .rf-of-dir{display:flex;flex-direction:column;gap:12px;min-width:0}
 .rf-of-p{margin:0;font-size:var(--fs-body-sm);color:var(--text-2);line-height:var(--lh-normal)}
 .rf-of-p2{margin:0;font-size:var(--fs-caption);color:var(--text-4);line-height:var(--lh-normal)}
+/* perguntas da diretoria — modal de crise (rfCriseHTML) */
+.rf-crise-perg{display:flex;flex-direction:column;gap:8px}
+.rf-crise-q{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-crise-opts{display:flex;flex-direction:column;gap:6px}
+.rf-crise-opt{display:block;width:100%;text-align:left;font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);color:var(--text-2);background:var(--surface-card);
+  border:var(--border-control);border-radius:var(--r-control);padding:9px 12px;cursor:pointer;
+  line-height:var(--lh-normal);transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.rf-crise-opt:hover{background:var(--surface-sunken)}
+.rf-crise-opt.on{background:var(--club-primary-soft);color:var(--club-primary);border-color:var(--club-primary-line);font-weight:var(--fw-semibold)}
 
 /* o vídeo é um espaço reservado 16:9 — a arte entra depois */
 .rf-video{position:relative;aspect-ratio:16/9;border-radius:var(--r-inner);overflow:hidden;
@@ -8164,3 +8218,342 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-crest-link{ display:inline-flex;align-items:center;cursor:pointer;line-height:0; }
 .rf-crest-link:focus-visible{ outline:2px solid var(--brand-primary);outline-offset:2px;border-radius:3px; }
 .rf-crest-link:hover{ filter:brightness(1.08); }
+
+/* =====================================================================
+   TELAS NOVAS — Elenco & Ficha do Jogador (pacote 24/08)
+   Paleta do bloco "Produto — telas de gestão": oliva #8b9a1f/#6f7d18,
+   wash #f4f7ef/#e4ebd8, tinta #0f1c14/#3c4a41/#6d7c72/#9aa79e.
+   Números em IBM Plex Mono via a pilha mono já carregada do jogo.
+   ===================================================================== */
+.rf-fx-microt{font-family:var(--font-mono,ui-monospace,monospace);font-weight:600;font-size:10px;letter-spacing:.14em;color:#9aa79e}
+.rf-fx-microt.oliva{color:#6f7d18}
+.rf-fx-microt.claro{color:#d5e08a}
+.rf-fx-card{display:flex;flex-direction:column;gap:12px}
+.rf-fx-nota{font-size:12px;line-height:1.5;color:#8b9a8e;text-wrap:pretty}
+.rf-fx-nota.caixa{background:#f4f7ef;border:1px solid #e4ebd8;border-radius:11px;padding:9px 11px;color:#5c6a3f;font-size:12px;line-height:1.45;margin-top:3px;display:block}
+.rf-fx-linha{display:flex;align-items:baseline;gap:12px;font-size:13.5px;color:#3c4a41}
+.rf-fx-linha b{font-family:var(--font-mono,monospace);font-weight:600;font-size:13.5px;color:#0f1c14}
+.rf-sp2{flex:1}
+
+/* ---- identidade ---- */
+.rf-fx-ident{display:flex;flex-direction:row;align-items:center;gap:18px}
+.rf-fx-ident-crest{width:72px;height:72px;object-fit:contain;flex:0 0 auto}
+.rf-fx-ident-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.rf-fx-ident-l1{display:flex;align-items:center;gap:10px}
+.rf-fx-ident-l1 b{font-weight:700;font-size:25px;line-height:1.15;letter-spacing:-.02em;color:#0f1c14}
+.rf-fx-num{font-family:var(--font-mono,monospace);font-weight:600;font-size:12px;color:#fff;background:#8b9a1f;border-radius:7px;padding:3px 8px}
+.rf-fx-ident-sub{font-size:14px;color:#6d7c72;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.rf-fx-ident-acts{display:flex;gap:10px;flex:0 0 auto}
+
+/* ---- destaques da temporada ---- */
+.rf-fx-destaques{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.rf-fx-dest{background:#fff;border-radius:18px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:8px}
+.rf-fx-dest b{font-family:var(--font-mono,monospace);font-weight:700;font-size:40px;line-height:1;color:#0f1c14}
+.rf-fx-dest-s{font-size:12px;color:#8b9a8e}
+.rf-fx-dest.oliva{background:#8b9a1f}
+.rf-fx-dest.oliva .rf-fx-microt{color:#e9f0c0}
+.rf-fx-dest.oliva b{color:#fff}
+.rf-fx-dest.oliva .rf-fx-dest-s{color:#e9f0c0}
+
+/* ---- grade principal ---- */
+.rf-fx-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:stretch}
+.rf-fx-lateral{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-fx-carac-hd{display:flex;align-items:baseline;gap:12px}
+.rf-fx-legenda{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.08em;color:#9aa79e}
+.rf-fx-legenda i{width:16px;height:0;border-top:2px dashed #c3ccc5;display:inline-block}
+.rf-fx-legenda.sem-traco{letter-spacing:0;font-size:11px}
+.rf-fx-carac-grid{display:grid;grid-template-columns:200px minmax(0,.94fr) minmax(0,1.1fr);gap:20px;align-items:stretch;flex:1}
+.rf-fx-rodape{font-size:12px;line-height:1.55;color:#8b9a8e;text-wrap:pretty;border-top:1px solid #eef1ee;padding-top:12px}
+
+/* retrato */
+.rf-fx-retrato{position:relative;border-radius:16px;overflow:hidden;background:#0f1c14;min-height:300px;display:flex;align-items:flex-end}
+.rf-fx-retrato>img:first-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
+.rf-fx-retrato-veu{position:absolute;left:0;right:0;bottom:0;height:52%;background:linear-gradient(180deg,rgba(15,28,20,0),rgba(15,28,20,.92));pointer-events:none}
+.rf-fx-num.flutua{position:absolute;top:12px;left:12px;min-width:30px;height:30px;padding:0 9px;box-sizing:border-box;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
+.rf-fx-retrato-crest{position:absolute;top:10px;right:10px;width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 1px 4px rgba(0,0,0,.5))}
+.rf-fx-retrato-id{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px 16px 16px;min-width:0}
+.rf-fx-retrato-id>b{font-weight:700;font-size:20px;line-height:1.15;letter-spacing:-.02em;color:#fff;text-wrap:pretty}
+.rf-fx-retrato-f{display:flex;align-items:baseline;gap:8px}
+.rf-fx-retrato-f b{font-family:var(--font-mono,monospace);font-weight:700;font-size:26px;line-height:1;color:#fff}
+.rf-fx-retrato-f i{font-family:var(--font-mono,monospace);font-style:normal;font-weight:600;font-size:10px;letter-spacing:.12em;color:#a8b79c}
+
+/* ===== gráfico do motor: só os atributos que decidem a partida ===== */
+.rf-fx-motor{display:flex;flex-direction:column;gap:14px;padding:4px 2px 2px}
+.rf-fx-mt-t{font-size:var(--fs-caption);font-weight:var(--fw-semibold);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-3)}
+.rf-fx-mt-l{display:flex;flex-direction:column;gap:5px}
+.rf-fx-mt-cab{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-fx-mt-rot{font-size:var(--fs-body);font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-fx-mt-v{font-family:var(--font-mono,ui-monospace,monospace);font-size:19px;font-weight:700;
+  color:var(--text-2);font-variant-numeric:tabular-nums;line-height:1}
+.rf-fx-mt-v.alto{color:var(--club-primary)}
+.rf-fx-mt-b{position:relative;height:9px;border-radius:999px;background:var(--surface-sunken);
+  border:1px solid var(--line-3);overflow:visible}
+.rf-fx-mt-b>i{display:block;height:100%;border-radius:999px;background:var(--club-primary);
+  transition:width .35s ease}
+.rf-fx-mt-b>u{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--text-4);
+  border-radius:1px;transform:translateX(-1px)}
+.rf-fx-mt-onde{font-size:var(--fs-caption);color:var(--text-4)}
+@media (prefers-reduced-motion: reduce){ .rf-fx-mt-b>i{transition:none} }
+
+/* hexágono + forte/fraco */
+.rf-fx-hexcol{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rf-fx-hex{width:100%;flex:1;min-height:230px;display:block;overflow:visible}
+.rf-fx-ff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rf-fx-ffchip{display:flex;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;min-width:0}
+.rf-fx-ffchip.forte{background:#f4f7ef;border:1px solid #e4ebd8}
+.rf-fx-ffchip.fraco{background:#fdf5f5;border:1px solid #f3dede}
+.rf-fx-ffchip>b{font-family:var(--font-mono,monospace);font-weight:700;font-size:20px;line-height:1}
+.rf-fx-ffchip.forte>b{color:#6f7d18}
+.rf-fx-ffchip.fraco>b{color:#c0453f}
+.rf-fx-ffchip>span{display:flex;flex-direction:column;gap:1px;min-width:0;font-size:13px;font-weight:600;color:#3c4a41}
+.rf-fx-ffchip>span>i{font-style:normal;font-family:var(--font-mono,monospace);font-weight:600;font-size:9px;letter-spacing:.12em}
+.rf-fx-ffchip.forte>span>i{color:#7d8a56}
+.rf-fx-ffchip.fraco>span>i{color:#b58381}
+
+/* os 16 atributos */
+.rf-fx-attrs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;min-width:0;align-content:stretch}
+.rf-fx-grupo{display:flex;flex-direction:column;gap:8px;min-width:0;justify-content:flex-start}
+.rf-fx-grupo>.rf-fx-microt{border-bottom:1px solid #eef1ee;padding-bottom:6px}
+.rf-fx-grupo>.rf-fx-microt.oliva{border-bottom-color:#e4ebd8}
+.rf-fx-attr{display:grid;grid-template-columns:minmax(0,1fr) 34px 18px;gap:7px;align-items:center}
+.rf-fx-attr-n{font-size:13px;color:#3c4a41}
+.rf-fx-attr-n.forte{font-weight:600}
+.rf-fx-attr-b{height:5px;border-radius:99px;background:#eef1ee;overflow:hidden}
+.rf-fx-attr-b i{display:block;height:100%}
+.rf-fx-attr-v{font-family:var(--font-mono,monospace);font-weight:600;font-size:12px;color:#3c4a41;text-align:right}
+.rf-fx-attr-v.alto{font-weight:700;color:#6f7d18}
+.rf-fx-attr-v.baixo{color:#9aa79e}
+
+/* lateral: clube / na partida / contrato */
+.rf-fx-clube{display:flex;flex-direction:row;align-items:center;gap:14px}
+.rf-fx-clube img{width:72px;height:72px;object-fit:contain;flex:0 0 auto}
+.rf-fx-clube>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-fx-clube b{font-weight:700;font-size:17px;line-height:1.25;color:#0f1c14}
+.rf-fx-clube-s{font-size:12px;color:#6d7c72}
+.rf-fx-clube-f{font-family:var(--font-mono,monospace);font-size:11px;color:#9aa79e}
+.rf-fx-barras{display:grid;grid-template-columns:62px minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:13px;color:#3c4a41}
+.rf-fx-barras b{font-family:var(--font-mono,monospace);font-weight:700;font-size:13px;color:#0f1c14;text-align:right}
+.rf-fx-barra{height:7px;border-radius:99px;background:#eef1ee;display:block;overflow:hidden}
+.rf-fx-barra i{display:block;height:100%;border-radius:99px}
+
+/* carreira */
+.rf-fx-carreira{display:grid;grid-template-columns:repeat(var(--etapas,3),minmax(0,1fr));gap:0;align-items:stretch}
+.rf-fx-etapa{display:flex;flex-direction:column;gap:9px;padding:0 22px;min-width:0}
+.rf-fx-etapa:first-child{padding-left:0}
+.rf-fx-etapa:last-child{padding-right:0}
+.rf-fx-etapa-tl{display:flex;align-items:center;gap:10px}
+.rf-fx-etapa-tl i{width:11px;height:11px;border-radius:99px;background:#c3ccc5;flex:0 0 auto}
+.rf-fx-etapa-tl span{flex:1;height:2px;background:#eef1ee;display:block}
+.rf-fx-etapa.atual .rf-fx-etapa-tl i{background:#8b9a1f}
+.rf-fx-etapa.atual .rf-fx-etapa-tl span{background:#f4f7ef}
+.rf-fx-etapa-anos{font-family:var(--font-mono,monospace);font-weight:600;font-size:11px;letter-spacing:.06em;color:#9aa79e}
+.rf-fx-etapa.atual .rf-fx-etapa-anos{color:#6f7d18}
+.rf-fx-etapa-clube{font-weight:700;font-size:16px;line-height:1.25;color:#0f1c14;display:flex;align-items:center;gap:9px}
+.rf-fx-etapa-clube img{width:26px;height:26px;object-fit:contain;flex:0 0 auto}
+.rf-fx-etapa-sub{font-size:13px;color:#6d7c72}
+.rf-fx-etapa-chips{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap}
+.rf-fx-chip{font-family:var(--font-mono,monospace);font-size:11px;color:#6d7c72;background:#f6f8f5;border-radius:8px;padding:5px 9px}
+.rf-fx-chip.oliva{color:#5c6a3f;background:#f4f7ef}
+.rf-fx-chip.sobe{display:inline-flex;align-items:center;gap:3px;font-weight:600;color:#2f8f2f;background:#e6f6e6;border-radius:7px;padding:3px 7px}
+.rf-fx-chip.cai{display:inline-flex;align-items:center;gap:3px;font-weight:600;color:#c0453f;background:#fdeaea;border-radius:7px;padding:3px 7px}
+.rf-fx-passe{display:flex;align-items:baseline;gap:8px;margin-top:6px;border-top:1px solid #eef1ee;padding-top:10px}
+.rf-fx-passe b{font-family:var(--font-mono,monospace);font-weight:700;font-size:17px}
+.rf-fx-passe-s{font-family:var(--font-mono,monospace);font-size:11px;color:#9aa79e}
+.rf-fx-aviso{display:flex;align-items:center;gap:9px;background:#f6f8f5;border-radius:11px;padding:10px 12px}
+.rf-fx-aviso span{font-size:12.5px;line-height:1.45;color:#6d7c72;text-wrap:pretty}
+
+/* ---- ELENCO: faixa do clube ---- */
+.rf-eln-band{display:flex;flex-direction:row;align-items:center;gap:22px}
+.rf-eln-crest{width:108px;height:108px;object-fit:contain;flex:0 0 auto}
+.rf-eln-band-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.rf-eln-band-n{font-weight:700;font-size:26px;line-height:1.1;letter-spacing:-.02em;color:#0f1c14}
+.rf-eln-band-s{font-size:14px;color:#6d7c72}
+.rf-eln-band-kpis{display:flex;gap:10px;flex:0 0 auto}
+.rf-eln-bk{border:1px solid #eef1ee;border-radius:14px;padding:12px 18px;display:flex;flex-direction:column;gap:5px;min-width:104px}
+.rf-eln-bk b{font-family:var(--font-mono,monospace);font-weight:700;font-size:26px;line-height:1;color:#0f1c14}
+.rf-eln-bk.oliva{border-color:#e4ebd8;background:#f4f7ef}
+.rf-eln-bk.oliva b{color:#6f7d18}
+
+/* ---- ELENCO: tabela ---- */
+.rf-eln-g{display:grid;grid-template-columns:minmax(0,1fr) 42px 38px 42px 44px minmax(80px,148px) 84px minmax(84px,106px) 40px;gap:12px;align-items:center}
+.rf-eln-tbl{display:flex;flex-direction:column;gap:12px}
+.rf-eln-head{padding:0 12px 8px;border-bottom:1px solid #eef1ee}
+.rf-eln-head span{font-family:var(--font-mono,monospace);font-weight:600;font-size:9.5px;letter-spacing:.14em;color:#9aa79e}
+.rf-eln-list{display:flex;flex-direction:column;gap:2px}
+.rf-eln-row{padding:8px 12px;border-radius:14px;border:1px solid transparent;cursor:pointer}
+.rf-eln-row:hover{background:#f6f8f5}
+.rf-eln-row.sel{background:#f8faef;border-color:#d9e2ac}
+.rf-eln-jog{display:flex;align-items:center;gap:12px;min-width:0}
+.rf-eln-avwrap{position:relative;flex:0 0 auto}
+.rf-eln-av{width:38px;height:38px;border-radius:99px;object-fit:cover;object-position:50% 16%;display:block;background:#eef1ee}
+.rf-eln-num{position:absolute;right:-4px;bottom:-3px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:99px;background:#8b9a1f;border:2px solid #fff;color:#fff;font-family:var(--font-mono,monospace);font-style:normal;font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center}
+.rf-eln-row.sel .rf-eln-num{border-color:#f8faef}
+.rf-eln-nome{font-weight:600;font-size:15px;color:#0f1c14;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-eln-row.sel .rf-eln-nome{font-weight:700}
+.rf-eln-cone{flex:0 0 auto}
+.rf-eln-c{font-family:var(--font-mono,monospace);font-size:13px;color:#3c4a41}
+.rf-eln-c.dim{color:#9aa79e}
+.rf-eln-c.forte{font-weight:600}
+.rf-eln-g .ctr{text-align:center}
+.rf-eln-g .dir{text-align:right}
+.rf-eln-for{font-family:var(--font-mono,monospace);font-weight:700;font-size:14px;color:#0f1c14}
+.rf-eln-en{height:7px;border-radius:99px;background:#eef1ee;display:block;overflow:hidden}
+.rf-eln-en i{display:block;height:100%;border-radius:99px}
+.rf-eln-pill{justify-self:center;font-family:var(--font-mono,monospace);font-weight:600;font-size:12.5px;border-radius:8px;padding:3px 9px}
+.rf-eln-pill.ok{color:#2f8f2f;background:#e6f6e6}
+.rf-eln-pill.ruim{color:#c0453f;background:#fdeaea}
+.rf-eln-foot{display:flex;align-items:center;gap:12px;border-top:1px solid #eef1ee;padding-top:12px;font-family:var(--font-mono,monospace);font-size:11px;color:#9aa79e}
+.rf-eln-rows{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:30px;padding:0 10px;border-radius:99px;border:1px solid #dde7db;color:#6d7c72;font-family:var(--font-mono,monospace);font-weight:600;font-size:12px;cursor:pointer}
+.rf-eln-rows:hover{background:#f6f8f5}
+.rf-eln-rows.on{background:#8b9a1f;border-color:#8b9a1f;color:#fff;font-weight:700}
+.rf-eln-resumo{display:flex;flex-direction:column;gap:16px}
+.rf-eln-setores{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.rf-eln-setor{display:flex;flex-direction:column;gap:6px}
+.rf-eln-setor-n{font-family:var(--font-mono,monospace);font-weight:700;font-size:30px;line-height:1;color:#0f1c14}
+.rf-eln-setor-s{font-size:13px;color:#6d7c72}
+
+/* ---- MOBILE (referência: telas 2 e 4) ---- */
+@media (max-width:760px){
+  .rf-fx-destaques{display:flex;overflow-x:auto;gap:10px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .rf-fx-destaques .rf-fx-dest{flex:0 0 150px}
+  .rf-fx-grid{grid-template-columns:1fr}
+  .rf-fx-carac-grid{grid-template-columns:1fr}
+  .rf-fx-retrato{min-height:0;aspect-ratio:4/3}
+  .rf-fx-attrs{grid-template-columns:1fr}
+  .rf-fx-ident{flex-wrap:wrap}
+  .rf-fx-ident-acts{width:100%}
+  .rf-fx-ident-acts .rf-btn{flex:1;min-height:48px}
+  /* carreira vira linha do tempo VERTICAL */
+  .rf-fx-carreira{grid-template-columns:1fr;gap:18px}
+  .rf-fx-etapa{padding:0 0 0 20px;border-left:2px solid #eef1ee;position:relative}
+  .rf-fx-etapa .rf-fx-etapa-tl{position:absolute;left:-7px;top:2px;width:11px}
+  .rf-fx-etapa .rf-fx-etapa-tl span{display:none}
+  .rf-fx-etapa.atual{border-left-color:#e4ebd8}
+  /* elenco: a tabela vira lista */
+  .rf-eln-band{flex-wrap:wrap;gap:14px}
+  .rf-eln-crest{width:72px;height:72px}
+  .rf-eln-band-kpis{width:100%}
+  .rf-eln-bk{flex:1;min-width:0}
+  .rf-eln-head{display:none}
+  .rf-eln-g{grid-template-columns:46px minmax(0,1fr) 44px;grid-auto-rows:auto;row-gap:6px}
+  .rf-eln-row{padding:10px}
+  .rf-eln-jog{grid-column:1/3}
+  .rf-eln-av{width:46px;height:46px}
+  .rf-eln-for{grid-column:3;grid-row:1;font-size:20px;align-self:center}
+  .rf-eln-g .rf-eln-c.ctr,.rf-eln-g .rf-eln-c.dim.dir{display:none}
+  .rf-eln-c.dir{grid-column:2;text-align:left}
+  .rf-eln-en{grid-column:1/3}
+  .rf-eln-pill,.rf-eln-c.forte.ctr{grid-column:3;justify-self:end;text-align:right}
+  .rf-eln-setores{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* camisa vinda do Estúdio (miniatura transparente pintada nas cores do clube):
+   ocupa a mesma caixa do desenho CSS, com o número legível por cima */
+.rf-jersey-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.rf-jersey-img b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75)}
+
+/* quadro 2:3 da foto composta na ficha: cobre o retrato como o cover fazia,
+   ancorado no topo (a cabeça manda); foto e camadas cortam JUNTAS */
+.rf-fx-retrato .rf-fx-quadro{position:absolute;left:50%;top:0;transform:translateX(-50%);
+  height:100%;aspect-ratio:2/3;display:block}
+.rf-fx-retrato .rf-fx-quadro>img:first-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+
+/* retrato pequeno do jogador (formato padrão dos modais): quadrado arredondado
+   40×40, foto em cover com foco no rosto (topo do retrato 2:3) */
+.rf-ac-cam.rf-ac-foto{width:52px;height:52px;border-radius:12px;overflow:hidden;background:#e8e8e4}
+.rf-ac-cam.rf-ac-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+
+/* miniatura de foto do jogador nas tabelas (mercado, leilão) e na camisinha
+   das listas: mesmo formato padrão — quadrado arredondado, foco no rosto */
+.rf-mkt-foto{width:29px;height:29px;border-radius:8px;object-fit:cover;object-position:50% 8%;
+  flex:0 0 auto;vertical-align:middle;margin-right:7px;display:inline-block}
+.rf-el-camisa.foto{overflow:hidden;border-radius:9px;height:34px;width:34px;background:#e8e8e4}
+.rf-el-camisa.foto img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+
+/* clube visitado: foto na linha do elenco e hover de quem é clicável */
+.rf-vt-lista .rf-pl-id{display:flex;align-items:center;gap:8px;min-width:0}
+/* miniatura do jogador no elenco visitado: 1ª coluna, com o NÚMERO dentro do
+   quadrado — canto inferior direito, 3px de folga, nunca vazando a borda */
+.rf-vt-foto{position:relative;width:38px;height:38px;border-radius:10px;overflow:hidden;
+  background:#e8e8e4;flex:0 0 auto;display:block}
+.rf-vt-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+.rf-vt-foto b{position:absolute;right:3px;bottom:3px;min-width:15px;height:15px;padding:0 4px;
+  box-sizing:border-box;border-radius:6px;background:rgba(10,22,14,.85);color:#fff;
+  font-size:9.5px;font-weight:700;line-height:15px;text-align:center;display:inline-block}
+.rf-pl-clicavel:hover{background:rgba(20,60,35,.06)}
+
+/* ficha do jogador na visita a outro clube */
+.rf-vt-ficha .rf-vt-fx{display:flex;gap:12px;align-items:center;margin:4px 0 12px}
+.rf-vt-fx-foto{width:64px;height:96px;border-radius:12px;overflow:hidden;background:#e8e8e4;flex:0 0 auto}
+.rf-vt-fx-foto img{width:100%;height:100%;object-fit:cover;object-position:50% 6%;display:block}
+.rf-vt-fx-id{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rf-vt-fx-id>b{font-size:16px;font-weight:700}
+.rf-vt-fx-id>span{font-size:12px;color:var(--text-dim,#68766c)}
+.rf-vt-lista .rf-pl.sel{background:rgba(20,60,35,.10)}
+
+/* ===== componente padrão foto+número do jogador =====
+   selo do número em VERDE VIVO para leitura imediata sobre qualquer foto */
+.rf-fotonum{position:relative;display:inline-block;width:38px;height:38px;border-radius:10px;
+  overflow:hidden;background:#e8e8e4;flex:0 0 auto;vertical-align:middle}
+.rf-fotonum img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+.rf-fotonum .rf-fnum{position:absolute;right:3px;bottom:3px;min-width:15px;height:15px;padding:0 4px;
+  box-sizing:border-box;border-radius:6px;background:#2fd96a;color:#06240f;
+  font-size:9.5px;font-weight:800;line-height:15px;text-align:center;display:inline-block;
+  box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.rf-fotonum.m{width:38px;height:38px;border-radius:9px;margin-right:6px}
+.rf-fotonum.m .rf-fnum{right:2px;bottom:2px;min-width:13px;height:13px;line-height:13px;font-size:8.5px;padding:0 3px}
+.rf-fotonum.el{width:34px;height:34px;border-radius:9px}
+.rf-fotonum.g{width:52px;height:52px;border-radius:12px}
+.rf-fotonum.g .rf-fnum{min-width:17px;height:17px;line-height:17px;font-size:10.5px;right:4px;bottom:4px}
+.rf-fotonum.eln{width:40px;height:40px;border-radius:10px}
+
+
+/* ===== CABEÇALHO ALINHADO COM A COLUNA =====
+   A regra antiga alinhava à direita "do 3º em diante", sem olhar o conteúdo:
+   FOR ficava à esquerda do seu número e CLUBE à direita do seu nome. Agora o
+   rótulo só vai à direita quando tem .dir — igual ao dado que ele encima. */
+.rf-mkt-head>span:not(.dir){text-align:left}
+.rf-mkt-head>span.dir{text-align:right}
+
+/* perfil limitado de jogador de outro clube (modal) */
+.rf-jp{display:flex;flex-direction:column;gap:14px}
+.rf-jp-top{display:flex;gap:14px;align-items:center}
+.rf-jp-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-jp-id>b{font-size:18px;font-weight:700}
+.rf-jp-id>span{font-size:12.5px;color:var(--text-dim,#68766c)}
+.rf-jp-f b{font-size:15px;color:var(--text-1,#16281c)}
+.rf-jp-hex{display:flex;justify-content:center}
+.rf-jp-hex svg{max-width:230px;height:auto}
+.rf-jp-grid{display:flex;flex-direction:column;gap:2px}
+.rf-jp-l{display:flex;align-items:baseline;gap:8px;padding:8px 0;border-top:1px solid var(--linha,#e6ece6)}
+.rf-jp-l>span{font-size:12.5px;color:var(--text-dim,#68766c);flex:1}
+.rf-jp-l>b{font-size:14px;font-weight:700}
+.rf-jp-l>i{font-style:normal;font-size:11.5px;color:var(--text-faint,#93a89a)}
+
+/* ===== FICHA: rótulo nunca invade a barra/valor =====
+   A coluna do nome podia encolher, mas o TEXTO não truncava — "Posicionamento"
+   passava por cima da barra. Agora corta com reticências (nome completo no
+   title) e o mesmo cuidado vale para as linhas rótulo→valor da lateral. */
+.rf-fx-attr{grid-template-columns:minmax(0,1fr) 30px 20px}
+.rf-fx-attr-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-fx-attr-b{min-width:0}
+.rf-fx-linha>span:not(.rf-sp2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-fx-clube-s,.rf-fx-clube-f{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* notas do plantel: retrato GRANDE do destaque (cartão, não tabela) */
+.rf-nota.com-foto{display:flex;align-items:center;gap:14px}
+.rf-nota-foto{flex:0 0 auto}
+.rf-fotonum.nota{width:64px;height:64px;border-radius:14px}
+.rf-fotonum.nota .rf-fnum{min-width:18px;height:18px;line-height:18px;font-size:11px;right:4px;bottom:4px}
+.rf-nota.com-foto .rf-nota-id{flex:1;min-width:0}
+
+/* perfil do jogador: hexágono e estatísticas lado a lado (duas colunas iguais),
+   para o modal caber sem rolagem */
+.rf-jp-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center}
+.rf-jp-cols .rf-jp-hex{margin:0}
+.rf-jp-cols .rf-jp-hex svg{width:100%;max-width:100%;height:auto}
+.rf-jp-cols .rf-jp-grid{align-self:center}
+.rf-jp-cols .rf-jp-l:first-child{border-top:0}
+@media (max-width:560px){ .rf-jp-cols{grid-template-columns:1fr} }

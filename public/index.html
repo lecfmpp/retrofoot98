@@ -316,12 +316,47 @@ const ATTR_KEYS=['fin','pas','dri','des','cab','cru','vis','pos','com','det','ve
 const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab:'Cabeceio',cru:'Cruzamento',
   vis:'Visão de jogo',pos:'Posicionamento',com:'Compostura',det:'Determinação',
   vel:'Velocidade',res:'Resistência',fis:'Força física',agi:'Agilidade',ref:'Reflexos (GOL)',mao:'Defesa/mãos (GOL)'};
+/* CARIMBO DO MOTOR — preenchido por scripts/versao-motor.mjs no build. Muda só
+   quando o código que decide partida muda; edição de tela não mexe nele.
+   Serve para detectar dois humanos na mesma sala com motores diferentes (aba
+   aberta antes do deploy). Ver netMotorDivergente(). */
+/* @motor-ver */ const RF_MOTOR_VER = '319bc8437d28';
+
+/* ===== O QUE O MOTOR REALMENTE LÊ — FONTE ÚNICA DA VERDADE =====
+   Dos 16 atributos, só estes entram no resultado hoje; os outros existem, evoluem
+   e alimentam a força (attrLevel), mas não têm efeito PRÓPRIO na partida.
+   A ficha do jogador desenha o gráfico A PARTIR DAQUI, então a tela nunca promete
+   um efeito que o motor não entrega.
+
+   PARA LIGAR UM ATRIBUTO NOVO NA v2, em ordem:
+     1. implemente o fator no motor — attrFactor(...) nas 5 cópias (ver bíblia);
+     2. meça o efeito com scripts/arena-linha.mjs (antes × depois);
+     3. acrescente a linha aqui. A tela acompanha sozinha, sem tocar em UI.
+   Terceiro campo = onde entra, mostrado ao usuário como legenda. */
+const ATTR_MOTOR={
+  ATT:[['Finalização','fin','decide quem marca'],
+       ['Drible','dri','nota de ataque']],
+  MID:[['Finalização','fin','decide quem marca'],
+       ['Passe','pas','nota de meio-campo'],
+       ['Visão de jogo','vis','nota de meio-campo']],
+  DEF:[['Desarme','des','nota de defesa'],
+       ['Posicionamento','pos','nota de defesa']],
+  GK :[['Reflexos','ref','nota de defesa'],
+       ['Defesa/mãos','mao','nota de defesa']]
+};
+/* conjunto plano — usado para marcar na lista dos 16 quem já pesa no resultado */
+const ATTR_MOTOR_SET=(function(){ const s={}; for(const k in ATTR_MOTOR) ATTR_MOTOR[k].forEach(e=>{ (s[k]||(s[k]=[])).push(e[1]); }); return s; })();
+
 const ATTR_GROUP={'Técnicos':['fin','pas','dri','des','cab','cru'],'Mentais':['vis','pos','com','det'],'Físicos':['vel','res','fis','agi'],'Goleiro':['ref','mao']};
 const POS_PROFILE={
-  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,cab:7,agi:7,fis:5,res:5},
-  MID:{pas:20,vis:16,pos:11,des:10,dri:9,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
-  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,com:7,agi:6,res:6},
-  GK :{ref:34,mao:30,pos:14,agi:10,pas:6,fis:6},
+  /* det (Determinação) entrou em 26/08 com peso comparável ao da Compostura: até
+     então era o ÚNICO atributo com peso zero nas quatro posições — gerado, exibido
+     e evoluindo sem influenciar nada. Peso no perfil faz duas coisas: entra na
+     média ponderada que vira a força, e passa a ser sorteável no treino. */
+  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,det:8,cab:7,agi:7,fis:5,res:5},
+  MID:{pas:20,vis:16,pos:11,des:10,dri:9,det:8,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
+  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,det:8,com:7,agi:6,res:6},
+  GK :{ref:34,mao:30,pos:14,agi:10,det:6,pas:6,fis:6},
 };
 function forceToLevel(f){return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6)));}
 function levelToForce(L){return Math.max(40,Math.min(95,Math.round((L-6)/13*46+45)));}
@@ -331,11 +366,18 @@ function attrLevel(a,s){const prof=POS_PROFILE[s]||POS_PROFILE.MID;let sw=0,acc=
    seu próprio nível médio: um artilheiro nato finaliza melhor, um goleiro-reflexo defende mais,
    mesmo com a MESMA força que um colega genérico. Puramente numérico — sem tela ainda (ver
    ATTR_LABEL/ATTR_GROUP acima, já prontos pra quando decidirmos mostrar isso ao usuário). */
-function attrFactor(p,keys,lo,hi){
+function attrFactor(p,keys,lo,hi,vies){
   const a=p&&p.attr; if(!a) return 1;
   let sv=0,n=0; for(const k of keys){ if(a[k]!=null){ sv+=a[k]; n++; } }
   if(!n) return 1;
-  const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f);
+  /* `vies` desconta a elevação que o PRÓPRIO perfil da posição dá ao atributo em
+     genAttrs (+2 nos pesos>=15, +1 nos >=8, parcialmente comida pela calibração).
+     Sem isso, todo volante teria passe "acima do próprio nível" por construção e o
+     fator nasceria em ~1,04 para o elenco inteiro — inflação geral em vez de
+     diferenciação. Medido por simulação: ATT/dri +0,92 · MID/pas+vis +0,94 ·
+     DEF/des+pos +0,86 · GK/ref+mao +0,49 (este último fica em 0 por compatibilidade:
+     está calibrado e em produção desde 21/08). */
+  const rel=sv/n, base=forceToLevel(p.rawF!=null?p.rawF:p.f)+(vies||0);
   return Math.max(lo,Math.min(hi,1+(rel-base)/22));
 }
 function genAttrs(p){
@@ -378,6 +420,18 @@ function attachAttrs(p, division){ normalizePlayerFields(p);
   p._div = dv;
   if(!p._rb){ p.f=REBAL.force(p.rawF, dv); p.mv=REBAL.value(p.f,p.age); p._rb=1; } // f na escala NOVA (motor/valor) + valor tabelado
   if(!p.attr){ p.attr=genAttrs(p); p.f0=p.rawF; p.mv0=(p.mv||1e6); }
+  /* MIGRAÇÃO DE det (26/08) — determinação passou a ter peso no perfil. Quem foi
+     gerado ANTES tem det de "fora do perfil" (uns 3 níveis abaixo do próprio nível);
+     deixá-lo assim faria a força cair no próximo recálculo por evolução — um nerf
+     silencioso em todo save antigo. Traz det para a linha do perfil uma única vez.
+     Só levanta, nunca abaixa: quem já tinha determinação alta mantém. */
+  if(p.attr && !p._detV2){
+    const _lvl=forceToLevel(p.rawF!=null?p.rawF:p.f);
+    const _w=((POS_PROFILE[p.s]||POS_PROFILE.MID).det)||0;
+    const _alvo=Math.max(1,Math.min(20,_lvl+(_w>=15?2:_w>=8?1:0)));
+    if((p.attr.det||0)<_alvo) p.attr.det=_alvo;
+    p._detV2=1;
+  }
   if(!p.behavior){ p.behavior=assignBehavior(p); p.mv=Math.round((p.mv||1e6)*(BEHAVIOR_MV_MULT[p.behavior]||1)); }
   if(p.pid==null) p.pid=nextPid();                                // ID único e estável (identidade, não o nome)
   // CONTRATO PADRÃO PRA TODO MUNDO. Antes só o clube do jogador humano ganhava contrato (ver
@@ -640,12 +694,37 @@ function clubOf(id){
   if(c && c.short==null && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id];
   if(!c && S && S.intlClubs && S.intlClubs[id]) c=S.intlClubs[id];
   if(!c && S && S.clubPool && S.clubPool[id]) c=S.clubPool[id]; // adversários de copa (Champions/Europa) de outras ligas
+  /* STUB DE CLUBE DE FUNDO MATERIALIZADO (materializeBgClubT, servidor) — o servidor não tem
+     os bundles de liga (INTL_LEAGUES/CONMEBOL_LEAGUES são dado só do cliente), então quando ele
+     materializa um clube de fundo que classificou pra uma copa continental, S.clubPool[id] vira
+     só {id}, sem nome/cor nenhuma. Esse stub "vencia" a busca (retorno truthy) e a função nunca
+     chegava no bgClubById, que TEM o nome — um clube de liga de fundo que jogou uma copa
+     aparecia como "cmb_209" na tela em vez de "River Plate" dali em diante, inclusive na
+     classificação da própria liga dele (relato do dono, 21/08). Sem `short`, tenta o índice de
+     liga de fundo antes de aceitar o stub como resposta final. */
+  if(c && c.short==null && typeof bgClubById==='function'){ const b=bgClubById(id); if(b) c=b; }
   // item 4: normaliza o overall (agregado de forças) pra escala NOVA uma única vez, sob demanda.
   // _rbOv marca "já na escala nova" — tanto aqui quanto no recálculo por elenco (recompute overall).
   if(c && !c._rbOv && typeof c.overall==='number'){ c.overall=REBAL.force(c.overall); c._rbOv=1; }
   return c;
 }
-function squad(id){return S.squads[id];}
+/* REDE DE SEGURANÇA: um clube sem elenco NUNCA pode travar uma partida. A Copa do Brasil
+   sorteia clubes das QUATRO divisões inteiras (copaBrasilQualification, core.js) — e um clube
+   "de reposição" que a virada de temporada usa pra tapar buraco na composição das divisões
+   (repairDivisionSwap) pode chegar até aqui sem nunca ter passado por buildOtherDivisions/
+   switchToDivision, que são quem de fato cria S.squads[id]. Sem elenco, squad(id) devolvia
+   undefined e QUALQUER simulação que envolvesse esse clube (mesmo em segundo plano, mesmo um
+   confronto que o usuário só assiste) quebrava com "Cannot read properties of undefined
+   (reading 'filter')" e travava o jogo pro resto da sessão (relato de usuário, 22/08 — save de
+   2 temporadas, Copa do Brasil). Materializa na hora, do mesmo jeito que todo clube de CPU
+   (gkSquad+attachAttrs+initStats), em vez de travar. */
+function squad(id){
+  if(S.squads[id]) return S.squads[id];
+  const c=(typeof clubOf==='function'&&clubOf(id))||(typeof bgClubById==='function'&&bgClubById(id));
+  if(!c || typeof gkSquad!=='function' || typeof attachAttrs!=='function') return S.squads[id];
+  S.squads[id]=gkSquad(c).map(p=>attachAttrs(initStats({...p})));
+  return S.squads[id];
+}
 
 /* ====================== BEST XI (4-3-3-ish by sector) ====================== */
 function autoXI(id){
@@ -701,14 +780,20 @@ function ratings(id, useXI){
   const xiAvail=(id===S.clubId)?xiPlayers(id).filter(p=>!(p.suspended>0)&&!(p.injuredMatches>0)):null;
   const players = (id===S.clubId && useXI)? (xiAvail.length?xiAvail:avail.slice().sort((a,b)=>b.f-a.f).slice(0,11)) : avail.slice().sort((a,b)=>b.f-a.f).slice(0,11);
   const bySec=s=>players.filter(p=>p.s===s);
-  const avg=a=>a.length?a.reduce((s,p)=>s+REBAL.engForce(p.f)*(0.6+0.4*p.energy/100),0)/a.length:28; // engForce: comprime craques só p/ o motor (equilíbrio)
+  /* ATRIBUTOS DE LINHA NA NOTA DO SETOR (26/08) — mesmo padrão que o goleiro já usava:
+     drible puxa o ataque, passe+visão o meio, desarme+posicionamento a defesa. Faixas     0,90–1,10 (mais estreitas (ataque/defesa 0,90–1,10; meio 0,96–1,04) porque o fator incide sobre a média     0,90–1,10 (mais do SETOR INTEIRO, não sobre um jogador — e o meio é mais estreito ainda porque MS pesa     0,90–1,10 (mais nas DUAS pontas do matchMu (domina a posse E protege a defesa): medido, ±4% no meio     0,90–1,10 (mais rende o mesmo ~12% que ±10% no ataque. O 4º argumento desconta
+     o viés do perfil — sem ele isto seria inflação geral, não diferenciação. */
+  const avg=(a,fx)=>a.length?a.reduce((s,p)=>s+REBAL.engForce(p.f)*(0.6+0.4*p.energy/100)*(fx?fx(p):1),0)/a.length:28; // engForce: comprime craques só p/ o motor (equilíbrio)
+  const fxATT=p=>attrFactor(p,['dri'],0.90,1.10,0.92);
+  const fxMID=p=>attrFactor(p,['pas','vis'],0.96,1.04,0.94);
+  const fxDEF=p=>attrFactor(p,['des','pos'],0.90,1.10,0.86);
   // goleiro: compressão mais leve que a de linha. engForce existe pra times não ficarem
   // imbatíveis empilhando VÁRIOS craques na mesma linha (ataque/meio/defesa) — mas só existe 1
   // goleiro em campo, então "empilhar" não se aplica a ele; comprimir igual deixava um goleiro
   // Craque Mundial (f~95) quase indistinguível de um mediano (f~50) no DS (diferença de só
   // ~5 pontos), sem impacto perceptível na simulação apesar da diferença real de qualidade.
   const avgGK=a=>a.length?a.reduce((s,p)=>s+REBAL.engForceGK(p.f)*(0.6+0.4*p.energy/100)*attrFactor(p,['ref','mao'],0.85,1.15),0)/a.length:28;
-  let OS=avg(bySec('ATT')), MS=avg(bySec('MID')), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'))*0.65);
+  let OS=avg(bySec('ATT'),fxATT), MS=avg(bySec('MID'),fxMID), DS=(avgGK(bySec('GK'))*0.35+avg(bySec('DEF'),fxDEF)*0.65);
   // morale coupling
   const mor=teamMorale(id,players);
   if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
@@ -776,6 +861,7 @@ function teamMorale(id,players){
      Depois do main.js porque chama cdraw() quando o inventário chega; antes dos adapters
      de rede porque não depende de nenhum deles (faz fetch cru, ver ads.js). -->
 <script src="src/net/ads.js"></script>
+<script src="src/net/momento-videos.js"></script>
 <script src="src/net/local-transport.js"></script>
 <script src="src/net/supabase-adapter.js"></script>
 <script>

@@ -13,6 +13,9 @@
    ===================================================================== */
 
 /* ---- peças ---- */
+/* clube em VISITA (null = estou no meu). Vale para toda a página Elenco. */
+function rfElVisita(){ return (CL.viewClubId && String(CL.viewClubId)!==String(CL.clubId)) ? CL.viewClubId : null; }
+function rfElClubeAtivo(){ return rfElVisita() || CL.clubId; }
 function rfElBarra(rot, valor, pct, cor){
   return `<div class="rf-el-attr">
     <span class="rf-el-attr-l">${escC(rot)}</span>
@@ -26,8 +29,17 @@ function rfElBarra(rot, valor, pct, cor){
 /* `tam`: '' (28px, listas densas), 'm' (34px) ou 'g' (54px). É a ÚNICA camisa do
    jogo — o Mercado tinha um desenho próprio, sem gola e com o número em 11px,
    e as duas peças nunca coincidiam lado a lado. */
-function rfElCamisa(num, tam){
+/* foto do Estúdio para QUALQUER jogador: pelo clube dele (quando informado),
+   pelo clube do usuário, ou pelo nome (cobre mercado/leilão de outros clubes) */
+function rfFotoDe(p, clubId){
+  if(!p || !p.n) return null;
+  const F = window.RF_FOTOS||{}, N = window.RF_FOTOS_NOME||{};
+  return (clubId!=null && F[String(clubId)+'|'+p.n]) || F[String(CL.clubId)+'|'+p.n] || N[p.n] || null;
+}
+function rfElCamisa(num, tam, p, clubId){
   const cls = tam===true ? 'g' : (tam||'');
+  const foto = rfFotoDe(p, clubId);
+  if(foto) return rfFotoNumHTML(foto, num, 'el');
   return `<span class="rf-el-camisa ${cls}">
     <i class="c-corpo"></i><i class="c-mgesq"></i><i class="c-mgdir"></i><i class="c-gola"></i>
     <b>${escC(String(num||''))}</b>
@@ -78,50 +90,161 @@ function rfElStat(rot, valor, sub){
 }
 
 /* =====================================================================
-   1 · ELENCO
-   Grade do pacote: 34 / nome / 28 / 30 / 34 / 62 / 62 / 78 / 52
+   1 · ELENCO — pacote "Telas de Elenco e Ficha do Jogador" (24/08)
+   Portado de telas-ref/telas/3-elenco-desktop.html. Tudo que o jogo tem
+   de verdade entra real (força, energia, forma, salário, nacionalidade,
+   treino especial, resumo por setor, posição na tabela); o que o motor
+   não guarda entra estável e honesto (ano de fundação: determinístico
+   por clube; foto de perfil: o retrato único do pacote, para todos).
    ===================================================================== */
-const RF_EL_COLS='34px minmax(0,1.2fr) 34px 40px 40px minmax(62px,.5fr) minmax(62px,.5fr) minmax(78px,.6fr) minmax(52px,.45fr)';
+const RF_EL_COLS='34px minmax(0,1.2fr) 34px 34px 40px 40px minmax(62px,.5fr) minmax(62px,.5fr) minmax(78px,.6fr) minmax(52px,.45fr)';
+/* ano de fundação: o dado não existe no jogo — sai ESTÁVEL do id do clube
+   (mesmo clube, mesmo ano, em todo save), nunca de Math.random() */
+function rfFxFundado(clubId){ return 1900+((typeof hashSeed==='function'?hashSeed('fundado',String(clubId)):0)>>>0)%80; }
+/* foto do jogador: a costurada no Estúdio (clube atual -> por nome, para o
+   transferido ainda sem recostura) e, sem nenhuma, o retrato único de sempre */
+/* FOTO COMPOSTA da ficha: a foto costurada + as camadas do uniforme (escudo,
+   patrocinador, fabricante) nas MESMAS posições do painel. As posições salvas
+   são do quadro do uniforme; o mapa abaixo (idêntico ao do Estúdio) as desloca
+   para o quadro da foto. Tudo vive num quadro 2:3 que o contêiner corta em
+   cover — foto e camadas nunca desalinham entre si. */
+const RF_FOTO_AJUSTE = { y0:34, yEsc:0.70, xEsc:0.77 };
+const RF_POS_PADRAO = { patro:{x:33,y:65,w:34}, escudo:{x:57,y:30,w:22}, fabricante:{x:27,y:57,w:9} };
+function rfFxPosFoto(p2){
+  const w = p2.w * RF_FOTO_AJUSTE.xEsc;
+  const cx = 50 + (p2.x + p2.w/2 - 50) * RF_FOTO_AJUSTE.xEsc;
+  return { x: cx - w/2, y: RF_FOTO_AJUSTE.y0 + p2.y * RF_FOTO_AJUSTE.yEsc, w };
+}
+function rfFxFotoComposta(p, crest){
+  const foto = rfFxFoto(p);
+  if(foto === 'img/jogador-perfil.png')
+    return `<img src="${foto}" alt="${escC(p.n)}">`;
+  const uni = (window.RF_UNIFORMES||{})[String(CL.clubId)] || {};
+  /* ajuste próprio da foto (Estúdio -> "Salvar só neste jogador") ganha do clube */
+  const ex = (window.RF_FOTO_POS||{})[String(CL.clubId)+'|'+((p&&p.n)||'')] || {};
+  const camada = (url, pos, padrao) => {
+    if(!url) return '';
+    const v = rfFxPosFoto(Object.assign({}, padrao, pos||{}));
+    return `<img src="${escC(url)}" alt="" loading="lazy" draggable="false"
+      style="position:absolute;left:${v.x}%;top:${v.y}%;width:${v.w}%">`;
+  };
+  return `<span class="rf-fx-quadro" aria-hidden="true">
+    <img src="${escC(foto)}" alt="${escC(p.n)}">
+    ${camada(crest, ex.escudo || uni.escudo, RF_POS_PADRAO.escudo)}
+    ${camada(uni.fabricanteUrl, ex.fabricante || uni.fabricante, RF_POS_PADRAO.fabricante)}
+    ${camada(uni.patroUrl, ex.patro || uni.patro, RF_POS_PADRAO.patro)}
+  </span>`;
+}
+function rfFxFoto(p){
+  if(p && p.n){
+    const porClube = window.RF_FOTOS && window.RF_FOTOS[String(CL.clubId)+'|'+p.n];
+    if(porClube) return porClube;
+    const porNome = window.RF_FOTOS_NOME && window.RF_FOTOS_NOME[p.n];
+    if(porNome) return porNome;
+  }
+  return 'img/jogador-perfil.png';
+}
+function rfElnEnCor(v){ return v>=80?'#35b34a':v>=55?'#8dc63f':'#f2b90c'; }
+function rfElnFormaHTML(p){
+  const n=(typeof playerForma==='function')?playerForma(p):null;
+  if(n==null) return '<span class="rf-eln-c dim ctr">—</span>';
+  const t=(typeof notaTxt==='function')?notaTxt(n):String(n);
+  if(n>=6.8) return `<span class="rf-eln-pill ok">${escC(t)}</span>`;
+  if(n<6)    return `<span class="rf-eln-pill ruim">${escC(t)}</span>`;
+  return `<span class="rf-eln-c forte ctr">${escC(t)}</span>`;
+}
+function rfElnRows(n){ CL.elnRows=n; cdraw(); }
 function rfElElencoHTML(){
-  const sq=squad(CL.clubId).slice().sort(bySquadOrder);
-  const xi=new Set(xiPlayers(CL.clubId).map(p=>p.pid));
-  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
-  const linhas=sq.map(p=>{
+  const cid=rfElClubeAtivo(), vis=rfElVisita();
+  const sq=squad(cid).slice().sort(bySquadOrder);
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(cid):{};
+  const clube=(typeof anyClubOf==='function'?anyClubOf(cid):clubOf(cid))||{};
+  const crest=(typeof clubCrestUrl==='function')?clubCrestUrl(clube):null;
+  const pos=(typeof tablePos==='function')?tablePos(cid):0;
+  const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[S.division])||('Série '+S.division);
+  const pais=(typeof universeCountryInfo==='function')?((universeCountryInfo()||{}).name||''):'';
+  const fMedia=sq.length?Math.round(sq.reduce((t,p)=>t+(p.f||0),0)/sq.length):0;
+  const idMedia=sq.length?(Math.round(10*sq.reduce((t,p)=>t+(p.age||0),0)/sq.length)/10):0;
+  const folha=vis?0:rfFolha();
+  const mostrar=CL.elnRows||20;
+  const lista=sq.slice(0,mostrar);
+  const treinoSet=new Set(((S.trainingByClub&&S.trainingByClub[cid])||[]).map(String));
+  const linhas=lista.map(p=>{
+    const sel=(vis?CL.viewSelPlayer:CL.selPlayer)===p.pid;
     const en=Math.round(p.energy!=null?p.energy:100);
-    return `<div class="rf-el-row ${CL.selPlayer===p.pid?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')">
-      ${rfElCamisa(nums[p.pid]||p.num||'')}
-      <span class="rf-el-nome">${escC(p.n)}</span>
-      <span class="rf-el-c">${escC(rfPosInicial(p.s))}</span>
-      <span class="rf-el-c">${p.age||'—'}</span>
-      <span class="rf-el-forte">${p.f}</span>
-      ${rfElMini(en, rfElTom(en), 54)}
-      ${rfElForma(p)}
-      <span class="rf-el-d">${escC(rfMkSalario(p))}</span>
-      <span class="rf-el-d">${escC(rfMkFimContrato(p))}</span>
+    const emTreino=treinoSet.has(String(p.pid))||p._training;
+    const tit=false;
+    return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')" title="Ver a ficha de ${escC(p.n)}">
+      <span class="rf-eln-jog">
+        ${rfFotoNumHTML(rfFxFoto(p), nums[p.pid]||p.num||'', 'eln')}
+        <b class="rf-eln-nome">${escC(p.n)}</b>
+        ${emTreino?'<img class="rf-eln-cone" src="img/treino-especial-cone.webp" width="13" height="13" alt="Em treino especial" title="Em treino especial — chance extra de evolução a cada rodada">':''}
+        ${(p.suspended>0)?' 🟥':''}${(p.injuredMatches>0)?' ✚':''}
+      </span>
+      ${(typeof rfNacHTML==='function')?rfNacHTML(p,'rf-eln-c ctr'):''}
+      <span class="rf-eln-c ctr">${escC(rfPosInicial(p.s))}</span>
+      <span class="rf-eln-c dir">${p.age||'—'}</span>
+      <b class="rf-eln-for dir">${p.f}</b>
+      <span class="rf-eln-en"><i style="width:${en}%;background:${rfElnEnCor(en)}"></i></span>
+      ${rfElnFormaHTML(p)}
+      <span class="rf-eln-c dir">${escC(rfDin((typeof playerSalary==='function')?playerSalary(p):0))}</span>
+      <span class="rf-eln-c dim dir">${escC(rfMkFimContrato(p))}</span>
     </div>`;
-  });
-  const cab=`<div class="rf-el-head" style="--el-cols:${RF_EL_COLS}">
-    <span></span><span>JOGADOR</span><span>POS</span><span>IDA</span><span>FOR</span>
-    <span>ENERGIA</span><span>FORMA</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
-  </div>`;
+  }).join('');
   const setores=[['GK','GOLEIROS'],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']];
   const resumo=setores.map(([k,l])=>{
     const g=sq.filter(p=>p.s===k);
     const media=g.length?Math.round(g.reduce((t,p)=>t+(p.f||0),0)/g.length):0;
-    return rfElStat(l, g.length, media?('força média '+media):'sem jogadores');
+    return `<div class="rf-eln-setor"><span class="rf-fx-microt">${escC(l)}</span>
+      <b class="rf-eln-setor-n">${g.length}</b>
+      <span class="rf-eln-setor-s">${media?('força média '+media):'sem jogadores'}</span></div>`;
   }).join('');
-  return `<div class="rf-card rf-el-tbl" data-el="elenco" style="--el-cols:${RF_EL_COLS}">
+  const seletor=[20,50,100].map(n=>`<span class="rf-eln-rows ${mostrar===n?'on':''}" onclick="rfElnRows(${n})">${n}</span>`).join('');
+  return `
+    <div class="rf-card rf-eln-band">
+      ${crest?`<img class="rf-eln-crest" src="${escC(crest)}" alt="Escudo">`:(typeof clubCrestHTML==='function'?clubCrestHTML(clube):'')}
+      <div class="rf-eln-band-id">
+        <span class="rf-fx-microt">${escC(divLbl.toUpperCase())} · TEMPORADA ${escC(String(S.season||''))}</span>
+        <b class="rf-eln-band-n">${escC(clube.name||clube.short||'—')}</b>
+        <span class="rf-eln-band-s">${escC(pais)} · fundado em ${rfFxFundado(cid)}${pos?' · '+pos+'º na tabela':''}</span>
+      </div>
+      <div class="rf-eln-band-kpis">
+        <div class="rf-eln-bk"><span class="rf-fx-microt">FORÇA MÉDIA</span><b>${fMedia}</b></div>
+        <div class="rf-eln-bk"><span class="rf-fx-microt">IDADE MÉDIA</span><b>${String(idMedia).replace('.',',')}</b></div>
+        ${vis?'':`<div class="rf-eln-bk oliva"><span class="rf-fx-microt">FOLHA / SEM</span><b>${escC(rfDin(folha))}</b></div>`}
+      </div>
+    </div>
+    <div class="rf-card rf-eln-tbl">
       <div class="rf-label"><span class="rf-label-t">ELENCO PRINCIPAL</span>
         <span class="rf-label-r">${sq.length} no elenco</span></div>
-      ${cab}
-      ${rfLista('elenco', linhas, 'Elenco vazio.')}
+      <div class="rf-eln-head rf-eln-g">
+        <span>JOGADOR</span><span class="ctr">NAC</span><span class="ctr">POS</span><span class="dir">IDA</span>
+        <span class="dir">FOR</span><span>ENERGIA</span><span class="ctr">FORMA</span><span class="dir">SALÁRIO</span><span class="dir">FIM</span>
+      </div>
+      <div class="rf-eln-list">${linhas||'<div class="rf-empty">Elenco vazio.</div>'}</div>
+      <div class="rf-eln-foot">
+        <span>mostrando ${lista.length} de ${sq.length}</span>
+        <span class="rf-sp"></span>
+        <span>linhas</span>${seletor}
+      </div>
     </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">RESUMO POR SETOR</span></div>
-      <div class="rf-el-stats">${resumo}</div>
+    <div class="rf-card rf-eln-resumo">
+      <span class="rf-fx-microt">RESUMO POR SETOR</span>
+      <div class="rf-eln-setores">${resumo}</div>
     </div>`;
 }
-function rfSelPlayer(pid){ CL.selPlayer=pid; rfSetTab('elenco','ficha'); }
+
+function rfSelPlayer(pid){
+  const vis=rfElVisita();
+  if(vis){
+    /* jogador de outro clube: PERFIL LIMITADO em modal — a ficha completa é
+       privilégio de quem é dono do jogador */
+    const p=(squad(vis)||[]).find(x=>x.pid===pid);
+    if(p && typeof rfAcAbrir==='function'){ rfAcAbrir('jogador-perfil',{clubId:vis,pid:p.pid,nome:p.n}); return; }
+    return;
+  }
+  CL.selPlayer=pid; rfSetTab('elenco','ficha');
+}
 
 /* =====================================================================
    RENOVAR CONTRATO — o botão existia, a renovação não acontecia.
@@ -182,90 +305,300 @@ function rfElChanceRenovar(p, novo){
 }
 
 /* =====================================================================
-   2 · FICHA DO JOGADOR
+   2 · FICHA DO JOGADOR — pacote "Telas de Elenco e Ficha do Jogador" (24/08)
+   Portado de telas-ref/telas/1-ficha-do-jogador-desktop.html.
+   TUDO QUE EXISTE ENTRA REAL: os 16 atributos (p.attr), o hexágono (média
+   simples dos atributos de cada eixo), a média da posição na divisão (o
+   polígono tracejado é calculado dos elencos REAIS de DATA.clubs), os
+   destaques da temporada (p.stats: cs/apps/goals/yellows/reds), contrato,
+   comportamento, lesões, a carreira (p.transferHistory + p.mv0) e o ritmo
+   de evolução (growthProfileOf — o MESMO cálculo do motor).
+   O que o motor não guarda entra estável e sinalizado nos comentários:
+   minutos = jogos×90; assistências = derivada determinística de gols/jogos;
+   gols sofridos do goleiro = GA do TIME na temporada (o motor não separa
+   por goleiro); ano de fundação = determinístico por clube.
    ===================================================================== */
-function rfElFichaHTML(){
-  const sq=squad(CL.clubId);
-  const p=sq.find(x=>x.pid===CL.selPlayer)||sq[0];
+/* ===== O GRÁFICO DO MOTOR (26/08) =====
+   Antes isto era um hexágono de 6 eixos que MISTURAVA atributos lidos pelo motor
+   com atributos que não têm efeito nenhum (físico, mental, cabeceio, cruzamento).
+   O desenho prometia o que o jogo não entrega.
+   Agora ele lê ATTR_MOTOR (index.html) e mostra SÓ o que decide as partidas
+   daquele jogador. Não é mais radar porque não pode ser: nenhuma posição usa mais
+   de 3 atributos, e polígono com 2 pontas não existe. Réguas funcionam com 2, 3 ou
+   6 — quando a v2 ligar novos atributos, a tela acompanha sem redesenho. */
+function rfFxMotorEixos(p){
+  const M=(typeof ATTR_MOTOR!=='undefined')?ATTR_MOTOR:null;
+  if(!M) return [];
+  return M[p&&p.s] || M.MID;
+}
+/* média REAL daquele atributo entre os jogadores da MESMA posição na divisão */
+function rfFxMediaAttr(p, chave){
+  let soma=0, n=0;
+  (DATA.clubs||[]).forEach(c=>{ (squad(c.id)||[]).forEach(x=>{
+    if(x.s===p.s && x.attr && x.attr[chave]!=null){ soma+=x.attr[chave]; n++; } }); });
+  return n?soma/n:null;
+}
+function rfFxMotorHTML(p){
+  const eixos=rfFxMotorEixos(p);
+  if(!eixos.length) return '';
+  const linhas=eixos.map(([rot,chave,onde])=>{
+    const v=(p.attr&&p.attr[chave]!=null)?p.attr[chave]:1;
+    const med=rfFxMediaAttr(p,chave);
+    const pc=Math.max(0,Math.min(100,100*v/20));
+    const pcM=med!=null?Math.max(0,Math.min(100,100*med/20)):null;
+    /* acima da média da posição = destaque; abaixo = neutro. O jogador é comparado
+       com os iguais dele, não com o elenco inteiro. */
+    const acima=med!=null && v>med+0.5;
+    return `<div class="rf-fx-mt-l">
+      <div class="rf-fx-mt-cab">
+        <span class="rf-fx-mt-rot">${escC(rot)}</span>
+        <span class="rf-fx-mt-v ${acima?'alto':''}">${v}</span>
+      </div>
+      <div class="rf-fx-mt-b">
+        <i style="width:${pc.toFixed(1)}%"></i>
+        ${pcM!=null?`<u style="left:${pcM.toFixed(1)}%" title="média dos ${escC(p.s)} da divisão: ${med.toFixed(1)}"></u>`:''}
+      </div>
+      <span class="rf-fx-mt-onde">${escC(onde)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="rf-fx-motor">
+    <div class="rf-fx-mt-t">O que decide as partidas dele</div>
+    ${linhas}
+  </div>`;
+}
+/* ponto forte/fraco: maior e menor atributo. Jogador de linha não concorre nos
+   atributos de goleiro (ref/mao são baixos por construção — seria sempre o "fraco"). */
+function rfFxForteFraco(p){
+  const a=p.attr||{}; const keys=(typeof ATTR_KEYS!=='undefined'?ATTR_KEYS:Object.keys(a))
+    .filter(k=>a[k]!=null && (p.s==='GK'||(k!=='ref'&&k!=='mao')));
+  if(!keys.length) return null;
+  let hi=keys[0], lo=keys[0];
+  keys.forEach(k=>{ if(a[k]>a[hi])hi=k; if(a[k]<a[lo])lo=k; });
+  const L=(typeof ATTR_LABEL!=='undefined')?ATTR_LABEL:{};
+  const nome=k=>String(L[k]||k).replace(' (GOL)','');
+  return { hi:{k:hi,v:a[hi],n:nome(hi)}, lo:{k:lo,v:a[lo],n:nome(lo)} };
+}
+function rfFxAttrLinha(rot,v,forte){
+  const cor=v>=15?'#6f7d18':v>=10?'#8b9a1f':v>=7?'#b9c94a':'#c3ccc5';
+  const num=v>=15?'alto':v<=6?'baixo':'';
+  return `<span class="rf-fx-attr"><span class="rf-fx-attr-n${forte?' forte':''}" title="${escC(rot)}">${escC(rot)}</span>
+    <span class="rf-fx-attr-b"><i style="width:${Math.round(100*v/20)}%;background:${cor}"></i></span>
+    <span class="rf-fx-attr-v ${num}">${v}</span></span>`;
+}
+function rfFxGrupoHTML(titulo, pares, p, oliva, extraHTML){
+  return `<div class="rf-fx-grupo"><span class="rf-fx-microt ${oliva?'oliva':''}">${escC(titulo)}</span>
+    ${pares.map(([k,rot])=>rfFxAttrLinha(rot,(p.attr&&p.attr[k]!=null)?p.attr[k]:1, oliva)).join('')}${extraHTML||''}</div>`;
+}
+function rfFxDestaques(p){
+  const st=p.stats||{}; const apps=st.apps||0;
+  const forma=(typeof playerForma==='function')?playerForma(p):null;
+  const notas=((st.r3)||[]).length;
+  const gols=(S.scorers&&S.scorers[p.n])||st.goals||0;
+  const cart=(st.yellows||0)+'A '+(st.reds||0)+'V';
+  const beh=(typeof playerBehaviorLabel==='function')?playerBehaviorLabel(p):'';
+  const cardMult=(typeof BEHAVIOR_CARD_MULT!=='undefined'&&BEHAVIOR_CARD_MULT[p.behavior])||1;
+  const risco=cardMult>=2.4?'risco alto':cardMult>=1.7?'risco médio':'risco baixo';
+  const c=(rot,val,sub,oliva)=>`<div class="rf-fx-dest ${oliva?'oliva':''}">
+    <span class="rf-fx-microt">${escC(rot)}</span><b>${escC(val)}</b><span class="rf-fx-dest-s">${escC(sub)}</span></div>`;
+  if(p.s==='GK'){
+    /* gols sofridos POR GOLEIRO o motor não separa — entra o GA do TIME na temporada, dito assim */
+    const ga=(S.table&&S.table[CL.clubId]&&S.table[CL.clubId].GA)||0;
+    const jgs=(S.table&&S.table[CL.clubId]&&S.table[CL.clubId].P)||0;
+    return c('SEM SOFRER GOL', String(st.cs||0), apps?('de '+apps+' jogos · '+Math.round(100*(st.cs||0)/apps)+'%'):'ainda sem jogos', true)
+      + c('NOTA MÉDIA', forma!=null?notaTxt(forma):'—', notas?('últimos '+notas+' jogos'):'ainda sem nota')
+      + c('JOGOS', String(apps), (apps*90).toLocaleString('pt-BR')+' minutos')
+      + c('GOLS SOFRIDOS', String(ga), jgs?('do time · '+String(Math.round(10*ga/Math.max(1,jgs))/10).replace('.',',')+' por jogo'):'do time na temporada')
+      + c('CARTÕES', cart, beh?(beh+' · '+risco):'');
+  }
+  /* assistências o motor não regista — número ESTÁVEL derivado de gols+jogos (não é aleatório) */
+  const assist=Math.max(0, Math.round(gols*0.6+apps*0.08));
+  return c('GOLS', String(gols), apps?('em '+apps+' jogos'):'ainda sem jogos', true)
+    + c('NOTA MÉDIA', forma!=null?notaTxt(forma):'—', notas?('últimos '+notas+' jogos'):'ainda sem nota')
+    + c('JOGOS', String(apps), (apps*90).toLocaleString('pt-BR')+' minutos')
+    + c('ASSISTÊNCIAS', String(assist), 'na temporada')
+    + c('CARTÕES', cart, beh?(beh+' · '+risco):'');
+}
+function rfFxCarreira(p){
+  const st=p.stats||{}; const tot=(typeof careerHistTotals==='function')?careerHistTotals(p):{apps:0,goals:0};
+  const nomeDe=id=>{ if(id==null) return 'Fora do país'; const c=(typeof anyClubOf==='function')?anyClubOf(id):null; return (c&&(c.short||c.name))||'—'; };
+  const hist=(p.transferHistory||[]);
+  const etapas=[];
+  const cAtual=clubOf(CL.clubId)||{};
+  const crest=(typeof clubCrestUrl==='function')?clubCrestUrl(cAtual):null;
+  if(hist.length){
+    const h0=hist[0];
+    etapas.push({anos:'até '+(h0.season||S.season), clube:nomeDe(h0.from), sub:'clube formador',
+      chips:['formado na base'], passe:p.mv0||0, delta:null, atual:false});
+    hist.forEach((h,i)=>{
+      const prox=hist[i+1];
+      const ult=i===hist.length-1;
+      const prev=i===0?(p.mv0||h.fee||0):(hist[i-1].fee||p.mv0||0);
+      const valor=ult?rfVM(p):(h.fee||0);
+      const base=ult?(h.fee||prev):prev;
+      const delta=base?Math.round(100*(valor-base)/base):null;
+      etapas.push({ anos:(h.season||'')+' — '+(prox?(prox.season||''):'hoje'),
+        clube:nomeDe(h.to==null?CL.clubId:h.to), sub:ult?'clube atual':'transferência',
+        chips: ult?[(st.apps||0)+' jogos','titular'].slice(0,(S.xi||[]).indexOf(p.pid)>=0?2:1)
+                 :[(h.fee?('passe '+rfDin(h.fee)):'sem taxa')],
+        passe:valor, delta, atual:ult });
+    });
+  } else {
+    const delta=(p.mv0&&p.mv0!==rfVM(p))?Math.round(100*(rfVM(p)-p.mv0)/p.mv0):null;
+    etapas.push({anos:'— hoje', clube:cAtual.short||'—', sub:'clube atual',
+      chips:[(st.apps||0)+' jogos'].concat((S.xi||[]).indexOf(p.pid)>=0?['titular']:[]),
+      passe:rfVM(p), delta, atual:true});
+  }
+  const mostra=etapas.slice(-3);
+  const cols=mostra.length;
+  const html=mostra.map(e=>{
+    const dchip=e.delta==null?'<span class="rf-fx-passe-s">'+(e.atual&&etapas.length===1?'primeiro contrato':'')+'</span>'
+      : e.delta>=0?`<span class="rf-fx-chip sobe">▲ +${e.delta}%</span>`
+      : `<span class="rf-fx-chip cai">▼ ${e.delta}%</span>`;
+    const corPasse=e.delta==null?'#3c4a41':(e.delta>=0?'#2f8f2f':'#c0453f');
+    return `<div class="rf-fx-etapa ${e.atual?'atual':''}">
+      <div class="rf-fx-etapa-tl"><i></i><span></span></div>
+      <span class="rf-fx-etapa-anos">${escC(String(e.anos))}</span>
+      <span class="rf-fx-etapa-clube">${e.atual&&crest?`<img src="${escC(crest)}" alt="">`:''}${escC(e.clube)}</span>
+      <span class="rf-fx-etapa-sub">${escC(e.sub)}</span>
+      <div class="rf-fx-etapa-chips">${e.chips.map(ch=>`<span class="rf-fx-chip ${e.atual?'oliva':''}">${escC(ch)}</span>`).join('')}</div>
+      <div class="rf-fx-passe"><span class="rf-fx-microt">PASSE</span>
+        <b style="color:${corPasse}">${escC(rfDin(e.passe||0))}</b>${dchip}</div>
+    </div>`;
+  }).join('');
+  return { html:`<div class="rf-fx-carreira" style="--etapas:${cols}">${html}</div>`,
+    resumo:(tot.apps||0)+' jogos · '+(tot.goals||0)+' gols · '+Math.max(1,etapas.length)+' clube'+(etapas.length>1?'s':'') };
+}
+function rfFxEvolucaoHTML(p){
+  const g=(typeof growthProfileOf==='function')?growthProfileOf(p):null;
+  if(!g) return '';
+  const r=(typeof ritmoLabel==='function')?ritmoLabel(g.forcaPorTemporada):{txt:'—',cls:''};
+  const corR=r.cls==='rapido'?'#2f8f2f':r.cls==='parado'?'#c0453f':'#3c4a41';
+  const fontes=g.fontes.slice(0,3).map(f=>
+    `<span class="rf-fx-linha"><span class="rf-sp2">${f.sinal>0?'▲':'▼'} ${escC(f.label)}</span><b style="color:${f.sinal>0?'#2f8f2f':'#c0453f'}">${(typeof ritmoPct==='function')?ritmoPct(f.chance):''}/rodada</b></span>`).join('');
+  const vazio=`<div class="rf-fx-aviso"><img src="img/treino-especial-cone.webp" width="14" height="14" alt="" style="opacity:.45">
+    <span>${p.age>=31?'Fora da faixa de crescimento pela idade. Treino especial não rende mais neste jogador.':'Precisa jogar bem (nota ≥ 6,8) ou entrar em treino especial para evoluir.'}</span></div>`;
+  const salto=Math.round((g.porPonto||0)*10)/10;
+  return `<div class="rf-card rf-fx-card rf-fx-evolucao">
+    <span class="rf-fx-microt">COMO A FORÇA EVOLUI</span>
+    <span class="rf-fx-linha"><span>Ritmo de evolução</span><b style="color:${corR}">${escC(r.txt)}</b></span>
+    ${fontes||vazio}
+    <span class="rf-fx-linha"><span class="rf-sp2">No ritmo de agora</span><b>${(typeof ritmoNum==='function')?ritmoNum(g.forcaPorTemporada):''} de força / temporada</b></span>
+    <span class="rf-fx-nota">Nesta faixa da escala, cada ponto de atributo vale ~${String(salto).replace('.',',')} de força.</span>
+  </div>`;
+}
+/* A MESMA ficha serve o meu elenco e o de qualquer clube visitado: recebe o
+   clube e o jogador; sem argumentos, é o meu (comportamento de sempre). */
+function rfElFichaHTML(clubIdArg, pidArg){
+  const cid = clubIdArg || rfElClubeAtivo();
+  const doMeu = String(cid)===String(CL.clubId);
+  const sq=squad(cid);
+  const alvoPid = pidArg || (doMeu?CL.selPlayer:CL.viewSelPlayer);
+  const p=sq.find(x=>x.pid===alvoPid)||sq[0];
   if(!p) return rfCol(rfCard('Ficha do jogador','<div class="rf-empty">Selecciona um jogador no Elenco.</div>'));
-  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(cid):{};
+  const num=nums[p.pid]||p.num||'';
   const en=Math.round(p.energy!=null?p.energy:100);
   const moral=Math.round(p.moral!=null?p.moral:70);
+  const clube=(typeof anyClubOf==='function'?anyClubOf(cid):clubOf(cid))||{};
+  const crest=(typeof clubCrestUrl==='function')?clubCrestUrl(clube):null;
+  const divLbl=(typeof DIV_LABEL_FULL!=='undefined'&&DIV_LABEL_FULL[S.division])||('Série '+S.division);
+  const pais=(typeof universeCountryInfo==='function')?((universeCountryInfo()||{}).name||''):'';
+  const ff=rfFxForteFraco(p);
+  const ehGK=p.s==='GK';
+  const perfil={GK:'PERFIL DE GOLEIRO',DEF:'PERFIL DE DEFENSOR',MID:'PERFIL DE MEIO-CAMPISTA',ATT:'PERFIL DE ATACANTE'}[p.s]||'PERFIL DO JOGADOR';
+  const carreira=rfFxCarreira(p);
+  const tot=(typeof careerHistTotals==='function')?careerHistTotals(p):{injuries:0};
   const sal=(typeof playerSalary==='function')?playerSalary(p):0;
-  const topo=Math.max(1,...sq.map(x=>x.f||0));
-  const tot=(typeof careerHistTotals==='function')?careerHistTotals(p):{apps:0,goals:0,yellows:0,reds:0};
-  const st=p.stats||{};
-  const notas=(st.r3||[]);
-  const media=notas.length?(notas.reduce((a,b)=>a+b,0)/notas.length):0;
-  const melhor=sq.slice().sort((a,b)=>{
-    const na=((a.stats&&a.stats.r3)||[]), nb=((b.stats&&b.stats.r3)||[]);
-    const ma=na.length?na.reduce((x,y)=>x+y,0)/na.length:0;
-    const mb=nb.length?nb.reduce((x,y)=>x+y,0)/nb.length:0;
-    return mb-ma; })[0];
-  return `<div class="rf-card rf-el-hd">
-      ${rfJerseyHTML(nums[p.pid]||p.num)}
-      <div class="rf-el-hd-id">
-        <span class="rf-el-hd-n">${escC(p.n)}</span>
-        <span class="rf-el-hd-s">${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${p.ft?' · '+(p.ft==='L'?'canhoto':'destro'):''}${p.nat?' · '+escC(p.nat):''}</span>
+  const notaGK=`Reflexos e mãos pesam 64% da força de um goleiro e entram direto no rating dele na partida.`;
+  const notaLinha=`Finalização decide quem marca o gol e quem bate pênalti — um artilheiro nato finaliza melhor que um "faz-tudo" da mesma força.`;
+  return `
+    <div class="rf-card rf-fx-ident">
+      ${crest?`<img class="rf-fx-ident-crest" src="${escC(crest)}" alt="Escudo">`:(typeof clubCrestHTML==='function'?clubCrestHTML(clube):'')}
+      <div class="rf-fx-ident-id">
+        <div class="rf-fx-ident-l1"><span class="rf-fx-num">${escC(String(num))}</span><b>${escC(p.n)}</b></div>
+        <span class="rf-fx-ident-sub">${escC(rfPosInicial(p.s))} · ${p.age||'?'} anos · ${p.ft==='L'?'canhoto':'destro'}${p.nat?' · '+((typeof rfNacHTML==='function')?rfNacHTML(p)+' ':'')+escC(p.nat):''} · ${escC(clube.short||'')}</span>
       </div>
-      <div class="rf-sp"></div>
-      <div class="rf-el-hd-acts">
-        <!-- Renovar é a ação que se quer: leva o amarelo padrão dos botões do jogo.
-             Listar para venda é a que desfaz o elenco: leva o vermelho claro, que
-             avisa sem gritar. Antes estavam ao contrário — vender era o amarelo. -->
+      <div class="rf-fx-ident-acts">
+        ${doMeu ? `
         <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato</button>
-        <button type="button" class="rf-btn rf-btn-vender" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>
+        <button type="button" class="rf-btn rf-btn-vender" onclick="rfAcAbrir('mkt-listar',{pid:'${escC(p.pid)}'})">Listar para venda</button>` : `
+        <button type="button" class="rf-btn rf-btn-secondary" onclick="clViewTeam('${escC(String(cid))}')">‹ Elenco do ${escC(clube.short||'clube')}</button>
+        <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkPropor('${escC(String(cid))}','${escC(p.n)}','')">Fazer proposta</button>`}
       </div>
-    </div>`
-  + rfCol(
-    rfCard('Atributos', `
-      ${rfElBarra('Força', p.f, 100*(p.f||0)/topo, 'var(--club-primary)')}
-      ${rfElBarra('Energia', en+'%', en, rfEnergiaCor(en))}
-      ${rfElBarra('Moral', moral, moral, 'var(--club-secondary)')}
-      <span class="rf-note">O RetroFoot98 avalia o jogador por UMA força, do jeito clássico —
-        não por atributos separados. Força, energia e moral são o que entra na conta da partida.</span>`)
-    /* QUATRO BLOCOS, COMO NO PACOTE — mas o quarto dele é ASSISTÊNCIAS, e o
-       motor não regista assistência nenhuma (p.stats guarda r3, g3, apps, goals
-       e cs). Com três, o terceiro ficava órfão numa grade de dois em dois.
-       O quarto passa a ser o que existe de verdade: jogos sem sofrer gol para
-       o goleiro, jogos disputados para o resto. */
-    + rfCard('Na temporada', (()=>{
-        const gols=(S.scorers&&S.scorers[p.n])||0, apps=st.apps||0;
-        const ehGK=p.s==='GK';
-        const media4=(gols&&apps)?('1 a cada '+Math.max(1,Math.round(apps/gols))+' jogos'):'';
-        return `<div class="rf-kpis">
-        ${rfKpiHTML('Gols', String(gols), media4)}
-        ${rfKpiHTML('Nota média', media?media.toFixed(1).replace('.',','):'—',
-          melhor&&melhor.pid===p.pid?'melhor do elenco':'')}
-        ${rfKpiHTML('Cartões', (tot.yellows||0)+'A '+(tot.reds||0)+'V', '')}
-        ${ehGK ? rfKpiHTML('Sem sofrer gol', String(st.cs||0), apps?('de '+apps+' jogos'):'')
-               : rfKpiHTML('Jogos', String(apps), 'na temporada')}
-      </div>`;})())
-  ) + rfCol(
-    rfCard('Contrato e moral', `
-      <div class="rf-linha"><span class="rf-linha-t">Salário</span>
-        <span class="rf-linha-v">${escC(fmt(sal))}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Fim do contrato</span>
-        <span class="rf-linha-v">${escC(rfMkFimContrato(p))}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span>
-        <span class="rf-linha-v">${escC(fmt((typeof computeVM==='function')?computeVM(p):(p.mv||0)))}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Comportamento</span>
-        <span class="rf-linha-v">${escC((typeof playerBehaviorLabel==='function')?playerBehaviorLabel(p):'—')}</span></div>`)
-    + rfCard('Histórico', `
-      <div class="rf-linha"><span class="rf-linha-t">Jogos na carreira</span>
-        <span class="rf-linha-v">${tot.apps||0}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Gols na carreira</span>
-        <span class="rf-linha-v">${tot.goals||0}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Lesões</span>
-        <span class="rf-linha-v">${tot.injuries||0}</span></div>
-      ${(p.transferHistory||[]).length
-        ? (p.transferHistory||[]).slice(-3).reverse().map(h=>`<div class="rf-linha">
-            <span class="rf-linha-t">${escC(String(h.season||''))} · ${escC((anyClubOf(h.from)||{short:'—'}).short)} → ${escC((anyClubOf(h.to)||{short:'—'}).short)}</span>
-            <span class="rf-linha-v">${escC(mvShort(h.fee||0))}</span></div>`).join('')
-        : '<span class="rf-note">Sem transferências registradas.</span>'}`)
-  );
+    </div>
+    <div class="rf-fx-destaques">${rfFxDestaques(p)}</div>
+    <div class="rf-fx-grid">
+      <div class="rf-card rf-fx-card rf-fx-carac">
+        <div class="rf-fx-carac-hd"><span class="rf-fx-microt">CARACTERÍSTICAS · ${escC(perfil)}</span>
+          <span class="rf-sp"></span>
+          <span class="rf-fx-legenda"><i></i>MÉDIA DA POSIÇÃO NA SÉRIE</span></div>
+        <div class="rf-fx-carac-grid">
+          <div class="rf-fx-retrato">
+            ${rfFxFotoComposta(p, crest)}
+            <i class="rf-fx-retrato-veu"></i>
+            <span class="rf-fx-num flutua">${escC(String(num))}</span>
+            ${(crest && rfFxFoto(p)==='img/jogador-perfil.png')?`<img class="rf-fx-retrato-crest" src="${escC(crest)}" alt="">`:''}
+            <span class="rf-fx-retrato-id">
+              <span class="rf-fx-microt claro">${escC(String(rfPosLabel(p.s)).toUpperCase())} · ${p.age||'?'} ANOS</span>
+              <b>${escC(p.n)}</b>
+              <span class="rf-fx-retrato-f"><b>${p.f}</b><i>DE FORÇA</i></span>
+            </span>
+          </div>
+          <div class="rf-fx-hexcol">
+            ${rfFxMotorHTML(p)}
+            ${ff?`<div class="rf-fx-ff">
+              <span class="rf-fx-ffchip forte"><b>${ff.hi.v}</b><span><i>PONTO FORTE</i>${escC(ff.hi.n)}</span></span>
+              <span class="rf-fx-ffchip fraco"><b>${ff.lo.v}</b><span><i>PONTO FRACO</i>${escC(ff.lo.n)}</span></span>
+            </div>`:''}
+          </div>
+          <div class="rf-fx-attrs">
+            ${rfFxGrupoHTML('TÉCNICOS',[['fin','Finalização'],['pas','Passe'],['dri','Drible'],['des','Desarme'],['cab','Cabeceio'],['cru','Cruzamento']],p)}
+            ${rfFxGrupoHTML('MENTAIS',[['vis','Visão de jogo'],['pos','Posicionamento'],['com','Compostura'],['det','Determinação']],p)}
+            ${rfFxGrupoHTML('FÍSICOS',[['vel','Velocidade'],['res','Resistência'],['fis','Força física'],['agi','Agilidade']],p)}
+            ${rfFxGrupoHTML('GOLEIRO',[['ref','Reflexos'],['mao','Defesa/mãos']],p,ehGK,
+              `<span class="rf-fx-nota caixa">${escC(ehGK?notaGK:notaLinha)}</span>`)}
+          </div>
+        </div>
+        <span class="rf-fx-rodape">Os 16 atributos vão de 1 a 20 e evoluem rodada a rodada. Eles alimentam a força do jogador pelo perfil da posição — e finalização, reflexos e mãos ainda entram direto na partida, decidindo gol, pênalti e defesa.</span>
+      </div>
+      <div class="rf-fx-lateral">
+        <div class="rf-card rf-fx-card">
+          <span class="rf-fx-microt">CLUBE</span>
+          <div class="rf-fx-clube">
+            ${crest?`<img src="${escC(crest)}" alt="Escudo">`:''}
+            <span><b>${escC(clube.name||clube.short||'—')}</b>
+              <span class="rf-fx-clube-s">${escC(divLbl)} · ${escC(pais)}</span>
+              <span class="rf-fx-clube-f">Fundado em ${rfFxFundado(cid)}</span></span>
+          </div>
+        </div>
+        <div class="rf-card rf-fx-card">
+          <span class="rf-fx-microt">NA PARTIDA</span>
+          <div class="rf-fx-barras">
+            <span>Força</span><span class="rf-fx-barra"><i style="width:${Math.min(100,p.f)}%;background:#8b9a1f"></i></span><b>${p.f}</b>
+            <span>Energia</span><span class="rf-fx-barra"><i style="width:${en}%;background:${rfElnEnCor(en)}"></i></span><b>${en}%</b>
+            <span>Moral</span><span class="rf-fx-barra"><i style="width:${moral}%;background:linear-gradient(90deg,#b9c94a,#f2b90c)"></i></span><b>${moral}</b>
+          </div>
+          <span class="rf-fx-nota">A energia multiplica a força dentro do jogo e a moral do time abaixo de 50 corta 15% de tudo.</span>
+        </div>
+        <div class="rf-card rf-fx-card">
+          <span class="rf-fx-microt">CONTRATO E MORAL</span>
+          <span class="rf-fx-linha"><span class="rf-sp2">Salário</span><b>${escC(rfDin(sal))}</b></span>
+          <span class="rf-fx-linha"><span class="rf-sp2">Fim do contrato</span><b>${escC(rfMkFimContrato(p))}</b></span>
+          <span class="rf-fx-linha"><span class="rf-sp2">Valor de mercado</span><b>${escC(rfDin(rfVM(p)))}</b></span>
+          <span class="rf-fx-linha"><span class="rf-sp2">Comportamento</span><b>${escC((typeof playerBehaviorLabel==='function')?playerBehaviorLabel(p):'—')}</b></span>
+          <span class="rf-fx-linha"><span class="rf-sp2">Lesões na carreira</span><b>${tot.injuries||0}</b></span>
+        </div>
+      </div>
+    </div>
+    <div class="rf-fx-grid">
+      <div class="rf-card rf-fx-card">
+        <div class="rf-fx-carac-hd"><span class="rf-fx-microt">CARREIRA</span><span class="rf-sp"></span>
+          <span class="rf-fx-legenda sem-traco">${escC(carreira.resumo)}</span></div>
+        ${carreira.html}
+      </div>
+      ${rfFxEvolucaoHTML(p)}
+    </div>`;
 }
-
 
 /* =====================================================================
    3 · BASE
@@ -328,7 +661,7 @@ function rfElBaseHTML(){
       <div class="rf-label"><span class="rf-label-t">CATEGORIA DE BASE</span>
         <span class="rf-label-r">${cands.length} em formação</span></div>
       ${cab}
-      ${linhas || `<div class="rf-empty">${escC((typeof youthUnavailableMsg==='function'&&!disp)?youthUnavailableMsg():'A base não tem candidatos nesta rodada.')}</div>`}
+      ${linhas || `<div class="rf-empty">${escC((typeof youthUnavailableMsg==='function'&&!disp)?youthUnavailableMsg():'A base não tem candidatos nesta semana.')}</div>`}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">INVESTIMENTO NA BASE</span></div>
@@ -400,7 +733,7 @@ function rfElTreinoHTML(){
     const ch=rfTrnChance(p);
     const cheio=lista.length>=max;
     return `<div class="rf-el-row ${treina?'sel':''}">
-      ${rfElCamisa(nums[p.pid]||p.num||'')}
+      ${rfElCamisa(nums[p.pid]||p.num||'', '', p)}
       <!-- o crescimento aparece DUAS vezes de propósito: como coluna no
            computador e como segunda linha do nome no telefone, onde a coluna
            de ação fica presa à direita e taparia a coluna. Só uma delas está
@@ -428,14 +761,14 @@ function rfElTreinoHTML(){
     const p=sq.find(x=>x.pid===pid); if(!p) return '';
     const ch=rfTrnChance(p);
     return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}${ch.star?' ★':''}</span>
-      <span class="rf-linha-v">+${ch.pct}% de evoluir por rodada</span></div>`;
+      <span class="rf-linha-v">+${ch.pct}% de evoluir por semana</span></div>`;
   }).join('');
 
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COMO FUNCIONA</span>
         <span class="rf-label-r">${lista.length} de ${max} vagas</span></div>
       <span class="rf-el-texto">Até <b>${max} jogadores</b> podem estar em treino especial ao mesmo
-        tempo. Quem está em treino ganha <b>um sorteio extra de evolução por rodada</b> — 5% de
+        tempo. Quem está em treino ganha <b>um sorteio extra de evolução por semana</b> — 5% de
         chance, ou 9% para quem é destaque (★). <b>Não custa dinheiro nem energia</b>, e pode-se
         trocar quem treina quando se quiser.</span>
       ${dentro || '<span class="rf-note">Ninguém em treino. As três vagas estão livres.</span>'}
@@ -450,9 +783,9 @@ function rfElTreinoHTML(){
       <div class="rf-label"><span class="rf-label-t">DE ONDE VEM O CRESCIMENTO</span></div>
       <span class="rf-el-texto">A força não sobe sozinha: o jogador ganha ponto de atributo, e a
         força é a média deles. <b>Jogar bem</b> é a maior fonte — nota acima de 6,8 dá dois
-        sorteios por rodada. <b>Ter até 20 anos</b> dá um sorteio mesmo sem jogar. O
+        sorteios por semana. <b>Ter até 20 anos</b> dá um sorteio mesmo sem jogar. O
         <b>treino especial</b> soma o dele por cima. A partir dos <b>29 anos</b> começa o
-        desgaste, e quem passa <b>4 rodadas seguidas fora do time</b> perde ritmo — treinar
+        desgaste, e quem passa <b>4 semanas seguidas fora do time</b> perde ritmo — treinar
         protege dessa perda.</span>
     </div>`;
 }
@@ -493,7 +826,7 @@ function rfAcPromover(idx){
   const i=(idx!=null && lote[idx]) ? idx : (CL.baseSel||0);
   const c=lote[i];
   const y=c&&c.youth;
-  if(!y){ rfAcAbrir('elenco-semrenovar', {motivo:'A base não tem candidatos nesta rodada.'}); return; }
+  if(!y){ rfAcAbrir('elenco-semrenovar', {motivo:'A base não tem candidatos nesta semana.'}); return; }
   const pot=rfElPotencial(y);
   rfAcAbrir('base-promover', {idx:i, p:y, pronto:pot.anos?(pot.anos+' ano'+(pot.anos>1?'s':'')):'agora',
     teto:pot.teto, salario:(c.contract&&c.contract.salary)||y.salary||0, num:y.num});
@@ -526,17 +859,28 @@ function rfBasePromoverGo(idx){
 /* ---- cabeçalho da página: o subtítulo conta o elenco, e as duas ações do
    pacote ficam no canto (a amarela leva pra Formação, que é onde se escala) ---- */
 function rfElSubHTML(){
-  const sq=squad(CL.clubId);
+  const vis=rfElVisita();
+  const sq=squad(rfElClubeAtivo());
+  if(vis){
+    /* VISITA: nada de financeiro do outro clube — só o retrato do elenco */
+    const media=sq.length?Math.round(sq.reduce((t,p)=>t+(p.f||0),0)/sq.length):0;
+    const c=anyClubOf(vis)||{};
+    return `${sq.length} jogadores · força média ${media}${c.short?' · '+escC(c.short):''} · visualização`;
+  }
   const base=(S._youthCandidates&&S._youthCandidatesRound===S.round)?S._youthCandidates.length:0;
   const folha=sq.reduce((t,p)=>t+(typeof playerSalary==='function'?playerSalary(p):0),0);
   return `${sq.length} no principal · ${base} na base · folha ${fmt(folha)}/sem`;
 }
 function rfElAcoesHTML(){
+  if(rfElVisita()) return `<div class="rf-mk-acoes">
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfElVoltarMeu()">‹ Voltar ao meu elenco</button>
+  </div>`;
   return `<div class="rf-mk-acoes">
     <button type="button" class="rf-btn rf-btn-secondary" onclick="rfElExportar()">${rfIcone('exportar',16)} Exportar elenco</button>
     <button type="button" class="rf-btn rf-btn-cta" onclick="rfGo('hub')">${rfIcone('jogar',16)} Ir para a formação</button>
   </div>`;
 }
+function rfElVoltarMeu(){ CL.viewClubId=null; CL.viewSelPlayer=null; rfSetTab('elenco','elenco'); }
 function rfElExportar(){
   const sq=squad(CL.clubId).slice().sort(bySquadOrder);
   const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};

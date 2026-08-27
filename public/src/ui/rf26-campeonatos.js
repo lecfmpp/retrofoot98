@@ -250,7 +250,7 @@ function rfCpCalendarioHTML(){
   const cartaoLiga = mostraLiga ? `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_CAL_COLS}">
       <div class="rf-label">
         <span class="rf-label-t">${rfCompTagHTML(S.division)}${grupo?' <i class="rf-cp-grupo">'+escC(grupo)+'</i>':''}</span>
-        <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} rodadas</span></div>
+        <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} semanas</span></div>
       ${cab}
       ${rfLista('cal-liga', jogos, 'O calendário ainda não foi sorteado.')}
     </div>` : '';
@@ -515,7 +515,7 @@ function rfCpIntlHTML(){
   }).filter(Boolean).join('');
   return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_INTL_COLS}">
       <div class="rf-label"><span class="rf-label-t">LIGAS DO MUNDO</span>
-        <span class="rf-label-r">líderes da rodada</span></div>
+        <span class="rf-label-r">líderes da semana</span></div>
       ${cab}
       ${linhas || '<div class="rf-empty">Nenhuma liga de fundo neste save.</div>'}
     </div>
@@ -543,7 +543,7 @@ function rfCpSubHTML(){
     const def=(typeof COMP_DEFS!=='undefined'&&COMP_DEFS[k])||{};
     comps.push(def.name||k);
   });
-  return comps.join(' · ')+' · '+(S.round||0)+'ª rodada disputada';
+  return comps.join(' · ')+' · '+(S.round||0)+'ª semana disputada';
 }
 function rfCpAcoesHTML(){
   return `<div class="rf-mk-acoes">
@@ -693,7 +693,7 @@ function rfMdClassificacaoHTML(){
   }).join('');
   return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_MD_TBL_COLS}">
     <div class="rf-label"><span class="rf-label-t">${comp.tag||escC(comp.label)}</span>
-      <span class="rf-label-r">${linhas.length} clubes · ${S.round||0} rodadas jogadas</span></div>
+      <span class="rf-label-r">${linhas.length} clubes · ${S.round||0} semanas jogadas</span></div>
     <div class="rf-el-head" style="--el-cols:${RF_MD_TBL_COLS}">
       <span>#</span><span>CLUBE</span><span>J</span><span>V</span><span>E</span><span>D</span>
       <span>GP</span><span>GC</span><span>SG</span><span class="dir">PTS</span>

@@ -39,8 +39,17 @@ function rfDesfecho(sum){
   const pos=sum?sum.myPos:rfMinhaPosicao();
   const total=sum?(sum.myTable||[]).length:Object.keys(S.table||{}).length;
   if(!pos) return 'meio';
-  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[S.division])||0;
-  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[S.division])||0;
+  /* A DIVISÃO DE REFERÊNCIA É A QUE FOI DISPUTADA, NÃO A DE HOJE. Com `sum` (caminho online:
+     onlineAdoptServerRound já rodou), S.division já é a divisão NOVA pós-virada — um clube
+     promovido de B pra A lia DIVISION_PROMO['A']=0 (não há promoção NA série A) em vez do
+     corte real de B, caía no 'meio'/'rebaixado' por engano e o vídeo de fim de temporada não
+     batia com o que realmente aconteceu (relato do dono, 21/08 — mesma causa raiz de
+     dadosCampeaoLiga/rfCampeaoDadosLiga, corrigidos mais cedo hoje: ler o campo de HOJE em vez
+     do de ontem). sum.myDiv é a divisão certa (S._prevSeason, tirada antes do reset). O
+     caminho solo (sem `sum`) roda ANTES do turnover, então S.division já é a certa ali. */
+  const divRef = sum ? sum.myDiv : S.division;
+  const promo=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[divRef])||0;
+  const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[divRef])||0;
   if(pos===1) return 'titulo';
   if(promo&&pos<=promo) return 'acesso';
   if(promo&&pos<=promo*2) return 'playoff';
@@ -50,8 +59,13 @@ function rfDesfecho(sum){
      no meio da tabela · OBJETIVO CUMPRIDO" para quem terminou em ultimo. Sem
      divisao abaixo nao ha queda, mas ha fracasso: o terco de baixo da tabela le
      como 'rebaixado' (o desfecho mais grave que existe nesta tela), e o resto
-     continua meio. */
-  if(total && pos>Math.ceil(total*2/3)) return 'rebaixado';
+     continua meio.
+     SO VALE ONDE NAO HA REBAIXAMENTO DE VERDADE (releg=0). Numa liga com corte
+     real este fallback atropelava a regra de cima: na Primeira Liga (18 clubes,
+     caem 3), o 15o ESCAPOU — mas 15 > 2/3 de 18 e a tela dizia "Rebaixado" pra
+     quem continuou na divisao (relato do dono, 23/08). Onde ha corte real, quem
+     nao caiu no corte fica no 'meio', ponto. */
+  if(!releg && total && pos>Math.ceil(total*2/3)) return 'rebaixado';
   return 'meio';
 }
 function rfFimTemporadaHTML(sum){
@@ -114,7 +128,7 @@ function rfFimTemporadaHTML(sum){
             return `<div class="rf-ft-lin ${eu?'me':''}">
               <span class="rf-ft-pos">${i+1}º</span>
               <span class="rf-ft-crest">${rfCrest(c,22)}</span>
-              <span class="rf-ft-n">${escC(c.short)}</span>
+              ${rfNomeClube(c,"rf-ft-n")}
               <div class="rf-sp"></div>
               ${z?`<span class="rf-ft-tag ${z}">${z==='promo'?'Acesso à '+divisionLabelOf(rfDivAcima()):z==='drop'?'Rebaixado':'Playoff'}</span>`:''}
             </div>`;
@@ -131,7 +145,7 @@ function rfFimTemporadaHTML(sum){
                 <span class="rf-ft-comp">${escC(x.nome)}</span>
                 <div class="rf-sp"></div>
                 <span class="rf-ft-crest">${rfCrest(c,20)}</span>
-                <span class="rf-ft-n">${escC(c.short||c.name||'—')}</span>
+                ${rfNomeClube(c,"rf-ft-n")}
               </div>`; }).join('')}
           </div>`;
         })()}
@@ -398,7 +412,7 @@ function rfCompeticaoHTML(key){
                 return `<div class="rf-cp-lin ${eu?'me':''}">
                   <span class="rf-cp-pos">${i+1}º</span>
                   <span class="rf-ft-crest">${rfCrest(cc,20)}</span>
-                  <span class="rf-ft-n">${escC(cc.short)}</span>
+                  ${rfNomeClube(cc,"rf-ft-n")}
                   <div class="rf-sp"></div>
                   <span class="rf-cp-j">${t.P||0}j</span>
                   <span class="rf-cp-p">${t.Pts||0}</span>
@@ -417,16 +431,16 @@ function rfCompeticaoHTML(key){
                   const g=gobj[L]; const lider=(Object.values(g.table||{}).sort((a,b)=>b.Pts-a.Pts)[0])||null;
                   const c2=lider?(anyClubOf(lider.id)||{short:'—'}):null;
                   return `<div class="rf-cp-g"><span class="rf-cp-gl">${escC(L)}</span>
-                    <span class="rf-ft-n">${escC(c2?c2.short:'—')}</span></div>`;}).join(''))
+                    ${c2?rfNomeClube(c2,"rf-ft-n"):'<span class="rf-ft-n">—</span>'}</div>`;}).join(''))
               : (vivos.length?vivos.slice(0,12).map(id=>{
                   const c2=anyClubOf(id)||{short:id};
                   return `<div class="rf-cp-g ${id===meu?'me':''}"><span class="rf-ft-crest">${rfCrest(c2,20)}</span>
-                    <span class="rf-ft-n">${escC(c2.short)}</span></div>`;}).join('')
+                    ${rfNomeClube(c2,"rf-ft-n")}</div>`;}).join('')
                  : (inscritos.length
                      ? inscritos.slice(0,12).map(id=>{
                          const c2=anyClubOf(id)||{short:id};
                          return `<div class="rf-cp-g ${id===meu?'me':''}"><span class="rf-ft-crest">${rfCrest(c2,20)}</span>
-                           <span class="rf-ft-n">${escC(c2.short)}</span></div>`;}).join('')
+                           ${rfNomeClube(c2,"rf-ft-n")}</div>`;}).join('')
                      : '<span class="rf-note">Ainda não há clubes classificados.</span>'))
           }</div>
         </div>
@@ -461,7 +475,7 @@ function rfCopaGruposHTML(c,key){
   const g=c&&c.group; if(!g||!g.groups) return '<div class="rf-empty">A fase de grupos ainda não começou.</div>';
   const meu=CL.clubId;
   const letras=Object.keys(g.groups).sort();
-  const rodada=(g.round||0)+1, total=(g.rounds||6);
+  const rodada=(g.round||0)+1, total=(g.roundsTotal||6);
   const cartoes=letras.map(L=>{
     const grp=g.groups[L];
     const meuGrupo=(grp.teams||[]).indexOf(meu)>=0;
@@ -873,7 +887,7 @@ function rfCopaFaseHTML(key){
           <span class="rf-label-r">${vagas?vagas+(vagas===1?' vaga':' vagas'):''}</span></div>
         ${linhas.length?linhas.map(l=>`<div class="rf-cf-lin ${l.eu?'meu':''}">
           <span class="rf-ft-crest">${rfCrest(l.cc,22)}</span>
-          <span class="rf-cf-t">${escC(l.nome)}</span>
+          ${rfNomeClube(l.cc,"rf-cf-t")}
           <span class="rf-cf-p">${escC(l.pl)}</span>
           ${l.ok===null?'<span class="rf-cf-tag em">em disputa</span>'
             :`<span class="rf-cf-tag ${l.ok?'ok':'no'}">${l.ok?'classificado':'eliminado'}</span>`}
@@ -914,7 +928,7 @@ function rfCopaFaseHTML(key){
             <span class="rf-label-r">${proxima?escC(proxima.toLowerCase()):''}</span></div>
           ${adiante.length?adiante.slice(0,6).map(l=>`<div class="rf-cf-adv">
             <span class="rf-ft-crest">${rfCrest(l.cc,22)}</span>
-            <span class="rf-ft-n">${escC(l.nome)}</span>
+            ${rfNomeClube(l.cc,"rf-ft-n")}
             <div class="rf-sp"></div>
             <span class="rf-cf-advd">${(l.cc.div||l.cc.division)?escC(divisionLabelOf(l.cc.div||l.cc.division)):''}</span>
           </div>`).join(''):'<span class="rf-note">O sorteio da próxima fase define o confronto.</span>'}
@@ -1095,7 +1109,7 @@ function rfVerTimeHTML(clubId){
   const h2h=(S.results||[]).filter(r=>(r.h===clubId&&r.a===meu)||(r.a===clubId&&r.h===meu))
     .slice().reverse().slice(0,4).map(r=>{
       const emCasa=r.h===meu;
-      return {j:(r.round!=null?(r.round+1)+'ª rodada':'—'),
+      return {j:(r.round!=null?(r.round+1)+'ª semana':'—'),
         p:emCasa?`${r.hg}–${r.ag}`:`${r.ag}–${r.hg}`, m:emCasa?'casa':'fora'};
     });
   return rfStage({
@@ -1109,8 +1123,22 @@ function rfVerTimeHTML(clubId){
         <div class="rf-pl-head"><span></span><span></span><span>POS</span><span>FORMA</span><span>FOR</span></div>
         <div class="rf-vt-lista">${sq.slice().sort(bySquadOrder).map(p=>{
           const en=Math.round(p.energy!=null?p.energy:100);
-          return `<div class="rf-pl" style="cursor:default">
-            <span class="rf-pl-num">${escC(String(p.num!=null?p.num:'—'))}</span>
+          /* FOTO + PROPOSTA no clube visitado: a foto do Estúdio entra junto do
+             nome, e clicar num jogador de OUTRO clube abre direto o modal de
+             transferência (o mesmo Propor do Mercado, que já valida janela,
+             trava de negociado etc.). No próprio clube a linha segue inerte. */
+          const foto=(typeof rfFotoDe==='function')?rfFotoDe(p, clubId):null;
+          const deOutro = clubId!==CL.clubId;
+          /* o clique abre a FICHA (a proposta mora dentro dela) */
+          const clique = ` onclick="rfAcAbrir('jogador-perfil',{clubId:'${escC(String(clubId))}',pid:'${escC(p.pid)}',nome:'${escC(p.n)}'})" title="Ver o perfil de ${escC(p.n)}"`;
+          /* 1ª coluna: a MINIATURA com o número dentro (canto inferior direito,
+             com folga das bordas); sem foto, o crachá verde de sempre */
+          const numTxt=escC(String(p.num!=null?p.num:'—'));
+          const retrato = foto
+            ? rfFotoNumHTML(foto, p.num, '')
+            : `<span class="rf-pl-num">${numTxt}</span>`;
+          return `<div class="rf-pl rf-pl-clicavel ${CL.viewSelPlayer===p.pid?'sel':''}" style="cursor:pointer"${clique}>
+            ${retrato}
             <span class="rf-pl-id"><span class="rf-pl-n">${escC(p.n)}</span></span>
             <span class="rf-pl-pos">${escC(posLetter(p.s))}</span>
             <span class="rf-pl-en"><i class="rf-ener" style="--v:${en};--c:${rfEnergiaCor(en)}"></i></span>
@@ -1263,7 +1291,15 @@ function rfCampeaoDados(key){
 /* a mesma casa para o título de LIGA: não há final, então o bloco do confronto dá lugar à
    campanha (pontos, vitórias, saldo) — o resto da estrutura é idêntico. */
 function rfCampeaoDadosLiga(div, info){
-  const tb=(typeof sortedTable==='function')?sortedTable():[];
+  /* TABELA FINAL DE VERDADE, NÃO A DE HOJE. Quando esta tela abre (fim de temporada), S.table
+     já é a tabela ZERADA da temporada nova — ler sortedTable() aqui "elegia" campeão quem
+     ordenasse primeiro por id numa tabela toda 0x0 (desempate alfabético do sortTableRows),
+     inclusive um clube REBAIXADO (relato do dono, 21/08: Bahia rebaixado vendo "a taça é nossa"
+     com premiação de campeão). A fonte certa é S._prevSeason.tables[div], o retrato que o
+     servidor/endSeason tira ANTES de zerar — mesma fonte de computeMyPrevSeasonPrizes/
+     registerPrevSeasonTitles (core.js). Nunca trocar de volta pra sortedTable()/S.table aqui. */
+  const pv=S._prevSeason;
+  const tb=(pv && pv.tables && pv.tables[div]) || [];
   const t=tb[0]; if(!t) return null;
   const souEu=String(t.id)===String(CL.clubId);
   const camp=(typeof anyClubOf==='function'&&anyClubOf(t.id))||{short:String(t.id)};
@@ -1289,11 +1325,16 @@ function rfCampeaoDadosLiga(div, info){
    escuro + troféu + manchete continuam legíveis, que é o critério de aceite do próprio pacote. */
 function rfCampeaoHTML(d){
   if(!d) return '';
-  const vid=(typeof VIDEOS_MOMENTO!=='undefined' && VIDEOS_MOMENTO['campeao-copa'])||'';
+  let vid=(typeof VIDEOS_MOMENTO!=='undefined' && VIDEOS_MOMENTO['campeao-copa'])||'';
+  if(typeof MOMENTO_VIDEOS!=='undefined'){
+    const chave=d.liga?'campeao-liga':'campeao-copa';
+    const ov=MOMENTO_VIDEOS.url(chave, MOMENTO_VIDEOS.ctxDeTrofeu(d.trofeu||d.key));
+    if(ov) vid=ov;
+  }
   const trof=(typeof rfCompTrofeuHTML==='function' && d.trofeu)
     ? rfCompTrofeuHTML({trofeu:d.trofeu}, 64) : '';
   const lado=(cl,gols,venceu)=>`<span class="rf-cmp-lado ${venceu?'venceu':''}">
-      <span class="rf-cmp-cl">${escC((cl&&(cl.short||cl.name))||'—')}</span>
+      ${cl?rfNomeClube(cl,"rf-cmp-cl"):'<span class="rf-cmp-cl">—</span>'}
       <span class="rf-cmp-cr">${(typeof rfCrest==='function')?rfCrest(cl||{},28):''}</span>
     </span>`;
   const confronto = d.final ? `
@@ -1396,15 +1437,21 @@ function rfCampeaoVerCaminho(key){
 function rfCampeoesDaTemporada(sum){
   const out=[];
   const nomeDiv=d=>(typeof divisionLabelOf==='function')?divisionLabelOf(d):('Série '+d);
+  /* A DIVISÃO É A DISPUTADA, NÃO A DE HOJE. Com `sum` (online, já pós-virada) S.division é a
+     divisão NOVA — rotular a tabela final com ela é dizer que um clube promovido de B pra A
+     "foi campeão da A" (mostrando o campeão de B com o nome da divisão errada), e a lista de
+     "outras divisões" abaixo excluía a própria A por engano (mesma causa raiz de rfDesfecho,
+     corrigida ao lado). sum.myDiv é a divisão certa (S._prevSeason). */
+  const divRef = sum ? sum.myDiv : S.division;
   /* 1) a minha divisão: a tabela final que a própria tela já usa */
   try{
     const linhas = sum ? (sum.myTable||[]) : ((typeof sortedTable==='function')?sortedTable():[]);
-    if(linhas.length) out.push({ comp:S.division, nome:nomeDiv(S.division), clubId:linhas[0].id, minha:true });
+    if(linhas.length) out.push({ comp:divRef, nome:nomeDiv(divRef), clubId:linhas[0].id, minha:true });
   }catch(e){}
   /* 2) as outras divisões do país (rodam em segundo plano, com tabela de verdade) */
   try{
     ((typeof DIV_ORDER!=='undefined')?DIV_ORDER:[]).forEach(d=>{
-      if(d===S.division) return;
+      if(d===divRef) return;
       const od=S.otherDivs&&S.otherDivs[d]; const t=od&&od.table; if(!t) return;
       const tab=(typeof mpSortTable==='function')?mpSortTable({table:t}):Object.values(t).sort((a,b)=>b.Pts-a.Pts);
       if(tab && tab.length) out.push({ comp:d, nome:nomeDiv(d), clubId:tab[0].id });
@@ -1744,6 +1791,11 @@ function rfArqPaisesHTML(season){
         <div class="rf-sp"></div><span class="rf-ft-n">${escC(p.artilheiro.nome)}</span>
         <span class="rf-ft-gols">${p.artilheiro.gols} ${p.artilheiro.gols===1?'gol':'gols'}</span></div>`:''}
       <div class="rf-arq-tb">
+        <!-- SEM ISTO, "Artilheiro" (linha acima) era o único texto perto do topo do card,
+             e a tabela que vem logo depois parecia estar mal rotulada como "Artilheiro" em vez
+             de classificação (relato do dono, 21/08) — cabeçalho de coluna, mesmo padrão de
+             rfArqTabelaHTML, deixa claro que o que vem a seguir é a CLASSIFICAÇÃO. -->
+        <div class="rf-arq-lin head"><span>#</span><span>Classificação</span><span>J</span><span>V</span><span>E</span><span>D</span><span>SG</span><span>Pts</span></div>
         ${(p.table||[]).map((x,i)=>{const sg=(x.GF||0)-(x.GA||0);
           return `<div class="rf-arq-lin">
           <span class="rf-arq-p">${i+1}</span><span class="rf-arq-n">${escC(rfArqCurto(x.id))}</span>
@@ -1837,8 +1889,12 @@ function rfArtilheiroHTML(d){
   /* O VIDEO VEM DO MAPA DE SEMPRE (VIDEOS_MOMENTO, em ui/main.js): e la que o caminho de cada
      momento vive, e e la que se troca sem tocar nesta tela. Ausente ou partido, o marcador do
      formato fica no lugar dele — o `onerror` esconde o <video> e o desenho nao muda de altura. */
-  const vid=(typeof VIDEOS_MOMENTO!=='undefined')
-    ? VIDEOS_MOMENTO[d.ehLiga?'marcador-liga':'marcador-copa'] : null;
+  const chaveVid=d.ehLiga?'marcador-liga':'marcador-copa';
+  let vid=(typeof VIDEOS_MOMENTO!=='undefined') ? VIDEOS_MOMENTO[chaveVid] : null;
+  if(typeof MOMENTO_VIDEOS!=='undefined'){
+    const ov=MOMENTO_VIDEOS.url(chaveVid, MOMENTO_VIDEOS.ctxDeTrofeu(d.trofeu||d.comp));
+    if(ov) vid=ov;
+  }
   const info=(typeof rfCompInfo==='function')?rfCompInfo(d.trofeu||d.comp):null;
   const trof=(info&&typeof rfCompTrofeuHTML==='function')?rfCompTrofeuHTML(info,68):'';
   const p1=d.podio[0], resto=d.podio.slice(1);
