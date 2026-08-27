@@ -30,19 +30,24 @@ const RF_MOEDAS=[
 ];
 function rfMoedaHTML(){
   const cur=CL.currency||'Reais';
-  /* O VALOR DE CADA CARTÃO é o mesmo caixa inicial convertido — a referência
-     mostra os três lado a lado justamente pra dar a escala. O caixa real do
-     clube só existe depois de newGame(), então aqui vai o valor típico da
-     divisão de entrada (REBAL.budget com a mediana), não um número inventado. */
-  const base=(typeof REBAL!=='undefined'&&REBAL.budget)
-    ? REBAL.budget((typeof computeStartDivision==='function'?computeStartDivision():'D'), {random:()=>0.5}) : 0;
+  /* O VALOR DE CADA CARTÃO é o caixa inicial convertido — a referência mostra os
+     três lado a lado justamente pra dar a escala. O caixa real do clube só existe
+     depois de newGame(), então aqui vai a FAIXA da divisão de entrada.
+     Antes saía a mediana, um número exato que lia como promessa: na Série A a faixa
+     vai de 10 a 20 milhões, então a mediana errava por até um terço do que o
+     jogador de fato receberia. Faixa não promete o que o sorteio não garante.
+     (`rnd` é o que REBAL.budget usa; passar só `random` cai na mediana.) */
+  const _div=(typeof computeStartDivision==='function'?computeStartDivision():'D');
+  const _b=(typeof REBAL!=='undefined'&&REBAL.budget)
+    ? [REBAL.budget(_div,{rnd:(a)=>a}), REBAL.budget(_div,{rnd:(a,b)=>b})] : [0,0];
+  const base=_b[0], baseMax=_b[1];
   const corpo=`
     <div class="rf-wiz-mid">
       <div class="rf-esc-grid tres">${RF_MOEDAS.map(m=>rfEscolha({
-        ico:m.ico, titulo:m.t, valor:base?rfMoedaFmt(m,base):'—', sub:m.sub, on:cur===m.k,
+        ico:m.ico, titulo:m.t, valor:base?rfMoedaFaixa(m,base,baseMax):'—', sub:m.sub, on:cur===m.k,
         acao:`rfMoedaSel('${m.k}')`
       })).join('')}</div>
-      <span class="rf-wiz-nota-c">O valor mostrado é o caixa inicial típico da divisão de entrada, convertido.</span>
+      <span class="rf-wiz-nota-c">É a faixa de caixa inicial da divisão de entrada, convertida — o valor exato do seu clube sai no sorteio.</span>
     </div>`;
   return rfWiz({
     titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube. Dá para trocar depois nas opções.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo, nota:'Você pode trocar depois em Clube & Sistema.',
@@ -52,6 +57,12 @@ function rfMoedaHTML(){
 function rfMoedaFmt(m, base){
   const v=Math.round(base*m.taxa);
   return m.simb+' '+(typeof grp==='function'?grp(v):v);
+}
+/* faixa curta: "R$ 10 a 20 mi" — número redondo, porque aqui é escala, não extrato */
+function rfMoedaFaixa(m, min, max){
+  const mi=v=>{ const n=v*m.taxa/1e6; return (n>=10?Math.round(n):Math.round(n*10)/10)
+    .toString().replace('.',','); };
+  return m.simb+' '+mi(min)+' a '+mi(max)+' mi';
 }
 function rfMoedaSel(k){ CL.currency=k; cdraw(); }
 

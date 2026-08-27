@@ -914,7 +914,7 @@ function rfOb7(){
         <span class="rf-bv-ks">força média ${forca?forca.toFixed(1).replace('.',','):'—'}</span></div>
       <div class="rf-bv-k"><span class="rf-ov-res-t">Caixa</span>
         <span class="rf-bv-kv">${escC(fmt(S.budget||0))}</span>
-        <span class="rf-bv-ks">${folha?'folha '+fmt(folha)+'/mês':''}</span></div>
+        <span class="rf-bv-ks">${folha?'folha '+fmt(folha)+'/rodada':''}</span></div>
       <div class="rf-bv-k"><span class="rf-ov-res-t">Objetivo</span>
         <span class="rf-bv-kv ouro">${escC(rfObObjetivo())}</span>
         <span class="rf-bv-ks">cobrado pela diretoria</span></div>
