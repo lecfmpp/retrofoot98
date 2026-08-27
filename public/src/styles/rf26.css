@@ -7489,8 +7489,16 @@
 .rf-cmp-cl{font-size:var(--fs-2,13px);color:var(--text-3,#8a948d);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis}
 .rf-cmp-lado.venceu .rf-cmp-cl{font-weight:700;color:var(--text-1,#14211a)}
-.rf-cmp-cr{flex:0 0 auto;display:flex}
+/* ESCUDOS SIMÉTRICOS EM VOLTA DO PLACAR. Só o lado esquerdo tinha ordem trocada, então
+   à direita o NOME ficava colado no placar e o escudo ia depois dele — a posição do escudo
+   direito variava com o comprimento do nome do clube. Agora os dois escudos ficam por
+   dentro, encostados no placar, e os nomes por fora. Quadro fixo para o escudo largo e o
+   estreito ocuparem o mesmo espaço (object-fit:contain centraliza dentro dele). */
+.rf-cmp-cr{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px}
+.rf-cmp-cr img,.rf-cmp-cr .rf-crest-fb{width:28px;height:28px;object-fit:contain}
 .rf-cmp-placar .rf-cmp-lado:first-child .rf-cmp-cr{order:2}
+.rf-cmp-placar .rf-cmp-lado:last-child .rf-cmp-cr{order:-1}
 .rf-cmp-sc{flex:0 0 auto;display:inline-flex;align-items:baseline;gap:3px;padding:7px 14px;border-radius:10px;
   background:var(--cx-topo,#17458F);color:#fff;font-family:var(--font-mono,monospace);
   font-size:19px;font-weight:700}
