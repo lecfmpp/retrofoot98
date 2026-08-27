@@ -769,7 +769,7 @@ function rfOb6(){
   const lista=(d&&d.list)||((CL.draw||[]).map(x=>({name:x.name,clubId:x.clubId})));
   return rfCerimoniaSorteio({ lista, feitos:d?d.idx:lista.length, poolById:(d&&d.poolById)||{},
     meuIdx:0, trilha:'solo',
-    cta:{ fim:'Iniciar temporada', fimCurto:'Começar', fimOn:'clEntrar()',
+    cta:{ fim:'Iniciar temporada', fimCurto:'Começar', fimOn:'rfObIniciarTemporada()',
           andando:rfIcone('raio',16)+' Acelerar', andandoOn:'rfObAcelerar()' } });
 }
 /* ===== A CERIMONIA E UMA SO, SOLO E RESENHA =====
@@ -848,6 +848,21 @@ function rfCerimoniaSorteio(o){
     ctaCurto: fim?(cta.fimCurto||cta.fim):cta.andando,
     ctaOn: fim?cta.fimOn:cta.andandoOn,
     ctaOff: fim?!cta.fimOn:!cta.andandoOn});
+}
+/* O BOTÃO TEM DE ENTRAR PELA MESMA PORTA QUE O RELÓGIO.
+   Este CTA chamava clEntrar() DIRETO e pulava clConfirmarClubes(), que é quem
+   preenche CL.draw (e escolhe o universo, o país e as ligas de fundo). Quem
+   clicava em vez de esperar o lançamento automático de 1,6s caía num
+   "Cannot read properties of undefined (reading 'clubId')" na primeira linha
+   de clEntrar, e o jogo não começava.
+
+   Aqui não se lança nada à mão: faz-se exatamente o que o temporizador faria,
+   só que agora. Uma porta só — duas davam dois comportamentos. */
+function rfObIniciarTemporada(){
+  if(CL._soloDrawTimer){ clearTimeout(CL._soloDrawTimer); CL._soloDrawTimer=null; }
+  CL.soloDraw=null;
+  CL._pendingLaunch=clConfirmarClubes;
+  CL.screen='loading'; cdraw();
 }
 /* ⏩ não pula o sorteio: só encurta a espera entre uma revelação e outra */
 function rfObAcelerar(){

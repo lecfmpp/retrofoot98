@@ -2549,6 +2549,16 @@ function scSorteio(){
     action });
 }
 function clEntrar(){
+  /* REDE DE SEGURANÇA: CL.draw é montado por clConfirmarClubes. Se alguém
+     chegar aqui sem ele, o erro antigo era um TypeError cru na linha de baixo
+     — sem pista nenhuma de que faltava um passo. Agora entra pela porta certa;
+     se nem CL.pick estiver completo, clConfirmarClubes desiste sozinho e a
+     tela fica onde está, em vez de o jogo morrer. */
+  if(!(CL.draw||[]).length){
+    console.warn('clEntrar sem CL.draw — passando por clConfirmarClubes');
+    if(typeof clConfirmarClubes==='function') clConfirmarClubes();
+    return;
+  }
   CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
   // universo: país europeu = liga própria (começa na ÚLTIMA divisão, ex.: Championship);
   // false = Brasil. Copas brasileiras só no universo Brasil.
@@ -3112,7 +3122,7 @@ function rfTesteComecar(){
   clStartGame();
 }
 /* clubes -> loading (4/4) -> lança o jogo. Começar (1 jogador, clubes escolhidos) */
-function clStartGame(){ if(!(CL.pick||[]).every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
+function clStartGame(){ if(!(CL.pick||[]).length || !CL.pick.every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
 /* multi-jogador: sorteia os times, MOSTRA o sorteio e só então começa */
 function clSortearStart(){ _assignRandomClubs(); startSoloDraw(); }
 /* ===== SORTEIO DOS CLUBES NO SOLO =====
@@ -3156,7 +3166,7 @@ function clPickCountry(i,c){ if(!CL.pick[i])return; CL.pick[i].country=c; CL.pic
 function clPickClub(i,id){ if(!CL.pick[i])return; CL.pick[i].clubId=id||null; cdraw(); }
 function clGoJogadores(){ CL.screen='jogadores'; cdraw(); }
 function clConfirmarClubes(){
-  if(!(CL.pick||[]).every(p=>p.clubId)) return;
+  if(!(CL.pick||[]).length || !CL.pick.every(p=>p.clubId)) return;
   CL.draw=CL.pick.map(p=>({name:p.name, clubId:p.clubId, country:p.country}));
   // FASE 2: o assento PRIMÁRIO (universo completo, com copas) tem que ser um manager do Brasil
   // se houver algum — o Brasil não é suportado como liga de background, então precisa ser o
