@@ -343,10 +343,14 @@ const ATTR_MOTOR_SET=(function(){ const s={}; for(const k in ATTR_MOTOR) ATTR_MO
 
 const ATTR_GROUP={'Técnicos':['fin','pas','dri','des','cab','cru'],'Mentais':['vis','pos','com','det'],'Físicos':['vel','res','fis','agi'],'Goleiro':['ref','mao']};
 const POS_PROFILE={
-  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,cab:7,agi:7,fis:5,res:5},
-  MID:{pas:20,vis:16,pos:11,des:10,dri:9,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
-  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,com:7,agi:6,res:6},
-  GK :{ref:34,mao:30,pos:14,agi:10,pas:6,fis:6},
+  /* det (Determinação) entrou em 26/08 com peso comparável ao da Compostura: até
+     então era o ÚNICO atributo com peso zero nas quatro posições — gerado, exibido
+     e evoluindo sem influenciar nada. Peso no perfil faz duas coisas: entra na
+     média ponderada que vira a força, e passa a ser sorteável no treino. */
+  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,det:8,cab:7,agi:7,fis:5,res:5},
+  MID:{pas:20,vis:16,pos:11,des:10,dri:9,det:8,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
+  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,det:8,com:7,agi:6,res:6},
+  GK :{ref:34,mao:30,pos:14,agi:10,det:6,pas:6,fis:6},
 };
 function forceToLevel(f){return Math.max(1,Math.min(20,Math.round((f-45)/46*13+6)));}
 function levelToForce(L){return Math.max(40,Math.min(95,Math.round((L-6)/13*46+45)));}
@@ -410,6 +414,18 @@ function attachAttrs(p, division){ normalizePlayerFields(p);
   p._div = dv;
   if(!p._rb){ p.f=REBAL.force(p.rawF, dv); p.mv=REBAL.value(p.f,p.age); p._rb=1; } // f na escala NOVA (motor/valor) + valor tabelado
   if(!p.attr){ p.attr=genAttrs(p); p.f0=p.rawF; p.mv0=(p.mv||1e6); }
+  /* MIGRAÇÃO DE det (26/08) — determinação passou a ter peso no perfil. Quem foi
+     gerado ANTES tem det de "fora do perfil" (uns 3 níveis abaixo do próprio nível);
+     deixá-lo assim faria a força cair no próximo recálculo por evolução — um nerf
+     silencioso em todo save antigo. Traz det para a linha do perfil uma única vez.
+     Só levanta, nunca abaixa: quem já tinha determinação alta mantém. */
+  if(p.attr && !p._detV2){
+    const _lvl=forceToLevel(p.rawF!=null?p.rawF:p.f);
+    const _w=((POS_PROFILE[p.s]||POS_PROFILE.MID).det)||0;
+    const _alvo=Math.max(1,Math.min(20,_lvl+(_w>=15?2:_w>=8?1:0)));
+    if((p.attr.det||0)<_alvo) p.attr.det=_alvo;
+    p._detV2=1;
+  }
   if(!p.behavior){ p.behavior=assignBehavior(p); p.mv=Math.round((p.mv||1e6)*(BEHAVIOR_MV_MULT[p.behavior]||1)); }
   if(p.pid==null) p.pid=nextPid();                                // ID único e estável (identidade, não o nome)
   // CONTRATO PADRÃO PRA TODO MUNDO. Antes só o clube do jogador humano ganhava contrato (ver
