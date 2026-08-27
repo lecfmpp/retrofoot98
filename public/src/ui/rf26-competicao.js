@@ -126,7 +126,16 @@ function rfFimTemporadaHTML(sum){
           <!-- "Como terminou o grupo" era heranca do desenho: uma liga de pontos corridos nao
                tem grupo, e o rotulo nao batia com o que estava por baixo dele. -->
           <span class="rf-label-t">Como terminou a ${escC(classifDivName(S.division))}</span>
-          ${linhas.slice(0,6).map((t,i)=>{
+          ${(function(){
+            /* A JANELA E EM VOLTA DE QUEM JOGA, NAO O TOPO. Mostrava os 6 primeiros: quem
+               terminou em 15o nao se via na propria tela de fim de temporada, e os seis
+               nomes ali em cima nao lhe diziam nada. Mesma regra do resumo da tabela
+               (rfTabelaHTML): eu no meio, os vizinhos em volta, encostando na ponta quando
+               estou perto dela. Tabela curta cabe inteira. */
+            const JAN=6, meu=Math.max(0, linhas.findIndex(t=>t.id===CL.clubId));
+            let ini=0;
+            if(total>JAN){ ini=Math.max(0, meu-Math.floor((JAN-1)/2)); ini=Math.min(ini, total-JAN); }
+            return linhas.slice(ini, total>JAN?ini+JAN:total).map((t,k)=>{ const i=ini+k;
             const c=anyClubOf(t.id)||{short:t.id}, eu=t.id===CL.clubId;
             const z=rfZonaTabela(i+1,total);
             return `<div class="rf-ft-lin ${eu?'me':''}">
@@ -136,7 +145,8 @@ function rfFimTemporadaHTML(sum){
               <div class="rf-sp"></div>
               ${z?`<span class="rf-ft-tag ${z}">${z==='promo'?'Acesso à '+divisionLabelOf(rfDivAcima()):'Rebaixado'}</span>`:''}
             </div>`;
-          }).join('')}
+            }).join('');
+          })()}
         </div>
         ${(function(){
           const camp=rfCampeoesDaTemporada(sum);
