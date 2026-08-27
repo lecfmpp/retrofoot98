@@ -155,6 +155,8 @@ window.RF_FOTO_POS = window.RF_FOTO_POS || {};
    club_id '__treinador__', como os moldes usam '__molde__'), então vêm de
    carona nesta busca — sem requisição nova e sem asset a commitar. */
 window.RF_TREINADORES = window.RF_TREINADORES || {};
+window.RF_TREINADOR_MARCA = window.RF_TREINADOR_MARCA || {};   // {escudoUrl, marcaUrl, escudo, marca}
+window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto por face
 function buscarFotos(packId){
   if(!packId) return;
   fetch(REST + 'player_photos?select=club_id,jogador,url,atributos&pack_id=eq.'+encodeURIComponent(packId),
@@ -166,7 +168,16 @@ function buscarFotos(packId){
         /* ANTES do ramo do torso e do de jogador: a face do treinador não é
            foto de elenco nem uniforme, e deixá-la cair nos ramos de baixo a
            colocaria em RF_FOTOS com o nome 'm1'. */
-        if(f.club_id === '__treinador__'){ if(f.url) window.RF_TREINADORES[f.jogador] = f.url; continue; }
+        if(f.club_id === '__treinador__'){
+          /* '__marca__' nao e' uma face: e' a linha dos LOGOS (escudo + marca)
+             e da posicao padrao deles. A roupa sai limpa da IA e o desenho
+             entra como camada por cima — ver o Estudio. */
+          if(f.jogador === '__marca__'){ window.RF_TREINADOR_MARCA = f.atributos || {}; continue; }
+          if(f.url) window.RF_TREINADORES[f.jogador] = f.url;
+          const at = f.atributos || {};
+          if(at.pos) window.RF_TREINADOR_POS[f.jogador] = at.pos;
+          continue;
+        }
         const at = f.atributos || {};
         if(f.jogador === '__torso__'){
           if(at.rascunho) continue;   // rascunho é do Estúdio — o jogo só mostra o APLICADO

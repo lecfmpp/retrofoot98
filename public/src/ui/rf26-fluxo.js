@@ -194,12 +194,31 @@ function rfAvFaceUrl(chave){
    do retrato gerado por IA. Distinguir os dois e' o que faz o retrato gerado
    aparecer selecionado — sem isto ele era gravado e a tela nao mudava nada. */
 const rfAvEhUrl = v => typeof v==='string' && /^(https?:|data:|\/)/.test(v);
+/* ===== O RETRATO E' UMA PILHA, NAO UMA IMAGEM =====
+   A IA gera a roupa LIMPA de proposito — ela nao reproduz logo nem texto, so'
+   inventa um brasao ilegivel. O escudo e a marca entram por cima, como camada,
+   com a posicao definida no Estudio. Trocar o logo depois nao custa geracao
+   nenhuma. Mesma solucao do uniforme do jogador (ver rfFxFotoComposta).
+   As porcentagens sao do quadro QUADRADO da face — nao passam pelo mapa 2:3. */
+const RF_TR_POS_PADRAO = { escudo:{x:60,y:62,w:14}, marca:{x:26,y:64,w:16} };
+function rfAvCamadasHTML(chave){
+  const m = window.RF_TREINADOR_MARCA || {};
+  if(!m.escudoUrl && !m.marcaUrl) return '';
+  const solto = (window.RF_TREINADOR_POS||{})[chave] || {};
+  const camada = (url, k) => {
+    if(!url) return '';
+    const p = Object.assign({}, RF_TR_POS_PADRAO[k], m[k]||{}, solto[k]||{});
+    return `<img class="rf-av-cam" src="${escC(url)}" alt="" loading="lazy" draggable="false"
+      style="left:${p.x}%;top:${p.y}%;width:${p.w}%">`;
+  };
+  return camada(m.escudoUrl,'escudo') + camada(m.marcaUrl,'marca');
+}
 function rfAvCartaoHTML(g,i){
   const chave=rfAvChave(g,i), url=rfAvFaceUrl(chave);
   const on=(CL.coachAvatar===chave);
   return `<div class="rf-esc ${on?'on':''}" onclick="rfAvatarSel('${chave}')" role="button" tabindex="0"
       aria-pressed="${on?'true':'false'}">
-    <span class="rf-av-face">${url?`<img src="${escC(url)}" alt="">`:'👤'}</span>
+    <span class="rf-av-face">${url?`<img src="${escC(url)}" alt="">`+rfAvCamadasHTML(chave):'👤'}</span>
     <span class="rf-av-l">${escC(RF_AV_ESTILOS[i][1])}</span>
   </div>`;
 }
@@ -233,7 +252,7 @@ function rfAvatarBlocoHTML(){
       aria-pressed="${meu?'true':'false'}"
       title="${pro?(meu?'Refazer o seu retrato':'Crie o seu retrato com IA'):'O retrato por IA é do plano Pro'}">
     ${pro?'':'<span class="rf-esc-tag">Pro</span>'}
-    <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`:(pro?'✦':'🔒')}</span>
+    <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
     <span class="rf-av-l">${meu?'A minha<br>(refazer)':'Criar a minha<br>com IA'}</span>
   </div>`;
   return `<div class="rf-av-bloco">

@@ -57,32 +57,14 @@ const NUNCA = "NEVER sad, gloomy, melancholic, tired or defeated: no downturned 
   + "no furrowed worried brow, no drooping eyelids, no downcast gaze. The eyes look straight at "
   + "the camera, open and engaged, and the posture is upright and self-assured.";
 
-/* ===== A MARCA NA ROUPA =====
-   So' nas pecas que de verdade levam bordado no peito. Terno e blazer ficam
-   limpos: forcar brasao em lapela so' produz adesivo torto.
-   A COR SEGUE O TECIDO — branco em roupa escura, marinho em roupa clara. */
-const ESCUDO = "a shield-shaped embroidered crest containing one large stylized handwritten letter M, "
-  + "with three small five-pointed stars in a row just above the shield";
-const TOM_DA_PECA: Record<string, "escuro" | "claro"> = {
-  agasalho: "escuro", polo: "claro", retro: "escuro",
-};
-function textoMarca(estilo: string): string {
-  const tom = TOM_DA_PECA[estilo];
-  if (!tom) return "The garment is completely plain: no crest, no badge, no sponsor, no text, no logos anywhere.";
-  const cor = tom === "escuro" ? "WHITE" : "NAVY BLUE";
-  return [
-    `On the wearer's left chest, ${ESCUDO}, embroidered in flat ${cor}, small — about the size of a real club crest.`,
-    `On the wearer's right chest, the single word "RETROFOOT" embroidered in small, clean, upright ${cor} capital letters, spelled exactly like that.`,
-    "Both marks are flat embroidery that follows the folds of the fabric. No other logos, no other text, nothing else anywhere on the garment.",
-  ].join(" ");
-}
-
-const BUCKET_SAIDA = "treinadores";
-const BUCKET_REF   = "referencias-treinador";
-const TAMANHO = "1024x1024", FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80;
-const QUALIDADE = "medium", CUSTO_USD = 0.042;   // tabela do gpt-image-1: 1024x1024 medium
-const TETO_GERACOES = 6;
-const REF_MAX_BYTES = 8 * 1024 * 1024;
+/* ===== A ROUPA SAI LIMPA DA IA =====
+   Pedir o escudo no prompt nao funciona: gpt-image-1 nao reproduz marca nem
+   texto, ele INVENTA um brasao ilegivel. A peca nasce vazia e o escudo e a
+   marca entram por CIMA, como camada — mesma solucao do uniforme do jogador. */
+const ROUPA_LIMPA = "The garment is COMPLETELY CLEAN: no crest, no badge, no sponsor, no brand mark, "
+  + "no text, no numbers, no logos and no embroidery of any kind, anywhere — not on the chest, "
+  + "not on the collar, not on the sleeves. Plain fabric only, because the crest and the brand "
+  + "mark are overlaid later as separate layers.";
 
 /* a idade vira faixa, nao numero: "37 years old" faz o modelo desenhar uma
    ficha de identidade; a faixa faz ele desenhar uma pessoa. */
@@ -102,7 +84,7 @@ function montarPrompt(genero: string, estilo: string, idade: number, comReferenc
     `Hyper-realistic studio portrait of a fictional professional football MANAGER, a ${quem} ${faixaEtaria(idade)}, wearing ${roupa}.`,
     `The face has ${expressao}.`,
     NUNCA,
-    textoMarca(estilo),
+    ROUPA_LIMPA,
     "Head and shoulders, facing the camera directly, official club media day photo style.",
     "Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.",
     "The head is centered and fills about half of the frame height.",

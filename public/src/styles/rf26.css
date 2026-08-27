@@ -4160,10 +4160,17 @@
    Reusa .rf-esc inteiro (borda, .on, .off, .rf-esc-tag) e so' troca o miolo:
    aqui a "imagem" e' o cartao, nao um icone de 24px ao lado do texto. */
 .rf-av-cards .rf-esc{padding:10px;gap:8px}
-.rf-av-face{width:100%;aspect-ratio:1/1;border-radius:12px;background:var(--surface-sunken);
+/* `relative` NAO e' enfeite: o escudo e a marca sao camadas absolutas dentro
+   deste quadro. Sem ele elas se ancoram na pagina e vao parar noutro canto. */
+.rf-av-face{position:relative;width:100%;aspect-ratio:1/1;border-radius:12px;background:var(--surface-sunken);
   display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--text-faint);
   overflow:hidden}
-.rf-av-face img{width:100%;height:100%;object-fit:cover;display:block}
+/* A REGRA DO FUNDO NAO PODE PEGAR AS CAMADAS. `height:100%` valia para todo
+   <img> dentro do quadro e esticava tambem o escudo e a marca, que cobriam o
+   retrato inteiro — os cartoes saiam brancos. O fundo preenche; a camada e'
+   posicionada e guarda a propria proporcao. */
+.rf-av-face > img:not(.rf-av-cam){width:100%;height:100%;object-fit:cover;display:block}
+.rf-av-face > img.rf-av-cam{position:absolute;height:auto;object-fit:contain;display:block}
 .rf-av-l{font-size:var(--fs-label);font-weight:var(--fw-semibold);color:var(--text-3);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .rf-esc.on .rf-av-l{color:var(--club-primary);font-weight:var(--fw-bold)}

@@ -4851,27 +4851,17 @@ const FACE_NUNCA = 'NEVER sad, gloomy, melancholic, tired or defeated: no downtu
   + 'no furrowed worried brow, no drooping eyelids, no downcast gaze. The eyes look straight at the '
   + 'camera, open and engaged, and the posture is upright and self-assured.';
 
-/* ===== A MARCA NA ROUPA =====
-   So' entra onde uma peca de verdade levaria: agasalho, polo e casaco retro
-   tem peito para bordado; terno e blazer, nao. Forcar brasao em lapela de
-   terno so' produz aquele adesivo torto que o modelo inventa.
-
-   A COR SEGUE O TECIDO: escudo branco em roupa escura, azul-marinho em roupa
-   clara — e' a regra do proprio manual da marca, e sem ela o bordado some no
-   fundo. Por isso cada estilo declara se e' escuro ou claro. */
-const MARCA_ESCUDO = 'a shield-shaped embroidered crest containing one large stylized handwritten '
-  + 'letter M, with three small five-pointed stars in a row just above the shield';
-function textoMarca(estilo){
-  const CHASSI = { agasalho:'escuro', polo:'claro', retro90:'escuro' };
-  const tom = CHASSI[estilo];
-  if(!tom) return 'The garment is completely plain: no crest, no badge, no sponsor, no text, no logos anywhere.';
-  const cor = tom === 'escuro' ? 'WHITE' : 'NAVY BLUE';
-  return [
-    `On the wearer's left chest, ${MARCA_ESCUDO}, embroidered in flat ${cor}, small — about the size of a real club crest.`,
-    `On the wearer's right chest, the single word "RETROFOOT" embroidered in small, clean, upright ${cor} capital letters, spelled exactly like that.`,
-    'Both marks are flat embroidery that follows the folds of the fabric. No other logos, no other text, nothing else anywhere on the garment.'
-  ].join(' ');
-}
+/* ===== A ROUPA SAI LIMPA DA IA =====
+   Pedir o escudo no prompt nao funciona: gpt-image-1 nao reproduz marca nem
+   texto, ele INVENTA um brasao parecido e ilegivel (a primeira face gerada
+   veio com "LIARDYBIR" bordado no peito). Entao a peca nasce vazia e o escudo
+   e a marca entram por CIMA, como camada — mesma solucao que o uniforme do
+   jogador ja' usa, e la' o motivo esta' escrito no promptTorso. Camada e'
+   sempre nitida, sempre igual, e da' para arrastar depois. */
+const ROUPA_LIMPA = 'The garment is COMPLETELY CLEAN: no crest, no badge, no sponsor, no brand mark, '
+  + 'no text, no numbers, no logos and no embroidery of any kind, anywhere — not on the chest, '
+  + 'not on the collar, not on the sleeves. Plain fabric only, because the crest and the brand '
+  + 'mark are overlaid later as separate layers.';
 
 function promptFaceTreinador(genero, i){
   const est = ESTILOS_TREINADOR[i];
@@ -4885,12 +4875,194 @@ function promptFaceTreinador(genero, i){
     `Hyper-realistic studio portrait of a fictional professional football MANAGER, a ${quem} ${FACE_POOL.idade[i]}, ${FACE_POOL.pele[i]}, ${cab}, wearing ${est[2]}.`,
     `The face has ${FACE_EXPRESSAO[i]}.`,
     FACE_NUNCA,
-    textoMarca(est[0]),
+    ROUPA_LIMPA,
     'Head and shoulders, facing the camera directly, official club media day photo style.',
     'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
     'The head is centered and fills about half of the frame height.',
     'This is a completely fictional person, not resembling any real person.'
   ].join(' ');
+}
+
+/* =====================================================================
+   AS CAMADAS DO TREINADOR — escudo e marca por cima da roupa limpa
+   ---------------------------------------------------------------------
+   Mesma ideia do uniforme do jogador: a IA entrega a peca vazia e o desenho
+   de verdade entra como imagem por cima, arrastavel. Camada e' sempre nitida
+   e sempre igual; prompt inventa brasao ilegivel.
+
+   GEOMETRIA DIFERENTE, DE PROPOSITO: a foto do jogador e' retrato 2:3 e o
+   compostoHTML carrega o mapa torso->foto dessa proporcao. A face do
+   treinador e' QUADRADA (1024x1024) e enquadrada em cabeca-e-ombros. Reusar
+   aquele mapa poria o escudo no lugar errado — aqui as porcentagens sao do
+   proprio quadro quadrado, sem conversao nenhuma.
+
+   ONDE MORA: uma linha-sentinela ('__treinador__' | '__marca__') guarda os
+   dois logos e a posicao PADRAO, valida para as dez faces. Cada face pode ter
+   o seu ajuste em atributos.pos, que vence o padrao — igual ao "salvar so
+   neste jogador" do elenco. */
+const MARCA_KEY = '__marca__';
+const TR_POS_PADRAO = { escudo:{ x:60, y:62, w:14 }, marca:{ x:26, y:64, w:16 } };
+const trMarca = () => (D.fotos[TREINADOR_KEY+'|'+MARCA_KEY] || {}).atributos || {};
+function trPos(genero, i){
+  const base = trMarca();
+  const face = (D.fotos[TREINADOR_KEY+'|'+faceChave(genero,i)] || {}).atributos || {};
+  const p = face.pos || {};
+  return {
+    escudo: Object.assign({}, TR_POS_PADRAO.escudo, base.escudo||{}, p.escudo||{}),
+    marca:  Object.assign({}, TR_POS_PADRAO.marca,  base.marca ||{}, p.marca ||{})
+  };
+}
+/* o retrato com as camadas — usado no cartao da aba e no palco do ajuste */
+function trCompostoHTML(url, genero, i, px){
+  const m = trMarca(), pos = trPos(genero, i);
+  const cam = (u, p) => u ? `<img src="${h(u)}" alt="" draggable="false"
+      style="position:absolute;left:${p.x}%;top:${p.y}%;width:${p.w}%;pointer-events:none">` : '';
+  return `<span style="position:relative;display:block;width:${px?px+'px':'100%'};aspect-ratio:1/1;border-radius:9px;overflow:hidden;background:var(--bd3)">
+    <img src="${h(url)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+    ${cam(m.escudoUrl, pos.escudo)}${cam(m.marcaUrl, pos.marca)}
+  </span>`;
+}
+
+/* grava a linha-sentinela dos logos/posicao padrao */
+async function trMarcaSalvar(campos){
+  const at = Object.assign({}, trMarca(), campos);
+  const linha = { pack_id: ST.packId, club_id: TREINADOR_KEY, jogador: MARCA_KEY,
+                  url: at.escudoUrl || '', atributos: at };
+  const r = await jogo('player_photos').upsert(linha, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error){ toast(erroMsg(r.error), true); return false; }
+  D.fotos[TREINADOR_KEY+'|'+MARCA_KEY] = linha;
+  return true;
+}
+async function trEnviarLogo(qual, arquivo){
+  if(!arquivo) return;
+  if(arquivo.size > 2*1024*1024) return toast('Logo acima de 2 MB.', true);
+  const ext = (arquivo.name.split('.').pop()||'png').toLowerCase();
+  const caminho = `treinador/${qual}-${Date.now()}.${ext}`;
+  const up = await sb.storage.from('patrocinadores').upload(caminho, arquivo, { upsert:false, cacheControl:'31536000' });
+  if(up.error) return toast(erroMsg(up.error), true);
+  const url = sb.storage.from('patrocinadores').getPublicUrl(caminho).data.publicUrl;
+  if(await trMarcaSalvar(qual==='escudo' ? { escudoUrl:url } : { marcaUrl:url })){
+    toast('Logo enviado.'); pgEstudio();
+  }
+}
+
+/* ---------- o palco de arraste (quadrado, duas camadas) ---------- */
+function modalAjusteTreinador(genero, i){
+  const linha = D.fotos[TREINADOR_KEY+'|'+faceChave(genero,i)];
+  if(!linha) return toast('Gere esta face primeiro.', true);
+  const m = trMarca();
+  if(!m.escudoUrl && !m.marcaUrl) return toast('Envie o escudo ou a marca antes de posicionar.', true);
+  const pos = trPos(genero, i);
+
+  const estreito = innerWidth <= 640;
+  const lado = Math.max(200, Math.floor(Math.min(440, innerWidth - (estreito?34:60),
+    innerHeight * (estreito?0.52:0.62))));
+
+  const alvo = (chave, url, cor) => url ? `<img data-alvo="${chave}" src="${h(url)}" draggable="false"
+      style="position:absolute;left:${pos[chave].x}%;top:${pos[chave].y}%;width:${pos[chave].w}%;cursor:grab;outline:2px dashed ${cor};outline-offset:3px">` : '';
+  const slider = (chave, url, cor, rot) => url ? `<label class="aj-sl"><span style="color:${cor}">${rot}</span>
+      <input data-w="${chave}" type="range" min="4" max="45" step="0.5" value="${pos[chave].w}"></label>` : '';
+
+  const ov = document.createElement('div');
+  ov.className = 'aj-ov';
+  ov.innerHTML = `
+    <div class="aj-topo">
+      <span class="aj-quem"><b>${h(faceNome(genero, ESTILOS_TREINADOR[i][0]))}</b>
+        <small>arraste para posicionar · vale para as dez faces</small></span>
+      <button class="aj-nav" id="ajt-x" title="Fechar" aria-label="Fechar">✕</button>
+    </div>
+    <div class="aj-palco" style="width:${lado}px;height:${lado}px">
+      <img src="${h(linha.url)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none">
+      ${alvo('escudo', m.escudoUrl, '#e3b23c')}
+      ${alvo('marca',  m.marcaUrl,  '#35c46a')}
+    </div>
+    <div class="aj-ctrl">
+      ${slider('escudo', m.escudoUrl, '#e3b23c', 'Escudo')}
+      ${slider('marca',  m.marcaUrl,  '#35c46a', 'Marca')}
+      <div class="aj-bts">
+        <button class="btn btn-sm" id="ajt-todas">Salvar em todas</button>
+        <button class="btn btn-sm btn-ghost" id="ajt-so">Salvar só nesta face</button>
+      </div>
+      <div class="aj-dica">O uniforme sai limpo da IA de propósito: escudo e marca entram por cima,
+        então dá para trocar o logo sem gerar imagem nenhuma de novo.</div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  /* ARRASTE EM PORCENTAGEM DO PALCO, nao em pixel: o palco muda de tamanho com
+     a janela, e posicao em pixel sairia do lugar no telemovel. */
+  let arrastando = null, ini = null;
+  const palco = ov.querySelector('.aj-palco');
+  const ponto = e => (e.touches && e.touches[0]) || e;
+  ov.querySelectorAll('[data-alvo]').forEach(el2 => {
+    const baixa = e => {
+      arrastando = el2.dataset.alvo;
+      const r = palco.getBoundingClientRect(), pt = ponto(e);
+      ini = { px:pt.clientX, py:pt.clientY, x:pos[arrastando].x, y:pos[arrastando].y, w:r.width, h:r.height };
+      el2.style.cursor = 'grabbing'; e.preventDefault();
+    };
+    el2.addEventListener('mousedown', baixa);
+    el2.addEventListener('touchstart', baixa, { passive:false });
+  });
+  const move = e => {
+    if(!arrastando) return;
+    const pt = ponto(e);
+    const p = pos[arrastando];
+    p.x = Math.max(-5, Math.min(95, ini.x + (pt.clientX-ini.px)/ini.w*100));
+    p.y = Math.max(-5, Math.min(95, ini.y + (pt.clientY-ini.py)/ini.h*100));
+    const el3 = ov.querySelector(`[data-alvo="${arrastando}"]`);
+    el3.style.left = p.x+'%'; el3.style.top = p.y+'%';
+    e.preventDefault();
+  };
+  const solta = () => {
+    if(!arrastando) return;
+    const el3 = ov.querySelector(`[data-alvo="${arrastando}"]`);
+    if(el3) el3.style.cursor = 'grab';
+    arrastando = null;
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, { passive:false });
+  document.addEventListener('mouseup', solta);
+  document.addEventListener('touchend', solta);
+  ov.querySelectorAll('[data-w]').forEach(sl => sl.oninput = () => {
+    const k = sl.dataset.w;
+    pos[k].w = Number(sl.value);
+    const el3 = ov.querySelector(`[data-alvo="${k}"]`);
+    if(el3) el3.style.width = pos[k].w+'%';
+  });
+
+  const fechar = () => {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('mouseup', solta);
+    document.removeEventListener('touchend', solta);
+    document.removeEventListener('keydown', esc, true);
+    ov.remove();
+  };
+  const esc = e => { if(e.key==='Escape'){ e.stopImmediatePropagation(); fechar(); } };
+  document.addEventListener('keydown', esc, true);
+  ov.querySelector('#ajt-x').onclick = fechar;
+  ov.onclick = e => { if(e.target===ov) fechar(); };
+
+  ov.querySelector('#ajt-todas').onclick = async () => {
+    if(await trMarcaSalvar({ escudo:pos.escudo, marca:pos.marca })){
+      /* o ajuste vira o PADRAO: as sobras por face teriam prioridade e o
+         "salvar em todas" nao se veria nas que ja' foram ajustadas soltas. */
+      for(const [g] of [['f'],['m']]) ESTILOS_TREINADOR.forEach((_e, k) => {
+        const l = D.fotos[TREINADOR_KEY+'|'+faceChave(g,k)];
+        if(l && l.atributos && l.atributos.pos){ delete l.atributos.pos;
+          jogo('player_photos').upsert(l, { onConflict:'pack_id,club_id,jogador' }); }
+      });
+      toast('Posição salva para as dez faces.'); fechar(); pgEstudio();
+    }
+  };
+  ov.querySelector('#ajt-so').onclick = async () => {
+    const at = Object.assign({}, linha.atributos||{}, { pos:{ escudo:pos.escudo, marca:pos.marca } });
+    const nova = Object.assign({}, linha, { atributos:at });
+    const r = await jogo('player_photos').upsert(nova, { onConflict:'pack_id,club_id,jogador' });
+    if(r.error) return toast(erroMsg(r.error), true);
+    D.fotos[TREINADOR_KEY+'|'+faceChave(genero,i)] = nova;
+    toast('Posição salva só nesta face.'); fechar(); pgEstudio();
+  };
 }
 
 /* gera UMA face e grava. `refazer` pula o atalho do que ja' existe — e' o
@@ -5248,14 +5420,15 @@ function faceCartaoHTML(genero, i){
   const nome = faceNome(genero, est[0]);
   const pode = podeEditar('dados');
   const acao = pode
-    ? `<span class="link" style="font-size:11.5px" data-face-refazer="${genero}:${i}">↻ ${linha?'Refazer':'Gerar'}</span>`
+    ? `${linha?`<span class="link" style="font-size:11.5px" data-face-pos="${genero}:${i}" title="Arrastar escudo e marca">✥</span>`:''}
+       <span class="link" style="font-size:11.5px" data-face-refazer="${genero}:${i}">↻ ${linha?'Refazer':'Gerar'}</span>`
     : '';
   const moldura = linha
     ? `border:1px solid var(--bd);background:var(--card2)`
     : `border:1px dashed var(--bd2);background:transparent`;
+  /* a previa mostra o que o jogo mostra: retrato + camadas no lugar */
   const retrato = linha
-    ? `<span data-face-ver="${h(linha.url)}" style="width:100%;aspect-ratio:1/1;border-radius:9px;overflow:hidden;background:var(--bd3);display:block;cursor:zoom-in">
-         <img src="${h(linha.url)}" alt="${h(nome)}" style="width:100%;height:100%;object-fit:cover;display:block"></span>`
+    ? `<span data-face-ver="${h(linha.url)}" style="display:block;cursor:zoom-in">${trCompostoHTML(linha.url, genero, i)}</span>`
     : `<span style="width:100%;aspect-ratio:1/1;border-radius:9px;border:1px dashed var(--bd2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#3d4a43">＋</span>`;
   return `<div style="${moldura};border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0">
     ${retrato}
@@ -5278,6 +5451,29 @@ function faceSecaoHTML(genero, titulo, primeira){
       ${ESTILOS_TREINADOR.map((_e, i) => faceCartaoHTML(genero, i)).join('')}
     </div>`;
 }
+/* A ROUPA SAI LIMPA DA IA e o desenho entra aqui: dois logos, guardados uma
+   vez e aplicados nas dez faces. Trocar o logo depois nao custa geracao
+   nenhuma — e' o ganho inteiro de usar camada em vez de prompt. */
+function blocoMarcaHTML(){
+  const m = trMarca(), pode = podeEditar('dados');
+  const slot = (qual, rot, url) => `<span style="display:flex;align-items:center;gap:9px;min-width:0">
+      <span style="width:40px;height:40px;flex:0 0 auto;border-radius:8px;border:1px solid var(--bd2);background:var(--card2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        ${url?`<img src="${h(url)}" alt="" style="max-width:100%;max-height:100%;object-fit:contain">`
+             :'<span style="font-size:15px;color:var(--dim3)">＋</span>'}</span>
+      <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+        <b style="font-size:12.5px;font-weight:600">${h(rot)}</b>
+        ${pode?`<span class="link" style="font-size:11.5px" data-marca-up="${qual}">${url?'Trocar':'Enviar'}</span>`
+              :`<span class="mono" style="font-size:10.5px;color:var(--dim3)">${url?'enviado':'sem logo'}</span>`}
+      </span>
+    </span>`;
+  return `<div style="border-bottom:1px solid var(--bd);padding:14px 20px;display:flex;align-items:center;gap:26px;flex-wrap:wrap">
+      ${slot('escudo','Escudo (Moda Esporte Clube)', m.escudoUrl)}
+      ${slot('marca','Marca (RetroFoot)', m.marcaUrl)}
+      <div style="flex:1"></div>
+      <span style="font-size:11.5px;color:var(--dim2);max-width:340px;line-height:1.5">
+        Entram como <b>camada</b> por cima da roupa, que a IA gera limpa. Use o ✥ de uma face para arrastar e definir a posição das dez.</span>
+    </div>`;
+}
 function blocoTreinadoresHTML(){
   const faltam = facesQueFaltam().length;
   const prontas = 10 - faltam;
@@ -5291,6 +5487,7 @@ function blocoTreinadoresHTML(){
                title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>`
           : ''}
       </div>
+      ${blocoMarcaHTML()}
       ${faceSecaoHTML('f', 'Treinadoras', true)}
       ${faceSecaoHTML('m', 'Treinadores', false)}
       <div style="border-top:1px solid var(--bd);padding:13px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--dim2)">
@@ -5455,6 +5652,17 @@ async function pgEstudio(){
   });
   document.querySelectorAll('[data-face-ver]').forEach(x => x.onclick = () =>
     abrirLightbox(x.dataset.faceVer, 'Face de treinador'));
+  document.querySelectorAll('[data-face-pos]').forEach(x => x.onclick = (ev) => {
+    ev.stopPropagation();   // senao o clique sobe para o retrato e abre o lightbox
+    const [g, i] = x.dataset.facePos.split(':');
+    modalAjusteTreinador(g, Number(i));
+  });
+  document.querySelectorAll('[data-marca-up]').forEach(x => x.onclick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.png,.webp,.jpg,.jpeg,.svg';
+    inp.onchange = () => trEnviarLogo(x.dataset.marcaUp, inp.files[0]);
+    inp.click();
+  });
   const b = el('est-busca'); let t=null;
   if(b) b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
