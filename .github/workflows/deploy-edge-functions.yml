@@ -91,6 +91,12 @@ jobs:
       # fetch-division-data, verify-round-result) não estão neste repositório, e um
       # deploy genérico poderia reescrever a configuração delas.
       # Sem --no-verify-jwt de propósito: estas três exigem JWT (o padrão da CLI).
+      # O CARIMBO DO MOTOR TEM QUE ESTAR EM DIA ANTES DE PUBLICAR. Se o servidor subir
+      # com carimbo velho, ele grava esse carimbo no estado da sala e TODO cliente novo
+      # se acha divergente — o aviso de recarga apareceria para quem está certo.
+      - name: Conferir carimbo do motor
+        run: node scripts/versao-motor.mjs --servidor
+
       - name: Deploy resolve-round e kickoff-round
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -11,6 +11,12 @@
    AINDA CONGELADO: mercado de CPU, finanças/prêmios por-humano, copas de grupo
    (Libertadores/Sul-Americana — só Série A).
    ================================================================== */
+/* CARIMBO DO MOTOR — preenchido por scripts/versao-motor.mjs, igual ao do cliente.
+   O servidor grava o seu no shared_state; o cliente compara com o dele e pede
+   recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
+   regras diferentes depois de um deploy no meio da partida. */
+/* @motor-ver */ const MOTOR_VER = '319bc8437d28';
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -2015,6 +2021,14 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     // clubes era consumido pela chave da Copa do Brasil da mesma jornada (e vice-versa)
     const k = t.h + '-' + t.a; const cupKey = roundLabel.split('-')[0];
     const sub = cupResultByFx && (cupResultByFx[cupKey + '|' + k] || cupResultByFx[k]);
+    /* RESULTADO DE OUTRO MOTOR NÃO ENTRA. Um cliente com a aba aberta desde antes do
+       deploy simula com regras velhas; aceitar o placar dele misturaria dois jogos
+       diferentes no mesmo campeonato. Cai para a simulação do servidor, que é a
+       autoridade — e o cliente é avisado pelo motorVer do estado. */
+    if (sub && sub.motorVer && MOTOR_VER && sub.motorVer !== MOTOR_VER) {
+      console.warn(`resultado descartado: cliente no motor ${sub.motorVer}, servidor no ${MOTOR_VER}`);
+      sub = null;
+    }
     if (sub && sub.winner) { // resultado submetido por um humano (mandante-autoritativo)
       t.hg = sub.hg; t.ag = sub.ag; t.events = sub.events || []; t.winner = sub.winner; t.pens = sub.pens || null;
       applyMatchIncidents(S, sub.events || []);
@@ -3303,6 +3317,9 @@ Deno.serve(async (req: Request) => {
 
     // dias das jornadas de prorrogação entram no plano na MESMA escrita do estado: um plano que
     // acabasse antes da temporada deixaria o ponteiro sem dia pra apontar.
+    /* o carimbo viaja com o estado: é assim que cada cliente descobre com que motor
+       a sala está sendo resolvida, sem precisar de coluna nova nem de outra chamada. */
+    (stateObj as any).motorVer = MOTOR_VER;
     const patchJogo: any = { shared_state: stateObj, state_version: curVer + 1, round: S.round };
     if (S._diasExtras && S._diasExtras.length && gameHost.day_plan && gameHost.day_plan.length) {
       const ultimo = gameHost.day_plan[gameHost.day_plan.length - 1].dia || 0;
