@@ -1654,10 +1654,14 @@ function sideInputs(S: any, id: string, isHuman: boolean, humanXI: any, humanTac
 
 /* ===== EVOLUÇÃO de jogadores (porte fiel de evolvePlayer + REBAL.force/value do cliente) ===== */
 const POS_PROFILE: any = {
-  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,cab:7,agi:7,fis:5,res:5},
-  MID:{pas:20,vis:16,pos:11,des:10,dri:9,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
-  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,com:7,agi:6,res:6},
-  GK :{ref:34,mao:30,pos:14,agi:10,pas:6,fis:6},
+  /* det (Determinação) entrou em 26/08 com peso comparável ao da Compostura: até
+     então era o ÚNICO atributo com peso zero nas quatro posições — gerado, exibido
+     e evoluindo sem influenciar nada. Peso no perfil faz duas coisas: entra na
+     média ponderada que vira a força, e passa a ser sorteável no treino. */
+  ATT:{fin:22,dri:15,vel:13,com:10,pos:8,pas:8,det:8,cab:7,agi:7,fis:5,res:5},
+  MID:{pas:20,vis:16,pos:11,des:10,dri:9,det:8,res:8,com:7,fin:6,vel:5,fis:4,cru:4},
+  DEF:{des:22,pos:16,cab:14,fis:12,vel:9,pas:8,det:8,com:7,agi:6,res:6},
+  GK :{ref:34,mao:30,pos:14,agi:10,det:6,pas:6,fis:6},
 };
 function attrLevel(a: any, s: string) { const prof = POS_PROFILE[s] || POS_PROFILE.MID; let sw = 0, acc = 0; for (const k in prof) { sw += prof[k]; acc += prof[k] * (a[k] || 1); } return acc / sw; }
 function levelToForce(L: number) { return Math.max(40, Math.min(95, Math.round((L - 6) / 13 * 46 + 45))); }
@@ -1760,6 +1764,17 @@ function cpuSeasonFinances(S: any, humans: Set<string>) {
 function hasEstrelinha(p: any) { if (!p) return false; return (ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'estrelinha') >>> 0) % 100 < 15; }
 function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
   if (!p.attr) return; // sem atributos não há como evoluir (saves válidos já têm p.attr)
+  /* MIGRAÇÃO DE det — espelha o attachAttrs do cliente. Sem isto, um elenco que
+     evolui aqui no servidor teria a força recalculada com det de "fora do perfil"
+     e cairia, enquanto o mesmo elenco evoluindo no cliente não cairia: os dois
+     lados divergiriam. Só levanta, nunca abaixa; roda uma vez por jogador. */
+  if (!(p as any)._detV2) {
+    const _lvl = forceToLevel(p.rawF != null ? p.rawF : p.f);
+    const _w = ((POS_PROFILE[p.s] || POS_PROFILE.MID).det) || 0;
+    const _alvo = Math.max(1, Math.min(20, _lvl + (_w >= 15 ? 2 : _w >= 8 ? 1 : 0)));
+    if ((p.attr.det || 0) < _alvo) p.attr.det = _alvo;
+    (p as any)._detV2 = 1;
+  }
   const a = p.attr, age = p.age || 26;
   const fBefore = p.f;
   const form = (p.stats && p.stats.r3 && p.stats.r3.length) ? p.stats.r3.reduce((x: number, y: number) => x + y, 0) / p.stats.r3.length : 6.5;
