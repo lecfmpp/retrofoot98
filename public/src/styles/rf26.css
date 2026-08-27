@@ -3793,7 +3793,14 @@
 .rf-ft-lin.me{background:var(--club-primary-soft)}
 .rf-ft-pos{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-muted);
   min-width:24px;flex:0 0 auto}
-.rf-ft-crest{flex:0 0 auto;display:flex}
+/* CAMPEÕES: grade em vez de empurrão. Antes era flex com um .rf-sp de flex:1 no meio, então
+   a coluna do escudo dependia da largura do nome da competição e do clube — nenhuma linha
+   alinhava com a outra. Colunas fixas resolvem: competição elástica, escudo e nome fixos. */
+.rf-ft-lin.camp{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(120px,auto);
+  gap:10px;align-items:center}
+.rf-ft-lin.camp .rf-ft-n{text-align:left}
+.rf-ft-crest{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:22px;height:22px}
 .rf-ft-crest img,.rf-ft-crest .rf-crest-fb{width:22px;height:22px;object-fit:contain}
 .rf-ft-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -8223,7 +8230,13 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 
 /* O escudo passou a ser uma porta para o clube (ver rfCrestEnvolve). O invólucro não pode mexer
    no desenho: ele herda o tamanho do contentor e só acrescenta o cursor e o foco de teclado. */
-.rf-crest-link{ display:inline-flex;align-items:center;cursor:pointer;line-height:0; }
+/* O `line-height:0` foi escrito quando este embrulho só continha ESCUDO — servia para matar o
+   espaço do descendente embaixo da imagem. Mas rfNomeClube() embrulha TEXTO com ele, e aí a
+   linha colapsava: o nome do clube ficava invisível E continuava ocupando largura, empurrando
+   o escudo ao lado por um texto que ninguém via. Era a causa dos "escudos em posições
+   aleatórias" na tela de fim de temporada. A imagem não precisa disto: .rf-crest já é
+   display:block. */
+.rf-crest-link{ display:inline-flex;align-items:center;cursor:pointer;line-height:inherit; }
 .rf-crest-link:focus-visible{ outline:2px solid var(--brand-primary);outline-offset:2px;border-radius:3px; }
 .rf-crest-link:hover{ filter:brightness(1.08); }
 

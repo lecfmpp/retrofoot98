@@ -26,7 +26,6 @@ function rfTrofeuHTML(key, size){
 const RF_DESFECHOS=[
   {k:'titulo',   l:'Título',         selo:'Campeão'},
   {k:'acesso',   l:'Acesso',         selo:'Acesso garantido'},
-  {k:'playoff',  l:'Playoff',        selo:'Playoff do acesso'},
   {k:'meio',     l:'Meio de tabela', selo:'Objetivo parcial'},
   {k:'rebaixado',l:'Rebaixado',      selo:'Rebaixamento'},
   {k:'demitido', l:'Demitido',       selo:'Fim de ciclo'},
@@ -52,7 +51,10 @@ function rfDesfecho(sum){
   const releg=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[divRef])||0;
   if(pos===1) return 'titulo';
   if(promo&&pos<=promo) return 'acesso';
-  if(promo&&pos<=promo*2) return 'playoff';
+  /* NÃO HÁ PLAYOFF DE ACESSO NESTE JOGO. Havia um desfecho 'playoff' para quem terminasse
+     até o DOBRO das vagas de promoção, e a tela anunciava "vai disputar o playoff do acesso"
+     — um mata-mata que o motor nunca joga. O acesso é por posição na tabela, ponto: ou subiu,
+     ou não subiu. Quem ficou perto cai no 'meio', que é o que de facto aconteceu. */
   if(releg&&pos>total-releg) return 'rebaixado';
   /* ULTIMO LUGAR NAO E "MEIO DE TABELA". Na Serie D nao ha rebaixamento
      (releg=0), entao o 20o de 20 caia no `return 'meio'` e a tela dizia "fecha
@@ -71,7 +73,10 @@ function rfDesfecho(sum){
 function rfFimTemporadaHTML(sum){
   const cl=clubOf(CL.clubId)||{short:'—'};
   const d=rfDesfecho(sum);
-  const info=RF_DESFECHOS.find(x=>x.k===d)||RF_DESFECHOS[3];
+  /* fallback por CHAVE, não por índice: RF_DESFECHOS[3] era 'meio' quando a lista tinha o
+     'playoff' no meio dela; ao removê-lo, o índice 3 passou a ser 'rebaixado' e um desfecho
+     desconhecido anunciaria queda. */
+  const info=RF_DESFECHOS.find(x=>x.k===d)||RF_DESFECHOS.find(x=>x.k==='meio')||RF_DESFECHOS[0];
   const linhas = sum ? (sum.myTable||[]) : ((typeof sortedTable==='function')?sortedTable():[]);
   const total=linhas.length;
   const pos = sum ? sum.myPos : rfMinhaPosicao();
@@ -89,7 +94,6 @@ function rfFimTemporadaHTML(sum){
   const premio = pz && pz.total ? pz.total : 0;
   const titulo={titulo:'O '+cl.short+' é campeão.',
     acesso:'O '+cl.short+' subiu de série.',
-    playoff:'O '+cl.short+' vai disputar o playoff do acesso',
     meio:'O '+cl.short+' fecha no meio da tabela.',
     rebaixado:'O '+cl.short+' foi rebaixado.',
     demitido:'Fim de ciclo no '+cl.short+'.'}[d];
@@ -101,7 +105,7 @@ function rfFimTemporadaHTML(sum){
     corpo:`<div class="rf-ft-cols">
       <div class="rf-card rf-ft-esq">
         <!-- O VIDEO E O DESFECHO DO CLUBE, nao ilustracao. Titulo/acesso puxam a taca, queda e
-             demissao puxam a crise; meio de tabela e playoff nao tem video proprio e ficam com a
+             demissao puxam a crise; meio de tabela nao tem video proprio e fica com a
              moldura. A caixa de especificacao ("1280x720, ate 12s") era anotacao de desenho e
              saiu -- estava a ser mostrada ao jogador. -->
         <div class="rf-ft-video">
@@ -130,7 +134,7 @@ function rfFimTemporadaHTML(sum){
               <span class="rf-ft-crest">${rfCrest(c,22)}</span>
               ${rfNomeClube(c,"rf-ft-n")}
               <div class="rf-sp"></div>
-              ${z?`<span class="rf-ft-tag ${z}">${z==='promo'?'Acesso à '+divisionLabelOf(rfDivAcima()):z==='drop'?'Rebaixado':'Playoff'}</span>`:''}
+              ${z?`<span class="rf-ft-tag ${z}">${z==='promo'?'Acesso à '+divisionLabelOf(rfDivAcima()):'Rebaixado'}</span>`:''}
             </div>`;
           }).join('')}
         </div>
@@ -141,10 +145,9 @@ function rfFimTemporadaHTML(sum){
             <div class="rf-label"><span class="rf-label-t">Campeões da temporada</span>
               <span class="rf-label-r">${camp.length} competiç${camp.length===1?'ão':'ões'}</span></div>
             ${camp.map(x=>{ const c=anyClubOf(x.clubId)||{short:String(x.clubId)}, eu=String(x.clubId)===String(CL.clubId);
-              return `<div class="rf-ft-lin ${eu?'me':''}">
+              return `<div class="rf-ft-lin camp ${eu?'me':''}">
                 <span class="rf-ft-comp">${escC(x.nome)}</span>
-                <div class="rf-sp"></div>
-                <span class="rf-ft-crest">${rfCrest(c,20)}</span>
+                <span class="rf-ft-crest">${rfCrest(c,22)}</span>
                 ${rfNomeClube(c,"rf-ft-n")}
               </div>`; }).join('')}
           </div>`;
@@ -212,7 +215,6 @@ function rfFimTexto(d,pos,total){
   return {
     titulo:`Campeão da ${classifDivName(S.division)}. A cidade não dormiu.`,
     acesso:`${pos}º lugar e vaga garantida. Ano que vem é ${divisionLabelOf(rfDivAcima())}.`,
-    playoff:`${pos}º lugar e uma vaga no mata-mata. A diretoria pedia o playoff — está entregue.`,
     meio:`${pos}º de ${total}. Temporada sem sustos, e sem festa.`,
     rebaixado:`${pos}º de ${total}. O ${cl} cai de série e recomeça mais abaixo.`,
     demitido:`A diretoria decidiu mudar. O seu ciclo no ${cl} termina aqui.`
@@ -220,7 +222,6 @@ function rfFimTexto(d,pos,total){
 }
 function rfFimProximos(d){
   const out=[];
-  if(d==='playoff') out.push({i:rfIcone('trofeu',16)+'',t:'Playoff do acesso',s:'Mata-mata pela vaga'});
   if(d==='acesso'||d==='titulo') out.push({i:rfIcone('seta-cima',16)+'',t:'Nova divisão',s:'Elenco vai precisar de reforço'});
   if(d==='rebaixado') out.push({i:rfIcone('seta-baixo',16)+'',t:'Divisão de baixo',s:'Reconstrução de elenco'});
   out.push({i:rfIcone('mercado',16)+'',t:'Janela de transferências',s:'Abre no começo da pré-temporada'});
@@ -1467,15 +1468,11 @@ function rfCampeoesDaTemporada(sum){
       out.push({ comp:k, nome:(info&&info.curto)||k, clubId:b.champion, copa:true });
     });
   }catch(e){}
-  /* 4) as ligas dos outros países que o jogador escolheu acompanhar */
-  try{
-    Object.keys(S.bgLeagues||{}).forEach(pais=>{
-      const cfg=(typeof UNI_CONFIGS!=='undefined')&&UNI_CONFIGS[(typeof uniKeyOf==='function')?uniKeyOf(pais):pais];
-      const topo=cfg&&cfg.order&&cfg.order[0]; if(!topo) return;
-      const tab=(typeof bgStandings==='function')?bgStandings(pais,topo):[];
-      if(tab && tab.length) out.push({ comp:pais+':'+topo, nome:pais, clubId:tab[0].id, fora:true });
-    });
-  }catch(e){}
+  /* 4) AS LIGAS DE OUTROS PAÍSES SAEM DAQUI (26/08). A lista chegava a 21 linhas — Peru,
+     Chile, Equador, Espanha, Itália, Uruguai... — e o campeão espanhol não diz nada a quem
+     acaba de terminar a Série C. Esta tela é o balanço da temporada DO JOGADOR: as divisões
+     do país dele e as copas que ele podia disputar. O campeão de fora continua em
+     Campeonatos, que é onde se vai procurar por isso. */
   return out;
 }
 /* Artilheiro de cada competição. Só aparece quem o motor de facto contou (ver
@@ -1498,7 +1495,7 @@ function rfArtilheirosDaTemporada(){
 }
 /* O VÍDEO SEGUE O QUE ACONTECEU AO CLUBE DO JOGADOR — não é ilustração genérica.
    Título e acesso puxam a taça; queda e demissão puxam a crise. Meio de tabela e
-   playoff não têm vídeo próprio, e aí não se mostra nenhum. */
+   não têm vídeo próprio, e aí não se mostra nenhum. */
 function rfFimVideo(d){
   const V=(typeof VIDEOS_MOMENTO!=='undefined')?VIDEOS_MOMENTO:{};
   if(d==='titulo'||d==='acesso') return V['campeao-liga']||'';
