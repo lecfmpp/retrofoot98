@@ -1,6 +1,8 @@
 {
   "//": "Config SÓ para o portão de nomes do CI (ver deploy-edge-functions.yml). Fica FORA de supabase/functions de propósito: um deno.json ali dentro é lido pela CLI do Supabase no deploy, e este arquivo não tem nada a ver com como a função roda.",
   "//noImplicitAny": "as funções antigas são JS escrito em .ts e têm centenas de parâmetros sem tipo (TS7006). Tipá-las não é o objetivo aqui — o que este portão tem de pegar é TS2304, 'Cannot find name', que é o erro que sobe quebrado para produção. TS2304 não depende desta flag.",
+  "//lock": "sem lockfile: este config nao instala nada do projeto, so' roda o portao. O lock que ele gerava (scripts/deno.lock, 10 KB do package.json inteiro) so' sujava a arvore e nunca era lido de volta.",
+  "lock": false,
   "compilerOptions": { "noImplicitAny": false },
   "nodeModulesDir": "auto"
 }
