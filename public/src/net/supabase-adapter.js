@@ -1857,6 +1857,68 @@ NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.deleteSoloSave = netDeleteSoloSave;
 
+/* ===== AVATAR DO TREINADOR =====
+   Tres operacoes, todas por conta (nao por save): ler o que ja' existe, gravar
+   a escolha barata (genero/preset/aceite dos termos) e pedir o retrato por IA.
+
+   A DIVISAO DE QUEM ESCREVE O QUE E' DE PROPOSITO e esta' travada no banco:
+   daqui o jogador so' consegue mexer em genero, preset e termos. `url` e
+   `geracoes` sao do servidor — se o browser pudesse escrever `geracoes`, a
+   cota que segura o custo da OpenAI seria uma sugestao (ver o trigger
+   coach_avatars_guarda e supabase/sql/coach-avatars.sql). */
+async function netCoachAvatarGet(){
+  if(!sb || !SB_AUTH_USER) return null;
+  const { data, error } = await sb.from('coach_avatars')
+    .select('genero,preset,url,estilo,geracoes,termos_versao').maybeSingle();
+  if(error){ console.warn('avatar do treinador:', error.message); return null; }
+  return data || null;
+}
+async function netCoachAvatarSet(campos){
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const { error } = await sb.from('coach_avatars')
+    .upsert(Object.assign({ user_id: SB_AUTH_USER.id }, campos), { onConflict:'user_id' });
+  return error ? { error: error.message } : {};
+}
+
+/* A FOTO DE REFERENCIA SOBE PARA UM BUCKET PRIVADO e o servidor a apaga logo
+   depois de gerar. O caminho COMECA pelo uid porque e' isso que a policy do
+   Storage exige — e e' o que impede um assinante de mandar gerar em cima da
+   foto pessoal de outro. */
+async function netCoachAvatarRef(arquivo){
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const ext = (String(arquivo.type||'').split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,'').slice(0,5);
+  const caminho = `${SB_AUTH_USER.id}/ref-${Date.now()}.${ext||'jpg'}`;
+  const { error } = await sb.storage.from('referencias-treinador')
+    .upload(caminho, arquivo, { upsert:false, contentType: arquivo.type||'image/jpeg' });
+  return error ? { error: error.message } : { caminho };
+}
+/* desistiu antes de gerar: a foto nao pode ficar la' esperando */
+async function netCoachAvatarRefApagar(caminho){
+  if(!sb || !caminho) return;
+  try{ await sb.storage.from('referencias-treinador').remove([caminho]); }
+  catch(e){ console.warn('nao apaguei a referencia:', e.message); }
+}
+async function netCoachAvatarGerar(corpo){
+  const res = await netInvokeFn('coach-avatar', corpo);
+  if(res.error){
+    let msg = res.error.message || 'Não consegui gerar o retrato.';
+    let motivo = null;
+    /* o texto util da funcao vem no CORPO da resposta, nao em error.message —
+       sem desembrulhar, o jogador leria "Edge Function returned a non-2xx
+       status code" no lugar de "você já usou as 6 gerações". */
+    try{ const j = await res.error.context.json(); if(j){ msg = j.error||msg; motivo = j.motivo||null; } }catch(_e){}
+    return { error: msg, motivo };
+  }
+  const d = res.data||{};
+  if(!d.url) return { error: d.error || 'A função não devolveu retrato.' };
+  return d;
+}
+NET.coachAvatarGet = netCoachAvatarGet;
+NET.coachAvatarSet = netCoachAvatarSet;
+NET.coachAvatarRef = netCoachAvatarRef;
+NET.coachAvatarRefApagar = netCoachAvatarRefApagar;
+NET.coachAvatarGerar = netCoachAvatarGerar;
+
 /* ---- TEMPO DE JOGO ----
    O painel dos sócios mostra "tempo médio por usuário" e "ativos em 7 dias", e nada no jogo
    media isso: só havia o último login, que não distingue quem entrou e saiu de quem jogou

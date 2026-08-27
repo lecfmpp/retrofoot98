@@ -150,6 +150,11 @@ window.RF_FOTOS = window.RF_FOTOS || {};
 window.RF_FOTOS_NOME = window.RF_FOTOS_NOME || {};
 window.RF_UNIFORMES = window.RF_UNIFORMES || {};
 window.RF_FOTO_POS = window.RF_FOTO_POS || {};
+/* RF_TREINADORES['m1'..'f5'] -> as 10 faces padrão de treinador, escolhidas no
+   assistente por quem não gera a própria. Moram na MESMA tabela (linhas com
+   club_id '__treinador__', como os moldes usam '__molde__'), então vêm de
+   carona nesta busca — sem requisição nova e sem asset a commitar. */
+window.RF_TREINADORES = window.RF_TREINADORES || {};
 function buscarFotos(packId){
   if(!packId) return;
   fetch(REST + 'player_photos?select=club_id,jogador,url,atributos&pack_id=eq.'+encodeURIComponent(packId),
@@ -158,6 +163,10 @@ function buscarFotos(packId){
     .then(rows => {
       for(const f of rows||[]){
         if(!f || f.club_id === '__molde__') continue;
+        /* ANTES do ramo do torso e do de jogador: a face do treinador não é
+           foto de elenco nem uniforme, e deixá-la cair nos ramos de baixo a
+           colocaria em RF_FOTOS com o nome 'm1'. */
+        if(f.club_id === '__treinador__'){ if(f.url) window.RF_TREINADORES[f.jogador] = f.url; continue; }
         const at = f.atributos || {};
         if(f.jogador === '__torso__'){
           if(at.rascunho) continue;   // rascunho é do Estúdio — o jogo só mostra o APLICADO

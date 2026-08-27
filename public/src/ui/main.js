@@ -2573,6 +2573,14 @@ function clEntrar(){
      conta fixa. Fica gravada uma vez; a partir dai ele envelhece uma temporada
      de cada vez, como toda a gente. */
   S.coachAge0=(typeof rfIdadeTreinadorValida==='function')?rfIdadeTreinadorValida():36;
+  /* QUEM E' O TREINADOR NA FOTO. Escolhido no mesmo passo do nome e da idade.
+     Pular e' permitido de proposito ("a gente escolhe uma por voce"), entao o
+     que falta vira sorteio aqui — nunca um save sem cara. coachAvatar guarda
+     ou uma chave de face padrao (m1..f5, resolvida em RF_TREINADORES) ou a URL
+     do retrato gerado por IA; rfCoachAvatarUrl() trata os dois. */
+  S.coachGender=(CL.coachGender==='f')?'f':'m';
+  S.coachAvatar=CL.coachAvatar
+    || ((typeof rfAvatarSorteado==='function')?rfAvatarSorteado():null);
   CL.speedMult=1;  // 1.0x, 1.5x, 2x, 3x (só anfitrião no modo Resenha pode mudar)
   // modo solo de verdade: garante que nada do modo online "vaza" pra cá (ex: se o usuário
   // tinha entrado numa sala online antes, na mesma aba, CL.online ficava travado em true e

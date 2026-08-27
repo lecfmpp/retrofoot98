@@ -623,6 +623,19 @@ function rfTreinadorNome(){
   const seat=CL._seatContext&&CL._seatContext.seat;
   return (seat&&seat.name)||CL.mgr||'Treinador';
 }
+/* O RETRATO DO TREINADOR, resolvido num lugar só. Duas origens possíveis:
+   · S.coachAvatar guardando uma URL -> retrato gerado por IA (plano Pro);
+   · S.coachAvatar guardando 'm1'..'f5' -> uma das 10 faces padrão, que chegam
+     em RF_TREINADORES pela mesma busca das fotos de elenco (ver dados.js).
+   Devolve null quando não há nada, e aí quem desenha volta para a inicial do
+   nome — o avatar é enfeite, nunca requisito. A face padrão pode ainda não ter
+   chegado da rede: null aqui é 'ainda não', não 'nunca'. */
+function rfCoachAvatarUrl(){
+  const a=(typeof S!=='undefined'&&S)?S.coachAvatar:null;
+  if(!a) return null;
+  if(/^(https?:|data:|\/)/.test(a)) return a;
+  return (window.RF_TREINADORES&&window.RF_TREINADORES[a])||null;
+}
 function rfJogar(){
   if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
   /* dia sem nada em campo: o botao passa o dia (ver rfNadaParaJogar e o rotulo).

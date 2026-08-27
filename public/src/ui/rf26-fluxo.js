@@ -169,6 +169,78 @@ function rfCarregandoEtapas(pct){
    o layout é o do pacote, e os cartões acima de 1 usam o mesmo tratamento de
    "Em breve" que o Modo Resenha já tem no passo 2, em vez de religar em
    silêncio um caminho que o produto desligou. */
+
+/* =====================================================================
+   QUEM E' VOCE NA BEIRA DO CAMPO — genero + retrato do treinador
+   ---------------------------------------------------------------------
+   Cinco faces prontas por genero, cada uma ja' vestindo um estilo, mais um
+   sexto cartao que leva a' geracao por IA (plano Pro). O passo E' PULAVEL:
+   quem seguir sem escolher ganha uma face sorteada do genero em clEntrar().
+
+   As faces chegam da rede em RF_TREINADORES (ver src/net/dados.js) e podem
+   ainda nao ter chegado — por isso o cartao sempre desenha, com o retrato
+   quando ha' e o bonequinho enquanto nao ha'. Ficar esperando a rede para
+   mostrar a escolha seria travar o assistente por causa de enfeite.
+   ===================================================================== */
+const RF_AV_ESTILOS=[['terno','Terno'],['agasalho','Agasalho'],['polo','Polo'],
+                     ['blazer','Blazer'],['retro90','Retrô 90']];
+const rfAvGenero=()=>(CL.coachGender==='f')?'f':'m';
+const rfAvChave=(g,i)=>g+(i+1);
+/* url da face padrao, ou null enquanto a rede nao trouxe */
+function rfAvFaceUrl(chave){
+  return (window.RF_TREINADORES&&window.RF_TREINADORES[chave])||null;
+}
+function rfAvCartaoHTML(g,i){
+  const chave=rfAvChave(g,i), url=rfAvFaceUrl(chave);
+  const on=(CL.coachAvatar===chave);
+  return `<div class="rf-esc ${on?'on':''}" onclick="rfAvatarSel('${chave}')" role="button" tabindex="0"
+      aria-pressed="${on?'true':'false'}">
+    <span class="rf-av-face">${url?`<img src="${escC(url)}" alt="">`:'👤'}</span>
+    <span class="rf-av-l">${escC(RF_AV_ESTILOS[i][1])}</span>
+  </div>`;
+}
+function rfAvatarBlocoHTML(){
+  const g=rfAvGenero();
+  const pro=!!((typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus().pro:false);
+  const cartaoIA=`<div class="rf-esc rf-av-ia ${pro?'':'off'}"
+      ${pro?`onclick="rfAvatarIA()" role="button" tabindex="0"`:''}
+      title="${pro?'Crie o seu retrato com IA':'O retrato por IA é do plano Pro'}">
+    ${pro?'':'<span class="rf-esc-tag">Pro</span>'}
+    <span class="rf-av-face">${pro?'✦':'🔒'}</span>
+    <span class="rf-av-l">Criar a minha<br>com IA</span>
+  </div>`;
+  return `<div class="rf-av-bloco">
+    <div class="rf-av-hd">
+      <b>Quem é você na beira do campo</b>
+      <span>Pode deixar para depois; a gente escolhe uma por você.</span>
+    </div>
+    <div class="rf-seg rf-av-seg">
+      <button type="button" class="rf-seg-b ${g==='m'?'on':''}" onclick="rfAvatarGenero('m')">Treinador</button>
+      <button type="button" class="rf-seg-b ${g==='f'?'on':''}" onclick="rfAvatarGenero('f')">Treinadora</button>
+    </div>
+    <div class="rf-esc-grid seis rf-av-cards">
+      ${RF_AV_ESTILOS.map((_e,i)=>rfAvCartaoHTML(g,i)).join('')}
+      ${cartaoIA}
+    </div>
+  </div>`;
+}
+/* trocar de genero LARGA a face escolhida: f3 nao existe do lado masculino, e
+   manter a chave deixaria o cartao marcado num rosto que nao esta' na grade. */
+function rfAvatarGenero(g){
+  if(rfAvGenero()===g) return;
+  CL.coachGender=g;
+  if(CL.coachAvatar && /^[mf]\d$/.test(CL.coachAvatar)) CL.coachAvatar=null;
+  cdraw();
+}
+function rfAvatarSel(chave){
+  CL.coachAvatar=(CL.coachAvatar===chave)?null:chave;   // reclicar desmarca
+  cdraw();
+}
+/* face de reserva para quem pulou: sorteio honesto entre as cinco do genero */
+function rfAvatarSorteado(){
+  const g=rfAvGenero();
+  return rfAvChave(g, Math.floor(Math.random()*RF_AV_ESTILOS.length));
+}
 const RF_HOTSEAT_LIGADO=false;
 function rfTreinadoresHTML(){
   const n=Math.max(1,(CL.names||[]).filter(x=>(x||'').trim()).length||1);
@@ -197,6 +269,7 @@ function rfTreinadoresHTML(){
       ${rfCampo('A sua idade (25 a 75)',
         `<input class="rf-campo-c" id="rf-ob-idade" inputmode="numeric" maxlength="2" placeholder="36"
            value="${escC(String(CL.coachAge||36))}" oninput="rfIdadeTreinador(this.value)">`)}
+      ${rfAvatarBlocoHTML()}
       ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}

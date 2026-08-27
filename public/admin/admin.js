@@ -4797,6 +4797,116 @@ function promptMontagem(){
 }
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
 
+/* =====================================================================
+   AS 10 FACES PADRAO DE TREINADOR
+   ---------------------------------------------------------------------
+   Quem nao e' Pro nao gera o proprio retrato: escolhe uma destas dez no
+   assistente. Sao 5 por genero, e cada uma ja' vem vestindo um estilo
+   diferente — assim dez imagens entregam variedade de ROSTO e de ROUPA,
+   em vez das cinquenta que 5 rostos x 5 roupas custariam.
+
+   Moram em player_photos com club_id '__treinador__', o mesmo truque de
+   linha-sentinela que os moldes de uniforme ja' usam ('__molde__'). De
+   carona nisso o jogo le' as faces sem UMA requisicao nova: buscarFotos()
+   ja' varre a tabela inteira do pacote (ver src/net/dados.js).
+   ===================================================================== */
+const TREINADOR_KEY = '__treinador__';
+const ESTILOS_TREINADOR = [
+  ['terno',    'Terno',     'a sharp dark tailored suit with a tie'],
+  ['agasalho', 'Agasalho',  'a technical zip-up training tracksuit jacket'],
+  ['polo',     'Polo',      'a plain fitted training polo shirt'],
+  ['blazer',   'Blazer',    'a casual unstructured blazer over an open-collar shirt, no tie'],
+  ['retro90',  'Retrô 90',  'an oversized 1990s coach shell jacket, era-accurate cut']
+];
+/* a chave da linha e' o que o save do jogador guarda: m1..m5 / f1..f5.
+   A ORDEM de ESTILOS_TREINADOR define quem e' m1 — reordenar aquele array
+   troca a roupa de todo mundo que ja' escolheu. Nao reordene: acrescente. */
+const faceChave = (genero, i) => genero + (i + 1);
+const faceNome  = (genero, estilo) => (genero === 'f' ? 'treinadora-' : 'treinador-') + estilo;
+
+/* variedade entre as cinco do mesmo genero: sem isto o modelo devolve
+   praticamente a mesma pessoa cinco vezes, so' trocando a roupa. */
+const FACE_POOL = {
+  pele:   ['light skin','medium tan skin','light brown skin','brown skin','dark brown skin'],
+  cabelo: ['short greying hair','salt-and-pepper hair','short dark hair','completely bald head','shoulder-length dark hair'],
+  idade:  ['in their late thirties','in their forties','in their late forties','in their fifties','in their late fifties']
+};
+function promptFaceTreinador(genero, i){
+  const est = ESTILOS_TREINADOR[i];
+  const quem = genero === 'f' ? 'woman' : 'man';
+  const cab = genero === 'f'
+    ? ['short dark bob','shoulder-length dark hair','curly shoulder-length hair','short greying hair','hair tied back in a ponytail'][i]
+    : FACE_POOL.cabelo[i];
+  return [
+    `Hyper-realistic studio portrait of a fictional professional football MANAGER, a ${quem} ${FACE_POOL.idade[i]}, ${FACE_POOL.pele[i]}, ${cab}, wearing ${est[2]}.`,
+    'Head and shoulders, facing the camera directly, official club media day photo style.',
+    'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
+    'The head is centered and fills about half of the frame height.',
+    'This is a completely fictional person, not resembling any real person.'
+  ].join(' ');
+}
+
+/* gera UMA face e grava. `refazer` pula o atalho do que ja' existe — e' o
+   que o link de Refazer usa quando a imagem sai torta. */
+async function garantirFaceTreinador(genero, i, refazer){
+  const chave = faceChave(genero, i);
+  const est = ESTILOS_TREINADOR[i];
+  if(!refazer && D.fotos[TREINADOR_KEY+'|'+chave]) return D.fotos[TREINADOR_KEY+'|'+chave];
+  const url = await gerarImagemIA('jogador', promptFaceTreinador(genero, i), 'medium', null,
+    'treinadores/'+faceNome(genero, est[0]), 'Gerando a face do treinador…');
+  const linha = { pack_id: ST.packId, club_id: TREINADOR_KEY, jogador: chave, url,
+                  atributos: { genero, estilo: est[0], rotulo: est[1] } };
+  const r = await jogo('player_photos').upsert(linha, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[TREINADOR_KEY+'|'+chave] = linha;
+  return linha;
+}
+
+function facesQueFaltam(){
+  const faltam = [];
+  ['f','m'].forEach(g => ESTILOS_TREINADOR.forEach((_e, i) => {
+    if(!D.fotos[TREINADOR_KEY+'|'+faceChave(g, i)]) faltam.push([g, i]);
+  }));
+  return faltam;
+}
+
+/* o lote no molde exato de prepararEstilos(): confirma com o custo, conta
+   acertos e falhas, e um erro num item NAO aborta os outros. */
+async function prepararFacesTreinador(btn){
+  const faltam = facesQueFaltam();
+  if(!faltam.length) return toast('As 10 faces de treinador já estão prontas.');
+  if(!await rfConfirm({ titulo:'Gerar as faces de treinador',
+    texto:`Faltam <b>${faltam.length} face(s)</b> das dez que o jogador escolhe no assistente.`,
+    detalhe:`Custo único: <b>~US$ ${(faltam.length*0.042).toFixed(2)}</b>. Face que sair torta pode ser
+             refeita pelo link ↻ do cartão.`,
+    nao:'Agora não', sim:`Gerar ${faltam.length} face(s)` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok = 0, erros = 0;
+  for(const [g, i] of faltam){
+    btn.textContent = `${faceNome(g, ESTILOS_TREINADOR[i][0])}… (${ok+erros+1}/${faltam.length})`;
+    try{ await garantirFaceTreinador(g, i); ok++; }
+    catch(err){ erros++; console.warn('face de treinador falhou:', g, i, err.message); }
+  }
+  registrar('estudio.treinadores.preparar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`Faces geradas: ${ok}${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
+/* refazer uma face solta, do cartao */
+async function refazerFaceTreinador(genero, i){
+  const est = ESTILOS_TREINADOR[i];
+  const existe = !!D.fotos[TREINADOR_KEY+'|'+faceChave(genero, i)];
+  if(existe && !await rfConfirm({ titulo:'Refazer esta face',
+    texto:`A face <b>${h(faceNome(genero, est[0]))}</b> vai ser gerada de novo e a atual é substituída.`,
+    detalhe:'Custo: <b>~US$ 0,04</b>.', nao:'Agora não', sim:'Refazer' })) return;
+  try{
+    await garantirFaceTreinador(genero, i, true);
+    toast('Face gerada.');
+  }catch(err){ toast(err.message, true); }
+  pgEstudio();
+}
+
 /* VISÃO "SÓ UNIFORME": a MESMA imagem canônica (camisa nos 60% de baixo, vazio
    em cima onde entra a cabeça), só que com zoom na área da camisa. Uma imagem,
    um conjunto de posições — cada uso escolhe o recorte. */
@@ -5081,6 +5191,68 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
 }
 
 /* ---------- página ---------- */
+/* ---------- aba TREINADORES: a oficina das 10 faces padrao ----------
+   Nao e' lista de clube: as faces sao globais do pacote, iguais para todo
+   jogador. Por isso ela substitui o card de clubes inteiro (ver pgEstudio)
+   e ignora o filtro de pais e a busca, que ali nao querem dizer nada. */
+function faceCartaoHTML(genero, i){
+  const est = ESTILOS_TREINADOR[i];
+  const linha = D.fotos[TREINADOR_KEY+'|'+faceChave(genero, i)];
+  const nome = faceNome(genero, est[0]);
+  const pode = podeEditar('dados');
+  const acao = pode
+    ? `<span class="link" style="font-size:11.5px" data-face-refazer="${genero}:${i}">↻ ${linha?'Refazer':'Gerar'}</span>`
+    : '';
+  const moldura = linha
+    ? `border:1px solid var(--bd);background:var(--card2)`
+    : `border:1px dashed var(--bd2);background:transparent`;
+  const retrato = linha
+    ? `<span data-face-ver="${h(linha.url)}" style="width:100%;aspect-ratio:1/1;border-radius:9px;overflow:hidden;background:var(--bd3);display:block;cursor:zoom-in">
+         <img src="${h(linha.url)}" alt="${h(nome)}" style="width:100%;height:100%;object-fit:cover;display:block"></span>`
+    : `<span style="width:100%;aspect-ratio:1/1;border-radius:9px;border:1px dashed var(--bd2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#3d4a43">＋</span>`;
+  return `<div style="${moldura};border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0">
+    ${retrato}
+    <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+      <b style="font-size:12.5px;font-weight:600${linha?'':';color:var(--dim)'}">${h(est[1])}</b>
+      <span class="mono" style="font-size:10.5px;color:var(--dim3)">${h(nome)}</span>
+    </span>
+    <span style="display:flex;align-items:center;gap:8px">
+      <span class="tag ${linha?'t-ok':'t-dim'}">${linha?'gerada':'não gerada'}</span>
+      <div style="flex:1"></div>
+      ${acao}
+    </span>
+  </div>`;
+}
+function faceSecaoHTML(genero, titulo, primeira){
+  return `<div class="rowh" style="grid-template-columns:1fr${primeira?'':';border-top:1px solid var(--bd)'}">
+      <span>${h(titulo)}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:16px 20px">
+      ${ESTILOS_TREINADOR.map((_e, i) => faceCartaoHTML(genero, i)).join('')}
+    </div>`;
+}
+function blocoTreinadoresHTML(){
+  const faltam = facesQueFaltam().length;
+  const prontas = 10 - faltam;
+  const pro = D.avataresPro || { n:0, usd:0 };
+  return `<div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>As 10 faces padrão de treinador</b>
+        <span class="mono" style="font-size:11.5px;color:var(--dim3);white-space:nowrap;flex:0 0 auto">${prontas} de 10 geradas</span>
+        ${faltam && podeEditar('dados')
+          ? `<button class="btn btn-sm" id="est-faces" style="white-space:nowrap;flex:0 0 auto"
+               title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>`
+          : ''}
+      </div>
+      ${faceSecaoHTML('f', 'Treinadoras', true)}
+      ${faceSecaoHTML('m', 'Treinadores', false)}
+      <div style="border-top:1px solid var(--bd);padding:13px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--dim2)">
+        <span>Avatares gerados por assinantes Pro <b class="mono" style="color:var(--dim);font-weight:500">${num(pro.n)}</b></span>
+        <span>Custo acumulado <b class="mono" style="color:var(--verde2);font-weight:500">US$ ${pro.usd.toFixed(2)}</b></span>
+      </div>
+    </div>`;
+}
+
 async function pgEstudio(){
   try{ await carregarCatalogo(); }
   catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
@@ -5111,6 +5283,22 @@ async function pgEstudio(){
   D.catalogo = base;
 
   const aba = ST.abaEstudio || 'escudos';
+
+  /* numeros do rodape da aba Treinadores. SO' nesta aba: e' consulta que as
+     outras tres nao usam, e o Estudio ja' carrega catalogo, patches e fotos —
+     nao vale pendurar mais duas por pagina. Falhar aqui e' zero, nunca erro:
+     o rodape e' informativo e nao pode impedir a oficina de abrir. */
+  if(aba === 'treinadores'){
+    D.avataresPro = { n:0, usd:0 };
+    try{
+      const [av, cst] = await Promise.all([
+        jogo('coach_avatars').select('user_id', { count:'exact', head:true }).not('url','is',null),
+        jogo('ia_custos').select('custo_usd').eq('tipo','treinador')
+      ]);
+      if(!av.error) D.avataresPro.n = av.count || 0;
+      if(!cst.error) D.avataresPro.usd = (cst.data||[]).reduce((a,r)=>a+Number(r.custo_usd||0), 0);
+    }catch(e){ console.warn('resumo de avatares:', e.message); }
+  }
   const busca = (ST.buscaEstudio||'').toLowerCase();
   const paisSel = ST.paisEstudio || 'todos';
   const paises = Array.from(new Set(base.map(x=>x.pais))).sort((a,b)=> a==='Brasil'?-1:b==='Brasil'?1:a.localeCompare(b,'pt-BR'));
@@ -5148,9 +5336,10 @@ async function pgEstudio(){
       ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'candidatos a foto'})}
     </div>
     <div class="per" style="gap:6px;margin-bottom:2px">
-      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores']]
+      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores'],['treinadores','Treinadores']]
         .map(([id,l])=>`<span class="${aba===id?'on':''}" data-est-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
     </div>
+    ${aba==='treinadores' ? blocoTreinadoresHTML() : `
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>${aba==='escudos'?'Escolha o clube para gerar o escudo'
@@ -5195,26 +5384,41 @@ async function pgEstudio(){
         </div>`;
       }).join('') : '<div class="vazio">Nenhum clube encontrado.</div>'}
       ${lista.length>120?`<div class="vazio">Mostrando 120 de ${lista.length} — refine a busca.</div>`:''}
-    </div>`;
+    </div>`}`;
 
   el('est-pack').onchange = () => { ST.packId = el('est-pack').value; pgEstudio(); };
   document.querySelectorAll('[data-est-aba]').forEach(x => x.onclick = () => { ST.abaEstudio=x.dataset.estAba; pgEstudio(); });
-  el('est-pais').onchange = () => { ST.paisEstudio = el('est-pais').value; pgEstudio(); };
+  /* O FILTRO E A BUSCA SO' EXISTEM NAS ABAS DE CLUBE. Sem estes guards a aba
+     Treinadores achava null aqui, o TypeError estourava e MATAVA o resto do
+     wiring — seletor de patch, botoes de aba, tudo — deixando o Estudio
+     travado numa tela sem saida. E' o mesmo `if(bt...)` dos botoes abaixo. */
+  const selPais = el('est-pais');
+  if(selPais) selPais.onchange = () => { ST.paisEstudio = selPais.value; pgEstudio(); };
   const btLote = el('est-lote');
   if(btLote) btLote.onclick = modalLoteEscudos;
   const btRep = el('est-repintar');
   if(btRep) btRep.onclick = () => repintarTodosUniformes(btRep);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
+  const btFaces = el('est-faces');
+  if(btFaces) btFaces.onclick = () => prepararFacesTreinador(btFaces);
+  document.querySelectorAll('[data-face-refazer]').forEach(x => x.onclick = () => {
+    const [g, i] = x.dataset.faceRefazer.split(':');
+    refazerFaceTreinador(g, Number(i));
+  });
+  document.querySelectorAll('[data-face-ver]').forEach(x => x.onclick = () =>
+    abrirLightbox(x.dataset.faceVer, 'Face de treinador'));
   const b = el('est-busca'); let t=null;
-  b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
+  if(b) b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
     const item = (D.catalogo||[]).find(x => String(x.c.id)===String(r.dataset.estClube));
     if(!item) return;
     const abaAtual = ST.abaEstudio||'escudos';
     if(abaAtual==='escudos') modalEscudoIA(item);
     else if(abaAtual==='uniformes') modalUniformeIA(item);
-    else modalFotosIA(item);
+    /* explicito de proposito: com um `else` aberto, QUALQUER aba futura que
+       liste clubes abriria o modal de fotos por descuido. */
+    else if(abaAtual==='fotos') modalFotosIA(item);
   });
 }
 

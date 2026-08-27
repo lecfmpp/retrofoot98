@@ -1,0 +1,230 @@
+/* ==================================================================
+   coach-avatar — o retrato do treinador, gerado por IA para o jogador.
+
+   Irma da generate-image, NAO substituta. A generate-image e' do painel:
+   ela aceita um prompt cru do browser, e por isso so' socio alcanca. Aqui
+   quem chama e' o jogador, entao nada de prompt: o body diz genero, estilo
+   e (opcional) a foto de referencia, e o texto e' montado AQUI.
+
+   Tres travas, todas no servidor:
+   · so' PRO gera (elifoot_v3.user_plans, conferido aqui — nunca no cliente);
+   · cota por conta, incrementada ANTES de chamar a OpenAI (coach_avatar_consumir);
+   · a foto de referencia so' pode ser da PROPRIA pasta do usuario, e e'
+     APAGADA no finally — dando certo ou dando errado.
+
+   Body: { genero:'m'|'f', estilo: chave, idade?: 25..75, referencia?: path }
+   Resposta: { url, geracoes } ou { error }
+   ================================================================== */
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function resp(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS, "Content-Type": "application/json" },
+  });
+}
+
+/* os 5 estilos de roupa — mesma forma do ESTILOS_CAMISA do painel:
+   [chave] -> frase que entra no prompt. Mexer aqui muda o jogo todo. */
+const ESTILOS: Record<string, string> = {
+  terno:    "a sharp dark tailored suit with a tie",
+  agasalho: "a technical zip-up training tracksuit jacket",
+  polo:     "a plain fitted training polo shirt",
+  blazer:   "a casual unstructured blazer over an open-collar shirt, no tie",
+  retro:    "an oversized 1990s coach shell jacket, era-accurate cut",
+};
+
+const BUCKET_SAIDA = "treinadores";
+const BUCKET_REF   = "referencias-treinador";
+const TAMANHO = "1024x1024", FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80;
+const QUALIDADE = "medium", CUSTO_USD = 0.042;   // tabela do gpt-image-1: 1024x1024 medium
+const TETO_GERACOES = 6;
+const REF_MAX_BYTES = 8 * 1024 * 1024;
+
+/* a idade vira faixa, nao numero: "37 years old" faz o modelo desenhar uma
+   ficha de identidade; a faixa faz ele desenhar uma pessoa. */
+function faixaEtaria(idade: number): string {
+  if (idade < 35) return "in their early thirties";
+  if (idade < 45) return "in their late thirties";
+  if (idade < 55) return "in their late forties";
+  if (idade < 65) return "in their late fifties";
+  return "in their late sixties, visibly experienced";
+}
+
+function montarPrompt(genero: string, estilo: string, idade: number, comReferencia: boolean) {
+  const quem = genero === "f" ? "woman" : "man";
+  const roupa = ESTILOS[estilo];
+  const base = [
+    `Hyper-realistic studio portrait of a fictional professional football MANAGER, a ${quem} ${faixaEtaria(idade)}, wearing ${roupa}.`,
+    "Head and shoulders, facing the camera directly, official club media day photo style.",
+    "Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.",
+    "The head is centered and fills about half of the frame height.",
+  ];
+  if (comReferencia) {
+    /* DE PROPOSITO "as loose inspiration", nunca "the same face": pedir a
+       semelhanca de uma pessoa real faz o gpt-image-1 recusar a chamada
+       inteira. O produto aqui e' um avatar inspirado, nao um clone. */
+    base.push(
+      "Use the general facial structure and hair of the input photo as loose inspiration only.",
+      "The result must be a NEW, clearly fictional person — do not reproduce the likeness of the person in the photo.",
+    );
+  } else {
+    base.push("This is a completely fictional person, not resembling any real person.");
+  }
+  return base.join(" ");
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return resp(405, { error: "Método não suportado" });
+
+  const OPENAI_KEY = Deno.env.get("OPENAI-RETROFOOT")
+    ?? Deno.env.get("OPENAI_RETROFOOT")
+    ?? Deno.env.get("OPENAI_API_KEY");
+  if (!OPENAI_KEY) return resp(500, { error: "Secret OPENAI-RETROFOOT não configurado no projeto Supabase." });
+
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin = createClient(url, service);
+
+  const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+  const { data: userData, error: authErr } = await admin.auth.getUser(jwt);
+  if (authErr || !userData?.user) return resp(401, { error: "Sessão inválida." });
+  const uid = userData.user.id;
+
+  let body: { genero?: string; estilo?: string; idade?: number; referencia?: string };
+  try { body = await req.json(); } catch { return resp(400, { error: "Body inválido." }); }
+
+  const genero = String(body.genero || "");
+  const estilo = String(body.estilo || "");
+  if (genero !== "m" && genero !== "f") return resp(400, { error: "genero tem que ser m ou f." });
+  if (!ESTILOS[estilo]) return resp(400, { error: "estilo desconhecido." });
+  const idadeBruta = Number(body.idade);
+  const idade = Number.isFinite(idadeBruta) ? Math.min(75, Math.max(25, Math.round(idadeBruta))) : 40;
+
+  /* PORTA DO PRO — no servidor. O cliente ja' esconde o botao, mas esconder
+     botao nao e' controle de acesso: quem chama a funcao direto passaria. */
+  const { data: plano } = await admin
+    .schema("elifoot_v3").from("user_plans")
+    .select("plan, until").eq("user_id", uid).maybeSingle();
+  const proValido = plano?.plan === "pro"
+    && (!plano.until || new Date(plano.until).getTime() > Date.now());
+  if (!proValido) {
+    return resp(403, { error: "O retrato por IA é do plano Pro.", motivo: "pro" });
+  }
+
+  const refPath = body.referencia ? String(body.referencia) : "";
+  /* a referencia so' pode ser da PROPRIA pasta. Sem isto, um Pro qualquer
+     le a foto pessoal de outro passando o path dele. */
+  if (refPath && !refPath.startsWith(uid + "/")) {
+    return resp(403, { error: "Referência fora da sua pasta." });
+  }
+
+  /* COTA ANTES DA OPENAI: cobra primeiro, gera depois. O contrario deixaria
+     a corrida entre duas abas gerar de graca. */
+  const { data: usadas, error: cotaErr } = await admin
+    .schema("elifoot_v3").rpc("coach_avatar_consumir", { p_user: uid, p_teto: TETO_GERACOES });
+  if (cotaErr) {
+    console.error("cota falhou:", cotaErr.message);
+    return resp(500, { error: "Não consegui conferir a sua cota." });
+  }
+  if (usadas == null) {
+    return resp(429, { error: `Você já usou as ${TETO_GERACOES} gerações de retrato desta conta.`, motivo: "cota" });
+  }
+
+  /* o retorno da cota ja' foi consumido: daqui pra baixo, TODA saida passa
+     pelo finally que apaga a referencia. */
+  try {
+    const prompt = montarPrompt(genero, estilo, idade, !!refPath);
+    let oa: Response;
+
+    if (refPath) {
+      const baixada = await admin.storage.from(BUCKET_REF).download(refPath);
+      if (baixada.error || !baixada.data) {
+        return resp(400, { error: "Não encontrei a foto de referência que você enviou." });
+      }
+      const blob = baixada.data;
+      if (blob.size > REF_MAX_BYTES) return resp(400, { error: "A foto de referência é grande demais (máx. 8 MB)." });
+
+      const form = new FormData();
+      form.append("model", "gpt-image-1");
+      form.append("prompt", prompt);
+      form.append("n", "1");
+      form.append("size", TAMANHO);
+      form.append("quality", QUALIDADE);
+      form.append("output_format", FORMATO);
+      form.append("output_compression", String(COMPRESSAO));
+      form.append("image[]", new File([blob], "referencia", { type: blob.type || "image/webp" }));
+      oa = await fetch("https://api.openai.com/v1/images/edits", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${OPENAI_KEY}` },
+        body: form,
+      });
+    } else {
+      oa = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gpt-image-1", prompt, n: 1, size: TAMANHO, quality: QUALIDADE,
+          background: "opaque", output_format: FORMATO, output_compression: COMPRESSAO,
+        }),
+      });
+    }
+
+    if (!oa.ok) {
+      const detalhe = await oa.text().catch(() => "");
+      console.error("OpenAI falhou:", oa.status, detalhe.slice(0, 500));
+      let msg = `OpenAI respondeu ${oa.status}.`;
+      try { msg = JSON.parse(detalhe)?.error?.message || msg; } catch { /* texto cru */ }
+      return resp(502, { error: msg });
+    }
+    const out = await oa.json();
+    const b64 = out?.data?.[0]?.b64_json;
+    if (!b64) return resp(502, { error: "OpenAI não devolveu imagem." });
+
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const caminho = `${uid}/${estilo}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${FORMATO}`;
+    const up = await admin.storage.from(BUCKET_SAIDA).upload(caminho, bytes, {
+      contentType: CONTENT_TYPE, cacheControl: "31536000", upsert: false,
+    });
+    if (up.error) {
+      console.error("Upload falhou:", up.error.message);
+      return resp(500, { error: "Retrato gerado, mas o upload falhou: " + up.error.message });
+    }
+    const publica = admin.storage.from(BUCKET_SAIDA).getPublicUrl(caminho).data.publicUrl;
+
+    const { error: gravaErr } = await admin
+      .schema("elifoot_v3").from("coach_avatars")
+      .update({ url: publica, estilo, genero }).eq("user_id", uid);
+    if (gravaErr) {
+      console.error("gravar avatar falhou:", gravaErr.message);
+      return resp(500, { error: "Retrato gerado, mas não consegui salvá-lo no seu perfil." });
+    }
+
+    /* custo REGISTRADO na mesma tabela do Estudio — os cards de Financas do
+       painel ja' somam ia_custos, entao o gasto do jogador aparece la' sem
+       nenhum trabalho a mais. */
+    const { error: logErr } = await admin.schema("elifoot_v3").from("ia_custos").insert({
+      tipo: "treinador", qualidade: QUALIDADE, tamanho: TAMANHO, custo_usd: CUSTO_USD, quem: uid,
+    });
+    if (logErr) console.error("registro de custo falhou:", logErr.message);
+
+    return resp(200, { url: publica, geracoes: usadas, restam: Math.max(0, TETO_GERACOES - usadas) });
+  } finally {
+    /* A PROMESSA FEITA AO JOGADOR: a foto pessoal sai do nosso lado. Aqui e'
+       o unico lugar que a cumpre, e por isso esta' no finally — erro da
+       OpenAI, falha de upload ou retorno cedo nao podem deixar rosto para
+       tras. Falhar ao apagar e' log, nunca resposta: o retrato ja' foi. */
+    if (refPath) {
+      const rm = await admin.storage.from(BUCKET_REF).remove([refPath]);
+      if (rm.error) console.error("NAO APAGUEI a referencia:", refPath, rm.error.message);
+    }
+  }
+});

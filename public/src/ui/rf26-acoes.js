@@ -19,7 +19,11 @@ function rfAcao(o){
   const larg=o.w||520;
   const rodape = (o.acoes||[]).map(a=>{
     const cls = a.tom==='perigo' ? 'perigo' : a.tom==='fantasma' ? 'fantasma' : 'cta';
-    return `<button type="button" class="rf-ac-bt ${cls}" onclick="${a.on||'rfAcFechar()'}">${a.l}</button>`;
+    /* `trava` nasce DESLIGADO e alguem no corpo do dialogo acende (hoje: o
+       aceite dos termos, que so' acende quando a leitura chega ao fim). O
+       data-* e' a alca para esse alguem encontrar o botao. */
+    const trava = a.trava ? ` disabled data-${a.trava}` : '';
+    return `<button type="button" class="rf-ac-bt ${cls}"${trava} onclick="${a.on||'rfAcFechar()'}">${a.l}</button>`;
   });
   // um botão só fica à direita; dois abrem-se nas pontas
   const barra = rodape.length>1
@@ -1169,6 +1173,181 @@ const RF_ACOES_EXTRA = {
 
 };
 Object.keys(RF_ACOES_EXTRA).forEach(k=>{ RF_ACOES[k]=RF_ACOES_EXTRA[k]; });
+
+/* =====================================================================
+   RETRATO DO TREINADOR POR IA (assinante Pro) + PORTAO LEGAL
+   ---------------------------------------------------------------------
+   Dois dialogos que andam juntos:
+   · 'avatarIA'     — escolhe a roupa, opcionalmente anexa uma foto, gera;
+   · 'avatarTermos' — o portao de leitura obrigatoria que LIBERA o anexo.
+
+   A foto so' pode ser anexada depois do aceite, e o aceite so' acende depois
+   de a pessoa rolar o texto ate' o fim. Nao e' burocracia decorativa: e' o
+   unico momento em que ela e' avisada de que a imagem vai para uma empresa
+   de IA que nao e' a gente e sobre a qual nao temos controle.
+   ===================================================================== */
+const RF_TERMOS_VERSAO='2026-08-imagem-1';
+const RF_AV_ROUPAS=[['terno','Terno de beira de campo'],['agasalho','Agasalho do clube'],
+                    ['polo','Polo'],['blazer','Blazer casual'],['retro90','Retrô anos 90']];
+const RF_TERMOS_TEXTO=[
+  'Enviar uma imagem pessoal é de responsabilidade única e exclusiva do usuário.',
+  'A PB Games não se responsabiliza por essa ação.',
+  'A imagem é enviada a um serviço de inteligência artificial de terceiros, sem nenhuma relação com o RetroFoot98, e o tratamento que essas empresas dão às imagens não está sob nosso controle nem é de nossa responsabilidade.',
+  'A imagem enviada é apagada dos nossos servidores logo após a geração do retrato.',
+  'Não envie fotos de terceiros nem de menores de idade.'
+];
+function rfAvIA(){ return (CL.avIA = CL.avIA || { estilo:'terno', arquivo:null, caminho:null, aceito:false, gerando:false, erro:null, usadas:0, teto:6 }); }
+const rfAvTamanho = b => b<1024*1024 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1).replace('.',',')+' MB';
+
+/* abre o dialogo e carrega, de uma vez, cota e aceite ja' registados */
+async function rfAvatarIA(){
+  const a=rfAvIA(); a.erro=null; a.gerando=false;
+  rfAcAbrir('avatarIA');
+  if(typeof NET!=='undefined' && NET.coachAvatarGet){
+    const r=await NET.coachAvatarGet();
+    if(r){ a.usadas=r.geracoes||0; a.aceito=(r.termos_versao===RF_TERMOS_VERSAO); }
+    if(CL.acao && CL.acao.id==='avatarIA') cdraw();
+  }
+}
+function rfAvIAEstilo(k){ rfAvIA().estilo=k; cdraw(); }
+function rfAvIATermos(){ rfAcAbrir('avatarTermos'); }
+
+/* o botao de aceite so' acende no FIM do texto. A folga de 4px existe porque
+   com zoom do navegador a conta bate em 1153.6 vs 1154 e o botao nunca
+   acenderia — o portao viraria uma parede. */
+function rfAvTermosRolou(el){
+  if(el.scrollTop + el.clientHeight < el.scrollHeight - 4) return;
+  const dlg=el.closest('.rf-ac'); if(!dlg) return;
+  const bt=dlg.querySelector('[data-av-aceitar]');
+  if(bt && bt.disabled){
+    bt.disabled=false;
+    const sombra=dlg.querySelector('[data-av-sombra]');
+    if(sombra) sombra.style.display='none';
+  }
+}
+async function rfAvTermosAceitar(){
+  rfAvIA().aceito=true;
+  rfAcAbrir('avatarIA');
+  if(typeof NET!=='undefined' && NET.coachAvatarSet)
+    await NET.coachAvatarSet({ termos_versao:RF_TERMOS_VERSAO, termos_em:new Date().toISOString() });
+}
+function rfAvIAArquivo(input){
+  const a=rfAvIA(), f=input.files&&input.files[0];
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ a.erro='Isso não é uma imagem.'; cdraw(); return; }
+  if(f.size > 8*1024*1024){ a.erro='A foto passa de 8 MB. Escolha uma menor.'; cdraw(); return; }
+  a.arquivo=f; a.erro=null; cdraw();
+}
+function rfAvIARemover(){
+  const a=rfAvIA();
+  if(a.caminho && typeof NET!=='undefined' && NET.coachAvatarRefApagar) NET.coachAvatarRefApagar(a.caminho);
+  a.arquivo=null; a.caminho=null; cdraw();
+}
+async function rfAvIAGerar(){
+  const a=rfAvIA();
+  if(a.gerando) return;
+  a.gerando=true; a.erro=null; cdraw();
+  let caminho=null;
+  try{
+    if(a.arquivo){
+      const up=await NET.coachAvatarRef(a.arquivo);
+      if(up.error) throw new Error('Não consegui enviar a foto: '+up.error);
+      caminho=up.caminho; a.caminho=caminho;
+    }
+    const r=await NET.coachAvatarGerar({ genero:(CL.coachGender==='f')?'f':'m',
+      estilo:a.estilo, idade:(typeof rfIdadeTreinadorValida==='function')?rfIdadeTreinadorValida():40,
+      referencia:caminho||undefined });
+    if(r.error) throw new Error(r.error);
+    /* daqui em diante a referencia JA' FOI APAGADA pelo servidor: limpar o
+       rascunho local para nao reenviar a mesma foto sem querer. */
+    a.arquivo=null; a.caminho=null;
+    a.usadas=r.geracoes||(a.usadas+1);
+    CL.coachAvatar=r.url; CL.coachGender=(CL.coachGender==='f')?'f':'m';
+    rfAcFechar();
+  }catch(err){
+    /* a foto so' e' apagada pelo servidor QUANDO a geracao chega la'. Se
+       quebrou antes (upload feito, rede caiu), ela ficaria parada no bucket
+       privado — e a promessa ao jogador era que nao fica. */
+    if(caminho && typeof NET!=='undefined' && NET.coachAvatarRefApagar){
+      NET.coachAvatarRefApagar(caminho); a.caminho=null;
+    }
+    a.erro=err.message||'Não consegui gerar o retrato.';
+    a.gerando=false; cdraw();
+  }
+}
+
+const RF_ACOES_AVATAR = {
+
+'avatarIA': ()=>{
+  const a=rfAvIA();
+  const restam=Math.max(0, a.teto-a.usadas);
+  const cota=`${a.usadas} de ${a.teto} gerações usadas`;
+  if(a.gerando){
+    return rfAcao({ kicker:'TREINADOR', titulo:'Crie o seu retrato', w:520, fechar:'',
+      corpo:`<div class="rf-av-gerando">
+          <span class="rf-av-esqueleto"></span>
+          <b>Desenhando o seu retrato…</b>
+          <span>normalmente até 1 min</span>
+        </div>
+        <div class="rf-av-rodape"><span class="rf-av-cota">${escC(cota)}</span></div>`,
+      acoes:[{l:'Gerando…',on:''}] });
+  }
+  const anexo = a.arquivo
+    ? `<div class="rf-av-arq">
+         <span class="rf-av-arq-i">🖼️</span>
+         <span class="rf-av-arq-id">
+           <b>${escC(a.arquivo.name)}</b>
+           <span>${escC(rfAvTamanho(a.arquivo.size))} · pronta para enviar</span>
+         </span>
+         <button type="button" class="rf-av-arq-x" onclick="rfAvIARemover()">remover</button>
+       </div>`
+    : a.aceito
+      ? `<label class="rf-av-drop">
+           <input type="file" accept="image/*" onchange="rfAvIAArquivo(this)">
+           <span class="rf-av-drop-i">＋</span>
+           <span>Escolher uma foto</span>
+         </label>`
+      : `<div class="rf-av-drop travado">
+           <span class="rf-av-drop-i">🔒</span>
+           <span>Leia e aceite os termos para enviar uma foto</span>
+           <button type="button" class="rf-av-link" onclick="rfAvIATermos()">Ler os termos</button>
+         </div>`;
+  return rfAcao({ kicker:'TREINADOR', titulo:'Crie o seu retrato', w:560,
+    corpo:`
+      <div class="rf-label"><span class="rf-label-t">ESTILO DA ROUPA</span></div>
+      <div class="rf-esc-grid tres rf-av-roupas">
+        ${RF_AV_ROUPAS.map(([k,l])=>`<div class="rf-esc ${a.estilo===k?'on':''}"
+            onclick="rfAvIAEstilo('${k}')" role="button" tabindex="0"><span class="rf-esc-t">${escC(l)}</span></div>`).join('')}
+      </div>
+      <div class="rf-label" style="margin-top:14px"><span class="rf-label-t">USAR UMA FOTO MINHA COMO REFERÊNCIA (OPCIONAL)</span></div>
+      ${anexo}
+      <div class="rf-av-nota">A foto vai para um serviço de IA de terceiros e é apagada dos nossos servidores logo depois.</div>
+      ${a.erro?`<div class="rf-av-erro">${escC(a.erro)}</div>`:''}
+      <div class="rf-av-rodape"><span class="rf-av-cota">${escC(cota)}</span></div>`,
+    acoes:[{l:'Cancelar',tom:'fantasma'},
+           {l: restam?'Gerar retrato':'Sem gerações', on: restam?'rfAvIAGerar()':''}] });
+},
+
+'avatarTermos': ()=>rfAcao({ kicker:'ENVIO DE FOTO', titulo:'Termos de imagem', w:520,
+  fechar:"rfAcAbrir('avatarIA')",
+  corpo:`
+    <div class="rf-av-termos-sub">Leia até o fim para liberar o envio da foto.</div>
+    <div class="rf-av-termos-cx">
+      <div class="rf-av-termos" onscroll="rfAvTermosRolou(this)">
+        ${RF_TERMOS_TEXTO.map(t=>`<p>${escC(t)}</p>`).join('')}
+        <p class="rf-av-termos-fim">✓ fim do texto</p>
+      </div>
+      <span class="rf-av-termos-sombra" data-av-sombra></span>
+      <span class="rf-av-termos-seta">↓ role até o fim</span>
+    </div>`,
+  acoes:[{l:'Não concordo',tom:'fantasma',on:"rfAcAbrir('avatarIA')"},
+         {l:'Li e concordo',on:'rfAvTermosAceitar()',trava:'av-aceitar'}] }),
+
+};
+/* direto em RF_ACOES: o laco que copia RF_ACOES_EXTRA roda ACIMA daqui, entao
+   registrar no EXTRA a esta altura nao chegaria ao roteador. */
+Object.keys(RF_ACOES_AVATAR).forEach(k=>{ RF_ACOES[k]=RF_ACOES_AVATAR[k]; });
+
 
 /* ===== O OVERRIDE =====
    As três funções antigas continuam a existir e a ser chamadas de vários

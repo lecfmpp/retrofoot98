@@ -82,6 +82,7 @@ jobs:
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/generate-image/index.ts --outfile=/dev/null --platform=neutral --format=esm
+          npx esbuild supabase/functions/coach-avatar/index.ts --outfile=/dev/null --platform=neutral --format=esm
 
       - uses: supabase/setup-cli@v1
         with:
@@ -90,7 +91,7 @@ jobs:
       # Deploy NOMEADO, não "todas": as outras funções do projeto (send-invite-email,
       # fetch-division-data, verify-round-result) não estão neste repositório, e um
       # deploy genérico poderia reescrever a configuração delas.
-      # Sem --no-verify-jwt de propósito: estas três exigem JWT (o padrão da CLI).
+      # Sem --no-verify-jwt de propósito: estas quatro exigem JWT (o padrão da CLI).
       # O CARIMBO DO MOTOR TEM QUE ESTAR EM DIA ANTES DE PUBLICAR. Se o servidor subir
       # com carimbo velho, ele grava esse carimbo no estado da sala e TODO cliente novo
       # se acha divergente — o aviso de recarga apareceria para quem está certo.
@@ -104,6 +105,7 @@ jobs:
           supabase functions deploy resolve-round --project-ref "$PROJECT_REF"
           supabase functions deploy kickoff-round --project-ref "$PROJECT_REF"
           supabase functions deploy generate-image --project-ref "$PROJECT_REF"
+          supabase functions deploy coach-avatar --project-ref "$PROJECT_REF"
 
       # send-password-reset é a EXCEÇÃO e vai sozinha: quem esqueceu a senha não tem
       # sessão, então ela precisa continuar pública. Sem --no-verify-jwt o deploy a
@@ -119,7 +121,7 @@ jobs:
       # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
       - name: Verificar que as funções sobem
         run: |
-          for fn in resolve-round kickoff-round generate-image; do
+          for fn in resolve-round kickoff-round generate-image coach-avatar; do
             ok=0
             for i in 1 2 3; do
               code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
