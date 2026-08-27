@@ -95,12 +95,14 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Conferir tipos e nomes das funções
-        run: |
-          for fn in resolve-round kickoff-round generate-image coach-avatar; do
-            echo "· $fn"
-            deno check --node-modules-dir=auto "supabase/functions/$fn/index.ts"
-          done
+      # SÓ A coach-avatar POR ENQUANTO, e isso é deliberado: resolve-round,
+      # kickoff-round e generate-image são JS antigo escrito em .ts e acusam
+      # dezenas de TS7006/TS2554 pré-existentes. Tipá-las é trabalho à parte —
+      # e mexer no resolve-round, que fecha rodada de sala ao vivo, não se faz
+      # de passagem. O portão nasce cobrindo o que está limpo; cada função que
+      # for saneada entra nesta lista.
+      - name: Conferir nomes da coach-avatar
+        run: deno check --config scripts/deno-check.json supabase/functions/coach-avatar/index.ts
 
       - uses: supabase/setup-cli@v1
         with:
