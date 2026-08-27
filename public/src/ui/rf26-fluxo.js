@@ -190,6 +190,10 @@ const rfAvChave=(g,i)=>g+(i+1);
 function rfAvFaceUrl(chave){
   return (window.RF_TREINADORES&&window.RF_TREINADORES[chave])||null;
 }
+/* coachAvatar guarda DUAS coisas: uma chave de face padrao (m1..f5) ou a URL
+   do retrato gerado por IA. Distinguir os dois e' o que faz o retrato gerado
+   aparecer selecionado — sem isto ele era gravado e a tela nao mudava nada. */
+const rfAvEhUrl = v => typeof v==='string' && /^(https?:|data:|\/)/.test(v);
 function rfAvCartaoHTML(g,i){
   const chave=rfAvChave(g,i), url=rfAvFaceUrl(chave);
   const on=(CL.coachAvatar===chave);
@@ -199,15 +203,38 @@ function rfAvCartaoHTML(g,i){
     <span class="rf-av-l">${escC(RF_AV_ESTILOS[i][1])}</span>
   </div>`;
 }
+/* O AVATAR E' DA CONTA, NAO DO SAVE: quem ja' gerou (ou ja' escolheu) tem de
+   reencontrar o seu retrato em todo save novo, e depois de um F5. Sem esta
+   carga o retrato gerado vivia so' na memoria da sessao e desaparecia da tela
+   no recarregamento — parecia que a geracao paga tinha se perdido.
+   Uma vez por sessao, e o desenho nao espera por ela: chega, redesenha. */
+let RF_AV_CARREGADO=false;
+function rfAvatarCarregar(){
+  if(RF_AV_CARREGADO) return;
+  RF_AV_CARREGADO=true;
+  if(typeof NET==='undefined' || !NET.coachAvatarGet) return;
+  NET.coachAvatarGet().then(r=>{
+    if(!r) return;
+    if(r.genero && !CL.coachGender) CL.coachGender=r.genero;
+    if(!CL.coachAvatar && (r.url||r.preset)) CL.coachAvatar=r.url||r.preset;
+    if(CL.screen==='jogadores') cdraw();
+  }).catch(()=>{});
+}
 function rfAvatarBlocoHTML(){
+  rfAvatarCarregar();
   const g=rfAvGenero();
   const pro=!!((typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus().pro:false);
-  const cartaoIA=`<div class="rf-esc rf-av-ia ${pro?'':'off'}"
+  /* O RETRATO GERADO MORA NESTE CARTAO. Ele nasceu so' com um icone fixo, e o
+     resultado da geracao nao aparecia em lugar nenhum: o dialogo fechava e a
+     tela ficava igual — parecia que o botao nao tinha feito nada. */
+  const meu = rfAvEhUrl(CL.coachAvatar) ? CL.coachAvatar : null;
+  const cartaoIA=`<div class="rf-esc rf-av-ia ${meu?'on':''} ${pro?'':'off'}"
       ${pro?`onclick="rfAvatarIA()" role="button" tabindex="0"`:''}
-      title="${pro?'Crie o seu retrato com IA':'O retrato por IA é do plano Pro'}">
+      aria-pressed="${meu?'true':'false'}"
+      title="${pro?(meu?'Refazer o seu retrato':'Crie o seu retrato com IA'):'O retrato por IA é do plano Pro'}">
     ${pro?'':'<span class="rf-esc-tag">Pro</span>'}
-    <span class="rf-av-face">${pro?'✦':'🔒'}</span>
-    <span class="rf-av-l">Criar a minha<br>com IA</span>
+    <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`:(pro?'✦':'🔒')}</span>
+    <span class="rf-av-l">${meu?'A minha<br>(refazer)':'Criar a minha<br>com IA'}</span>
   </div>`;
   return `<div class="rf-av-bloco">
     <div class="rf-av-hd">
@@ -229,7 +256,9 @@ function rfAvatarBlocoHTML(){
 function rfAvatarGenero(g){
   if(rfAvGenero()===g) return;
   CL.coachGender=g;
-  if(CL.coachAvatar && /^[mf]\d$/.test(CL.coachAvatar)) CL.coachAvatar=null;
+  /* so' larga FACE PADRAO: f3 nao existe do lado masculino. O retrato gerado
+     por IA fica — custou dinheiro e e' unico, nao se joga fora num clique. */
+  if(CL.coachAvatar && !rfAvEhUrl(CL.coachAvatar)) CL.coachAvatar=null;
   cdraw();
 }
 function rfAvatarSel(chave){
