@@ -44,9 +44,11 @@ jobs:
           cache: npm
 
       # PORTÃO: um erro de sintaxe aqui derruba a resolução de rodada de todas as salas
-      # em andamento. `deno check` não serve (quebra resolvendo tipos de uma dependência
-      # alheia, npm:openai do edge-runtime.d.ts); o esbuild que já vem com o vite faz o
-      # parse completo do TS, que é o que interessa.
+      # em andamento. O esbuild que já vem com o vite faz o parse completo do TS.
+      # NOTA (27/08): aqui dizia que `deno check` "não serve" porque quebrava a resolver
+      # tipos de uma dependência alheia (npm:openai do edge-runtime.d.ts). É verdade sem
+      # flag — e `--node-modules-dir=auto` resolve. Ele voltou, mais abaixo, porque
+      # esbuild NÃO vê nome indefinido, e foi assim que a coach-avatar subiu quebrada.
       - name: Instalar dependências
         run: npm ci
 
@@ -83,6 +85,22 @@ jobs:
           npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/generate-image/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/coach-avatar/index.ts --outfile=/dev/null --platform=neutral --format=esm
+
+      # ESBUILD SÓ VÊ SINTAXE. Uma constante APAGADA por engano passa por ele sem
+      # um pio e só aparece em produção, como ReferenceError em tempo de execução
+      # — foi exatamente o que derrubou a coach-avatar (TETO_GERACOES apagada num
+      # recorte de texto largo demais, deploy verde, 500 sem CORS para o jogador).
+      # `deno check` é quem acusa nome que não existe. O smoke test abaixo também
+      # não pega: ele só chega ao 401, muito antes destas linhas.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Conferir tipos e nomes das funções
+        run: |
+          for fn in resolve-round kickoff-round generate-image coach-avatar; do
+            echo "· $fn"
+            deno check --node-modules-dir=auto "supabase/functions/$fn/index.ts"
+          done
 
       - uses: supabase/setup-cli@v1
         with:

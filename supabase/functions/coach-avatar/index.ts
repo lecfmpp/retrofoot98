@@ -38,8 +38,11 @@ const ESTILOS: Record<string, string> = {
   agasalho: "a technical zip-up training tracksuit jacket in dark navy blue",
   polo:     "a plain fitted training polo shirt in light heather grey",
   blazer:   "a casual unstructured beige blazer over an open-collar shirt, no tie",
-  retro:    "an oversized 1990s coach shell jacket in dark navy blue, era-accurate cut",
+  retro90:  "an oversized 1990s coach shell jacket in dark navy blue, era-accurate cut",
 };
+/* apelido: o cliente antigo em cache ainda manda "retro". Aceitar os dois
+   custa uma linha e evita 400 em quem nao recarregou a pagina. */
+ESTILOS.retro = ESTILOS.retro90;
 
 /* ===== A CARA NAO PODE SAIR TRISTE =====
    Sem pedir a expressao, o modelo escorrega para "serio", e "serio" vira boca
@@ -61,6 +64,13 @@ const NUNCA = "NEVER sad, gloomy, melancholic, tired or defeated: no downturned 
    Pedir o escudo no prompt nao funciona: gpt-image-1 nao reproduz marca nem
    texto, ele INVENTA um brasao ilegivel. A peca nasce vazia e o escudo e a
    marca entram por CIMA, como camada — mesma solucao do uniforme do jogador. */
+const BUCKET_SAIDA = "treinadores";
+const BUCKET_REF   = "referencias-treinador";
+const TAMANHO = "1024x1024", FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80;
+const QUALIDADE = "medium", CUSTO_USD = 0.042;   // tabela do gpt-image-1: 1024x1024 medium
+const TETO_GERACOES = 6;
+const REF_MAX_BYTES = 8 * 1024 * 1024;
+
 const ROUPA_LIMPA = "The garment is COMPLETELY CLEAN: no crest, no badge, no sponsor, no brand mark, "
   + "no text, no numbers, no logos and no embroidery of any kind, anywhere — not on the chest, "
   + "not on the collar, not on the sleeves. Plain fabric only, because the crest and the brand "

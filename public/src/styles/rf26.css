@@ -4208,6 +4208,28 @@
 .rf-av-nota{margin-top:10px;font-size:var(--fs-label);color:var(--text-faint);line-height:1.55}
 .rf-av-rodape{margin-top:12px;display:flex;justify-content:flex-end}
 .rf-av-cota{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-faint)}
+
+/* ===== O RETRATO PRONTO, NA MESMA TELA =====
+   Fechar o dialogo no sucesso mandava o jogador procurar uma miniatura de 90px
+   na grade la' atras. Quem acabou de gastar uma geracao ve' o resultado grande,
+   aqui, e decide: fica ou refaz. */
+.rf-av-pronto{display:flex;flex-direction:column;align-items:center;gap:12px}
+.rf-av-grande{position:relative;display:block;width:min(260px,62vw);aspect-ratio:1/1;
+  border-radius:18px;overflow:hidden;background:var(--surface-sunken);cursor:zoom-in}
+.rf-av-grande > img:not(.rf-av-cam){width:100%;height:100%;object-fit:cover;display:block}
+.rf-av-grande > img.rf-av-cam{position:absolute;height:auto;object-fit:contain;display:block}
+.rf-av-lupa{position:absolute;left:50%;transform:translateX(-50%);bottom:10px;
+  background:#0009;color:#fff;border-radius:var(--r-pill);padding:5px 12px;
+  font-size:var(--fs-label);font-weight:var(--fw-semibold);white-space:nowrap;pointer-events:none}
+.rf-av-pronto-t{font-size:var(--fs-body-sm);color:var(--text-3);text-align:center;line-height:1.55}
+/* o lightbox fica ACIMA do dialogo (rf-ac-fundo), nao no lugar dele */
+.rf-av-lb{position:fixed;inset:0;z-index:10050;background:#000d;display:flex;
+  align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.rf-av-lb-q{position:relative;display:block;width:min(80vh,92vw);aspect-ratio:1/1;
+  border-radius:16px;overflow:hidden;box-shadow:0 20px 60px #000}
+.rf-av-lb-q > img:not(.rf-av-cam){width:100%;height:100%;object-fit:cover;display:block}
+.rf-av-lb-q > img.rf-av-cam{position:absolute;height:auto;object-fit:contain;display:block}
+.rf-av-lb-x{position:absolute;top:14px;right:20px;font-size:26px;color:#fff9;line-height:1}
 .rf-av-erro{margin-top:10px;padding:10px 12px;border-radius:var(--r-control);
   background:var(--negativo-soft,rgba(192,57,43,.1));color:var(--negativo,#c0392b);
   font-size:var(--fs-body-sm);line-height:1.5}

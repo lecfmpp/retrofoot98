@@ -1201,7 +1201,7 @@ const rfAvTamanho = b => b<1024*1024 ? (b/1024).toFixed(0)+' KB' : (b/1048576).t
 
 /* abre o dialogo e carrega, de uma vez, cota e aceite ja' registados */
 async function rfAvatarIA(){
-  const a=rfAvIA(); a.erro=null; a.gerando=false;
+  const a=rfAvIA(); a.erro=null; a.gerando=false; a.resultado=null;
   rfAcAbrir('avatarIA');
   if(typeof NET!=='undefined' && NET.coachAvatarGet){
     const r=await NET.coachAvatarGet();
@@ -1210,6 +1210,22 @@ async function rfAvatarIA(){
   }
 }
 function rfAvIAEstilo(k){ rfAvIA().estilo=k; cdraw(); }
+/* AMPLIAR: por cima do dialogo, sem substitui-lo — rfAcAbrir trocaria o
+   dialogo do retrato e o jogador perderia os botoes de decidir. */
+function rfAvAmpliar(){
+  const url=rfAvIA().resultado;
+  if(!url) return;
+  const lb=document.createElement('div');
+  lb.className='rf-av-lb';
+  lb.innerHTML=`<span class="rf-av-lb-q">
+      <img src="${escC(url)}" alt="Seu retrato de treinador">${(typeof rfAvCamadasHTML==='function')?rfAvCamadasHTML(null):''}
+    </span><span class="rf-av-lb-x" aria-hidden="true">✕</span>`;
+  const fecha=()=>{ lb.remove(); document.removeEventListener('keydown', esc, true); };
+  const esc=e=>{ if(e.key==='Escape'){ e.stopImmediatePropagation(); fecha(); } };
+  lb.onclick=fecha;
+  document.addEventListener('keydown', esc, true);
+  document.body.appendChild(lb);
+}
 function rfAvIATermos(){ rfAcAbrir('avatarTermos'); }
 
 /* o botao de aceite so' acende no FIM do texto. A folga de 4px existe porque
@@ -1246,7 +1262,7 @@ function rfAvIARemover(){
 async function rfAvIAGerar(){
   const a=rfAvIA();
   if(a.gerando) return;
-  a.gerando=true; a.erro=null; cdraw();
+  a.gerando=true; a.erro=null; a.resultado=null; cdraw();
   let caminho=null;
   try{
     if(a.arquivo){
@@ -1263,7 +1279,10 @@ async function rfAvIAGerar(){
     a.arquivo=null; a.caminho=null;
     a.usadas=r.geracoes||(a.usadas+1);
     CL.coachAvatar=r.url; CL.coachGender=(CL.coachGender==='f')?'f':'m';
-    rfAcFechar();
+    /* NAO FECHA. Fechando, o retrato so' aparecia como miniatura de 90px la'
+       atras na grade — quem acabou de pagar uma geracao quer VER o que saiu,
+       grande, na mesma tela, e decidir se fica ou refaz. */
+    a.resultado=r.url; a.gerando=false; cdraw();
   }catch(err){
     /* a foto so' e' apagada pelo servidor QUANDO a geracao chega la'. Se
        quebrou antes (upload feito, rede caiu), ela ficaria parada no bucket
@@ -1282,6 +1301,22 @@ const RF_ACOES_AVATAR = {
   const a=rfAvIA();
   const restam=Math.max(0, a.teto-a.usadas);
   const cota=`${a.usadas} de ${a.teto} gerações usadas`;
+  /* ===== PRONTO: o retrato grande, na mesma tela ===== */
+  if(a.resultado){
+    return rfAcao({ kicker:'TREINADOR', titulo:'Ficou assim', w:520,
+      corpo:`<div class="rf-av-pronto">
+          <span class="rf-av-grande" onclick="rfAvAmpliar()" role="button" tabindex="0"
+                title="Ampliar">
+            <img src="${escC(a.resultado)}" alt="Seu retrato de treinador">
+            ${(typeof rfAvCamadasHTML==='function')?rfAvCamadasHTML(null):''}
+            <span class="rf-av-lupa">⤢ ampliar</span>
+          </span>
+          <span class="rf-av-pronto-t">Este é o seu treinador. Toque na foto para ver maior.</span>
+        </div>
+        <div class="rf-av-rodape"><span class="rf-av-cota">${escC(cota)}</span></div>`,
+      acoes:[{l: restam?'Gerar outro':'Sem gerações', tom:'fantasma', on: restam?'rfAvIAGerar()':''},
+             {l:'Usar este retrato', on:'rfAcFechar()'}] });
+  }
   if(a.gerando){
     return rfAcao({ kicker:'TREINADOR', titulo:'Crie o seu retrato', w:520, fechar:'',
       corpo:`<div class="rf-av-gerando">
