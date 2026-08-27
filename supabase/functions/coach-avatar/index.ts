@@ -34,12 +34,48 @@ function resp(status: number, body: unknown) {
 /* os 5 estilos de roupa — mesma forma do ESTILOS_CAMISA do painel:
    [chave] -> frase que entra no prompt. Mexer aqui muda o jogo todo. */
 const ESTILOS: Record<string, string> = {
-  terno:    "a sharp dark tailored suit with a tie",
-  agasalho: "a technical zip-up training tracksuit jacket",
-  polo:     "a plain fitted training polo shirt",
-  blazer:   "a casual unstructured blazer over an open-collar shirt, no tie",
-  retro:    "an oversized 1990s coach shell jacket, era-accurate cut",
+  terno:    "a sharp dark charcoal tailored suit with a tie",
+  agasalho: "a technical zip-up training tracksuit jacket in dark navy blue",
+  polo:     "a plain fitted training polo shirt in light heather grey",
+  blazer:   "a casual unstructured beige blazer over an open-collar shirt, no tie",
+  retro:    "an oversized 1990s coach shell jacket in dark navy blue, era-accurate cut",
 };
+
+/* ===== A CARA NAO PODE SAIR TRISTE =====
+   Sem pedir a expressao, o modelo escorrega para "serio", e "serio" vira boca
+   caida e olhar baixo. Aqui a expressao e' sorteada entre cinco boas — o que
+   da' variedade a quem refaz — e o que nao se quer e' proibido por escrito:
+   dizer so' "sorria" nao resolve, porque o defeito mora na metade seria. */
+const EXPRESSOES = [
+  "a calm, composed neutral expression, mouth relaxed and level",
+  "a serious and focused expression, confident and alert — composed, never downcast",
+  "a light closed-mouth smile, friendly and relaxed",
+  "a warm open smile showing teeth, genuinely cheerful",
+  "a confident half-smile, one corner of the mouth slightly raised",
+];
+const NUNCA = "NEVER sad, gloomy, melancholic, tired or defeated: no downturned mouth corners, "
+  + "no furrowed worried brow, no drooping eyelids, no downcast gaze. The eyes look straight at "
+  + "the camera, open and engaged, and the posture is upright and self-assured.";
+
+/* ===== A MARCA NA ROUPA =====
+   So' nas pecas que de verdade levam bordado no peito. Terno e blazer ficam
+   limpos: forcar brasao em lapela so' produz adesivo torto.
+   A COR SEGUE O TECIDO — branco em roupa escura, marinho em roupa clara. */
+const ESCUDO = "a shield-shaped embroidered crest containing one large stylized handwritten letter M, "
+  + "with three small five-pointed stars in a row just above the shield";
+const TOM_DA_PECA: Record<string, "escuro" | "claro"> = {
+  agasalho: "escuro", polo: "claro", retro: "escuro",
+};
+function textoMarca(estilo: string): string {
+  const tom = TOM_DA_PECA[estilo];
+  if (!tom) return "The garment is completely plain: no crest, no badge, no sponsor, no text, no logos anywhere.";
+  const cor = tom === "escuro" ? "WHITE" : "NAVY BLUE";
+  return [
+    `On the wearer's left chest, ${ESCUDO}, embroidered in flat ${cor}, small — about the size of a real club crest.`,
+    `On the wearer's right chest, the single word "RETROFOOT" embroidered in small, clean, upright ${cor} capital letters, spelled exactly like that.`,
+    "Both marks are flat embroidery that follows the folds of the fabric. No other logos, no other text, nothing else anywhere on the garment.",
+  ].join(" ");
+}
 
 const BUCKET_SAIDA = "treinadores";
 const BUCKET_REF   = "referencias-treinador";
@@ -61,8 +97,12 @@ function faixaEtaria(idade: number): string {
 function montarPrompt(genero: string, estilo: string, idade: number, comReferencia: boolean) {
   const quem = genero === "f" ? "woman" : "man";
   const roupa = ESTILOS[estilo];
+  const expressao = EXPRESSOES[Math.floor(Math.random() * EXPRESSOES.length)];
   const base = [
     `Hyper-realistic studio portrait of a fictional professional football MANAGER, a ${quem} ${faixaEtaria(idade)}, wearing ${roupa}.`,
+    `The face has ${expressao}.`,
+    NUNCA,
+    textoMarca(estilo),
     "Head and shoulders, facing the camera directly, official club media day photo style.",
     "Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.",
     "The head is centered and fills about half of the frame height.",

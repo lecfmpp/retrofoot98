@@ -4811,12 +4811,15 @@ const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do
    ja' varre a tabela inteira do pacote (ver src/net/dados.js).
    ===================================================================== */
 const TREINADOR_KEY = '__treinador__';
+/* O TOM DA PECA E' PARTE DA DESCRICAO, nao detalhe solto: a cor do bordado
+   depende dele (branco em escuro, marinho em claro). Deixar a cor a cargo do
+   modelo dava agasalho claro com escudo branco — bordado invisivel. */
 const ESTILOS_TREINADOR = [
-  ['terno',    'Terno',     'a sharp dark tailored suit with a tie'],
-  ['agasalho', 'Agasalho',  'a technical zip-up training tracksuit jacket'],
-  ['polo',     'Polo',      'a plain fitted training polo shirt'],
-  ['blazer',   'Blazer',    'a casual unstructured blazer over an open-collar shirt, no tie'],
-  ['retro90',  'Retrô 90',  'an oversized 1990s coach shell jacket, era-accurate cut']
+  ['terno',    'Terno',     'a sharp dark charcoal tailored suit with a tie'],
+  ['agasalho', 'Agasalho',  'a technical zip-up training tracksuit jacket in dark navy blue'],
+  ['polo',     'Polo',      'a plain fitted training polo shirt in light heather grey'],
+  ['blazer',   'Blazer',    'a casual unstructured beige blazer over an open-collar shirt, no tie'],
+  ['retro90',  'Retrô 90',  'an oversized 1990s coach shell jacket in dark navy blue, era-accurate cut']
 ];
 /* a chave da linha e' o que o save do jogador guarda: m1..m5 / f1..f5.
    A ORDEM de ESTILOS_TREINADOR define quem e' m1 — reordenar aquele array
@@ -4831,14 +4834,58 @@ const FACE_POOL = {
   cabelo: ['short greying hair','salt-and-pepper hair','short dark hair','completely bald head','shoulder-length dark hair'],
   idade:  ['in their late thirties','in their forties','in their late forties','in their fifties','in their late fifties']
 };
+
+/* ===== A CARA NAO PODE SAIR TRISTE =====
+   Sem dizer a expressao, o modelo escorrega para "serio" e "serio" vira boca
+   caida e olhar baixo — varias das primeiras faces pareciam abatidas. Aqui a
+   expressao e' PEDIDA, e o que nao se quer e' proibido por escrito: dizer so'
+   "sorria" nao resolve, porque o problema esta' na metade seria da grade. */
+const FACE_EXPRESSAO = [
+  'a calm, composed neutral expression, mouth relaxed and level',
+  'a serious and focused expression, confident and alert — composed, never downcast',
+  'a light closed-mouth smile, friendly and relaxed',
+  'a warm open smile showing teeth, genuinely cheerful',
+  'a confident half-smile, one corner of the mouth slightly raised'
+];
+const FACE_NUNCA = 'NEVER sad, gloomy, melancholic, tired or defeated: no downturned mouth corners, '
+  + 'no furrowed worried brow, no drooping eyelids, no downcast gaze. The eyes look straight at the '
+  + 'camera, open and engaged, and the posture is upright and self-assured.';
+
+/* ===== A MARCA NA ROUPA =====
+   So' entra onde uma peca de verdade levaria: agasalho, polo e casaco retro
+   tem peito para bordado; terno e blazer, nao. Forcar brasao em lapela de
+   terno so' produz aquele adesivo torto que o modelo inventa.
+
+   A COR SEGUE O TECIDO: escudo branco em roupa escura, azul-marinho em roupa
+   clara — e' a regra do proprio manual da marca, e sem ela o bordado some no
+   fundo. Por isso cada estilo declara se e' escuro ou claro. */
+const MARCA_ESCUDO = 'a shield-shaped embroidered crest containing one large stylized handwritten '
+  + 'letter M, with three small five-pointed stars in a row just above the shield';
+function textoMarca(estilo){
+  const CHASSI = { agasalho:'escuro', polo:'claro', retro90:'escuro' };
+  const tom = CHASSI[estilo];
+  if(!tom) return 'The garment is completely plain: no crest, no badge, no sponsor, no text, no logos anywhere.';
+  const cor = tom === 'escuro' ? 'WHITE' : 'NAVY BLUE';
+  return [
+    `On the wearer's left chest, ${MARCA_ESCUDO}, embroidered in flat ${cor}, small — about the size of a real club crest.`,
+    `On the wearer's right chest, the single word "RETROFOOT" embroidered in small, clean, upright ${cor} capital letters, spelled exactly like that.`,
+    'Both marks are flat embroidery that follows the folds of the fabric. No other logos, no other text, nothing else anywhere on the garment.'
+  ].join(' ');
+}
+
 function promptFaceTreinador(genero, i){
   const est = ESTILOS_TREINADOR[i];
   const quem = genero === 'f' ? 'woman' : 'man';
   const cab = genero === 'f'
     ? ['short dark bob','shoulder-length dark hair','curly shoulder-length hair','short greying hair','hair tied back in a ponytail'][i]
     : FACE_POOL.cabelo[i];
+  /* a expressao acompanha o indice: as cinco faces do mesmo genero saem com as
+     cinco expressoes, em vez de sortear e sair tres serias por acaso */
   return [
     `Hyper-realistic studio portrait of a fictional professional football MANAGER, a ${quem} ${FACE_POOL.idade[i]}, ${FACE_POOL.pele[i]}, ${cab}, wearing ${est[2]}.`,
+    `The face has ${FACE_EXPRESSAO[i]}.`,
+    FACE_NUNCA,
+    textoMarca(est[0]),
     'Head and shoulders, facing the camera directly, official club media day photo style.',
     'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
     'The head is centered and fills about half of the frame height.',
