@@ -5769,23 +5769,11 @@ const FOTO_DECOTE_LARG = 0.240;   // largura da abertura, fracao da largura do q
 const FOTO_DECOTE_FUNDO = 0.105;  // quanto ela desce, fracao da ALTURA do quadro
 const FOTO_DECOTE_SUAVE = 0.10;   // quanto da borda e' degrade (0 = corte seco)
 
-/* ===== A GOLA COMO PECA, NAO COMO BURACO =====
-   Recortar o decote resolvia o corte reto e criava outro problema: a faixa de
-   gola do molde e' pintada com a cor SECUNDARIA do clube (o estilo `mangas`
-   tem gola e punhos nela), e o recorte comia justamente essa parte. Mais: o
-   manequim e' o mesmo desenho para todos, entao ele nao respeita o estilo.
-
-   A gola passa a ser DESENHADA por cima — um anel eliptico na cor do clube,
-   com largura, altura e espessura proprias. Isso a torna independente do
-   manequim: da' para abrir mais, engrossar, mudar a cor, sem regerar imagem
-   nenhuma e sem depender do que o modelo entregou.
-
-   A ordem final e' cabeca -> camisa (com o decote aberto) -> gola. O decote
-   abre a passagem do pescoco; a gola fecha a volta dele. */
-const GOLA_LARG = 0.300;   // largura da abertura, fracao da largura do quadro
-const GOLA_ALT  = 0.026;   // profundidade da abertura, fracao da ALTURA do quadro
-const GOLA_ESP  = 0.011;   // espessura do anel, fracao da ALTURA do quadro
-const GOLA_COR  = 'b';     // 'b' = cor secundaria do clube, 'a' = principal
+/* A GOLA VEM PRONTA DO UNIFORME. Tentei desenha-la como camada propria — um
+   anel na cor do clube, com largura e espessura ajustaveis — e nao ficou bom:
+   um anel geometrico por cima de um colarinho desenhado le-se como remendo,
+   nao como gola. O molde ja' traz a faixa dela pintada; o decote raso so'
+   arredonda a borda e deixa a faixa aparecendo em volta. */
 
 /* ===== O QUADRO DA FICHA =====
    Estes dois sao a copia fiel de --rf-foto-larg e --rf-foto-topo em
@@ -5798,12 +5786,6 @@ const GOLA_COR  = 'b';     // 'b' = cor secundaria do clube, 'a' = principal
 const FICHA_ZOOM = 1.3158;   // largura da imagem dentro do quadrado
 const FICHA_TOPO = -0.0527;  // deslocamento do topo, fracao do lado do quadrado
 
-/* Devolve a cor do anel a partir das cores do clube guardadas no torso. */
-function golaCorDe(t, qual){
-  const c = (t && t.atributos && t.atributos.cores) || [];
-  const q = qual || GOLA_COR;
-  return (q === 'a' ? c[0] : c[1]) || c[0] || '#ffffff';
-}
 
 /* Monta a foto do jogador: manequim do clube + cabeca, sem escudo, sem
    patrocinador e sem fabricante. Canvas puro — nenhuma chamada de IA. */
@@ -5826,19 +5808,7 @@ function decoteCSS(topoCamisaNoQuadro){
   return `-webkit-mask-image:${g};mask-image:${g};`;
 }
 
-/* O MESMO anel, em SVG. O viewBox e' 100x150 — a proporcao do quadro 2:3 —
-   entao 1 unidade em x e 1 em y valem o mesmo, e o traco nao sai achatado
-   como sairia com preserveAspectRatio="none". */
-function golaSVG(topoCamisa, g){
-  if(!g || !(g.esp > 0)) return '';
-  const cx = 50, cy = topoCamisa*150;
-  const rx = (g.larg/2)*100, ry = g.alt*150, esp = g.esp*150;
-  return `<svg viewBox="0 0 100 150" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none">
-    <ellipse cx="${cx}" cy="${cy.toFixed(2)}" rx="${rx.toFixed(2)}" ry="${ry.toFixed(2)}"
-      fill="none" stroke="${h(g.cor||'#fff')}" stroke-width="${esp.toFixed(2)}"/></svg>`;
-}
-
-function composicaoFotoHTML(rostoUrl, manequimUrl, med, gola){
+function composicaoFotoHTML(rostoUrl, manequimUrl, med){
   const m = med || { topo:0.02, base:0.93, larg:0.52, cx:0.5 };
   const lw = FOTO_CABECA_LARG / m.larg;          // largura da imagem da cabeça, fracao da largura
   const lh = lw / RATIO_FOTO;                    // quadrada: a mesma medida em fracao da altura
@@ -5849,10 +5819,10 @@ function composicaoFotoHTML(rostoUrl, manequimUrl, med, gola){
       transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">`
    + (manequimUrl ? `<img src="${h(manequimUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);
       top:${((fimPescoco - FOTO_GOLA_SOBRE)*100).toFixed(3)}%;width:${(FOTO_CAMISA_LARG*100).toFixed(3)}%;z-index:2;${decoteCSS(fimPescoco - FOTO_GOLA_SOBRE)}">` : '')
-   + (gola ? golaSVG(fimPescoco - FOTO_GOLA_SOBRE, gola) : '');
+;
 }
 
-async function montarFotoJogador(rostoUrl, manequimUrl, medida, opcoes){
+async function montarFotoJogador(rostoUrl, manequimUrl, medida){
   const carregar = url => new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
     i.onload = () => ok(i); i.onerror = () => erro(new Error('não carreguei ' + url));
@@ -5903,19 +5873,6 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida, opcoes){
   }
   cx.drawImage(cv2, 0, 0);
 
-  /* A GOLA, por cima de tudo: anel na cor do clube em volta da abertura. Sem
-     ela a camisa fica com um buraco; com ela, com colarinho. */
-  if(opcoes && opcoes.gola !== false && GOLA_ESP > 0){
-    const g = Object.assign({ larg:GOLA_LARG, alt:GOLA_ALT, esp:GOLA_ESP, cor:'#ffffff' }, (opcoes&&opcoes.gola)||{});
-    const rx = (g.larg*FOTO_W)/2, ry = g.alt*FOTO_H;
-    cx.save();
-    cx.translate(FOTO_W/2, topoCamisa);
-    cx.scale(1, ry/rx);
-    cx.strokeStyle = g.cor;
-    cx.lineWidth = (g.esp*FOTO_H) * (rx/ry);   // a escala achata o traco: compensa
-    cx.beginPath(); cx.arc(0,0,rx,0,Math.PI*2); cx.stroke();
-    cx.restore();
-  }
 
   const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
   if(!blob) throw new Error('não consegui exportar a foto.');
@@ -7826,8 +7783,7 @@ async function reaproveitarFoto(orfa, clubeDestino, nome){
   const manequim = t && t.atributos && t.atributos.miniatura;
   if(manequim){
     at.medida = at.medida || await medirMolde(orfa.f.url);
-    const blob = await montarFotoJogador(orfa.f.url, manequim, at.medida,
-      { gola:{ larg:GOLA_LARG, alt:GOLA_ALT, esp:GOLA_ESP, cor:golaCorDe(t) } });
+    const blob = await montarFotoJogador(orfa.f.url, manequim, at.medida);
     const alvo = (D.catalogo||[]).find(x => String(x.c.id) === String(clubeDestino));
     const base = (alvo ? caminhoClube(alvo) : 'reuso') + '/jogadores/' + (chaveNome(nome)||'jogador');
     const caminho = `${base}-montagem-${Date.now()}.webp`;
@@ -7868,7 +7824,7 @@ function modalAcervo(item, p){
             border-radius:8px;overflow:hidden;background:#e8e8e4">
         <span style="position:absolute;left:50%;transform:translateX(-50%);top:${(FICHA_TOPO*100).toFixed(2)}%;
               width:${(FICHA_ZOOM*100).toFixed(2)}%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">
-          ${composicaoFotoHTML(o.f.url, manequim, med, { larg:GOLA_LARG, alt:GOLA_ALT, esp:GOLA_ESP, cor:golaCorDe(t) })}
+          ${composicaoFotoHTML(o.f.url, manequim, med)}
         </span>
       </span>
       <span style="display:block;margin-top:5px;font-size:11px;line-height:1.35;color:var(--dim)">
@@ -7927,7 +7883,6 @@ function modalEncaixeFoto(item, p){
   const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
                camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE,
                decL: FOTO_DECOTE_LARG, decF: FOTO_DECOTE_FUNDO, decS: FOTO_DECOTE_SUAVE,
-               gL: GOLA_LARG, gA: GOLA_ALT, gE: GOLA_ESP, gC: GOLA_COR,
                fZ: FICHA_ZOOM, fT: FICHA_TOPO };
   let med = null;
 
@@ -7965,19 +7920,6 @@ function modalEncaixeFoto(item, p){
             <input id="enf-decf" type="range" min="0" max="15" step="0.1" value="${(st.decF*100).toFixed(1)}"></label>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — suavidade</span>
             <input id="enf-decs" type="range" min="0" max="80" step="5" value="${(st.decS*100).toFixed(0)}"></label>
-          <div class="row" style="gap:8px;align-items:center;margin-top:2px">
-            <span class="tt" style="font-size:12px">Gola</span>
-            <select id="enf-gc" class="inp inp-sm" style="width:auto">
-              <option value="b">Cor secundária do clube</option>
-              <option value="a">Cor principal</option>
-            </select>
-          </div>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola — largura</span>
-            <input id="enf-gl" type="range" min="10" max="50" step="0.5" value="${(st.gL*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola — altura</span>
-            <input id="enf-ga" type="range" min="0.5" max="8" step="0.1" value="${(st.gA*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola — espessura</span>
-            <input id="enf-ge" type="range" min="0" max="4" step="0.1" value="${(st.gE*100).toFixed(1)}"></label>
           <div class="tt" style="font-size:12px;margin-top:4px">Quadro da Ficha (o de 52px)</div>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Ficha — aproximação</span>
             <input id="enf-fz" type="range" min="80" max="260" step="1" value="${(st.fZ*100).toFixed(0)}"></label>
@@ -8014,13 +7956,11 @@ function modalEncaixeFoto(item, p){
       ? (g => `-webkit-mask-image:${g};mask-image:${g};`)(
           `radial-gradient(ellipse ${largNaCamisa.toFixed(2)}% ${fundoNaCamisa.toFixed(2)}% at 50% 0%,transparent ${dentro}%,#000 100%)`)
       : '';
-    const gola = { larg:st.gL, alt:st.gA, esp:st.gE, cor:golaCorDe(t, st.gC) };
     const html =
       `<img src="${h(f.url)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
          transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">` +
       `<img src="${h(manequim)}" style="position:absolute;left:50%;transform:translateX(-50%);
-         top:${(topoCamisa*100).toFixed(3)}%;width:${(cw*100).toFixed(3)}%;z-index:2;${mascara}">` +
-      golaSVG(topoCamisa, gola);
+         top:${(topoCamisa*100).toFixed(3)}%;width:${(cw*100).toFixed(3)}%;z-index:2;${mascara}">`;
     return { html, fimPescoco, topoCamisa, chh };
   };
 
@@ -8047,10 +7987,6 @@ function modalEncaixeFoto(item, p){
       `FOTO_DECOTE_LARG : ${st.decL.toFixed(4)}   (${(st.decL*100).toFixed(2)}% da largura)\n`+
       `FOTO_DECOTE_FUNDO: ${st.decF.toFixed(4)}   (${(st.decF*100).toFixed(2)}% da altura)\n`+
       `FOTO_DECOTE_SUAVE: ${st.decS.toFixed(2)}   (${(st.decS*100).toFixed(0)}% da borda em degradê)\n`+
-      `GOLA_LARG        : ${st.gL.toFixed(4)}   (${(st.gL*100).toFixed(2)}% da largura)\n`+
-      `GOLA_ALT         : ${st.gA.toFixed(4)}   (${(st.gA*100).toFixed(2)}% da altura)\n`+
-      `GOLA_ESP         : ${st.gE.toFixed(4)}   (${(st.gE*100).toFixed(2)}% da altura)\n`+
-      `GOLA_COR         : '${st.gC}'   (${st.gC==='a'?'principal':'secundária'} — ${golaCorDe(t, st.gC)})\n`+
       `— corte total chega a ${((st.decF*(1-st.decS))/(FOTO_CAMISA_LARG/RATIO_FOTO)*100).toFixed(2)}% do manequim; a gola dele ocupa ~2%\n`+
       `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
       `--rf-foto-larg   : ${(st.fZ*100).toFixed(2)}%   (no rf26.css, .rf-fotonum)\n`+
@@ -8066,8 +8002,6 @@ function modalEncaixeFoto(item, p){
   const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
   liga('enf-larg','larg'); liga('enf-topo','topo'); liga('enf-camisa','camisa'); liga('enf-sobre','sobre');
   liga('enf-decl','decL'); liga('enf-decf','decF'); liga('enf-decs','decS');
-  liga('enf-gl','gL'); liga('enf-ga','gA'); liga('enf-ge','gE');
-  el('enf-gc').onchange = e => { st.gC = e.target.value; desenha(); };
   liga('enf-fz','fZ'); liga('enf-ft','fT');
   el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
@@ -8076,14 +8010,11 @@ function modalEncaixeFoto(item, p){
     st.larg = FOTO_CABECA_LARG; st.topo = FOTO_CABECA_TOPO;
     st.camisa = FOTO_CAMISA_LARG; st.sobre = FOTO_GOLA_SOBRE;
     st.decL = FOTO_DECOTE_LARG; st.decF = FOTO_DECOTE_FUNDO; st.decS = FOTO_DECOTE_SUAVE;
-    st.gL = GOLA_LARG; st.gA = GOLA_ALT; st.gE = GOLA_ESP; st.gC = GOLA_COR;
     st.fZ = FICHA_ZOOM; st.fT = FICHA_TOPO;
     el('enf-larg').value=(st.larg*100).toFixed(1); el('enf-topo').value=(st.topo*100).toFixed(1);
     el('enf-camisa').value=(st.camisa*100).toFixed(1); el('enf-sobre').value=(st.sobre*100).toFixed(1);
     el('enf-decl').value=(st.decL*100).toFixed(1); el('enf-decf').value=(st.decF*100).toFixed(1);
     el('enf-decs').value=(st.decS*100).toFixed(0);
-    el('enf-gl').value=(st.gL*100).toFixed(1); el('enf-ga').value=(st.gA*100).toFixed(1);
-    el('enf-ge').value=(st.gE*100).toFixed(1); el('enf-gc').value=st.gC;
     el('enf-fz').value=(st.fZ*100).toFixed(0); el('enf-ft').value=(st.fT*100).toFixed(1);
     desenha(); };
 }
@@ -8229,8 +8160,7 @@ function modalFotosIA(item){
      caminho: cabeca reaproveitada e cabeca recem-gerada viram foto do mesmo
      jeito, senao as duas divergiriam com o tempo. */
   async function encaixarESalvar(rostoUrl, manequimUrl, medida, base){
-    const blob = await montarFotoJogador(rostoUrl, manequimUrl, medida,
-      { gola:{ larg:GOLA_LARG, alt:GOLA_ALT, esp:GOLA_ESP, cor:golaCorDe(torso()) } });
+    const blob = await montarFotoJogador(rostoUrl, manequimUrl, medida);
     const caminho = `${base}-montagem-${Date.now()}.webp`;
     const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
     if(up.error) throw new Error(up.error.message);
