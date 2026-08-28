@@ -5732,10 +5732,16 @@ function promptMontagem(){
 
    A cabeca vai ATRAS: o colarinho passa por cima do pescoco e cobre a junta.
    Encostar exigiria acertar o pescoco na virgula; sobrepor tolera folga. */
-const FOTO_CABECA_LARG = 0.332;   // largura da cabeca / largura do quadro
-const FOTO_CABECA_TOPO = 0.020;   // topo do cabelo, fracao da altura
-const FOTO_CAMISA_LARG = 1.310;   // largura do manequim / largura do quadro
-const FOTO_GOLA_SOBRE  = 0.030;   // quanto a gola sobe sobre o fim do pescoco
+/* MEDIDOS NO EDITOR, arrastando ate' assentar — nao derivados das montagens
+   antigas, que a IA costurava esticando o pescoco. Sao bem maiores do que a
+   minha estimativa: a cabeca vai de 33% para 60% da largura e a camisa de
+   131% para 185%, ou seja, o enquadramento e' bem mais fechado do que eu
+   supunha. Conferido contra a leitura: com a cabeca medida em larg 54,2% e
+   base 95,2%, o pescoco termina em 70,27% e a gola entra em 55,27%. */
+const FOTO_CABECA_LARG = 0.600;   // largura da cabeca / largura do quadro
+const FOTO_CABECA_TOPO = 0.000;   // topo do cabelo, fracao da altura
+const FOTO_CAMISA_LARG = 1.855;   // largura do manequim / largura do quadro
+const FOTO_GOLA_SOBRE  = 0.150;   // quanto a gola sobe sobre o fim do pescoco
 const FOTO_W = 1024, FOTO_H = 1536;
 
 /* ===== O DECOTE =====
@@ -5759,9 +5765,9 @@ const FOTO_W = 1024, FOTO_H = 1536;
    sobrevivendo como um ANEL em volta da abertura, que e' como um colarinho se
    parece de verdade. E com a borda SUAVE — recorte duro troca um corte reto
    por um corte curvo, e o problema era o corte, nao o formato dele. */
-const FOTO_DECOTE_LARG = 0.300;   // largura da abertura, fracao da largura do quadro
-const FOTO_DECOTE_FUNDO = 0.020;  // quanto ela desce, fracao da ALTURA do quadro
-const FOTO_DECOTE_SUAVE = 0.30;   // quanto da borda e' degrade (0 = corte seco)
+const FOTO_DECOTE_LARG = 0.240;   // largura da abertura, fracao da largura do quadro
+const FOTO_DECOTE_FUNDO = 0.105;  // quanto ela desce, fracao da ALTURA do quadro
+const FOTO_DECOTE_SUAVE = 0.10;   // quanto da borda e' degrade (0 = corte seco)
 
 /* ===== A GOLA COMO PECA, NAO COMO BURACO =====
    Recortar o decote resolvia o corte reto e criava outro problema: a faixa de
@@ -5780,6 +5786,17 @@ const GOLA_LARG = 0.300;   // largura da abertura, fracao da largura do quadro
 const GOLA_ALT  = 0.026;   // profundidade da abertura, fracao da ALTURA do quadro
 const GOLA_ESP  = 0.011;   // espessura do anel, fracao da ALTURA do quadro
 const GOLA_COR  = 'b';     // 'b' = cor secundaria do clube, 'a' = principal
+
+/* ===== O QUADRO DA FICHA =====
+   Estes dois sao a copia fiel de --rf-foto-larg e --rf-foto-topo em
+   .rf-fotonum (rf26.css). O editor os REPRODUZ para a previa nao divergir do
+   jogo; quando mudarem la', mudam aqui.
+
+   E eles precisam mudar: com o encaixe medido, a gola entra em 55,26% do
+   quadro e a janela atual termina em 53,34% — o colarinho fica de fora,
+   que e' o que se via no retrato de 52px. */
+const FICHA_ZOOM = 1.3158;   // largura da imagem dentro do quadrado
+const FICHA_TOPO = -0.0527;  // deslocamento do topo, fracao do lado do quadrado
 
 /* Devolve a cor do anel a partir das cores do clube guardadas no torso. */
 function golaCorDe(t, qual){
@@ -7849,8 +7866,8 @@ function modalAcervo(item, p){
       style="all:unset;cursor:pointer;width:104px;display:block">
       <span style="position:relative;display:block;width:104px;aspect-ratio:${(1/RATIO_QUADRO).toFixed(4)};
             border-radius:8px;overflow:hidden;background:#e8e8e4">
-        <span style="position:absolute;left:50%;transform:translateX(-50%);top:-5.27%;
-              width:131.58%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">
+        <span style="position:absolute;left:50%;transform:translateX(-50%);top:${(FICHA_TOPO*100).toFixed(2)}%;
+              width:${(FICHA_ZOOM*100).toFixed(2)}%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">
           ${composicaoFotoHTML(o.f.url, manequim, med, { larg:GOLA_LARG, alt:GOLA_ALT, esp:GOLA_ESP, cor:golaCorDe(t) })}
         </span>
       </span>
@@ -7910,7 +7927,8 @@ function modalEncaixeFoto(item, p){
   const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
                camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE,
                decL: FOTO_DECOTE_LARG, decF: FOTO_DECOTE_FUNDO, decS: FOTO_DECOTE_SUAVE,
-               gL: GOLA_LARG, gA: GOLA_ALT, gE: GOLA_ESP, gC: GOLA_COR };
+               gL: GOLA_LARG, gA: GOLA_ALT, gE: GOLA_ESP, gC: GOLA_COR,
+               fZ: FICHA_ZOOM, fT: FICHA_TOPO };
   let med = null;
 
   abrirModal(`
@@ -7960,6 +7978,11 @@ function modalEncaixeFoto(item, p){
             <input id="enf-ga" type="range" min="0.5" max="8" step="0.1" value="${(st.gA*100).toFixed(1)}"></label>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola — espessura</span>
             <input id="enf-ge" type="range" min="0" max="4" step="0.1" value="${(st.gE*100).toFixed(1)}"></label>
+          <div class="tt" style="font-size:12px;margin-top:4px">Quadro da Ficha (o de 52px)</div>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Ficha — aproximação</span>
+            <input id="enf-fz" type="range" min="80" max="260" step="1" value="${(st.fZ*100).toFixed(0)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Ficha — topo</span>
+            <input id="enf-ft" type="range" min="-60" max="20" step="0.5" value="${(st.fT*100).toFixed(1)}"></label>
           <div class="card" style="padding:12px 14px;background:var(--card2)">
             <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida — é isto que eu preciso</div>
             <pre id="enf-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
@@ -8013,8 +8036,8 @@ function modalEncaixeFoto(item, p){
        y 2,67..53,34%, e ainda espremendo uma regiao 2:3 num quadrado.
        Se o CSS do jogo mudar, estes dois mudam junto. */
     el('enf-ficha').innerHTML =
-      `<span style="position:absolute;left:50%;transform:translateX(-50%);top:-5.27%;
-             width:131.58%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">${g.html}</span>`;
+      `<span style="position:absolute;left:50%;transform:translateX(-50%);top:${(st.fT*100).toFixed(2)}%;
+             width:${(st.fZ*100).toFixed(2)}%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">${g.html}</span>`;
     el('enf-cheio').innerHTML = g.html;
     el('enf-saida').textContent =
       `FOTO_CABECA_LARG : ${st.larg.toFixed(4)}   (${(st.larg*100).toFixed(2)}% da largura)\n`+
@@ -8030,7 +8053,9 @@ function modalEncaixeFoto(item, p){
       `GOLA_COR         : '${st.gC}'   (${st.gC==='a'?'principal':'secundária'} — ${golaCorDe(t, st.gC)})\n`+
       `— corte total chega a ${((st.decF*(1-st.decS))/(FOTO_CAMISA_LARG/RATIO_FOTO)*100).toFixed(2)}% do manequim; a gola dele ocupa ~2%\n`+
       `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
-      `— a Ficha mostra y 2,67%..53,34% e x 12%..88% deste quadro\n`+
+      `--rf-foto-larg   : ${(st.fZ*100).toFixed(2)}%   (no rf26.css, .rf-fotonum)\n`+
+      `--rf-foto-topo   : ${(st.fT*100).toFixed(2)}%\n`+
+      `— a Ficha mostra y ${(-st.fT/(st.fZ*RATIO_FOTO)*100).toFixed(2)}%..${((-st.fT+1)/(st.fZ*RATIO_FOTO)*100).toFixed(2)}% e x ${((1-1/st.fZ)/2*100).toFixed(2)}%..${((1-(1-1/st.fZ)/2)*100).toFixed(2)}% deste quadro\n`+
       `— cabeça medida: topo ${(med.topo*100).toFixed(1)}% · base ${(med.base*100).toFixed(1)}% · larg ${(med.larg*100).toFixed(1)}% · centro ${((med.cx==null?0.5:med.cx)*100).toFixed(1)}%`;
   };
 
@@ -8043,6 +8068,7 @@ function modalEncaixeFoto(item, p){
   liga('enf-decl','decL'); liga('enf-decf','decF'); liga('enf-decs','decS');
   liga('enf-gl','gL'); liga('enf-ga','gA'); liga('enf-ge','gE');
   el('enf-gc').onchange = e => { st.gC = e.target.value; desenha(); };
+  liga('enf-fz','fZ'); liga('enf-ft','fT');
   el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
     () => toast('Não consegui copiar; selecione o texto à mão.', true));
@@ -8051,12 +8077,14 @@ function modalEncaixeFoto(item, p){
     st.camisa = FOTO_CAMISA_LARG; st.sobre = FOTO_GOLA_SOBRE;
     st.decL = FOTO_DECOTE_LARG; st.decF = FOTO_DECOTE_FUNDO; st.decS = FOTO_DECOTE_SUAVE;
     st.gL = GOLA_LARG; st.gA = GOLA_ALT; st.gE = GOLA_ESP; st.gC = GOLA_COR;
+    st.fZ = FICHA_ZOOM; st.fT = FICHA_TOPO;
     el('enf-larg').value=(st.larg*100).toFixed(1); el('enf-topo').value=(st.topo*100).toFixed(1);
     el('enf-camisa').value=(st.camisa*100).toFixed(1); el('enf-sobre').value=(st.sobre*100).toFixed(1);
     el('enf-decl').value=(st.decL*100).toFixed(1); el('enf-decf').value=(st.decF*100).toFixed(1);
     el('enf-decs').value=(st.decS*100).toFixed(0);
     el('enf-gl').value=(st.gL*100).toFixed(1); el('enf-ga').value=(st.gA*100).toFixed(1);
     el('enf-ge').value=(st.gE*100).toFixed(1); el('enf-gc').value=st.gC;
+    el('enf-fz').value=(st.fZ*100).toFixed(0); el('enf-ft').value=(st.fT*100).toFixed(1);
     desenha(); };
 }
 
