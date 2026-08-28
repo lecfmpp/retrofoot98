@@ -231,7 +231,16 @@ function rfSelPlayer(pid){
     if(p && typeof rfAcAbrir==='function'){ rfAcAbrir('jogador-perfil',{clubId:vis,pid:p.pid,nome:p.n}); return; }
     return;
   }
-  CL.selPlayer=pid; rfSetTab('elenco','ficha');
+  CL.selPlayer=pid;
+  /* TROCAR A ABA NAO BASTA quando o clique vem de FORA da pagina Elenco. A
+     tabela da Formacao e o banco tambem levam a' ficha, e dali rfSetTab
+     marcava a aba certa numa pagina que ninguem estava vendo — o clique nao
+     fazia nada visivel. Ir para a pagina e' no-op para quem ja' esta' nela,
+     entao vale para os dois casos e nao ha' dois caminhos para manter. */
+  if(typeof rfGo==='function' && typeof rfState==='function'){
+    rfState().tab.elenco='ficha'; rfGo('elenco'); return;
+  }
+  rfSetTab('elenco','ficha');
 }
 
 /* =====================================================================

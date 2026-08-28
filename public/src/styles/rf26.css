@@ -846,6 +846,9 @@
 /* O NOME DO RESERVA VIRA LINK para a ficha. Ele mora dentro do botao de
    arraste, entao o pointerdown dele para aqui — senao clicar no nome comecava
    um arraste em vez de abrir a ficha. */
+.rf-sq-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
+  text-underline-offset:2px;text-decoration-color:var(--line-2)}
+.rf-sq-link:hover,.rf-sq-link:focus-visible{text-decoration-style:solid;text-decoration-color:currentColor}
 .rf-bp-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
   text-underline-offset:2px;text-decoration-color:var(--line-2)}
 .rf-bp-link:hover,.rf-bp-link:focus-visible{text-decoration-style:solid;text-decoration-color:currentColor}

@@ -2372,7 +2372,11 @@ function rfSquadTableHTML(modo, opts){
         onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
       <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
       <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
-      <span class="rf-sq-name">${escC(p.n)}${indisp?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      <span class="rf-sq-name"><span class="rf-sq-link" role="link" tabindex="0"
+        title="Ver a ficha de ${escC(p.n)}"
+        onclick="event.stopPropagation();rfSelPlayer('${escC(p.pid)}')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();rfSelPlayer('${escC(p.pid)}')}"
+        >${escC(p.n)}</span>${indisp?(p.suspended>0?' 🟥':' ✚'):''}</span>
       ${rfNacHTML(p,'rf-sq-nac')}
       <span class="rf-sq-id">${p.age||''}</span>
       <span class="rf-sq-frc">${p.f}</span>
