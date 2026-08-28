@@ -8148,6 +8148,14 @@ function modalFotosIA(item){
     return sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
   }
 
+  /* QUAL CAMISA o proximo ✦ vai gerar. Fica AQUI, antes de gerarPara, e nao
+     junto do wiring la' embaixo: como `const`, definida depois de quem a usa,
+     ela vive numa zona morta ate' a linha dela executar — e foi exatamente
+     assim que ela sumiu numa limpeza e derrubou a geracao com
+     "uniformeEscolhido is not defined".
+     O padrao e' o neutro; o interruptor oferece o azul da marca como teste. */
+  const uniformeEscolhido = () => (el('ft-marca') && el('ft-marca').checked) ? 'marca' : 'neutro';
+
   async function gerarPara(p, linha){
     /* ===== SO' A CABECA VEM DA IA =====
        Antes a IA entregava a foto pronta: rosto ja' costurado na camisa do
