@@ -33,6 +33,14 @@ function rfElBarra(rot, valor, pct, cor){
    pelo clube do usuário, ou pelo nome (cobre mercado/leilão de outros clubes) */
 function rfFotoDe(p, clubId){
   if(!p || !p.n) return null;
+  /* MONTAR GANHA DA FOTO COSTURADA. A costurada tem a camisa do clube em que
+     ela foi feita; a montada usa a do clube atual — e' o que faz a camisa
+     trocar quando o jogador se transfere. Sem cabeca, sem medida ou sem
+     manequim, cai na costurada como antes. */
+  if(typeof rfComporRetrato==='function'){
+    const c = rfComporRetrato(p, clubId!=null?clubId:CL.clubId);
+    if(c) return c;
+  }
   const F = window.RF_FOTOS||{}, N = window.RF_FOTOS_NOME||{};
   return (clubId!=null && F[String(clubId)+'|'+p.n]) || F[String(CL.clubId)+'|'+p.n] || N[p.n] || null;
 }

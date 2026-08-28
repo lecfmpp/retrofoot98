@@ -9032,6 +9032,12 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    fica 197,4% da altura do quadro, e o topo recua 2,67% dela — 5,27% do
    quadro — para a janela começar onde começava antes. */
 .rf-fotonum{--rf-foto-larg:131.58%;--rf-foto-topo:-5.27%}
+/* RETRATO MONTADO: as duas camadas vivem num quadro 2:3 dentro do quadrado,
+   com o mesmo recorte da foto costurada — assim montado e costurado aparecem
+   iguais, e ninguem descobre qual e' qual pelo enquadramento. */
+.rf-fotonum .rf-fn-comp{position:absolute;left:50%;transform:translateX(-50%);
+  top:var(--rf-foto-topo);width:var(--rf-foto-larg);aspect-ratio:2/3;display:block}
+.rf-fotonum .rf-fn-comp img{position:absolute;transform:translateX(-50%);height:auto;display:block}
 .rf-fotonum img{position:absolute;left:50%;transform:translateX(-50%);
   top:var(--rf-foto-topo);width:var(--rf-foto-larg);height:auto;display:block}
 .rf-fotonum .rf-fnum{position:absolute;right:3px;bottom:3px;min-width:15px;height:15px;padding:0 4px;

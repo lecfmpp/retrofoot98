@@ -188,6 +188,17 @@ function buscarEdits(packId){
 window.RF_FOTOS = window.RF_FOTOS || {};
 window.RF_FOTOS_NOME = window.RF_FOTOS_NOME || {};
 window.RF_UNIFORMES = window.RF_UNIFORMES || {};
+/* A CABECA, guardada a' parte da foto costurada. E' ela que faz a camisa
+   trocar numa transferencia: a montagem em `atributos.montagem` nasce presa
+   ao clube de origem, mas a cabeca serve a qualquer um. O jogo monta cabeca +
+   camisa do clube ATUAL na hora de desenhar — sem gerar nada.
+   `RF_ROSTO_MED` traz a medida que o painel gravou (topo, base, largura,
+   centro do recorte): sem ela nao ha' como posicionar, e medir na hora seria
+   uma leitura de canvas por retrato. */
+window.RF_ROSTOS = window.RF_ROSTOS || {};
+window.RF_ROSTOS_NOME = window.RF_ROSTOS_NOME || {};
+window.RF_ROSTO_MED = window.RF_ROSTO_MED || {};
+window.RF_ROSTO_AJ = window.RF_ROSTO_AJ || {};
 window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 /* RF_TREINADORES['m1'..'f5'] -> as 10 faces padrão de treinador, escolhidas no
    assistente por quem não gera a própria. Moram na MESMA tabela (linhas com
@@ -223,7 +234,17 @@ function buscarFotos(packId){
           window.RF_UNIFORMES[String(f.club_id)] = Object.assign({ url:f.url }, at);
           continue;
         }
-        const foto = at.montagem || null;   // só a foto FINAL entra na UI
+        /* A CABECA entra mesmo quando a montagem existe: e' ela que permite
+           remontar noutro clube. `url === montagem` e' foto antiga, de antes
+           da separacao em camadas — ali nao ha' cabeca solta. */
+        if(f.url && at.montagem !== f.url && at.medida){
+          const chave = String(f.club_id)+'|'+f.jogador;
+          window.RF_ROSTOS[chave] = f.url;
+          window.RF_ROSTOS_NOME[f.jogador] = f.url;
+          window.RF_ROSTO_MED[f.jogador] = at.medida;
+          if(at.encaixe) window.RF_ROSTO_AJ[f.jogador] = at.encaixe;
+        }
+        const foto = at.montagem || null;   // a foto costurada segue de reserva
         if(!foto) continue;
         /* ajuste de camadas SÓ desta foto: a costura por IA nunca devolve o
            enquadramento no mesmo pixel, então o Estúdio deixa acertar escudo,

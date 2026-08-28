@@ -6527,6 +6527,56 @@ function alvoRemontagem(clube, nome){
   return { k, clube, nome, f, man, x:(D.catalogo||[]).find(c => String(c.c.id) === String(clube)) };
 }
 
+/* ===== MEDIR AS CABECAS =====
+   O JOGO nao consegue medir a cabeca na hora de desenhar: seria uma leitura
+   de canvas por retrato, com CORS, a cada tela. Entao a medida vem pronta do
+   painel, guardada em atributos.medida.
+
+   E' o que destrava a troca de camisa na transferencia: com a medida, o jogo
+   monta cabeca + camisa do clube ATUAL sem gerar nada. Sem ela, nao sabe onde
+   por a cabeca e cai na foto assada, que tem a camisa do clube antigo.
+
+   Este lote NAO sobe imagem nenhuma — so' le' e grava o numero. E' rapido, e
+   nao mexe em como as fotos estao hoje. */
+async function medirCabecas(btn){
+  const alvos = [];
+  for(const k of Object.keys(D.fotos||{})){
+    const i = k.indexOf('|'); if(i < 0) continue;
+    const clube = k.slice(0, i), nome = k.slice(i+1);
+    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    const f = D.fotos[k];
+    if(!f || !f.url) continue;
+    if(f.atributos && f.atributos.medida) continue;          // ja' medida
+    if(f.atributos && f.atributos.montagem === f.url) continue; // foto antiga: nao ha' cabeca solta
+    alvos.push({ k, f });
+  }
+  if(!alvos.length) return toast('Todas as cabeças já estão medidas.');
+  if(!await rfConfirm({ titulo:'Medir as cabeças',
+    texto:`Vou medir <b>${alvos.length} cabeça(s)</b> e guardar a medida de cada uma.`,
+    detalhe:`<b>Sem custo e sem upload</b>: só lê a imagem e grava quatro números (topo, base, largura, centro).
+      É o que o <b>jogo</b> precisa para montar a camisa do clube novo numa transferência — sem isso ele
+      cai na foto antiga, com a camisa antiga. <b>Nenhuma imagem é alterada.</b>`,
+    nao:'Cancelar', sim:`Medir ${alvos.length}` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const a of alvos){
+    btn.textContent = `Medindo ${ok+erros+1}/${alvos.length}…`;
+    try{
+      const med = await medirMolde(a.f.url);
+      if(!med) throw new Error('não consegui medir');
+      const reg = Object.assign({}, a.f, { atributos: Object.assign({}, a.f.atributos||{}, { medida: med }) });
+      const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+      if(r.error) throw new Error(r.error.message);
+      D.fotos[a.k] = reg;
+      ok++;
+    }catch(err){ erros++; console.warn('medição falhou:', a.k, err.message); }
+  }
+  registrar('estudio.fotos.medir', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} cabeça(s) medidas${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
 async function remontarFotos(btn){
   const alvos = [];
   for(const k of Object.keys(D.fotos||{})){
@@ -7629,7 +7679,8 @@ async function pgEstudio(){
         <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
         <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>
         <button class="btn btn-sm" id="est-camisas" title="Manequim + escudo numa imagem só por clube — é o que o jogo usa na transferência">Montar camisas</button>` : ''}
-        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-remontar" title="Refaz a montagem de todas as fotos com o encaixe atual — canvas, sem IA">Remontar fotos</button>` : ''}
+        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-remontar" title="Refaz a montagem de todas as fotos com o encaixe atual — canvas, sem IA">Remontar fotos</button>
+        <button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda a medida de cada cabeça — é o que o JOGO precisa para montar a camisa nova numa transferência">Medir cabeças</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -7684,6 +7735,8 @@ async function pgEstudio(){
   if(btCam) btCam.onclick = () => assarCamisasTodas(btCam);
   const btRmt = el('est-remontar');
   if(btRmt) btRmt.onclick = () => remontarFotos(btRmt);
+  const btMed = el('est-medir');
+  if(btMed) btMed.onclick = () => medirCabecas(btMed);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const btFaces = el('est-faces');

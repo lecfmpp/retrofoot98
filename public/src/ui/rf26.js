@@ -336,11 +336,84 @@ function rfCrestEnvolve(club, dentro){
 /* COMPONENTE PADRÃO da foto de jogador: quadrado arredondado com o NÚMERO
    dentro (canto inferior direito, selo verde vivo, sem encostar nas bordas).
    Tamanhos: '' 38px · m 29px · el 34px · g 52px · eln 40px. */
+/* ===== A CAMISA TROCA NA TRANSFERENCIA =====
+   O jogo montava so' a foto costurada (atributos.montagem), que nasce PRESA
+   ao clube de origem: transferido, o jogador aparecia com a camisa antiga e a
+   unica saida seria gerar tudo de novo.
+
+   Agora, quando ha' cabeca guardada e o clube tem manequim, o retrato e'
+   MONTADO na hora — cabeca atras, camisa do clube ATUAL na frente. Nada e'
+   gerado nem gravado: sao duas imagens que ja' existem, empilhadas em CSS.
+
+   As dez constantes sao as mesmas medidas no editor do painel. Se mudarem
+   la', mudam aqui — sao os dois lados do mesmo desenho. */
+const RF_ENC = {
+  cabL:0.593, cabT:0.001, camL:1.855, sobre:0.150,
+  decL:0.240, decF:0.111, decS:0.15,
+  topL:0.910, topF:0.250, topS:0.05,
+  ratio:1.5
+};
+function rfRostoDe(p, clubId){
+  if(!p || !p.n) return null;
+  const R = window.RF_ROSTOS||{}, N = window.RF_ROSTOS_NOME||{};
+  const url = (clubId!=null && R[String(clubId)+'|'+p.n]) || R[String(CL.clubId)+'|'+p.n] || N[p.n] || null;
+  if(!url) return null;
+  const med = (window.RF_ROSTO_MED||{})[p.n];
+  if(!med || !med.larg) return null;          // sem medida nao ha' onde por
+  return { url, med, aj:(window.RF_ROSTO_AJ||{})[p.n] || null };
+}
+function rfManequimDe(clubId){
+  const u = (window.RF_UNIFORMES||{})[String(clubId!=null?clubId:CL.clubId)];
+  return (u && u.miniatura) || null;
+}
+/* Devolve o HTML das duas camadas, no quadro 2:3 — ou null quando falta peca
+   e o chamador deve cair na foto costurada. */
+function rfComporRetrato(p, clubId){
+  const r = rfRostoDe(p, clubId);
+  const man = rfManequimDe(clubId);
+  if(!r || !man) return null;
+  const K = Object.assign({}, RF_ENC, r.aj||{});
+  const m = r.med;
+  const lw = K.cabL / m.larg, lh = lw / K.ratio;
+  const topoImg = K.cabT - m.topo*lh;
+  const fim = topoImg + m.base*lh;
+  const topoCam = fim - K.sobre;
+  const cx = m.cx==null ? 0.5 : m.cx;
+  const altCam = K.camL / K.ratio;
+  /* as duas mascaras do topo: a curva convexa (guarda o centro) e o decote
+     concavo (abre o meio). Somadas por padrao elas se anulariam — daí o
+     mask-composite:intersect. */
+  const cam = [];
+  if(K.topL>0 && K.topF>0){
+    const a=(K.topL/K.camL*100).toFixed(2), b=(K.topF/altCam*100).toFixed(2);
+    cam.push(`radial-gradient(ellipse ${a}% ${b}% at 50% ${b}%,#000 ${Math.round((1-K.topS)*100)}%,transparent 100%)`);
+  }
+  if(K.decL>0 && K.decF>0){
+    const a=(K.decL/K.camL*100).toFixed(2), b=(K.decF/altCam*100).toFixed(2);
+    cam.push(`radial-gradient(ellipse ${a}% ${b}% at 50% 0%,transparent ${Math.round((1-K.decS)*100)}%,#000 100%)`);
+  }
+  const msk = cam.length
+    ? `-webkit-mask-image:${cam.join(',')};mask-image:${cam.join(',')};`
+      + (cam.length>1 ? 'mask-composite:intersect;-webkit-mask-composite:source-in;' : '')
+    : '';
+  return `<span class="rf-fn-comp">`
+    + `<img src="${escC(r.url)}" alt="" loading="lazy" draggable="false" style="left:${((0.5-(cx-0.5)*lw)*100).toFixed(2)}%;`
+    + `top:${(topoImg*100).toFixed(2)}%;width:${(lw*100).toFixed(2)}%;z-index:1">`
+    + `<img src="${escC(man)}" alt="" loading="lazy" draggable="false" style="left:50%;`
+    + `top:${(topoCam*100).toFixed(2)}%;width:${(K.camL*100).toFixed(2)}%;z-index:2;${msk}">`
+    + `</span>`;
+}
+
+/* `foto` pode ser a URL de sempre OU o HTML das camadas devolvido por
+   rfComporRetrato — quem chama nao precisa saber qual dos dois veio. */
 function rfFotoNumHTML(foto, num, cls){
   if(!foto) return null;
   const badge=(num!=null && String(num)!=='' && String(num)!=='—')
     ? `<b class="rf-fnum">${escC(String(num))}</b>` : '';
-  return `<span class="rf-fotonum ${cls||''}"><img src="${escC(foto)}" alt="" loading="lazy" draggable="false">${badge}</span>`;
+  const miolo = (typeof foto==='string' && foto.charAt(0)==='<')
+    ? foto
+    : `<img src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
+  return `<span class="rf-fotonum ${cls||''}">${miolo}${badge}</span>`;
 }
 function rfVerFichaJogador(nome, clubId){
   const cid = clubId || ((typeof findPlayerClub==='function')?findPlayerClub(nome):null);

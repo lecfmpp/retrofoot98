@@ -56,6 +56,11 @@ function rfAcD(){ return (CL.acao&&CL.acao.d)||{}; }
    padrão de retrato pequeno: quadrado arredondado, foco no rosto. */
 function rfAcFotoDoJogador(p){
   if(!p || !p.n) return null;
+  /* mesma regra do elenco: montar ganha da costurada, para a camisa
+     acompanhar o clube atual */
+  if(typeof rfComporRetrato==='function'){
+    const c = rfComporRetrato(p, CL.clubId); if(c) return c;
+  }
   return (window.RF_FOTOS||{})[String(CL.clubId)+'|'+p.n]
       || (window.RF_FOTOS_NOME||{})[p.n] || null;
 }
