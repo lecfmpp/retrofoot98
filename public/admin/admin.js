@@ -5383,6 +5383,61 @@ async function medirRosto(url){
 /* O centro do UNIFORME, pelo mesmo criterio. O molde tambem pode estar fora
    do eixo, e ai' centrar a cabeca no quadro nao basta: ela tem de casar com o
    corpo, nao com a moldura. Imagem sem transparencia devolve 0,5 — inofensivo. */
+/* ===== TIRAR O FUNDO, SEM IA =====
+   Os moldes vieram com um fundo cinza chapado. Ele nao pode ser parte da
+   camisa: com o fundo embutido nao ha' como pôr a cabeca ATRAS do colarinho,
+   nem trocar o fundo por clube, nem empilhar escudo e patrocinio com clareza.
+
+   O corte e' por INUNDACAO A PARTIR DAS BORDAS, e nao "apague tudo que for
+   cinza": cinza tambem aparece em sombra de dobra e em camisa clara, e uma
+   regra por cor abriria buracos no meio do tecido. Inundando so' de fora, o
+   que estiver cercado por pixel de camisa nunca e' alcancado.
+
+   A tolerancia e' generosa no comeco e vai fechando (o gradiente do estudio
+   nao e' um cinza so'), e a borda ganha meia transparencia para nao ficar
+   serrilhada. Roda no browser, em canvas, e devolve um PNG — custo zero. */
+async function tirarFundo(url, tol){
+  const img = await new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => ok(i); i.onerror = () => erro(new Error('cors'));
+    i.src = url + (url.includes('?') ? '&' : '?') + 'm=1';
+  });
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d', { willReadFrequently:true });
+  cx.drawImage(img, 0, 0);
+  const im = cx.getImageData(0, 0, W, H), d = im.data;
+  const T = (tol == null ? 26 : tol);
+
+  /* a cor do fundo vem dos CANTOS, nao de um valor fixo: cada molde saiu do
+     modelo com um cinza um pouco diferente */
+  const amostra = [[0,0],[W-1,0],[0,H-1],[W-1,H-1],[(W>>1),0]];
+  let r0=0,g0=0,b0=0;
+  for(const [x,y] of amostra){ const k=((y*W)+x)*4; r0+=d[k]; g0+=d[k+1]; b0+=d[k+2]; }
+  r0/=amostra.length; g0/=amostra.length; b0/=amostra.length;
+
+  const dist = k => Math.max(Math.abs(d[k]-r0), Math.abs(d[k+1]-g0), Math.abs(d[k+2]-b0));
+  const visto = new Uint8Array(W*H);
+  const fila = [];
+  const poe = (x,y) => { if(x<0||y<0||x>=W||y>=H) return; const i=y*W+x;
+    if(visto[i]) return; visto[i]=1; if(dist(i*4) <= T) fila.push(i); };
+  for(let x=0; x<W; x++){ poe(x,0); poe(x,H-1); }
+  for(let y=0; y<H; y++){ poe(0,y); poe(W-1,y); }
+  while(fila.length){
+    const i = fila.pop(), x = i%W, y = (i/W)|0;
+    d[i*4+3] = 0;
+    poe(x+1,y); poe(x-1,y); poe(x,y+1); poe(x,y-1);
+  }
+  /* borda meio transparente: quem sobrou opaco mas encosta em buraco */
+  for(let y=1; y<H-1; y++) for(let x=1; x<W-1; x++){
+    const i=y*W+x; if(!d[i*4+3]) continue;
+    if((!d[(i-1)*4+3] || !d[(i+1)*4+3] || !d[(i-W)*4+3] || !d[(i+W)*4+3]) && dist(i*4) <= T*1.8)
+      d[i*4+3] = 110;
+  }
+  cx.putImageData(im, 0, 0);
+  return cv.toDataURL('image/png');
+}
+
 async function medirCentroX(url){
   try{
     const img = await new Promise((ok, erro) => {
@@ -6166,10 +6221,39 @@ async function compararMetodos(item, p){
     amostras.push({ estilo:e, nome: x.c.name || x.c.id, url: tt.url, centro: 0.5 });
   }
   await Promise.all(amostras.slice(1).map(async a => { a.centro = await medirCentroX(a.url); }));
+  /* CADA CAMISA VIRA CAMADA: o fundo cinza sai por inundacao de borda, aqui e
+     agora, sem IA e sem tocar no arquivo do Storage. Falhar nao pode derrubar
+     a bancada — sem recorte, usa-se a imagem original. */
+  await Promise.all(amostras.map(async a => {
+    try{ a.limpo = await tirarFundo(a.url); }catch(_){ a.limpo = null; }
+  }));
+  const camisaDe = a => (st.semFundo && a.limpo) ? a.limpo : a.url;
   const rotuloEstilo = e => ((ESTILOS_CAMISA.find(x=>x[0]===e)||[])[1]) || e || '—';
-  const golaNoQuadro = e => TORSO_TOPO + golaDoEstilo(e)*TORSO_ESCALA;
+
+  /* ===== O QUADRO NAO E' 2:3 =====
+     A Ficha do Jogador mostra a foto num QUADRADO (.rf-fotonum, 38/52/64px,
+     object-fit:cover com object-position:50% 8%) — o jogo so' exibe de 2,7% a
+     69,3% da foto 2:3 guardada. Compor em 2:3 e' compor num quadro que
+     ninguem ve': a cabeca no tamanho certo simplesmente nao cabe acima da
+     gola, e sai cortada em cima.
+
+     Daqui em diante toda a geometria e' relativa a `st.rq` (altura/largura do
+     quadro), e nao mais a RATIO_FOTO. O molde continua 2:3 — ele nao mudou —
+     mas sua ALTURA dentro do quadro passa a depender do formato escolhido. */
+  const FORMATOS = { ficha:[1, 'Ficha do Jogador (1:1)'], foto:[RATIO_FOTO, 'Foto guardada (2:3)'] };
+  const alturaTorso = () => TORSO_ESCALA*RATIO_FOTO/st.rq;   // fracao da ALTURA do quadro
+  /* PARAMETRIZADO PELO TOPO, nao pelo rodape. Num quadro 1:1 o molde 2:3 e'
+     mais alto que o quadro (128%): ancorar embaixo empurra a gola para fora
+     por cima. O padrao reproduz o que o jogo mostra — em 2:3, o torso comeca
+     em 14,5%; no quadrado, o mesmo ponto visto pela janela da Ficha. */
+  const topoPadrao = rq => rq === RATIO_FOTO ? (1-TORSO_ESCALA)
+                                             : ((1-TORSO_ESCALA) - 0.08*(1-1/RATIO_FOTO))/(1/RATIO_FOTO);
+  const corpoTopo   = () => st.corpoY;
+  const golaNoQuadro = e => corpoTopo() + golaDoEstilo(e)*alturaTorso();
+  const largRender  = () => st.alt*st.rq;                    // largura do render do rosto
+  /* o recorte que a Ficha faz na foto 2:3, para se ver o que o jogo mostra */
+  const JANELA = { alt: 1/RATIO_FOTO, topo: 0.08*(1 - 1/RATIO_FOTO) };
   const auto = encaixeComposto(medida, estilo, eixoNoQuadro(centroMolde, TORSO_X)) || { rostoAltura:0.35, rostoTopo:0.02 };
-  const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
 
   /* ---- A GRADE ----------------------------------------------------------
      4 colunas x 6 linhas = 24 quadrantes de 25% x 16,67%, nomeados A1..D6.
@@ -6191,11 +6275,14 @@ async function compararMetodos(item, p){
   const gruda = (v, passo) => passo ? Math.round(v/passo)*passo : v;
 
   /* estado: alt = altura do render; ancX/ancY = a base do pescoco no quadro */
-  const st = { alt: auto.rostoAltura, corpoX: TORSO_X, junto: true,
-               ancX: eixoNoQuadro(centroMolde, TORSO_X),
-               ancY: auto.rostoTopo + medida.base*auto.rostoAltura,
-               cola: 'meia', ima: true, cortar: true, corte: auto.corte };
+  const st = { rq: 1, corpoX: TORSO_X, corpoY: 0,   /* = topo do corpo; ajustado logo abaixo */ junto: true,
+               alt: ENCAIXE_LARG_CABECA/(medida.larg*1),
+               ancX: eixoNoQuadro(centroMolde, TORSO_X), ancY: 0,
+               cola: 'meia', ima: true, cortar: true, corte: auto.corte,
+               semFundo: true, fundo: '#e8e8e4' };
   const eixoAtual = () => eixoNoQuadro(centroMolde, st.corpoX);
+  st.corpoY = topoPadrao(st.rq);
+  st.ancY = golaNoQuadro(estilo);   // nasce colada na gola
 
   const gradeHTML = () => {
     let h = '';
@@ -6224,17 +6311,18 @@ async function compararMetodos(item, p){
     <div class="card-p col" style="gap:16px">
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
         <div style="flex:0 0 300px">
-          <div id="enc-palco" style="position:relative;width:300px;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};
+          <div id="enc-palco" style="position:relative;width:300px;
                border-radius:10px;overflow:hidden;background:#d9d9d9;cursor:grab;touch-action:none;user-select:none">
+            <span id="enc-fundo" style="position:absolute;inset:0;pointer-events:none"></span>
             <img id="enc-corpo" src="${h(t.url)}" draggable="false"
-                 style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%;pointer-events:none">
+                 style="position:absolute;transform:translateX(-50%);width:${(TORSO_ESCALA*100).toFixed(1)}%;pointer-events:none">
             <img id="enc-rosto" src="${h(rosto)}" draggable="false" style="position:absolute;object-fit:contain;pointer-events:none">
             <span style="position:absolute;inset:0;pointer-events:none">
               ${gradeHTML()}${pontosHTML()}
               <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(2)}%;border-top:1px dashed #35c46a"></span>
               <span style="position:absolute;left:0;right:0;top:${(gola*100).toFixed(2)}%;border-top:1.5px dashed #e3b23c"></span>
-              <span id="enc-caixa" style="position:absolute;width:${(TORSO_ESCALA*100).toFixed(2)}%;
-                    top:${(TORSO_TOPO*100).toFixed(2)}%;bottom:0;transform:translateX(-50%);border:1px dashed #35c46a55"></span>
+              <span id="enc-caixa" style="position:absolute;width:${(TORSO_ESCALA*100).toFixed(2)}%;transform:translateX(-50%);border:1px dashed #35c46a55"></span>
+              <span id="enc-janela" style="position:absolute;left:0;right:0;border:1.5px solid #2f7fd655;display:none"></span>
               <span id="enc-eixo" style="position:absolute;top:0;bottom:0;border-left:1px dashed #2f7fd6"></span>
               <span id="enc-linha-corte" style="position:absolute;width:${(TORSO_ESCALA*100).toFixed(2)}%;transform:translateX(-50%);border-top:1px dotted #d94a4a99"></span>
               <span id="enc-anc" style="position:absolute;width:13px;height:13px;margin:-6.5px 0 0 -6.5px">
@@ -6254,6 +6342,11 @@ async function compararMetodos(item, p){
 
         <div class="col" style="gap:12px;flex:1;min-width:290px">
           <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12.5px;color:var(--dim)">Quadro</span>
+            <select id="enc-rq" class="inp inp-sm" style="width:auto">
+              <option value="ficha" selected>Ficha do Jogador (1:1)</option>
+              <option value="foto">Foto guardada (2:3)</option>
+            </select>
             <span style="font-size:12.5px;color:var(--dim)">Cola</span>
             <select id="enc-cola" class="inp inp-sm" style="width:auto">
               <option value="celula">Quadrante inteiro (25% × 16,7%)</option>
@@ -6265,6 +6358,10 @@ async function compararMetodos(item, p){
               <input type="checkbox" id="enc-ima" checked> ímã da gola</label>
             <label style="font-size:12.5px;color:var(--dim);display:flex;gap:6px;align-items:center">
               <input type="checkbox" id="enc-cortar" checked> cortar o pescoço do uniforme</label>
+            <label style="font-size:12.5px;color:var(--dim);display:flex;gap:6px;align-items:center">
+              <input type="checkbox" id="enc-semfundo" checked> fundo em camada própria</label>
+            <input type="color" id="enc-cor" value="#e8e8e4" title="cor do fundo"
+                   style="width:34px;height:24px;padding:0;border:1px solid var(--linha);background:none;border-radius:6px">
           </div>
 
           <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Linha do corte</span>
@@ -6279,6 +6376,8 @@ async function compararMetodos(item, p){
             </div>
             <label class="aj-sl" style="color:var(--fg)"><span style="width:96px">↔ livre</span>
               <input id="enc-corpox" type="range" min="25" max="75" step="0.05" value="${(TORSO_X*100).toFixed(2)}"></label>
+            <label class="aj-sl" style="color:var(--fg)"><span style="width:96px">↕ livre</span>
+              <input id="enc-corpoy" type="range" min="-30" max="90" step="0.05" value="0"></label>
           </div>
 
           <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Tamanho</span>
@@ -6315,9 +6414,9 @@ async function compararMetodos(item, p){
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           ${amostras.map((a,i)=>`<div style="width:150px">
-            <div id="enc-q${i}" style="position:relative;width:150px;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};
+            <div id="enc-q${i}" style="position:relative;width:150px;
                  border-radius:8px;overflow:hidden;background:#d9d9d9">
-              <img id="enc-q${i}-c" src="${h(a.url)}" style="position:absolute;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%">
+              <img id="enc-q${i}-c" src="${h(a.url)}" style="position:absolute;transform:translateX(-50%);width:${(TORSO_ESCALA*100).toFixed(1)}%">
               <img id="enc-q${i}-r" src="${h(rosto)}" style="position:absolute;transform:translateX(-50%);object-fit:contain">
             </div>
             <div style="margin-top:6px;font-size:11px;line-height:1.4;color:var(--dim)">
@@ -6332,7 +6431,8 @@ async function compararMetodos(item, p){
 
   const palco = el('enc-palco'), img = el('enc-rosto'), saida = el('enc-saida'), anc = el('enc-anc');
   const corpo = el('enc-corpo'), linhaCorte = el('enc-linha-corte');
-  const caixa = el('enc-caixa'), eixo = el('enc-eixo');
+  const caixa = el('enc-caixa'), eixo = el('enc-eixo'), janela = el('enc-janela');
+  const fundoEl = el('enc-fundo');
   const pts = Array.from(palco.querySelectorAll('.enc-pt'));
 
   const desenha = () => {
@@ -6341,25 +6441,37 @@ async function compararMetodos(item, p){
     st.ancY = Math.max(0, Math.min(1, gruda(st.ancY, py)));
     /* IMA DA GOLA: dentro de meia celula, a ancora salta para a linha da gola.
        E' o encaixe que interessa, e ele quase nunca cai num canto da grade. */
-    if(st.ima && Math.abs(st.ancY - gola) < (py || 1/24)/2 + 0.004) st.ancY = gola;
+    if(st.ima && Math.abs(st.ancY - golaNoQuadro(estilo)) < (py || 1/24)/2 + 0.004) st.ancY = golaNoQuadro(estilo);
 
+    palco.style.aspectRatio = (1/st.rq).toFixed(4);
     const topo = st.ancY - medida.base*st.alt;
-    const largRender = st.alt*RATIO_FOTO;             // largura da imagem no quadro
+    const lr = largRender();
     const cx = medida.cx == null ? 0.5 : medida.cx;
+    const cTopo = corpoTopo(), hTorso = alturaTorso();
     img.style.height = (st.alt*100).toFixed(2)+'%';
     img.style.top    = (topo*100).toFixed(2)+'%';
     /* recua o quanto a CABECA estiver fora do centro da propria imagem, para
        que o que casa com o eixo do corpo seja ela, nao o quadrado dela */
-    img.style.left   = ((st.ancX - (cx-0.5)*largRender)*100).toFixed(2)+'%';
+    img.style.left   = ((st.ancX - (cx-0.5)*lr)*100).toFixed(2)+'%';
     img.style.transform = 'translateX(-50%)';
+    fundoEl.style.background = st.semFundo ? st.fundo : 'transparent';
+    const srcCamisa = camisaDe(amostras[0]);
+    if(corpo.getAttribute('src') !== srcCamisa) corpo.src = srcCamisa;
     corpo.style.left = (st.corpoX*100).toFixed(2)+'%';
+    corpo.style.top  = (cTopo*100).toFixed(2)+'%';
     caixa.style.left = (st.corpoX*100).toFixed(2)+'%';
+    caixa.style.top  = (cTopo*100).toFixed(2)+'%';
+    caixa.style.height = (hTorso*100).toFixed(2)+'%';
     linhaCorte.style.left = (st.corpoX*100).toFixed(2)+'%';
     eixo.style.left  = (eixoAtual()*100).toFixed(2)+'%';
+    /* a janela que a Ficha recorta so' faz sentido sobre a foto 2:3 */
+    janela.style.display = st.rq === 1 ? 'none' : '';
+    janela.style.top = (JANELA.topo*100).toFixed(2)+'%';
+    janela.style.height = (JANELA.alt*100).toFixed(2)+'%';
     corpo.style.clipPath = st.cortar ? `inset(${(st.corte*100).toFixed(2)}% 0 0 0)` : '';
     linhaCorte.style.display = st.cortar ? '' : 'none';
     /* a linha do corte esta' na altura do MOLDE; no quadro ela vira: */
-    linhaCorte.style.top = ((TORSO_TOPO + st.corte*TORSO_ESCALA)*100).toFixed(2)+'%';
+    linhaCorte.style.top = ((cTopo + st.corte*hTorso)*100).toFixed(2)+'%';
     anc.style.left = (st.ancX*100).toFixed(2)+'%';
     anc.style.top  = (st.ancY*100).toFixed(2)+'%';
 
@@ -6368,15 +6480,19 @@ async function compararMetodos(item, p){
       d.style.background = on ? '#d94a4a' : '#00000030'; d.style.transform = on ? 'scale(1.6)' : ''; });
 
     /* a imagem e' quadrada: o lado renderizado em fracao da LARGURA e' alt*RATIO_FOTO */
-    const cab = medida.larg * st.alt * RATIO_FOTO;
+    const cab = medida.larg * lr;
     saida.textContent =
+      `camadas             : fundo · camisa${st.cortar?' (sem pescoço)':''}${st.semFundo?' · sem fundo':''} · cabeça\n`+
+      `cor do fundo        : ${st.fundo}${amostras.some(a=>!a.limpo)?'   (⚠ algum molde não recortou)':''}\n`+
+      `formato do quadro   : ${st.rq === 1 ? '1:1 — Ficha do Jogador' : '2:3 — foto guardada'}\n`+
       `quadrante da âncora : ${celulaDe(st.ancX, st.ancY)}   (cola: ${st.cola})\n`+
       `âncora ↔            : ${(st.ancX*100).toFixed(2)}%\n`+
-      `âncora ↕ (pescoço)  : ${(st.ancY*100).toFixed(2)}%${perto(st.ancY,gola)?'   ← na gola':''}\n`+
-      `gola do uniforme    : ${(gola*100).toFixed(2)}%   (${st.ancY>gola?'+':''}${((st.ancY-gola)*100).toFixed(2)}%)\n`+
+      `âncora ↕ (pescoço)  : ${(st.ancY*100).toFixed(2)}%${perto(st.ancY,golaNoQuadro(estilo))?'   ← na gola':''}\n`+
+      `gola do uniforme    : ${(golaNoQuadro(estilo)*100).toFixed(2)}%   (${st.ancY>golaNoQuadro(estilo)?'+':''}${((st.ancY-golaNoQuadro(estilo))*100).toFixed(2)}%)\n`+
       `tamanho do render   : ${(st.alt*100).toFixed(2)}%\n`+
       `topo do rosto        : ${(topo*100).toFixed(2)}%\n`+
       `cabeça no quadro    : ${(cab*100).toFixed(2)}% de largura\n`+
+      `topo do uniforme    : ${(cTopo*100).toFixed(2)}%   (padrão ${(topoPadrao(st.rq)*100).toFixed(2)}%)\n`+
       `uniforme ↔          : ${(st.corpoX*100).toFixed(2)}%   (${st.corpoX>TORSO_X?'+':''}${((st.corpoX-TORSO_X)*100).toFixed(2)}% do centro)\n`+
       `eixo do uniforme    : ${(eixoAtual()*100).toFixed(2)}%   (âncora ${st.ancX>eixoAtual()?'+':''}${((st.ancX-eixoAtual())*100).toFixed(2)}%)\n`+
       `centro do molde     : ${(centroMolde*100).toFixed(2)}% da própria imagem\n`+
@@ -6390,12 +6506,16 @@ async function compararMetodos(item, p){
     /* OS NUMEROS VIAJAM COMO DISTANCIA, nao como absoluto: tamanho e posicao
        do corpo sao os mesmos, mas ancora e corte sao medidos a partir da gola
        DAQUELE estilo — e' o que faz um ajuste so' valer para os cinco. */
-    const dAncY  = st.ancY - gola;
+    const dAncY  = st.ancY - golaNoQuadro(estilo);
     const dAncX  = st.ancX - eixoAtual();
     const dCorte = st.corte - golaDoEstilo(estilo);
     amostras.forEach((a,i) => {
       const c = el('enc-q'+i+'-c'), r = el('enc-q'+i+'-r'), m = el('enc-q'+i+'-m');
       if(!c || !r) return;
+      const q = el('enc-q'+i); if(q) q.style.aspectRatio = (1/st.rq).toFixed(4);
+      if(q) q.style.background = st.semFundo ? st.fundo : '#d9d9d9';
+      const sc = camisaDe(a); if(c.getAttribute('src') !== sc) c.src = sc;
+      c.style.top = (cTopo*100).toFixed(2)+'%';
       const aY = golaNoQuadro(a.estilo) + dAncY;
       const aX = eixoNoQuadro(a.centro, st.corpoX) + dAncX;
       const aC = golaDoEstilo(a.estilo) + dCorte;
@@ -6403,28 +6523,39 @@ async function compararMetodos(item, p){
       c.style.clipPath = st.cortar ? `inset(${(aC*100).toFixed(2)}% 0 0 0)` : '';
       r.style.height = (st.alt*100).toFixed(2)+'%';
       r.style.top    = ((aY - medida.base*st.alt)*100).toFixed(2)+'%';
-      r.style.left   = ((aX - (cx-0.5)*largRender)*100).toFixed(2)+'%';
+      r.style.left   = ((aX - (cx-0.5)*lr)*100).toFixed(2)+'%';
       if(m) m.textContent = `gola ${(golaNoQuadro(a.estilo)*100).toFixed(1)}% · eixo ${(eixoNoQuadro(a.centro, st.corpoX)*100).toFixed(1)}%`;
     });
 
     el('enc-corte').value  = (st.corte*100).toFixed(2);
     el('enc-corpox').value = (st.corpoX*100).toFixed(2);
+    el('enc-corpoy').value = (st.corpoY*100).toFixed(2);
   };
   desenha();
 
   el('enc-cola').onchange = e => { st.cola = e.target.value; desenha(); };
   el('enc-ima').onchange     = e => { st.ima = e.target.checked; desenha(); };
+  el('enc-semfundo').onchange = e => { st.semFundo = e.target.checked; desenha(); };
+  el('enc-cor').oninput       = e => { st.fundo = e.target.value; desenha(); };
   el('enc-cortar').onchange  = e => { st.cortar = e.target.checked; desenha(); };
   el('enc-corte').oninput    = e => { st.corte = Number(e.target.value)/100; desenha(); };
   el('enc-junto').onchange   = e => { st.junto = e.target.checked; };
   /* MOVER O UNIFORME LEVA A CABECA JUNTO por padrao: o alinhamento ja' foi
      conquistado, e sem isso cada nudge do corpo o desfaz. Desligue para
      deslocar um em relacao ao outro de proposito. */
+  /* trocar o formato reposiciona o corpo, logo a gola muda de lugar: a ancora
+     e o tamanho sao refeitos, senao o encaixe se desfaz na troca */
+  el('enc-rq').onchange = e => {
+    st.rq = FORMATOS[e.target.value][0];
+    st.alt = ENCAIXE_LARG_CABECA/(medida.larg*st.rq);
+    st.corpoY = topoPadrao(st.rq);
+    st.ancY = golaNoQuadro(estilo); st.ancX = eixoAtual(); desenha(); };
+  el('enc-corpoy').oninput   = e => { st.corpoY = Number(e.target.value)/100; desenha(); };
   el('enc-corpox').oninput   = e => {
     const novo = Number(e.target.value)/100;
     if(st.junto) st.ancX += novo - st.corpoX;
     st.corpoX = novo; desenha(); };
-  el('enc-centro').onclick   = () => {
+  el('enc-centro').onclick   = () => { st.corpoY = topoPadrao(st.rq);
     if(st.junto) st.ancX += TORSO_X - st.corpoX;
     st.corpoX = TORSO_X; desenha(); };
   const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
@@ -6462,12 +6593,12 @@ async function compararMetodos(item, p){
   };
   document.addEventListener('keydown', tecla);
 
-  el('enc-gola').onclick = () => { st.ancY = gola; st.ancX = eixoAtual(); desenha(); };
+  el('enc-gola').onclick = () => { st.ancY = golaNoQuadro(estilo); st.ancX = eixoAtual(); desenha(); };
   el('enc-copiar').onclick = () => navigator.clipboard.writeText(saida.textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
     () => toast('Não consegui copiar; selecione o texto à mão.', true));
-  el('enc-auto').onclick = () => { st.alt = auto.rostoAltura; st.ancX = eixoAtual();
-    st.ancY = auto.rostoTopo + medida.base*auto.rostoAltura; st.corte = auto.corte; desenha(); };
+  el('enc-auto').onclick = () => { st.alt = ENCAIXE_LARG_CABECA/(medida.larg*st.rq); st.corpoY = topoPadrao(st.rq);
+    st.ancX = eixoAtual(); st.ancY = golaNoQuadro(estilo); st.corte = auto.corte; desenha(); };
 
   /* os ouvintes vivem no documento; sem isto o teclado seguiria mexendo
      num palco que ja' foi fechado */
