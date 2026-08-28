@@ -2395,8 +2395,22 @@ function csvCampo(v){
   return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
 }
 function csvJogadoresBrasil(){
-  const cab = ['serie','clube_id','clube','clube_curto','jogador','posicao','setor','forca',
-               'idade','valor_brl','pe','numero','nacionalidade','moral','energia','no_patch'];
+  /* NÃO EXISTE ID DE JOGADOR no catálogo, e não adianta procurar: o `p.pid` que
+     o motor usa nasce em tempo de execução (attachAttrs, index.html), numerado
+     por save — o mesmo jogador recebe pid diferente em cada save, e ele não
+     está no bundle, nem em division_clubs, nem em pack_edits.
+
+     A identidade do jogador aqui é CLUBE + NOME: é assim que o patch o
+     encontra (`sq.find(x => x.n === nome)`). `jogador_chave` é essa identidade
+     escrita de forma estável e colável — serve para casar linhas entre duas
+     exportações e para referenciar o jogador num patch.
+
+     `linha` existe porque a chave NÃO é garantidamente única: dois clubes já
+     têm homônimos no elenco (Brusque e Marcílio Dias). Enquanto isso não for
+     corrigido, é o número da linha que separa os dois. */
+  const cab = ['linha','serie','clube_id','jogador_chave','clube','clube_curto','jogador',
+               'posicao','setor','forca','idade','valor_brl','pe','numero','nacionalidade',
+               'moral','energia','homonimo','no_patch'];
   const linhas = [cab.join(';')];
   let n = 0;
   (D.catalogo||[])
@@ -2406,13 +2420,18 @@ function csvJogadoresBrasil(){
     .forEach(x => {
       const c = clubeEfetivo(x), ed = (D.edits||{})[x.c.id];
       const marca = !ed ? 'de fábrica' : (ed.novo ? 'criado aqui' : 'editado');
-      elencoEfetivo(x)
+      const elenco = elencoEfetivo(x);
+      /* marca quem tem homônimo NO MESMO CLUBE: para esses, a chave não basta */
+      const vezes = {};
+      elenco.forEach(p => { vezes[p.n] = (vezes[p.n]||0)+1; });
+      elenco
         .sort((a,b) => (b.f||0)-(a.f||0))
         .forEach(p => {
           n++;
-          linhas.push([x.div, c.id, c.name||c.short||'', c.short||'', p.n||'', p.p||'',
+          const chave = String(c.id)+'|'+chaveNome(p.n);
+          linhas.push([n, x.div, c.id, chave, c.name||c.short||'', c.short||'', p.n||'', p.p||'',
                        p.s||'', p.f??'', p.age??'', p.mv??'', p.ft||'', p.num||'',
-                       p.nat||'', p.moral??'', p.energy??'', marca].map(csvCampo).join(';'));
+                       p.nat||'', p.moral??'', p.energy??'', (vezes[p.n]>1?'sim':''), marca].map(csvCampo).join(';'));
         });
     });
   return { texto: '﻿' + linhas.join('\r\n') + '\r\n', jogadores: n };
