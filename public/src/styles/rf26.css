@@ -1680,19 +1680,20 @@
    na roupa: transferido, muda-se --clube-1, --clube-2 e o escudo, e a foto
    continua a mesma. O degrade escuro do rodape apaga o uniforme — e' ele que
    torna a foto independente do clube. */
+/* ALTURA DO CARD, declarada num ANCESTRAL. Ela precisa ser lida em dois
+   lugares: pelo proprio card e pela GRADE das Caracteristicas, que dimensiona
+   a linha por ela. A grade e' PAI do card, e variavel CSS so' desce — se
+   ficasse no `.pc`, a grade nunca a enxergaria e cairia no fallback. */
+.rf-fx-carac-grid,.rf-ficha-topo{--pc-alt:305px}
+
 .rf-ficha-topo{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 .rf-ficha-lado{flex:1;min-width:220px;display:flex;flex-direction:column;gap:12px}
-/* ALTURA ENCURTADA PELO RODAPE: 305 -> 270 -> 230 -> 130px. A ancora da foto e' o
-   TOPO, entao a cabeca nao se mexe: ela continua a 19px da borda de cima,
-   qualquer que seja a altura. O que muda e' onde o card corta o jogador — em
-   130px ele mostra 36% da foto.
-   Vale dizer que a base da foto JA' estava alinhada com a base do card: a
-   120% de largura ela tem 360px de altura, mais que os 305 do card, entao o
-   que passava disso ja' era cortado pela borda. Encurtar nao aproxima as
-   bases — corta o jogador mais cedo. */
+/* 200x305, o tamanho do pacote. Passamos por 270, 230 e 130 procurando o
+   ponto; em 130 o rodape (escudo de 62px + nome + forca) nao cabia. A ancora
+   da foto e' o TOPO, entao a cabeca fica a 19px da borda de cima em qualquer
+   altura — encurtar so' muda onde o card corta o jogador. */
 .pc{--clube-1:var(--club-primary,#17458F);--clube-2:var(--club-secondary,#F2B90C);
-  --pc-alt:130px;
-  position:relative;width:200px;min-height:var(--pc-alt);flex:0 0 auto;
+  position:relative;width:200px;min-height:var(--pc-alt,305px);flex:0 0 auto;
   border-radius:16px;overflow:hidden;background:var(--clube-1);
   display:flex;align-items:flex-end}
 .pc-fundo{position:absolute;inset:0;pointer-events:none;
@@ -1742,13 +1743,26 @@
 /* dentro da grade de Características o card ocupa a coluna do retrato, que e'
    mais alta que os 305px do padrao — esticar mantem o alinhamento com a
    coluna dos atributos ao lado */
+/* O CARD MANDA NA LINHA. A grade tinha align-items:stretch e a altura vinha da
+   coluna MAIS ALTA — a dos atributos —, entao o card era esticado e o
+   min-height dele nao valia nada. Invertido: a linha passa a ter a altura do
+   card (grid-template-rows) e as outras colunas se acomodam dentro dela.
+
+   `min-height:0` e' obrigatorio junto: sem ele um item de grade nunca encolhe
+   abaixo do proprio conteudo, e a linha voltaria a crescer pelo lado dos
+   atributos — o problema de novo, por outro caminho. */
+.rf-fx-carac-grid{grid-template-rows:var(--pc-alt);align-items:stretch}
+.rf-fx-carac-grid > *{min-height:0}
+.rf-fx-carac-grid .rf-fx-hexcol,
+.rf-fx-carac-grid .rf-fx-attrs{overflow:auto}
+
 /* align-self:start E' O QUE FAZ A ALTURA VALER. A grade tem
    `align-items:stretch`, entao no desktop o card era esticado ate' a altura da
    LINHA — ditada pela coluna dos atributos, mais alta — e o min-height nao
    tinha efeito nenhum. No telefone a grade vira uma coluna so', cada item fica
    com a propria altura, e por isso a reducao aparecia la' e nao aqui. */
-.rf-fx-carac-grid .pc{width:100%;max-width:240px;min-height:var(--pc-alt);
-  height:var(--pc-alt);align-self:start}
+/* 200x305, o tamanho do pacote — a coluna da grade ja' e' 200px */
+.rf-fx-carac-grid .pc{width:200px;min-height:var(--pc-alt);height:var(--pc-alt)}
 
 .rf-ficha-id{display:flex;align-items:center;gap:12px}
 .rf-ficha-nm{display:flex;flex-direction:column;gap:2px;min-width:0}
