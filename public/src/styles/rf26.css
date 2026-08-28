@@ -1675,6 +1675,47 @@
 .rf-j-collar{left:50%;top:2px;transform:translateX(-50%);width:14px;height:6px;
   background:var(--club-secondary);border-radius:0 0 8px 8px}
 
+/* ===== CARD DO JOGADOR =====
+   Portado do pacote `card ficha`. A identidade do clube esta' no FUNDO e nao
+   na roupa: transferido, muda-se --clube-1, --clube-2 e o escudo, e a foto
+   continua a mesma. O degrade escuro do rodape apaga o uniforme — e' ele que
+   torna a foto independente do clube. */
+.rf-ficha-topo{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.rf-ficha-lado{flex:1;min-width:220px;display:flex;flex-direction:column;gap:12px}
+.pc{--clube-1:var(--club-primary,#17458F);--clube-2:var(--club-secondary,#F2B90C);
+  position:relative;width:200px;min-height:305px;flex:0 0 auto;
+  border-radius:16px;overflow:hidden;background:var(--clube-1);
+  display:flex;align-items:flex-end}
+.pc-fundo{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,var(--clube-1) 0 14.28%,var(--clube-2) 14.28% 28.56%)}
+.pc-foto{position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:50% 12%;display:block}
+/* a foto MONTADA em camadas chega como HTML, nao como <img>: o invólucro
+   recebe o mesmo enquadramento e as camadas se encaixam dentro dele */
+.pc-foto-comp{overflow:hidden}
+.pc-foto-comp .rf-fn-comp{position:absolute;left:50%;transform:translateX(-50%);
+  top:0;width:100%;aspect-ratio:2/3;display:block}
+.pc-foto-comp .rf-fn-comp img{position:absolute;transform:translateX(-50%);height:auto;display:block}
+.pc-overlay{position:absolute;left:0;right:0;bottom:0;height:86%;pointer-events:none;
+  background:linear-gradient(0deg,#09120d 0%,rgba(9,18,13,.98) 34%,rgba(9,18,13,.9) 50%,
+    rgba(9,18,13,.72) 64%,rgba(9,18,13,.48) 76%,rgba(9,18,13,.24) 88%,rgba(9,18,13,0) 100%)}
+.pc-num{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;justify-content:center;
+  min-width:30px;height:30px;padding:0 9px;box-sizing:border-box;border-radius:10px;
+  background:var(--club-secondary,#8b9a1f);color:var(--club-on-secondary,#fff);
+  font-family:var(--font-mono);font-weight:var(--fw-bold);font-size:14px}
+.pc-info{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px 16px 16px;min-width:0}
+.pc-escudo{width:62px;height:62px;object-fit:contain;display:block;margin-bottom:6px;
+  filter:drop-shadow(0 2px 10px rgba(0,0,0,.75))}
+.pc-pos{font-family:var(--font-mono);font-weight:var(--fw-semibold);font-size:9.5px;
+  letter-spacing:.14em;color:#d5e08a}
+.pc-nome{font-weight:var(--fw-bold);font-size:20px;line-height:1.15;letter-spacing:-.02em;
+  color:#fff;text-wrap:pretty}
+.pc-forca{display:flex;align-items:baseline;gap:8px}
+.pc-forca b{font-family:var(--font-mono);font-weight:var(--fw-bold);font-size:26px;line-height:1;color:#fff}
+.pc-forca span{font-family:var(--font-mono);font-weight:var(--fw-semibold);font-size:10px;
+  letter-spacing:.12em;color:#a8b79c}
+@media (max-width:520px){ .pc{width:100%;max-width:260px} }
+
 .rf-ficha-id{display:flex;align-items:center;gap:12px}
 .rf-ficha-nm{display:flex;flex-direction:column;gap:2px;min-width:0}
 .rf-ficha-n{font-size:var(--fs-heading);font-weight:var(--fw-bold);color:var(--text-1);

@@ -2469,21 +2469,9 @@ function rfNotaTom(n){ return n==null?'':(n>=7?'boa':n>=5?'media':'ruim'); }
    nome, três barras — Força, Energia, Moral — e as linhas de valor,
    salário e gols. Nada de painel escuro: é card claro como o resto.
    ===================================================================== */
-function rfJerseyHTML(num){
-  // camisa do Estúdio quando o clube tem (mesma regra do gramado); CSS de fallback
-  const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)];
-  if(uni && uni.miniatura){
-    return `<div class="rf-jersey rf-jersey-img" aria-hidden="true">
-      <img src="${escC(uni.miniatura)}" alt="" loading="lazy" draggable="false">
-      <b>${escC(String(num||''))}</b>
-    </div>`;
-  }
-  return `<div class="rf-jersey" aria-hidden="true">
-    <i class="rf-j-sl l"></i><i class="rf-j-sl r"></i>
-    <i class="rf-j-body"><b>${escC(String(num||''))}</b></i>
-    <i class="rf-j-collar"></i>
-  </div>`;
-}
+/* rfJerseyHTML saiu com a ficha antiga: era a unica a desenhar a camisa com o
+   numero, e o card nao usa camisa — a identidade do clube esta' no fundo. */
+
 function rfBarraHTML(rotulo, valor, pct, cor){
   return `<div class="rf-fb-l"><span>${escC(rotulo)}</span><span class="rf-num">${escC(String(valor))}</span></div>
     <div class="rf-fb"><i style="width:${Math.max(0,Math.min(100,pct))}%;background:${cor}"></i></div>`;
@@ -2500,33 +2488,70 @@ function rfFichaHTML(){
   // a força do jogo é uma escala aberta; a barra usa a maior força do meu
   // elenco como topo, senão um clube de Série D teria todas as barras no chão
   const topo=Math.max(1,...squad(CL.clubId).map(x=>x.f||0));
-  /* O RETRATO NA FICHA. Ate' agora a Ficha mostrava so' a camisa do clube com
-     o numero — o jogador nao aparecia na propria ficha. Com o corte sem
-     bracos ja' calibrado, o retrato cabe no mesmo espaco da camisa.
-     A camisa continua como reserva: clube sem foto do Estudio, ou jogador
-     ainda sem retrato, cai nela como antes. */
-  const retrato = (typeof rfFotoDe==='function') ? rfFotoDe(p, CL.clubId) : null;
-  return `<div class="rf-ficha-id">
-      ${retrato ? `<span class="rf-ficha-foto">${rfFotoNumHTML(retrato, nums[p.pid], 'ficha')}</span>`
-                : rfJerseyHTML(nums[p.pid])}
-      <div class="rf-ficha-nm">
-        <span class="rf-ficha-n">${escC(p.n)}</span>
-        <span class="rf-ficha-s">${p.nat?rfNacHTML(p)+' '+escC(p.nat)+' · ':''}${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
+  return `<div class="rf-ficha-topo">
+      ${rfCardJogadorHTML(p, nums[p.pid])}
+      <div class="rf-ficha-lado">
+        <div class="rf-ficha-bars">
+          ${rfBarraHTML('Força', p.f, 100*p.f/topo, 'var(--club-primary)')}
+          ${rfBarraHTML('Energia', en+'%', en, rfEnergiaCor(en))}
+          ${rfBarraHTML('Moral', moral, moral, 'var(--club-secondary)')}
+        </div>
+        <div class="rf-sep"></div>
+        <div class="rf-ficha-linhas">
+          <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span><span class="rf-linha-v">${escC(fmt(rfVM(p)))}</span></div>
+          <div class="rf-linha"><span class="rf-linha-t">Salário</span><span class="rf-linha-v">${escC(fmt(sal))}/sem</span></div>
+          <div class="rf-linha"><span class="rf-linha-t">Gols na temporada</span><span class="rf-linha-v">${gols}</span></div>
+          ${fim?`<div class="rf-linha"><span class="rf-linha-t">Contrato até</span><span class="rf-linha-v">${escC(String(fim))}</span></div>`:''}
+        </div>
       </div>
-    </div>
-    <div class="rf-ficha-bars">
-      ${rfBarraHTML('Força', p.f, 100*p.f/topo, 'var(--club-primary)')}
-      ${rfBarraHTML('Energia', en+'%', en, rfEnergiaCor(en))}
-      ${rfBarraHTML('Moral', moral, moral, 'var(--club-secondary)')}
-    </div>
-    <div class="rf-sep"></div>
-    <div class="rf-ficha-linhas">
-      <div class="rf-linha"><span class="rf-linha-t">Valor de mercado</span><span class="rf-linha-v">${escC(fmt(rfVM(p)))}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Salário</span><span class="rf-linha-v">${escC(fmt(sal))}/sem</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Gols na temporada</span><span class="rf-linha-v">${gols}</span></div>
-      <div class="rf-linha"><span class="rf-linha-t">Comportamento</span><span class="rf-linha-v">${escC(typeof playerBehaviorLabel==='function'?playerBehaviorLabel(p):'—')}</span></div>
     </div>`;
 }
+
+/* ===== O CARD DO JOGADOR =====
+   A identidade do clube vem do FUNDO, nao da roupa — e' o que faz o card
+   sobreviver a uma transferencia sem tocar na foto. Quatro camadas:
+
+     1. fundo listrado nas duas cores do clube
+     2. a foto do jogador, recortada (alfa)
+     3. um degrade escuro subindo do rodape, que APAGA o uniforme e garante
+        contraste do texto
+     4. numero, escudo do clube ATUAL, posicao, idade, nome e forca
+
+   Trocar de clube e' trocar duas variaveis CSS e o escudo. A foto continua a
+   mesma, para sempre, em qualquer clube — nada e' regerado.
+
+   Vale para a foto que houver: a montada em camadas, a costurada antiga ou a
+   camisinha de CSS quando nao ha' foto. O degrade cobre as tres. */
+function rfCardJogadorHTML(p, num){
+  const cl = clubOf(CL.clubId) || {};
+  const th = (typeof clubTheme==='function') ? clubTheme(CL.clubId) : {};
+  const c1 = th.col || '#17458F', c2 = th.col2 || '#F2B90C';
+  const crest = (typeof clubCrestUrl==='function') ? clubCrestUrl(cl) : (cl.crest||null);
+  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, CL.clubId) : null;
+  const miolo = !foto ? ''
+    : (typeof foto==='string' && foto.charAt(0)==='<')
+      ? `<span class="pc-foto pc-foto-comp">${foto}</span>`
+      : `<img class="pc-foto" src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
+  const idade = p.age ? p.age+' ANOS' : '';
+  const pos = String(rfPosLabel(p.s)||'').toUpperCase();
+  return `<div class="pc" style="--clube-1:${escC(c1)};--clube-2:${escC(c2)}">
+    <span class="pc-fundo"></span>
+    ${miolo}
+    <span class="pc-overlay"></span>
+    ${num!=null && String(num)!=='' ? `<span class="pc-num">${escC(String(num))}</span>` : ''}
+    <span class="pc-info">
+      ${crest?`<img class="pc-escudo" src="${escC(crest)}" alt="${escC(cl.short||'')}" loading="lazy">`:''}
+      <span class="pc-pos">${escC(pos)}${idade?' · '+escC(idade):''}</span>
+      <span class="pc-nome">${escC(p.n)}</span>
+      <span class="pc-forca"><b>${p.f}</b><span>DE FORÇA</span></span>
+    </span>
+  </div>`;
+}
+
+/* A ficha antiga — camisa do clube com o numero, tres barras e as linhas —
+   saiu junto com a chegada do card: ela desenhava a mesma informacao noutro
+   arranjo, e duas versoes da mesma tela sao duas para manter. O que ela tinha
+   de proprio (barras e linhas) vive agora ao lado do card. */
 
 /* =====================================================================
    CAMPEONATOS (telas/Campeonatos.html)
