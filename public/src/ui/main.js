@@ -7402,8 +7402,13 @@ function resolvePenalty(takerName){
 function penaltyReveal(scored,scorer){
   CL.penPhase='result';
   sfx(scored?'penaltiGol':'penaltiPerdido');
-  /* o "perdeu" narrado — aqui, colado ao lance, e nao no apito final */
-  if(!scored && typeof rfSomTocar==='function' && typeof camOn==='function' && camOn()) rfSomTocar('penaltiPerdido');
+  /* COLADO AO LANCE, nao ao evento. O gol e a perda de penalti so' chegariam
+     ao som quando o laco de eventos consumisse o evento, ja' depois do modal
+     fechar — o estadio rugia com atraso. Aqui e' no instante da revelacao. */
+  if(typeof camOn==='function' && camOn()){
+    if(scored) rfTorcidaGol();
+    else if(typeof rfSomTocar==='function') rfSomTocar('penaltiPerdido');
+  }
   cdraw();
   CL._penCloseTimer=setTimeout(closePenaltyModal, 2200);
 }
@@ -7951,7 +7956,10 @@ function camShare(m){ const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias
    Um audio por vez: dois eventos no mesmo minuto sobrepostos viram ruido, e o
    segundo interrompe o primeiro em vez de somar. */
 const RF_SONS = {
-  cartaoAmarelo: 'audio/falta-cartao-amarelo-pode-isso-arnaldo.mp3',
+  /* O "pode isso arnaldo" era do AMARELO, o lance mais comum do jogo — ouvia-se
+     a toda a hora e nunca sobrava espaco para o resto. Passa a ser so' da
+     EXPULSAO, que e' o lance que merece uma fala. Amarelo agora e' mudo. */
+  cartaoVermelho:'audio/falta-cartao-amarelo-pode-isso-arnaldo.mp3',
   golContra:     'audio/olha-o-que-ele-fez-gol-contra.mp3',
   penaltiDefendido:'audio/penalti-defendido-sai-que-e-sua-tafarel.mp3',
   goleada:       'audio/acima-de-5-gols-virou-passeio-gol-da-alemanha.mp3',
@@ -7975,8 +7983,11 @@ let RF_SOM_ATUAL = null, RF_SOM_FILA = null, RF_SOM_FIM = 0, RF_SOM_AGENDA = nul
 const RF_SOM_RESPIRO = 1500;
 /* Quanto vale cada momento. So' um som MAIS importante interrompe o que esta'
    a tocar; igual ou menor espera a vez. */
-const RF_SOM_PESO = { cartaoAmarelo:1, dobradinha:2, penaltiDefendido:3, penaltiPerdido:3,
-  golContra:2, goleada:3, fimNeutro:4, fimVitoria:4, fimDecisivo:4, campeao:5 };
+/* A ORDEM DE QUEM MANDA. So' um peso MAIOR interrompe o que esta' no ar; igual
+   ou menor espera a vez. A escala segue a prioridade pedida: a expulsao e o
+   gol vem primeiro, o apito final ganha de tudo o que e' de dentro do jogo. */
+const RF_SOM_PESO = { dobradinha:2, golContra:2, cartaoVermelho:3, penaltiDefendido:3,
+  penaltiPerdido:3, goleada:3, fimNeutro:4, fimVitoria:4, fimDecisivo:4, campeao:5 };
 function rfSomVolume(){
   const v = (S && S.config && S.config.somVol != null) ? Number(S.config.somVol) : 0.7;
   return Math.max(0, Math.min(1, isNaN(v) ? 0.7 : v));
@@ -8137,8 +8148,14 @@ function rfTorcidaNivel(k, quando){
   try{ RF_TORCIDA.g.gain.linearRampToValueAtTime(alvo, RF_AC.currentTime + (quando||0.8)); }catch(err){}
 }
 /* o rugido do gol: sobe depressa e desce devagar, como um estadio de verdade */
+let RF_TORCIDA_GOL = 0;
 function rfTorcidaGol(){
   if(!RF_TORCIDA || !RF_AC) return;
+  /* O MESMO GOL CHEGA POR DOIS CAMINHOS quando e' de penalti: a revelacao do
+     modal e, logo depois, o laco que consome o evento. Dois rugidos colados
+     soam como um corte. */
+  if(Date.now() - RF_TORCIDA_GOL < 2500) return;
+  RF_TORCIDA_GOL = Date.now();
   const t = RF_AC.currentTime, alto = 0.52 * rfSomVolume();
   try{
     RF_TORCIDA.g.gain.cancelScheduledValues(t);
@@ -8182,11 +8199,8 @@ function camOnEvent(m,e){
 function rfSomDoEvento(m,e,out){
   if(!camOn()) return;
   m._camSons = m._camSons || {};
-  /* `trava` separa "ja' tocou isto" de "qual audio tocar": o vermelho usa o
-     MESMO som do amarelo, mas com trava propria — senao um amarelo aos 12'
-     calaria a expulsao aos 70', que e' o lance maior dos dois. */
-  const soar = (trava, chave) => { if(m._camSons[trava]) return; m._camSons[trava]=1; rfSomTocar(chave||trava); };
-  if(e.type==='cartao') soar(e.cardType==='vermelho' ? 'cartaoVermelho' : 'cartaoAmarelo', 'cartaoAmarelo');
+  const soar = chave => { if(m._camSons[chave]) return; m._camSons[chave]=1; rfSomTocar(chave); };
+  if(e.type==='cartao' && e.cardType==='vermelho') soar('cartaoVermelho');
   /* O TAFAREL E' DO MEU GOLEIRO. Isto tocava em qualquer penalti defendido,
      inclusive num que o MEU time desperdicava — festejar a defesa contra mim.
      So' vale quando quem bateu foi o adversario. */
@@ -8254,10 +8268,11 @@ function camMinuteTick(m,RL){
   // nascia atrasada em relação ao lance que ela anuncia, que é a bola rolando. Bola rolando é 0'.
   if(mn>=0)  mark('ini',()=>{ camPush(m,'inicio',null,0);
     if(camOn()){ rfApito(1); rfTorcidaLigar(); } });
-  if(mn>=45) mark('ht', ()=>{ camPush(m,'intervalo',null,mn);
-    if(camOn()){ rfApito(2); rfTorcidaNivel(0.35, 1.5); } });   // intervalo: o estadio esvazia
-  if(mn>=46) mark('h2', ()=>{ camPush(m,'recomeco',null,mn);
-    if(camOn()){ rfApito(1); rfTorcidaNivel(0.9, 1.5); } });
+  /* A TORCIDA NAO SE CALA NO INTERVALO. Ela baixava aos 45 e voltava aos 46,
+     e esse vale era ouvido como uma falha do som — o estadio nao esvazia entre
+     os tempos. Fica no mesmo nivel do apito inicial ao final. */
+  if(mn>=45) mark('ht', ()=>{ camPush(m,'intervalo',null,mn); if(camOn()) rfApito(2); });
+  if(mn>=46) mark('h2', ()=>camPush(m,'recomeco',null,mn));
   if(mn>=91 && RL.extraStartMinute==null) mark('acr',()=>camPush(m,'acrescimos',null,mn));
   if(over) return; // apito final é responsabilidade do camEndCheck (depois dos eventos do minuto)
   // fase morna: nenhuma linha há 7 minutos -> comenta o momento do jogo (pressão/placar).
@@ -8372,6 +8387,10 @@ function camStatsHTML(m){ return rfCamStatsHTML(m); }
    pra troca de aba, que é o único caso em que a estrutura muda de verdade. */
 function camUpdate(){
   if(!camOn()) return; const m=camMatch(); if(!m) return;
+  /* O apito inicial liga a torcida, mas ele so' toca UMA vez: quem entra no
+     Camarote com o jogo a decorrer perdia o estadio para o resto da partida.
+     `rfTorcidaLigar` nao faz nada se ja' estiver a tocar. */
+  if(!camMatchOver(m)) rfTorcidaLigar();
   const host=document.querySelector('#rf-cam-dyn'); if(!host) return;
   const tab=CL.camTab||'panorama';
   if(host.dataset.tab!==tab || !host.querySelector('#rf-cam-lines')){
