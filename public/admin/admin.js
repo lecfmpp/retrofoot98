@@ -5034,8 +5034,35 @@ function abrirLightboxHTML(miolo){
   document.addEventListener('keydown', esc, true);
   document.body.appendChild(lb);
 }
-function abrirLightbox(url, alt){
-  abrirLightboxHTML(`<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">`);
+/* BAIXAR A IMAGEM. O <a download> nao serve aqui: o arquivo esta' noutro
+   dominio (o Storage), e nesse caso o navegador IGNORA o atributo e apenas
+   navega ate' a imagem. Buscar como blob e baixar do proprio dominio e' o que
+   faz o download acontecer de verdade. */
+async function baixarImagem(url, nome){
+  if(!url) return;
+  try{
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'dl=1');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nome || 'imagem.webp';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Imagem baixada.');
+  }catch(err){
+    /* sem CORS o fetch falha; abrir noutra aba deixa o utilizador salvar a mao */
+    window.open(url, '_blank', 'noopener');
+    toast('Abri a imagem noutra aba — salve por ali.', true);
+  }
+}
+
+function abrirLightbox(url, alt, nomeArquivo){
+  abrirLightboxHTML(`<img src="${h(url)}" alt="${h(alt||'')}" style="max-width:92vw;max-height:92vh;object-fit:contain;border-radius:12px;box-shadow:0 20px 60px #000">
+    <button class="btn btn-sm" data-lb-baixar style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%)">⤓ Baixar</button>`);
+  const bt = document.querySelector('[data-lb-baixar]');
+  /* o clique nao pode subir: o proprio lightbox fecha ao clique */
+  if(bt) bt.onclick = (ev) => { ev.stopPropagation(); baixarImagem(url, nomeArquivo || 'imagem.webp'); };
 }
 
 /* Remove o fundo SÓLIDO de um logo no próprio navegador: pega a cor dos cantos
@@ -8206,206 +8233,12 @@ function modalAcervo(item, p){
   ligar();
 }
 
-/* ===== EDITOR DE ENCAIXE =====
-   Quatro numeros decidem toda a montagem, e nenhum deles e' palpite bom: o
-   melhor jeito de acerta-los e' arrastar ate' assentar e LER a medida. Este
-   modal existe para isso — mostra o resultado no corte exato da Ficha do
-   Jogador (76% central, janela 0..76% da altura), com os controles ao lado.
-
-   Nao gera nada e nao grava nada: usa a cabeca que ja' existe. */
-function modalEncaixeFoto(item, p){
-  const f = D.fotos[item.c.id+'|'+p.n];
-  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
-  const manequim = t && t.atributos && t.atributos.miniatura;
-  if(!f || !f.url) return toast('Este jogador ainda não tem cabeça.', true);
-  if(!manequim) return toast('Este clube ainda não tem manequim — repinte o uniforme.', true);
-
-  const aj = (f.atributos && f.atributos.encaixe) || {};
-  const st = { larg: aj.cabL!=null?aj.cabL:FOTO_CABECA_LARG, topo: aj.cabT!=null?aj.cabT:FOTO_CABECA_TOPO,
-               camisa: aj.camL!=null?aj.camL:FOTO_CAMISA_LARG, sobre: aj.sobre!=null?aj.sobre:FOTO_GOLA_SOBRE,
-               decL: aj.decL!=null?aj.decL:FOTO_DECOTE_LARG, decF: aj.decF!=null?aj.decF:FOTO_DECOTE_FUNDO,
-               decS: aj.decS!=null?aj.decS:FOTO_DECOTE_SUAVE,
-               fZ: FICHA_ZOOM, fT: FICHA_TOPO };
-  let med = null;
-
-  abrirModal(`
-    <div class="card-h"><b>Encaixe de ${h(p.n)}</b></div>
-    <div class="card-p col" style="gap:14px">
-      <div class="st" style="font-size:12.5px;line-height:1.6">
-        Só cabeça e camisa — sem escudo, patrocinador ou fabricante.
-        À esquerda, <b>exatamente o quadro da Ficha do Jogador</b>: mesmo recorte, mesma proporção.
-        À direita, os 2:3 inteiros que ficam salvos. Nada é gerado nem gravado aqui.
-      </div>
-      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
-        <div style="flex:0 0 auto">
-          <div id="enf-ficha" style="position:relative;width:210px;height:210px;border-radius:12px;
-               overflow:hidden;background:#e8e8e4"></div>
-          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">quadro da Ficha (52px no jogo)</div>
-        </div>
-        <div style="flex:0 0 auto">
-          <div id="enf-cheio" style="position:relative;width:150px;height:225px;border-radius:10px;
-               overflow:hidden;background:#e8e8e4;outline:1px dashed var(--linha)"></div>
-          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">2:3 salvo (o que o corte recorta)</div>
-        </div>
-        <div class="col" style="gap:11px;flex:1;min-width:270px">
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Cabeça — largura</span>
-            <input id="enf-larg" type="range" min="15" max="60" step="0.1" value="${(st.larg*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Cabeça — topo</span>
-            <input id="enf-topo" type="range" min="-5" max="20" step="0.1" value="${(st.topo*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Camisa — largura</span>
-            <input id="enf-camisa" type="range" min="70" max="200" step="0.5" value="${(st.camisa*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola sobre o pescoço</span>
-            <input id="enf-sobre" type="range" min="-5" max="15" step="0.1" value="${(st.sobre*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — largura</span>
-            <input id="enf-decl" type="range" min="0" max="40" step="0.5" value="${(st.decL*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — fundo</span>
-            <input id="enf-decf" type="range" min="0" max="15" step="0.1" value="${(st.decF*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — suavidade</span>
-            <input id="enf-decs" type="range" min="0" max="80" step="5" value="${(st.decS*100).toFixed(0)}"></label>
-          <div class="tt" style="font-size:12px;margin-top:4px">Quadro da Ficha (o de 52px)</div>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Ficha — aproximação</span>
-            <input id="enf-fz" type="range" min="80" max="260" step="1" value="${(st.fZ*100).toFixed(0)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Ficha — topo</span>
-            <input id="enf-ft" type="range" min="-60" max="20" step="0.5" value="${(st.fT*100).toFixed(1)}"></label>
-          <div class="card" style="padding:12px 14px;background:var(--card2)">
-            <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida — é isto que eu preciso</div>
-            <pre id="enf-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
-            <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
-              <button class="btn btn-sm" id="enf-salvar">Salvar e remontar este jogador</button>
-              <button class="btn btn-sm btn-ghost" id="enf-copiar">Copiar medida</button>
-              <button class="btn btn-sm btn-ghost" id="enf-auto">Voltar ao padrão</button>
-              ${(f.atributos&&f.atributos.encaixe)?'<button class="btn btn-sm btn-ghost" id="enf-limpar">Usar o padrão de novo</button>':''}
-            </div>
-            <div class="st" style="font-size:11.5px;margin-top:8px;line-height:1.5">
-              Salvar guarda <b>só o que você mudou</b>: os outros valores seguem o padrão,
-              então um ajuste global futuro continua chegando neste jogador.
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
-
-  /* A COMPOSICAO, sempre no quadro 2:3 — que e' o que fica salvo. */
-  const composicao = () => {
-    const lw = st.larg / med.larg;             // largura da IMAGEM da cabeça (fracao da largura)
-    const lh = lw / RATIO_FOTO;                // ela e' quadrada: a mesma medida em fracao da ALTURA
-    const topoImg = st.topo - med.topo*lh;
-    const fimPescoco = topoImg + med.base*lh;
-    const cw = st.camisa, chh = cw / RATIO_FOTO;
-    const topoCamisa = fimPescoco - st.sobre;
-    const cx = med.cx == null ? 0.5 : med.cx;
-    /* MESMA conta do decote do canvas, so' que com os valores em ajuste */
-    const largNaCamisa = st.decL / cw * 100;
-    const altCamisa = cw / RATIO_FOTO;
-    const fundoNaCamisa = st.decF / altCamisa * 100;
-    /* MESMA conta do canvas: duas elipses, em % da CAMISA, com interseccao */
-    const altCam = cw / RATIO_FOTO;
-    const camadas = [];
-    const poe = (larg, fundo, suave) => { if(!(larg>0 && fundo>0)) return;
-      camadas.push(`radial-gradient(ellipse ${(larg/cw*100).toFixed(2)}% ${(fundo/altCam*100).toFixed(2)}% at 50% 0%,`
-                 + `transparent ${Math.round((1-suave)*100)}%,#000 100%)`); };
-    poe(st.decL, st.decF, st.decS);
-    const mascara = camadas.length
-      ? `-webkit-mask-image:${camadas.join(',')};mask-image:${camadas.join(',')};`
-        + (camadas.length>1 ? 'mask-composite:intersect;-webkit-mask-composite:source-in;' : '')
-      : '';
-    const html =
-      `<img src="${h(f.url)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
-         transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">` +
-      `<img src="${h(manequim)}" style="position:absolute;left:50%;transform:translateX(-50%);
-         top:${(topoCamisa*100).toFixed(3)}%;width:${(cw*100).toFixed(3)}%;z-index:2;${mascara}">`;
-    return { html, fimPescoco, topoCamisa, chh };
-  };
-
-  const desenha = () => {
-    if(!med) return;
-    const g = composicao();
-    /* O QUADRO DA FICHA E' REPRODUZIDO, NAO RECALCULADO. Estes dois numeros
-       sao os mesmos --rf-foto-larg e --rf-foto-topo de .rf-fotonum no
-       rf26.css: a caixa e' quadrada e recebe DENTRO dela o quadro 2:3 a
-       131,58% da largura, com o topo em -5,27%. Reproduzir o CSS em vez de
-       recalcular a janela e' o que impede o editor de divergir da Ficha —
-       eu ja' tinha errado aqui, mostrando y 0..76% onde a Ficha mostra
-       y 2,67..53,34%, e ainda espremendo uma regiao 2:3 num quadrado.
-       Se o CSS do jogo mudar, estes dois mudam junto. */
-    el('enf-ficha').innerHTML =
-      `<span style="position:absolute;left:50%;transform:translateX(-50%);top:${(st.fT*100).toFixed(2)}%;
-             width:${(st.fZ*100).toFixed(2)}%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">${g.html}</span>`;
-    el('enf-cheio').innerHTML = g.html;
-    el('enf-saida').textContent =
-      `FOTO_CABECA_LARG : ${st.larg.toFixed(4)}   (${(st.larg*100).toFixed(2)}% da largura)\n`+
-      `FOTO_CABECA_TOPO : ${st.topo.toFixed(4)}   (${(st.topo*100).toFixed(2)}% da altura)\n`+
-      `FOTO_CAMISA_LARG : ${st.camisa.toFixed(4)}   (${(st.camisa*100).toFixed(2)}% da largura)\n`+
-      `FOTO_GOLA_SOBRE  : ${st.sobre.toFixed(4)}   (${(st.sobre*100).toFixed(2)}% da altura)\n`+
-      `FOTO_DECOTE_LARG : ${st.decL.toFixed(4)}   (${(st.decL*100).toFixed(2)}% da largura)\n`+
-      `FOTO_DECOTE_FUNDO: ${st.decF.toFixed(4)}   (${(st.decF*100).toFixed(2)}% da altura)\n`+
-      `FOTO_DECOTE_SUAVE: ${st.decS.toFixed(2)}   (${(st.decS*100).toFixed(0)}% da borda em degradê)\n`+
-      `— corte total chega a ${((st.decF*(1-st.decS))/(FOTO_CAMISA_LARG/RATIO_FOTO)*100).toFixed(2)}% do manequim; a gola dele ocupa ~2%\n`+
-      `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
-      `--rf-foto-larg   : ${(st.fZ*100).toFixed(2)}%   (no rf26.css, .rf-fotonum)\n`+
-      `--rf-foto-topo   : ${(st.fT*100).toFixed(2)}%\n`+
-      `— a Ficha mostra y ${(-st.fT/(st.fZ*RATIO_FOTO)*100).toFixed(2)}%..${((-st.fT+1)/(st.fZ*RATIO_FOTO)*100).toFixed(2)}% e x ${((1-1/st.fZ)/2*100).toFixed(2)}%..${((1-(1-1/st.fZ)/2)*100).toFixed(2)}% deste quadro\n`+
-      `— cabeça medida: topo ${(med.topo*100).toFixed(1)}% · base ${(med.base*100).toFixed(1)}% · larg ${(med.larg*100).toFixed(1)}% · centro ${((med.cx==null?0.5:med.cx)*100).toFixed(1)}%`;
-  };
-
-  medirMolde(f.url).then(m => {
-    if(!m){ el('enf-saida').textContent = 'não consegui medir a cabeça (CORS?).'; return; }
-    med = m; desenha();
-  });
-  const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
-  liga('enf-larg','larg'); liga('enf-topo','topo'); liga('enf-camisa','camisa'); liga('enf-sobre','sobre');
-  liga('enf-decl','decL'); liga('enf-decf','decF'); liga('enf-decs','decS');
-  liga('enf-fz','fZ'); liga('enf-ft','fT');
-  /* GUARDA SO' A DIFERENCA. Salvar os dez congelaria o jogador: uma mudanca
-     global depois nao chegaria mais nele. Guardando o diff, o que voce nao
-     tocou continua seguindo o padrao. */
-  el('enf-salvar').onclick = async () => {
-    const padrao = { cabL:FOTO_CABECA_LARG, cabT:FOTO_CABECA_TOPO, camL:FOTO_CAMISA_LARG, sobre:FOTO_GOLA_SOBRE,
-                     decL:FOTO_DECOTE_LARG, decF:FOTO_DECOTE_FUNDO, decS:FOTO_DECOTE_SUAVE,
-                     decS:FOTO_DECOTE_SUAVE };
-    const meu = { cabL:st.larg, cabT:st.topo, camL:st.camisa, sobre:st.sobre,
-                  decL:st.decL, decF:st.decF, decS:st.decS };
-    const diff = {};
-    for(const k of Object.keys(padrao)) if(Math.abs(meu[k]-padrao[k]) > 1e-6) diff[k] = meu[k];
-    const alvo = alvoRemontagem(String(item.c.id), p.n);
-    if(!alvo) return toast('Precisa de cabeça e de manequim do clube.', true);
-    const bt = el('enf-salvar'); bt.disabled = true; bt.textContent = 'Remontando…';
-    try{
-      alvo.f = Object.assign({}, alvo.f, { atributos: Object.assign({}, alvo.f.atributos || {},
-        Object.keys(diff).length ? { encaixe: diff } : {}) });
-      if(!Object.keys(diff).length && alvo.f.atributos) delete alvo.f.atributos.encaixe;
-      await remontarUma(alvo);
-      toast(Object.keys(diff).length
-        ? `${p.n} salvo com ${Object.keys(diff).length} ajuste(s) próprio(s).`
-        : `${p.n} remontado no padrão.`);
-      fecharModal(); modalFotosIA(item);
-    }catch(err){ toast(err.message||'Não consegui salvar.', true); bt.disabled=false; bt.textContent='Salvar e remontar este jogador'; }
-  };
-  const btLimpar = el('enf-limpar');
-  if(btLimpar) btLimpar.onclick = async () => {
-    const alvo = alvoRemontagem(String(item.c.id), p.n); if(!alvo) return;
-    const at = Object.assign({}, alvo.f.atributos || {}); delete at.encaixe;
-    alvo.f = Object.assign({}, alvo.f, { atributos: at });
-    try{ await remontarUma(alvo); toast(`${p.n} voltou ao encaixe padrão.`); fecharModal(); modalFotosIA(item); }
-    catch(err){ toast(err.message||'Não consegui.', true); }
-  };
-
-  el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
-    () => toast('Medida copiada — cole aqui na conversa.'),
-    () => toast('Não consegui copiar; selecione o texto à mão.', true));
-  el('enf-auto').onclick = () => {
-    st.larg = FOTO_CABECA_LARG; st.topo = FOTO_CABECA_TOPO;
-    st.camisa = FOTO_CAMISA_LARG; st.sobre = FOTO_GOLA_SOBRE;
-    st.decL = FOTO_DECOTE_LARG; st.decF = FOTO_DECOTE_FUNDO; st.decS = FOTO_DECOTE_SUAVE;
-    st.fZ = FICHA_ZOOM; st.fT = FICHA_TOPO;
-    el('enf-larg').value=(st.larg*100).toFixed(1); el('enf-topo').value=(st.topo*100).toFixed(1);
-    el('enf-camisa').value=(st.camisa*100).toFixed(1); el('enf-sobre').value=(st.sobre*100).toFixed(1);
-    el('enf-decl').value=(st.decL*100).toFixed(1); el('enf-decf').value=(st.decF*100).toFixed(1);
-    el('enf-decs').value=(st.decS*100).toFixed(0);
-    el('enf-fz').value=(st.fZ*100).toFixed(0); el('enf-ft').value=(st.fT*100).toFixed(1);
-    desenha(); };
-}
+/* O EDITOR DE ENCAIXE SAIU. Ele existia para calibrar a montagem de cabeca
+   sobre o manequim do clube — e essa montagem deixou de ser o caminho: a foto
+   nova nasce inteira, com o uniforme generico da marca, e a identidade do
+   clube vem do FUNDO do card. Nao ha' mais encaixe a ajustar por jogador.
+   As constantes que ele calibrou (FOTO_*) seguem em uso na montagem das fotos
+   em camadas que ja' existem. */
 
 function modalFotosIA(item){
   const c = item.c, editar = podeEditar('dados');
@@ -8474,12 +8307,11 @@ function modalFotosIA(item){
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
-        ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
         ${editar && f && (f.atributos||{}).recorte !== 'cartao'
             ? botao('data-recortar','✂','Recortar o fundo desta foto — sem custo') :''}
+        ${f ? botao('data-baixar','⤓','Baixar a imagem deste jogador') :''}
         ${editar && f ? botao('data-remontar','⟳','Remontar esta foto com o encaixe atual — sem custo') :''}
         ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
-        ${editar? botao('data-comparar','⌗','Encaixe') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
     </div>`;
@@ -8533,7 +8365,7 @@ function modalFotosIA(item){
       abrirLightboxHTML(compostoHTML(f.atributos.montagem, null, lado, 16, camadasClube(f), true));
     else if(f.atributos && f.atributos.recorte==='rosto' && t)
       abrirLightboxHTML(compostoHTML(t.url, f.url, lado, 16, camadasClube(f)));
-    else abrirLightbox(f.url, alt);
+    else abrirLightbox(f.url, alt, (chaveNome(alt)||'jogador')+'.webp');
   };
   el('ft-lista').addEventListener('click', ev => {
     if(!ev.target.closest('[data-thumb]')) return;
@@ -8603,10 +8435,9 @@ function modalFotosIA(item){
   el('ft-lista').addEventListener('click', async ev => {
     const linha = ev.target.closest('[data-foto-jog]'); if(!linha) return;
     const p = sq.find(x => x.n === linha.dataset.fotoJog); if(!p) return;
-    if(ev.target.closest('[data-escudo]')){
+    if(ev.target.closest('[data-baixar]')){
       const f = D.fotos[c.id+'|'+p.n];
-      if(f && f.atributos && f.atributos.montagem)
-        modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true, p.n);
+      if(f) baixarImagem((f.atributos&&f.atributos.montagem)||f.url, `${chaveNome(p.n)||'jogador'}.webp`);
       return;
     }
     const btCt = ev.target.closest('[data-recortar]');
@@ -8635,7 +8466,6 @@ function modalFotosIA(item){
       return;
     }
     if(ev.target.closest('[data-reusar]')){ modalAcervo(item, p); return; }
-    if(ev.target.closest('[data-comparar]')){ modalEncaixeFoto(item, p); return; }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
     const antes = rotuloDe(bt);
     bt.disabled = true; rotulo(bt, 'Gerando…', '·');
