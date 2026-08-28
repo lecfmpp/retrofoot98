@@ -95,10 +95,12 @@ function montarPrompt(genero: string, estilo: string, idade: number, comReferenc
     `The face has ${expressao}.`,
     NUNCA,
     ROUPA_LIMPA,
-    "Head and shoulders, facing the camera directly, official club media day photo style.",
+    "Head and upper chest only, facing the camera directly, official club media day photo style.",
+    "Cropped just below the collarbone — do not show the arms, the waist or any part of the background scene.",
     "Soft professional studio lighting, sharp focus, DSLR photo quality.",
     "FULLY TRANSPARENT BACKGROUND — no backdrop and NO SHADOW cast behind the person (a cast shadow becomes a grey fringe when the portrait is placed over colours).",
-    "The head is centered and fills about half of the frame height.",
+    "The head is horizontally centered and fills about 55% of the frame height, with a small margin of empty space above the hair.",
+    "Clean, crisp edges around the hair and the shoulders — every pixel outside the person must be fully transparent, with no grey halo, no soft fade and no leftover backdrop.",
   ];
   if (comReferencia) {
     /* DE PROPOSITO "as loose inspiration", nunca "the same face": pedir a
@@ -173,15 +175,20 @@ Deno.serve(async (req) => {
   const idadeBruta = Number(body.idade);
   const idade = Number.isFinite(idadeBruta) ? Math.min(75, Math.max(25, Math.round(idadeBruta))) : 40;
 
-  /* PORTA DO PRO — no servidor. O cliente ja' esconde o botao, mas esconder
-     botao nao e' controle de acesso: quem chama a funcao direto passaria. */
-  const { data: plano } = await admin
-    .schema("elifoot_v3").from("user_plans")
-    .select("plan, until").eq("user_id", uid).maybeSingle();
-  const proValido = plano?.plan === "pro"
-    && (!plano.until || new Date(plano.until).getTime() > Date.now());
-  if (!proValido) {
-    return resp(403, { error: "O retrato por IA é do plano Pro.", motivo: "pro" });
+  /* PORTA DO EMBAIXADOR — no servidor. O cliente ja' esconde o botao, mas
+     esconder botao nao e' controle de acesso: quem chama a funcao direto
+     passaria.
+
+     A PERGUNTA E' FEITA A' MESMA FUNCAO QUE O RESTO DO JOGO USA. plano_limites
+     ja' resolve o prazo (`until` no passado deixa de valer sozinho) e ja' sabe
+     quais planos dao retrato — repetir a regra aqui era ter duas versoes dela,
+     e foi assim que o 'pro' antigo ficou para tras quando nasceram os tres
+     planos. */
+  const { data: limites } = await admin
+    .schema("elifoot_v3").rpc("plano_limites", { p_user: uid });
+  const lim = Array.isArray(limites) ? limites[0] : limites;
+  if (!lim?.avatar_ia) {
+    return resp(403, { error: "O retrato por IA é do plano Embaixador.", motivo: "pro" });
   }
 
   const refPath = body.referencia ? String(body.referencia) : "";
@@ -225,6 +232,11 @@ Deno.serve(async (req) => {
       form.append("quality", QUALIDADE);
       form.append("output_format", FORMATO);
       form.append("output_compression", String(COMPRESSAO));
+      /* O MESMO transparente do outro ramo. Faltava aqui: o /images/edits ignora
+         o pedido do texto e devolve fundo opaco se o campo nao vier no form, e
+         era por isso que o avatar de quem MANDA A PROPRIA FOTO no onboarding
+         saia com fundo cinza enquanto o gerado do zero saia limpo. */
+      form.append("background", "transparent");
       form.append("image[]", new File([blob], "referencia", { type: blob.type || "image/webp" }));
       oa = await fetch("https://api.openai.com/v1/images/edits", {
         method: "POST",

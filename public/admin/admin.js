@@ -6263,9 +6263,11 @@ function promptFaceTreinador(genero, i){
     `The face has ${FACE_EXPRESSAO[i]}.`,
     FACE_NUNCA,
     ROUPA_LIMPA,
-    'Head and shoulders, facing the camera directly, official club media day photo style.',
+    'Head and upper chest only, facing the camera directly, official club media day photo style.',
+    'Cropped just below the collarbone — do not show the arms, the waist or any part of the background scene.',
     'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
-    'The head is centered and fills about half of the frame height.',
+    'The head is horizontally centered and fills about 55% of the frame height, with a small margin of empty space above the hair.',
+    'Clean, crisp edges around the hair and the shoulders — every pixel outside the person must be fully transparent, with no grey halo, no soft fade and no leftover backdrop.',
     NAO_REAL
   ].join(' ');
 }
@@ -6476,46 +6478,34 @@ async function garantirFaceTreinador(genero, i, refazer){
    fundo do clube nao aparece no card. */
 /* quantas faces ainda estao opacas — o botao mostra o numero, senao ele
    parece util mesmo quando ja' nao ha' o que fazer */
-function facesTreinadorOpacas(){
-  let n = 0;
-  ['f','m'].forEach(g => ESTILOS_TREINADOR.forEach((_e, i) => {
-    const f = D.fotos[TREINADOR_KEY+'|'+faceChave(g, i)];
-    if(f && f.url && !(f.atributos||{}).vazada) n++;
-  }));
-  return n;
-}
 
-async function recortarFacesTreinador(btn){
+
+/* Refaz as 10 faces com o tipo transparente. Elas nasceram opacas — o card do
+   treinador poe a identidade do clube no fundo, e opaco tapa esse fundo. O
+   recorte por canvas, que resolve nas fotos de jogador, saiu ruim aqui: o
+   retrato de treinador mostra mais fundo em volta do cabelo e dos ombros, e a
+   franja fica visivel. Gerar de novo sai limpo da origem. */
+async function refazerFacesTreinador(btn){
   const alvos = [];
   ['f','m'].forEach(g => ESTILOS_TREINADOR.forEach((_e, i) => {
-    const f = D.fotos[TREINADOR_KEY+'|'+faceChave(g, i)];
-    if(f && f.url && !(f.atributos||{}).vazada) alvos.push({ g, i, f });
+    if(D.fotos[TREINADOR_KEY+'|'+faceChave(g, i)]) alvos.push([g, i]);
   }));
-  if(!alvos.length) return toast('As faces de treinador já estão recortadas.');
-  if(!await rfConfirm({ titulo:'Recortar o fundo das faces',
-    texto:`Tira o fundo de estúdio de <b>${alvos.length} face(s)</b> de treinador.`,
-    detalhe:'<b>Sem custo</b> — canvas, sem IA. É o que faz o fundo do clube aparecer no card do treinador. Nada é apagado.',
-    nao:'Cancelar', sim:`Recortar ${alvos.length}` })) return;
+  if(!alvos.length) return toast('Nenhuma face para refazer.');
+  if(!await rfConfirm({ titulo:'Refazer as faces de treinador',
+    texto:`Gera <b>${alvos.length} face(s)</b> de novo, já com fundo transparente.`,
+    detalhe:`Custo: <b>~US$ ${(alvos.length*0.0647).toFixed(2)}</b>.
+      As atuais nasceram com fundo cinza e o tapam o fundo do clube no card.
+      <b>Nada é apagado</b>: as imagens antigas continuam no Storage.`,
+    nao:'Cancelar', sim:`Refazer ${alvos.length}` })) return;
   btn.disabled = true; const rot = btn.textContent;
   let ok=0, erros=0;
-  for(const a of alvos){
-    btn.textContent = `Recortando ${ok+erros+1}/${alvos.length}…`;
-    try{
-      const r = await recortarFundoFoto(a.f.url);
-      if(!r) throw new Error('já transparente');
-      if(r.fracao < 0.04 || r.fracao > 0.80) throw new Error(`recorte suspeito (${(r.fracao*100).toFixed(1)}%)`);
-      const caminho = `treinadores/${faceChave(a.g, a.i)}-vazada-${Date.now()}.webp`;
-      const up = await sb.storage.from('jogadores').upload(caminho, r.blob, { upsert:false, cacheControl:'31536000' });
-      if(up.error) throw new Error(up.error.message);
-      const at = Object.assign({}, a.f.atributos || {}, { vazada:true, anterior:a.f.url });
-      const reg = Object.assign({}, a.f, { url: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl, atributos: at });
-      const res = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
-      if(res.error) throw new Error(erroMsg(res.error));
-      D.fotos[TREINADOR_KEY+'|'+faceChave(a.g, a.i)] = reg;
-      ok++;
-    }catch(err){ erros++; console.warn('face treinador:', a.g, a.i, err.message); }
+  for(const [g, i] of alvos){
+    btn.textContent = `Face ${ok+erros+1}/${alvos.length}…`;
+    try{ await garantirFaceTreinador(g, i, true); ok++; }
+    catch(err){ erros++; console.warn('face treinador:', g, i, err.message); }
   }
-  toast(`${ok} face(s) recortadas${erros?`, ${erros} falharam`:''}.`);
+  registrar('estudio.treinador.refazer', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} face(s) refeitas${erros?`, ${erros} falharam`:''}.`);
   btn.disabled = false; btn.textContent = rot;
   pgEstudio();
 }
@@ -7633,12 +7623,14 @@ function blocoTreinadoresHTML(){
           ? `<button class="btn btn-sm" id="est-faces" style="white-space:nowrap;flex:0 0 auto"
                title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>`
           : ''}
-        <!-- FORA da condicao do "gerar": recortar so' faz sentido em face que JA'
-             existe, e a condicao acima e' o contrario disso — com as 10 prontas,
-             ela some e levava o recorte junto. -->
+        <!-- REFAZER, nao recortar. A inundacao de borda que funciona nas fotos de
+             jogador saiu ruim nestas: o retrato de treinador tem mais fundo
+             visivel em volta do cabelo e dos ombros, e a franja aparece.
+             Gerar de novo ja' sai transparente da IA, sem franja e sem
+             tentativa de adivinhar onde a pessoa termina. -->
         ${prontas && podeEditar('dados')
-          ? `<button class="btn btn-sm btn-ghost" id="est-faces-recorte" style="white-space:nowrap;flex:0 0 auto"
-               title="Tira o fundo cinza das faces já geradas — é o que faz o fundo do clube aparecer no card do treinador">Recortar fundos (${facesTreinadorOpacas()})</button>`
+          ? `<button class="btn btn-sm btn-ghost" id="est-faces-refazer" style="white-space:nowrap;flex:0 0 auto"
+               title="Gera as 10 de novo, já com fundo transparente — o recorte por canvas não ficou bom nestas">Refazer as ${prontas} com fundo transparente (~US$ ${(prontas*0.0647).toFixed(2)})</button>`
           : ''}
       </div>
       ${blocoMarcaHTML()}
@@ -7813,8 +7805,8 @@ async function pgEstudio(){
   if(btBase) btBase.onclick = () => prepararFacesBase(btBase);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
-  const btFacesRec = el('est-faces-recorte');
-  if(btFacesRec) btFacesRec.onclick = () => recortarFacesTreinador(btFacesRec);
+  const btFacesRef = el('est-faces-refazer');
+  if(btFacesRef) btFacesRef.onclick = () => refazerFacesTreinador(btFacesRef);
   const btFaces = el('est-faces');
   if(btFaces) btFaces.onclick = () => prepararFacesTreinador(btFaces);
   document.querySelectorAll('[data-face-refazer]').forEach(x => x.onclick = () => {
