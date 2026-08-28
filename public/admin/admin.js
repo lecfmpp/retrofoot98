@@ -5714,6 +5714,65 @@ function promptMontagem(){
     'Plain light gray studio background, facing the camera, sharp focus, DSLR quality.'
   ].join(' ');
 }
+/* ===== O ENCAIXE DA FOTO, DERIVADO DAS MONTAGENS APROVADAS =====
+   Medido nas montagens que o usuario aprovou, no quadro 2:3:
+     topo do cabelo   ~2,0% da altura
+     largura da cabeca ~33,2% da largura   (bate com os 33,07% da bancada)
+     gola              ~52,0%
+
+   Os tres nao cabem juntos numa montagem por CAMADAS, e vale registrar por
+   que: a IA ESTICAVA O PESCOCO ao costurar. Uma cabeca real com 33,2% de
+   largura e topo em 2% termina o pescoco por volta de 41%, nao de 52%. Ou a
+   cabeca cresce para 43% — tamanho ja' reprovado por ficar grande demais — ou
+   a gola sobe ate' encostar no pescoco de verdade. Sobe a gola.
+
+   A CAMISA ENTRA MAIOR QUE O QUADRO (131%) de proposito: e' a escala em que o
+   ombro do manequim cobre a largura toda, como cobria na montagem. O que
+   passa das bordas e' justamente a manga, que nao queremos.
+
+   A cabeca vai ATRAS: o colarinho passa por cima do pescoco e cobre a junta.
+   Encostar exigiria acertar o pescoco na virgula; sobrepor tolera folga. */
+const FOTO_CABECA_LARG = 0.332;   // largura da cabeca / largura do quadro
+const FOTO_CABECA_TOPO = 0.020;   // topo do cabelo, fracao da altura
+const FOTO_CAMISA_LARG = 1.310;   // largura do manequim / largura do quadro
+const FOTO_GOLA_SOBRE  = 0.030;   // quanto a gola sobe sobre o fim do pescoco
+const FOTO_W = 1024, FOTO_H = 1536;
+
+/* Monta a foto do jogador: manequim do clube + cabeca, sem escudo, sem
+   patrocinador e sem fabricante. Canvas puro — nenhuma chamada de IA. */
+async function montarFotoJogador(rostoUrl, manequimUrl, medida){
+  const carregar = url => new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => ok(i); i.onerror = () => erro(new Error('não carreguei ' + url));
+    i.src = /^https?:/.test(url) ? url + (url.includes('?') ? '&' : '?') + 'cors=1' : url;
+  });
+  const m = medida || await medirMolde(rostoUrl);
+  if(!m || !m.larg) throw new Error('não consegui medir a cabeça.');
+  const [rosto, camisa] = await Promise.all([carregar(rostoUrl), carregar(manequimUrl)]);
+
+  const cv = document.createElement('canvas'); cv.width = FOTO_W; cv.height = FOTO_H;
+  const cx = cv.getContext('2d');
+
+  /* CABECA primeiro: ela fica por baixo da camisa */
+  const larguraImg = FOTO_CABECA_LARG / m.larg;            // fracao da largura do quadro
+  const wpx = larguraImg * FOTO_W;
+  const hpx = wpx * (rosto.naturalHeight / rosto.naturalWidth);
+  const topoImg = FOTO_CABECA_TOPO*FOTO_H - m.topo*hpx;    // o BBOX no lugar, nao a imagem
+  const cxImg = (m.cx == null ? 0.5 : m.cx);
+  const esqImg = FOTO_W/2 - wpx/2 - (cxImg - 0.5)*wpx;     // centra a CABECA, nao o quadrado
+  cx.drawImage(rosto, esqImg, topoImg, wpx, hpx);
+
+  /* CAMISA por cima, com a gola cobrindo o fim do pescoco */
+  const fimPescoco = topoImg + m.base*hpx;
+  const cw = FOTO_CAMISA_LARG * FOTO_W;
+  const ch = cw * (camisa.naturalHeight / camisa.naturalWidth);
+  cx.drawImage(camisa, FOTO_W/2 - cw/2, fimPescoco - FOTO_GOLA_SOBRE*FOTO_H, cw, ch);
+
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
+  if(!blob) throw new Error('não consegui exportar a foto.');
+  return blob;
+}
+
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
 
 /* =====================================================================
@@ -7604,8 +7663,31 @@ function fotosOrfas(){
    medido sobre o uniforme do clube de origem. */
 async function reaproveitarFoto(orfa, clubeDestino, nome){
   const at = Object.assign({}, orfa.f.atributos || {});
-  delete at.pos;
+  delete at.pos;             // posicao de camada: media sobre o uniforme de origem
+  delete at.medidas;         // conferencia antiga da costura por IA
+  delete at.revisar;
+  delete at.anteriores;
   at.reusadaDe = orfa.clube + '|' + orfa.nome;
+  at.recorte = 'camadas';
+
+  /* A CABECA E' A MESMA; A CAMISA E' A DO DESTINO. Reaproveitar nao pode
+     copiar a montagem antiga — ela tem a camisa do clube de origem. Refaz o
+     encaixe com o manequim de quem recebe, em canvas, sem IA. */
+  const t = D.fotos[String(clubeDestino)+'|'+TORSO_KEY];
+  const manequim = t && t.atributos && t.atributos.miniatura;
+  if(manequim){
+    at.medida = at.medida || await medirMolde(orfa.f.url);
+    const blob = await montarFotoJogador(orfa.f.url, manequim, at.medida);
+    const alvo = (D.catalogo||[]).find(x => String(x.c.id) === String(clubeDestino));
+    const base = (alvo ? caminhoClube(alvo) : 'reuso') + '/jogadores/' + (chaveNome(nome)||'jogador');
+    const caminho = `${base}-montagem-${Date.now()}.webp`;
+    const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+    if(up.error) throw new Error(up.error.message);
+    at.montagem = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+  }else{
+    delete at.montagem;      // sem manequim nao ha' encaixe: a cabeca fica solta
+  }
+
   const reg = { pack_id: ST.packId, club_id: String(clubeDestino), jogador: nome,
                 url: orfa.f.url, atributos: at };
   const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
@@ -7657,6 +7739,119 @@ function modalAcervo(item, p){
       modalFotosIA(item);
     }catch(err){ toast(err.message||'Não consegui reaproveitar.', true); b.disabled = false; }
   });
+}
+
+/* ===== EDITOR DE ENCAIXE =====
+   Quatro numeros decidem toda a montagem, e nenhum deles e' palpite bom: o
+   melhor jeito de acerta-los e' arrastar ate' assentar e LER a medida. Este
+   modal existe para isso — mostra o resultado no corte exato da Ficha do
+   Jogador (76% central, janela 0..76% da altura), com os controles ao lado.
+
+   Nao gera nada e nao grava nada: usa a cabeca que ja' existe. */
+function modalEncaixeFoto(item, p){
+  const f = D.fotos[item.c.id+'|'+p.n];
+  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  const manequim = t && t.atributos && t.atributos.miniatura;
+  if(!f || !f.url) return toast('Este jogador ainda não tem cabeça.', true);
+  if(!manequim) return toast('Este clube ainda não tem manequim — repinte o uniforme.', true);
+
+  const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
+               camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE, corte: true };
+  let med = null;
+
+  const CORTE = { larg: 0.76, y0: 0 };   // o mesmo da Ficha
+  abrirModal(`
+    <div class="card-h"><b>Encaixe de ${h(p.n)}</b></div>
+    <div class="card-p col" style="gap:14px">
+      <div class="st" style="font-size:12.5px;line-height:1.6">
+        Só cabeça e camisa — sem escudo, patrocinador ou fabricante.
+        À esquerda, o corte da <b>Ficha do Jogador</b>; à direita, o quadro 2:3 inteiro que fica salvo.
+        Nada é gerado nem gravado aqui.
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:0 0 auto">
+          <div id="enf-ficha" style="position:relative;width:210px;height:210px;border-radius:12px;
+               overflow:hidden;background:#e8e8e4"></div>
+          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">como aparece na Ficha</div>
+        </div>
+        <div style="flex:0 0 auto">
+          <div id="enf-cheio" style="position:relative;width:150px;height:225px;border-radius:10px;
+               overflow:hidden;background:#e8e8e4;outline:1px dashed var(--linha)"></div>
+          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">quadro 2:3 salvo</div>
+        </div>
+        <div class="col" style="gap:11px;flex:1;min-width:270px">
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Cabeça — largura</span>
+            <input id="enf-larg" type="range" min="15" max="60" step="0.1" value="${(st.larg*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Cabeça — topo</span>
+            <input id="enf-topo" type="range" min="-5" max="20" step="0.1" value="${(st.topo*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Camisa — largura</span>
+            <input id="enf-camisa" type="range" min="70" max="200" step="0.5" value="${(st.camisa*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola sobre o pescoço</span>
+            <input id="enf-sobre" type="range" min="-5" max="15" step="0.1" value="${(st.sobre*100).toFixed(1)}"></label>
+          <div class="card" style="padding:12px 14px;background:var(--card2)">
+            <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida — é isto que eu preciso</div>
+            <pre id="enf-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
+            <div class="row" style="gap:8px;margin-top:10px">
+              <button class="btn btn-sm btn-ghost" id="enf-copiar">Copiar medida</button>
+              <button class="btn btn-sm btn-ghost" id="enf-auto">Voltar ao padrão</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
+
+  /* o mesmo desenho dos dois quadros; muda so' a janela que cada um mostra */
+  const pinta = (alvo, janela) => {
+    if(!med) return;
+    const lw = st.larg / med.larg;                       // largura da IMAGEM da cabeça, no quadro
+    const lh = lw / RATIO_FOTO;                          // ela e' quadrada: altura em fracao da ALTURA
+    const topoImg = st.topo - med.topo*lh;
+    const fimPescoco = topoImg + med.base*lh;
+    const cw = st.camisa;
+    const ch = cw / RATIO_FOTO * (1);                    // manequim quadrado, mesma conta
+    const topoCamisa = fimPescoco - st.sobre;
+    const cx = med.cx == null ? 0.5 : med.cx;
+    /* `janela` = {larg, y0} do recorte; sem ela, quadro inteiro */
+    const j = janela || { larg:1, y0:0 };
+    const z = 1/j.larg, dx = (0.5 - 0.5*j.larg), dy = j.y0;
+    const px = v => ((v - dx)*z*100).toFixed(2)+'%';     // horizontal
+    const py = v => ((v - dy)*z*100).toFixed(2)+'%';     // vertical (mesma escala: quadro 2:3)
+    const pw = v => (v*z*100).toFixed(2)+'%';
+    alvo.innerHTML =
+      `<img src="${h(f.url)}" style="position:absolute;left:${px(0.5 - lw/2 - (cx-0.5)*lw)};top:${py(topoImg)};width:${pw(lw)};z-index:1">` +
+      `<img src="${h(manequim)}" style="position:absolute;left:${px(0.5 - cw/2)};top:${py(topoCamisa)};width:${pw(cw)};z-index:2">`;
+    return { lw, lh, topoImg, fimPescoco, topoCamisa };
+  };
+
+  const desenha = () => {
+    const g = pinta(el('enf-cheio'), null);
+    pinta(el('enf-ficha'), CORTE);
+    if(!g) return;
+    el('enf-saida').textContent =
+      `FOTO_CABECA_LARG : ${st.larg.toFixed(4)}   (${(st.larg*100).toFixed(2)}% da largura)\n`+
+      `FOTO_CABECA_TOPO : ${st.topo.toFixed(4)}   (${(st.topo*100).toFixed(2)}% da altura)\n`+
+      `FOTO_CAMISA_LARG : ${st.camisa.toFixed(4)}   (${(st.camisa*100).toFixed(2)}% da largura)\n`+
+      `FOTO_GOLA_SOBRE  : ${st.sobre.toFixed(4)}   (${(st.sobre*100).toFixed(2)}% da altura)\n`+
+      `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
+      `— cabeça medida: topo ${(med.topo*100).toFixed(1)}% · base ${(med.base*100).toFixed(1)}% · larg ${(med.larg*100).toFixed(1)}% · centro ${((med.cx==null?0.5:med.cx)*100).toFixed(1)}%`;
+  };
+
+  medirMolde(f.url).then(m => {
+    if(!m){ el('enf-saida').textContent = 'não consegui medir a cabeça (CORS?).'; return; }
+    med = m; desenha();
+  });
+  const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
+  liga('enf-larg','larg'); liga('enf-topo','topo'); liga('enf-camisa','camisa'); liga('enf-sobre','sobre');
+  el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
+    () => toast('Medida copiada — cole aqui na conversa.'),
+    () => toast('Não consegui copiar; selecione o texto à mão.', true));
+  el('enf-auto').onclick = () => {
+    st.larg = FOTO_CABECA_LARG; st.topo = FOTO_CABECA_TOPO;
+    st.camisa = FOTO_CAMISA_LARG; st.sobre = FOTO_GOLA_SOBRE;
+    el('enf-larg').value=(st.larg*100).toFixed(1); el('enf-topo').value=(st.topo*100).toFixed(1);
+    el('enf-camisa').value=(st.camisa*100).toFixed(1); el('enf-sobre').value=(st.sobre*100).toFixed(1);
+    desenha(); };
 }
 
 function modalFotosIA(item){
@@ -7796,48 +7991,49 @@ function modalFotosIA(item){
 
   if(!editar) return;
 
+  /* encaixa e sobe. Separado de gerarPara porque o acervo usa o MESMO
+     caminho: cabeca reaproveitada e cabeca recem-gerada viram foto do mesmo
+     jeito, senao as duas divergiriam com o tempo. */
+  async function encaixarESalvar(rostoUrl, manequimUrl, medida, base){
+    const blob = await montarFotoJogador(rostoUrl, manequimUrl, medida);
+    const caminho = `${base}-montagem-${Date.now()}.webp`;
+    const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+    if(up.error) throw new Error(up.error.message);
+    return sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+  }
+
   async function gerarPara(p, linha){
-    /* ===== UMA CHAMADA POR FOTO =====
-       Antes eram duas: o rosto recortado e a costura dele sobre o uniforme
-       (US$ 0,114). Agora o rosto nasce JA' NA CAMISA — manda-se o torso do
-       clube como entrada e o rosto vai descrito no texto. US$ 0,070, -39%.
+    /* ===== SO' A CABECA VEM DA IA =====
+       Antes a IA entregava a foto pronta: rosto ja' costurado na camisa do
+       clube, US$ 0,070. Duas coisas estavam erradas nisso.
 
-       A escolha nao foi por aritmetica: o comparador (botao ⚖) gerou o mesmo
-       jogador pelos dois caminhos, com os mesmos atributos, e o de uma chamada
-       segurou a listra VERTICAL do Palmeiras — que era o caso mais dificil,
-       onde ele tinha mais chance de escorregar.
+       A cara: US$ 0,044 fazem a mesma cabeca, e o encaixe na camisa e' canvas
+       — geometria, nao geracao. Sao 37% a menos por foto.
 
-       Sem uniforme no clube nao ha' o que editar: cai no retrato completo por
-       texto (tipo 'jogador', US$ 0,044), que tambem e' uma chamada so'. */
+       A estrutural: costurada, a foto nasce PRESA ao clube. Na transferencia
+       ela mostra a camisa antiga e a unica saida seria gerar tudo de novo.
+       Guardada como cabeca, ela serve a qualquer clube para sempre — e' o
+       mesmo motivo pelo qual as 756 ja' existentes puderam ser reaproveitadas.
+
+       Sem manequim no clube nao ha' em que encaixar: cai no retrato completo
+       por texto, como antes. */
     const t = torso();
+    const manequim = t && t.atributos && t.atributos.miniatura;
     const base = caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador');
-    const at = Object.assign({}, sorteios[p.n], { recorte: t ? 'direto' : 'retrato' });
+    const at = Object.assign({}, sorteios[p.n], { recorte: manequim ? 'camadas' : 'retrato' });
     let url = null;
     try{
-      url = t
-        ? await gerarImagemIA('montagem', promptDireto(item, p, at), 'medium', [t.url], base+'-foto')
+      url = manequim
+        ? await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca')
         : await gerarImagemIA('jogador', promptRosto(item, p, at), 'medium', null, base+'-foto');
     }catch(err){ throw new Error(err.message); }
 
-    /* a conferencia continua, mas so' AVISA: nao refaz nada. Sobraram as duas
-       regras que denunciam imagem inutilizavel (quadro vazio, cabeca solta). */
-    at.montagem = url;
-    if(t){
-      const v = await validarMontagem(url);
-      if(v.ok) at.medidas = v.medidas || null;
-      else { at.revisar = v.motivo; console.warn('foto marcada para revisão ('+p.n+'):', v.motivo); }
+    if(manequim){
+      at.medida = await medirMolde(url);
+      at.montagem = await encaixarESalvar(url, manequim, at.medida, base);
+    }else{
+      at.montagem = url;
     }
-    /* NADA DO QUE FOI PAGO SE PERDE. O upsert sobrescreve o ponteiro da linha:
-       o .webp anterior continua no Storage, mas ficaria orfao — sem URL em
-       lugar nenhum, invisivel no painel. Guardando a lista, gerar de novo
-       deixa de ser um caminho sem volta, e da' para recuperar a versao antiga
-       se a nova sair pior. Guarda so' a URL (texto), nao a imagem. */
-    const antes = D.fotos[c.id+'|'+p.n];
-    const anteriores = ((antes && antes.atributos && antes.atributos.anteriores) || []).slice(-9);
-    if(antes && antes.atributos && antes.atributos.montagem) anteriores.push(antes.atributos.montagem);
-    else if(antes && antes.url) anteriores.push(antes.url);
-    if(anteriores.length) at.anteriores = anteriores;
-
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
     if(error) throw new Error(erroMsg(error));
@@ -7861,7 +8057,7 @@ function modalFotosIA(item){
       return;
     }
     if(ev.target.closest('[data-reusar]')){ modalAcervo(item, p); return; }
-    if(ev.target.closest('[data-comparar]')){ compararMetodos(item, p); return; }
+    if(ev.target.closest('[data-comparar]')){ modalEncaixeFoto(item, p); return; }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
     const antes = rotuloDe(bt);
     bt.disabled = true; rotulo(bt, 'Gerando…', '·');
@@ -7876,13 +8072,13 @@ function modalFotosIA(item){
     if(!fila.length) return toast('Todo o elenco já tem foto.');
     /* valores MEDIDOS na fatura (rosto US$ 0,044 + montagem US$ 0,070), nao a
        tabela antiga por imagem, que subestimava a montagem em 11%. */
-    const custo = (fila.length*(torso()?0.114:0.044)).toFixed(2);
+    const custo = (fila.length*0.044).toFixed(2);   // so' a cabeca; o encaixe e' canvas
     if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
-      texto:`Vou gerar <b>${fila.length} foto(s)</b> de jogador — rosto sorteado e costura com o uniforme do clube.`,
-      detalhe:`Cada montagem é <b>conferida por pixel</b> (cabeça presa à camisa). Saindo torta,
-               ela <b>não é refeita sozinha</b>: fica marcada para revisão e você decide.
-               Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe.
-               No fim eu listo o que ficou marcado.`,
+      texto:`Vou gerar <b>${fila.length} cabeça(s)</b> — o encaixe na camisa do clube é feito aqui, em canvas, sem IA.`,
+      detalhe:`Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe. Era US$ ${(fila.length*0.114).toFixed(2)}
+               quando a IA costurava a camisa junto.
+               A cabeça fica guardada à parte e <b>serve a qualquer clube</b>: numa transferência,
+               a camisa troca sem gerar nada. Antes de gastar, veja o acervo (♻) — há cabeças sem dono.`,
       nao:'Agora não', sim:`Gerar ${fila.length} fotos` })) return;
     btTodos.disabled = true;
     let ok = 0, erroN = 0; const revisar = [];
