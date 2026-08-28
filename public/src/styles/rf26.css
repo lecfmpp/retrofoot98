@@ -5577,6 +5577,23 @@
    grande usam rfElStat; aqui ficam só as peças próprias desta tela.
    ===================================================================== */
 .rf-tr-hd{flex-direction:row;align-items:center;gap:16px;flex-wrap:wrap}
+/* COM FOTO o quadro deixa de ser um bloco de cor com a inicial e vira moldura
+   do retrato: o degrade do clube sairia por baixo da imagem sem nunca
+   aparecer, e a fonte serifada nao tem o que renderizar. */
+.rf-tr-av.com-foto,.rf-tr-av-g.com-foto{background:var(--surface-sunken);overflow:hidden;padding:0}
+.rf-tr-av img,.rf-tr-av-g img{width:100%;height:100%;object-fit:cover;object-position:50% 12%;
+  border-radius:inherit;display:block}
+/* o retrato grande do Perfil, ao lado dos campos */
+.rf-tr-av-g{width:88px;height:88px;border-radius:18px;flex:0 0 auto;
+  background:linear-gradient(160deg,var(--club-primary-deep),var(--club-primary));
+  color:var(--club-on-primary);font-family:var(--font-serif);font-size:32px;
+  font-weight:var(--fw-bold);display:flex;align-items:center;justify-content:center}
+.rf-tr-perfil-top{display:flex;gap:14px;align-items:center;margin-bottom:14px}
+.rf-tr-perfil-nm{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-tr-perfil-n{font-size:var(--fs-heading);font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight)}
+.rf-tr-perfil-s{font-size:var(--fs-body-sm);color:var(--text-3)}
+
 .rf-tr-av{width:56px;height:56px;border-radius:16px;flex:0 0 auto;
   background:linear-gradient(160deg,var(--club-primary-deep),var(--club-primary));
   color:var(--club-on-primary);font-family:var(--font-serif);font-size:22px;

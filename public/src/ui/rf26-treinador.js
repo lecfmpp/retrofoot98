@@ -30,7 +30,7 @@ function rfTrCabecalhoHTML(){
   const estrelas=Math.max(1,Math.min(5,Math.round(rep/20)));
   const desde=(S.coachClubSince!=null)?S.coachClubSince:(S.season||'');
   return `<div class="rf-card rf-tr-hd">
-    <span class="rf-tr-av">${escC(nome.slice(0,1).toUpperCase())}</span>
+    ${rfTrAvatarHTML(nome, 'rf-tr-av')}
     <div class="rf-tr-id">
       <span class="rf-tr-n">${escC(nome)}</span>
       <span class="rf-tr-s">${(typeof universeFlag==='function')?universeFlag():''} ${escC((typeof universeCountryName==='function')?universeCountryName():'')} · ${temps}ª temporada como treinador · ${escC(cl.short)} desde ${escC(String(desde))}</span>
@@ -39,6 +39,18 @@ function rfTrCabecalhoHTML(){
     <span class="rf-tr-rep">REPUTAÇÃO ${estrelas} DE 5</span>
   </div>`;
 }
+/* O RETRATO DO TREINADOR, com a inicial do nome como reserva. O avatar e'
+   enfeite, nunca requisito: quem pulou o passo no assistente, quem ainda nao
+   recebeu a face padrao da rede, e os saves antigos — todos caem na inicial,
+   que e' o que a tela mostrava antes. */
+function rfTrAvatarHTML(nome, cls){
+  const url=(typeof rfCoachAvatarUrl==='function')?rfCoachAvatarUrl():null;
+  const ini=escC(String(nome||'T').slice(0,1).toUpperCase());
+  if(!url) return `<span class="${cls}">${ini}</span>`;
+  return `<span class="${cls} com-foto"><img src="${escC(url)}" alt="Retrato de ${escC(nome)}"
+    loading="lazy" draggable="false" onerror="this.parentNode.textContent='${ini}'"></span>`;
+}
+
 const RF_TR_CLUBES_COLS='22px minmax(0,1.2fr) minmax(0,1fr) 92px 62px 74px';
 function rfTrCarreiraHTML(){
   if(typeof migrateCoachCareerStats==='function'){ try{ migrateCoachCareerStats(); }catch(e){} }
@@ -443,6 +455,13 @@ function rfTrPerfilHTML(){
   if(CL.formation) chips.push('fiel ao '+CL.formation);
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">DADOS DO TREINADOR</span></div>
+      <div class="rf-tr-perfil-top">
+        ${rfTrAvatarHTML(nome, 'rf-tr-av-g')}
+        <div class="rf-tr-perfil-nm">
+          <span class="rf-tr-perfil-n">${escC(nome)}</span>
+          <span class="rf-tr-perfil-s">${idade} anos · ${temps}ª temporada · reputação ${rep}</span>
+        </div>
+      </div>
       <div class="rf-tr-campos">
         ${rfTrCampo('Nome', escC(nome))}
         ${rfTrCampo('Nacionalidade', ((typeof universeFlag==='function')?universeFlag():'')+' '+escC((typeof universeCountryName==='function')?universeCountryName():'—'))}
