@@ -5434,13 +5434,21 @@ const rostoEncaixe = () => {
    corta (object-position 50% 12%) e onde o degrade ainda nao cobriu. */
 const MARCA_AZUL = '#17458F', MARCA_AMARELO = '#F2B90C';
 
-function promptCartaoJogador(item, p, at){
+/* DUAS PALETAS. A da marca (azul com detalhe amarelo) e' o padrao; a NEUTRA
+   — branco ou cinza claro — existe para testar como o card fica quando a
+   camisa nao disputa com as cores do clube no fundo. Como o degrade escuro
+   cobre boa parte dela, a diferenca aparece sobretudo nos ombros e na gola. */
+const UNIFORMES_RETRATO = {
+  marca:  `a PLAIN football jersey in deep royal blue (${MARCA_AZUL}) with narrow golden yellow (${MARCA_AMARELO}) trim on the collar and sleeve cuffs — no stripes, no pattern, no club identity`,
+  neutro: 'a PLAIN off-white / light grey football jersey with subtly darker grey trim on the collar and sleeve cuffs — no stripes, no pattern, no colour, no club identity'
+};
+function promptCartaoJogador(item, p, at, uniforme){
   return [
     `Hyper-realistic studio photograph of a fictional professional football player from ${item.pais==='Brasil' ? 'Brazil' : item.pais}, head and chest only, front view, facing the camera.`,
     /* os mesmos atributos sorteados do retrato antigo — sem eles os jogadores
        novos sairiam todos parecidos, que era o motivo de existir o sorteio */
     `${at.idade} years old, ${at.pele}, ${/bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
-    `Wearing a PLAIN football jersey in deep royal blue (${MARCA_AZUL}) with narrow golden yellow (${MARCA_AMARELO}) trim on the collar and sleeve cuffs — no stripes, no pattern, no club identity.`,
+    `Wearing ${UNIFORMES_RETRATO[uniforme] || UNIFORMES_RETRATO.marca}.`,
     'The jersey is COMPLETELY CLEAN: no crest, no badge, no sponsor, no manufacturer mark, no text, no numbers, no logos anywhere.',
     'Framing: the top of the head near the top edge, the face in the UPPER THIRD, cropped at mid-chest, shoulders fully visible and centered.',
     'FULLY TRANSPARENT BACKGROUND — no studio backdrop, no floor, and NO SHADOW cast behind or around the player (a cast shadow becomes a grey fringe when the photo is placed over colours).',
@@ -8345,6 +8353,9 @@ function modalFotosIA(item){
     </div>
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
+      <label style="font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center"
+        title="Testa a camisa neutra em vez do azul da marca — vale para o próximo ✦ que você clicar">
+        <input type="checkbox" id="ft-neutro"> camisa branca (teste)</label>
       <button class="btn btn-sm btn-ghost" id="ft-remontar"
         title="Refaz a montagem de todo o elenco deste clube com o encaixe atual — canvas, sem IA">Remontar o elenco</button>
       <button class="btn btn-sm btn-ghost" id="ft-recortar"
@@ -8413,10 +8424,11 @@ function modalFotosIA(item){
        transparente, entao a foto ja' nasce independente do clube — nao ha' o
        que encaixar nem o que remontar numa transferencia. */
     const base = caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador');
-    const at = Object.assign({}, sorteios[p.n], { recorte: 'cartao' });
+    const uni = uniformeEscolhido();
+    const at = Object.assign({}, sorteios[p.n], { recorte: 'cartao', uniforme: uni });
     let url = null;
     try{
-      url = await gerarImagemIA('camisa', promptCartaoJogador(item, p, at), 'medium', null, base+'-cartao');
+      url = await gerarImagemIA('camisa', promptCartaoJogador(item, p, at, uni), 'medium', null, base+'-cartao');
     }catch(err){ throw new Error(err.message); }
     at.montagem = url;
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
@@ -8495,6 +8507,10 @@ function modalFotosIA(item){
     toast(`${ok} remontada(s)${erros?`, ${erros} falharam`:''}.`);
     modalFotosIA(item);
   };
+
+  /* o interruptor vale para o proximo ✦: e' teste, entao nao se guarda em
+     lugar nenhum — recarregou, volta ao azul da marca */
+  const uniformeEscolhido = () => (el('ft-neutro') && el('ft-neutro').checked) ? 'neutro' : 'marca';
 
   const btCortar = el('ft-recortar');
   if(btCortar) btCortar.onclick = async () => {
