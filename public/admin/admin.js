@@ -2222,7 +2222,7 @@ async function pgEditor(){
   el('page').innerHTML = `
     ${cabecalhoPatches(pack, editar)}
     <div class="per" style="gap:6px;margin-top:2px">
-      ${[['clubes','Clubes'],['jogadores','Jogadores'],['competicoes','Competições']]
+      ${[['clubes','Clubes'],['jogadores','Jogadores'],['competicoes','Competições'],['economia','Economia']]
         .map(([id,l])=>`<span class="${aba===id?'on':''}" data-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
     </div>
     <div id="ed-aba"></div>`;
@@ -2230,9 +2230,12 @@ async function pgEditor(){
   document.querySelectorAll('[data-aba]').forEach(x => x.onclick = () => { ST.abaEditor=x.dataset.aba; pgEditor(); });
   ligarCabecalhoPatches(pack, editar);
 
-  if(aba==='clubes')      abaClubes(editar);
+  if(aba==='clubes')         abaClubes(editar);
   else if(aba==='jogadores') abaJogadores(editar);
-  else                    abaCompeticoes(pack, editar);
+  else if(aba==='economia')  abaEconomia();
+  /* explícito de propósito: com um `else` aberto, uma aba nova cairia em
+     Competições por descuido — foi o que já aconteceu no Estúdio. */
+  else if(aba==='competicoes') abaCompeticoes(pack, editar);
 }
 
 /* ---------- cabeçalho: escolha do patch ---------- */
@@ -2435,6 +2438,301 @@ function baixarCSVJogadoresBrasil(){
 /* ---------- aba JOGADORES ----------
    A mesma edição da ficha do clube, mas entrando pelo jogador: quem quer corrigir
    "a idade do Vitor Roque" não deveria precisar saber em que clube ele está. */
+/* ============================================================================
+   ABA ECONOMIA — como o dinheiro do jogo funciona, e a planilha para baixar.
+   ----------------------------------------------------------------------------
+   Todos os numeros saem das MESMAS tabelas que o jogo usa em runtime
+   (public/src/data/rebalance.js), nao de constantes copiadas para ca'. Se a
+   calibracao mudar la', esta pagina muda junto — copiar numero seria criar uma
+   segunda verdade que envelhece calada.
+
+   DUAS ESCALAS DE FORCA, e errar isto d[a] numero errado por 4x: os clubes da
+   Serie A vem do bundle na escala ANTIGA (jogador sem `_rb`, clube sem
+   `_rbOv`) e sao remapeados em runtime — o jogador por attachAttrs, o clube
+   por clubOf. B/C/D ja' vem remapeados. Aqui a normalizacao e' explicita.
+   ========================================================================= */
+const ECON_DIVS = ['A','B','C','D'];
+/* preço do ingresso: tabela FIXA por divisão (main.js TICKET_PRICE_BY_TIER).
+   O jogador não escolhe — a UI antiga que deixava escolher foi removida. */
+const ECON_INGRESSO = { A:25, B:20, C:15, D:10 };
+/* prêmio da liga por faixa de classificação (data/prizes.js) */
+const ECON_PREMIO_LIGA = {
+  A:{campeao:20e6, vice:14e6, top4:10e6, alto:6e6, meio:3.5e6, baixo:2e6},
+  B:{campeao:9e6,  vice:6e6,  top4:4e6,  alto:2.5e6, meio:1.5e6, baixo:0.9e6},
+  C:{campeao:4e6,  vice:2.7e6,top4:1.8e6,alto:1.1e6, meio:0.7e6, baixo:0.4e6},
+  D:{campeao:2e6,  vice:1.3e6,top4:0.9e6,alto:0.55e6,meio:0.35e6,baixo:0.2e6}
+};
+const forcaNova   = (p, div) => p._rb   ? p.f       : REBAL.force(p.f, div);
+const overallNovo = (c, div) => c._rbOv ? c.overall : REBAL.force(c.overall, div);
+
+/* a economia de UM clube, na escala em que o jogo de fato conta */
+function economiaDoClube(item){
+  const c = item.c, div = item.div;
+  const sq = c.squad || [];
+  const ov = overallNovo(c, div);
+  const folha = sq.reduce((s,p) => s + REBAL.wage(forcaNova(p, div)), 0);
+  const receita = REBAL.income(ov);
+  const opex = receita * REBAL.OPEX;
+  const faixa = REBAL.BUDGET[div] || REBAL.BUDGET.C;
+  /* ESTÁDIO PELO OVERALL, não pela divisão. REBAL.stadiumCapForDivision existe
+     (A 75k/B 50k/C 25k/D 10k) mas NÃO é chamada em lugar nenhum do runtime —
+     quem semeia a capacidade é stadiumCap(overall). Usar a tabela por divisão
+     aqui mostraria um estádio que o jogo nunca constrói. */
+  const cap = REBAL.stadiumCap(ov);
+  const ingresso = ECON_INGRESSO[div] || 10;
+  /* bilheteria de UM jogo em casa. A ocupação real varia com preço, campanha e
+     sorte (0,12 a 0,99); aqui fica a MÉDIA prática da fórmula do jogo para o
+     preço fixo da divisão, com campanha neutra — é estimativa, e está rotulada
+     como tal na planilha. */
+  const priceFactor = Math.max(0.28, Math.min(1, 1.25 - ingresso/22));
+  const ocupacao = Math.max(0.12, Math.min(0.99, 0.45*priceFactor + 0.35*(0.6+0.5*0.7) + 0.10));
+  const bilheteria = Math.round(cap*ocupacao) * ingresso;
+  return {
+    div, id:c.id, nome:c.short||c.name, elenco:sq.length,
+    overallBruto:c.overall, overall:ov,
+    forcaMedia: sq.length ? sq.reduce((s,p)=>s+forcaNova(p,div),0)/sq.length : 0,
+    valorElenco: sq.reduce((s,p)=>s+(Number(p.mv)||0),0),
+    folha, receita, opex,
+    bonusVitoria: receita*REBAL.WIN_BONUS,
+    bonusEmpate:  receita*REBAL.DRAW_BONUS,
+    /* a sobra por rodada conta a bilheteria só na METADE das rodadas (metade
+       dos jogos é fora de casa) — é o mesmo desconto que o motor faz na CPU. */
+    sobra: receita + bilheteria/2 - opex - folha,
+    folhaSobreReceita: receita ? folha/receita : 0,
+    caixaMin: faixa[0], caixaMax: faixa[1],
+    estadio: cap, ingresso, ocupacao, bilheteria,
+    ampliar: Math.round(4000000*(0.7 + cap/50000))
+  };
+}
+function economiaBrasil(){
+  return (D.catalogo||[])
+    .filter(x => x.pais === 'Brasil' && ECON_DIVS.includes(x.div) && (x.c.squad||[]).length)
+    .map(economiaDoClube)
+    .sort((a,b) => ECON_DIVS.indexOf(a.div) - ECON_DIVS.indexOf(b.div) || b.overall - a.overall);
+}
+
+/* CSV com blocos: primeiro as regras (as tabelas do rebalance), depois clube a
+   clube. Uma planilha que so' tivesse os clubes nao explicaria de onde vem
+   nenhum numero; uma que so' tivesse as tabelas nao serviria para conferir. */
+function csvEconomia(){
+  const linhas = [];
+  const L = (...c) => linhas.push(c.map(v => {
+    const t = String(v == null ? '' : v);
+    return /[";\r\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t;
+  }).join(';'));
+  const n2 = v => (Math.round(v*100)/100).toString().replace('.', ',');   // Excel pt-BR
+
+  L('RETROFOOT98 — ECONOMIA DO JOGO');
+  L('Gerado em', new Date().toLocaleString('pt-BR'));
+  L('Fonte', 'public/src/data/rebalance.js (as mesmas tabelas que o jogo usa)');
+  L('Moeda', 'R$');
+  L('');
+
+  L('== CAIXA INICIAL POR DIVISAO ==');
+  L('Sorteado uma vez por clube, na criacao do save (REBAL.budget).');
+  L('Divisao','Minimo','Maximo');
+  ECON_DIVS.forEach(d => { const b = REBAL.BUDGET[d]; L(d, b[0], b[1]); });
+  L('');
+
+  L('== RECEITA-BASE POR RODADA (TV + patrocinio) ==');
+  L('Interpolada pelo overall do clube na escala nova (REBAL.income).');
+  L('Overall','Receita por rodada');
+  [[3,25e3],[8,60e3],[11,100e3],[15,150e3],[21,240e3],[25,480e3],[30,860e3],
+   [34,1.09e6],[40,1.25e6],[45,1.75e6],[48,2.05e6],[52,2.60e6],[58,3.90e6],[70,7.2e6]]
+    .forEach(([ov,v]) => L(ov, v));
+  L('');
+
+  L('== PERCENTUAIS SOBRE A RECEITA-BASE ==');
+  L('Item','Fator','Observacao');
+  L('Bonus de vitoria', REBAL.WIN_BONUS, 'somado a cada vitoria');
+  L('Bonus de empate',  REBAL.DRAW_BONUS, 'somado a cada empate');
+  L('Custo operacional (OPEX)', REBAL.OPEX, 'descontado toda rodada');
+  L('');
+
+  L('== SALARIO SEMANAL POR FORCA ==');
+  L('Forca','Salario por semana');
+  [5,10,15,20,25,30,35,40,45,50,60,70,80,90,99].forEach(f => L(f, REBAL.salary(f)));
+  L('');
+
+  L('== VALOR DE MERCADO POR FORCA (idade neutra) ==');
+  L('Forca','Valor de mercado');
+  [5,10,15,20,25,30,35,40,45,50,60,70,80,90,99].forEach(f => L(f, Math.round(REBAL.valueBase(f))));
+  L('');
+
+  L('== ESTADIO ==');
+  L('A capacidade inicial vem do OVERALL do clube, nao da divisao (REBAL.stadiumCap).');
+  L('Overall','Capacidade');
+  [[3,10000],[8,10000],[19,25000],[31,50000],[44,75000],[55,82000],[70,88000]].forEach(([o,c]) => L(o,c));
+  L('');
+  L('Obras','Valor');
+  L('Lugares por arquibancada', 5000);
+  L('Limite por temporada', 10000, '2 arquibancadas');
+  L('Custo', 'R$ 4.000.000 x (0,7 + capacidade/50000)');
+  L('Exemplo: capacidade 20.000', Math.round(4000000*(0.7+20000/50000)));
+  L('Exemplo: capacidade 50.000', Math.round(4000000*(0.7+50000/50000)));
+  L('Exemplo: capacidade 75.000', Math.round(4000000*(0.7+75000/50000)));
+  L('');
+
+  L('== BILHETERIA ==');
+  L('Renda = publico x preco. So entra quando o clube joga EM CASA.');
+  L('Preco do ingresso e FIXO por divisao; o jogador nao escolhe.');
+  L('Divisao','Preco do ingresso');
+  ECON_DIVS.forEach(d => L(d, ECON_INGRESSO[d]));
+  L('');
+  L('Ocupacao = 0,45 x fator_preco + 0,35 x fator_campanha + ate 0,20 de sorte (limitada entre 12% e 99%)');
+  L('fator_preco = 1,25 - preco/22, minimo 0,28');
+  L('fator_campanha = 0,6 + aproveitamento x 0,7');
+  L('Divisao','Fator preco','Ocupacao estimada (campanha neutra)');
+  ECON_DIVS.forEach(d => {
+    const pf = Math.max(0.28, Math.min(1, 1.25 - ECON_INGRESSO[d]/22));
+    L(d, n2(pf), n2(Math.max(0.12, Math.min(0.99, 0.45*pf + 0.35*0.95 + 0.10))*100)+'%');
+  });
+  L('');
+  L('A CPU usa regra propria: ocupacao fixa de 55% e preco 6..16 por overall (world-rules.js).');
+  L('');
+
+  L('== PREMIO DA LIGA (por posicao final) ==');
+  L('Divisao','Campeao','Vice','3o-4o','Ate 35%','Ate 70%','Resto');
+  ECON_DIVS.forEach(d => { const p = ECON_PREMIO_LIGA[d];
+    L(d, p.campeao, p.vice, p.top4, p.alto, p.meio, p.baixo); });
+  L('');
+
+  L('== PREMIO DE COPA (por fase alcancada) ==');
+  L('Competicao','Campeao','Vice','Semi','Quartas','Oitavas','Participacao');
+  L('Copa nacional', 15e6, 8e6, 4e6, 2.5e6, 1.5e6, 0.8e6);
+  L('Libertadores', 24e6, 12e6, 7e6, 5e6, 3e6, 1.5e6);
+  L('Sul-Americana', 12e6, 6e6, 3.5e6, 2.5e6, 1.5e6, 0.7e6);
+  L('Champions (intl)', 22e6, 13e6, 8e6, 5e6, 3e6, 2e6);
+  L('Europa (intl)', 12e6, 7e6, 4e6, 2.5e6, 1.5e6, 1e6);
+  L('');
+  L('Copa do Brasil paga POR FASE, na hora (nao no fim):');
+  L('Fase','Valor');
+  [['Final (campeao)',28e6],['Vice',14e6],['Semifinal',9e6],['Quartas',4e6],
+   ['Oitavas',2e6],['Terceira fase',1.5e6],['Segunda fase',0.8e6],['Primeira fase',0.4e6]]
+   .forEach(([f,v]) => L(f,v));
+  L('');
+
+  L('== PREMIO DE ARTILHARIA (se o artilheiro for do seu clube) ==');
+  L('Divisao','Valor');
+  [['A',3e6],['B',1.5e6],['C',0.7e6],['D',0.4e6]].forEach(([d,v]) => L(d,v));
+  L('');
+
+  L('== CLUBE A CLUBE ==');
+  L('Divisao','Clube','Elenco','Overall (bruto)','Overall (escala do jogo)','Forca media',
+    'Valor do elenco','Folha semanal','Receita por rodada','OPEX por rodada',
+    'Bonus por vitoria','Capacidade do estadio','Preco do ingresso',
+    'Bilheteria por jogo em casa (est.)','Custo de ampliar','Sobra por rodada',
+    'Folha / receita','Caixa inicial (min)','Caixa inicial (max)');
+  const dados = economiaBrasil();
+  dados.forEach(e => L(e.div, e.nome, e.elenco, e.overallBruto, n2(e.overall), n2(e.forcaMedia),
+    Math.round(e.valorElenco), Math.round(e.folha), Math.round(e.receita), Math.round(e.opex),
+    Math.round(e.bonusVitoria), e.estadio, e.ingresso, Math.round(e.bilheteria),
+    e.ampliar, Math.round(e.sobra), n2(e.folhaSobreReceita*100)+'%',
+    e.caixaMin, e.caixaMax));
+  L('');
+
+  L('== MEDIA POR DIVISAO ==');
+  L('Divisao','Clubes','Elenco','Overall','Folha semanal','Receita por rodada','Folha / receita');
+  ECON_DIVS.forEach(d => {
+    const g = dados.filter(e => e.div === d); if(!g.length) return;
+    const m = k => g.reduce((s,e) => s + e[k], 0) / g.length;
+    L(d, g.length, n2(m('elenco')), n2(m('overall')), Math.round(m('folha')),
+      Math.round(m('receita')), n2(m('folha')/m('receita')*100)+'%');
+  });
+
+  return { texto: '﻿' + linhas.join('\r\n') + '\r\n', clubes: dados.length };
+}
+function baixarCSVEconomia(){
+  const { texto, clubes } = csvEconomia();
+  if(!clubes) return toast('Catálogo ainda não carregou.', true);
+  baixarTexto(`retrofoot98-economia-${new Date().toISOString().slice(0,10)}.csv`, texto, 'text/csv;charset=utf-8');
+  toast(`Planilha com ${clubes} clubes baixada.`);
+  registrar('dados.csv_economia', 'brasil-A-D', { pacote: ST.packId, clubes });
+}
+
+function abaEconomia(){
+  const dados = economiaBrasil();
+  const M = v => 'R$ ' + (v>=1e6 ? (v/1e6).toFixed(2)+'M' : num(Math.round(v)));
+  const porDiv = ECON_DIVS.map(d => {
+    const g = dados.filter(e => e.div === d);
+    if(!g.length) return null;
+    const m = k => g.reduce((s,e) => s + e[k], 0) / g.length;
+    const b = REBAL.BUDGET[d];
+    return { d, n:g.length, ov:m('overall'), folha:m('folha'), rec:m('receita'),
+             pct:m('folha')/m('receita'), caixa:`${M(b[0])}–${M(b[1])}`,
+             cap:m('estadio'), ing:ECON_INGRESSO[d], bil:m('bilheteria') };
+  }).filter(Boolean);
+
+  const regra = (t, d) => `<div style="display:flex;gap:10px;align-items:flex-start">
+      <b style="font-size:12.5px;font-weight:600;flex:0 0 150px">${h(t)}</b>
+      <span style="font-size:12.5px;color:var(--dim2);line-height:1.55">${d}</span></div>`;
+
+  el('ed-aba').innerHTML = `
+    <div class="card card-p col" style="gap:12px">
+      <div>
+        <div class="tt">Como o dinheiro funciona</div>
+        <div class="st">Todos os números saem de <span class="mono">rebalance.js</span> — as mesmas tabelas que o jogo
+          usa em partida. Mudar a calibração lá muda esta página junto.</div>
+      </div>
+      <div class="col" style="gap:8px">
+        ${regra('Entra toda rodada', 'A <b>receita-base</b> (TV + patrocínio), interpolada pelo overall do clube. Mais <b>'
+          + Math.round(REBAL.WIN_BONUS*100) + '%</b> dela por vitória e <b>' + Math.round(REBAL.DRAW_BONUS*100)
+          + '%</b> por empate. Bilheteria entra por cima, pelo público do jogo em casa.')}
+        ${regra('Sai toda rodada', 'A <b>folha salarial</b> — soma do salário de <b>todo</b> o elenco, não só dos titulares — '
+          + 'e o <b>custo operacional</b>, ' + Math.round(REBAL.OPEX*100) + '% da receita-base.')}
+        ${regra('Salário', 'Vem só da <b>força</b> do jogador, por tabela. A curva é agressiva: '
+          + M(REBAL.salary(50)) + '/semana com força 50, ' + M(REBAL.salary(70)) + ' com 70, ' + M(REBAL.salary(90)) + ' com 90.')}
+        ${regra('Caixa inicial', 'Sorteado uma vez por clube na criação do save, numa faixa fixa por divisão.')}
+        ${regra('Bilheteria', 'Só quando joga <b>em casa</b>: público × preço. O preço é <b>fixo por divisão</b> '
+          + '(A R$25 · B R$20 · C R$15 · D R$10) e o jogador não escolhe. A ocupação varia com o preço, '
+          + 'a campanha e um pouco de sorte — de 12% a 99% da capacidade.')}
+        ${regra('Estádio', 'A capacidade sai do <b>overall</b> do clube, não da divisão. Ampliar custa '
+          + '<b>R$ 4M × (0,7 + capacidade/50.000)</b> por arquibancada de 5.000 lugares, com teto de 2 por temporada.')}
+        ${regra('Prêmios', 'Liga por posição final (campeão da Série A leva <b>R$ 20M</b>), copa por fase alcançada. '
+          + 'A <b>Copa do Brasil paga na hora</b>, fase a fase, e não no fim. Artilheiro da divisão rende '
+          + 'R$ 3M na A, se for do seu clube.')}
+        ${regra('Não gera dinheiro', 'A aba <b>Patrocínio</b> do jogo é vitrine: os valores que ela mostra não entram '
+          + 'no caixa. O patrocínio real já está embutido na receita-base. Também não existem sócio-torcedor '
+          + 'nem merchandising, e o salário do treinador não é despesa do clube.')}
+      </div>
+    </div>
+
+    <div class="card" style="overflow:hidden;margin-top:14px">
+      <div class="card-h">
+        <b>Por divisão</b>
+        <div style="flex:1"></div>
+        <button class="btn btn-sm" id="ec-csv">Baixar planilha (CSV)</button>
+      </div>
+      <div class="rowh" style="grid-template-columns:66px 52px 62px .95fr .95fr 78px 1.1fr 78px 56px .95fr">
+        <span>Divisão</span><span style="text-align:right">Clubes</span><span style="text-align:right">Overall</span>
+        <span style="text-align:right">Folha/sem</span><span style="text-align:right">Receita/rod</span>
+        <span style="text-align:right">Folha/rec</span><span style="text-align:right">Caixa inicial</span>
+        <span style="text-align:right">Estádio</span><span style="text-align:right">Ingr.</span>
+        <span style="text-align:right">Bilheteria/jogo</span>
+      </div>
+      ${porDiv.map(r => `<div class="row" style="grid-template-columns:66px 52px 62px .95fr .95fr 78px 1.1fr 78px 56px .95fr">
+          <span><b>Série ${r.d}</b></span>
+          <span class="mono" style="text-align:right">${r.n}</span>
+          <span class="mono" style="text-align:right">${r.ov.toFixed(0)}</span>
+          <span class="mono" style="text-align:right">${M(r.folha)}</span>
+          <span class="mono" style="text-align:right">${M(r.rec)}</span>
+          <span class="mono" style="text-align:right;color:${r.pct>0.85?'var(--vermelho)':r.pct>0.75?'var(--ambar)':'var(--verde2)'}">${(r.pct*100).toFixed(0)}%</span>
+          <span class="mono" style="text-align:right">${r.caixa}</span>
+          <span class="mono" style="text-align:right">${num(Math.round(r.cap))}</span>
+          <span class="mono" style="text-align:right">R$ ${r.ing}</span>
+          <span class="mono" style="text-align:right">${M(r.bil)}</span>
+        </div>`).join('')}
+      <div style="padding:12px 20px;font-size:12px;color:var(--dim2);line-height:1.55;border-top:1px solid var(--bd)">
+        <b>Folha/receita</b> é quanto da receita-base o clube já gasta em salário antes de qualquer outra despesa.
+        Acima de 85% o clube depende de bilheteria e prêmio para fechar a rodada no azul.
+        A planilha traz isto clube a clube, mais as tabelas de salário, valor de mercado e receita.
+      </div>
+    </div>`;
+
+  const bt = el('ec-csv');
+  if(bt) bt.onclick = baixarCSVEconomia;
+}
+
 function abaJogadores(editar){
   const busca = (ST.buscaJogador||'').trim().toLowerCase();
   let achados = [];
