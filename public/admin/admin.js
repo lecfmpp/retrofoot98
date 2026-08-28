@@ -5301,12 +5301,59 @@ const MOLDE_GOLA = { diagonal:0.161, horizontal:0.194, lisa:0.190, mangas:0.199,
 const MOLDE_GOLA_PADRAO = 0.182;   // media, para estilo desconhecido
 const torsoDescida = estilo => ENQ.linhaGola - (MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO);
 
-/* o composto do metodo C: uniforme do clube + rosto ancorado, sem IA nenhuma.
+/* ===== MEDIR, NAO PEDIR =====
+   O promptRostoMolde pede topo em 8%, pescoco em 58% e cabeca com 26% da
+   largura. MEDIDO em duas geracoes: o modelo entregou topo 1,7%/3,0%, base
+   93,7%/96,0% e cabeca com 53,8%/53,1%. Ele ignora ancoras percentuais — o
+   mesmo que fez com os moldes de uniforme.
+
+   Entao a geometria deixa de sair do prompt e passa a sair da IMAGEM: o rosto
+   tem canal alfa, e a caixa do que e' opaco da' topo, base e largura com
+   precisao de pixel, de graca, em canvas local. A composicao se autocorrige e
+   nao depende mais de o modelo obedecer. */
+async function medirRosto(url){
+  const img = await new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => ok(i); i.onerror = () => erro(new Error('cors'));
+    i.src = url + (url.includes('?') ? '&' : '?') + 'm=1';
+  });
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  cv.getContext('2d').drawImage(img, 0, 0);
+  const d = cv.getContext('2d').getImageData(0, 0, W, H).data;
+  const opaco = (x,y) => d[((y*W)+x)*4+3] > 25;
+  let topo = null, base = null, esq = W, dir = 0;
+  for(let y = 0; y < H; y++){
+    let n = 0; for(let x = 0; x < W; x += 2) if(opaco(x,y)) n++;
+    if(n > 3){ if(topo === null) topo = y; base = y; }
+  }
+  if(topo === null) return null;
+  /* largura so' na FAIXA DA CABECA (60% de cima do trecho opaco): incluir o
+     pescoco inteiro puxaria a medida para baixo e a cabeca sairia grande. */
+  const lim = topo + (base - topo)*0.6;
+  for(let y = topo; y < lim; y++){
+    for(let x = 0; x < W; x++) if(opaco(x,y)){ if(x < esq) esq = x; break; }
+    for(let x = W-1; x >= 0; x--) if(opaco(x,y)){ if(x > dir) dir = x; break; }
+  }
+  return { topo: topo/H, base: base/H, larg: (dir-esq)/W, span: (base-topo)/H };
+}
+
+/* onde o rosto entra no quadro composto, a partir do que foi MEDIDO nele.
+   Escala pelo VAO VERTICAL (topo da cabeca ate' a gola) e nao pela largura:
+   casar a largura deixaria o pescoco curto demais e abriria um vao entre ele
+   e a gola, que salta muito mais aos olhos do que 3 pontos de largura. */
+function rostoEncaixeMedido(m){
+  if(!m || !m.span) return rostoEncaixe();          // sem medida, cai no teorico
+  const altura = (ENQ.linhaGola - ENQ.topoCabeca) / m.span;
+  return { altura, topo: ENQ.topoCabeca - m.topo*altura };
+}
+
+/* o composto do metodo C: uniforme do clube + rosto medido, sem IA nenhuma.
    `px` opcional — sem ele o quadro e' FLUIDO (width 100% + aspect-ratio), que
    e' o que os cartoes A e B usam. Passar largura fixa aqui encolhia o cartao C
    ao lado dos outros dois. */
-function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo){
-  const e = rostoEncaixe();
+function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida){
+  const e = medida ? rostoEncaixeMedido(medida) : rostoEncaixe();
   const desce = torsoDescida(estilo);
   const quadro = px
     ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
@@ -5983,7 +6030,7 @@ async function compararMetodos(item, p){
 
   const at = sortearAtributos(p);
   const base = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
-  let duas = null, uma = null, soRosto = null, erro = null;
+  let duas = null, uma = null, soRosto = null, medidaRosto = null, erro = null;
   try{
     /* CAMINHO A — o de hoje: rosto recortado e depois a costura */
     const rosto = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium', null, base+'-rosto',
@@ -5997,6 +6044,8 @@ async function compararMetodos(item, p){
        uniforme do clube, que ja' foi pintado de um dos 5 moldes, de graca. */
     soRosto = await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca',
       'Método C: gerando só a cabeça…');
+    /* mede o que o modelo REALMENTE entregou — o encaixe sai daqui, nao do prompt */
+    try{ medidaRosto = await medirRosto(soRosto); }catch(e){ console.warn('não medi o rosto:', e.message); }
   }catch(err){ erro = err.message; }
 
   const cartao = (rot, url, custo, nota) => `<div class="col" style="gap:8px;min-width:0;flex:1">
@@ -6023,11 +6072,14 @@ async function compararMetodos(item, p){
             <span class="mono" style="font-size:11.5px;color:var(--dim3)">US$ 0,044</span>
           </div>
           ${soRosto
-            ? compostoMoldeHTML(t.url, soRosto, null, (t.atributos||{}).estilo)
+            ? compostoMoldeHTML(t.url, soRosto, null, (t.atributos||{}).estilo, medidaRosto)
             : `<div class="vazio" style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">não saiu</div>`}
-          <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">Cabeça ancorada no gabarito e encaixada
-            por CSS no uniforme, que já é pintado de um dos 5 moldes. <b>O mais barato</b>, e a troca de clube
-            fica <b>de graça</b> — só troca o corpo por baixo.</small>
+          <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">Cabeça <b>medida por pixel</b> e
+            encaixada por CSS no uniforme, que já é pintado de um dos 5 moldes. <b>O mais barato</b>, e a troca
+            de clube fica <b>de graça</b> — só troca o corpo por baixo.
+            ${medidaRosto ? `<br><span class="mono" style="font-size:10.5px">medido: topo ${(medidaRosto.topo*100).toFixed(1)}%
+              · altura ${(medidaRosto.span*100).toFixed(1)}% · cabeça ${(medidaRosto.larg*100).toFixed(1)}% de largura
+              → render ${(rostoEncaixeMedido(medidaRosto).altura*100).toFixed(1)}%</span>` : ''}</small>
         </div>
       </div>
       <div class="st" style="line-height:1.6">${h(resumoAtributos(at))}</div>
