@@ -5246,6 +5246,52 @@ function promptRecostura(){
   ].join(' ');
 }
 
+/* ===== ROSTO ANCORADO NO MOLDE (metodo C) =====
+   O promptRosto de sempre pede "cabeca e pescoco ocupando ~75% do quadro" e
+   nao diz ONDE a cabeca fica dentro dele. Isso serve para a IA costurar
+   depois, e e' exatamente o que impede colar o recorte direto no uniforme: a
+   cabeca sai grande demais e em altura imprevisivel (testei seis calibracoes
+   de CSS e nenhuma fechou — o defeito e' de origem, nao de folha de estilo).
+
+   Aqui o quadro do rosto e' ANCORADO, espelhando o gabarito ENQ:
+     topo da cabeca ....... 8%  do quadro
+     base do pescoco ...... 58% do quadro   (cabeca+pescoco = 50%)
+     largura da cabeca .... 26% do quadro
+   Com isso o encaixe deixa de ser tentativa e vira aritmetica:
+     altura de render = (linhaGola - topoCabeca) / 0,50 = 34/50 = 68%
+     topo de render   = topoCabeca - 0,08 x 0,68        = 0,6%
+   e a cabeca sai com 27% da largura do composto, que e' ENQ.largCabeca. */
+const ROSTO_MOLDE = { topo:0.08, base:0.58, larg:0.26 };
+const rostoEncaixe = () => {
+  const span = ROSTO_MOLDE.base - ROSTO_MOLDE.topo;
+  const altura = (ENQ.linhaGola - ENQ.topoCabeca) / span;
+  return { altura, topo: ENQ.topoCabeca - ROSTO_MOLDE.topo*altura };
+};
+function promptRostoMolde(item, p, at){
+  const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
+  const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
+  return [
+    `Hyper-realistic studio photograph cutout: ONLY the head and neck of a fictional professional football player from ${pais}, isolated on a fully transparent background.`,
+    `${at.idade} years old, ${at.pele}, ${cab}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    'Facing the camera directly, official club media day photo style, soft professional studio lighting, sharp focus, DSLR quality.',
+    'The cutout ends in a clean straight horizontal cut at the base of the neck — NO shoulders, NO clothing, NO jersey, NO collar, NO background, nothing besides the head and neck.',
+    'EXACT FRAMING, mandatory and identical for every player, because the head is composited onto a jersey at fixed coordinates:',
+    `Square frame. Top of the head at exactly ${pc(ROSTO_MOLDE.topo)} from the top edge.`,
+    `The straight cut at the base of the neck at exactly ${pc(ROSTO_MOLDE.base)} from the top edge.`,
+    `Head width exactly ${pc(ROSTO_MOLDE.larg)} of the frame width, centered horizontally.`,
+    'Everything outside the head and neck is fully transparent, including the whole lower half of the frame.',
+    'This is a completely fictional person, not resembling any real footballer or celebrity.'
+  ].join(' ');
+}
+/* o composto do metodo C: uniforme do clube + rosto ancorado, sem IA nenhuma */
+function compostoMoldeHTML(torsoUrl, rostoUrl, px){
+  const e = rostoEncaixe();
+  return `<span style="position:relative;display:inline-block;width:${px}px;height:${Math.round(px*RATIO_FOTO)}px;border-radius:10px;overflow:hidden;background:#d9d9d9">
+    <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+    ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:${(e.topo*100).toFixed(1)}%;height:${(e.altura*100).toFixed(1)}%;object-fit:contain">`:''}
+  </span>`;
+}
+
 function promptDireto(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
   const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
@@ -5901,15 +5947,18 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
 async function compararMetodos(item, p){
   const t = D.fotos[item.c.id+'|'+TORSO_KEY];
   if(!t) return toast('Este clube precisa de uniforme antes: o torso é a entrada dos dois métodos.', true);
-  if(!await rfConfirm({ titulo:'Comparar os dois métodos',
-    texto:`Vou gerar <b>${h(p.n)}</b> pelos dois caminhos, com os <b>mesmos atributos</b>, para você ver a diferença.`,
-    detalhe:`<b>Duas chamadas</b> (rosto + montagem): US$ 0,114 &nbsp;·&nbsp; <b>Uma chamada</b> (direto no uniforme): US$ 0,070.<br>
-             Total do teste: <b>~US$ 0,18</b>. Nada é salvo no elenco — é só para olhar.`,
-    nao:'Agora não', sim:'Gerar os dois (~US$ 0,18)' })) return;
+  if(!await rfConfirm({ titulo:'Comparar os três métodos',
+    texto:`Vou gerar <b>${h(p.n)}</b> pelos três caminhos, com os <b>mesmos atributos</b>, para você ver a diferença.`,
+    detalhe:`<b>A · duas chamadas</b> (rosto + montagem por IA): US$ 0,114<br>
+             <b>B · uma chamada</b> (rosto nasce na camisa): US$ 0,070<br>
+             <b>C · só o rosto</b>, ancorado no molde e encaixado por CSS: US$ 0,044 — e a
+             troca de clube passa a ser <b>de graça</b>.<br>
+             Total do teste: <b>~US$ 0,23</b>. Nada é salvo no elenco — é só para olhar.`,
+    nao:'Agora não', sim:'Gerar os três (~US$ 0,23)' })) return;
 
   const at = sortearAtributos(p);
   const base = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
-  let duas = null, uma = null, erro = null;
+  let duas = null, uma = null, soRosto = null, erro = null;
   try{
     /* CAMINHO A — o de hoje: rosto recortado e depois a costura */
     const rosto = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium', null, base+'-rosto',
@@ -5919,6 +5968,10 @@ async function compararMetodos(item, p){
     /* CAMINHO B — uma chamada: o rosto nasce ja' na camisa */
     uma = await gerarImagemIA('montagem', promptDireto(item, p, at), 'medium', [t.url], base+'-uma',
       'Método B: gerando direto no uniforme…');
+    /* CAMINHO C — so' a cabeca, ancorada no molde. O corpo NAO e' gerado: e' o
+       uniforme do clube, que ja' foi pintado de um dos 5 moldes, de graca. */
+    soRosto = await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca',
+      'Método C: gerando só a cabeça…');
   }catch(err){ erro = err.message; }
 
   const cartao = (rot, url, custo, nota) => `<div class="col" style="gap:8px;min-width:0;flex:1">
@@ -5937,8 +5990,20 @@ async function compararMetodos(item, p){
     <div class="card-p col" style="gap:14px">
       ${erro?`<div class="erro">${h(erro)}</div>`:''}
       <div style="display:flex;gap:14px;flex-wrap:wrap">
-        ${cartao('A · duas chamadas', duas, '0,114', 'Rosto recortado + costura. O rosto fica guardado e serve de peça quando o jogador troca de clube.')}
-        ${cartao('B · uma chamada', uma, '0,070', 'O rosto nasce direto na camisa. <b>39% mais barato.</b> Não sobra rosto recortado: na transferência, a foto antiga vira a referência.')}
+        ${cartao('A · duas chamadas', duas, '0,114', 'Rosto recortado + costura por IA. A fusão é a mais natural das três — iluminação unificada, sem emenda.')}
+        ${cartao('B · uma chamada', uma, '0,070', 'O rosto nasce direto na camisa. Não sobra rosto recortado: na transferência, precisa gerar de novo.')}
+        <div class="col" style="gap:8px;min-width:0;flex:1">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <b style="font-size:13px">C · só a cabeça</b>
+            <span class="mono" style="font-size:11.5px;color:var(--dim3)">US$ 0,044</span>
+          </div>
+          ${soRosto
+            ? compostoMoldeHTML(t.url, soRosto, 200)
+            : `<div class="vazio" style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">não saiu</div>`}
+          <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">Cabeça ancorada no gabarito e encaixada
+            por CSS no uniforme, que já é pintado de um dos 5 moldes. <b>O mais barato</b>, e a troca de clube
+            fica <b>de graça</b> — só troca o corpo por baixo.</small>
+        </div>
       </div>
       <div class="st" style="line-height:1.6">${h(resumoAtributos(at))}</div>
       <small style="font-size:12px;color:var(--dim2)">Nenhuma das duas foi salva no elenco. Clique numa imagem para ampliar.</small>
