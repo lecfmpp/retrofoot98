@@ -9056,8 +9056,20 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-jp-id>b{font-size:18px;font-weight:700}
 .rf-jp-id>span{font-size:12.5px;color:var(--text-dim,#68766c)}
 .rf-jp-f b{font-size:15px;color:var(--text-1,#16281c)}
-.rf-jp-hex{display:flex;justify-content:center}
+/* ALINHADO A' ESQUERDA, como a foto e como todo o resto do modal. Centrado,
+   o bloco ficava mais estreito que a coluna e o titulo "O QUE DECIDE..."
+   nascia indentado — parecia padding irregular, e era centralizacao. */
+.rf-jp-hex{display:flex;justify-content:flex-start}
 .rf-jp-hex svg{max-width:230px;height:auto}
+/* o motor traz padding proprio, que somava ao do modal e empurrava so' este
+   lado para dentro */
+.rf-jp-hex .rf-fx-motor{padding:0}
+/* RETRATO 30% MAIOR que o `g` de 52px: e' o unico elemento visual do modal e
+   52px o deixavam pequeno ao lado do nome em 18px */
+.rf-jp-foto .rf-fotonum{width:68px;height:68px;border-radius:14px}
+.rf-jp-foto .rf-fotonum .rf-fnum{min-width:19px;height:19px;line-height:19px;font-size:11px}
+/* o corpo deste modal respira igual nos quatro lados */
+.rf-jp{padding:2px}
 .rf-jp-grid{display:flex;flex-direction:column;gap:2px}
 .rf-jp-l{display:flex;align-items:baseline;gap:8px;padding:8px 0;border-top:1px solid var(--linha,#e6ece6)}
 .rf-jp-l>span{font-size:12.5px;color:var(--text-dim,#68766c);flex:1}
