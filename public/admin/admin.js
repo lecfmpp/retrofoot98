@@ -9009,6 +9009,29 @@ function modalUniformeIA(item){
     if(n===2) return `<div class="col" style="gap:12px">
       <div class="g2" style="gap:12px">${campoCor('wz-color','Cor principal', wiz.corA)}${campoCor('wz-color2','Cor secundária', wiz.corB)}</div>
       <div id="wz-preview-cores"></div>
+      <!-- AS MESMAS DUAS CORES PINTAM O FUNDO DO CARD do jogador, no jogo. Elas
+           vivem em campos diferentes: aqui em atributos.cores do uniforme, la'
+           em color/color2 do clube. Podiam divergir sem ninguem notar — o
+           uniforme de uma cor e o card de outra —, e este bloco existe para
+           igualar as duas com um clique, sem abrir o Editor de dados. -->
+      <div class="card" style="padding:12px 14px;background:var(--card2);display:flex;
+           flex-direction:column;gap:10px">
+        <div class="tt" style="font-size:12.5px">Fundo do card do jogador</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span id="wz-card-previa" style="width:74px;height:112px;border-radius:10px;display:block;
+                background:repeating-linear-gradient(90deg,${h(wiz.corA)} 0 14.28%,${h(wiz.corB)} 14.28% 28.56%)"></span>
+          <div class="st" style="font-size:12px;line-height:1.55;flex:1">
+            No jogo, o card usa as cores do CLUBE — que hoje são
+            <b id="wz-card-atual">${h(c.color||'—')}</b> e <b>${h(c.color2||'—')}</b>.
+            ${(String(c.color||'').toLowerCase()===String(wiz.corA).toLowerCase()
+               && String(c.color2||'').toLowerCase()===String(wiz.corB).toLowerCase())
+              ? 'Estão iguais às do uniforme.'
+              : '<b style="color:var(--ambar)">Estão diferentes das do uniforme.</b>'}
+          </div>
+        </div>
+        ${editar?`<button class="btn btn-sm btn-ghost" id="wz-cores-clube" style="align-self:flex-start">
+          Usar estas cores também no clube</button>`:''}
+      </div>
       <button class="btn btn-sm" data-continuar style="align-self:flex-start">Continuar</button></div>`;
     if(n===3){
       const mini = D.fotos[MOLDE_KEY+'|mini-'+wiz.estilo];
@@ -9138,6 +9161,42 @@ function modalUniformeIA(item){
     }catch(err){ console.warn('prévia local falhou:', err.message); }
   }
   pintarPrevia();
+
+  /* a previa do card acompanha o seletor de cor sem redesenhar o passo — o
+     input de cor perde o foco a cada redesenho, e mexer nele viraria um
+     sofrimento */
+  const previaCard = () => {
+    const el1 = el('wz-color'), el2 = el('wz-color2'), pv = el('wz-card-previa');
+    if(!pv) return;
+    const a = (el1 && el1.value) || wiz.corA, b = (el2 && el2.value) || wiz.corB;
+    pv.style.background = `repeating-linear-gradient(90deg,${a} 0 14.28%,${b} 14.28% 28.56%)`;
+  };
+  if(el('wz-color'))  el('wz-color').addEventListener('input', previaCard);
+  if(el('wz-color2')) el('wz-color2').addEventListener('input', previaCard);
+
+  const btCoresClube = el('wz-cores-clube');
+  if(btCoresClube) btCoresClube.onclick = async () => {
+    const a = (el('wz-color') && el('wz-color').value) || wiz.corA;
+    const b = (el('wz-color2') && el('wz-color2').value) || wiz.corB;
+    if(!await rfConfirm({ titulo:`Cores do ${h(c.short||c.name)}`,
+      texto:`Grava <b>${h(a)}</b> e <b>${h(b)}</b> como as cores do clube.`,
+      detalhe:'É o que o <b>fundo do card do jogador</b> usa no jogo, e também as cores do clube no resto da interface. Não mexe no uniforme já gerado.',
+      nao:'Cancelar', sim:'Gravar no clube' })) return;
+    btCoresClube.disabled = true;
+    try{
+      const ed = D.edits[c.id];
+      const patch = Object.assign({}, (ed && ed.patch) || {}, { color:a, color2:b });
+      const linha = { pack_id: ST.packId, club_id: String(c.id), divisao: item.div,
+                      novo: !!(ed && ed.novo), patch };
+      const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+      if(error) throw new Error(erroMsg(error));
+      D.edits[c.id] = linha;
+      c.color = a; c.color2 = b;      // o catalogo em memoria acompanha
+      registrar('estudio.clube.cores', String(c.id), { color:a, color2:b });
+      toast('Cores do clube gravadas — o fundo do card passa a usá-las.');
+      abrir();
+    }catch(err){ toast(err.message||'Não consegui gravar.', true); btCoresClube.disabled = false; }
+  };
 
   const ajTopo = el('wz-ajustar-topo');
   if(ajTopo) ajTopo.onclick = () => { ST.patroTeste = wiz.patroUrl; ST.fabTeste = wiz.fabUrl; modalAjustePatrocinio(item, abrir, basePreview()); };
