@@ -7756,28 +7756,27 @@ function modalEncaixeFoto(item, p){
   if(!manequim) return toast('Este clube ainda não tem manequim — repinte o uniforme.', true);
 
   const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
-               camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE, corte: true };
+               camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE };
   let med = null;
 
-  const CORTE = { larg: 0.76, y0: 0 };   // o mesmo da Ficha
   abrirModal(`
     <div class="card-h"><b>Encaixe de ${h(p.n)}</b></div>
     <div class="card-p col" style="gap:14px">
       <div class="st" style="font-size:12.5px;line-height:1.6">
         Só cabeça e camisa — sem escudo, patrocinador ou fabricante.
-        À esquerda, o corte da <b>Ficha do Jogador</b>; à direita, o quadro 2:3 inteiro que fica salvo.
-        Nada é gerado nem gravado aqui.
+        À esquerda, <b>exatamente o quadro da Ficha do Jogador</b>: mesmo recorte, mesma proporção.
+        À direita, os 2:3 inteiros que ficam salvos. Nada é gerado nem gravado aqui.
       </div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
         <div style="flex:0 0 auto">
           <div id="enf-ficha" style="position:relative;width:210px;height:210px;border-radius:12px;
                overflow:hidden;background:#e8e8e4"></div>
-          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">como aparece na Ficha</div>
+          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">quadro da Ficha (52px no jogo)</div>
         </div>
         <div style="flex:0 0 auto">
           <div id="enf-cheio" style="position:relative;width:150px;height:225px;border-radius:10px;
                overflow:hidden;background:#e8e8e4;outline:1px dashed var(--linha)"></div>
-          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">quadro 2:3 salvo</div>
+          <div style="margin-top:6px;font-size:11.5px;color:var(--dim2)">2:3 salvo (o que o corte recorta)</div>
         </div>
         <div class="col" style="gap:11px;flex:1;min-width:270px">
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Cabeça — largura</span>
@@ -7801,39 +7800,45 @@ function modalEncaixeFoto(item, p){
     </div>
     <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`, 'xl');
 
-  /* o mesmo desenho dos dois quadros; muda so' a janela que cada um mostra */
-  const pinta = (alvo, janela) => {
-    if(!med) return;
-    const lw = st.larg / med.larg;                       // largura da IMAGEM da cabeça, no quadro
-    const lh = lw / RATIO_FOTO;                          // ela e' quadrada: altura em fracao da ALTURA
+  /* A COMPOSICAO, sempre no quadro 2:3 — que e' o que fica salvo. */
+  const composicao = () => {
+    const lw = st.larg / med.larg;             // largura da IMAGEM da cabeça (fracao da largura)
+    const lh = lw / RATIO_FOTO;                // ela e' quadrada: a mesma medida em fracao da ALTURA
     const topoImg = st.topo - med.topo*lh;
     const fimPescoco = topoImg + med.base*lh;
-    const cw = st.camisa;
-    const ch = cw / RATIO_FOTO * (1);                    // manequim quadrado, mesma conta
+    const cw = st.camisa, chh = cw / RATIO_FOTO;
     const topoCamisa = fimPescoco - st.sobre;
     const cx = med.cx == null ? 0.5 : med.cx;
-    /* `janela` = {larg, y0} do recorte; sem ela, quadro inteiro */
-    const j = janela || { larg:1, y0:0 };
-    const z = 1/j.larg, dx = (0.5 - 0.5*j.larg), dy = j.y0;
-    const px = v => ((v - dx)*z*100).toFixed(2)+'%';     // horizontal
-    const py = v => ((v - dy)*z*100).toFixed(2)+'%';     // vertical (mesma escala: quadro 2:3)
-    const pw = v => (v*z*100).toFixed(2)+'%';
-    alvo.innerHTML =
-      `<img src="${h(f.url)}" style="position:absolute;left:${px(0.5 - lw/2 - (cx-0.5)*lw)};top:${py(topoImg)};width:${pw(lw)};z-index:1">` +
-      `<img src="${h(manequim)}" style="position:absolute;left:${px(0.5 - cw/2)};top:${py(topoCamisa)};width:${pw(cw)};z-index:2">`;
-    return { lw, lh, topoImg, fimPescoco, topoCamisa };
+    const html =
+      `<img src="${h(f.url)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
+         transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">` +
+      `<img src="${h(manequim)}" style="position:absolute;left:50%;transform:translateX(-50%);
+         top:${(topoCamisa*100).toFixed(3)}%;width:${(cw*100).toFixed(3)}%;z-index:2">`;
+    return { html, fimPescoco, topoCamisa, chh };
   };
 
   const desenha = () => {
-    const g = pinta(el('enf-cheio'), null);
-    pinta(el('enf-ficha'), CORTE);
-    if(!g) return;
+    if(!med) return;
+    const g = composicao();
+    /* O QUADRO DA FICHA E' REPRODUZIDO, NAO RECALCULADO. Estes dois numeros
+       sao os mesmos --rf-foto-larg e --rf-foto-topo de .rf-fotonum no
+       rf26.css: a caixa e' quadrada e recebe DENTRO dela o quadro 2:3 a
+       131,58% da largura, com o topo em -5,27%. Reproduzir o CSS em vez de
+       recalcular a janela e' o que impede o editor de divergir da Ficha —
+       eu ja' tinha errado aqui, mostrando y 0..76% onde a Ficha mostra
+       y 2,67..53,34%, e ainda espremendo uma regiao 2:3 num quadrado.
+       Se o CSS do jogo mudar, estes dois mudam junto. */
+    el('enf-ficha').innerHTML =
+      `<span style="position:absolute;left:50%;transform:translateX(-50%);top:-5.27%;
+             width:131.58%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">${g.html}</span>`;
+    el('enf-cheio').innerHTML = g.html;
     el('enf-saida').textContent =
       `FOTO_CABECA_LARG : ${st.larg.toFixed(4)}   (${(st.larg*100).toFixed(2)}% da largura)\n`+
       `FOTO_CABECA_TOPO : ${st.topo.toFixed(4)}   (${(st.topo*100).toFixed(2)}% da altura)\n`+
       `FOTO_CAMISA_LARG : ${st.camisa.toFixed(4)}   (${(st.camisa*100).toFixed(2)}% da largura)\n`+
       `FOTO_GOLA_SOBRE  : ${st.sobre.toFixed(4)}   (${(st.sobre*100).toFixed(2)}% da altura)\n`+
       `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
+      `— a Ficha mostra y 2,67%..53,34% e x 12%..88% deste quadro\n`+
       `— cabeça medida: topo ${(med.topo*100).toFixed(1)}% · base ${(med.base*100).toFixed(1)}% · larg ${(med.larg*100).toFixed(1)}% · centro ${((med.cx==null?0.5:med.cx)*100).toFixed(1)}%`;
   };
 
