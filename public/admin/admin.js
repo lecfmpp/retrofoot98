@@ -2234,11 +2234,24 @@ async function pgEditor(){
      Clona clube e elenco: `base` aponta para os objetos do bundle, e remendar
      no lugar contaminaria window.GAME_DATA para o resto da sessao. */
   const CAMPOS_JOGADOR_ADM = ['n','p','s','f','age','mv','num','nat','ft','moral','energy'];
+  const CAMPOS_CLUBE_ADM = ['name','short','color','color2','crest','OS','MS','DS','overall'];
   (eds.data||[]).forEach(e => {
     const pat = e.patch || {};
-    if(!pat.squad && !pat.squad_remover && !pat.squad_novos) return;
     const x = base.find(y => String(y.c.id) === String(e.club_id));
-    if(!x || !Array.isArray(x.c.squad)) return;
+    if(!x) return;
+    /* O NOME DO CLUBE tambem e' ficticio no pacote (Palmeiras -> Verdao
+       Paulista). Mesma historia dos jogadores: o jogo aplica, o painel nao
+       aplicava, e a oficina mostrava um nome que nao existe no jogo.
+       `_nomeReal` fica guardado para a busca continuar achando por "Palmeiras"
+       — quem opera o painel conhece os dois nomes. */
+    const campos = CAMPOS_CLUBE_ADM.filter(k => pat[k] !== undefined && pat[k] !== null);
+    if(campos.length){
+      const novo = Object.assign({}, x.c, { _nomeReal: x.c.name, _curtoReal: x.c.short });
+      for(const k of campos) novo[k] = pat[k];
+      x.c = novo;
+    }
+    if(!pat.squad && !pat.squad_remover && !pat.squad_novos) return;
+    if(!Array.isArray(x.c.squad)) return;
     const sq = x.c.squad.map(p => Object.assign({}, p));
     const candidatos = nome => {
       const anc = sq.filter(y => y._n0 === nome);
@@ -2356,6 +2369,8 @@ function abaClubes(editar){
     (pais==='todos' || x.pais===pais) &&
     (!busca || String(x.c.name||'').toLowerCase().includes(busca)
             || String(x.c.short||'').toLowerCase().includes(busca)
+            || String(x.c._nomeReal||'').toLowerCase().includes(busca)
+            || String(x.c._curtoReal||'').toLowerCase().includes(busca)
             || String(x.c.id).toLowerCase().includes(busca)));
   const editados = Object.values(D.edits||{}).filter(e=>e.club_id!==COMPETICOES_CHAVE).length;
 
@@ -2394,7 +2409,8 @@ function abaClubes(editar){
             ? `<img src="${h(crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
             : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(nome))}</i>`}</span>
           <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(nome)}</b>
-            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}</small></span>
+            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}${
+              x.c._nomeReal && x.c._nomeReal !== x.c.name ? ' · '+h(x.c._nomeReal) : ''}</small></span>
           <span style="font-size:12px;color:var(--dim)">${h(x.pais)}</span>
           <span class="mono" style="font-size:12px;text-align:center">${h(x.div)}</span>
           <span class="mono" style="font-size:12.5px;text-align:center">${x.c.overall!=null?x.c.overall:'—'}</span>
