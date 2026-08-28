@@ -5740,6 +5740,23 @@ const FOTO_W = 1024, FOTO_H = 1536;
 
 /* Monta a foto do jogador: manequim do clube + cabeca, sem escudo, sem
    patrocinador e sem fabricante. Canvas puro — nenhuma chamada de IA. */
+/* A MESMA MONTAGEM, em HTML. montarFotoJogador() desenha no canvas para
+   gravar; esta desenha em <img> para mostrar. As duas leem as MESMAS quatro
+   constantes — se divergissem, a previa mentiria sobre o que vai ser salvo,
+   que e' o pior defeito que uma previa pode ter. */
+function composicaoFotoHTML(rostoUrl, manequimUrl, med){
+  const m = med || { topo:0.02, base:0.93, larg:0.52, cx:0.5 };
+  const lw = FOTO_CABECA_LARG / m.larg;          // largura da imagem da cabeça, fracao da largura
+  const lh = lw / RATIO_FOTO;                    // quadrada: a mesma medida em fracao da altura
+  const topoImg = FOTO_CABECA_TOPO - m.topo*lh;
+  const fimPescoco = topoImg + m.base*lh;
+  const cx = m.cx == null ? 0.5 : m.cx;
+  return `<img src="${h(rostoUrl)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
+      transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">`
+   + (manequimUrl ? `<img src="${h(manequimUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);
+      top:${((fimPescoco - FOTO_GOLA_SOBRE)*100).toFixed(3)}%;width:${(FOTO_CAMISA_LARG*100).toFixed(3)}%;z-index:2">` : '');
+}
+
 async function montarFotoJogador(rostoUrl, manequimUrl, medida){
   const carregar = url => new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
@@ -7704,18 +7721,34 @@ function modalAcervo(item, p){
   const orfas = fotosOrfas();
   if(!orfas.length) return toast('O acervo está vazio: nenhuma cabeça sem dono.', true);
   const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  const manequim = (t && t.atributos && t.atributos.miniatura) || null;
+  /* SO' A CABECA. Eu vinha mostrando `atributos.montagem` — a foto ja'
+     costurada com a camisa do clube de ORIGEM — e ainda punha a camisa do
+     destino atras dela: duas camisas empilhadas, uma por cima da outra. O que
+     interessa aqui e' `url`, que e' a cabeca recortada, sobre o manequim de
+     quem vai receber. E' tambem o que sera' gravado. */
   const quadro = (o) => {
-    const cab = (o.f.atributos && o.f.atributos.montagem) ? o.f.atributos.montagem : o.f.url;
+    const med = (o.f.atributos && o.f.atributos.medida) || o._med || null;
     return `<button class="acv-i" data-usar="${h(o.clube+'|'+o.nome)}" title="Dar esta cabeça a ${h(p.n)}"
       style="all:unset;cursor:pointer;width:104px;display:block">
-      <span style="position:relative;display:block;width:104px;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#d9d9d9">
-        ${t?`<img src="${h(t.url)}" style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:85.5%">`:''}
-        <img src="${h(cab)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
+      <span style="position:relative;display:block;width:104px;aspect-ratio:${(1/RATIO_QUADRO).toFixed(4)};
+            border-radius:8px;overflow:hidden;background:#e8e8e4">
+        <span style="position:absolute;left:50%;transform:translateX(-50%);top:-5.27%;
+              width:131.58%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};display:block">
+          ${composicaoFotoHTML(o.f.url, manequim, med)}
+        </span>
       </span>
       <span style="display:block;margin-top:5px;font-size:11px;line-height:1.35;color:var(--dim)">
         <b style="color:var(--fg);display:block">${h(o.nome)}</b>${h(o.deQuem)}</span>
     </button>`;
   };
+  /* mede cada cabeca antes de desenhar: sem a medida, a previa usa um chute
+     medio e cada rosto assenta num lugar diferente. Uma leitura de canvas por
+     cabeca, so' ao abrir o seletor. */
+  Promise.all(orfas.map(async o => {
+    if(!(o.f.atributos && o.f.atributos.medida)) { try{ o._med = await medirMolde(o.f.url); }catch(_){} }
+  })).then(() => { const g = el('acv-grade'); if(g) g.innerHTML = orfas.map(quadro).join(''); ligar(); });
+
   abrirModal(`
     <div class="card-h"><b>Uma cabeça do acervo para ${h(p.n)}</b></div>
     <div class="card-p col" style="gap:12px">
@@ -7729,6 +7762,7 @@ function modalAcervo(item, p){
     </div>
     <div class="acoes"><button class="btn btn-ghost" data-fechar>Cancelar</button></div>`, 'xl');
 
+  function ligar(){
   document.querySelectorAll('[data-usar]').forEach(b => b.onclick = async () => {
     const [clube, nome] = b.dataset.usar.split('|');
     const o = orfas.find(x => x.clube===clube && x.nome===nome); if(!o) return;
@@ -7739,6 +7773,8 @@ function modalAcervo(item, p){
       modalFotosIA(item);
     }catch(err){ toast(err.message||'Não consegui reaproveitar.', true); b.disabled = false; }
   });
+  }
+  ligar();
 }
 
 /* ===== EDITOR DE ENCAIXE =====
