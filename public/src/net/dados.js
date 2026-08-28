@@ -68,6 +68,31 @@ function copiar(destino, patch, permitidos){
   for(const k of permitidos) if(patch[k] !== undefined && patch[k] !== null) destino[k] = patch[k];
 }
 
+/* ÂNCORA DE NOME (`_n0`). O patch acha o jogador pelo NOME, e o pacote oficial
+   agora TROCA esse nome (nomes fictícios no lugar dos reais). Duas coisas quebram
+   se a busca olhar só para o nome corrente:
+
+     · o pacote oficial é aplicado DUAS vezes por visita — uma do cache do
+       localStorage, síncrona, antes do motor montar nada, e outra quando a rede
+       responde (ver o fim deste arquivo);
+     · a planilha REUSA nomes: no Curitiba FC "Renato Marques" vira "Bruno Melo"
+       enquanto o "Bruno Melo" de verdade vira "Márcio Cardoso". Na segunda
+       passada a chave "Bruno Melo" acharia o Renato já renomeado e os dois
+       terminariam com o mesmo nome.
+
+   Então quem é renomeado guarda o nome de fábrica em `_n0`, e a busca prefere
+   `_n0`. Com isso reaplicar o pacote continua sendo atribuição, não acúmulo —
+   que é o contrato deste arquivo. Sem `_n0` (todo patch que não mexe em `n`)
+   nada muda: casa pelo nome corrente como sempre. */
+function candidatos(sq, nome){
+  const ancorados = sq.filter(x => x._n0 === nome);
+  return ancorados.length ? ancorados : sq.filter(x => x._n0 === undefined && x.n === nome);
+}
+function renomear(p, dados){
+  if(dados.n && dados.n !== p.n && p._n0 === undefined) p._n0 = p.n;
+  copiar(p, dados, CAMPOS_JOGADOR);
+}
+
 /* aplica uma lista de edições sobre o catálogo em memória. Idempotente: é
    atribuição, não incremento — reaplicar o mesmo pacote não acumula efeito. */
 /* CHAVE DAS LINHAS DE CALENDÁRIO no pacote: uma por país. `pack_edits` é indexado por
@@ -111,10 +136,24 @@ function aplicar(edits){
       copiar(clube, e.patch||{}, CAMPOS_CLUBE);
       const sq = Array.isArray(clube.squad) ? clube.squad : null;
       if(sq && e.patch){
-        // jogador é identificado pelo NOME: o elenco de fábrica não tem id estável
-        if(e.patch.squad) for(const nome of Object.keys(e.patch.squad)){
-          const p = sq.find(x => x.n === nome);
-          if(p) copiar(p, e.patch.squad[nome], CAMPOS_JOGADOR);
+        /* jogador é identificado pelo NOME: o elenco de fábrica não tem id estável.
+           Quando o MESMO nome aparece duas vezes no elenco (há dois "João Pedro"
+           no br_C_brusque), a chave leva o sufixo `##N` — o N-ésimo homônimo, na
+           ordem do elenco, 1-based. Sem sufixo continua sendo o primeiro que casar.
+
+           OS ALVOS SÃO RESOLVIDOS ANTES DE QUALQUER ESCRITA porque o patch de
+           nomes fictícios RENOMEIA: se aplicássemos `##1` na hora, o `##2` já não
+           acharia dois homônimos e o segundo jogador ficaria com o nome real. */
+        if(e.patch.squad){
+          const alvos = [];
+          for(const chave of Object.keys(e.patch.squad)){
+            const m = /^([\s\S]*)##(\d+)$/.exec(chave);
+            const nome = m ? m[1] : chave;
+            const ordem = m ? (parseInt(m[2],10) - 1) : 0;
+            const cands = candidatos(sq, nome);
+            if(cands[ordem]) alvos.push([cands[ordem], e.patch.squad[chave]]);
+          }
+          for(const [p, dados] of alvos) renomear(p, dados);
         }
         if(Array.isArray(e.patch.squad_remover)) for(const nome of e.patch.squad_remover){
           const i = sq.findIndex(x => x.n === nome); if(i>=0) sq.splice(i,1);
