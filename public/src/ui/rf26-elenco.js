@@ -547,14 +547,14 @@ function rfElFichaHTML(clubIdArg, pidArg){
               <span class="rf-fx-ffchip fraco"><b>${ff.lo.v}</b><span><i>PONTO FRACO</i>${escC(ff.lo.n)}</span></span>
             </div>`:''}
           </div>
-          <div class="rf-fx-attrs">
+        </div>
+          <div class="rf-fx-attrs rf-fx-attrs-bloco">
             ${rfFxGrupoHTML('TÉCNICOS',[['fin','Finalização'],['pas','Passe'],['dri','Drible'],['des','Desarme'],['cab','Cabeceio'],['cru','Cruzamento']],p)}
             ${rfFxGrupoHTML('MENTAIS',[['vis','Visão de jogo'],['pos','Posicionamento'],['com','Compostura'],['det','Determinação']],p)}
             ${rfFxGrupoHTML('FÍSICOS',[['vel','Velocidade'],['res','Resistência'],['fis','Força física'],['agi','Agilidade']],p)}
             ${rfFxGrupoHTML('GOLEIRO',[['ref','Reflexos'],['mao','Defesa/mãos']],p,ehGK,
               `<span class="rf-fx-nota caixa">${escC(ehGK?notaGK:notaLinha)}</span>`)}
           </div>
-        </div>
         <span class="rf-fx-rodape">Os 16 atributos vão de 1 a 20 e evoluem rodada a rodada. Eles alimentam a força do jogador pelo perfil da posição — e finalização, reflexos e mãos ainda entram direto na partida, decidindo gol, pênalti e defesa.</span>
       </div>
       <div class="rf-fx-lateral">
