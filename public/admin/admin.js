@@ -6050,68 +6050,166 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
    NAO GRAVA NADA em player_photos: e' um teste, e um teste que sobrescreve a
    foto boa do elenco nao e' teste, e' acidente. As imagens ficam no Storage
    (ja' foram pagas) e as URLs aparecem na tela. */
-/* ===== ENCAIXE DA CABECA =====
-   Gera SO' o rosto (US$ 0,044) e mostra encaixado no uniforme que o clube ja'
-   tem. O corpo nunca e' gerado nem alterado: entra sempre na mesma escala
-   calibrada, ancorado embaixo, no mesmo quadro 2:3 das fotos de IA.
-   O que se afina aqui e' so' o encaixe — e as medidas ficam a' vista para
-   isso deixar de ser tentativa. NAO GRAVA nada no elenco. */
+/* ===== ENCAIXE DA CABECA, NA MAO =====
+   Gera SO' o rosto (US$ 0,044) e deixa VOCE arrastar e redimensionar ate'
+   encaixar, com a medida ao vivo. O calculo automatico entra como ponto de
+   partida; o que vale e' o numero que sair daqui.
+
+   O corpo nao se mexe: entra sempre na escala calibrada (TORSO_ESCALA),
+   ancorado embaixo, no quadro 2:3 das fotos de IA. As guias mostram onde ele
+   esta' — topo do uniforme e linha da gola — para o ajuste ter referencia. */
 async function compararMetodos(item, p){
   const t = D.fotos[item.c.id+'|'+TORSO_KEY];
   if(!t) return toast('Este clube precisa de uniforme antes: ele é a base do encaixe.', true);
   if(!await rfConfirm({ titulo:'Gerar a cabeça e encaixar',
-    texto:`Vou gerar <b>só o rosto</b> de <b>${h(p.n)}</b> e encaixá-lo no uniforme que este clube já tem.`,
+    texto:`Vou gerar <b>só o rosto</b> de <b>${h(p.n)}</b>. Depois você arrasta e redimensiona até encaixar.`,
     detalhe:'Custo: <b>US$ 0,044</b> — uma imagem. O uniforme não é gerado nem alterado. Nada é salvo no elenco.',
     nao:'Agora não', sim:'Gerar a cabeça (~US$ 0,04)' })) return;
 
   const at = sortearAtributos(p);
-  const base = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
+  const caminho = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
   let rosto = null, medida = null, erro = null;
   try{
-    rosto = await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca',
+    rosto = await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, caminho+'-cabeca',
       'Gerando só a cabeça…');
     medida = await medirRosto(rosto);
   }catch(err){ erro = err.message; }
+  if(!rosto) return abrirModal(`<div class="card-h"><b>${h(p.n)}</b></div>
+    <div class="card-p"><div class="erro">${h(erro||'não saiu')}</div></div>`, 'lg');
 
-  const e = medida ? encaixeComposto(medida, (t.atributos||{}).estilo) : null;
-  const linha = (r, v) => `<div style="display:flex;gap:10px"><span style="flex:0 0 190px;color:var(--dim2)">${h(r)}</span>
-    <span class="mono" style="color:var(--fg)">${v}</span></div>`;
+  const estilo = (t.atributos||{}).estilo;
+  const auto = encaixeComposto(medida, estilo) || { rostoAltura:0.35, rostoTopo:0.02 };
+  /* estado do ajuste, em fracoes do quadro */
+  const st = { alt: auto.rostoAltura, topo: auto.rostoTopo, x: 0.5 };
+  const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
 
   abrirModal(`
-    <div class="card-h"><b>${h(p.n)} — cabeça encaixada no uniforme do clube</b></div>
+    <div class="card-h"><b>${h(p.n)} — arraste e redimensione até encaixar</b></div>
     <div class="card-p col" style="gap:16px">
-      ${erro?`<div class="erro">${h(erro)}</div>`:''}
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
-        <div style="flex:0 0 260px">
-          ${rosto ? compostoMoldeHTML(t.url, rosto, null, (t.atributos||{}).estilo, medida)
-                  : '<div class="vazio" style="aspect-ratio:2/3">não saiu</div>'}
-          <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--dim2)">encaixado</div>
+        <div style="flex:0 0 280px">
+          <div id="enc-palco" style="position:relative;width:280px;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};
+               border-radius:10px;overflow:hidden;background:#d9d9d9;cursor:grab;touch-action:none">
+            <img src="${h(t.url)}" draggable="false"
+                 style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%;pointer-events:none">
+            <img id="enc-rosto" src="${h(rosto)}" draggable="false" style="position:absolute;object-fit:contain;pointer-events:none">
+            <span id="enc-guias" style="position:absolute;inset:0;pointer-events:none">
+              <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(1)}%;border-top:1px dashed #35c46a"></span>
+              <span style="position:absolute;left:0;right:0;top:${(gola*100).toFixed(1)}%;border-top:1px dashed #e3b23c"></span>
+              <span style="position:absolute;left:${((1-TORSO_ESCALA)/2*100).toFixed(1)}%;right:${((1-TORSO_ESCALA)/2*100).toFixed(1)}%;
+                    top:${(TORSO_TOPO*100).toFixed(1)}%;bottom:0;border:1px dashed #35c46a55"></span>
+            </span>
+          </div>
+          <div style="margin-top:8px;font-size:11.5px;color:var(--dim2);line-height:1.6">
+            <span style="color:#35c46a">— — topo do uniforme</span> · <span style="color:#e3b23c">— — gola</span><br>
+            Arraste a cabeça no palco. Setas do teclado ajustam de 0,2% em 0,2%.
+          </div>
         </div>
-        <div style="flex:0 0 150px">
-          ${rosto?`<img src="${h(rosto)}" data-ver="${h(rosto)}" style="width:100%;aspect-ratio:1;object-fit:contain;background:
-            repeating-conic-gradient(#3a463f 0% 25%, #2a332e 0% 50%) 50%/16px 16px;border-radius:10px;cursor:zoom-in">`:''}
-          <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--dim2)">o rosto gerado</div>
-        </div>
-        <div class="col" style="gap:6px;flex:1;min-width:230px;font-size:12.5px">
-          <div class="tt" style="font-size:13px">Medidas</div>
-          ${medida?`
-            ${linha('topo da cabeça', (medida.topo*100).toFixed(1)+'%')}
-            ${linha('base do pescoço', (medida.base*100).toFixed(1)+'%')}
-            ${linha('largura da cabeça', (medida.larg*100).toFixed(1)+'%')}
-            <div style="height:6px"></div>
-            ${linha('gola do uniforme', (golaDoEstilo((t.atributos||{}).estilo)*100).toFixed(1)+'% · '+h((t.atributos||{}).estilo||'—'))}
-            ${linha('escala do corpo', (TORSO_ESCALA*100).toFixed(1)+'% (fixa)')}
-            ${linha('render do rosto', e?(e.rostoAltura*100).toFixed(1)+'% de altura':'—')}
-            ${linha('topo do rosto', e?(e.rostoTopo*100).toFixed(1)+'%':'—')}
-            ${linha('cabeça no quadro', (ENQ.largCabeca*100).toFixed(0)+'% de largura (alvo)')}
-          `:'<div class="st">Não consegui medir o rosto.</div>'}
-          <div class="st" style="margin-top:8px;line-height:1.6">O corpo entra sempre igual — mesma escala,
-            mesmo quadro 2:3 das fotos de IA. Só o rosto é calculado, a partir do que foi medido nele.</div>
+
+        <div class="col" style="gap:12px;flex:1;min-width:280px">
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Tamanho</span>
+            <input id="enc-alt" type="range" min="10" max="80" step="0.2" value="${(st.alt*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Altura (topo)</span>
+            <input id="enc-topo" type="range" min="-20" max="60" step="0.2" value="${(st.topo*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Horizontal</span>
+            <input id="enc-x" type="range" min="20" max="80" step="0.2" value="50"></label>
+
+          <div class="card" style="padding:12px 14px;background:var(--card2)">
+            <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida atual — é isto que eu preciso</div>
+            <pre id="enc-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
+            <button class="btn btn-sm btn-ghost" id="enc-copiar" style="margin-top:10px">Copiar medida</button>
+            <button class="btn btn-sm btn-ghost" id="enc-auto" style="margin-top:10px">Voltar ao calculado</button>
+          </div>
+
+          <div class="st" style="font-size:12px;line-height:1.6">
+            O rosto gerado mede <b>topo ${(medida.topo*100).toFixed(1)}%</b>,
+            <b>base do pescoço ${(medida.base*100).toFixed(1)}%</b>,
+            <b>largura ${(medida.larg*100).toFixed(1)}%</b> no próprio quadro.
+            O corpo está fixo em ${(TORSO_ESCALA*100).toFixed(1)}% e não se mexe.
+          </div>
         </div>
       </div>
       <small style="font-size:12px;color:var(--dim2)">${h(resumoAtributos(at))} · nada foi salvo no elenco.</small>
     </div>`, 'xl');
-  document.querySelectorAll('[data-ver]').forEach(x => x.onclick = () => abrirLightbox(x.dataset.ver, p.n));
+
+  const palco = el('enc-palco'), img = el('enc-rosto'), saida = el('enc-saida');
+  const desenha = () => {
+    img.style.height = (st.alt*100).toFixed(1)+'%';
+    img.style.top    = (st.topo*100).toFixed(1)+'%';
+    img.style.left   = (st.x*100).toFixed(1)+'%';
+    img.style.transform = 'translateX(-50%)';
+    /* largura da CABECA dentro do quadro: a imagem e' quadrada, entao o lado
+       renderizado em fracoes da largura e' alt*RATIO_FOTO */
+    const cab = medida.larg * st.alt * RATIO_FOTO;
+    const pescoco = st.topo + medida.base*st.alt;
+    saida.textContent =
+      `tamanho (altura do render) : ${(st.alt*100).toFixed(1)}%\n`+
+      `topo do rosto              : ${(st.topo*100).toFixed(1)}%\n`+
+      `horizontal                 : ${(st.x*100).toFixed(1)}%\n`+
+      `cabeça no quadro           : ${(cab*100).toFixed(1)}% de largura\n`+
+      `pescoço termina em         : ${(pescoco*100).toFixed(1)}%\n`+
+      `gola do uniforme           : ${(gola*100).toFixed(1)}%  (${pescoco>gola?'+':''}${((pescoco-gola)*100).toFixed(1)}%)\n`+
+      `— o rosto mede topo ${(medida.topo*100).toFixed(1)}% · base ${(medida.base*100).toFixed(1)}% · larg ${(medida.larg*100).toFixed(1)}%`;
+  };
+  desenha();
+
+  const liga = (id, campo, div) => { const c = el(id); if(c) c.oninput = () => { st[campo] = Number(c.value)/div; desenha(); }; };
+  liga('enc-alt','alt',100); liga('enc-topo','topo',100); liga('enc-x','x',100);
+
+  /* arraste em fracoes do palco — o palco muda de tamanho com a janela */
+  let arr = null;
+  const pt = e => (e.touches && e.touches[0]) || e;
+  const baixa = e => { const r = palco.getBoundingClientRect(), q = pt(e);
+    arr = { px:q.clientX, py:q.clientY, x:st.x, topo:st.topo, w:r.width, h:r.height };
+    palco.style.cursor='grabbing'; e.preventDefault(); };
+  const move = e => { if(!arr) return; const q = pt(e);
+    st.x    = Math.max(0.2, Math.min(0.8,  arr.x    + (q.clientX-arr.px)/arr.w));
+    st.topo = Math.max(-0.2, Math.min(0.6, arr.topo + (q.clientY-arr.py)/arr.h));
+    el('enc-alt').value = (st.alt*100).toFixed(1);
+    el('enc-topo').value = (st.topo*100).toFixed(1);
+    el('enc-x').value = (st.x*100).toFixed(1);
+    desenha(); e.preventDefault(); };
+  const solta = () => { if(arr){ arr = null; palco.style.cursor='grab'; } };
+  palco.addEventListener('mousedown', baixa);
+  palco.addEventListener('touchstart', baixa, { passive:false });
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, { passive:false });
+  document.addEventListener('mouseup', solta);
+  document.addEventListener('touchend', solta);
+  const tecla = e => {
+    const passo = e.shiftKey ? 0.01 : 0.002;
+    if(e.key==='ArrowUp')    st.topo -= passo;
+    else if(e.key==='ArrowDown')  st.topo += passo;
+    else if(e.key==='ArrowLeft')  st.x -= passo;
+    else if(e.key==='ArrowRight') st.x += passo;
+    else if(e.key==='+'||e.key==='=') st.alt += passo;
+    else if(e.key==='-') st.alt -= passo;
+    else return;
+    e.preventDefault();
+    el('enc-alt').value=(st.alt*100).toFixed(1); el('enc-topo').value=(st.topo*100).toFixed(1); el('enc-x').value=(st.x*100).toFixed(1);
+    desenha();
+  };
+  document.addEventListener('keydown', tecla);
+
+  el('enc-copiar').onclick = () => {
+    navigator.clipboard.writeText(saida.textContent).then(
+      () => toast('Medida copiada — cole aqui na conversa.'),
+      () => toast('Não consegui copiar; selecione o texto à mão.', true));
+  };
+  el('enc-auto').onclick = () => { st.alt = auto.rostoAltura; st.topo = auto.rostoTopo; st.x = 0.5;
+    el('enc-alt').value=(st.alt*100).toFixed(1); el('enc-topo').value=(st.topo*100).toFixed(1); el('enc-x').value='50';
+    desenha(); };
+
+  /* solta os ouvintes do documento quando o modal fechar, senao eles ficam
+     vivos e o teclado passa a mexer num palco que nao existe mais */
+  const obs = new MutationObserver(() => {
+    if(!document.getElementById('enc-palco')){
+      document.removeEventListener('mousemove', move); document.removeEventListener('touchmove', move);
+      document.removeEventListener('mouseup', solta); document.removeEventListener('touchend', solta);
+      document.removeEventListener('keydown', tecla); obs.disconnect();
+    }
+  });
+  obs.observe(el('modais'), { childList:true, subtree:true });
 }
 
 /* ---------- aba TREINADORES: a oficina das 10 faces padrao ----------
