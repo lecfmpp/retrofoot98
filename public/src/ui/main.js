@@ -6886,6 +6886,7 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
      nao apitar enquanto ainda se espera pelo adversario humano. */
   if(!RL._apitoIni){
     RL._apitoIni = 1;
+    if(typeof rfVitoriaParar==='function') rfVitoriaParar();   // a festa da rodada passada nao entra nesta
     if(typeof rfSomLigado==='function' && rfSomLigado()){
       if(typeof rfTorcidaLigar==='function') rfTorcidaLigar();   // o estadio ja' esta' la'
       if(typeof rfApito==='function') rfApito(1);
@@ -7115,6 +7116,59 @@ function liveRitmoMs(RL){
    fechar a rodada, o que da' ao apito o mesmo espaco sem mentir no relogio. */
 const LIVE_FIM_ESPERA_MS = 1600;   // a tela segura, o relogio nao
 const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entrar
+/* ===== A COMEMORACAO DA VITORIA =====
+   Entra a seguir ao apito, nao por cima dele: os tres sopros longos duram
+   ~1,7s, e comecar antes disso seria apagar o proprio apito que a anuncia.
+   E' torcida, nao narracao — nao espera pelo ritmo lento, como o gol e os
+   apitos. A gravacao tem 20s; e' desvanecida ao fim de doze, para nao correr
+   por cima da tela seguinte, e cortada a seco se comecar outra rodada. */
+const RF_VITORIA_SRC = 'audio/torcida-vitoria.mp3';
+const RF_VITORIA_ESPERA = 1700;   // os tres sopros longos do apito
+const RF_VITORIA_ENTRA = 900, RF_VITORIA_DURA = 11000, RF_VITORIA_SAI = 2600;
+let RF_VITORIA = null;
+/* ---- rampa de volume num <audio> ----
+   `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
+   e' feita a mao. Passo de 50ms: abaixo disto o navegador engasga, acima ouve-se
+   a escada. A curva e' quadratica de proposito — o ouvido le' volume em escala
+   logaritmica, e uma rampa linear soa a saltar no fim. */
+function rfFade(a, de, para, ms, aoFim){
+  if(!a) return;
+  clearInterval(a._rfFade); clearInterval(a._rfRampa);
+  const passo = 50, n = Math.max(1, Math.round(ms/passo));
+  let i = 0;
+  try{ a.volume = Math.max(0, Math.min(1, de)); }catch(e){ return; }
+  a._rfFade = setInterval(() => {
+    i++;
+    const k = i/n, curva = de < para ? k*k : 1-(1-k)*(1-k);
+    try{ a.volume = Math.max(0, Math.min(1, de + (para-de)*curva)); }catch(e){ clearInterval(a._rfFade); return; }
+    if(i >= n){ clearInterval(a._rfFade); if(aoFim) aoFim(); }
+  }, passo);
+}
+function rfVitoriaSom(){
+  if(!rfSomLigado()) return;
+  if(rfSomVolume() <= 0) return;
+  setTimeout(() => {
+    if(!rfSomLigado()) return;
+    try{
+      rfVitoriaParar();
+      const alvo = Math.min(1, 0.95*rfSomVolume());
+      const a = new Audio(RF_VITORIA_SRC); a.volume = 0;
+      const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+      RF_VITORIA = a;
+      rfFade(a, 0, alvo, RF_VITORIA_ENTRA);
+      a._rfFim = setTimeout(() => {
+        if(RF_VITORIA !== a) return;
+        rfFade(a, a.volume, 0, RF_VITORIA_SAI, () => { try{ a.pause(); }catch(e){} });
+      }, RF_VITORIA_DURA);
+    }catch(err){}
+  }, RF_VITORIA_ESPERA);
+}
+function rfVitoriaParar(){
+  const a = RF_VITORIA; if(!a) return;
+  RF_VITORIA = null;
+  clearTimeout(a._rfFim); clearInterval(a._rfFade);
+  try{ a.pause(); }catch(e){}
+}
 function liveApitoFinal(RL){
   if(!RL || RL._apitoFim) return;
   RL._apitoFim = 1;
@@ -8234,10 +8288,13 @@ function rfTorcidaLigar(){
   const vol = rfSomVolume(); if(vol <= 0) return;
   try{
     const a = new Audio(RF_TORCIDA_SRC);
-    a.loop = true; a.volume = RF_TORCIDA_BASE * vol;
+    /* ENTRA A SUBIR. O estadio a aparecer do nada, ja' no volume final, soa a
+       um botao ligado — e o apito inicial toca justamente por cima disto. */
+    a.loop = true; a.volume = 0;
     a.onerror = () => { RF_TORCIDA_SEM = true; RF_TORCIDA = null; };
     const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
     RF_TORCIDA = a;
+    rfFade(a, 0, RF_TORCIDA_BASE * vol, 1400);
   }catch(err){ RF_TORCIDA_SEM = true; }
 }
 /* ===== O GOL SAO DOIS SONS EMENDADOS =====
@@ -8308,10 +8365,10 @@ function rfTorcidaAbafar(k, ms){
   clearInterval(a._rfRampa);
   clearTimeout(a._rfVolta);
   const base = RF_TORCIDA_BASE * rfSomVolume();
-  try{ a.volume = Math.max(0, base*k); }catch(e){ return; }
+  rfFade(a, a.volume, base*k, 400);
   a._rfVolta = setTimeout(() => {
     if(RF_TORCIDA !== a) return;
-    try{ a.volume = RF_TORCIDA_BASE * rfSomVolume(); }catch(e){}
+    rfFade(a, a.volume, RF_TORCIDA_BASE * rfSomVolume(), 1200);
   }, ms);
 }
 /* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
@@ -8324,7 +8381,7 @@ function rfTorcidaGol(meu){
   const alto = Math.min(1, (meu ? 1.0 : 0.72) * vol);
   const segura = meu ? 4.5 : 1.6;   // quanto tempo a festa fica no alto
   const desce  = meu ? 8   : 3.5;   // e quanto demora a assentar
-  clearInterval(a._rfRampa);
+  clearInterval(a._rfRampa); clearInterval(a._rfFade);
   let t = 0;
   a._rfRampa = setInterval(() => {
     t += 0.06;
@@ -8368,14 +8425,10 @@ function rfUuuh(){
 function rfTorcidaDesligar(){
   const a = RF_TORCIDA; if(!a) return;
   RF_TORCIDA = null;
-  clearInterval(a._rfRampa);
-  /* desvanece em vez de cortar: um loop que para a seco assusta */
-  let v = a.volume;
-  const t = setInterval(() => {
-    v -= 0.05;
-    if(v <= 0){ clearInterval(t); try{ a.pause(); }catch(e){} return; }
-    try{ a.volume = Math.max(0, v); }catch(e){ clearInterval(t); }
-  }, 60);
+  clearInterval(a._rfRampa); clearTimeout(a._rfVolta);
+  /* desvanece em vez de cortar: um loop que para a seco assusta. Mais longo do
+     que a entrada — o estadio esvazia devagar, e o apito final esta' por cima. */
+  rfFade(a, a.volume, 0, 2200, () => { try{ a.pause(); }catch(e){} });
 }
 
 function camOnEvent(m,e){
@@ -8524,6 +8577,16 @@ function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.f
      tudo (e' o jogo que vale titulo ou acesso), depois o resultado, e o
      neutro fica para o empate. */
   liveApitoFinal(CL.live);   // se a rodada ja' apitou, isto nao repete
+  {
+    /* A COMEMORACAO NAO DEPENDE DO CAMAROTE, como os apitos: ela marca o fim
+       da partida DELE, esteja em que tela estiver. */
+    const lado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+    if(lado){
+      const meus = lado==='H' ? (m.hg||0) : (m.ag||0);
+      const deles = lado==='H' ? (m.ag||0) : (m.hg||0);
+      if(meus > deles) rfVitoriaSom();
+    }
+  }
   if(camOn()){
     const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
     const meus = meuLado==='H' ? (m.hg||0) : (m.ag||0);
