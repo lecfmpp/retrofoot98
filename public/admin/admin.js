@@ -5418,6 +5418,12 @@ async function tirarFundo(url, tol){
   const im = cx.getImageData(0, 0, W, H), d = im.data;
   const T = (tol == null ? 26 : tol);
 
+  /* JA' LIMPO? entao nao mexe. Depois que os uniformes passam a ser pintados
+     ja' sem fundo, o canto vem com alfa 0 — e amostrar um pixel transparente
+     daria cor (0,0,0), fazendo a inundacao sair comendo camisa escura. Sair
+     cedo aqui e' o que impede a limpeza de estragar o que ja' esta' certo. */
+  if(d[3] === 0 && d[(W-1)*4+3] === 0) return url;
+
   /* a cor do fundo vem dos CANTOS, nao de um valor fixo: cada molde saiu do
      modelo com um cinza um pouco diferente */
   const amostra = [[0,0],[W-1,0],[0,H-1],[W-1,H-1],[(W>>1),0]];
@@ -6028,7 +6034,7 @@ async function repintarTodosUniformes(btn){
       btn.textContent = `Repintando ${ok+erros+1}/${alvos.length}…`;
       try{
         const molde = D.fotos[MOLDE_KEY+'|'+t.atributos.estilo];
-        const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1]);
+        const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1], t.atributos.estilo);
         const caminho = `${caminhoClube(x)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(up.error.message);
@@ -6037,7 +6043,7 @@ async function repintarTodosUniformes(btn){
         const moldeMini = D.fotos[MOLDE_KEY+'|mini-'+t.atributos.estilo];
         if(moldeMini){
           try{
-            const bm = await pintarMolde(moldeMini.url, t.atributos.cores[0], t.atributos.cores[1]);
+            const bm = await pintarMolde(moldeMini.url, t.atributos.cores[0], t.atributos.cores[1], t.atributos.estilo);
             const cm = `${caminhoClube(x)}/miniatura-${Date.now()}.webp`;
             const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
             if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
@@ -6090,7 +6096,10 @@ function hex2rgb(hx){
   const n = parseInt(m ? m[1] : '1b7a3d', 16);
   return [n>>16&255, n>>8&255, n&255];
 }
-async function pintarMolde(moldeUrl, corA, corB){
+/* `estilo` liga a LIMPEZA: fundo cinza fora e pescoco fora, no mesmo passe da
+   pintura. Sem ele a funcao se comporta como antes — quem nao souber o estilo
+   nao ganha limpeza torta. */
+async function pintarMolde(moldeUrl, corA, corB, estilo){
   const img = await new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
     i.onload = () => ok(i); i.onerror = () => erro(new Error('Não consegui carregar o molde.'));
@@ -6130,7 +6139,51 @@ async function pintarMolde(moldeUrl, corA, corB){
     const L = Math.min(1, mx / 240);                    // sombra = só claro/escuro
     px[i] += (alvo[0]*L - r)*w; px[i+1] += (alvo[1]*L - g)*w; px[i+2] += (alvo[2]*L - b)*w;
   }
+  /* ===== LIMPEZA, NO MESMO PASSE =====
+     O molde veio do modelo com fundo cinza chapado e um pescoco proprio. Os
+     dois atrapalham a montagem por camadas: com fundo embutido nao ha' como
+     trocar o fundo por clube nem pôr a cabeca ATRAS do colarinho, e o pescoco
+     do molde fica por baixo do pescoco da cabeca gerada — pele sobre pele.
+
+     E' feito AQUI, e nao com IA, por uma razao dura: o modelo ignora
+     instrucao de enquadramento (ja' provado com os moldes e com as cabecas),
+     entao pedir "o mesmo uniforme sem pescoco, mesmas medidas" devolveria
+     outro uniforme. O canvas nao tem essa liberdade — mesma tela, mesmos
+     W x H, so' apagando o que sobra. Dimensao identica por construcao.
+
+     Nada disso apaga arquivo: o molde original continua no Storage, e o que
+     sai daqui e' a pintura do clube, que ja' era um arquivo novo. */
+  if(estilo){
+    /* 1) FUNDO — inundacao a partir das bordas, nunca "apague o que for
+       cinza": cinza tambem e' sombra de dobra e camisa clara, e a regra por
+       cor abriria buracos no meio do tecido. */
+    const T = 30;
+    const canto = [[0,0],[W-1,0],[0,H-1],[W-1,H-1],[W>>1,0]];
+    let r0=0,g0=0,b0=0;
+    for(const [x,y] of canto){ const k=((y*W)+x)*4; r0+=px[k]; g0+=px[k+1]; b0+=px[k+2]; }
+    r0/=canto.length; g0/=canto.length; b0/=canto.length;
+    const dist = k => Math.max(Math.abs(px[k]-r0), Math.abs(px[k+1]-g0), Math.abs(px[k+2]-b0));
+    const visto = new Uint8Array(W*H), fila = [];
+    const poe = (x,y) => { if(x<0||y<0||x>=W||y>=H) return; const i=y*W+x;
+      if(visto[i]) return; visto[i]=1; if(dist(i*4) <= T) fila.push(i); };
+    for(let x=0; x<W; x++){ poe(x,0); poe(x,H-1); }
+    for(let y=0; y<H; y++){ poe(0,y); poe(W-1,y); }
+    while(fila.length){ const i = fila.pop(), x = i%W, y = (i/W)|0;
+      px[i*4+3] = 0; poe(x+1,y); poe(x-1,y); poe(x,y+1); poe(x,y-1); }
+    /* borda meio transparente, para nao serrilhar */
+    for(let y=1; y<H-1; y++) for(let x=1; x<W-1; x++){
+      const i=y*W+x; if(!px[i*4+3]) continue;
+      if((!px[(i-1)*4+3] || !px[(i+1)*4+3] || !px[(i-W)*4+3] || !px[(i+W)*4+3]) && dist(i*4) <= T*1.8)
+        px[i*4+3] = 110;
+    }
+    /* 2) PESCOCO — corte reto na linha da gola. Naquela altura so' o pescoco
+       cruza o corte: os ombros ja' descem, entao nada da camisa se perde. */
+    const yCorte = Math.round((golaDoEstilo(estilo) + GOLA_CORTE) * H);
+    for(let y=0; y<Math.max(0, Math.min(H, yCorte)); y++)
+      for(let x=0; x<W; x++) px[((y*W)+x)*4+3] = 0;
+  }
   cx.putImageData(d, 0, 0);
+  /* WebP guarda transparencia — as camadas dependem disso */
   const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.85));
   if(!blob) throw new Error('Falha ao exportar a pintura.');
   return blob;
@@ -7829,7 +7882,7 @@ function modalUniformeIA(item){
     const chave = molde.url+'|'+wiz.estilo+'|'+wiz.corA+'|'+wiz.corB;
     if(wiz.pvChave === chave && wiz.pv) return;
     try{
-      const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
+      const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB, wiz.estilo);
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       wiz.pv = URL.createObjectURL(blob); wiz.pvChave = chave;
       atualizarPreview();
@@ -7916,7 +7969,7 @@ function modalUniformeIA(item){
       try{
         const chave = mini.url+'|'+wiz.corA+'|'+wiz.corB;
         if(wiz.pvMiniChave !== chave){
-          const blob = await pintarMolde(mini.url, wiz.corA, wiz.corB);
+          const blob = await pintarMolde(mini.url, wiz.corA, wiz.corB, wiz.estilo);
           if(wiz.pvMini && wiz.pvMini.startsWith('blob:')) URL.revokeObjectURL(wiz.pvMini);
           wiz.pvMini = URL.createObjectURL(blob); wiz.pvMiniChave = chave;
         }
@@ -8046,7 +8099,7 @@ function modalUniformeIA(item){
           molde = await garantirMolde(item, wiz.estilo);
         }
         el('wz-estado').textContent = 'Pintando o molde nas cores do clube — sem IA, sem custo.';
-        const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB);
+        const blob = await pintarMolde(molde.url, wiz.corA, wiz.corB, wiz.estilo);
         const caminho = `${caminhoClube(item)}/uniforme-${Date.now()}.webp`;
         const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
         if(up.error) throw new Error(erroMsg(up.error));
@@ -8057,7 +8110,7 @@ function modalUniformeIA(item){
         if(moldeMini){
           try{
             el('wz-estado').textContent = 'Pintando a miniatura da camisa…';
-            const bm = await pintarMolde(moldeMini.url, wiz.corA, wiz.corB);
+            const bm = await pintarMolde(moldeMini.url, wiz.corA, wiz.corB, wiz.estilo);
             const cm = `${caminhoClube(item)}/miniatura-${Date.now()}.webp`;
             const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
             if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
