@@ -1717,13 +1717,15 @@
 .pc-foto-comp .rf-fn-comp{position:absolute;left:50%;transform:translateX(-50%);
   top:0;width:100%;aspect-ratio:2/3;display:block}
 .pc-foto-comp .rf-fn-comp img{position:absolute;transform:translateX(-50%);height:auto;display:block}
-/* DEGRADE ATE' 50% do card. A GOLA do jogador cai em 64,16% da altura,
-   medida na foto: a camisa comeca em 54,36% dela, e a foto ocupa 118% do card
-   ancorada no topo. Com 50% de altura o degrade chega a' gola com ~62% de
-   opacidade — cobre sem apagar, que e' o "quase" pedido. Com os 40% de antes
-   ela ficava em ~22%, quase nada.
-   Passar muito disso comeca a comer o queixo: a 60% a gola vai a 75%. */
-.pc-overlay{position:absolute;left:0;right:0;bottom:0;height:50%;pointer-events:none;
+/* DEGRADE ATE' 65% do card. Referencias medidas na foto e convertidas para o
+   card (a foto ocupa 118% da altura dele, ancorada no topo):
+     gola   -> 64,2% do card
+     queixo -> 64,1%, praticamente no mesmo ponto
+   A 65% de altura o degrade chega a' gola com ~76% de opacidade e o topo dele
+   fica em 35% do card — cobre o peito inteiro e morre logo abaixo do rosto.
+   Acima disso ele comeca a subir pelo queixo, e ai' apaga o que o card existe
+   para mostrar. */
+.pc-overlay{position:absolute;left:0;right:0;bottom:0;height:65%;pointer-events:none;
   background:linear-gradient(0deg,#09120d 0%,rgba(9,18,13,.98) 30%,rgba(9,18,13,.88) 48%,
     rgba(9,18,13,.66) 64%,rgba(9,18,13,.4) 78%,rgba(9,18,13,.18) 90%,rgba(9,18,13,0) 100%)}
 /* A FOTO ABRE O FUNDO EM VOLTA — so' a vazada: a opaca afastada viraria um
