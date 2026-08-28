@@ -7060,7 +7060,8 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
   const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT]);
-  const actualSpd=Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
+  let actualSpd=Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
+  if(camLentoAtivo()) actualSpd*=CAM_LENTO_MULT;   // camera lenta na festa do gol dele
   CL._liveTimer=setTimeout(liveTick, actualSpd);
 }
 /* ---- multiplicador de ritmo VÁLIDO agora ----
@@ -7409,7 +7410,7 @@ function penaltyReveal(scored,scorer){
      ao som quando o laco de eventos consumisse o evento, ja' depois do modal
      fechar — o estadio rugia com atraso. Aqui e' no instante da revelacao. */
   if(typeof camOn==='function' && camOn()){
-    if(scored) rfGolSom();
+    if(scored){ rfGolSom(true); camCelebrar(); }   // penalti do utilizador: e' sempre gol dele
     else if(typeof rfSomTocar==='function') rfSomTocar('penaltiPerdido');
   }
   cdraw();
@@ -8114,6 +8115,22 @@ function rfApito(vezes, longo){
     lfo.start(t0); lfo.stop(t0+dur+0.02);
   }
 }
+/* ===== CAMERA LENTA NO GOL DELE =====
+   O relogio NAO para — parar seria mentir sobre o que esta' a acontecer em
+   campo, e a rodada tem outras partidas a correr. O que muda e' o ritmo do
+   tique: durante a festa cada minuto de jogo passa a demorar tres vezes mais,
+   e depois volta sozinho ao ritmo escolhido. E' o tempo de a linha da
+   narracao ser lida e de a torcida chegar ao pico.
+   Mora em `CL` e nao na rodada porque e' uma coisa da TELA, nao do jogo: o
+   resultado e a sincronia nao mudam por causa disto (ver o piso de ritmo em
+   onlineTickFloorMs, que continua a mandar na transmissao). */
+const CAM_LENTO_MS = 4200, CAM_LENTO_MULT = 3;
+function camCelebrar(){
+  if(typeof camOn!=='function' || !camOn()) return;
+  CL._golLentoAte = nowMs() + CAM_LENTO_MS;
+}
+function camLentoAtivo(){ return !!(CL._golLentoAte && nowMs() < CL._golLentoAte); }
+
 /* ===== A TORCIDA PRECISA DE GRAVACAO, NAO DE SINTESE =====
    A versao sintetizada (ruido rosa num passa-banda grave) soava a MAR, nao a
    estadio — e faz sentido: uma multidao nao e' ruido continuo, e' milhares de
@@ -8148,7 +8165,11 @@ function rfTorcidaLigar(){
    o evento) e sem ela sairiam duas bolas na rede e dois rugidos. */
 const RF_GOL_REDE = 'audio/gol-bola-na-rede.mp3';
 const RF_GOL_ATRASO = 2000;   // da rede ate' a torcida subir
-function rfGolSom(){
+/* O GOL DELE E O GOL DO ADVERSARIO NAO SAO O MESMO ACONTECIMENTO. Sair os dois
+   com o mesmo rugido e a mesma duracao achatava justamente o momento que a
+   pessoa veio ver. O gol do utilizador tem festa mais alta e mais longa; o do
+   adversario e' curto, so' o suficiente para se perceber que a bola entrou. */
+function rfGolSom(meu){
   if(!rfSomLigado()) return;
   if(Date.now() - RF_TORCIDA_GOL < 2500) return;
   RF_TORCIDA_GOL = Date.now();
@@ -8159,25 +8180,28 @@ function rfGolSom(){
   }catch(err){}
   /* a torcida entra por cima, sem esperar que a rede acabe — sao camadas do
      mesmo momento, nao uma fila */
-  setTimeout(rfTorcidaGol, RF_GOL_ATRASO);
+  setTimeout(() => rfTorcidaGol(meu), RF_GOL_ATRASO);
 }
 /* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
    um elemento <audio>, entao a rampa e' feita a mao, de 60 em 60ms.
    Sem trava propria: quem controla a repeticao e' o `rfGolSom`, a entrada. */
-function rfTorcidaGol(){
+function rfTorcidaGol(meu){
   if(!RF_TORCIDA) return;
   const a = RF_TORCIDA, vol = rfSomVolume();
-  const base = RF_TORCIDA_BASE * vol, alto = Math.min(1, 0.95 * vol);
+  const base = RF_TORCIDA_BASE * vol;
+  const alto = Math.min(1, (meu ? 1.0 : 0.72) * vol);
+  const segura = meu ? 4.5 : 1.6;   // quanto tempo a festa fica no alto
+  const desce  = meu ? 8   : 3.5;   // e quanto demora a assentar
   clearInterval(a._rfRampa);
   let t = 0;
   a._rfRampa = setInterval(() => {
     t += 0.06;
     if(RF_TORCIDA !== a){ clearInterval(a._rfRampa); return; }
-    const k = t < 0.4 ? (t/0.4)                       // sobe em 0,4s
-            : t < 2.2 ? 1                             // segura
-            : Math.max(0, 1 - (t-2.2)/5);             // desce em 5s
+    const k = t < 0.4 ? (t/0.4)                             // sobe em 0,4s
+            : t < segura ? 1                                // segura
+            : Math.max(0, 1 - (t-segura)/desce);            // e assenta
     a.volume = Math.min(1, base + (alto-base)*k);
-    if(t > 7.4){ clearInterval(a._rfRampa); a.volume = base; }
+    if(t > segura+desce+0.2){ clearInterval(a._rfRampa); a.volume = base; }
   }, 60);
 }
 function rfTorcidaDesligar(){
@@ -8227,7 +8251,10 @@ function rfSomDoEvento(m,e,out){
     if(meuLado && e.side!==meuLado) soar('penaltiDefendido');
   }
   if(e.type==='gol' || (e.type==='penalti' && e.scored)){
-    rfGolSom();   // bola na rede + estadio: barulho, nao fala — vale em qualquer ritmo
+    const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+    const meu = !!meuLado && e.side===meuLado;
+    rfGolSom(meu);   // bola na rede + estadio: barulho, nao fala — vale em qualquer ritmo
+    if(meu) camCelebrar();
     if(((m.hg||0)+(m.ag||0)) >= 5) soar('goleada');
     /* dobradinha: o mesmo nome marcando pela segunda vez nesta partida */
     const meus=(m.goals||[]).filter(g=>g.scorer && g.scorer===e.scorer);
@@ -8467,7 +8494,16 @@ function camPatchFeed(m){
   if(agora<antes){ box.innerHTML=m.narr.slice().reverse().map(camLineHTML).join(''); box.dataset.n=String(agora); return; }
   const vazio=box.querySelector('.rf-cam-vazio'); if(vazio) vazio.remove();
   // insere de trás pra frente pra manter a ordem (mais recente sempre no topo)
-  m.narr.slice(antes).forEach(l=>box.insertAdjacentHTML('afterbegin', camLineHTML(l)));
+  m.narr.slice(antes).forEach(l=>{
+    box.insertAdjacentHTML('afterbegin', camLineHTML(l));
+    /* A FESTA E' SO' DA LINHA NOVA. `k-gol` ja' significa "gol dele" (ver
+       rfCamLinhaHTML), mas a classe fica na linha para sempre — animar por ela
+       faria o feed inteiro re-festejar a cada troca de aba, que e' quando o
+       bloco e' redesenhado. `celebra` so' e' posta aqui, no instante em que a
+       linha entra, e por isso anima uma vez so'. */
+    const nova = box.firstElementChild;
+    if(nova && nova.classList.contains('k-gol')) nova.classList.add('celebra');
+  });
   box.dataset.n=String(agora);
 }
 

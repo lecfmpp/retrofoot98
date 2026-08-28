@@ -3515,6 +3515,41 @@
 .rf-cam-linha.k-gol,.rf-cam-linha.k-gol-contra{border-left:3px solid transparent;padding-left:7px}
 .rf-cam-linha.k-gol{background:var(--club-primary-soft);border-left-color:var(--club-primary)}
 .rf-cam-linha.k-gol .rf-cam-ltx{color:var(--text-1);font-weight:var(--fw-bold)}
+/* ===== A FESTA DO GOL DELE =====
+   Dura o mesmo que a câmera lenta do relógio (~4,2s, ver CAM_LENTO_MS): a
+   linha entra com um salto, pulsa três vezes na cor do clube e leva um brilho
+   a atravessá-la duas vezes. `celebra` é posta pelo camPatchFeed só na linha
+   que acabou de entrar — nunca no redesenho do feed. */
+@keyframes rf-cam-gol-entra{
+  0%{opacity:0;transform:translateY(-10px) scale(.94)}
+  60%{opacity:1;transform:translateY(0) scale(1.035)}
+  100%{transform:scale(1)}
+}
+@keyframes rf-cam-gol-pulso{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}
+  50%{box-shadow:0 0 0 3px var(--club-primary-soft),0 2px 14px -4px var(--club-primary)}
+}
+@keyframes rf-cam-gol-brilho{
+  0%{transform:translateX(-130%)}
+  100%{transform:translateX(130%)}
+}
+.rf-cam-linha.k-gol.celebra{
+  position:relative;overflow:hidden;
+  animation:rf-cam-gol-entra .5s var(--ease) both,
+            rf-cam-gol-pulso 1.4s var(--ease) 3;
+}
+.rf-cam-linha.k-gol.celebra .rf-cam-lic{display:inline-block;
+  animation:rf-cam-gol-entra .45s var(--ease) 3}
+.rf-cam-linha.k-gol.celebra::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 34%,rgba(255,255,255,.72) 50%,transparent 66%);
+  animation:rf-cam-gol-brilho 1.6s var(--ease) 2;
+}
+@media (prefers-reduced-motion:reduce){
+  .rf-cam-linha.k-gol.celebra,
+  .rf-cam-linha.k-gol.celebra .rf-cam-lic{animation:none}
+  .rf-cam-linha.k-gol.celebra::after{display:none}
+}
 .rf-cam-linha.k-gol-contra{background:#fdf0f0;border-left-color:var(--danger)}
 .rf-cam-linha.k-gol-contra .rf-cam-ltx{color:var(--text-1);font-weight:var(--fw-semibold)}
 .rf-cam-linha.k-n{background:var(--surface-sunken)}
