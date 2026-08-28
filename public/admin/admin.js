@@ -5769,6 +5769,20 @@ const FOTO_DECOTE_LARG = 0.240;   // largura da abertura, fracao da largura do q
 const FOTO_DECOTE_FUNDO = 0.105;  // quanto ela desce, fracao da ALTURA do quadro
 const FOTO_DECOTE_SUAVE = 0.10;   // quanto da borda e' degrade (0 = corte seco)
 
+/* ===== O TOPO DA CAMISA =====
+   O decote abre a passagem do pescoco, mas o resto da borda de cima continua
+   reta — e o olho lê reta como corte, mesmo com o decote no meio. Duas coisas
+   em cima disso, na mesma area:
+
+     ARREDONDAR: uma elipse LARGA E RASA tirando a quina do topo inteiro. Ela
+     nao abre buraco (e' rasa demais), so' curva a linha.
+     SUAVIZAR: as duas elipses saem com borda em degrade, entao a transicao e'
+     um esmaecido e nao outra aresta. Trocar um corte reto por um corte curvo
+     nao resolveria nada. */
+const FOTO_TOPO_LARG  = 1.100;   // largura da curva, fracao da largura do quadro
+const FOTO_TOPO_FUNDO = 0.016;   // quanto ela desce, fracao da ALTURA do quadro
+const FOTO_TOPO_SUAVE = 0.55;    // borda em degrade da curva (mais alta = mais esfumado)
+
 /* A GOLA VEM PRONTA DO UNIFORME. Tentei desenha-la como camada propria — um
    anel na cor do clube, com largura e espessura ajustaveis — e nao ficou bom:
    um anel geometrico por cima de um colarinho desenhado le-se como remendo,
@@ -5798,14 +5812,23 @@ const FICHA_TOPO = -0.0527;  // deslocamento do topo, fracao do lado do quadrado
    quadro e' convertida pela escala da camisa. Se as duas contas divergirem, a
    previa deixa de valer. */
 function decoteCSS(topoCamisaNoQuadro){
-  if(!(FOTO_DECOTE_LARG > 0 && FOTO_DECOTE_FUNDO > 0)) return '';
-  const largNaCamisa = FOTO_DECOTE_LARG / FOTO_CAMISA_LARG * 100;
-  const altCamisaNoQuadro = FOTO_CAMISA_LARG / RATIO_FOTO;      // manequim quadrado
-  const fundoNaCamisa = FOTO_DECOTE_FUNDO / altCamisaNoQuadro * 100;
-  const dentro = Math.round((1-FOTO_DECOTE_SUAVE)*100);
-  const g = `radial-gradient(ellipse ${largNaCamisa.toFixed(2)}% ${fundoNaCamisa.toFixed(2)}% at 50% 0%,`
-          + `transparent ${dentro}%,#000 100%)`;
-  return `-webkit-mask-image:${g};mask-image:${g};`;
+  const camadas = [];
+  const elipse = (larg, fundo, suave) => {
+    if(!(larg > 0 && fundo > 0)) return;
+    const lw = larg / FOTO_CAMISA_LARG * 100;                  // % da CAMISA, nao do quadro
+    const lh = fundo / (FOTO_CAMISA_LARG/RATIO_FOTO) * 100;
+    camadas.push(`radial-gradient(ellipse ${lw.toFixed(2)}% ${lh.toFixed(2)}% at 50% 0%,`
+               + `transparent ${Math.round((1-suave)*100)}%,#000 100%)`);
+  };
+  elipse(FOTO_TOPO_LARG, FOTO_TOPO_FUNDO, FOTO_TOPO_SUAVE);
+  elipse(FOTO_DECOTE_LARG, FOTO_DECOTE_FUNDO, FOTO_DECOTE_SUAVE);
+  if(!camadas.length) return '';
+  /* INTERSECCAO: cada mascara tira a sua elipse, e o que fica e' o que
+     sobrevive as duas. Sem `intersect` o navegador SOMA as camadas e as
+     elipses se anulam — apareceria mais camisa, nao menos. */
+  const m = camadas.join(',');
+  const comp = camadas.length > 1 ? 'mask-composite:intersect;-webkit-mask-composite:source-in;' : '';
+  return `-webkit-mask-image:${m};mask-image:${m};${comp}`;
 }
 
 function composicaoFotoHTML(rostoUrl, manequimUrl, med){
@@ -5855,22 +5878,24 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida){
   const cv2 = document.createElement('canvas'); cv2.width = FOTO_W; cv2.height = FOTO_H;
   const cx2 = cv2.getContext('2d');
   cx2.drawImage(camisa, FOTO_W/2 - cw/2, topoCamisa, cw, ch);
-  if(FOTO_DECOTE_LARG > 0 && FOTO_DECOTE_FUNDO > 0){
-    /* elipse com borda em DEGRADE. Um gradiente radial e' sempre circular, e o
-       decote e' achatado — entao escala-se o contexto e desenha-se um circulo,
-       que sai elipse. */
-    const rx = (FOTO_DECOTE_LARG*FOTO_W)/2, ry = FOTO_DECOTE_FUNDO*FOTO_H;
+  /* dois recortes na mesma borda: a curva larga que arredonda o topo, e o
+     decote estreito que abre a gola. Os dois com borda em degrade. */
+  const recorte = (larg, fundo, suave) => {
+    if(!(larg > 0 && fundo > 0)) return;
+    const rx = (larg*FOTO_W)/2, ry = fundo*FOTO_H;
     cx2.globalCompositeOperation = 'destination-out';
     cx2.save();
     cx2.translate(FOTO_W/2, topoCamisa);
-    cx2.scale(1, ry/rx);
-    const g = cx2.createRadialGradient(0,0,rx*(1-FOTO_DECOTE_SUAVE), 0,0,rx);
+    cx2.scale(1, ry/rx);                 // gradiente radial e' circular: escala vira elipse
+    const g = cx2.createRadialGradient(0,0,rx*(1-suave), 0,0,rx);
     g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)');
     cx2.fillStyle = g;
     cx2.beginPath(); cx2.arc(0,0,rx,0,Math.PI*2); cx2.fill();
     cx2.restore();
     cx2.globalCompositeOperation = 'source-over';
-  }
+  };
+  recorte(FOTO_TOPO_LARG, FOTO_TOPO_FUNDO, FOTO_TOPO_SUAVE);
+  recorte(FOTO_DECOTE_LARG, FOTO_DECOTE_FUNDO, FOTO_DECOTE_SUAVE);
   cx.drawImage(cv2, 0, 0);
 
 
@@ -7883,6 +7908,7 @@ function modalEncaixeFoto(item, p){
   const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
                camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE,
                decL: FOTO_DECOTE_LARG, decF: FOTO_DECOTE_FUNDO, decS: FOTO_DECOTE_SUAVE,
+               topL: FOTO_TOPO_LARG, topF: FOTO_TOPO_FUNDO, topS: FOTO_TOPO_SUAVE,
                fZ: FICHA_ZOOM, fT: FICHA_TOPO };
   let med = null;
 
@@ -7920,6 +7946,13 @@ function modalEncaixeFoto(item, p){
             <input id="enf-decf" type="range" min="0" max="15" step="0.1" value="${(st.decF*100).toFixed(1)}"></label>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — suavidade</span>
             <input id="enf-decs" type="range" min="0" max="80" step="5" value="${(st.decS*100).toFixed(0)}"></label>
+          <div class="tt" style="font-size:12px;margin-top:4px">Topo da camisa (arredondar)</div>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Topo — largura</span>
+            <input id="enf-topl" type="range" min="40" max="200" step="1" value="${(st.topL*100).toFixed(0)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Topo — curva</span>
+            <input id="enf-topf" type="range" min="0" max="8" step="0.1" value="${(st.topF*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Topo — suavidade</span>
+            <input id="enf-tops" type="range" min="0" max="90" step="5" value="${(st.topS*100).toFixed(0)}"></label>
           <div class="tt" style="font-size:12px;margin-top:4px">Quadro da Ficha (o de 52px)</div>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Ficha — aproximação</span>
             <input id="enf-fz" type="range" min="80" max="260" step="1" value="${(st.fZ*100).toFixed(0)}"></label>
@@ -7951,10 +7984,17 @@ function modalEncaixeFoto(item, p){
     const largNaCamisa = st.decL / cw * 100;
     const altCamisa = cw / RATIO_FOTO;
     const fundoNaCamisa = st.decF / altCamisa * 100;
-    const dentro = Math.round((1-st.decS)*100);
-    const mascara = (st.decL>0 && st.decF>0)
-      ? (g => `-webkit-mask-image:${g};mask-image:${g};`)(
-          `radial-gradient(ellipse ${largNaCamisa.toFixed(2)}% ${fundoNaCamisa.toFixed(2)}% at 50% 0%,transparent ${dentro}%,#000 100%)`)
+    /* MESMA conta do canvas: duas elipses, em % da CAMISA, com interseccao */
+    const altCam = cw / RATIO_FOTO;
+    const camadas = [];
+    const poe = (larg, fundo, suave) => { if(!(larg>0 && fundo>0)) return;
+      camadas.push(`radial-gradient(ellipse ${(larg/cw*100).toFixed(2)}% ${(fundo/altCam*100).toFixed(2)}% at 50% 0%,`
+                 + `transparent ${Math.round((1-suave)*100)}%,#000 100%)`); };
+    poe(st.topL, st.topF, st.topS);
+    poe(st.decL, st.decF, st.decS);
+    const mascara = camadas.length
+      ? `-webkit-mask-image:${camadas.join(',')};mask-image:${camadas.join(',')};`
+        + (camadas.length>1 ? 'mask-composite:intersect;-webkit-mask-composite:source-in;' : '')
       : '';
     const html =
       `<img src="${h(f.url)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
@@ -7987,6 +8027,9 @@ function modalEncaixeFoto(item, p){
       `FOTO_DECOTE_LARG : ${st.decL.toFixed(4)}   (${(st.decL*100).toFixed(2)}% da largura)\n`+
       `FOTO_DECOTE_FUNDO: ${st.decF.toFixed(4)}   (${(st.decF*100).toFixed(2)}% da altura)\n`+
       `FOTO_DECOTE_SUAVE: ${st.decS.toFixed(2)}   (${(st.decS*100).toFixed(0)}% da borda em degradê)\n`+
+      `FOTO_TOPO_LARG   : ${st.topL.toFixed(4)}   (${(st.topL*100).toFixed(2)}% da largura)\n`+
+      `FOTO_TOPO_FUNDO  : ${st.topF.toFixed(4)}   (${(st.topF*100).toFixed(2)}% da altura)\n`+
+      `FOTO_TOPO_SUAVE  : ${st.topS.toFixed(2)}   (${(st.topS*100).toFixed(0)}% da borda em degradê)\n`+
       `— corte total chega a ${((st.decF*(1-st.decS))/(FOTO_CAMISA_LARG/RATIO_FOTO)*100).toFixed(2)}% do manequim; a gola dele ocupa ~2%\n`+
       `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
       `--rf-foto-larg   : ${(st.fZ*100).toFixed(2)}%   (no rf26.css, .rf-fotonum)\n`+
@@ -8002,6 +8045,7 @@ function modalEncaixeFoto(item, p){
   const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
   liga('enf-larg','larg'); liga('enf-topo','topo'); liga('enf-camisa','camisa'); liga('enf-sobre','sobre');
   liga('enf-decl','decL'); liga('enf-decf','decF'); liga('enf-decs','decS');
+  liga('enf-topl','topL'); liga('enf-topf','topF'); liga('enf-tops','topS');
   liga('enf-fz','fZ'); liga('enf-ft','fT');
   el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
@@ -8010,11 +8054,14 @@ function modalEncaixeFoto(item, p){
     st.larg = FOTO_CABECA_LARG; st.topo = FOTO_CABECA_TOPO;
     st.camisa = FOTO_CAMISA_LARG; st.sobre = FOTO_GOLA_SOBRE;
     st.decL = FOTO_DECOTE_LARG; st.decF = FOTO_DECOTE_FUNDO; st.decS = FOTO_DECOTE_SUAVE;
+    st.topL = FOTO_TOPO_LARG; st.topF = FOTO_TOPO_FUNDO; st.topS = FOTO_TOPO_SUAVE;
     st.fZ = FICHA_ZOOM; st.fT = FICHA_TOPO;
     el('enf-larg').value=(st.larg*100).toFixed(1); el('enf-topo').value=(st.topo*100).toFixed(1);
     el('enf-camisa').value=(st.camisa*100).toFixed(1); el('enf-sobre').value=(st.sobre*100).toFixed(1);
     el('enf-decl').value=(st.decL*100).toFixed(1); el('enf-decf').value=(st.decF*100).toFixed(1);
     el('enf-decs').value=(st.decS*100).toFixed(0);
+    el('enf-topl').value=(st.topL*100).toFixed(0); el('enf-topf').value=(st.topF*100).toFixed(1);
+    el('enf-tops').value=(st.topS*100).toFixed(0);
     el('enf-fz').value=(st.fZ*100).toFixed(0); el('enf-ft').value=(st.fT*100).toFixed(1);
     desenha(); };
 }
