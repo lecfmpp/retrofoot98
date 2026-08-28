@@ -210,6 +210,11 @@ window.RF_FOTO_RECORTE = window.RF_FOTO_RECORTE || {};
    numa altura, e as antigas parecem menores que as novas. Com estes numeros o
    card escala e desloca cada foto para TODAS ficarem iguais. */
 window.RF_FOTO_MED = window.RF_FOTO_MED || {};
+/* ACERVO DA BASE: 50 faces sem dono. Os jogadores da base nao existem ate'
+   subirem, entao nao ha' foto por jogador — quando um sobe, o jogo escolhe uma
+   destas pelo `pid` dele. */
+window.RF_FACES_BASE = window.RF_FACES_BASE || [];
+window.RF_FACES_BASE_MED = window.RF_FACES_BASE_MED || {};
 window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 /* RF_TREINADORES['m1'..'f5'] -> as 10 faces padrão de treinador, escolhidas no
    assistente por quem não gera a própria. Moram na MESMA tabela (linhas com
@@ -240,6 +245,11 @@ function buscarFotos(packId){
           continue;
         }
         const at = f.atributos || {};
+        if(f.club_id === '__base__'){
+          if(f.url){ window.RF_FACES_BASE.push(f.url);
+                     if(at.medidaFoto) window.RF_FACES_BASE_MED[f.url] = at.medidaFoto; }
+          continue;
+        }
         if(f.jogador === '__torso__'){
           if(at.rascunho) continue;   // rascunho é do Estúdio — o jogo só mostra o APLICADO
           window.RF_UNIFORMES[String(f.club_id)] = Object.assign({ url:f.url }, at);
@@ -266,6 +276,10 @@ function buscarFotos(packId){
         window.RF_FOTOS[String(f.club_id)+'|'+f.jogador] = foto;
         window.RF_FOTOS_NOME[f.jogador] = foto;
       }
+      /* ORDEM ESTAVEL. O acervo e' escolhido por indice a partir do `pid`; se a
+         lista chegasse noutra ordem a cada carga, o mesmo jogador mudaria de
+         cara entre sessoes. Ordenar pela URL fixa a sequencia. */
+      window.RF_FACES_BASE.sort();
     })
     .catch(()=>{});
 }

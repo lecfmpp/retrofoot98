@@ -374,6 +374,20 @@ function rfRostoDe(p, clubId){
   if(!med || !med.larg) return null;          // sem medida nao ha' onde por
   return { url, med, aj:(window.RF_ROSTO_AJ||{})[p.n] || null };
 }
+/* A FACE DE UM JOGADOR DA BASE. Escolhida por `pid`, nao sorteada: o mesmo
+   garoto tem a mesma cara em toda sessao, em todo save e depois de qualquer
+   transferencia. Sortear a cada desenho daria uma cara nova a cada tela.
+   O hash e' simples de proposito — precisa ser estavel entre versoes, e
+   qualquer mudanca nele trocaria a cara de todos os jogadores de uma vez. */
+function rfFaceDaBase(p){
+  const lista = window.RF_FACES_BASE || [];
+  if(!lista.length || !p) return null;
+  const chave = String(p.pid || p.n || '');
+  let h = 0;
+  for(let i = 0; i < chave.length; i++) h = ((h*31) + chave.charCodeAt(i)) >>> 0;
+  return lista[h % lista.length];
+}
+
 function rfManequimDe(clubId){
   const u = (window.RF_UNIFORMES||{})[String(clubId!=null?clubId:CL.clubId)];
   return (u && u.miniatura) || null;
@@ -2552,7 +2566,8 @@ function rfCardJogadorHTML(p, num, clubId){
      volta. As antigas sao opacas: afasta-las poria um retangulo cinza
      flutuando sobre o fundo, que e' pior do que nao mostrar o fundo. */
   const recorte = (window.RF_FOTO_RECORTE||{})[p.n];
-  const vazado = recorte === 'cartao' || recorte === 'camadas';
+  const doAcervo = typeof foto==='string' && (window.RF_FACES_BASE||[]).indexOf(foto) >= 0;
+  const vazado = recorte === 'cartao' || recorte === 'camadas' || doAcervo;
   /* IGUALA TODAS AS FOTOS, escalando e deslocando cada uma pela medida dela.
      Duas coisas variam muito entre as fotos, e as duas se veem no card:
        · a CABECA vai de 38,6% a 67% da largura da imagem — as antigas menores,
@@ -2565,7 +2580,8 @@ function rfCardJogadorHTML(p, num, clubId){
   const RF_CARD_TOPO = 0.063;     // onde o conteudo comeca, fracao da altura do card
   const RF_CARD_CAB  = 0.654;     // largura da cabeca, fracao da LARGURA do card
   const RF_CARD_RAZAO = 200/305;  // do card, para converter largura em altura
-  const med = (window.RF_FOTO_MED||{})[p.n];
+  const med = (window.RF_FOTO_MED||{})[p.n]
+           || ((window.RF_FACES_BASE_MED||{})[typeof foto==='string' ? foto : '']);
   let desloca = '';
   if(vazado && med && med.cabeca){
     const zoom = RF_CARD_CAB / med.cabeca;

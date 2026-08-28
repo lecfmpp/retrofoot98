@@ -6128,6 +6128,76 @@ const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do
    ja' varre a tabela inteira do pacote (ver src/net/dados.js).
    ===================================================================== */
 const TREINADOR_KEY = '__treinador__';
+
+/* ===== FACES DA BASE =====
+   Os jogadores da base NAO EXISTEM ainda: eles nascem quando sobem ao
+   principal, com nome sorteado na hora. Nao da' para gerar foto por jogador
+   porque nao ha' jogador — e gerar no momento da subida seria gastar IA no
+   meio da partida, que e' justamente o que o card veio evitar.
+
+   A saida e' um ACERVO: 50 faces neutras, sem dono, guardadas como o mesmo
+   truque das faces de treinador (club_id sentinela). Quando um jogador da base
+   sobe, o jogo escolhe uma pelo `pid` dele — a mesma sempre, porque a escolha
+   e' deterministica, nao sorteada a cada desenho.
+
+   So' funciona porque o retrato deixou de carregar clube: camisa neutra, fundo
+   transparente, identidade do clube no fundo do card. Uma face do acervo serve
+   a qualquer clube, hoje e depois de uma transferencia. */
+const BASE_KEY = '__base__';
+const BASE_TOTAL = 50;
+const baseChave = i => 'b' + String(i+1).padStart(2,'0');
+
+/* O sorteio de atributos e' o do elenco, mas com a idade PRESA a' faixa da
+   base: um garoto de 17-20, nao um veterano. O resto (pele, cabelo, barba)
+   varia como sempre — sao 50 caras que vao conviver na mesma tela. */
+function atributosBase(i){
+  const at = sortearAtributos({ n:'base-'+i, age: 17 + (i % 4) });
+  at.idade = 17 + (i % 4);
+  return at;
+}
+function promptFaceBase(i){
+  const at = atributosBase(i);
+  return promptCartaoJogador({ pais:'Brasil' }, { n:'base-'+i }, at, 'neutro');
+}
+async function garantirFaceBase(i, refazer){
+  const chave = baseChave(i);
+  if(!refazer && D.fotos[BASE_KEY+'|'+chave]) return D.fotos[BASE_KEY+'|'+chave];
+  const url = await gerarImagemIA('camisa', promptFaceBase(i), 'medium', null,
+    'base/face-'+chave, 'Gerando face da base…');
+  const linha = { pack_id: ST.packId, club_id: BASE_KEY, jogador: chave, url,
+                  atributos: { recorte:'cartao', uniforme:'neutro' } };
+  try{ const m = await medirMolde(url); if(m) linha.atributos.medidaFoto = m; }catch(_){}
+  linha.atributos.montagem = url;
+  const r = await jogo('player_photos').upsert(linha, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[BASE_KEY+'|'+chave] = linha;
+  return linha;
+}
+function facesBaseQueFaltam(){
+  const faltam = [];
+  for(let i = 0; i < BASE_TOTAL; i++) if(!D.fotos[BASE_KEY+'|'+baseChave(i)]) faltam.push(i);
+  return faltam;
+}
+async function prepararFacesBase(btn){
+  const faltam = facesBaseQueFaltam();
+  if(!faltam.length) return toast('As 50 faces da base já existem.');
+  if(!await rfConfirm({ titulo:'Faces da base',
+    texto:`Gera <b>${faltam.length} face(s)</b> para o acervo da base — camisa neutra, fundo transparente.`,
+    detalhe:`Custo: <b>~US$ ${(faltam.length*0.0647).toFixed(2)}</b>.
+      Elas não pertencem a jogador nenhum: quando um garoto sobe da base, o jogo escolhe uma pelo
+      <code>pid</code> dele — a mesma sempre. <b>São 50 para o jogo inteiro</b>, geradas uma vez.`,
+    nao:'Cancelar', sim:`Gerar ${faltam.length}` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const i of faltam){
+    btn.textContent = `Face ${ok+erros+1}/${faltam.length}…`;
+    try{ await garantirFaceBase(i); ok++; }catch(err){ erros++; console.warn('face da base:', i, err.message); }
+  }
+  registrar('estudio.base.faces', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} face(s) da base geradas${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
 /* O TOM DA PECA E' PARTE DA DESCRICAO, nao detalhe solto: a cor do bordado
    depende dele (branco em escuro, marinho em claro). Deixar a cor a cargo do
    modelo dava agasalho claro com escudo branco — bordado invisivel. */
@@ -7627,7 +7697,8 @@ async function pgEstudio(){
         <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
 ` : ''}
         ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda onde o conteúdo de cada foto começa — é o que alinha todas no mesmo ponto do card">Medir fotos</button>
-        <button class="btn btn-sm btn-ghost" id="est-recortar" title="Tira o fundo de estúdio de todas as fotos antigas — canvas, sem IA">Recortar fundos</button>` : ''}
+        <button class="btn btn-sm btn-ghost" id="est-recortar" title="Tira o fundo de estúdio de todas as fotos antigas — canvas, sem IA">Recortar fundos</button>
+        <button class="btn btn-sm btn-ghost" id="est-base" title="Acervo de 50 faces para os jogadores que sobem da base — eles ainda não existem, então a foto vem daqui">Faces da base (${facesBaseQueFaltam().length} a gerar)</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -7679,6 +7750,8 @@ async function pgEstudio(){
   if(btMed) btMed.onclick = () => medirFotos(btMed);
   const btRec = el('est-recortar');
   if(btRec) btRec.onclick = () => recortarFundosTodos(btRec);
+  const btBase = el('est-base');
+  if(btBase) btBase.onclick = () => prepararFacesBase(btBase);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const btFaces = el('est-faces');

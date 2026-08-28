@@ -42,7 +42,12 @@ function rfFotoDe(p, clubId){
     if(c) return c;
   }
   const F = window.RF_FOTOS||{}, N = window.RF_FOTOS_NOME||{};
-  return (clubId!=null && F[String(clubId)+'|'+p.n]) || F[String(CL.clubId)+'|'+p.n] || N[p.n] || null;
+  const propria = (clubId!=null && F[String(clubId)+'|'+p.n]) || F[String(CL.clubId)+'|'+p.n] || N[p.n];
+  if(propria) return propria;
+  /* SEM FOTO PROPRIA, cai no acervo da base. Cobre os jogadores que SOBEM da
+     base — que nao existiam quando as fotos foram geradas — e tambem quem
+     ainda nao tem retrato: melhor uma cara do acervo que a camisa vazia. */
+  return (typeof rfFaceDaBase==='function') ? rfFaceDaBase(p) : null;
 }
 function rfElCamisa(num, tam, p, clubId){
   const cls = tam===true ? 'g' : (tam||'');
