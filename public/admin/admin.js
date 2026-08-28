@@ -6163,7 +6163,24 @@ async function pintarMolde(moldeUrl, corA, corB, estilo, opts){
 
      Nada disso apaga arquivo: o molde original continua no Storage, e o que
      sai daqui e' a pintura do clube, que ja' era um arquivo novo. */
-  if(estilo){
+  /* ===== LIMPEZA DESLIGADA =====
+     Foi ao ar e piorou os uniformes: fundo mantido, pescoco mantido e furos
+     brancos na pele. Duas causas, ambas minhas:
+
+     1) O CORTE ESTAVA NO LUGAR ERRADO. GOLA_CORTE = -0,115 veio da bancada,
+        onde aquele numero servia para raspar sobra de FUNDO — nao para cortar
+        pescoco. Eu mesmo apontei que a linha fazia dois trabalhos diferentes,
+        e mesmo assim gravei um valor no papel do outro: o corte caiu em 5-8%
+        em vez dos 16-20% da gola, e o pescoco ficou inteiro.
+
+     2) A SUAVIZACAO DE BORDA COMIA PELE. Ela aceita ate' T*1,8 = 54 de
+        distancia do fundo, e a pele fica a ~47 do cinza — dentro da faixa.
+        Eram os furos brancos.
+
+     Fica aqui, inerte, ate' as duas coisas serem separadas de verdade: corte
+     de pescoco relativo a' gola, e limpeza de fundo com tolerancia propria e
+     testada num clube antes de qualquer lote. */
+  if(false && estilo){
     /* 1) FUNDO — inundacao a partir das bordas, nunca "apague o que for
        cinza": cinza tambem e' sombra de dobra e camisa clara, e a regra por
        cor abriria buracos no meio do tecido. */
