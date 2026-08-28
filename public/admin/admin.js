@@ -2318,6 +2318,8 @@ function abaClubes(editar){
           ${paises.map(p=>`<option value="${h(p)}" ${p===pais?'selected':''}>${h(p)}</option>`).join('')}
         </select>
         <input class="busca" id="ed-busca" placeholder="Procurar clube…" value="${h(ST.buscaClube||'')}">
+        <button class="btn btn-sm btn-ghost" id="ed-csv"
+          title="Planilha com todos os jogadores das Séries A, B, C e D do Brasil, com o patch em edição aplicado">⤓ CSV Brasil A–D</button>
         ${editar?'<button class="btn btn-sm" id="ed-novo">+ Clube</button>':''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.6fr .9fr .7fr .7fr .8fr .9fr">
@@ -2352,8 +2354,82 @@ function abaClubes(editar){
   const b = el('ed-busca'); let t=null;
   b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaClube=b.value.trim(); pgEditor(); },300); };
   el('ed-pais').onchange = () => { ST.paisFiltro = el('ed-pais').value; pgEditor(); };
+  el('ed-csv').onclick = baixarCSVJogadoresBrasil;
   document.querySelectorAll('[data-clube]').forEach(r => r.onclick = () => abrirClube(r.dataset.clube));
   if(editar) el('ed-novo').onclick = modalNovoClube;
+}
+
+/* ---------- CSV do elenco brasileiro (Séries A, B, C e D) ----------
+   Planilha para conferir o catálogo fora do painel: uma linha por jogador dos 80
+   clubes das quatro divisões do Brasil. Sai o que o JOGO mostra com o patch em
+   edição aplicado por cima do arquivo de fábrica — mesma regra da lista de clubes
+   — para a planilha não discordar da tela. */
+const SERIES_BR = ['A','B','C','D'];
+
+function clubeEfetivo(x){
+  const ed = (D.edits||{})[x.c.id], p = (ed && ed.patch) || {};
+  const c = Object.assign({}, x.c);
+  for(const k of CAMPOS_CLUBE) if(p[k]!=null && p[k]!=='') c[k] = p[k];
+  return c;
+}
+/* elenco com o diff do patch aplicado: quem foi removido sai, quem foi editado sai
+   corrigido e os criados no patch entram no fim. Em clube CRIADO no patch, `squad`
+   já vem do próprio patch (objeto de diffs, não lista) — daí o Array.isArray. */
+function elencoEfetivo(x){
+  const ed = (D.edits||{})[x.c.id], p = (ed && ed.patch) || {};
+  const base = Array.isArray(x.c.squad) ? x.c.squad : [];
+  const dif  = (p.squad && !Array.isArray(p.squad)) ? p.squad : {};
+  const fora = new Set(p.squad_remover || []);
+  const out = [];
+  base.forEach(j => { if(!fora.has(j.n)) out.push(Object.assign({}, j, dif[j.n]||{})); });
+  (p.squad_novos||[]).forEach(j => out.push(Object.assign({}, j)));
+  return out;
+}
+/* ; como separador e BOM à frente: é o que o Excel em pt-BR abre em colunas sem
+   pedir importação. Aspas duplicadas dentro do campo, como manda o RFC 4180. */
+function csvCampo(v){
+  const s = v==null ? '' : String(v);
+  return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function csvJogadoresBrasil(){
+  const cab = ['serie','clube_id','clube','clube_curto','jogador','posicao','setor','forca',
+               'idade','valor_brl','pe','numero','nacionalidade','moral','energia','no_patch'];
+  const linhas = [cab.join(';')];
+  let n = 0;
+  (D.catalogo||[])
+    .filter(x => x.pais==='Brasil' && SERIES_BR.includes(x.div))
+    .sort((a,b) => SERIES_BR.indexOf(a.div) - SERIES_BR.indexOf(b.div)
+                || String(a.c.short||a.c.name).localeCompare(String(b.c.short||b.c.name),'pt-BR'))
+    .forEach(x => {
+      const c = clubeEfetivo(x), ed = (D.edits||{})[x.c.id];
+      const marca = !ed ? 'de fábrica' : (ed.novo ? 'criado aqui' : 'editado');
+      elencoEfetivo(x)
+        .sort((a,b) => (b.f||0)-(a.f||0))
+        .forEach(p => {
+          n++;
+          linhas.push([x.div, c.id, c.name||c.short||'', c.short||'', p.n||'', p.p||'',
+                       p.s||'', p.f??'', p.age??'', p.mv??'', p.ft||'', p.num||'',
+                       p.nat||'', p.moral??'', p.energy??'', marca].map(csvCampo).join(';'));
+        });
+    });
+  return { texto: '﻿' + linhas.join('\r\n') + '\r\n', jogadores: n };
+}
+function baixarTexto(nome, texto, mime){
+  const url = URL.createObjectURL(new Blob([texto], { type: mime || 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function baixarCSVJogadoresBrasil(){
+  const { texto, jogadores } = csvJogadoresBrasil();
+  if(!jogadores) return toast('Nenhum jogador brasileiro no catálogo carregado.', true);
+  const pack = (D.packs||[]).find(p => p.id===ST.packId) || {};
+  const dia = new Date().toISOString().slice(0,10);
+  baixarTexto(`retrofoot98-jogadores-brasil-A-D-${(pack.codigo||'patch').toLowerCase()}-${dia}.csv`,
+              texto, 'text/csv;charset=utf-8');
+  toast(`${num(jogadores)} jogadores exportados.`);
+  registrar('dados.csv_jogadores', 'brasil-A-D', { pacote: ST.packId, jogadores });
 }
 
 /* ---------- aba JOGADORES ----------
