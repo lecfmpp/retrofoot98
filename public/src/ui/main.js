@@ -6875,6 +6875,25 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
       const m0=(RL.matches||[])[0]; if(m0 && m0.streamKey) NET.broadcastKickoff(m0.streamKey);
     }
   }
+  /* ===== A BOLA ROLA DEPOIS DO APITO, NAO ANTES =====
+     O apito inicial vivia num marco da narracao (camMinuteTick), que so' e'
+     avaliado quando ja' ha' minuto para mostrar — ou seja, com o jogo a
+     andar. Soava depois do pontape de saida, que e' o contrario do que
+     acontece em campo.
+     Agora ele e' a PRIMEIRA coisa da rodada: soa, o estadio abre, e so' a
+     seguir o relogio comeca a contar. E' o unico tique em que a rodada nao
+     avanca nenhum minuto — e vem depois da barreira de pontape acima, para
+     nao apitar enquanto ainda se espera pelo adversario humano. */
+  if(!RL._apitoIni){
+    RL._apitoIni = 1;
+    if(typeof rfSomLigado==='function' && rfSomLigado()){
+      if(typeof rfTorcidaLigar==='function') rfTorcidaLigar();   // o estadio ja' esta' la'
+      if(typeof rfApito==='function') rfApito(1);
+      cdraw();
+      CL._liveTimer=setTimeout(liveTick, LIVE_APITO_INI_MS);
+      return;
+    }
+  }
   /* ===== O RELOGIO SEGUE A PARTIDA, NAO O RELOGIO DE PAREDE =====
      Ele era incrementado a cada tique, aconteca o que acontecer com a simulacao. So que a
      sessao PARA quando fica a espera de uma decisao (session.step devolve logo se houver
@@ -7032,11 +7051,15 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
     /* APITO DO INTERVALO, antes de tudo o resto: e' este o instante em que o
        primeiro tempo acaba, e daqui ele nunca sai atrasado (ver camMinuteTick). */
-    if(typeof camOn==='function' && camOn() && typeof rfApito==='function') rfApito(2);
+    if(typeof rfApito==='function') rfApito(2);   // sem `camOn()`: quem só assiste também ouve os três apitos
     const ui=RL.matches.findIndex(m=>m.user);
     if(ui>=0 && clOpcoes().subsIntervalo!=='Não'){ RL.paused=true; RL.sel=ui;
       if(CL.online) startHalftimeCountdown(); // Resenha: intervalo dura no máximo 10s (mantém todos sincronizados)
       cdraw(); return; } }
+  /* o apito soa com o jogo ainda em campo — nao ha' `camOn()` aqui de
+     proposito: quem so' assiste nao tem Camarote, e era exactamente esse o
+     caso que ficava sem apito nenhum. */
+  liveApitoAntes(RL);
   if(RL.minute>=RL.maxMin){
     // mata-mata empatado, jogado ao vivo pelo próprio usuário: prorrogação e pênaltis
     // acontecem AO VIVO na tela dele (não são resolvidos instantaneamente por trás) —
@@ -7059,10 +7082,41 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
+  CL._liveTimer=setTimeout(liveTick, liveRitmoMs(RL));
+}
+/* Quanto dura UM minuto de jogo, em milissegundos de relogio de parede. Era
+   uma conta solta no fim do tique; virou funcao porque o apito final precisa
+   da mesma resposta para saber quanto tempo REAL falta ate' ao fim. */
+function liveRitmoMs(RL){
+  // Online o ritmo e' o do ANFITRIAO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
+  // nao a preferencia local de cada convidado. Solo: cada um usa a propria opcao "Tempo de jogo".
   const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT]);
-  let actualSpd=Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
-  if(camLentoAtivo()) actualSpd*=CAM_LENTO_MULT;   // camera lenta na festa do gol dele
-  CL._liveTimer=setTimeout(liveTick, actualSpd);
+  let ms = Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
+  if(camLentoAtivo()) ms *= CAM_LENTO_MULT;   // camera lenta na festa do gol dele
+  return ms;
+}
+/* ===== O APITO FINAL E' DA RODADA, NAO DA PARTIDA DELE =====
+   Ele so' existia dentro do `camFinal`, que corre para a partida com `m.user`.
+   Quem esta' a ver a rodada sem jogar — "vendo todos os jogos", ou um dia em
+   que ele nao entra em campo — nunca tinha `m.user`, e a rodada acabava em
+   silencio. Agora quem apita e' a rodada, e a partida dele so' chega primeiro
+   quando acaba antes (91' num teto de 94').
+   E vem ANTES do fim, nao em cima dele: `liveApitoAntes` dispara quando faltam
+   ~2,5 SEGUNDOS de relogio de parede — conta que depende do ritmo, porque dois
+   minutos de jogo sao 0,2s no Ultrassonico e 1,6s no Longo. Assim o apito
+   soa com o jogo ainda na tela, em vez de ser cortado pela troca de ecra. */
+const LIVE_APITO_ANTES_MS = 2500;
+const LIVE_APITO_INI_MS = 1200;   // o sopro inteiro cabe aqui antes do 1' entrar
+function liveApitoFinal(RL){
+  if(!RL || RL._apitoFim) return;
+  RL._apitoFim = 1;
+  if(typeof rfApito==='function') rfApito(3, true);
+  if(typeof rfTorcidaDesligar==='function') rfTorcidaDesligar();
+}
+function liveApitoAntes(RL){
+  if(!RL || RL._apitoFim || RL.done) return;
+  const falta = (RL.maxMin - RL.minute) * liveRitmoMs(RL);
+  if(falta <= LIVE_APITO_ANTES_MS) liveApitoFinal(RL);
 }
 /* ---- multiplicador de ritmo VÁLIDO agora ----
    Online a fonte da verdade é a SALA (NET.room.speedMult, escolhido pelo anfitrião). CL.speedMult
@@ -8390,8 +8444,9 @@ function camMinuteTick(m,RL){
   // O JOGO COMEÇA NO MINUTO ZERO. O apito inicial saía carimbado com o minuto em que o relógio
   // já estava (1' ou 2', dependendo de quando a tela apareceu) — a primeira linha da narração
   // nascia atrasada em relação ao lance que ela anuncia, que é a bola rolando. Bola rolando é 0'.
-  if(mn>=0)  mark('ini',()=>{ camPush(m,'inicio',null,0);
-    if(camOn()){ rfApito(1); rfTorcidaLigar(); } });
+  /* so' a LINHA. O apito e a torcida passaram para o inicio da rodada (ver
+     liveTick), porque aqui eles ja' chegavam com a bola a rolar. */
+  if(mn>=0)  mark('ini',()=>camPush(m,'inicio',null,0));
   /* A TORCIDA NAO SE CALA NO INTERVALO. Ela baixava aos 45 e voltava aos 46,
      e esse vale era ouvido como uma falha do som — o estadio nao esvazia entre
      os tempos. Fica no mesmo nivel do apito inicial ao final. */
@@ -8435,8 +8490,8 @@ function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.f
   /* O APITO FINAL tem quatro vozes, e a ordem importa: decisivo ganha de
      tudo (e' o jogo que vale titulo ou acesso), depois o resultado, e o
      neutro fica para o empate. */
+  liveApitoFinal(CL.live);   // se a rodada ja' apitou, isto nao repete
   if(camOn()){
-    rfApito(3, true); rfTorcidaDesligar();
     const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
     const meus = meuLado==='H' ? (m.hg||0) : (m.ag||0);
     const deles = meuLado==='H' ? (m.ag||0) : (m.hg||0);
