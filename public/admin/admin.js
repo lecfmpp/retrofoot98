@@ -5283,11 +5283,36 @@ function promptRostoMolde(item, p, at){
     'This is a completely fictional person, not resembling any real footballer or celebrity.'
   ].join(' ');
 }
-/* o composto do metodo C: uniforme do clube + rosto ancorado, sem IA nenhuma */
-function compostoMoldeHTML(torsoUrl, rostoUrl, px){
+/* ===== OS MOLDES NASCERAM FORA DO GABARITO =====
+   MEDIDO nos cinco, por deteccao de pixel magenta/ciano no eixo central: a
+   gola cai entre 16,1% e 19,9% da altura, quando ENQ.linhaGola manda 40%. O
+   modelo ignorou a especificacao de enquadramento ao gerar os moldes (ela
+   esta' la', em textoEnquadramento) — e a pintura por clube so' recolore,
+   fielmente, entao os 79 uniformes herdaram o mesmo desvio.
+
+   A montagem por IA disfarca isso porque reenquadra a imagem inteira. A
+   composicao por CSS nao tem como: sem espaco vazio em cima, a cabeca cai
+   por cima da camisa.
+
+   Conserto SEM GERAR NADA: desce o torso ate' a gola bater nos 40%. Por
+   estilo, porque eles divergem entre si em quase 4 pontos. Se um molde for
+   refeito, remedir e atualizar aqui. */
+const MOLDE_GOLA = { diagonal:0.161, horizontal:0.194, lisa:0.190, mangas:0.199, vertical:0.165 };
+const MOLDE_GOLA_PADRAO = 0.182;   // media, para estilo desconhecido
+const torsoDescida = estilo => ENQ.linhaGola - (MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO);
+
+/* o composto do metodo C: uniforme do clube + rosto ancorado, sem IA nenhuma.
+   `px` opcional — sem ele o quadro e' FLUIDO (width 100% + aspect-ratio), que
+   e' o que os cartoes A e B usam. Passar largura fixa aqui encolhia o cartao C
+   ao lado dos outros dois. */
+function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo){
   const e = rostoEncaixe();
-  return `<span style="position:relative;display:inline-block;width:${px}px;height:${Math.round(px*RATIO_FOTO)}px;border-radius:10px;overflow:hidden;background:#d9d9d9">
-    <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+  const desce = torsoDescida(estilo);
+  const quadro = px
+    ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
+    : `width:100%;aspect-ratio:${1/RATIO_FOTO}`;
+  return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">
+    <img src="${h(torsoUrl)}" style="position:absolute;left:0;width:100%;top:${(desce*100).toFixed(1)}%;height:100%;object-fit:cover;object-position:top">
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:${(e.topo*100).toFixed(1)}%;height:${(e.altura*100).toFixed(1)}%;object-fit:contain">`:''}
   </span>`;
 }
@@ -5998,7 +6023,7 @@ async function compararMetodos(item, p){
             <span class="mono" style="font-size:11.5px;color:var(--dim3)">US$ 0,044</span>
           </div>
           ${soRosto
-            ? compostoMoldeHTML(t.url, soRosto, 200)
+            ? compostoMoldeHTML(t.url, soRosto, null, (t.atributos||{}).estilo)
             : `<div class="vazio" style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">não saiu</div>`}
           <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">Cabeça ancorada no gabarito e encaixada
             por CSS no uniforme, que já é pintado de um dos 5 moldes. <b>O mais barato</b>, e a troca de clube
