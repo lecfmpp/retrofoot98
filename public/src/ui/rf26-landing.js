@@ -421,8 +421,6 @@ function rfLpResenhaHTML(){
         </figure>
       </div>
 
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
-        👑 Quero abrir a minha sala</button>
       <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — <b>abrir a sua</b> é do Embaixador.</span>
     </div>
   </section>`;
@@ -477,8 +475,6 @@ function rfLpJogadorOficialHTML(){
 
       ${rfLpFotoHTML('img/home/ficha-jogador.webp','Ficha do jogador dentro do RetroFoot98','grande')}
 
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
-        👑 Quero o meu jogador no jogo</button>
     </div>
   </section>`;
 }
@@ -517,8 +513,6 @@ function rfLpGranaHTML(){
           <span>Abre a sala, joga com eles e acompanha quem entrou pelo seu código.</span></div>
       </div>
 
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
-        👑 Quero o meu código</button>
       <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada.</span>
     </div>
   </section>`;
