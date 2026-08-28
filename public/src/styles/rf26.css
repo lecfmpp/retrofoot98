@@ -1748,7 +1748,10 @@
    empurrar nome e forca para baixo, entao o bloco de texto sobe e sobra mais
    foto a' vista. O padding do lado direito do .pc-info abre espaco para ele
    nao encostar no nome em nome comprido. */
-.pc-escudo{position:absolute;right:14px;bottom:14px;z-index:5;
+/* O ESCUDO usa a MESMA distancia nas duas bordas — uma variavel so', entao
+   elas nao podem divergir. 14 -> 12px aproxima da direita e mantem a base
+   igual, que era o pedido: mesmo padding em baixo e a' direita. */
+.pc-escudo{position:absolute;right:var(--pc-escudo-pad,12px);bottom:var(--pc-escudo-pad,12px);z-index:5;
   width:62px;height:62px;object-fit:contain;display:block;
   filter:drop-shadow(0 2px 10px rgba(0,0,0,.75))}
 .pc-info{padding-right:86px}
@@ -1777,8 +1780,7 @@
    e ficavam com scroll, que e' o pior dos dois mundos: a lista nao cabe e o
    card nao pode crescer. Separados, cada um tem a altura que precisa, e no
    telefone eles empilham naturalmente em vez de disputar a mesma linha. */
-.rf-fx-carac-grid{grid-template-columns:200px minmax(0,1fr);
-  grid-template-rows:var(--pc-alt);align-items:stretch}
+.rf-fx-carac-grid{grid-template-rows:var(--pc-alt);align-items:stretch}
 .rf-fx-carac-grid > *{min-height:0}
 .rf-fx-carac-grid .rf-fx-hexcol{overflow:auto}
 /* os atributos em colunas proprias, quantas couberem */
@@ -8891,7 +8893,12 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fx-legenda{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.08em;color:#9aa79e}
 .rf-fx-legenda i{width:16px;height:0;border-top:2px dashed #c3ccc5;display:inline-block}
 .rf-fx-legenda.sem-traco{letter-spacing:0;font-size:11px}
-.rf-fx-carac-grid{display:grid;grid-template-columns:200px minmax(0,.94fr) minmax(0,1.1fr);gap:20px;align-items:stretch;flex:1}
+/* DUAS COLUNAS: card + motor. A terceira era a dos atributos, que saiu para um
+   bloco proprio — dentro da grade ela herdava a altura do card e ficava com
+   scroll. Esta regra vem DEPOIS da que define as linhas, mais acima no
+   arquivo, entao e' ela que manda nas colunas: deixar as tres aqui anulava a
+   separacao em silencio. */
+.rf-fx-carac-grid{display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px;align-items:stretch;flex:1}
 .rf-fx-rodape{font-size:12px;line-height:1.55;color:#8b9a8e;text-wrap:pretty;border-top:1px solid #eef1ee;padding-top:12px}
 
 /* retrato */
