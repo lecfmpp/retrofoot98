@@ -7646,6 +7646,16 @@ function openRedCardModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.redMatch=m; RL.redEvent=e; RL.sel=RL.matches.indexOf(m);
   CL.redIn=null; CL.redOut=null;
   CL.redDeadline=Date.now()+12000;
+  /* O "PODE ISSO ARNALDO" ENTRA COM O MODAL, nao depois dele. A expulsao DELE
+     nao e' consumida pelo laco de eventos enquanto a reorganizacao nao for
+     decidida (ver `pendingRed`), e o som vivia nesse consumo — chegava com o
+     modal ja' fechado, comentando um lance que a tela tinha deixado para tras.
+     `_camSons` e' marcado aqui para o laco nao o repetir quando enfim passar
+     por ele. A do adversario nao tem modal, e continua a sair por la'. */
+  if(typeof rfSomTocar==='function'){
+    m._camSons = m._camSons || {};
+    if(!m._camSons.cartaoVermelho){ m._camSons.cartaoVermelho = 1; rfSomTocar('cartaoVermelho'); }
+  }
   sfx('lesao'); cdraw();
   if(CL._redTimer) clearInterval(CL._redTimer);
   CL._redTimer=setInterval(redCardTick,200);
