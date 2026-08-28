@@ -6032,7 +6032,22 @@ async function repintarTodosUniformes(btn){
     }
     for(const { x, t } of alvos){
       btn.textContent = `Repintando ${ok+erros+1}/${alvos.length}…`;
-      try{
+      try{ await repintarUniforme(x, t); ok++; }
+      catch(err){ erros++; console.warn('repintura falhou:', x.c.id, err.message); }
+    }
+    registrar('estudio.uniformes.repintar', String(ok), { pacote: ST.packId, falhas: erros });
+    toast(`Repintados ${ok} uniformes${erros?`, ${erros} falharam`:''}.`);
+  }catch(err){ toast(err.message||'Falha na repintura.', true); }
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
+/* UM clube. O lote chama isto em cima de cada alvo, e o teste de um time so'
+   chama a mesma funcao — se divergissem, testar um nao provaria nada sobre os
+   outros 78. */
+async function repintarUniforme(x, t){
+  {
+    {
         const molde = D.fotos[MOLDE_KEY+'|'+t.atributos.estilo];
         const blob = await pintarMolde(molde.url, t.atributos.cores[0], t.atributos.cores[1], t.atributos.estilo);
         const caminho = `${caminhoClube(x)}/uniforme-${Date.now()}.webp`;
@@ -6043,7 +6058,7 @@ async function repintarTodosUniformes(btn){
         const moldeMini = D.fotos[MOLDE_KEY+'|mini-'+t.atributos.estilo];
         if(moldeMini){
           try{
-            const bm = await pintarMolde(moldeMini.url, t.atributos.cores[0], t.atributos.cores[1], t.atributos.estilo);
+            const bm = await pintarMolde(moldeMini.url, t.atributos.cores[0], t.atributos.cores[1], t.atributos.estilo, { semPescoco:true });
             const cm = `${caminhoClube(x)}/miniatura-${Date.now()}.webp`;
             const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
             if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
@@ -6054,14 +6069,9 @@ async function repintarTodosUniformes(btn){
         const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(r.error) throw new Error(r.error.message);
         D.fotos[x.c.id+'|'+TORSO_KEY] = reg;
-        ok++;
-      }catch(err){ erros++; console.warn('repintura falhou:', x.c.id, err.message); }
+        return reg;
     }
-    registrar('estudio.uniformes.repintar', String(ok), { pacote: ST.packId, falhas: erros });
-    toast(`Repintados ${ok} uniformes${erros?`, ${erros} falharam`:''}.`);
-  }catch(err){ toast(err.message||'Falha na repintura.', true); }
-  btn.disabled = false; btn.textContent = rot;
-  pgEstudio();
+  }
 }
 const MOLDE_KEY = '__molde__';   // "clube" especial: um molde de uniforme por ESTILO
 
@@ -6099,7 +6109,7 @@ function hex2rgb(hx){
 /* `estilo` liga a LIMPEZA: fundo cinza fora e pescoco fora, no mesmo passe da
    pintura. Sem ele a funcao se comporta como antes — quem nao souber o estilo
    nao ganha limpeza torta. */
-async function pintarMolde(moldeUrl, corA, corB, estilo){
+async function pintarMolde(moldeUrl, corA, corB, estilo, opts){
   const img = await new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
     i.onload = () => ok(i); i.onerror = () => erro(new Error('Não consegui carregar o molde.'));
@@ -6177,10 +6187,14 @@ async function pintarMolde(moldeUrl, corA, corB, estilo){
         px[i*4+3] = 110;
     }
     /* 2) PESCOCO — corte reto na linha da gola. Naquela altura so' o pescoco
-       cruza o corte: os ombros ja' descem, entao nada da camisa se perde. */
-    const yCorte = Math.round((golaDoEstilo(estilo) + GOLA_CORTE) * H);
-    for(let y=0; y<Math.max(0, Math.min(H, yCorte)); y++)
-      for(let x=0; x<W; x++) px[((y*W)+x)*4+3] = 0;
+       cruza o corte: os ombros ja' descem, entao nada da camisa se perde.
+       A MINIATURA do campo NAO passa por aqui: ela e' um icone de camisa, sem
+       pescoco nenhum, e o corte na altura da gola decepava o topo do kit. */
+    if(!(opts && opts.semPescoco)){
+      const yCorte = Math.round((golaDoEstilo(estilo) + GOLA_CORTE) * H);
+      for(let y=0; y<Math.max(0, Math.min(H, yCorte)); y++)
+        for(let x=0; x<W; x++) px[((y*W)+x)*4+3] = 0;
+    }
   }
   cx.putImageData(d, 0, 0);
   /* WebP guarda transparencia — as camadas dependem disso */
@@ -6887,7 +6901,9 @@ async function pgEstudio(){
                         : '<span style="font-size:12px;color:var(--dim3)">sem escudo</span>'))
             : aba==='uniformes'
             ? (uniformeDoClube(x)
-               ? `<span class="tag t-ok">${h((ESTILOS_CAMISA.find(e=>e[0]===((uniformeDoClube(x).atributos||{}).estilo))||[])[1]||'gerado')}</span>`
+               ? `<span class="tag t-ok">${h((ESTILOS_CAMISA.find(e=>e[0]===((uniformeDoClube(x).atributos||{}).estilo))||[])[1]||'gerado')}</span>${
+                   podeEditar('dados') && (uniformeDoClube(x).atributos||{}).molde
+                   ? ` <button class="btn btn-sm btn-ghost" data-repintar1="${h(x.c.id)}" title="Repinta só este clube com o molde atual — sem custo, para conferir antes do lote">↻</button>` : ''}`
                : '<span style="font-size:12px;color:var(--dim3)">sem uniforme</span>')
             : (tot ? `<span class="mono" style="font-size:12.5px;color:${nf>=tot?'var(--verde2)':nf?'var(--ambar)':'var(--dim3)'}">${nf}/${tot}</span>`
                    : '<span style="font-size:12px;color:var(--dim3)">sem elenco</span>')}</span>
@@ -6929,6 +6945,26 @@ async function pgEstudio(){
     inp.onchange = () => trEnviarLogo(x.dataset.marcaUp, inp.files[0]);
     inp.click();
   });
+  /* REPINTAR UM SO'. O clique nao pode subir para a linha, senao abre o
+     assistente do clube junto e o teste vira confusao. */
+  document.querySelectorAll('[data-repintar1]').forEach(bt => bt.onclick = async (ev) => {
+    ev.stopPropagation();
+    const x = (D.catalogo||[]).find(c => String(c.c.id)===String(bt.dataset.repintar1));
+    const t0 = x && D.fotos[x.c.id+'|'+TORSO_KEY];
+    if(!x || !t0) return;
+    if(!await rfConfirm({ titulo:`Repintar o uniforme do ${x.c.short||x.c.name}`,
+      texto:'Repinta <b>só este clube</b> com o molde atual, já sem fundo cinza e sem pescoço.',
+      detalhe:'<b>Sem custo</b> — é pintura local, sem IA. As dimensões não mudam, as posições de escudo e patrocínio são preservadas e <b>nenhum arquivo é apagado</b>: a pintura antiga continua no Storage.',
+      nao:'Cancelar', sim:'Repintar este' })) return;
+    bt.disabled = true; const r0 = bt.textContent; bt.textContent = '…';
+    try{
+      await repintarUniforme(x, t0);
+      registrar('estudio.uniformes.repintar1', String(x.c.id), { pacote: ST.packId });
+      toast(`Uniforme do ${x.c.short||x.c.name} repintado. Confira no ⌗ Encaixe.`);
+      pgEstudio();
+    }catch(err){ toast(err.message||'Falha na repintura.', true); bt.disabled=false; bt.textContent=r0; }
+  });
+
   const b = el('est-busca'); let t=null;
   if(b) b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
@@ -7969,7 +8005,7 @@ function modalUniformeIA(item){
       try{
         const chave = mini.url+'|'+wiz.corA+'|'+wiz.corB;
         if(wiz.pvMiniChave !== chave){
-          const blob = await pintarMolde(mini.url, wiz.corA, wiz.corB, wiz.estilo);
+          const blob = await pintarMolde(mini.url, wiz.corA, wiz.corB, wiz.estilo, { semPescoco:true });
           if(wiz.pvMini && wiz.pvMini.startsWith('blob:')) URL.revokeObjectURL(wiz.pvMini);
           wiz.pvMini = URL.createObjectURL(blob); wiz.pvMiniChave = chave;
         }
@@ -8110,7 +8146,7 @@ function modalUniformeIA(item){
         if(moldeMini){
           try{
             el('wz-estado').textContent = 'Pintando a miniatura da camisa…';
-            const bm = await pintarMolde(moldeMini.url, wiz.corA, wiz.corB, wiz.estilo);
+            const bm = await pintarMolde(moldeMini.url, wiz.corA, wiz.corB, wiz.estilo, { semPescoco:true });
             const cm = `${caminhoClube(item)}/miniatura-${Date.now()}.webp`;
             const um = await sb.storage.from('jogadores').upload(cm, bm, { upsert:false, cacheControl:'31536000' });
             if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
