@@ -231,14 +231,11 @@ function rfElElencoHTML(){
 }
 
 function rfSelPlayer(pid){
-  const vis=rfElVisita();
-  if(vis){
-    /* jogador de outro clube: PERFIL LIMITADO em modal — a ficha completa é
-       privilégio de quem é dono do jogador */
-    const p=(squad(vis)||[]).find(x=>x.pid===pid);
-    if(p && typeof rfAcAbrir==='function'){ rfAcAbrir('jogador-perfil',{clubId:vis,pid:p.pid,nome:p.n}); return; }
-    return;
-  }
+  /* A FICHA COMPLETA DEIXOU DE SER PRIVILEGIO DE DONO. Antes, jogador de
+     outro clube abria um perfil limitado em modal; agora a Ficha atende o
+     clube visitado e mostra o mesmo que mostra para o meu. O que continua
+     valendo so' para o dono sao as ACOES — escalar, renovar, vender —, que
+     vivem noutras telas. */
   CL.selPlayer=pid;
   /* TROCAR A ABA NAO BASTA quando o clique vem de FORA da pagina Elenco. A
      tabela da Formacao e o banco tambem levam a' ficha, e dali rfSetTab

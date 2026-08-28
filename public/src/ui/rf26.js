@@ -269,6 +269,18 @@ function rfSetTab(page, tab){ rfState().tab[page]=tab; cdraw(); }
    para ENTRAR na visita, e se ele limpasse a marca, visitar seria impossivel.
    Quem navega pelo menu quer a propria casa; quem clica num clube quer a
    visita. Sao duas intencoes, e agora sao duas funcoes. */
+/* Abre a Ficha de um jogador de OUTRO clube: entra na visita daquele clube e
+   seleciona o jogador. E' um caminho so' — clViewTeam ja' leva para a pagina
+   Elenco, entao aqui basta marcar a aba e o jogador antes de ir. */
+function rfVerFichaDe(clubId, pid){
+  CL.viewClubId = String(clubId);
+  CL.viewSelPlayer = null;
+  CL.selPlayer = pid;
+  rfState().tab.elenco = 'ficha';
+  CL.screen = 'main';
+  rfGo('elenco');
+}
+
 function rfNavegar(page){
   if(CL.viewClubId){ CL.viewClubId=null; CL.viewSelPlayer=null; }
   rfGo(page);
@@ -2477,9 +2489,14 @@ function rfBarraHTML(rotulo, valor, pct, cor){
     <div class="rf-fb"><i style="width:${Math.max(0,Math.min(100,pct))}%;background:${cor}"></i></div>`;
 }
 function rfFichaHTML(){
-  const p=squad(CL.clubId).find(x=>x.pid===CL.selPlayer) || squad(CL.clubId)[0];
+  /* O CLUBE ATIVO, nao o meu. Visitando outro time, a Ficha atende o elenco
+     VISITADO — antes ela so' conhecia CL.clubId, entao abrir a ficha de um
+     jogador alheio mostrava um jogador meu no lugar dele. */
+  const cid=(typeof rfElClubeAtivo==='function')?rfElClubeAtivo():CL.clubId;
+  const elenco=squad(cid)||[];
+  const p=elenco.find(x=>x.pid===CL.selPlayer) || elenco[0];
   if(!p) return '<div class="rf-empty">Selecciona um jogador no elenco.</div>';
-  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
+  const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(cid):{};
   const en=Math.round(p.energy!=null?p.energy:100);
   const moral=Math.round(p.moral!=null?p.moral:70);
   const sal=(typeof playerSalary==='function')?playerSalary(p):0;
@@ -2487,9 +2504,9 @@ function rfFichaHTML(){
   const fim=(p.contract&&p.contract.until)||null;
   // a força do jogo é uma escala aberta; a barra usa a maior força do meu
   // elenco como topo, senão um clube de Série D teria todas as barras no chão
-  const topo=Math.max(1,...squad(CL.clubId).map(x=>x.f||0));
+  const topo=Math.max(1,...elenco.map(x=>x.f||0));
   return `<div class="rf-ficha-topo">
-      ${rfCardJogadorHTML(p, nums[p.pid])}
+      ${rfCardJogadorHTML(p, nums[p.pid], cid)}
       <div class="rf-ficha-lado">
         <div class="rf-ficha-bars">
           ${rfBarraHTML('Força', p.f, 100*p.f/topo, 'var(--club-primary)')}
@@ -2522,12 +2539,13 @@ function rfFichaHTML(){
 
    Vale para a foto que houver: a montada em camadas, a costurada antiga ou a
    camisinha de CSS quando nao ha' foto. O degrade cobre as tres. */
-function rfCardJogadorHTML(p, num){
-  const cl = clubOf(CL.clubId) || {};
-  const th = (typeof clubTheme==='function') ? clubTheme(CL.clubId) : {};
+function rfCardJogadorHTML(p, num, clubId){
+  const cid = clubId!=null ? clubId : CL.clubId;
+  const cl = clubOf(cid) || {};
+  const th = (typeof clubTheme==='function') ? clubTheme(cid) : {};
   const c1 = th.col || '#17458F', c2 = th.col2 || '#F2B90C';
   const crest = (typeof clubCrestUrl==='function') ? clubCrestUrl(cl) : (cl.crest||null);
-  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, CL.clubId) : null;
+  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, cid) : null;
   const miolo = !foto ? ''
     : (typeof foto==='string' && foto.charAt(0)==='<')
       ? `<span class="pc-foto pc-foto-comp">${foto}</span>`

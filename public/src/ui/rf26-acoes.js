@@ -679,15 +679,14 @@ const RF_ACOES = {
           </div>
         </div>
       </div>`,
-    /* A FICHA COMPLETA SO' EXISTE PARA QUEM E' DONO — e' regra do jogo, nao
-       esquecimento: espiar atributo a atributo o elenco alheio tiraria a graca
-       do mercado. Para jogador de outro clube o destino honesto e' o ELENCO
-       daquele clube, que e' o que da' para ver de fora. */
+    /* "Ver detalhes" leva a' Ficha TAMBEM quando o jogador e' de outro clube:
+       rfVerFichaDe entra na visita daquele clube e abre a ficha la'. O que
+       continua sendo so' do dono sao as ACOES — escalar, renovar, vender. */
     acoes: meu
       ? [{l:'Fechar',tom:'fantasma'},
-         {l:'Ver ficha completa',on:`rfAcFechar();rfSelPlayer('${escC(String(p.pid))}')`}]
+         {l:'Ver detalhes',on:`rfAcFechar();rfSelPlayer('${escC(String(p.pid))}')`}]
       : [{l:'Fechar',tom:'fantasma'},
-         {l:'Ver o elenco',tom:'fantasma',on:`rfAcFechar();clViewTeam('${escC(String(cid))}')`},
+         {l:'Ver detalhes',tom:'fantasma',on:`rfAcFechar();rfVerFichaDe('${escC(String(cid))}','${escC(String(p.pid))}')`},
          {l:'Fazer proposta',on:`rfAcFechar();rfMkPropor('${escC(String(cid))}','${escC(p.n)}','')`}]
   });
 },
