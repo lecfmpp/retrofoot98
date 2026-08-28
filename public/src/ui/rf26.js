@@ -2560,6 +2560,7 @@ function rfCardJogadorHTML(p, num, clubId){
   const pos = String(rfPosLabel(p.s)||'').toUpperCase();
   return `<div class="pc" style="--clube-1:${escC(c1)};--clube-2:${escC(c2)}">
     <span class="pc-fundo"></span>
+    <span class="pc-vinheta"></span>
     ${miolo}
     <span class="pc-overlay"></span>
     ${num!=null && String(num)!=='' ? `<span class="pc-num">${escC(String(num))}</span>` : ''}

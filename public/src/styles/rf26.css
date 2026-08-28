@@ -1698,6 +1698,17 @@
   display:flex;align-items:flex-end}
 .pc-fundo{position:absolute;inset:0;pointer-events:none;
   background:repeating-linear-gradient(90deg,var(--clube-1) 0 14.28%,var(--clube-2) 14.28% 28.56%)}
+/* VINHETA INVERTIDA: escura no CENTRO, clara nas bordas. Entra ENTRE as
+   listras e a foto — escurece o fundo justamente atras do jogador, onde ele
+   competiria com o rosto, e deixa as cores do clube vivas na moldura, que e'
+   onde elas identificam o time.
+   E' o contrario da vinheta comum (bordas escuras), e de proposito: aqui o
+   miolo e' o que precisa recuar, nao a borda. */
+.pc-vinheta{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 62% 58% at 50% 42%,
+    rgba(9,18,13,var(--pc-vinheta,.66)) 0%,
+    rgba(9,18,13,calc(var(--pc-vinheta,.66) * .55)) 46%,
+    rgba(9,18,13,0) 80%)}
 .pc-foto{position:absolute;inset:0;width:100%;height:100%;
   object-fit:cover;object-position:50% 12%;display:block}
 /* a foto MONTADA em camadas chega como HTML, nao como <img>: o invólucro
