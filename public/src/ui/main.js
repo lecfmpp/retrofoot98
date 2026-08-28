@@ -7056,10 +7056,6 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
     if(ui>=0 && clOpcoes().subsIntervalo!=='Não'){ RL.paused=true; RL.sel=ui;
       if(CL.online) startHalftimeCountdown(); // Resenha: intervalo dura no máximo 10s (mantém todos sincronizados)
       cdraw(); return; } }
-  /* o apito soa com o jogo ainda em campo — nao ha' `camOn()` aqui de
-     proposito: quem so' assiste nao tem Camarote, e era exactamente esse o
-     caso que ficava sem apito nenhum. */
-  liveApitoAntes(RL);
   if(RL.minute>=RL.maxMin){
     // mata-mata empatado, jogado ao vivo pelo próprio usuário: prorrogação e pênaltis
     // acontecem AO VIVO na tela dele (não são resolvidos instantaneamente por trás) —
@@ -7077,6 +7073,12 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
       }
     }
     { const um=RL.matches.find(m=>m.user); if(um) camFinal(um); } // apito final na narração do Camarote
+    /* sem `camOn()` de proposito: quem so' assiste nao tem Camarote, e era
+       exactamente esse o caso que ficava sem apito nenhum. */
+    liveApitoFinal(RL);
+    /* A TELA SEGURA, O RELOGIO NAO. Um tique de espera para o apito soar com
+       o jogo ainda a' vista — sem isto ele era cortado pela troca de ecra. */
+    if(!RL._fimEspera){ RL._fimEspera=1; cdraw(); CL._liveTimer=setTimeout(liveTick, LIVE_FIM_ESPERA_MS); return; }
     if(typeof liveAgendarReenvioFinal==='function') liveAgendarReenvioFinal(RL);   // o apito final continua no ar por ~7s
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
@@ -7101,22 +7103,23 @@ function liveRitmoMs(RL){
    que ele nao entra em campo — nunca tinha `m.user`, e a rodada acabava em
    silencio. Agora quem apita e' a rodada, e a partida dele so' chega primeiro
    quando acaba antes (91' num teto de 94').
-   E vem ANTES do fim, nao em cima dele: `liveApitoAntes` dispara quando faltam
-   ~2,5 SEGUNDOS de relogio de parede — conta que depende do ritmo, porque dois
-   minutos de jogo sao 0,2s no Ultrassonico e 1,6s no Longo. Assim o apito
-   soa com o jogo ainda na tela, em vez de ser cortado pela troca de ecra. */
-const LIVE_APITO_ANTES_MS = 2500;
-const LIVE_APITO_INI_MS = 1200;   // o sopro inteiro cabe aqui antes do 1' entrar
+
+   E NAO SE ANTECIPA. A primeira tentativa disparava quando faltavam ~2,5
+   SEGUNDOS de relogio de parede, para o apito nao ser cortado pela troca de
+   ecra. So' que segundos de parede sao minutos de JOGO a uma taxa que muda
+   com o ritmo: no Ultrassonico (110ms por minuto) 2,5s sao vinte e tres
+   minutos, e a rodada apitava aos 71'. Nao ha' antecipacao que sirva para os
+   dois extremos.
+   A resposta certa e' a outra ponta: o apito soa NO fim, no minuto certo, e
+   quem espera e' o ENCERRAMENTO — a tela segura-se um instante antes de
+   fechar a rodada, o que da' ao apito o mesmo espaco sem mentir no relogio. */
+const LIVE_FIM_ESPERA_MS = 1600;   // a tela segura, o relogio nao
+const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entrar
 function liveApitoFinal(RL){
   if(!RL || RL._apitoFim) return;
   RL._apitoFim = 1;
   if(typeof rfApito==='function') rfApito(3, true);
   if(typeof rfTorcidaDesligar==='function') rfTorcidaDesligar();
-}
-function liveApitoAntes(RL){
-  if(!RL || RL._apitoFim || RL.done) return;
-  const falta = (RL.maxMin - RL.minute) * liveRitmoMs(RL);
-  if(falta <= LIVE_APITO_ANTES_MS) liveApitoFinal(RL);
 }
 /* ---- multiplicador de ritmo VÁLIDO agora ----
    Online a fonte da verdade é a SALA (NET.room.speedMult, escolhido pelo anfitrião). CL.speedMult
