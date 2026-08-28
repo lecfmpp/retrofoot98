@@ -5738,8 +5738,8 @@ function promptMontagem(){
    131% para 185%, ou seja, o enquadramento e' bem mais fechado do que eu
    supunha. Conferido contra a leitura: com a cabeca medida em larg 54,2% e
    base 95,2%, o pescoco termina em 70,27% e a gola entra em 55,27%. */
-const FOTO_CABECA_LARG = 0.600;   // largura da cabeca / largura do quadro
-const FOTO_CABECA_TOPO = 0.000;   // topo do cabelo, fracao da altura
+const FOTO_CABECA_LARG = 0.593;   // largura da cabeca / largura do quadro
+const FOTO_CABECA_TOPO = 0.001;   // topo do cabelo, fracao da altura
 const FOTO_CAMISA_LARG = 1.855;   // largura do manequim / largura do quadro
 const FOTO_GOLA_SOBRE  = 0.150;   // quanto a gola sobe sobre o fim do pescoco
 const FOTO_W = 1024, FOTO_H = 1536;
@@ -5766,8 +5766,8 @@ const FOTO_W = 1024, FOTO_H = 1536;
    parece de verdade. E com a borda SUAVE — recorte duro troca um corte reto
    por um corte curvo, e o problema era o corte, nao o formato dele. */
 const FOTO_DECOTE_LARG = 0.240;   // largura da abertura, fracao da largura do quadro
-const FOTO_DECOTE_FUNDO = 0.105;  // quanto ela desce, fracao da ALTURA do quadro
-const FOTO_DECOTE_SUAVE = 0.10;   // quanto da borda e' degrade (0 = corte seco)
+const FOTO_DECOTE_FUNDO = 0.111;  // quanto ela desce, fracao da ALTURA do quadro
+const FOTO_DECOTE_SUAVE = 0.15;   // quanto da borda e' degrade (0 = corte seco)
 
 /* ===== O TOPO DA CAMISA =====
    A primeira tentativa cavava uma elipse CONCAVA centrada no topo: ela tira
@@ -5784,12 +5784,12 @@ const FOTO_DECOTE_SUAVE = 0.10;   // quanto da borda e' degrade (0 = corte seco)
    `fundo` e' o raio vertical (maior = mais reto). O decote continua concavo e
    centrado, porque ali a abertura E' no meio.
 
-   Os padroes sao calibrados para uma queda de ~4% da altura na BORDA DO
-   QUADRO e quase nada perto do centro — com L=1,0 a queda na borda era de
-   60%, que apagava meia camisa. */
-const FOTO_TOPO_LARG  = 1.800;   // diametro da curva, fracao da largura do quadro
-const FOTO_TOPO_FUNDO = 0.240;   // raio VERTICAL, fracao da altura (maior = mais reto)
-const FOTO_TOPO_SUAVE = 0.55;    // borda em degrade da curva
+   MEDIDOS no editor: com largura 0,91 o raio horizontal e' 45,5% do quadro,
+   menor que a metade dele — entao na LATERAL a camisa e' cortada de vez, e a
+   4,11% no meio do caminho. E' o arredondamento que voce aprovou. */
+const FOTO_TOPO_LARG  = 0.910;   // diametro da curva, fracao da largura do quadro
+const FOTO_TOPO_FUNDO = 0.250;   // raio VERTICAL, fracao da altura (maior = mais reto)
+const FOTO_TOPO_SUAVE = 0.05;    // borda em degrade da curva
 
 /* A GOLA VEM PRONTA DO UNIFORME. Tentei desenha-la como camada propria — um
    anel na cor do clube, com largura e espessura ajustaveis — e nao ficou bom:
@@ -5805,8 +5805,8 @@ const FOTO_TOPO_SUAVE = 0.55;    // borda em degrade da curva
    E eles precisam mudar: com o encaixe medido, a gola entra em 55,26% do
    quadro e a janela atual termina em 53,34% — o colarinho fica de fora,
    que e' o que se via no retrato de 52px. */
-const FICHA_ZOOM = 1.3158;   // largura da imagem dentro do quadrado
-const FICHA_TOPO = -0.0527;  // deslocamento do topo, fracao do lado do quadrado
+const FICHA_ZOOM = 0.800;   // largura da imagem dentro do quadrado
+const FICHA_TOPO = -0.005;  // deslocamento do topo, fracao do lado do quadrado
 
 
 /* Monta a foto do jogador: manequim do clube + cabeca, sem escudo, sem
@@ -6474,6 +6474,68 @@ function modalPosCamisa(item, estilo, aoSalvar){
 
 /* Assa a camisa pronta de todos os clubes que tem manequim. Local e de graca;
    nada e' sobrescrito — cada camisa sobe com nome novo. */
+/* Refaz a montagem de TODAS as fotos com o encaixe atual. Canvas puro: a
+   cabeca ja' existe (e' o `url` da linha), o manequim ja' existe, e a
+   montagem antiga era so' um arranjo dos dois — refazer nao custa token.
+
+   E' o que torna o corte novo da Ficha aplicavel: ele foi calibrado sobre
+   ESTA montagem. Trocar o CSS do jogo sem remontar desenquadraria as 756
+   fotos costuradas por IA, que foram feitas para o corte antigo.
+
+   Nao apaga nada: cada montagem sobe com nome novo e a anterior fica no
+   Storage, listada em atributos.anteriores. */
+async function remontarFotos(btn){
+  const alvos = [];
+  for(const k of Object.keys(D.fotos||{})){
+    const i = k.indexOf('|'); if(i < 0) continue;
+    const clube = k.slice(0, i), nome = k.slice(i+1);
+    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    const f = D.fotos[k]; if(!f || !f.url) continue;
+    const t = D.fotos[clube+'|'+TORSO_KEY];
+    const man = t && t.atributos && t.atributos.miniatura;
+    if(!man) continue;                       // sem manequim nao ha' em que encaixar
+    const x = (D.catalogo||[]).find(c => String(c.c.id) === clube);
+    alvos.push({ k, clube, nome, f, man, x });
+  }
+  if(!alvos.length) return toast('Nenhuma foto com manequim para remontar.', true);
+  if(!await rfConfirm({ titulo:'Remontar todas as fotos',
+    texto:`Refaz a montagem de <b>${alvos.length} foto(s)</b> com o encaixe atual: a cabeça que já existe sobre o manequim do clube.`,
+    detalhe:`<b>Sem custo</b> — canvas no navegador, nenhuma chamada de IA.
+      É o passo que falta para o corte novo da Ficha valer no jogo: ele foi calibrado sobre esta montagem.
+      <b>Nada é apagado</b>: cada montagem sobe com nome novo e a anterior fica guardada.
+      Demora alguns minutos.`,
+    nao:'Cancelar', sim:`Remontar ${alvos.length} fotos` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const a of alvos){
+    btn.textContent = `Remontando ${ok+erros+1}/${alvos.length}…`;
+    try{
+      const at = Object.assign({}, a.f.atributos || {});
+      at.medida = at.medida || await medirMolde(a.f.url);
+      const blob = await montarFotoJogador(a.f.url, a.man, at.medida);
+      const base = (a.x ? caminhoClube(a.x) : 'remontagem') + '/jogadores/' + (chaveNome(a.nome)||'jogador');
+      const caminho = `${base}-montagem-${Date.now()}.webp`;
+      const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+      if(up.error) throw new Error(up.error.message);
+      const anteriores = (at.anteriores || []).slice(-9);
+      if(at.montagem) anteriores.push(at.montagem);
+      if(anteriores.length) at.anteriores = anteriores;
+      at.montagem = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+      at.recorte = 'camadas';
+      delete at.revisar; delete at.medidas;
+      const reg = Object.assign({}, a.f, { atributos: at });
+      const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+      if(r.error) throw new Error(r.error.message);
+      D.fotos[a.k] = reg;
+      ok++;
+    }catch(err){ erros++; console.warn('remontagem falhou:', a.k, err.message); }
+  }
+  registrar('estudio.fotos.remontar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} foto(s) remontadas${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
 async function assarCamisasTodas(btn){
   const alvos = [];
   for(const x of (D.catalogo||[])){
@@ -7542,6 +7604,7 @@ async function pgEstudio(){
         <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
         <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>
         <button class="btn btn-sm" id="est-camisas" title="Manequim + escudo numa imagem só por clube — é o que o jogo usa na transferência">Montar camisas</button>` : ''}
+        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-remontar" title="Refaz a montagem de todas as fotos com o encaixe atual — canvas, sem IA">Remontar fotos</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -7594,6 +7657,8 @@ async function pgEstudio(){
   if(btRM) btRM.onclick = () => refazerMoldes(btRM);
   const btCam = el('est-camisas');
   if(btCam) btCam.onclick = () => assarCamisasTodas(btCam);
+  const btRmt = el('est-remontar');
+  if(btRmt) btRmt.onclick = () => remontarFotos(btRmt);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const btFaces = el('est-faces');
