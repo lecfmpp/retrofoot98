@@ -2650,7 +2650,44 @@ function baixarCSVEconomia(){
   registrar('dados.csv_economia', 'brasil-A-D', { pacote: ST.packId, clubes });
 }
 
-function abaEconomia(){
+/* AS TABELAS VÊM DO JOGO, e o painel não as tinha.
+   `rebalance.js` define window.REBAL e nunca foi carregado aqui — o admin é um
+   site SEPARADO (raiz em public/admin/), então um caminho relativo funciona no
+   dev do vite e dá 404 em produção. Carrega sob demanda e tenta as duas
+   origens: primeiro a local (dev, e pega alteração ainda não publicada),
+   depois o site do jogo.
+
+   Copiar as tabelas para cá seria mais simples e MUITO pior: viraria uma
+   segunda verdade que envelhece calada quando a calibração mudar. */
+let _rebalCarregando = null;
+function garantirREBAL(){
+  if(window.REBAL) return Promise.resolve(true);
+  if(_rebalCarregando) return _rebalCarregando;
+  const origens = ['../src/data/rebalance.js', 'https://retrofoot.com.br/src/data/rebalance.js'];
+  _rebalCarregando = (async () => {
+    for(const url of origens){
+      try{
+        await new Promise((ok, erro) => {
+          const t = document.createElement('script');
+          t.src = url; t.onload = ok; t.onerror = () => erro(new Error(url));
+          document.head.appendChild(t);
+        });
+        if(window.REBAL) return true;
+      }catch(e){ /* tenta a próxima origem */ }
+    }
+    return false;
+  })();
+  return _rebalCarregando;
+}
+
+async function abaEconomia(){
+  el('ed-aba').innerHTML = '<div class="vazio">Carregando as tabelas do jogo…</div>';
+  if(!await garantirREBAL()){
+    el('ed-aba').innerHTML = `<div class="erro">Não consegui carregar as tabelas de economia do jogo
+      (<span class="mono">src/data/rebalance.js</span>). Esta aba lê os números direto do jogo em vez
+      de guardar uma cópia — sem esse arquivo ela não tem o que mostrar.</div>`;
+    return;
+  }
   const dados = economiaBrasil();
   const M = v => 'R$ ' + (v>=1e6 ? (v/1e6).toFixed(2)+'M' : num(Math.round(v)));
   const porDiv = ECON_DIVS.map(d => {
