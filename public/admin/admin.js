@@ -5860,7 +5860,16 @@ function composicaoFotoHTML(rostoUrl, manequimUrl, med){
 ;
 }
 
-async function montarFotoJogador(rostoUrl, manequimUrl, medida){
+/* `ajuste` sobrescreve as constantes SO' para esta foto. A medicao da cabeca
+   normaliza tamanho e centro, mas nao tudo: cabelo volumoso, queixo mais alto
+   e barba mudam onde o rosto cai dentro da propria caixa. Quando um jogador
+   precisa de um empurrao, ele guarda o seu proprio numero. */
+async function montarFotoJogador(rostoUrl, manequimUrl, medida, ajuste){
+  const K = Object.assign({
+    cabL:FOTO_CABECA_LARG, cabT:FOTO_CABECA_TOPO, camL:FOTO_CAMISA_LARG, sobre:FOTO_GOLA_SOBRE,
+    decL:FOTO_DECOTE_LARG, decF:FOTO_DECOTE_FUNDO, decS:FOTO_DECOTE_SUAVE,
+    topL:FOTO_TOPO_LARG,   topF:FOTO_TOPO_FUNDO,   topS:FOTO_TOPO_SUAVE
+  }, ajuste || {});
   const carregar = url => new Promise((ok, erro) => {
     const i = new Image(); i.crossOrigin = 'anonymous';
     i.onload = () => ok(i); i.onerror = () => erro(new Error('não carreguei ' + url));
@@ -5874,10 +5883,10 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida){
   const cx = cv.getContext('2d');
 
   /* CABECA primeiro: ela fica por baixo da camisa */
-  const larguraImg = FOTO_CABECA_LARG / m.larg;            // fracao da largura do quadro
+  const larguraImg = K.cabL / m.larg;                       // fracao da largura do quadro
   const wpx = larguraImg * FOTO_W;
   const hpx = wpx * (rosto.naturalHeight / rosto.naturalWidth);
-  const topoImg = FOTO_CABECA_TOPO*FOTO_H - m.topo*hpx;    // o BBOX no lugar, nao a imagem
+  const topoImg = K.cabT*FOTO_H - m.topo*hpx;              // o BBOX no lugar, nao a imagem
   const cxImg = (m.cx == null ? 0.5 : m.cx);
   const esqImg = FOTO_W/2 - wpx/2 - (cxImg - 0.5)*wpx;     // centra a CABECA, nao o quadrado
   cx.drawImage(rosto, esqImg, topoImg, wpx, hpx);
@@ -5887,9 +5896,9 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida){
      destination-out na tela principal comeria tambem a cabeca, que ja' esta'
      desenhada por baixo. */
   const fimPescoco = topoImg + m.base*hpx;
-  const cw = FOTO_CAMISA_LARG * FOTO_W;
+  const cw = K.camL * FOTO_W;
   const ch = cw * (camisa.naturalHeight / camisa.naturalWidth);
-  const topoCamisa = fimPescoco - FOTO_GOLA_SOBRE*FOTO_H;
+  const topoCamisa = fimPescoco - K.sobre*FOTO_H;
   const cv2 = document.createElement('canvas'); cv2.width = FOTO_W; cv2.height = FOTO_H;
   const cx2 = cv2.getContext('2d');
   cx2.drawImage(camisa, FOTO_W/2 - cw/2, topoCamisa, cw, ch);
@@ -5926,8 +5935,8 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida){
     cx2.restore();
     cx2.globalCompositeOperation = 'source-over';
   };
-  curvaTopo(FOTO_TOPO_LARG, FOTO_TOPO_FUNDO, FOTO_TOPO_SUAVE);
-  recorte(FOTO_DECOTE_LARG, FOTO_DECOTE_FUNDO, FOTO_DECOTE_SUAVE);
+  curvaTopo(K.topL, K.topF, K.topS);
+  recorte(K.decL, K.decF, K.decS);
   cx.drawImage(cv2, 0, 0);
 
 
@@ -6489,7 +6498,7 @@ function modalPosCamisa(item, estilo, aoSalvar){
 async function remontarUma(a){
   const at = Object.assign({}, a.f.atributos || {});
   at.medida = at.medida || await medirMolde(a.f.url);
-  const blob = await montarFotoJogador(a.f.url, a.man, at.medida);
+  const blob = await montarFotoJogador(a.f.url, a.man, at.medida, at.encaixe);
   const base = (a.x ? caminhoClube(a.x) : 'remontagem') + '/jogadores/' + (chaveNome(a.nome)||'jogador');
   const caminho = `${base}-montagem-${Date.now()}.webp`;
   const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
@@ -8018,10 +8027,13 @@ function modalEncaixeFoto(item, p){
   if(!f || !f.url) return toast('Este jogador ainda não tem cabeça.', true);
   if(!manequim) return toast('Este clube ainda não tem manequim — repinte o uniforme.', true);
 
-  const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
-               camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE,
-               decL: FOTO_DECOTE_LARG, decF: FOTO_DECOTE_FUNDO, decS: FOTO_DECOTE_SUAVE,
-               topL: FOTO_TOPO_LARG, topF: FOTO_TOPO_FUNDO, topS: FOTO_TOPO_SUAVE,
+  const aj = (f.atributos && f.atributos.encaixe) || {};
+  const st = { larg: aj.cabL!=null?aj.cabL:FOTO_CABECA_LARG, topo: aj.cabT!=null?aj.cabT:FOTO_CABECA_TOPO,
+               camisa: aj.camL!=null?aj.camL:FOTO_CAMISA_LARG, sobre: aj.sobre!=null?aj.sobre:FOTO_GOLA_SOBRE,
+               decL: aj.decL!=null?aj.decL:FOTO_DECOTE_LARG, decF: aj.decF!=null?aj.decF:FOTO_DECOTE_FUNDO,
+               decS: aj.decS!=null?aj.decS:FOTO_DECOTE_SUAVE,
+               topL: aj.topL!=null?aj.topL:FOTO_TOPO_LARG, topF: aj.topF!=null?aj.topF:FOTO_TOPO_FUNDO,
+               topS: aj.topS!=null?aj.topS:FOTO_TOPO_SUAVE,
                fZ: FICHA_ZOOM, fT: FICHA_TOPO };
   let med = null;
 
@@ -8076,9 +8088,15 @@ function modalEncaixeFoto(item, p){
           <div class="card" style="padding:12px 14px;background:var(--card2)">
             <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida — é isto que eu preciso</div>
             <pre id="enf-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
-            <div class="row" style="gap:8px;margin-top:10px">
+            <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+              <button class="btn btn-sm" id="enf-salvar">Salvar e remontar este jogador</button>
               <button class="btn btn-sm btn-ghost" id="enf-copiar">Copiar medida</button>
               <button class="btn btn-sm btn-ghost" id="enf-auto">Voltar ao padrão</button>
+              ${(f.atributos&&f.atributos.encaixe)?'<button class="btn btn-sm btn-ghost" id="enf-limpar">Usar o padrão de novo</button>':''}
+            </div>
+            <div class="st" style="font-size:11.5px;margin-top:8px;line-height:1.5">
+              Salvar guarda <b>só o que você mudou</b>: os outros valores seguem o padrão,
+              então um ajuste global futuro continua chegando neste jogador.
             </div>
           </div>
         </div>
@@ -8177,6 +8195,41 @@ function modalEncaixeFoto(item, p){
   liga('enf-decl','decL'); liga('enf-decf','decF'); liga('enf-decs','decS');
   liga('enf-topl','topL'); liga('enf-topf','topF'); liga('enf-tops','topS');
   liga('enf-fz','fZ'); liga('enf-ft','fT');
+  /* GUARDA SO' A DIFERENCA. Salvar os dez congelaria o jogador: uma mudanca
+     global depois nao chegaria mais nele. Guardando o diff, o que voce nao
+     tocou continua seguindo o padrao. */
+  el('enf-salvar').onclick = async () => {
+    const padrao = { cabL:FOTO_CABECA_LARG, cabT:FOTO_CABECA_TOPO, camL:FOTO_CAMISA_LARG, sobre:FOTO_GOLA_SOBRE,
+                     decL:FOTO_DECOTE_LARG, decF:FOTO_DECOTE_FUNDO, decS:FOTO_DECOTE_SUAVE,
+                     topL:FOTO_TOPO_LARG,   topF:FOTO_TOPO_FUNDO,   topS:FOTO_TOPO_SUAVE };
+    const meu = { cabL:st.larg, cabT:st.topo, camL:st.camisa, sobre:st.sobre,
+                  decL:st.decL, decF:st.decF, decS:st.decS,
+                  topL:st.topL, topF:st.topF, topS:st.topS };
+    const diff = {};
+    for(const k of Object.keys(padrao)) if(Math.abs(meu[k]-padrao[k]) > 1e-6) diff[k] = meu[k];
+    const alvo = alvoRemontagem(String(item.c.id), p.n);
+    if(!alvo) return toast('Precisa de cabeça e de manequim do clube.', true);
+    const bt = el('enf-salvar'); bt.disabled = true; bt.textContent = 'Remontando…';
+    try{
+      alvo.f = Object.assign({}, alvo.f, { atributos: Object.assign({}, alvo.f.atributos || {},
+        Object.keys(diff).length ? { encaixe: diff } : {}) });
+      if(!Object.keys(diff).length && alvo.f.atributos) delete alvo.f.atributos.encaixe;
+      await remontarUma(alvo);
+      toast(Object.keys(diff).length
+        ? `${p.n} salvo com ${Object.keys(diff).length} ajuste(s) próprio(s).`
+        : `${p.n} remontado no padrão.`);
+      fecharModal(); modalFotosIA(item);
+    }catch(err){ toast(err.message||'Não consegui salvar.', true); bt.disabled=false; bt.textContent='Salvar e remontar este jogador'; }
+  };
+  const btLimpar = el('enf-limpar');
+  if(btLimpar) btLimpar.onclick = async () => {
+    const alvo = alvoRemontagem(String(item.c.id), p.n); if(!alvo) return;
+    const at = Object.assign({}, alvo.f.atributos || {}); delete at.encaixe;
+    alvo.f = Object.assign({}, alvo.f, { atributos: at });
+    try{ await remontarUma(alvo); toast(`${p.n} voltou ao encaixe padrão.`); fecharModal(); modalFotosIA(item); }
+    catch(err){ toast(err.message||'Não consegui.', true); }
+  };
+
   el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
     () => toast('Não consegui copiar; selecione o texto à mão.', true));
@@ -8300,6 +8353,8 @@ function modalFotosIA(item){
     </div>
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
+      <button class="btn btn-sm btn-ghost" id="ft-remontar"
+        title="Refaz a montagem de todo o elenco deste clube com o encaixe atual — canvas, sem IA">Remontar o elenco</button>
       <span id="ft-progresso" style="font-size:12px;color:var(--dim2)"></span></div>`:''}
     <div class="jog-wrap">
       <div id="ft-lista">${sq.map(linhaFoto).join('') || '<div class="vazio">Elenco vazio.</div>'}</div>
@@ -8421,6 +8476,28 @@ function modalFotosIA(item){
     catch(err){ rotulo(bt, antes, '✦'); toast(err.message||'Falha ao gerar.', true); }
     bt.disabled = false; if(rotuloDe(bt)==='Gerando…') rotulo(bt, 'Gerar', '✦');
   });
+
+  /* O DEGRAU DO MEIO: um jogador -> um elenco -> o jogo inteiro. Conferir num
+     so' nao diz como fica um time inteiro lado a lado, e ir direto para as 756
+     e' apostar. Chama a MESMA remontarUma dos outros dois. */
+  const btRemontar = el('ft-remontar');
+  if(btRemontar) btRemontar.onclick = async () => {
+    const alvos = sq.map(x => alvoRemontagem(String(c.id), x.n)).filter(Boolean);
+    if(!alvos.length) return toast('Nenhuma foto deste elenco pode ser remontada (falta cabeça ou manequim).', true);
+    if(!await rfConfirm({ titulo:`Remontar o elenco do ${h(c.short||c.name)}`,
+      texto:`Refaz a montagem de <b>${alvos.length} foto(s)</b> com o encaixe atual.`,
+      detalhe:'<b>Sem custo</b> — canvas, sem IA. Ajustes próprios de jogador são respeitados. Nada é apagado.',
+      nao:'Cancelar', sim:`Remontar ${alvos.length}` })) return;
+    btRemontar.disabled = true;
+    let ok=0, erros=0;
+    for(const a of alvos){
+      el('ft-progresso').textContent = `Remontando ${ok+erros+1}/${alvos.length} — ${a.nome}…`;
+      try{ await remontarUma(a); ok++; }catch(err){ erros++; console.warn('remontagem:', a.k, err.message); }
+    }
+    el('ft-progresso').textContent = '';
+    toast(`${ok} remontada(s)${erros?`, ${erros} falharam`:''}.`);
+    modalFotosIA(item);
+  };
 
   const btTodos = el('ft-todos');
   if(btTodos) btTodos.onclick = async () => {
