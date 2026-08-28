@@ -8883,6 +8883,16 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fx-num{font-family:var(--font-mono,monospace);font-weight:600;font-size:12px;color:#fff;background:#8b9a1f;border-radius:7px;padding:3px 8px}
 .rf-fx-ident-sub{font-size:14px;color:#6d7c72;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .rf-fx-ident-acts{display:flex;gap:10px;flex:0 0 auto}
+/* setas da ficha: andam pela MESMA ordem da tabela do elenco */
+.rf-fx-nav{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.rf-fx-nav-b{width:34px;height:34px;border-radius:10px;border:1px solid var(--line-2);
+  background:var(--surface-card);color:var(--text-1);font-size:17px;line-height:1;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.rf-fx-nav-b:hover:not(:disabled){background:var(--surface-sunken);border-color:var(--text-3)}
+.rf-fx-nav-b:disabled{opacity:.34;cursor:default}
+.rf-fx-nav-c{font-family:var(--font-mono);font-size:var(--fs-body-sm);color:var(--text-3);
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:640px){ .rf-fx-nav-c{display:none} }
 
 /* ---- destaques da temporada ---- */
 .rf-fx-destaques{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}

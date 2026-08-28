@@ -492,6 +492,36 @@ function rfFxEvolucaoHTML(p){
 }
 /* A MESMA ficha serve o meu elenco e o de qualquer clube visitado: recebe o
    clube e o jogador; sem argumentos, é o meu (comportamento de sempre). */
+/* SETAS DE NAVEGACAO na propria ficha. Antes, ver o proximo jogador exigia
+   voltar a' aba Elenco, achar a linha e clicar — tres passos para uma acao
+   que e' "o de baixo".
+
+   A ORDEM E' A MESMA DA TABELA (bySquadOrder: posicao, depois forca). Se aqui
+   fosse outra, as setas andariam numa sequencia que ninguem ve' na tela, e o
+   utilizador perderia a nocao de onde esta'.
+
+   Nas pontas as setas ficam desativadas em vez de dar a volta: dar a volta
+   sem aviso faz o primeiro parecer o ultimo. */
+function rfFxOrdem(cid){
+  const lista = (squad(cid)||[]).slice();
+  return (typeof bySquadOrder==='function') ? lista.sort(bySquadOrder) : lista;
+}
+function rfFxNavHTML(p, cid){
+  const lista = rfFxOrdem(cid);
+  const i = lista.findIndex(x => x.pid === p.pid);
+  if(i < 0 || lista.length < 2) return '';
+  const ant = lista[i-1], prox = lista[i+1];
+  const bt = (alvo, ico, rot) => alvo
+    ? `<button type="button" class="rf-fx-nav-b" title="${escC(rot)}: ${escC(alvo.n)}"
+         onclick="rfSelPlayer('${escC(alvo.pid)}')">${ico}</button>`
+    : `<button type="button" class="rf-fx-nav-b" disabled aria-hidden="true">${ico}</button>`;
+  return `<div class="rf-fx-nav">
+    ${bt(ant,'‹','Anterior')}
+    <span class="rf-fx-nav-c">${i+1} de ${lista.length}</span>
+    ${bt(prox,'›','Próximo')}
+  </div>`;
+}
+
 function rfElFichaHTML(clubIdArg, pidArg){
   const cid = clubIdArg || rfElClubeAtivo();
   const doMeu = String(cid)===String(CL.clubId);
@@ -522,6 +552,7 @@ function rfElFichaHTML(clubIdArg, pidArg){
         <div class="rf-fx-ident-l1"><span class="rf-fx-num">${escC(String(num))}</span><b>${escC(p.n)}</b></div>
         <span class="rf-fx-ident-sub">${escC(rfPosInicial(p.s))} · ${p.age||'?'} anos · ${p.ft==='L'?'canhoto':'destro'}${p.nat?' · '+((typeof rfNacHTML==='function')?rfNacHTML(p)+' ':'')+escC(p.nat):''} · ${escC(clube.short||'')}</span>
       </div>
+      ${rfFxNavHTML(p, cid)}
       <div class="rf-fx-ident-acts">
         ${doMeu ? `
         <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcAbrir('elenco-renovar',{pid:'${escC(p.pid)}'})">Renovar contrato</button>
