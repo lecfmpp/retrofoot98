@@ -7124,7 +7124,11 @@ const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entr
    por cima da tela seguinte, e cortada a seco se comecar outra rodada. */
 const RF_VITORIA_SRC = 'audio/torcida-vitoria.mp3';
 const RF_VITORIA_ESPERA = 1700;   // os tres sopros longos do apito
-const RF_VITORIA_ENTRA = 900, RF_VITORIA_DURA = 11000, RF_VITORIA_SAI = 2600;
+/* METADE DO TEMPO. Eram 11s no ar mais 2,6s a sair — quase catorze segundos de
+   aplauso, que se arrastavam para dentro da tela seguinte. Os dois numeros
+   foram cortados ao meio, e a entrada fica como esta': ela ja' e' curta e e' o
+   que emenda no apito. */
+const RF_VITORIA_ENTRA = 900, RF_VITORIA_DURA = 5500, RF_VITORIA_SAI = 1300;
 let RF_VITORIA = null;
 /* ---- rampa de volume num <audio> ----
    `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
