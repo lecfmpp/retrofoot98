@@ -6474,6 +6474,17 @@ async function garantirFaceTreinador(genero, i, refazer){
 /* RECORTA as faces de treinador ja' geradas, que nasceram opacas. Mesma
    inundacao de borda das fotos de jogador — e o mesmo motivo: sem alfa, o
    fundo do clube nao aparece no card. */
+/* quantas faces ainda estao opacas — o botao mostra o numero, senao ele
+   parece util mesmo quando ja' nao ha' o que fazer */
+function facesTreinadorOpacas(){
+  let n = 0;
+  ['f','m'].forEach(g => ESTILOS_TREINADOR.forEach((_e, i) => {
+    const f = D.fotos[TREINADOR_KEY+'|'+faceChave(g, i)];
+    if(f && f.url && !(f.atributos||{}).vazada) n++;
+  }));
+  return n;
+}
+
 async function recortarFacesTreinador(btn){
   const alvos = [];
   ['f','m'].forEach(g => ESTILOS_TREINADOR.forEach((_e, i) => {
@@ -7620,9 +7631,14 @@ function blocoTreinadoresHTML(){
         <span class="mono" style="font-size:11.5px;color:var(--dim3);white-space:nowrap;flex:0 0 auto">${prontas} de 10 geradas</span>
         ${faltam && podeEditar('dados')
           ? `<button class="btn btn-sm" id="est-faces" style="white-space:nowrap;flex:0 0 auto"
-               title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>
-          <button class="btn btn-sm btn-ghost" id="est-faces-recorte" style="white-space:nowrap;flex:0 0 auto"
-            title="Tira o fundo cinza das faces já geradas — é o que faz o fundo do clube aparecer no card do treinador">Recortar fundos</button>`
+               title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>`
+          : ''}
+        <!-- FORA da condicao do "gerar": recortar so' faz sentido em face que JA'
+             existe, e a condicao acima e' o contrario disso — com as 10 prontas,
+             ela some e levava o recorte junto. -->
+        ${prontas && podeEditar('dados')
+          ? `<button class="btn btn-sm btn-ghost" id="est-faces-recorte" style="white-space:nowrap;flex:0 0 auto"
+               title="Tira o fundo cinza das faces já geradas — é o que faz o fundo do clube aparecer no card do treinador">Recortar fundos (${facesTreinadorOpacas()})</button>`
           : ''}
       </div>
       ${blocoMarcaHTML()}
