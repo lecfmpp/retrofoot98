@@ -1742,7 +1742,13 @@
 /* dentro da grade de Características o card ocupa a coluna do retrato, que e'
    mais alta que os 305px do padrao — esticar mantem o alinhamento com a
    coluna dos atributos ao lado */
-.rf-fx-carac-grid .pc{width:100%;max-width:240px;min-height:var(--pc-alt)}
+/* align-self:start E' O QUE FAZ A ALTURA VALER. A grade tem
+   `align-items:stretch`, entao no desktop o card era esticado ate' a altura da
+   LINHA — ditada pela coluna dos atributos, mais alta — e o min-height nao
+   tinha efeito nenhum. No telefone a grade vira uma coluna so', cada item fica
+   com a propria altura, e por isso a reducao aparecia la' e nao aqui. */
+.rf-fx-carac-grid .pc{width:100%;max-width:240px;min-height:var(--pc-alt);
+  height:var(--pc-alt);align-self:start}
 
 .rf-ficha-id{display:flex;align-items:center;gap:12px}
 .rf-ficha-nm{display:flex;flex-direction:column;gap:2px;min-width:0}
