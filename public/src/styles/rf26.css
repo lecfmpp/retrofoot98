@@ -1684,16 +1684,15 @@
    lugares: pelo proprio card e pela GRADE das Caracteristicas, que dimensiona
    a linha por ela. A grade e' PAI do card, e variavel CSS so' desce — se
    ficasse no `.pc`, a grade nunca a enxergaria e cairia no fallback. */
-.rf-fx-carac-grid,.rf-ficha-topo{--pc-alt:305px}
+.rf-fx-carac-grid,.rf-ficha-topo{--pc-alt:325px}
 
 .rf-ficha-topo{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 .rf-ficha-lado{flex:1;min-width:220px;display:flex;flex-direction:column;gap:12px}
-/* 200x305, o tamanho do pacote. Passamos por 270, 230 e 130 procurando o
-   ponto; em 130 o rodape (escudo de 62px + nome + forca) nao cabia. A ancora
-   da foto e' o TOPO, entao a cabeca fica a 19px da borda de cima em qualquer
-   altura — encurtar so' muda onde o card corta o jogador. */
+/* 200x325 — os 305 do pacote mais 20px. A ancora da foto e' o TOPO, entao a
+   cabeca fica a 19px da borda de cima em qualquer altura; a altura so' decide
+   onde o card corta o jogador. */
 .pc{--clube-1:var(--club-primary,#17458F);--clube-2:var(--club-secondary,#F2B90C);
-  position:relative;width:200px;min-height:var(--pc-alt,305px);flex:0 0 auto;
+  position:relative;width:200px;min-height:var(--pc-alt,325px);flex:0 0 auto;
   border-radius:16px;overflow:hidden;background:var(--clube-1);
   display:flex;align-items:flex-end}
 .pc-fundo{position:absolute;inset:0;pointer-events:none;
@@ -1783,7 +1782,7 @@
    LINHA — ditada pela coluna dos atributos, mais alta — e o min-height nao
    tinha efeito nenhum. No telefone a grade vira uma coluna so', cada item fica
    com a propria altura, e por isso a reducao aparecia la' e nao aqui. */
-/* 200x305, o tamanho do pacote — a coluna da grade ja' e' 200px */
+/* 200px de largura, como no pacote — a coluna da grade ja' e' 200px */
 .rf-fx-carac-grid .pc{width:200px;min-height:var(--pc-alt);height:var(--pc-alt)}
 
 .rf-ficha-id{display:flex;align-items:center;gap:12px}
