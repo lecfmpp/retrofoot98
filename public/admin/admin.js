@@ -5256,6 +5256,20 @@ function textoEnquadramento(){
   ].join(' ');
 }
 
+/* ===== NINGUEM REAL =====
+   O modelo foi treinado em fotos de jogadores reais, entao um pedido generico
+   ("um jogador de futebol brasileiro de 24 anos") tende a puxar para caras
+   conhecidas — e uma semelhanca reconhecivel num jogo comercial e' problema
+   de direito de imagem, nao detalhe estetico.
+
+   "not resembling any real person" sozinho e' fraco: e' uma negacao, e o
+   modelo pesa mal negacoes. Por isso o texto tambem AFIRMA o que se quer (um
+   rosto inventado, comum, sem tracos marcantes) e nomeia o risco (jogadores
+   famosos, atuais ou antigos, e celebridades), que e' o que o faz evitar. */
+const NAO_REAL = 'CRITICAL: invent a completely new, ordinary face that does NOT look like any real '
+  + 'football player, past or present, and does not resemble any celebrity or public figure. '
+  + 'Avoid distinctive features associated with famous athletes. This person does not exist.';
+
 function promptRosto(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
   const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
@@ -5265,7 +5279,7 @@ function promptRosto(item, p, at){
     'Facing the camera directly, official club media day photo style, soft professional studio lighting, sharp focus, DSLR quality.',
     'The cutout ends in a clean straight cut at the base of the neck — NO shoulders, NO clothing, NO jersey, NO collar, NO background, nothing besides the head and neck.',
     'Head centered horizontally, sized so head plus neck fill about 75% of the frame height, positioned in the upper part of the frame.',
-    'This is a completely fictional person, not resembling any real footballer or celebrity.'
+    NAO_REAL
   ].join(' ');
 }
 /* os 5 estilos de camisa — a variedade visual do jogo nasce aqui. Cada entrada
@@ -5392,6 +5406,7 @@ const rostoEncaixe = () => {
    ENQUADRAMENTO cabeca-ao-peito, rosto no terco superior: e' onde o card
    corta (object-position 50% 12%) e onde o degrade ainda nao cobriu. */
 const MARCA_AZUL = '#17458F', MARCA_AMARELO = '#F2B90C';
+
 function promptCartaoJogador(item, p, at){
   return [
     `Hyper-realistic studio photograph of a fictional professional football player from ${item.pais==='Brasil' ? 'Brazil' : item.pais}, head and chest only, front view, facing the camera.`,
@@ -5403,7 +5418,7 @@ function promptCartaoJogador(item, p, at){
     'Framing: the top of the head near the top edge, the face in the UPPER THIRD, cropped at mid-chest, shoulders fully visible and centered.',
     'FULLY TRANSPARENT BACKGROUND — no studio backdrop, no floor, and NO SHADOW cast behind or around the player (a cast shadow becomes a grey fringe when the photo is placed over colours).',
     'Soft even studio lighting on the face, sharp focus, DSLR quality.',
-    'This is a completely fictional person, not resembling any real person.'
+    NAO_REAL
   ].filter(Boolean).join(' ');
 }
 
@@ -5420,7 +5435,7 @@ function promptRostoMolde(item, p, at){
     `The straight cut at the base of the neck at exactly ${pc(ROSTO_MOLDE.base)} from the top edge.`,
     `Head width exactly ${pc(ROSTO_MOLDE.larg)} of the frame width, centered horizontally.`,
     'Everything outside the head and neck is fully transparent, including the whole lower half of the frame.',
-    'This is a completely fictional person, not resembling any real footballer or celebrity.'
+    NAO_REAL
   ].join(' ');
 }
 /* ===== OS MOLDES NASCERAM FORA DO GABARITO =====
@@ -5729,7 +5744,7 @@ function promptDireto(item, p, at){
     'CRITICAL: do NOT move, scale, crop or reframe the jersey — it must stay in EXACTLY the same position and size as in the input image, pixel-aligned, same pattern and colors, completely clean (no crest, sponsor, text or logos added).',
     textoEnquadramento(),
     'Plain light gray studio background, sharp focus, DSLR quality.',
-    'This is a completely fictional person, not resembling any real footballer or celebrity.'
+    NAO_REAL
   ].join(' ');
 }
 
@@ -6021,7 +6036,7 @@ function promptFaceTreinador(genero, i){
     'Head and shoulders, facing the camera directly, official club media day photo style.',
     'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
     'The head is centered and fills about half of the frame height.',
-    'This is a completely fictional person, not resembling any real person.'
+    NAO_REAL
   ].join(' ');
 }
 

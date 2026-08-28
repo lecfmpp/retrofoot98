@@ -108,7 +108,18 @@ function montarPrompt(genero: string, estilo: string, idade: number, comReferenc
       "The result must be a NEW, clearly fictional person — do not reproduce the likeness of the person in the photo.",
     );
   } else {
-    base.push("This is a completely fictional person, not resembling any real person.");
+    /* NEGACAO SOZINHA E' FRACA. O modelo foi treinado em fotos de gente real e
+       um pedido generico puxa para caras conhecidas; "not resembling any real
+       person" e' uma negacao, e o modelo pesa mal negacoes. Entao o texto
+       tambem AFIRMA o que se quer (rosto inventado, comum) e NOMEIA o risco
+       (treinadores e celebridades), que e' o que ele evita de facto.
+       Semelhanca reconhecivel num produto comercial e' direito de imagem, nao
+       detalhe estetico. */
+    base.push(
+      "CRITICAL: invent a completely new, ordinary face that does NOT look like any real football",
+      "manager or coach, past or present, and does not resemble any celebrity or public figure.",
+      "Avoid distinctive features associated with well-known figures. This person does not exist.",
+    );
   }
   return base.join(" ");
 }
