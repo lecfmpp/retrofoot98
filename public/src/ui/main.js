@@ -7409,7 +7409,7 @@ function penaltyReveal(scored,scorer){
      ao som quando o laco de eventos consumisse o evento, ja' depois do modal
      fechar — o estadio rugia com atraso. Aqui e' no instante da revelacao. */
   if(typeof camOn==='function' && camOn()){
-    if(scored) rfTorcidaGol();
+    if(scored) rfGolSom();
     else if(typeof rfSomTocar==='function') rfSomTocar('penaltiPerdido');
   }
   cdraw();
@@ -8139,14 +8139,33 @@ function rfTorcidaLigar(){
     RF_TORCIDA = a;
   }catch(err){ RF_TORCIDA_SEM = true; }
 }
-/* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
-   um elemento <audio>, entao a rampa e' feita a mao, de 60 em 60ms. */
-function rfTorcidaGol(){
-  if(!RF_TORCIDA) return;
-  /* o gol de penalti chega por DOIS caminhos (revelacao do modal e o laco que
-     consome o evento); dois rugidos colados soam a corte. */
+/* ===== O GOL SAO DOIS SONS EMENDADOS =====
+   Primeiro a bola na rede — seco, imediato, e' o instante do gol —, e dois
+   segundos depois a torcida sobe. Essa ordem e' o que o ouvido espera: no
+   estadio o barulho vem DEPOIS do lance, nunca junto.
+   A trava de 2,5s vive aqui, na entrada, e nao em cada metade: o gol de
+   penalti chega por dois caminhos (a revelacao do modal e o laco que consome
+   o evento) e sem ela sairiam duas bolas na rede e dois rugidos. */
+const RF_GOL_REDE = 'audio/gol-bola-na-rede.mp3';
+const RF_GOL_ATRASO = 2000;   // da rede ate' a torcida subir
+function rfGolSom(){
+  if(!rfSomLigado()) return;
   if(Date.now() - RF_TORCIDA_GOL < 2500) return;
   RF_TORCIDA_GOL = Date.now();
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(RF_GOL_REDE); a.volume = Math.min(1, 0.9*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+  /* a torcida entra por cima, sem esperar que a rede acabe — sao camadas do
+     mesmo momento, nao uma fila */
+  setTimeout(rfTorcidaGol, RF_GOL_ATRASO);
+}
+/* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
+   um elemento <audio>, entao a rampa e' feita a mao, de 60 em 60ms.
+   Sem trava propria: quem controla a repeticao e' o `rfGolSom`, a entrada. */
+function rfTorcidaGol(){
+  if(!RF_TORCIDA) return;
   const a = RF_TORCIDA, vol = rfSomVolume();
   const base = RF_TORCIDA_BASE * vol, alto = Math.min(1, 0.95 * vol);
   clearInterval(a._rfRampa);
@@ -8208,7 +8227,7 @@ function rfSomDoEvento(m,e,out){
     if(meuLado && e.side!==meuLado) soar('penaltiDefendido');
   }
   if(e.type==='gol' || (e.type==='penalti' && e.scored)){
-    rfTorcidaGol();   // o estadio explode em qualquer ritmo — nao e' fala, e' barulho
+    rfGolSom();   // bola na rede + estadio: barulho, nao fala — vale em qualquer ritmo
     if(((m.hg||0)+(m.ag||0)) >= 5) soar('goleada');
     /* dobradinha: o mesmo nome marcando pela segunda vez nesta partida */
     const meus=(m.goals||[]).filter(g=>g.scorer && g.scorer===e.scorer);
