@@ -6159,6 +6159,137 @@ async function prepararEstilos(btn){
    transparente. Nao repinta ninguem — separar os dois passos e' de proposito,
    para dar' para OLHAR os moldes antes de propagar para 79 clubes. Foi a falta
    disso que deixou um uniforme furado ir para o ar. */
+/* Onde o escudo (e patrocinio/fabricante) cai no manequim DAQUELE ESTILO.
+   Um ajuste vale para todos os clubes do estilo — o desenho e' o mesmo, muda
+   a cor. Usa o clube aberto so' como amostra de cores e de escudo. */
+function modalPosCamisa(item, estilo, aoSalvar){
+  const mini = D.fotos[MOLDE_KEY+'|mini-'+estilo];
+  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  const base = (t && t.atributos && t.atributos.miniatura) || (mini && mini.url);
+  if(!base) return toast('Este estilo ainda não tem manequim.', true);
+  const at0 = (t && t.atributos) || {};
+  const e0 = D.edits[item.c.id];
+  const escudoUrl = (e0 && e0.patch && e0.patch.crest) || item.c.crest || null;
+  const st = posDaCamisa(estilo);
+  const camadas = [['escudo', escudoUrl, 'Escudo'],
+                   ['patro', at0.patroUrl, 'Patrocinador'],
+                   ['fabricante', at0.fabricanteUrl, 'Fabricante']].filter(c => c[1]);
+  let sel = camadas.length ? camadas[0][0] : null;
+  if(!sel) return toast('Sem escudo para posicionar neste clube.', true);
+
+  abrirModal(`
+    <div class="card-h"><b>Escudo na camisa — estilo ${h((ESTILOS_CAMISA.find(x=>x[0]===estilo)||[])[1]||estilo)}</b></div>
+    <div class="card-p col" style="gap:14px">
+      <div class="st" style="font-size:12.5px;line-height:1.6">
+        Vale para <b>todos os clubes deste estilo</b> — o manequim é o mesmo desenho, muda só a cor.
+        O ${h(item.c.short||item.c.name)} entra aqui só como amostra.
+      </div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+        <div id="pc-palco" style="position:relative;width:280px;aspect-ratio:1;border-radius:10px;
+             overflow:hidden;background:#e8e8e4;cursor:grab;touch-action:none;user-select:none">
+          <img src="${h(base)}" draggable="false" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none">
+          ${camadas.map(([k,url]) => `<img id="pc-${k}" src="${h(url)}" draggable="false" style="position:absolute;pointer-events:none">`).join('')}
+        </div>
+        <div class="col" style="gap:12px;flex:1;min-width:250px">
+          <div class="row" style="gap:6px;flex-wrap:wrap">
+            ${camadas.map(([k,,rot]) => `<button class="btn btn-sm ${k===sel?'':'btn-ghost'}" data-cam="${k}">${h(rot)}</button>`).join('')}
+          </div>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:80px">Tamanho</span>
+            <input id="pc-w" type="range" min="4" max="60" step="0.5"></label>
+          <pre id="pc-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;color:var(--fg)"></pre>
+        </div>
+      </div>
+    </div>
+    <div class="acoes"><button class="btn btn-ghost" data-fechar>Cancelar</button>
+      <button class="btn" id="pc-salvar">Salvar para o estilo</button></div>`, 'lg');
+
+  const palco = el('pc-palco');
+  const desenha = () => {
+    for(const [k] of camadas){
+      const im = el('pc-'+k), p = st[k];
+      im.style.left = p.x+'%'; im.style.top = p.y+'%'; im.style.width = p.w+'%';
+      im.style.outline = (k===sel) ? '1px dashed #35c46a' : '';
+    }
+    const p = st[sel];
+    el('pc-w').value = p.w;
+    el('pc-saida').textContent = camadas.map(([k,,rot]) =>
+      `${rot.padEnd(13)}: x ${st[k].x.toFixed(1)}%  y ${st[k].y.toFixed(1)}%  larg ${st[k].w.toFixed(1)}%`).join('\n');
+  };
+  desenha();
+  document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => {
+    sel = b.dataset.cam;
+    document.querySelectorAll('[data-cam]').forEach(o =>
+      o.className = 'btn btn-sm' + (o.dataset.cam===sel ? '' : ' btn-ghost'));
+    desenha();
+  });
+  el('pc-w').oninput = e => { st[sel].w = Number(e.target.value); desenha(); };
+  let arr = null;
+  const pt = e => (e.touches && e.touches[0]) || e;
+  palco.addEventListener('mousedown', e => { const r = palco.getBoundingClientRect(), q = pt(e);
+    arr = { px:q.clientX, py:q.clientY, x:st[sel].x, y:st[sel].y, w:r.width, h:r.height };
+    palco.style.cursor='grabbing'; e.preventDefault(); });
+  const mover = e => { if(!arr) return; const q = pt(e);
+    st[sel].x = Math.max(0, Math.min(95, arr.x + (q.clientX-arr.px)/arr.w*100));
+    st[sel].y = Math.max(0, Math.min(95, arr.y + (q.clientY-arr.py)/arr.h*100));
+    desenha(); e.preventDefault(); };
+  const soltar = () => { if(arr){ arr=null; palco.style.cursor='grab'; } };
+  document.addEventListener('mousemove', mover); document.addEventListener('mouseup', soltar);
+  const obs = new MutationObserver(() => { if(!document.getElementById('pc-palco')){
+    document.removeEventListener('mousemove', mover); document.removeEventListener('mouseup', soltar); obs.disconnect(); } });
+  obs.observe(el('modais'), { childList:true, subtree:true });
+
+  el('pc-salvar').onclick = async () => {
+    if(!mini) return toast('Sem molde-mini para guardar a posição.', true);
+    const reg = Object.assign({}, mini, {
+      atributos: Object.assign({}, mini.atributos || {}, { pos: { escudo:st.escudo, patro:st.patro, fabricante:st.fabricante } }) });
+    const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+    if(r.error) return toast(erroMsg(r.error), true);
+    D.fotos[MOLDE_KEY+'|mini-'+estilo] = reg;
+    toast(`Posição salva para o estilo ${estilo}.`);
+    fecharModal(); if(aoSalvar) aoSalvar();
+  };
+}
+
+/* Assa a camisa pronta de todos os clubes que tem manequim. Local e de graca;
+   nada e' sobrescrito — cada camisa sobe com nome novo. */
+async function assarCamisasTodas(btn){
+  const alvos = [];
+  for(const x of (D.catalogo||[])){
+    const t = D.fotos[x.c.id+'|'+TORSO_KEY];
+    const man = t && t.atributos && t.atributos.miniatura;
+    if(t && man && t.atributos.estilo) alvos.push({ x, t, man });
+  }
+  if(!alvos.length) return toast('Nenhum clube com manequim — repinte os uniformes primeiro.', true);
+  if(!await rfConfirm({ titulo:'Montar as camisas prontas',
+    texto:`Assa <b>${alvos.length} camisas</b>: manequim + escudo (+ patrocinador e fabricante quando houver), numa imagem só por clube.`,
+    detalhe:'<b>Sem custo</b> — canvas no navegador, sem IA. É o que o jogo vai usar na transferência: camisa pronta atrás, cabeça na frente. Nada é sobrescrito.',
+    nao:'Cancelar', sim:`Montar ${alvos.length} camisas` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const { x, t, man } of alvos){
+    btn.textContent = `Camisa ${ok+erros+1}/${alvos.length}…`;
+    try{
+      const e0 = D.edits[x.c.id];
+      const blob = await assarCamisa(man, t.atributos.estilo, {
+        escudoUrl: (e0 && e0.patch && e0.patch.crest) || x.c.crest || null,
+        patroUrl: t.atributos.patroUrl, fabUrl: t.atributos.fabricanteUrl });
+      const caminho = `${caminhoClube(x)}/camisa-${Date.now()}.webp`;
+      const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+      if(up.error) throw new Error(up.error.message);
+      const reg = Object.assign({}, t, { atributos: Object.assign({}, t.atributos,
+        { camisaPronta: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl }) });
+      const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+      if(r.error) throw new Error(r.error.message);
+      D.fotos[x.c.id+'|'+TORSO_KEY] = reg;
+      ok++;
+    }catch(err){ erros++; console.warn('camisa falhou:', x.c.id, err.message); }
+  }
+  registrar('estudio.camisas.montar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} camisa(s) prontas${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
 async function refazerMoldes(btn){
   const estilos = ESTILOS_CAMISA.map(e => e[0]);
   if(!await rfConfirm({ titulo:'Refazer os moldes dos 5 estilos',
@@ -6407,6 +6538,62 @@ const PATRO_POS_PADRAO  = { x:33, y:65, w:34 };  // left %, top %, largura % (al
 const ESCUDO_POS_PADRAO = { x:57, y:30, w:22 };  // peito esquerdo do jogador, altura do peito
 const RATIO_FOTO = 1.5;   // retrato 2:3 (1024x1536) — o formato do cartão do jogador no site
 const FAB_POS_PADRAO = { x:27, y:57, w:9 };   // fabricante: lado oposto ao escudo, menor
+
+/* ===== CAMISA PRONTA: UMA IMAGEM POR CLUBE =====
+   Em vez de o jogo empilhar camisa + escudo + patrocinio + fabricante a cada
+   retrato, o painel assa TUDO isso numa imagem so' por clube. Sobram duas
+   camadas em tempo de jogo — camisa pronta e cabeca — e o escudo deixa de
+   precisar de posicionamento no cliente.
+
+   A base e' o MANEQUIM (a miniatura: sem corpo, sem pescoco, fundo
+   transparente), porque so' ele deixa a cabeca entrar POR TRAS da gola.
+
+   A POSICAO E' POR ESTILO, NAO POR CLUBE: o manequim e' o mesmo desenho para
+   todos os clubes de um estilo — muda so' a cor, que a repintura local aplica.
+   Cinco ajustes cobrem os 79 clubes. Guardada na linha do molde-mini
+   (`__molde__|mini-<estilo>`), em atributos.pos.
+
+   Tudo em canvas, no navegador: zero IA, zero token, e a imagem antiga nunca
+   e' sobrescrita — sobe com nome novo. */
+const CAMISA_POS_PADRAO = { escudo:{ x:58, y:26, w:20 }, patro:{ x:33, y:46, w:34 }, fabricante:{ x:27, y:40, w:9 } };
+const posDaCamisa = estilo => {
+  const m = (typeof D === 'object' && D.fotos) ? D.fotos[MOLDE_KEY+'|mini-'+estilo] : null;
+  const at = (m && m.atributos && m.atributos.pos) || {};
+  return { escudo: Object.assign({}, CAMISA_POS_PADRAO.escudo, at.escudo||{}),
+           patro: Object.assign({}, CAMISA_POS_PADRAO.patro, at.patro||{}),
+           fabricante: Object.assign({}, CAMISA_POS_PADRAO.fabricante, at.fabricante||{}) };
+};
+
+/* Assa a camisa de UM clube. Devolve o blob; nao grava nada — quem grava
+   decide, porque assar e' barato e reversivel e gravar nao e'. */
+async function assarCamisa(manequimUrl, estilo, camadas){
+  const carregar = url => new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => ok(i); i.onerror = () => erro(new Error('não carreguei ' + url));
+    i.src = /^https?:/.test(url) ? url + (url.includes('?') ? '&' : '?') + 'cors=1' : url;
+  });
+  const base = await carregar(manequimUrl);
+  const W = base.naturalWidth, H = base.naturalHeight;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d');
+  cx.drawImage(base, 0, 0);
+  const pos = posDaCamisa(estilo);
+  /* mesma ordem do composto: escudo, fabricante, patrocinador */
+  for(const [url, p] of [[camadas.escudoUrl, pos.escudo],
+                         [camadas.fabUrl,    pos.fabricante],
+                         [camadas.patroUrl,  pos.patro]]){
+    if(!url) continue;
+    try{
+      const img = await carregar(url);
+      const w = (p.w/100)*W;
+      const hh = w * (img.naturalHeight / img.naturalWidth);   // proporcao propria
+      cx.drawImage(img, (p.x/100)*W, (p.y/100)*H, w, hh);
+    }catch(e){ console.warn('camada da camisa falhou:', e.message); }
+  }
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
+  if(!blob) throw new Error('não consegui exportar a camisa.');
+  return blob;
+}
 /* AS POSIÇÕES SÃO DO QUADRO DO UNIFORME (torso, sem cabeça). Na FOTO do jogador
    a camisa fica mais para baixo e um pouco menor — este mapa desloca/encolhe as
    camadas SÓ quando a base é a foto. Calibrado nos dois quadros; ajuste aqui. */
@@ -7131,7 +7318,8 @@ async function pgEstudio(){
         ${aba==='escudos' && podeEditar('dados') ? '<button class="btn btn-sm" id="est-lote">Enviar em lote</button>' : ''}
         ${aba==='uniformes' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-estilos" title="Gera os moldes que faltam (uniforme + miniatura) dos 5 estilos, para reuso em todos os clubes">Preparar estilos</button>
         <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
-        <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>` : ''}
+        <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>
+        <button class="btn btn-sm" id="est-camisas" title="Manequim + escudo numa imagem só por clube — é o que o jogo usa na transferência">Montar camisas</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -7158,7 +7346,8 @@ async function pgEstudio(){
             ? (uniformeDoClube(x)
                ? `<span class="tag t-ok">${h((ESTILOS_CAMISA.find(e=>e[0]===((uniformeDoClube(x).atributos||{}).estilo))||[])[1]||'gerado')}</span>${
                    podeEditar('dados') && (uniformeDoClube(x).atributos||{}).molde
-                   ? ` <button class="btn btn-sm btn-ghost" data-repintar1="${h(x.c.id)}" title="Repinta só este clube com o molde atual — sem custo, para conferir antes do lote">↻</button>` : ''}`
+                   ? ` <button class="btn btn-sm btn-ghost" data-repintar1="${h(x.c.id)}" title="Repinta só este clube com o molde atual — sem custo, para conferir antes do lote">↻</button>`
+                     + ` <button class="btn btn-sm btn-ghost" data-poscamisa="${h(x.c.id)}" title="Onde o escudo cai na camisa deste ESTILO — vale para todos os clubes dele">🛡</button>` : ''}`
                : '<span style="font-size:12px;color:var(--dim3)">sem uniforme</span>')
             : (tot ? `<span class="mono" style="font-size:12.5px;color:${nf>=tot?'var(--verde2)':nf?'var(--ambar)':'var(--dim3)'}">${nf}/${tot}</span>`
                    : '<span style="font-size:12px;color:var(--dim3)">sem elenco</span>')}</span>
@@ -7181,6 +7370,8 @@ async function pgEstudio(){
   if(btRep) btRep.onclick = () => repintarTodosUniformes(btRep);
   const btRM = el('est-remoldes');
   if(btRM) btRM.onclick = () => refazerMoldes(btRM);
+  const btCam = el('est-camisas');
+  if(btCam) btCam.onclick = () => assarCamisasTodas(btCam);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const btFaces = el('est-faces');
@@ -7204,6 +7395,12 @@ async function pgEstudio(){
   });
   /* REPINTAR UM SO'. O clique nao pode subir para a linha, senao abre o
      assistente do clube junto e o teste vira confusao. */
+  document.querySelectorAll('[data-poscamisa]').forEach(bt => bt.onclick = (ev) => {
+    ev.stopPropagation();
+    const x = (D.catalogo||[]).find(c => String(c.c.id)===String(bt.dataset.poscamisa));
+    const t0 = x && D.fotos[x.c.id+'|'+TORSO_KEY];
+    if(x && t0 && t0.atributos) modalPosCamisa(x, t0.atributos.estilo, () => pgEstudio());
+  });
   document.querySelectorAll('[data-repintar1]').forEach(bt => bt.onclick = async (ev) => {
     ev.stopPropagation();
     const x = (D.catalogo||[]).find(c => String(c.c.id)===String(bt.dataset.repintar1));
