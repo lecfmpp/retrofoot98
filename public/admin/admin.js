@@ -5345,54 +5345,55 @@ async function medirRosto(url){
    Escala pelo VAO VERTICAL (topo da cabeca ate' a gola) e nao pela largura:
    casar a largura deixaria o pescoco curto demais e abriria um vao entre ele
    e a gola, que salta muito mais aos olhos do que 3 pontos de largura. */
-/* ===== O QUADRO CRESCE, O UNIFORME NAO =====
-   O molde foi enquadrado justo: a gola fica entre 16% e 20% da altura, e a
-   camisa preenche o quadro inteiro. Num quadro 2:3 nao sobra altura para uma
-   cabeca proporcional — com a base intocada ela sairia com 15% da largura,
-   contra os ~28% das fotos costuradas por IA.
+/* ===== CALIBRACAO UNICA, MEDIDA — nao por render, nao por jogador =====
+   O molde e' um close mais fechado que a foto costurada por IA: medido, ele
+   ocupa 99,9% da largura na linha do peito, contra 85,4% das fotos de IA
+   (media de 6 amostras reais). Ou seja, o molde esta' 1,17x mais perto.
 
-   Em vez de encolher a cabeca ou mexer no uniforme, o QUADRO fica mais alto.
-   O uniforme continua exatamente como esta' — escala natural, sem corte, sem
-   deslocamento relativo ao proprio conteudo — ocupando a parte de baixo. O
-   que aparece e' um respiro novo em cima, e e' nele que a cabeca entra.
+   Por isso o corpo do metodo C saia maior que o de A e B mesmo "em escala
+   natural": natural para o molde nao e' natural para a foto.
 
-   Proporcao 1:1,64 contra 1:1,50 de hoje: 9% mais alto, e a cabeca volta aos
-   27% de largura do ENQ. Nada e' gerado, nada e' regerado. */
-const RATIO_COMPOSTO = 1.64;
+   A correcao e' UMA constante, medida uma vez e igual para todos os clubes,
+   estilos e jogadores — o corpo para de mudar de tamanho a cada render, que
+   era o defeito. O quadro volta a ser 2:3, identico ao de A e B.
+
+   Nada e' gerado, regerado ou recortado: o molde e' o mesmo arquivo, so'
+   desenhado na escala em que a foto de IA o mostraria. */
+const TORSO_ESCALA = 0.855;        // 85,4 / 99,9 — medido
+const TORSO_TOPO   = 1 - TORSO_ESCALA;   // ancorado embaixo, como uma pessoa em pe'
+
 function encaixeComposto(m, estilo){
-  const gola = golaDoEstilo(estilo) + GOLA_SOBREPOR;   // fracao da altura do UNIFORME
-  if(!m || !m.base) return null;
-  /* escala do rosto: a cabeca tem de sair com ENQ.largCabeca da largura */
-  const lado = ENQ.largCabeca / m.larg;                // em fracoes da LARGURA do quadro
-  const ladoH = lado / RATIO_COMPOSTO;                 // a mesma medida em fracoes da ALTURA
-  const uniAlt = 1 / RATIO_COMPOSTO * (RATIO_FOTO);    // o uniforme e' 2:3: altura = 1,5x a largura
-  const uniTopo = 1 - uniAlt;                          // ancorado embaixo
-  /* onde o pescoco termina, em fracoes da altura do quadro */
-  const alvo = uniTopo + gola*uniAlt;
+  if(!m || !m.base || !m.larg) return null;
+  /* onde a gola do uniforme cai DENTRO DO QUADRO, ja' na escala calibrada */
+  const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
+  /* a cabeca sai com ENQ.largCabeca da largura do quadro — sempre, seja qual
+     for o tamanho que o modelo deu a ela na imagem do rosto */
+  const ladoLarg = ENQ.largCabeca / m.larg;          // em fracoes da LARGURA
+  const rostoAltura = ladoLarg / RATIO_FOTO;         // a mesma medida em fracoes da ALTURA
   return {
-    uniTopo, uniAlt,
-    rostoAltura: ladoH,
-    rostoTopo: alvo - m.base*ladoH
+    rostoAltura,
+    rostoTopo: (gola + GOLA_SOBREPOR*TORSO_ESCALA) - m.base*rostoAltura
   };
-}/* o composto do metodo C: uniforme do clube + rosto medido, sem IA nenhuma.
+}
+
+/* o composto do metodo C: uniforme do clube + rosto medido, sem IA nenhuma.
    `px` opcional — sem ele o quadro e' FLUIDO (width 100% + aspect-ratio), que
    e' o que os cartoes A e B usam. Passar largura fixa aqui encolhia o cartao C
    ao lado dos outros dois. */
 function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida){
   const e = encaixeComposto(medida, estilo);
+  /* quadro 2:3, o MESMO de A e B */
   const quadro = px
-    ? `width:${px}px;height:${Math.round(px*RATIO_COMPOSTO)}px`
-    : `width:100%;aspect-ratio:${(1/RATIO_COMPOSTO).toFixed(4)}`;
-  if(!e){   // sem medida do rosto, mostra so' o uniforme, intocado
-    return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">
-      <img src="${h(torsoUrl)}" style="position:absolute;left:0;bottom:0;width:100%">
-    </span>`;
+    ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
+    : `width:100%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)}`;
+  /* o uniforme entra sempre igual: escala calibrada, centrado, ancorado
+     embaixo. Nao depende do jogador nem do render. */
+  const corpo = `<img src="${h(torsoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%">`;
+  if(!e){
+    return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">${corpo}</span>`;
   }
-  /* o uniforme entra em ESCALA NATURAL, ancorado embaixo: width 100% e altura
-     livre (ele e' 2:3, entao ocupa 1,5x a largura). Nada de object-fit, que
-     recortaria ou esticaria. */
   return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">
-    <img src="${h(torsoUrl)}" style="position:absolute;left:0;bottom:0;width:100%">
+    ${corpo}
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:${(e.rostoTopo*100).toFixed(1)}%;height:${(e.rostoAltura*100).toFixed(1)}%;object-fit:contain">`:''}
   </span>`;
 }
@@ -6049,75 +6050,67 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
    NAO GRAVA NADA em player_photos: e' um teste, e um teste que sobrescreve a
    foto boa do elenco nao e' teste, e' acidente. As imagens ficam no Storage
    (ja' foram pagas) e as URLs aparecem na tela. */
+/* ===== ENCAIXE DA CABECA =====
+   Gera SO' o rosto (US$ 0,044) e mostra encaixado no uniforme que o clube ja'
+   tem. O corpo nunca e' gerado nem alterado: entra sempre na mesma escala
+   calibrada, ancorado embaixo, no mesmo quadro 2:3 das fotos de IA.
+   O que se afina aqui e' so' o encaixe — e as medidas ficam a' vista para
+   isso deixar de ser tentativa. NAO GRAVA nada no elenco. */
 async function compararMetodos(item, p){
   const t = D.fotos[item.c.id+'|'+TORSO_KEY];
-  if(!t) return toast('Este clube precisa de uniforme antes: o torso é a entrada dos dois métodos.', true);
-  if(!await rfConfirm({ titulo:'Comparar os três métodos',
-    texto:`Vou gerar <b>${h(p.n)}</b> pelos três caminhos, com os <b>mesmos atributos</b>, para você ver a diferença.`,
-    detalhe:`<b>A · duas chamadas</b> (rosto + montagem por IA): US$ 0,114<br>
-             <b>B · uma chamada</b> (rosto nasce na camisa): US$ 0,070<br>
-             <b>C · só o rosto</b>, ancorado no molde e encaixado por CSS: US$ 0,044 — e a
-             troca de clube passa a ser <b>de graça</b>.<br>
-             Total do teste: <b>~US$ 0,23</b>. Nada é salvo no elenco — é só para olhar.`,
-    nao:'Agora não', sim:'Gerar os três (~US$ 0,23)' })) return;
+  if(!t) return toast('Este clube precisa de uniforme antes: ele é a base do encaixe.', true);
+  if(!await rfConfirm({ titulo:'Gerar a cabeça e encaixar',
+    texto:`Vou gerar <b>só o rosto</b> de <b>${h(p.n)}</b> e encaixá-lo no uniforme que este clube já tem.`,
+    detalhe:'Custo: <b>US$ 0,044</b> — uma imagem. O uniforme não é gerado nem alterado. Nada é salvo no elenco.',
+    nao:'Agora não', sim:'Gerar a cabeça (~US$ 0,04)' })) return;
 
   const at = sortearAtributos(p);
   const base = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
-  let duas = null, uma = null, soRosto = null, medidaRosto = null, erro = null;
+  let rosto = null, medida = null, erro = null;
   try{
-    /* CAMINHO A — o de hoje: rosto recortado e depois a costura */
-    const rosto = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium', null, base+'-rosto',
-      'Método A: gerando o rosto…');
-    duas = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, rosto], base+'-duas',
-      'Método A: costurando…');
-    /* CAMINHO B — uma chamada: o rosto nasce ja' na camisa */
-    uma = await gerarImagemIA('montagem', promptDireto(item, p, at), 'medium', [t.url], base+'-uma',
-      'Método B: gerando direto no uniforme…');
-    /* CAMINHO C — so' a cabeca, ancorada no molde. O corpo NAO e' gerado: e' o
-       uniforme do clube, que ja' foi pintado de um dos 5 moldes, de graca. */
-    soRosto = await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca',
-      'Método C: gerando só a cabeça…');
-    /* mede o que o modelo REALMENTE entregou — o encaixe sai daqui, nao do prompt */
-    try{ medidaRosto = await medirRosto(soRosto); }catch(e){ console.warn('não medi o rosto:', e.message); }
+    rosto = await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca',
+      'Gerando só a cabeça…');
+    medida = await medirRosto(rosto);
   }catch(err){ erro = err.message; }
 
-  const cartao = (rot, url, custo, nota) => `<div class="col" style="gap:8px;min-width:0;flex:1">
-      <div style="display:flex;align-items:baseline;gap:8px">
-        <b style="font-size:13px">${h(rot)}</b>
-        <span class="mono" style="font-size:11.5px;color:var(--dim3)">US$ ${custo}</span>
-      </div>
-      ${url ? `<img src="${h(url)}" alt="${h(rot)}" data-ver="${h(url)}"
-                style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:10px;background:var(--bd3);cursor:zoom-in">`
-            : `<div class="vazio" style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">não saiu</div>`}
-      <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">${nota}</small>
-    </div>`;
+  const e = medida ? encaixeComposto(medida, (t.atributos||{}).estilo) : null;
+  const linha = (r, v) => `<div style="display:flex;gap:10px"><span style="flex:0 0 190px;color:var(--dim2)">${h(r)}</span>
+    <span class="mono" style="color:var(--fg)">${v}</span></div>`;
 
   abrirModal(`
-    <div class="card-h"><b>${h(p.n)} — dois métodos, mesmos atributos</b></div>
-    <div class="card-p col" style="gap:14px">
+    <div class="card-h"><b>${h(p.n)} — cabeça encaixada no uniforme do clube</b></div>
+    <div class="card-p col" style="gap:16px">
       ${erro?`<div class="erro">${h(erro)}</div>`:''}
-      <div style="display:flex;gap:14px;flex-wrap:wrap">
-        ${cartao('A · duas chamadas', duas, '0,114', 'Rosto recortado + costura por IA. A fusão é a mais natural das três — iluminação unificada, sem emenda.')}
-        ${cartao('B · uma chamada', uma, '0,070', 'O rosto nasce direto na camisa. Não sobra rosto recortado: na transferência, precisa gerar de novo.')}
-        <div class="col" style="gap:8px;min-width:0;flex:1">
-          <div style="display:flex;align-items:baseline;gap:8px">
-            <b style="font-size:13px">C · só a cabeça</b>
-            <span class="mono" style="font-size:11.5px;color:var(--dim3)">US$ 0,044</span>
-          </div>
-          ${soRosto
-            ? compostoMoldeHTML(t.url, soRosto, null, (t.atributos||{}).estilo, medidaRosto)
-            : `<div class="vazio" style="aspect-ratio:2/3;display:flex;align-items:center;justify-content:center">não saiu</div>`}
-          <small style="font-size:11.5px;color:var(--dim2);line-height:1.5">Cabeça <b>medida por pixel</b> e
-            encaixada por CSS no uniforme, que já é pintado de um dos 5 moldes. <b>O mais barato</b>, e a troca
-            de clube fica <b>de graça</b> — só troca o corpo por baixo.
-            ${medidaRosto ? `<br><span class="mono" style="font-size:10.5px">medido: topo ${(medidaRosto.topo*100).toFixed(1)}%
-              · altura ${(medidaRosto.span*100).toFixed(1)}% · cabeça ${(medidaRosto.larg*100).toFixed(1)}% de largura
-              → render ${((encaixeComposto(medidaRosto,(t.atributos||{}).estilo)||{}).rostoAltura*100||0).toFixed(1)}%</span>` : ''}</small>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:0 0 260px">
+          ${rosto ? compostoMoldeHTML(t.url, rosto, null, (t.atributos||{}).estilo, medida)
+                  : '<div class="vazio" style="aspect-ratio:2/3">não saiu</div>'}
+          <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--dim2)">encaixado</div>
+        </div>
+        <div style="flex:0 0 150px">
+          ${rosto?`<img src="${h(rosto)}" data-ver="${h(rosto)}" style="width:100%;aspect-ratio:1;object-fit:contain;background:
+            repeating-conic-gradient(#3a463f 0% 25%, #2a332e 0% 50%) 50%/16px 16px;border-radius:10px;cursor:zoom-in">`:''}
+          <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--dim2)">o rosto gerado</div>
+        </div>
+        <div class="col" style="gap:6px;flex:1;min-width:230px;font-size:12.5px">
+          <div class="tt" style="font-size:13px">Medidas</div>
+          ${medida?`
+            ${linha('topo da cabeça', (medida.topo*100).toFixed(1)+'%')}
+            ${linha('base do pescoço', (medida.base*100).toFixed(1)+'%')}
+            ${linha('largura da cabeça', (medida.larg*100).toFixed(1)+'%')}
+            <div style="height:6px"></div>
+            ${linha('gola do uniforme', (golaDoEstilo((t.atributos||{}).estilo)*100).toFixed(1)+'% · '+h((t.atributos||{}).estilo||'—'))}
+            ${linha('escala do corpo', (TORSO_ESCALA*100).toFixed(1)+'% (fixa)')}
+            ${linha('render do rosto', e?(e.rostoAltura*100).toFixed(1)+'% de altura':'—')}
+            ${linha('topo do rosto', e?(e.rostoTopo*100).toFixed(1)+'%':'—')}
+            ${linha('cabeça no quadro', (ENQ.largCabeca*100).toFixed(0)+'% de largura (alvo)')}
+          `:'<div class="st">Não consegui medir o rosto.</div>'}
+          <div class="st" style="margin-top:8px;line-height:1.6">O corpo entra sempre igual — mesma escala,
+            mesmo quadro 2:3 das fotos de IA. Só o rosto é calculado, a partir do que foi medido nele.</div>
         </div>
       </div>
-      <div class="st" style="line-height:1.6">${h(resumoAtributos(at))}</div>
-      <small style="font-size:12px;color:var(--dim2)">Nenhuma das duas foi salva no elenco. Clique numa imagem para ampliar.</small>
-    </div>`, 'xl');   // abrirModal(html, CLASSE) — 'xl' e' a caixa larga, as duas fotos lado a lado
+      <small style="font-size:12px;color:var(--dim2)">${h(resumoAtributos(at))} · nada foi salvo no elenco.</small>
+    </div>`, 'xl');
   document.querySelectorAll('[data-ver]').forEach(x => x.onclick = () => abrirLightbox(x.dataset.ver, p.n));
 }
 
@@ -6592,7 +6585,7 @@ function modalFotosIA(item){
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
-        ${editar? botao('data-comparar','⚖','Comparar') :''}
+        ${editar? botao('data-comparar','⌗','Encaixe') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
     </div>`;
