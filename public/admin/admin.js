@@ -4799,6 +4799,23 @@ function promptTorso(item, estiloChave, corA, corB){
 
    Existe para ser COMPARADO lado a lado com o caminho de duas chamadas antes
    de trocar nada: a diferenca real e' visual, nao aritmetica. */
+/* RECOSTURA A PARTIR DA FOTO INTEIRA. Com o rosto recortado, promptMontagem
+   diz "a segunda imagem e' a cabeca". Nas fotos do metodo de uma chamada nao
+   existe rosto solto — a segunda imagem e' o retrato COMPLETO, com a camisa
+   antiga. Este prompt diz isso, senao o modelo traz a camisa velha junto. */
+function promptRecostura(){
+  return [
+    'Combine the two input images into ONE photorealistic official club media day portrait:',
+    'the FIRST image is the torso wearing the jersey, the SECOND image is a portrait of the player.',
+    'Take ONLY THE HEAD AND FACE from the second image — same face, same hair, same skin tone, do not change the identity —',
+    'and place it naturally on the torso from the first image. IGNORE the jersey in the second image completely.',
+    'Correct head size and position for the body, seamless neck-to-collar transition, unified soft studio lighting.',
+    'CRITICAL: do NOT move, scale, crop or reframe the jersey of the FIRST image — it must stay in EXACTLY the same position, size, pattern and colors, and completely clean (no crest, sponsor, text or logos added).',
+    textoEnquadramento(),
+    'Plain light gray studio background, facing the camera, sharp focus, DSLR quality.'
+  ].join(' ');
+}
+
 function promptDireto(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
   const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
@@ -6039,46 +6056,47 @@ function modalFotosIA(item){
   if(!editar) return;
 
   async function gerarPara(p, linha){
-    const at = Object.assign({}, sorteios[p.n], { recorte:'rosto' });
-    const url = await gerarImagemIA('rosto', promptRosto(item, p, at), 'medium', null,
-      caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-rosto');
-    /* com o uniforme pronto, a OpenAI costura rosto+uniforme numa foto natural —
-       é a montagem que o jogo mostra. O rosto solto fica guardado: é ele que
-       permite refazer a montagem barata quando o jogador trocar de clube. */
+    /* ===== UMA CHAMADA POR FOTO =====
+       Antes eram duas: o rosto recortado e a costura dele sobre o uniforme
+       (US$ 0,114). Agora o rosto nasce JA' NA CAMISA — manda-se o torso do
+       clube como entrada e o rosto vai descrito no texto. US$ 0,070, -39%.
+
+       A escolha nao foi por aritmetica: o comparador (botao ⚖) gerou o mesmo
+       jogador pelos dois caminhos, com os mesmos atributos, e o de uma chamada
+       segurou a listra VERTICAL do Palmeiras — que era o caso mais dificil,
+       onde ele tinha mais chance de escorregar.
+
+       Sem uniforme no clube nao ha' o que editar: cai no retrato completo por
+       texto (tipo 'jogador', US$ 0,044), que tambem e' uma chamada so'. */
     const t = torso();
+    const base = caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador');
+    const at = Object.assign({}, sorteios[p.n], { recorte: t ? 'direto' : 'retrato' });
+    let url = null;
+    try{
+      url = t
+        ? await gerarImagemIA('montagem', promptDireto(item, p, at), 'medium', [t.url], base+'-foto')
+        : await gerarImagemIA('jogador', promptRosto(item, p, at), 'medium', null, base+'-foto');
+    }catch(err){ throw new Error(err.message); }
+
+    /* a conferencia continua, mas so' AVISA: nao refaz nada. Sobraram as duas
+       regras que denunciam imagem inutilizavel (quadro vazio, cabeca solta). */
+    at.montagem = url;
     if(t){
-      /* UMA TENTATIVA, SEM CORREÇÃO AUTOMÁTICA.
-         Este laço já rodou até 3 vezes por jogador, refazendo sozinho a
-         montagem reprovada pelo pixel. O extrato de 25-27/08 mostrou o preço
-         disso: 1.839 das 3.134 chamadas foram refação — US$ 130,16 de
-         US$ 200,54, ou 64,9% da fatura. E a montagem refeita é a chamada MAIS
-         cara do sistema (duas imagens de entrada + saída 2:3).
-         Agora sai uma, e só uma. Se a conferência reprovar, a imagem paga
-         FICA e a linha nasce marcada para revisão — quem decide se vale
-         gastar de novo é a pessoa, olhando o resultado, não o laço. */
-      const TENTATIVAS_MONTAGEM = 1;
-      let tentativas = 0, aprovada = null, ultimoMotivo = '', medidas = null, ultimaImagem = null;
-      while(tentativas < TENTATIVAS_MONTAGEM && !aprovada){
-        tentativas++;
-        try{
-          const cand = await gerarImagemIA('montagem', promptMontagem(), 'medium', [t.url, url],
-            caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador')+'-foto');
-          ultimaImagem = cand;
-          const v = await validarMontagem(cand);
-          if(v.ok){ aprovada = cand; medidas = v.medidas || null; }
-          else { ultimoMotivo = v.motivo; console.warn('montagem reprovada ('+p.n+'):', v.motivo, '— marcada para revisão'); }
-        }catch(err){ ultimoMotivo = err.message; console.warn('montagem falhou:', err.message); break; }
-      }
-      at.tentativas = tentativas;
-      if(aprovada){ at.montagem = aprovada; at.medidas = medidas; }
-      else if(ultimaImagem){
-        /* reprovou, mas a imagem está paga: fica, e a linha nasce marcada —
-           melhor uma foto para você decidir do que a conta de refazer */
-        at.montagem = ultimaImagem;
-        at.revisar = ultimoMotivo || 'montagem fora do gabarito';
-      }
-      else at.revisar = ultimoMotivo || 'montagem não gerada';
+      const v = await validarMontagem(url);
+      if(v.ok) at.medidas = v.medidas || null;
+      else { at.revisar = v.motivo; console.warn('foto marcada para revisão ('+p.n+'):', v.motivo); }
     }
+    /* NADA DO QUE FOI PAGO SE PERDE. O upsert sobrescreve o ponteiro da linha:
+       o .webp anterior continua no Storage, mas ficaria orfao — sem URL em
+       lugar nenhum, invisivel no painel. Guardando a lista, gerar de novo
+       deixa de ser um caminho sem volta, e da' para recuperar a versao antiga
+       se a nova sair pior. Guarda so' a URL (texto), nao a imagem. */
+    const antes = D.fotos[c.id+'|'+p.n];
+    const anteriores = ((antes && antes.atributos && antes.atributos.anteriores) || []).slice(-9);
+    if(antes && antes.atributos && antes.atributos.montagem) anteriores.push(antes.atributos.montagem);
+    else if(antes && antes.url) anteriores.push(antes.url);
+    if(anteriores.length) at.anteriores = anteriores;
+
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
     if(error) throw new Error(erroMsg(error));
@@ -6953,8 +6971,13 @@ function modalUniformeIA(item){
            exatamente para isto — recosturar cada um sobre o uniforme novo, sem
            re-sortear visual. Só ao APLICAR, e sempre com custo confirmado. */
         if(aplicar){
+          /* 'rosto' = fotos antigas, com o recorte guardado; 'direto' = as do
+             metodo de uma chamada, onde a peca reaproveitavel e' a propria
+             foto. Filtrar so' por 'rosto' faria a recostura PULAR EM SILENCIO
+             toda foto nova, e o elenco ficaria com a camisa velha para sempre. */
           const comFoto = (c.squad||[]).map(p => D.fotos[c.id+'|'+p.n])
-            .filter(f => f && f.atributos && f.atributos.recorte==='rosto');
+            .filter(f => f && f.atributos &&
+                    (f.atributos.recorte==='rosto' || f.atributos.recorte==='direto'));
           const custoRe = (comFoto.length*0.07).toFixed(2);   // montagem medida na fatura
           const refazer = comFoto.length ? await rfConfirm({
             titulo:'Uniforme aplicado no jogo',
@@ -6970,7 +6993,11 @@ function modalUniformeIA(item){
             for(const f of comFoto){
               el('wz-estado').textContent = `Aplicando novo uniforme nos jogadores atuais — ${ok+falhas+1}/${comFoto.length} (${f.jogador})…`;
               try{
-                const nova = await gerarImagemIA('montagem', promptMontagem(), 'medium', [url, f.url],
+                /* a entrada muda conforme a origem: rosto recortado ou foto inteira */
+                const dela = f.atributos.recorte==='direto' ? f.atributos.montagem : f.url;
+                const nova = await gerarImagemIA('montagem',
+                  f.atributos.recorte==='direto' ? promptRecostura() : promptMontagem(),
+                  'medium', [url, dela],
                   caminhoClube(item)+'/jogadores/'+(chaveNome(f.jogador)||'jogador')+'-foto');
                 const at2 = Object.assign({}, f.atributos, { montagem: nova });
                 const r2 = await jogo('player_photos').update({ atributos: at2 })
