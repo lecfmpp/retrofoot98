@@ -5677,7 +5677,19 @@ async function medirMolde(url){
       if(achou){ if(topo === null) topo = y; base = y; }
     }
     if(topo === null) return null;
-    return { topo: topo/H, base: base/H, larg: (dir-esq)/W, cx: ((esq+dir)/2)/W, ratio: H/W };
+    /* LARGURA DA CABECA: a maior largura no primeiro quarto do conteudo. E'
+       ela que decide o zoom de cada foto no card — `larg` nao serve, porque
+       mede o conteudo inteiro (ombros incluidos) e da' ~100% em todas. */
+    const lim = Math.floor(topo + (base - topo)*0.25);
+    let cab = 0;
+    for(let y = topo; y < lim; y++){
+      let e = -1, d2 = -1;
+      for(let x = 0; x < W; x++) if(d[((y*W)+x)*4+3] > 25){ e = x; break; }
+      for(let x = W-1; x >= 0; x--) if(d[((y*W)+x)*4+3] > 25){ d2 = x; break; }
+      if(e >= 0 && d2 > e) cab = Math.max(cab, (d2-e)/W);
+    }
+    return { topo: topo/H, base: base/H, larg: (dir-esq)/W, cx: ((esq+dir)/2)/W,
+             cabeca: cab || null, ratio: H/W };
   }catch(_){ return null; }
 }
 
@@ -6617,7 +6629,8 @@ async function medirFotos(btn){
     if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
     const f = D.fotos[k];
     if(!f || !f.url) continue;
-    if(f.atributos && f.atributos.medidaFoto) continue;      // ja' medida
+    const mf = f.atributos && f.atributos.medidaFoto;
+    if(mf && mf.cabeca) continue;      // ja' medida COM a largura da cabeca
     alvos.push({ k, f });
   }
   if(!alvos.length) return toast('Todas as fotos já estão medidas.');

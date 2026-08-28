@@ -359,6 +359,7 @@ function rfCrestEnvolve(club, dentro){
 
    As dez constantes sao as mesmas medidas no editor do painel. Se mudarem
    la', mudam aqui — sao os dois lados do mesmo desenho. */
+const RATIO_FOTO_CARD = 1.5;   // a foto e' 2:3
 const RF_ENC = {
   cabL:0.593, cabT:0.001, camL:1.855, sobre:0.150,
   decL:0.240, decF:0.111, decS:0.15,
@@ -2552,15 +2553,26 @@ function rfCardJogadorHTML(p, num, clubId){
      flutuando sobre o fundo, que e' pior do que nao mostrar o fundo. */
   const recorte = (window.RF_FOTO_RECORTE||{})[p.n];
   const vazado = recorte === 'cartao' || recorte === 'camadas';
-  /* ALINHA TODAS PELO MESMO PONTO. A foto entra a 120% de largura, ou seja
-     118% da altura do card. O conteudo dela comeca em `topo` (fracao da
-     propria imagem); para ele cair sempre em RF_CARD_TOPO do card, a imagem
-     recua a diferenca. Sem isso as antigas, que comecam mais cedo, ficariam
-     com a cabeca mais alta que as novas. */
-  const RF_CARD_TOPO = 0.063, RF_CARD_ALT = 1.18;
-  const topoFoto = (window.RF_FOTO_TOPO||{})[p.n];
-  const desloca = (vazado && topoFoto != null)
-    ? ` --pc-topo:${((RF_CARD_TOPO - topoFoto*RF_CARD_ALT)*100).toFixed(2)}%;` : '';
+  /* IGUALA TODAS AS FOTOS, escalando e deslocando cada uma pela medida dela.
+     Duas coisas variam muito entre as fotos, e as duas se veem no card:
+       · a CABECA vai de 38,6% a 67% da largura da imagem — as antigas menores,
+         mas as novas tambem discordam entre si;
+       · o TOPO do conteudo vai de 1,8% a 6,3% da altura.
+     Um zoom fixo (os 120% de antes) mostrava essa variacao inteira. Aqui o
+     zoom sai da cabeca — larga demais, encolhe; estreita, amplia — e o
+     deslocamento leva o topo do conteudo sempre ao mesmo ponto do card.
+     Sem medida, cai no zoom fixo, que e' o comportamento antigo. */
+  const RF_CARD_TOPO = 0.063;     // onde o conteudo comeca, fracao da altura do card
+  const RF_CARD_CAB  = 0.654;     // largura da cabeca, fracao da LARGURA do card
+  const RF_CARD_RAZAO = 200/305;  // do card, para converter largura em altura
+  const med = (window.RF_FOTO_MED||{})[p.n];
+  let desloca = '';
+  if(vazado && med && med.cabeca){
+    const zoom = RF_CARD_CAB / med.cabeca;
+    const altNoCard = zoom * RATIO_FOTO_CARD * RF_CARD_RAZAO;
+    const topo = RF_CARD_TOPO - (med.topo||0) * altNoCard;
+    desloca = ` --pc-zoom:${(zoom*100).toFixed(2)}%; --pc-topo:${(topo*100).toFixed(2)}%;`;
+  }
   const miolo = !foto ? ''
     : (typeof foto==='string' && foto.charAt(0)==='<')
       ? `<span class="pc-foto pc-foto-comp pc-vazada" style="${desloca}">${foto}</span>`
