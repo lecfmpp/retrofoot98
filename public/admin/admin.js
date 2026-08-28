@@ -2193,6 +2193,79 @@ function chaveNome(s){
     .toLowerCase().replace(/[^a-z0-9]/g,'');
 }
 
+/* UMA FUNCAO SO', chamada pelo Editor de dados E pelo Estudio IA. Estava
+   duplicada e eu consertei so' uma copia: o Editor passou a mostrar o nome
+   ficticio e o Estudio continuou no nome real. Duas paginas que precisam da
+   MESMA verdade nao podem ter duas implementacoes dela. */
+function aplicarPacoteNoCatalogo(base, edits){
+/* ===== O PAINEL PRECISA VER O ELENCO QUE O JOGO VE' =====
+   `clubesDeFabrica()` devolve o bundle CRU, com os nomes reais. O pacote
+   oficial troca esses nomes pelos ficticios, e o jogo aplica essa troca no
+   boot (dados.js). O painel nao aplicava — entao ele contava fotos por nome
+   real contra fotos gravadas por nome ficticio, e o contador de TODO clube
+   brasileiro zerou de uma vez. As fotos nunca sumiram: o painel e' que
+   estava perguntando pelo nome errado.
+
+   Espelha dados.js de proposito, inclusive as duas armadilhas:
+     · `##N` na chave — o N-esimo homonimo, 1-based, na ordem do elenco;
+     · `_n0` — a ancora com o nome ORIGINAL, porque o patch renomeia e uma
+       segunda passada nao acharia mais o jogador pelo nome corrente.
+   E resolve TODOS os alvos antes de escrever: renomear no meio da varredura
+   faria o `##2` nao achar mais dois homonimos.
+
+   Clona clube e elenco: `base` aponta para os objetos do bundle, e remendar
+   no lugar contaminaria window.GAME_DATA para o resto da sessao. */
+const CAMPOS_JOGADOR_ADM = ['n','p','s','f','age','mv','num','nat','ft','moral','energy'];
+const CAMPOS_CLUBE_ADM = ['name','short','color','color2','crest','OS','MS','DS','overall'];
+(edits||[]).forEach(e => {
+  const pat = e.patch || {};
+  const x = base.find(y => String(y.c.id) === String(e.club_id));
+  if(!x) return;
+  /* O NOME DO CLUBE tambem e' ficticio no pacote (Palmeiras -> Verdao
+     Paulista). Mesma historia dos jogadores: o jogo aplica, o painel nao
+     aplicava, e a oficina mostrava um nome que nao existe no jogo.
+     `_nomeReal` fica guardado para a busca continuar achando por "Palmeiras"
+     — quem opera o painel conhece os dois nomes. */
+  const campos = CAMPOS_CLUBE_ADM.filter(k => pat[k] !== undefined && pat[k] !== null);
+  if(campos.length){
+    const novo = Object.assign({}, x.c, { _nomeReal: x.c.name, _curtoReal: x.c.short });
+    for(const k of campos) novo[k] = pat[k];
+    x.c = novo;
+  }
+  if(!pat.squad && !pat.squad_remover && !pat.squad_novos) return;
+  if(!Array.isArray(x.c.squad)) return;
+  const sq = x.c.squad.map(p => Object.assign({}, p));
+  const candidatos = nome => {
+    const anc = sq.filter(y => y._n0 === nome);
+    return anc.length ? anc : sq.filter(y => y._n0 === undefined && y.n === nome);
+  };
+  if(pat.squad){
+    const alvos = [];
+    for(const chave of Object.keys(pat.squad)){
+      const m = /^([\s\S]*)##(\d+)$/.exec(chave);
+      const cands = candidatos(m ? m[1] : chave);
+      const alvo = cands[m ? (parseInt(m[2],10)-1) : 0];
+      if(alvo) alvos.push([alvo, pat.squad[chave]]);
+    }
+    for(const [pj, dados] of alvos){
+      if(dados.n && dados.n !== pj.n && pj._n0 === undefined) pj._n0 = pj.n;
+      for(const k of CAMPOS_JOGADOR_ADM) if(dados[k] !== undefined && dados[k] !== null) pj[k] = dados[k];
+    }
+  }
+  if(Array.isArray(pat.squad_remover)) for(const nome of pat.squad_remover){
+    const i = sq.findIndex(y => y.n === nome); if(i>=0) sq.splice(i,1);
+  }
+  if(Array.isArray(pat.squad_novos)) for(const novo of pat.squad_novos){
+    if(!novo || !novo.n || sq.some(y => y.n === novo.n)) continue;
+    const pj = { moral:70, energy:100 };
+    for(const k of CAMPOS_JOGADOR_ADM) if(novo[k] !== undefined && novo[k] !== null) pj[k] = novo[k];
+    sq.push(pj);
+  }
+  x.c = Object.assign({}, x.c, { squad: sq });
+});
+
+}
+
 async function pgEditor(){
   const editar = podeEditar('dados');
   try{ await carregarCatalogo(); }
@@ -2216,72 +2289,7 @@ async function pgEditor(){
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
                   c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
   });
-  /* ===== O PAINEL PRECISA VER O ELENCO QUE O JOGO VE' =====
-     `clubesDeFabrica()` devolve o bundle CRU, com os nomes reais. O pacote
-     oficial troca esses nomes pelos ficticios, e o jogo aplica essa troca no
-     boot (dados.js). O painel nao aplicava — entao ele contava fotos por nome
-     real contra fotos gravadas por nome ficticio, e o contador de TODO clube
-     brasileiro zerou de uma vez. As fotos nunca sumiram: o painel e' que
-     estava perguntando pelo nome errado.
-
-     Espelha dados.js de proposito, inclusive as duas armadilhas:
-       · `##N` na chave — o N-esimo homonimo, 1-based, na ordem do elenco;
-       · `_n0` — a ancora com o nome ORIGINAL, porque o patch renomeia e uma
-         segunda passada nao acharia mais o jogador pelo nome corrente.
-     E resolve TODOS os alvos antes de escrever: renomear no meio da varredura
-     faria o `##2` nao achar mais dois homonimos.
-
-     Clona clube e elenco: `base` aponta para os objetos do bundle, e remendar
-     no lugar contaminaria window.GAME_DATA para o resto da sessao. */
-  const CAMPOS_JOGADOR_ADM = ['n','p','s','f','age','mv','num','nat','ft','moral','energy'];
-  const CAMPOS_CLUBE_ADM = ['name','short','color','color2','crest','OS','MS','DS','overall'];
-  (eds.data||[]).forEach(e => {
-    const pat = e.patch || {};
-    const x = base.find(y => String(y.c.id) === String(e.club_id));
-    if(!x) return;
-    /* O NOME DO CLUBE tambem e' ficticio no pacote (Palmeiras -> Verdao
-       Paulista). Mesma historia dos jogadores: o jogo aplica, o painel nao
-       aplicava, e a oficina mostrava um nome que nao existe no jogo.
-       `_nomeReal` fica guardado para a busca continuar achando por "Palmeiras"
-       — quem opera o painel conhece os dois nomes. */
-    const campos = CAMPOS_CLUBE_ADM.filter(k => pat[k] !== undefined && pat[k] !== null);
-    if(campos.length){
-      const novo = Object.assign({}, x.c, { _nomeReal: x.c.name, _curtoReal: x.c.short });
-      for(const k of campos) novo[k] = pat[k];
-      x.c = novo;
-    }
-    if(!pat.squad && !pat.squad_remover && !pat.squad_novos) return;
-    if(!Array.isArray(x.c.squad)) return;
-    const sq = x.c.squad.map(p => Object.assign({}, p));
-    const candidatos = nome => {
-      const anc = sq.filter(y => y._n0 === nome);
-      return anc.length ? anc : sq.filter(y => y._n0 === undefined && y.n === nome);
-    };
-    if(pat.squad){
-      const alvos = [];
-      for(const chave of Object.keys(pat.squad)){
-        const m = /^([\s\S]*)##(\d+)$/.exec(chave);
-        const cands = candidatos(m ? m[1] : chave);
-        const alvo = cands[m ? (parseInt(m[2],10)-1) : 0];
-        if(alvo) alvos.push([alvo, pat.squad[chave]]);
-      }
-      for(const [pj, dados] of alvos){
-        if(dados.n && dados.n !== pj.n && pj._n0 === undefined) pj._n0 = pj.n;
-        for(const k of CAMPOS_JOGADOR_ADM) if(dados[k] !== undefined && dados[k] !== null) pj[k] = dados[k];
-      }
-    }
-    if(Array.isArray(pat.squad_remover)) for(const nome of pat.squad_remover){
-      const i = sq.findIndex(y => y.n === nome); if(i>=0) sq.splice(i,1);
-    }
-    if(Array.isArray(pat.squad_novos)) for(const novo of pat.squad_novos){
-      if(!novo || !novo.n || sq.some(y => y.n === novo.n)) continue;
-      const pj = { moral:70, energy:100 };
-      for(const k of CAMPOS_JOGADOR_ADM) if(novo[k] !== undefined && novo[k] !== null) pj[k] = novo[k];
-      sq.push(pj);
-    }
-    x.c = Object.assign({}, x.c, { squad: sq });
-  });
-
+  aplicarPacoteNoCatalogo(base, eds.data);
   D.catalogo = base;
 
   const aba = ST.abaEditor || 'clubes';
@@ -7047,6 +7055,7 @@ async function pgEstudio(){
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
                   c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
   });
+  aplicarPacoteNoCatalogo(base, eds.data);
   D.catalogo = base;
 
   const aba = ST.abaEstudio || 'escudos';
@@ -7073,6 +7082,8 @@ async function pgEstudio(){
     (paisSel==='todos' || x.pais===paisSel) &&
     (!busca || String(x.c.name||'').toLowerCase().includes(busca)
             || String(x.c.short||'').toLowerCase().includes(busca)
+            || String(x.c._nomeReal||'').toLowerCase().includes(busca)
+            || String(x.c._curtoReal||'').toLowerCase().includes(busca)
             || String(x.c.id).toLowerCase().includes(busca)));
 
   const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
@@ -7136,7 +7147,7 @@ async function pgEstudio(){
             ? `<img src="${h(crest)}" alt="" style="width:26px;height:26px;object-fit:contain">`
             : `<i class="av" style="width:26px;height:26px;border-radius:6px;background:${h(cor)};color:#fff;font-size:10px">${h(iniciais(x.c.short||x.c.name))}</i>`}</span>
           <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(x.c.short||x.c.name)}</b>
-            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}</small></span>
+            <small class="mono" style="font-size:11px;color:var(--dim3)">${h(x.c.id)}${x.c._nomeReal && x.c._nomeReal !== x.c.name ? ' · '+h(x.c._nomeReal) : ''}</small></span>
           <span style="font-size:12px;color:var(--dim)">${h(x.pais)}</span>
           <span class="mono" style="font-size:12px;text-align:center">${h(x.div)}</span>
           <span style="text-align:right">${aba==='escudos'
