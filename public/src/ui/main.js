@@ -7168,6 +7168,35 @@ function rfVitoriaSom(){
     }catch(err){}
   }, RF_VITORIA_ESPERA);
 }
+/* ===== A DISPUTA DE PENALTIS TEM SOM COBRANCA A COBRANCA =====
+   Ela decide classificacao e titulo e corria muda: so' o `sfx` de interface,
+   dois bips iguais para converter e para perder. Cada batida passa a ter o
+   som do que aconteceu — a rede quando entra, o "perdeu" quando nao entra.
+   O INTERVALO e' obrigatorio aqui: a revelacao tem ritmo proprio (1,2s de
+   suspense, 1,8s de resultado) mas o modo "⏩ Simular o resto" corta isso para
+   200ms, e sem trava as cinco cobrancas sairiam praticamente juntas. */
+const RF_PEN_INTERVALO = 900;
+let RF_PEN_EM = 0;
+function rfPenaltiSom(scored){
+  if(!rfSomLigado()) return;
+  if(Date.now() - RF_PEN_EM < RF_PEN_INTERVALO) return;
+  RF_PEN_EM = Date.now();
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(scored ? RF_GOL_REDE : RF_SONS.penaltiPerdido);
+    a.volume = Math.min(1, 0.9*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+}
+/* Qual dos dois lados e' "o utilizador" para efeito de comemoracao.
+   Fora do hotseat e' simples: o clube dele. No HOTSEAT sao dois humanos no
+   mesmo ecra, e a pergunta nao tem resposta unica — a regra combinada e' que
+   o DONO DA CASA prevalece. */
+function rfLadoDoUtilizador(m){
+  const RL = CL.live;
+  if(RL && RL.humanSeat) return 'H';
+  return (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+}
 function rfVitoriaParar(){
   const a = RF_VITORIA; if(!a) return;
   RF_VITORIA = null;
@@ -7376,7 +7405,9 @@ function shootoutRevelar(side, takerName, scored){
   cdraw();
   const rapido=!!CL.penAuto;               // "⏩ Simular o resto" continua a valer
   CL._penRevealTimer=setTimeout(()=>{
-    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
+    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido');
+    rfPenaltiSom(scored);
+    cdraw();
     CL._penCloseTimer=setTimeout(()=>{
       CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
       recordShootoutKick(side, takerName, scored);
@@ -7462,6 +7493,18 @@ function finishPenaltyShootout(){
   // se bateu o teto de segurança (20 cobranças cada) ainda empatado — praticamente
   // impossível na prática — desempata pro lado de casa, só pra sempre ter um vencedor.
   if(P.finalH===P.finalA) P.finalH++;
+  /* GANHOU NOS PENALTIS E' VITORIA COMO OUTRA QUALQUER. O `camFinal` nao serve
+     aqui: para ele a partida acabou empatada no tempo normal, e quem decide
+     e' esta contagem. */
+  {
+    const m = RL.matches[0];
+    const lado = m ? rfLadoDoUtilizador(m) : null;
+    if(lado){
+      const meus = lado==='H' ? P.finalH : P.finalA;
+      const deles = lado==='H' ? P.finalA : P.finalH;
+      if(meus > deles && typeof rfVitoriaSom==='function') rfVitoriaSom();
+    }
+  }
   RL.paused=false; RL.done=true;
   finishCupLiveMatch();
 }
@@ -8604,8 +8647,9 @@ function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.f
   liveApitoFinal(CL.live);   // se a rodada ja' apitou, isto nao repete
   {
     /* A COMEMORACAO NAO DEPENDE DO CAMAROTE, como os apitos: ela marca o fim
-       da partida DELE, esteja em que tela estiver. */
-    const lado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+       da partida DELE, esteja em que tela estiver. A mesma regra da disputa de
+       penaltis decide quem e' "ele" quando ha' dois humanos no ecra. */
+    const lado = rfLadoDoUtilizador(m);
     if(lado){
       const meus = lado==='H' ? (m.hg||0) : (m.ag||0);
       const deles = lado==='H' ? (m.ag||0) : (m.hg||0);
