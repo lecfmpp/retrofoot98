@@ -6484,6 +6484,40 @@ function modalPosCamisa(item, estilo, aoSalvar){
 
    Nao apaga nada: cada montagem sobe com nome novo e a anterior fica no
    Storage, listada em atributos.anteriores. */
+/* UMA foto. O lote chama isto em cada alvo e o botao de um jogador chama a
+   MESMA funcao — testar um so' vale se for o mesmo caminho dos outros. */
+async function remontarUma(a){
+  const at = Object.assign({}, a.f.atributos || {});
+  at.medida = at.medida || await medirMolde(a.f.url);
+  const blob = await montarFotoJogador(a.f.url, a.man, at.medida);
+  const base = (a.x ? caminhoClube(a.x) : 'remontagem') + '/jogadores/' + (chaveNome(a.nome)||'jogador');
+  const caminho = `${base}-montagem-${Date.now()}.webp`;
+  const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
+  if(up.error) throw new Error(up.error.message);
+  /* a montagem anterior nao se perde: vai para a lista, e o arquivo dela
+     continua no Storage — da' para voltar se a nova sair pior */
+  const anteriores = (at.anteriores || []).slice(-9);
+  if(at.montagem) anteriores.push(at.montagem);
+  if(anteriores.length) at.anteriores = anteriores;
+  at.montagem = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+  at.recorte = 'camadas';
+  delete at.revisar; delete at.medidas;
+  const reg = Object.assign({}, a.f, { atributos: at });
+  const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[a.k] = reg;
+  return reg;
+}
+
+/* monta o alvo de um jogador, no formato que remontarUma espera */
+function alvoRemontagem(clube, nome){
+  const k = clube+'|'+nome, f = D.fotos[k];
+  const t = D.fotos[clube+'|'+TORSO_KEY];
+  const man = t && t.atributos && t.atributos.miniatura;
+  if(!f || !f.url || !man) return null;
+  return { k, clube, nome, f, man, x:(D.catalogo||[]).find(c => String(c.c.id) === String(clube)) };
+}
+
 async function remontarFotos(btn){
   const alvos = [];
   for(const k of Object.keys(D.fotos||{})){
@@ -6509,26 +6543,8 @@ async function remontarFotos(btn){
   let ok=0, erros=0;
   for(const a of alvos){
     btn.textContent = `Remontando ${ok+erros+1}/${alvos.length}…`;
-    try{
-      const at = Object.assign({}, a.f.atributos || {});
-      at.medida = at.medida || await medirMolde(a.f.url);
-      const blob = await montarFotoJogador(a.f.url, a.man, at.medida);
-      const base = (a.x ? caminhoClube(a.x) : 'remontagem') + '/jogadores/' + (chaveNome(a.nome)||'jogador');
-      const caminho = `${base}-montagem-${Date.now()}.webp`;
-      const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
-      if(up.error) throw new Error(up.error.message);
-      const anteriores = (at.anteriores || []).slice(-9);
-      if(at.montagem) anteriores.push(at.montagem);
-      if(anteriores.length) at.anteriores = anteriores;
-      at.montagem = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
-      at.recorte = 'camadas';
-      delete at.revisar; delete at.medidas;
-      const reg = Object.assign({}, a.f, { atributos: at });
-      const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
-      if(r.error) throw new Error(r.error.message);
-      D.fotos[a.k] = reg;
-      ok++;
-    }catch(err){ erros++; console.warn('remontagem falhou:', a.k, err.message); }
+    try{ await remontarUma(a); ok++; }
+    catch(err){ erros++; console.warn('remontagem falhou:', a.k, err.message); }
   }
   registrar('estudio.fotos.remontar', String(ok), { pacote: ST.packId, falhas: erros });
   toast(`${ok} foto(s) remontadas${erros?`, ${erros} falharam`:''}.`);
@@ -8248,6 +8264,7 @@ function modalFotosIA(item){
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
+        ${editar && f ? botao('data-remontar','⟳','Remontar esta foto com o encaixe atual — sem custo') :''}
         ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
         ${editar? botao('data-comparar','⌗','Encaixe') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
@@ -8380,6 +8397,19 @@ function modalFotosIA(item){
       const f = D.fotos[c.id+'|'+p.n];
       if(f && f.atributos && f.atributos.montagem)
         modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true, p.n);
+      return;
+    }
+    const btRm = ev.target.closest('[data-remontar]');
+    if(btRm){
+      const alvo = alvoRemontagem(String(c.id), p.n);
+      if(!alvo) return toast('Precisa de cabeça e de manequim do clube.', true);
+      btRm.disabled = true;
+      remontarUma(alvo).then(reg => {
+        toast(`${p.n} remontado. Confira no ⌗.`);
+        const th = ev.target.closest('.ft-row').querySelector('[data-thumb]');
+        if(th) th.innerHTML = thumbHTML(reg, 40);
+        btRm.disabled = false;
+      }).catch(err => { toast(err.message||'Não consegui remontar.', true); btRm.disabled = false; });
       return;
     }
     if(ev.target.closest('[data-reusar]')){ modalAcervo(item, p); return; }
