@@ -2216,6 +2216,59 @@ async function pgEditor(){
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
                   c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
   });
+  /* ===== O PAINEL PRECISA VER O ELENCO QUE O JOGO VE' =====
+     `clubesDeFabrica()` devolve o bundle CRU, com os nomes reais. O pacote
+     oficial troca esses nomes pelos ficticios, e o jogo aplica essa troca no
+     boot (dados.js). O painel nao aplicava — entao ele contava fotos por nome
+     real contra fotos gravadas por nome ficticio, e o contador de TODO clube
+     brasileiro zerou de uma vez. As fotos nunca sumiram: o painel e' que
+     estava perguntando pelo nome errado.
+
+     Espelha dados.js de proposito, inclusive as duas armadilhas:
+       · `##N` na chave — o N-esimo homonimo, 1-based, na ordem do elenco;
+       · `_n0` — a ancora com o nome ORIGINAL, porque o patch renomeia e uma
+         segunda passada nao acharia mais o jogador pelo nome corrente.
+     E resolve TODOS os alvos antes de escrever: renomear no meio da varredura
+     faria o `##2` nao achar mais dois homonimos.
+
+     Clona clube e elenco: `base` aponta para os objetos do bundle, e remendar
+     no lugar contaminaria window.GAME_DATA para o resto da sessao. */
+  const CAMPOS_JOGADOR_ADM = ['n','p','s','f','age','mv','num','nat','ft','moral','energy'];
+  (eds.data||[]).forEach(e => {
+    const pat = e.patch || {};
+    if(!pat.squad && !pat.squad_remover && !pat.squad_novos) return;
+    const x = base.find(y => String(y.c.id) === String(e.club_id));
+    if(!x || !Array.isArray(x.c.squad)) return;
+    const sq = x.c.squad.map(p => Object.assign({}, p));
+    const candidatos = nome => {
+      const anc = sq.filter(y => y._n0 === nome);
+      return anc.length ? anc : sq.filter(y => y._n0 === undefined && y.n === nome);
+    };
+    if(pat.squad){
+      const alvos = [];
+      for(const chave of Object.keys(pat.squad)){
+        const m = /^([\s\S]*)##(\d+)$/.exec(chave);
+        const cands = candidatos(m ? m[1] : chave);
+        const alvo = cands[m ? (parseInt(m[2],10)-1) : 0];
+        if(alvo) alvos.push([alvo, pat.squad[chave]]);
+      }
+      for(const [pj, dados] of alvos){
+        if(dados.n && dados.n !== pj.n && pj._n0 === undefined) pj._n0 = pj.n;
+        for(const k of CAMPOS_JOGADOR_ADM) if(dados[k] !== undefined && dados[k] !== null) pj[k] = dados[k];
+      }
+    }
+    if(Array.isArray(pat.squad_remover)) for(const nome of pat.squad_remover){
+      const i = sq.findIndex(y => y.n === nome); if(i>=0) sq.splice(i,1);
+    }
+    if(Array.isArray(pat.squad_novos)) for(const novo of pat.squad_novos){
+      if(!novo || !novo.n || sq.some(y => y.n === novo.n)) continue;
+      const pj = { moral:70, energy:100 };
+      for(const k of CAMPOS_JOGADOR_ADM) if(novo[k] !== undefined && novo[k] !== null) pj[k] = novo[k];
+      sq.push(pj);
+    }
+    x.c = Object.assign({}, x.c, { squad: sq });
+  });
+
   D.catalogo = base;
 
   const aba = ST.abaEditor || 'clubes';
