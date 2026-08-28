@@ -5327,10 +5327,19 @@ const ENCAIXE_GOLA_OFFSET = 0;        // + desce a ancora para dentro da camisa
    ACIMA dela. Na altura da gola so' o pescoco cruza o corte — os ombros ja'
    descem — entao nada da camisa se perde.
    O corte e' RELATIVO a' gola do estilo; este numero so' desloca essa linha. */
-const GOLA_CORTE = 0;   // + corta mais abaixo (entra na gola), − deixa sobrar
+const GOLA_CORTE = -0.115;   // medido: corta 11,5 pontos ACIMA da gola do estilo
 
 /* Onde o uniforme fica no eixo horizontal do quadro. 0,5 = centrado. */
-const TORSO_X = 0.5;
+const TORSO_X = 0.4915;   // medido na bancada: 0,85% a' esquerda do centro
+
+/* O QUADRO DA MONTAGEM E' O DA FICHA DO JOGADOR — 1:1.
+   A Ficha exibe a foto em .rf-fotonum (38/52/64px, object-fit:cover): compor
+   em 2:3 e' compor num quadro que ninguem ve'. Como o molde e' 2:3, dentro de
+   um quadro quadrado ele fica 128% mais alto que o quadro — por isso o corpo
+   e' posicionado pelo TOPO, e nao ancorado no rodape. */
+const RATIO_QUADRO = 1;
+const ENCAIXE_TOPO_CORPO = 0.3605;   // medido: 18,3% abaixo do recorte do jogo
+const alturaTorsoNoQuadro = () => TORSO_ESCALA*RATIO_FOTO/RATIO_QUADRO;
 
 /* CONVERSAO QUE FALTAVA. medirCentroX devolve o centro opaco em fracoes da
    LARGURA DO MOLDE; o molde entra no quadro a TORSO_ESCALA (85,5%), centrado
@@ -5482,11 +5491,12 @@ const TORSO_TOPO   = 1 - TORSO_ESCALA;   // ancorado embaixo, como uma pessoa em
 function encaixeComposto(m, estilo, centroCorpo){
   if(!m || !m.base || !m.larg) return null;
   /* onde a gola do uniforme cai DENTRO DO QUADRO, ja' na escala calibrada */
-  const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
+  const hTorso = alturaTorsoNoQuadro();
+  const gola = ENCAIXE_TOPO_CORPO + golaDoEstilo(estilo)*hTorso;
   /* a cabeca sai com ENCAIXE_LARG_CABECA da largura do quadro — sempre, seja qual
      for o tamanho que o modelo deu a ela na imagem do rosto */
   const ladoLarg = ENCAIXE_LARG_CABECA / m.larg;     // em fracoes da LARGURA
-  const rostoAltura = ladoLarg / RATIO_FOTO;         // a mesma medida em fracoes da ALTURA
+  const rostoAltura = ladoLarg / RATIO_QUADRO;       // a mesma medida em fracoes da ALTURA
   /* ONDE POR A IMAGEM para que a CABECA — e nao o quadrado dela — caia no
      eixo do corpo. `left` marca o centro da imagem (ha' translateX(-50%)),
      entao ele recua o quanto a cabeca estiver fora do proprio centro. */
@@ -5494,7 +5504,8 @@ function encaixeComposto(m, estilo, centroCorpo){
   const cx = m.cx == null ? 0.5 : m.cx;
   return {
     rostoAltura,
-    rostoTopo: (gola + ENCAIXE_GOLA_OFFSET*TORSO_ESCALA) - m.base*rostoAltura,
+    rostoTopo: (gola + ENCAIXE_GOLA_OFFSET) - m.base*rostoAltura,
+    corpoTopo: ENCAIXE_TOPO_CORPO,
     rostoEsq: eixo - (cx - 0.5)*ladoLarg,
     corte: golaDoEstilo(estilo) + GOLA_CORTE   // na altura do MOLDE, nao do quadro
   };
@@ -5509,12 +5520,12 @@ function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida, centroMolde, 
   const e = encaixeComposto(medida, estilo, eixoNoQuadro(centroMolde, bx));
   /* quadro 2:3, o MESMO de A e B */
   const quadro = px
-    ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
-    : `width:100%;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)}`;
+    ? `width:${px}px;height:${Math.round(px*RATIO_QUADRO)}px`
+    : `width:100%;aspect-ratio:${(1/RATIO_QUADRO).toFixed(4)}`;
   /* o uniforme entra sempre igual: escala calibrada, centrado, ancorado
      embaixo. Nao depende do jogador nem do render. */
   const recorte = e ? `;clip-path:inset(${(e.corte*100).toFixed(2)}% 0 0 0)` : '';
-  const corpo = `<img src="${h(torsoUrl)}" style="position:absolute;left:${(bx*100).toFixed(2)}%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%${recorte}">`;
+  const corpo = `<img src="${h(torsoUrl)}" style="position:absolute;left:${(bx*100).toFixed(2)}%;transform:translateX(-50%);top:${(ENCAIXE_TOPO_CORPO*100).toFixed(2)}%;width:${(TORSO_ESCALA*100).toFixed(1)}%${recorte}">`;
   if(!e){
     return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">${corpo}</span>`;
   }
@@ -6240,14 +6251,13 @@ async function compararMetodos(item, p){
      Daqui em diante toda a geometria e' relativa a `st.rq` (altura/largura do
      quadro), e nao mais a RATIO_FOTO. O molde continua 2:3 — ele nao mudou —
      mas sua ALTURA dentro do quadro passa a depender do formato escolhido. */
-  const FORMATOS = { ficha:[1, 'Ficha do Jogador (1:1)'], foto:[RATIO_FOTO, 'Foto guardada (2:3)'] };
+  const FORMATOS = { ficha:[RATIO_QUADRO, 'Ficha do Jogador (1:1)'], foto:[RATIO_FOTO, 'Foto guardada (2:3)'] };
   const alturaTorso = () => TORSO_ESCALA*RATIO_FOTO/st.rq;   // fracao da ALTURA do quadro
   /* PARAMETRIZADO PELO TOPO, nao pelo rodape. Num quadro 1:1 o molde 2:3 e'
      mais alto que o quadro (128%): ancorar embaixo empurra a gola para fora
      por cima. O padrao reproduz o que o jogo mostra — em 2:3, o torso comeca
      em 14,5%; no quadrado, o mesmo ponto visto pela janela da Ficha. */
-  const topoPadrao = rq => rq === RATIO_FOTO ? (1-TORSO_ESCALA)
-                                             : ((1-TORSO_ESCALA) - 0.08*(1-1/RATIO_FOTO))/(1/RATIO_FOTO);
+  const topoPadrao = rq => rq === RATIO_QUADRO ? ENCAIXE_TOPO_CORPO : (1-TORSO_ESCALA);
   const corpoTopo   = () => st.corpoY;
   const golaNoQuadro = e => corpoTopo() + golaDoEstilo(e)*alturaTorso();
   const largRender  = () => st.alt*st.rq;                    // largura do render do rosto
@@ -6275,8 +6285,8 @@ async function compararMetodos(item, p){
   const gruda = (v, passo) => passo ? Math.round(v/passo)*passo : v;
 
   /* estado: alt = altura do render; ancX/ancY = a base do pescoco no quadro */
-  const st = { rq: 1, corpoX: TORSO_X, corpoY: 0,   /* = topo do corpo; ajustado logo abaixo */ junto: true,
-               alt: ENCAIXE_LARG_CABECA/(medida.larg*1),
+  const st = { rq: RATIO_QUADRO, corpoX: TORSO_X, corpoY: 0,   /* = topo do corpo; ajustado logo abaixo */ junto: true,
+               alt: ENCAIXE_LARG_CABECA/(medida.larg*RATIO_QUADRO),
                ancX: eixoNoQuadro(centroMolde, TORSO_X), ancY: 0,
                cola: 'meia', ima: true, cortar: true, corte: auto.corte,
                semFundo: true, fundo: '#e8e8e4' };
