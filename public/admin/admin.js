@@ -8063,8 +8063,6 @@ function modalFotosIA(item){
         <small style="font-size:11px;color:var(--dim3)">${h(p.p||'—')} · ${p.age!=null?p.age+' anos':'idade —'} · força ${p.f!=null?p.f:'—'}</small></span>
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
-        ${editar && f && (f.atributos||{}).recorte !== 'cartao'
-            ? botao('data-recortar','✂','Recortar o fundo desta foto — sem custo') :''}
         ${f ? botao('data-baixar','⤓','Baixar a imagem deste jogador') :''}
         ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
@@ -8196,18 +8194,6 @@ function modalFotosIA(item){
     if(ev.target.closest('[data-baixar]')){
       const f = D.fotos[c.id+'|'+p.n];
       if(f) baixarImagem((f.atributos&&f.atributos.montagem)||f.url, `${chaveNome(p.n)||'jogador'}.webp`);
-      return;
-    }
-    const btCt = ev.target.closest('[data-recortar]');
-    if(btCt){
-      btCt.disabled = true;
-      recortarESalvar(String(c.id), p.n).then(reg => {
-        const pc = Math.round((reg.atributos.fundoRemovido||0)*100);
-        toast(`${p.n}: ${pc}% da imagem era fundo e saiu. Confira no card.`);
-        const th = ev.target.closest('.ft-row').querySelector('[data-thumb]');
-        if(th) th.innerHTML = thumbHTML(reg, 40);
-        btCt.disabled = false;
-      }).catch(err => { toast(err.message||'Não consegui recortar.', true); btCt.disabled = false; });
       return;
     }
     if(ev.target.closest('[data-reusar]')){ modalAcervo(item, p); return; }
