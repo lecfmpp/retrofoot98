@@ -350,7 +350,6 @@ function rfCrestEnvolve(club, dentro){
 const RF_ENC = {
   cabL:0.593, cabT:0.001, camL:1.855, sobre:0.150,
   decL:0.240, decF:0.111, decS:0.15,
-  topL:0.910, topF:0.250, topS:0.05,
   ratio:1.5
 };
 function rfRostoDe(p, clubId){
@@ -380,14 +379,10 @@ function rfComporRetrato(p, clubId){
   const topoCam = fim - K.sobre;
   const cx = m.cx==null ? 0.5 : m.cx;
   const altCam = K.camL / K.ratio;
-  /* as duas mascaras do topo: a curva convexa (guarda o centro) e o decote
-     concavo (abre o meio). Somadas por padrao elas se anulariam — daí o
-     mask-composite:intersect. */
+  /* O DECOTE, so'. A curva do topo saiu: ela guardava o que estava DENTRO de
+     uma elipse, e elipse e' fechada — arredondava o topo e cortava o fundo
+     junto. O decote e' concavo e mexe so' na borda de cima. */
   const cam = [];
-  if(K.topL>0 && K.topF>0){
-    const a=(K.topL/K.camL*100).toFixed(2), b=(K.topF/altCam*100).toFixed(2);
-    cam.push(`radial-gradient(ellipse ${a}% ${b}% at 50% ${b}%,#000 ${Math.round((1-K.topS)*100)}%,transparent 100%)`);
-  }
   if(K.decL>0 && K.decF>0){
     const a=(K.decL/K.camL*100).toFixed(2), b=(K.decF/altCam*100).toFixed(2);
     cam.push(`radial-gradient(ellipse ${a}% ${b}% at 50% 0%,transparent ${Math.round((1-K.decS)*100)}%,#000 100%)`);
