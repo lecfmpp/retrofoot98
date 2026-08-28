@@ -5299,7 +5299,10 @@ function promptRostoMolde(item, p, at){
    refeito, remedir e atualizar aqui. */
 const MOLDE_GOLA = { diagonal:0.161, horizontal:0.194, lisa:0.190, mangas:0.199, vertical:0.165 };
 const MOLDE_GOLA_PADRAO = 0.182;   // media, para estilo desconhecido
-const torsoDescida = estilo => ENQ.linhaGola - (MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO);
+const golaDoEstilo = estilo => MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO;
+/* quanto o pescoco entra por baixo da gola — sem isto fica um fio de fundo
+   entre o queixo e a camisa */
+const GOLA_SOBREPOR = 0.05;
 
 /* ===== MEDIR, NAO PEDIR =====
    O promptRostoMolde pede topo em 8%, pescoco em 58% e cabeca com 26% da
@@ -5342,10 +5345,18 @@ async function medirRosto(url){
    Escala pelo VAO VERTICAL (topo da cabeca ate' a gola) e nao pela largura:
    casar a largura deixaria o pescoco curto demais e abriria um vao entre ele
    e a gola, que salta muito mais aos olhos do que 3 pontos de largura. */
-function rostoEncaixeMedido(m){
+function rostoEncaixeMedido(m, estilo){
   if(!m || !m.span) return rostoEncaixe();          // sem medida, cai no teorico
-  const altura = (ENQ.linhaGola - ENQ.topoCabeca) / m.span;
-  return { altura, topo: ENQ.topoCabeca - m.topo*altura };
+  /* O UNIFORME NAO SE MEXE. A base fica exatamente como esta' — mesma imagem,
+     mesmo enquadramento dos outros metodos. Quem se ajusta e' so' a cabeca, e
+     o alvo dela e' a gola REAL da camisa (medida por estilo), nao a linha
+     teorica do ENQ. O preco disso esta' a' vista: com a gola do molde entre
+     16% e 20%, sobra pouca altura acima dela, entao a cabeca sai menor que nas
+     fotos costuradas por IA. E' a consequencia de nao tocar na base. */
+  const gola = golaDoEstilo(estilo) + GOLA_SOBREPOR;
+  const topoCabeca = 0.03;                          // respiro do topo do quadro
+  const altura = (gola - topoCabeca) / m.base;      // base = fim do pescoco na imagem
+  return { altura, topo: topoCabeca - m.topo*altura };
 }
 
 /* o composto do metodo C: uniforme do clube + rosto medido, sem IA nenhuma.
@@ -5353,13 +5364,12 @@ function rostoEncaixeMedido(m){
    e' o que os cartoes A e B usam. Passar largura fixa aqui encolhia o cartao C
    ao lado dos outros dois. */
 function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida){
-  const e = medida ? rostoEncaixeMedido(medida) : rostoEncaixe();
-  const desce = torsoDescida(estilo);
+  const e = medida ? rostoEncaixeMedido(medida, estilo) : rostoEncaixe();
   const quadro = px
     ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
     : `width:100%;aspect-ratio:${1/RATIO_FOTO}`;
   return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">
-    <img src="${h(torsoUrl)}" style="position:absolute;left:0;width:100%;top:${(desce*100).toFixed(1)}%;height:100%;object-fit:cover;object-position:top">
+    <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
     ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:${(e.topo*100).toFixed(1)}%;height:${(e.altura*100).toFixed(1)}%;object-fit:contain">`:''}
   </span>`;
 }
@@ -6079,7 +6089,7 @@ async function compararMetodos(item, p){
             de clube fica <b>de graça</b> — só troca o corpo por baixo.
             ${medidaRosto ? `<br><span class="mono" style="font-size:10.5px">medido: topo ${(medidaRosto.topo*100).toFixed(1)}%
               · altura ${(medidaRosto.span*100).toFixed(1)}% · cabeça ${(medidaRosto.larg*100).toFixed(1)}% de largura
-              → render ${(rostoEncaixeMedido(medidaRosto).altura*100).toFixed(1)}%</span>` : ''}</small>
+              → render ${(rostoEncaixeMedido(medidaRosto,(t.atributos||{}).estilo).altura*100).toFixed(1)}%</span>` : ''}</small>
         </div>
       </div>
       <div class="st" style="line-height:1.6">${h(resumoAtributos(at))}</div>
