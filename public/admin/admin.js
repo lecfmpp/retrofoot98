@@ -5376,6 +5376,37 @@ const rostoEncaixe = () => {
   const altura = (ENQ.linhaGola - ENQ.topoCabeca) / span;
   return { altura, topo: ENQ.topoCabeca - ROSTO_MOLDE.topo*altura };
 };
+/* ===== O RETRATO PARA O CARD =====
+   O card do jogador poe a identidade do clube no FUNDO (listras nas cores
+   dele) e apaga o uniforme com um degrade escuro subindo do rodape. Logo a
+   foto nao precisa — e nao deve — carregar a camisa de clube nenhum: ela
+   nasce com um uniforme generico da marca e serve a qualquer clube, para
+   sempre. Transferencia deixa de ser problema por construcao, sem montagem,
+   sem remontagem e sem custo por troca.
+
+   FUNDO TRANSPARENTE e' requisito, nao enfeite: sem alfa, o retangulo da foto
+   taparia as listras do clube e o card perderia justamente a parte que o faz
+   funcionar. Vai pelo tipo `camisa` da edge function, que ja' pede
+   background:"transparent" em 1024x1536.
+
+   ENQUADRAMENTO cabeca-ao-peito, rosto no terco superior: e' onde o card
+   corta (object-position 50% 12%) e onde o degrade ainda nao cobriu. */
+const MARCA_AZUL = '#17458F', MARCA_AMARELO = '#F2B90C';
+function promptCartaoJogador(item, p, at){
+  return [
+    `Hyper-realistic studio photograph of a fictional professional football player from ${item.pais==='Brasil' ? 'Brazil' : item.pais}, head and chest only, front view, facing the camera.`,
+    /* os mesmos atributos sorteados do retrato antigo — sem eles os jogadores
+       novos sairiam todos parecidos, que era o motivo de existir o sorteio */
+    `${at.idade} years old, ${at.pele}, ${/bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    `Wearing a PLAIN football jersey in deep royal blue (${MARCA_AZUL}) with narrow golden yellow (${MARCA_AMARELO}) trim on the collar and sleeve cuffs — no stripes, no pattern, no club identity.`,
+    'The jersey is COMPLETELY CLEAN: no crest, no badge, no sponsor, no manufacturer mark, no text, no numbers, no logos anywhere.',
+    'Framing: the top of the head near the top edge, the face in the UPPER THIRD, cropped at mid-chest, shoulders fully visible and centered.',
+    'FULLY TRANSPARENT BACKGROUND — no studio backdrop, no floor, and NO SHADOW cast behind or around the player (a cast shadow becomes a grey fringe when the photo is placed over colours).',
+    'Soft even studio lighting on the face, sharp focus, DSLR quality.',
+    'This is a completely fictional person, not resembling any real person.'
+  ].filter(Boolean).join(' ');
+}
+
 function promptRostoMolde(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
   const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
@@ -8394,23 +8425,16 @@ function modalFotosIA(item){
 
        Sem manequim no clube nao ha' em que encaixar: cai no retrato completo
        por texto, como antes. */
-    const t = torso();
-    const manequim = t && t.atributos && t.atributos.miniatura;
+    /* UMA imagem, sem montagem. O uniforme e' o generico da marca e o fundo e'
+       transparente, entao a foto ja' nasce independente do clube — nao ha' o
+       que encaixar nem o que remontar numa transferencia. */
     const base = caminhoClube(item)+'/jogadores/'+(chaveNome(p.n)||'jogador');
-    const at = Object.assign({}, sorteios[p.n], { recorte: manequim ? 'camadas' : 'retrato' });
+    const at = Object.assign({}, sorteios[p.n], { recorte: 'cartao' });
     let url = null;
     try{
-      url = manequim
-        ? await gerarImagemIA('rosto', promptRostoMolde(item, p, at), 'medium', null, base+'-cabeca')
-        : await gerarImagemIA('jogador', promptRosto(item, p, at), 'medium', null, base+'-foto');
+      url = await gerarImagemIA('camisa', promptCartaoJogador(item, p, at), 'medium', null, base+'-cartao');
     }catch(err){ throw new Error(err.message); }
-
-    if(manequim){
-      at.medida = await medirMolde(url);
-      at.montagem = await encaixarESalvar(url, manequim, at.medida, base);
-    }else{
-      at.montagem = url;
-    }
+    at.montagem = url;
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
     if(error) throw new Error(erroMsg(error));
@@ -8486,11 +8510,12 @@ function modalFotosIA(item){
        tabela antiga por imagem, que subestimava a montagem em 11%. */
     const custo = (fila.length*0.044).toFixed(2);   // so' a cabeca; o encaixe e' canvas
     if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
-      texto:`Vou gerar <b>${fila.length} cabeça(s)</b> — o encaixe na camisa do clube é feito aqui, em canvas, sem IA.`,
-      detalhe:`Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe. Era US$ ${(fila.length*0.114).toFixed(2)}
-               quando a IA costurava a camisa junto.
-               A cabeça fica guardada à parte e <b>serve a qualquer clube</b>: numa transferência,
-               a camisa troca sem gerar nada. Antes de gastar, veja o acervo (♻) — há cabeças sem dono.`,
+      texto:`Vou gerar <b>${fila.length} retrato(s)</b> — cabeça e peito, uniforme da marca e fundo transparente.`,
+      detalhe:`Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe.
+               O uniforme é o <b>genérico da marca</b> e o fundo é transparente, então a foto
+               <b>serve a qualquer clube para sempre</b>: no card, a identidade vem do fundo e o degradê
+               cobre a camisa. Numa transferência não há nada a refazer.
+               Antes de gastar, veja o acervo (♻) — há cabeças sem dono.`,
       nao:'Agora não', sim:`Gerar ${fila.length} fotos` })) return;
     btTodos.disabled = true;
     let ok = 0, erroN = 0; const revisar = [];
