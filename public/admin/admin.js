@@ -5329,6 +5329,16 @@ const ENCAIXE_GOLA_OFFSET = 0;        // + desce a ancora para dentro da camisa
    O corte e' RELATIVO a' gola do estilo; este numero so' desloca essa linha. */
 const GOLA_CORTE = 0;   // + corta mais abaixo (entra na gola), − deixa sobrar
 
+/* Onde o uniforme fica no eixo horizontal do quadro. 0,5 = centrado. */
+const TORSO_X = 0.5;
+
+/* CONVERSAO QUE FALTAVA. medirCentroX devolve o centro opaco em fracoes da
+   LARGURA DO MOLDE; o molde entra no quadro a TORSO_ESCALA (85,5%), centrado
+   em TORSO_X. Usar o numero cru como se fosse do quadro erra por
+   (1 − TORSO_ESCALA) do desvio — pequeno, mas era erro de graca. */
+const eixoNoQuadro = (centroMolde, corpoX) =>
+  (corpoX == null ? TORSO_X : corpoX) + ((centroMolde == null ? 0.5 : centroMolde) - 0.5)*TORSO_ESCALA;
+
 /* ===== MEDIR, NAO PEDIR =====
    O promptRostoMolde pede topo em 8%, pescoco em 58% e cabeca com 26% da
    largura. MEDIDO em duas geracoes: o modelo entregou topo 1,7%/3,0%, base
@@ -5439,8 +5449,9 @@ function encaixeComposto(m, estilo, centroCorpo){
    `px` opcional — sem ele o quadro e' FLUIDO (width 100% + aspect-ratio), que
    e' o que os cartoes A e B usam. Passar largura fixa aqui encolhia o cartao C
    ao lado dos outros dois. */
-function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida, centroCorpo){
-  const e = encaixeComposto(medida, estilo, centroCorpo);
+function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida, centroMolde, corpoX){
+  const bx = corpoX == null ? TORSO_X : corpoX;
+  const e = encaixeComposto(medida, estilo, eixoNoQuadro(centroMolde, bx));
   /* quadro 2:3, o MESMO de A e B */
   const quadro = px
     ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
@@ -5448,7 +5459,7 @@ function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida, centroCorpo){
   /* o uniforme entra sempre igual: escala calibrada, centrado, ancorado
      embaixo. Nao depende do jogador nem do render. */
   const recorte = e ? `;clip-path:inset(${(e.corte*100).toFixed(2)}% 0 0 0)` : '';
-  const corpo = `<img src="${h(torsoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%${recorte}">`;
+  const corpo = `<img src="${h(torsoUrl)}" style="position:absolute;left:${(bx*100).toFixed(2)}%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%${recorte}">`;
   if(!e){
     return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">${corpo}</span>`;
   }
@@ -6139,8 +6150,8 @@ async function compararMetodos(item, p){
 
   const estilo = (t.atributos||{}).estilo;
   /* o eixo do CORPO: a cabeca casa com o uniforme, nao com a moldura */
-  const eixoCorpo = await medirCentroX(t.url);
-  const auto = encaixeComposto(medida, estilo, eixoCorpo) || { rostoAltura:0.35, rostoTopo:0.02 };
+  const centroMolde = await medirCentroX(t.url);
+  const auto = encaixeComposto(medida, estilo, eixoNoQuadro(centroMolde, TORSO_X)) || { rostoAltura:0.35, rostoTopo:0.02 };
   const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
 
   /* ---- A GRADE ----------------------------------------------------------
@@ -6163,9 +6174,11 @@ async function compararMetodos(item, p){
   const gruda = (v, passo) => passo ? Math.round(v/passo)*passo : v;
 
   /* estado: alt = altura do render; ancX/ancY = a base do pescoco no quadro */
-  const st = { alt: auto.rostoAltura, ancX: eixoCorpo,
+  const st = { alt: auto.rostoAltura, corpoX: TORSO_X, junto: true,
+               ancX: eixoNoQuadro(centroMolde, TORSO_X),
                ancY: auto.rostoTopo + medida.base*auto.rostoAltura,
                cola: 'meia', ima: true, cortar: true, corte: auto.corte };
+  const eixoAtual = () => eixoNoQuadro(centroMolde, st.corpoX);
 
   const gradeHTML = () => {
     let h = '';
@@ -6203,10 +6216,10 @@ async function compararMetodos(item, p){
               ${gradeHTML()}${pontosHTML()}
               <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(2)}%;border-top:1px dashed #35c46a"></span>
               <span style="position:absolute;left:0;right:0;top:${(gola*100).toFixed(2)}%;border-top:1.5px dashed #e3b23c"></span>
-              <span style="position:absolute;left:${((1-TORSO_ESCALA)/2*100).toFixed(2)}%;right:${((1-TORSO_ESCALA)/2*100).toFixed(2)}%;
-                    top:${(TORSO_TOPO*100).toFixed(2)}%;bottom:0;border:1px dashed #35c46a55"></span>
-              <span style="position:absolute;top:0;bottom:0;left:${(eixoCorpo*100).toFixed(2)}%;border-left:1px dashed #2f7fd6"></span>
-              <span id="enc-linha-corte" style="position:absolute;left:${((1-TORSO_ESCALA)/2*100).toFixed(2)}%;right:${((1-TORSO_ESCALA)/2*100).toFixed(2)}%;border-top:1px dotted #d94a4a99"></span>
+              <span id="enc-caixa" style="position:absolute;width:${(TORSO_ESCALA*100).toFixed(2)}%;
+                    top:${(TORSO_TOPO*100).toFixed(2)}%;bottom:0;transform:translateX(-50%);border:1px dashed #35c46a55"></span>
+              <span id="enc-eixo" style="position:absolute;top:0;bottom:0;border-left:1px dashed #2f7fd6"></span>
+              <span id="enc-linha-corte" style="position:absolute;width:${(TORSO_ESCALA*100).toFixed(2)}%;transform:translateX(-50%);border-top:1px dotted #d94a4a99"></span>
               <span id="enc-anc" style="position:absolute;width:13px;height:13px;margin:-6.5px 0 0 -6.5px">
                 <span style="position:absolute;left:6px;top:0;bottom:0;border-left:1.5px solid #d94a4a"></span>
                 <span style="position:absolute;top:6px;left:0;right:0;border-top:1.5px solid #d94a4a"></span>
@@ -6240,6 +6253,17 @@ async function compararMetodos(item, p){
           <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Linha do corte</span>
             <input id="enc-corte" type="range" min="0" max="45" step="0.25" value="${(st.corte*100).toFixed(2)}"></label>
 
+          <div class="card" style="padding:10px 12px;background:var(--card2);display:flex;flex-direction:column;gap:8px">
+            <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
+              <span class="tt" style="font-size:12px">Uniforme</span>
+              <label style="font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center">
+                <input type="checkbox" id="enc-junto" checked> a cabeça acompanha</label>
+              <button class="btn btn-sm btn-ghost" id="enc-centro" style="margin-left:auto">Centrar</button>
+            </div>
+            <label class="aj-sl" style="color:var(--fg)"><span style="width:96px">↔ livre</span>
+              <input id="enc-corpox" type="range" min="25" max="75" step="0.05" value="${(TORSO_X*100).toFixed(2)}"></label>
+          </div>
+
           <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Tamanho</span>
             <input id="enc-alt" type="range" min="10" max="80" step="0.5" value="${(st.alt*100).toFixed(1)}"></label>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Âncora ↕</span>
@@ -6270,6 +6294,7 @@ async function compararMetodos(item, p){
 
   const palco = el('enc-palco'), img = el('enc-rosto'), saida = el('enc-saida'), anc = el('enc-anc');
   const corpo = el('enc-corpo'), linhaCorte = el('enc-linha-corte');
+  const caixa = el('enc-caixa'), eixo = el('enc-eixo');
   const pts = Array.from(palco.querySelectorAll('.enc-pt'));
 
   const desenha = () => {
@@ -6289,6 +6314,10 @@ async function compararMetodos(item, p){
        que o que casa com o eixo do corpo seja ela, nao o quadrado dela */
     img.style.left   = ((st.ancX - (cx-0.5)*largRender)*100).toFixed(2)+'%';
     img.style.transform = 'translateX(-50%)';
+    corpo.style.left = (st.corpoX*100).toFixed(2)+'%';
+    caixa.style.left = (st.corpoX*100).toFixed(2)+'%';
+    linhaCorte.style.left = (st.corpoX*100).toFixed(2)+'%';
+    eixo.style.left  = (eixoAtual()*100).toFixed(2)+'%';
     corpo.style.clipPath = st.cortar ? `inset(${(st.corte*100).toFixed(2)}% 0 0 0)` : '';
     linhaCorte.style.display = st.cortar ? '' : 'none';
     /* a linha do corte esta' na altura do MOLDE; no quadro ela vira: */
@@ -6310,7 +6339,9 @@ async function compararMetodos(item, p){
       `tamanho do render   : ${(st.alt*100).toFixed(2)}%\n`+
       `topo do rosto        : ${(topo*100).toFixed(2)}%\n`+
       `cabeça no quadro    : ${(cab*100).toFixed(2)}% de largura\n`+
-      `eixo do uniforme    : ${(eixoCorpo*100).toFixed(2)}%   (âncora ${st.ancX>eixoCorpo?'+':''}${((st.ancX-eixoCorpo)*100).toFixed(2)}%)\n`+
+      `uniforme ↔          : ${(st.corpoX*100).toFixed(2)}%   (${st.corpoX>TORSO_X?'+':''}${((st.corpoX-TORSO_X)*100).toFixed(2)}% do centro)\n`+
+      `eixo do uniforme    : ${(eixoAtual()*100).toFixed(2)}%   (âncora ${st.ancX>eixoAtual()?'+':''}${((st.ancX-eixoAtual())*100).toFixed(2)}%)\n`+
+      `centro do molde     : ${(centroMolde*100).toFixed(2)}% da própria imagem\n`+
       `centro da cabeça    : ${(cx*100).toFixed(2)}% da própria imagem\n`+
       `corte do pescoço    : ${st.cortar ? (st.corte*100).toFixed(2)+'% do molde  (gola '+(golaDoEstilo(estilo)*100).toFixed(2)+'%)' : 'desligado'}\n`+
       `— rosto: topo ${(medida.topo*100).toFixed(1)}% · base ${(medida.base*100).toFixed(1)}% · larg ${(medida.larg*100).toFixed(1)}%`;
@@ -6318,7 +6349,8 @@ async function compararMetodos(item, p){
     el('enc-alt').value = (st.alt*100).toFixed(1);
     el('enc-y').value   = (st.ancY*100).toFixed(1);
     el('enc-x').value   = (st.ancX*100).toFixed(1);
-    el('enc-corte').value = (st.corte*100).toFixed(2);
+    el('enc-corte').value  = (st.corte*100).toFixed(2);
+    el('enc-corpox').value = (st.corpoX*100).toFixed(2);
   };
   desenha();
 
@@ -6326,6 +6358,17 @@ async function compararMetodos(item, p){
   el('enc-ima').onchange     = e => { st.ima = e.target.checked; desenha(); };
   el('enc-cortar').onchange  = e => { st.cortar = e.target.checked; desenha(); };
   el('enc-corte').oninput    = e => { st.corte = Number(e.target.value)/100; desenha(); };
+  el('enc-junto').onchange   = e => { st.junto = e.target.checked; };
+  /* MOVER O UNIFORME LEVA A CABECA JUNTO por padrao: o alinhamento ja' foi
+     conquistado, e sem isso cada nudge do corpo o desfaz. Desligue para
+     deslocar um em relacao ao outro de proposito. */
+  el('enc-corpox').oninput   = e => {
+    const novo = Number(e.target.value)/100;
+    if(st.junto) st.ancX += novo - st.corpoX;
+    st.corpoX = novo; desenha(); };
+  el('enc-centro').onclick   = () => {
+    if(st.junto) st.ancX += TORSO_X - st.corpoX;
+    st.corpoX = TORSO_X; desenha(); };
   const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
   liga('enc-alt','alt'); liga('enc-y','ancY'); liga('enc-x','ancX');
 
@@ -6361,11 +6404,11 @@ async function compararMetodos(item, p){
   };
   document.addEventListener('keydown', tecla);
 
-  el('enc-gola').onclick = () => { st.ancY = gola; st.ancX = eixoCorpo; desenha(); };
+  el('enc-gola').onclick = () => { st.ancY = gola; st.ancX = eixoAtual(); desenha(); };
   el('enc-copiar').onclick = () => navigator.clipboard.writeText(saida.textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
     () => toast('Não consegui copiar; selecione o texto à mão.', true));
-  el('enc-auto').onclick = () => { st.alt = auto.rostoAltura; st.ancX = eixoCorpo;
+  el('enc-auto').onclick = () => { st.alt = auto.rostoAltura; st.ancX = eixoAtual();
     st.ancY = auto.rostoTopo + medida.base*auto.rostoAltura; st.corte = auto.corte; desenha(); };
 
   /* os ouvintes vivem no documento; sem isto o teclado seguiria mexendo
