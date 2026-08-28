@@ -5260,7 +5260,7 @@ function promptRecostura(){
    Com isso o encaixe deixa de ser tentativa e vira aritmetica:
      altura de render = (linhaGola - topoCabeca) / 0,50 = 34/50 = 68%
      topo de render   = topoCabeca - 0,08 x 0,68        = 0,6%
-   e a cabeca sai com 27% da largura do composto, que e' ENQ.largCabeca. */
+   e a cabeca sai com ENCAIXE_LARG_CABECA (33,07%) da largura do composto. */
 const ROSTO_MOLDE = { topo:0.08, base:0.58, larg:0.26 };
 const rostoEncaixe = () => {
   const span = ROSTO_MOLDE.base - ROSTO_MOLDE.topo;
@@ -5300,9 +5300,25 @@ function promptRostoMolde(item, p, at){
 const MOLDE_GOLA = { diagonal:0.161, horizontal:0.194, lisa:0.190, mangas:0.199, vertical:0.165 };
 const MOLDE_GOLA_PADRAO = 0.182;   // media, para estilo desconhecido
 const golaDoEstilo = estilo => MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO;
-/* quanto o pescoco entra por baixo da gola — sem isto fica um fio de fundo
-   entre o queixo e a camisa */
-const GOLA_SOBREPOR = 0.05;
+/* ===== O ENCAIXE, MEDIDO A MAO =====
+   Os dois numeros abaixo nao sao estimativa: sairam da bancada de encaixe,
+   com a cabeca arrastada ate' assentar e a medida lida na tela.
+
+     largura da cabeca : 33,07% da largura do quadro   (a formula usava
+       ENQ.largCabeca = 27% e a cabeca ficava 18% pequena demais)
+     ancora vs. gola   : 0,00%  — a base do pescoco ENCOSTA na linha da gola
+       (GOLA_SOBREPOR era 0,05, que a empurrava 4,3% para dentro da camisa)
+
+   Ficam SEPARADOS de ENQ de proposito: ENQ tambem escreve o texto do prompt
+   de geracao, e mexer nele mudaria o que pedimos ao modelo — que, alias,
+   ignora ancora percentual (ver o bloco MEDIR, NAO PEDIR).
+
+   A cabeca e' ancorada pela BASE DO PESCOCO, nunca pelo topo: rostos tem
+   testa e cabelo de alturas diferentes, entao so' a base do pescoco cai no
+   mesmo lugar em todos eles. E' o que faz um numero so' servir para o elenco
+   inteiro. */
+const ENCAIXE_LARG_CABECA = 0.3307;   // largura da cabeca / largura do quadro
+const ENCAIXE_GOLA_OFFSET = 0;        // + desce a ancora para dentro da camisa
 
 /* ===== MEDIR, NAO PEDIR =====
    O promptRostoMolde pede topo em 8%, pescoco em 58% e cabeca com 26% da
@@ -5366,13 +5382,13 @@ function encaixeComposto(m, estilo){
   if(!m || !m.base || !m.larg) return null;
   /* onde a gola do uniforme cai DENTRO DO QUADRO, ja' na escala calibrada */
   const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
-  /* a cabeca sai com ENQ.largCabeca da largura do quadro — sempre, seja qual
+  /* a cabeca sai com ENCAIXE_LARG_CABECA da largura do quadro — sempre, seja qual
      for o tamanho que o modelo deu a ela na imagem do rosto */
-  const ladoLarg = ENQ.largCabeca / m.larg;          // em fracoes da LARGURA
+  const ladoLarg = ENCAIXE_LARG_CABECA / m.larg;     // em fracoes da LARGURA
   const rostoAltura = ladoLarg / RATIO_FOTO;         // a mesma medida em fracoes da ALTURA
   return {
     rostoAltura,
-    rostoTopo: (gola + GOLA_SOBREPOR*TORSO_ESCALA) - m.base*rostoAltura
+    rostoTopo: (gola + ENCAIXE_GOLA_OFFSET*TORSO_ESCALA) - m.base*rostoAltura
   };
 }
 
