@@ -5345,32 +5345,55 @@ async function medirRosto(url){
    Escala pelo VAO VERTICAL (topo da cabeca ate' a gola) e nao pela largura:
    casar a largura deixaria o pescoco curto demais e abriria um vao entre ele
    e a gola, que salta muito mais aos olhos do que 3 pontos de largura. */
-function rostoEncaixeMedido(m, estilo){
-  if(!m || !m.span) return rostoEncaixe();          // sem medida, cai no teorico
-  /* O UNIFORME NAO SE MEXE. A base fica exatamente como esta' — mesma imagem,
-     mesmo enquadramento dos outros metodos. Quem se ajusta e' so' a cabeca, e
-     o alvo dela e' a gola REAL da camisa (medida por estilo), nao a linha
-     teorica do ENQ. O preco disso esta' a' vista: com a gola do molde entre
-     16% e 20%, sobra pouca altura acima dela, entao a cabeca sai menor que nas
-     fotos costuradas por IA. E' a consequencia de nao tocar na base. */
-  const gola = golaDoEstilo(estilo) + GOLA_SOBREPOR;
-  const topoCabeca = 0.03;                          // respiro do topo do quadro
-  const altura = (gola - topoCabeca) / m.base;      // base = fim do pescoco na imagem
-  return { altura, topo: topoCabeca - m.topo*altura };
-}
+/* ===== O QUADRO CRESCE, O UNIFORME NAO =====
+   O molde foi enquadrado justo: a gola fica entre 16% e 20% da altura, e a
+   camisa preenche o quadro inteiro. Num quadro 2:3 nao sobra altura para uma
+   cabeca proporcional — com a base intocada ela sairia com 15% da largura,
+   contra os ~28% das fotos costuradas por IA.
 
-/* o composto do metodo C: uniforme do clube + rosto medido, sem IA nenhuma.
+   Em vez de encolher a cabeca ou mexer no uniforme, o QUADRO fica mais alto.
+   O uniforme continua exatamente como esta' — escala natural, sem corte, sem
+   deslocamento relativo ao proprio conteudo — ocupando a parte de baixo. O
+   que aparece e' um respiro novo em cima, e e' nele que a cabeca entra.
+
+   Proporcao 1:1,64 contra 1:1,50 de hoje: 9% mais alto, e a cabeca volta aos
+   27% de largura do ENQ. Nada e' gerado, nada e' regerado. */
+const RATIO_COMPOSTO = 1.64;
+function encaixeComposto(m, estilo){
+  const gola = golaDoEstilo(estilo) + GOLA_SOBREPOR;   // fracao da altura do UNIFORME
+  if(!m || !m.base) return null;
+  /* escala do rosto: a cabeca tem de sair com ENQ.largCabeca da largura */
+  const lado = ENQ.largCabeca / m.larg;                // em fracoes da LARGURA do quadro
+  const ladoH = lado / RATIO_COMPOSTO;                 // a mesma medida em fracoes da ALTURA
+  const uniAlt = 1 / RATIO_COMPOSTO * (RATIO_FOTO);    // o uniforme e' 2:3: altura = 1,5x a largura
+  const uniTopo = 1 - uniAlt;                          // ancorado embaixo
+  /* onde o pescoco termina, em fracoes da altura do quadro */
+  const alvo = uniTopo + gola*uniAlt;
+  return {
+    uniTopo, uniAlt,
+    rostoAltura: ladoH,
+    rostoTopo: alvo - m.base*ladoH
+  };
+}/* o composto do metodo C: uniforme do clube + rosto medido, sem IA nenhuma.
    `px` opcional — sem ele o quadro e' FLUIDO (width 100% + aspect-ratio), que
    e' o que os cartoes A e B usam. Passar largura fixa aqui encolhia o cartao C
    ao lado dos outros dois. */
 function compostoMoldeHTML(torsoUrl, rostoUrl, px, estilo, medida){
-  const e = medida ? rostoEncaixeMedido(medida, estilo) : rostoEncaixe();
+  const e = encaixeComposto(medida, estilo);
   const quadro = px
-    ? `width:${px}px;height:${Math.round(px*RATIO_FOTO)}px`
-    : `width:100%;aspect-ratio:${1/RATIO_FOTO}`;
+    ? `width:${px}px;height:${Math.round(px*RATIO_COMPOSTO)}px`
+    : `width:100%;aspect-ratio:${(1/RATIO_COMPOSTO).toFixed(4)}`;
+  if(!e){   // sem medida do rosto, mostra so' o uniforme, intocado
+    return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">
+      <img src="${h(torsoUrl)}" style="position:absolute;left:0;bottom:0;width:100%">
+    </span>`;
+  }
+  /* o uniforme entra em ESCALA NATURAL, ancorado embaixo: width 100% e altura
+     livre (ele e' 2:3, entao ocupa 1,5x a largura). Nada de object-fit, que
+     recortaria ou esticaria. */
   return `<span style="position:relative;display:block;${quadro};border-radius:10px;overflow:hidden;background:#d9d9d9">
-    <img src="${h(torsoUrl)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
-    ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:${(e.topo*100).toFixed(1)}%;height:${(e.altura*100).toFixed(1)}%;object-fit:contain">`:''}
+    <img src="${h(torsoUrl)}" style="position:absolute;left:0;bottom:0;width:100%">
+    ${rostoUrl?`<img src="${h(rostoUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);top:${(e.rostoTopo*100).toFixed(1)}%;height:${(e.rostoAltura*100).toFixed(1)}%;object-fit:contain">`:''}
   </span>`;
 }
 
@@ -6089,7 +6112,7 @@ async function compararMetodos(item, p){
             de clube fica <b>de graça</b> — só troca o corpo por baixo.
             ${medidaRosto ? `<br><span class="mono" style="font-size:10.5px">medido: topo ${(medidaRosto.topo*100).toFixed(1)}%
               · altura ${(medidaRosto.span*100).toFixed(1)}% · cabeça ${(medidaRosto.larg*100).toFixed(1)}% de largura
-              → render ${(rostoEncaixeMedido(medidaRosto,(t.atributos||{}).estilo).altura*100).toFixed(1)}%</span>` : ''}</small>
+              → render ${((encaixeComposto(medidaRosto,(t.atributos||{}).estilo)||{}).rostoAltura*100||0).toFixed(1)}%</span>` : ''}</small>
         </div>
       </div>
       <div class="st" style="line-height:1.6">${h(resumoAtributos(at))}</div>
