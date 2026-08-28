@@ -846,6 +846,15 @@
 /* O NOME DO RESERVA VIRA LINK para a ficha. Ele mora dentro do botao de
    arraste, entao o pointerdown dele para aqui — senao clicar no nome comecava
    um arraste em vez de abrir a ficha. */
+/* o volume mora na mesma fila dos interruptores, entao segue a metrica deles */
+.rf-cf-vol{display:flex;align-items:center;gap:12px;padding:11px 0;
+  border-top:1px solid var(--line-1)}
+.rf-cf-vol-t{flex:1;font-size:var(--fs-body);color:var(--text-1)}
+.rf-cf-vol input[type=range]{width:150px;accent-color:var(--brand-primary)}
+.rf-cf-vol-v{width:44px;text-align:right;font-family:var(--font-mono);
+  font-size:var(--fs-body-sm);color:var(--text-3)}
+.rf-cf-nota{margin:6px 0 0;font-size:var(--fs-body-sm);color:var(--text-3);line-height:1.55}
+
 .rf-sq-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
   text-underline-offset:2px;text-decoration-color:var(--line-2)}
 .rf-sq-link:hover,.rf-sq-link:focus-visible{text-decoration-style:solid;text-decoration-color:currentColor}

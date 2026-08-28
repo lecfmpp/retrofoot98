@@ -147,6 +147,23 @@ function rfCfCampo(rot, valor, acao){
     </button>
   </label>`;
 }
+/* GRAVA NO SAVE, como o resto das preferencias — S.config e' o que vai para o
+   disco. O numero na tela acompanha o arraste; a AMOSTRA so' toca ao soltar,
+   senao arrastar dispararia um audio por pixel. */
+function rfCfVolume(v){
+  if(typeof S==='undefined' || !S) return;
+  S.config=S.config||{};
+  S.config.somVol=Math.max(0,Math.min(1,Number(v)/100));
+  const alvo=document.getElementById('rf-cf-vol-v');
+  if(alvo) alvo.textContent=Math.round(S.config.somVol*100)+'%';
+  /* rfGravar e' o mesmo caminho de gravacao dos outros interruptores desta
+     pagina — preferencia que nao sobrevive ao F5 nao e' preferencia. */
+  if(typeof rfGravar==='function'){ try{ rfGravar(); }catch(e){} }
+}
+function rfCfVolumeTeste(){
+  if(typeof rfSomTocar==='function') rfSomTocar('fimVitoria', true);
+}
+
 function rfCfSwitch(k, rot, padrao){
   const v=(typeof rfPrefDef==='function')?rfPrefDef(k,padrao):!!padrao;
   return `<div class="rf-cf-sw">
@@ -181,6 +198,19 @@ function rfCfOpcoesHTML(){
              S.config.ui e NINGUEM os lia — o interruptor mudava na tela e o jogo seguia igual.
              Sobra o Som, que e o unico que o motor le (S.config.sound). -->
         ${rfCfSwitch('som','Som da partida',true)}
+        <!-- VOLUME: desliza, toca a amostra na hora e grava no save. A amostra
+             ignora a trava do Camarote de proposito: aqui o utilizador esta'
+             justamente a regular o volume, e exigir que esteja assistindo a uma
+             partida para ouvir seria absurdo. -->
+        <label class="rf-cf-vol">
+          <span class="rf-cf-vol-t">Volume dos sons</span>
+          <input type="range" min="0" max="100" step="5" value="${Math.round(rfSomVolume()*100)}"
+                 oninput="rfCfVolume(this.value)" onchange="rfCfVolumeTeste()"
+                 aria-label="Volume dos sons da partida">
+          <b class="rf-cf-vol-v" id="rf-cf-vol-v">${Math.round(rfSomVolume()*100)}%</b>
+        </label>
+        <p class="rf-cf-nota">Os sons tocam no <b>Modo Camarote</b>: cartão amarelo, pênalti defendido,
+          jogador marcando de novo, goleada e o apito final. Solte o controle para ouvir uma amostra.</p>
       </div>
     </div>
     <div class="rf-card">

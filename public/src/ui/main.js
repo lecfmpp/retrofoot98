@@ -7880,6 +7880,55 @@ function camMinuteNow(m,RL){
 function camShare(m){ const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias||0)));
   return Math.max(5,Math.min(95,Math.round(50+p/2))); }
 /* um evento do motor vira: linha de narração + estatística + empurrão na barra de pressão */
+/* =====================================================================
+   SONS DO CAMAROTE
+   ---------------------------------------------------------------------
+   Dez mp3 estavam em public/audio desde sempre, com nomes que descrevem o
+   momento exato de cada um — e nenhuma linha de codigo apontava para a pasta.
+   Eram publicados a cada deploy e nunca tocavam.
+
+   SO' NO CAMAROTE, por decisao: e' a tela em que o utilizador esta' a ver a
+   partida: no resultado seco o som seria um susto sem contexto.
+
+   O VOLUME vive em S.config.somVol (0..1) — dentro do save, como o resto das
+   preferencias. `sound` desligado cala tudo, e volume 0 tambem.
+
+   Um audio por vez: dois eventos no mesmo minuto sobrepostos viram ruido, e o
+   segundo interrompe o primeiro em vez de somar. */
+const RF_SONS = {
+  cartaoAmarelo: 'audio/falta-cartao-amarelo-pode-isso-arnaldo.mp3',
+  golContra:     'audio/olha-o-que-ele-fez-gol-contra.mp3',
+  penaltiDefendido:'audio/penalti-defendido-sai-que-e-sua-tafarel.mp3',
+  goleada:       'audio/acima-de-5-gols-virou-passeio-gol-da-alemanha.mp3',
+  campeao:       'audio/campeao-acabou-acabou-acabou-galvao-bueno.mp3',
+  dobradinha:    'audio/jogador-marcou-mais-de-1-gol-no-jogo.mp3',
+  fimVitoria:    'audio/variacao-time-ganhou-encerrado.mp3',
+  fimDerrota:    'audio/perdeu_partida.mp3',
+  fimDecisivo:   'audio/final-do-jogo-decisivo-haja-coracao.mp3',
+  fimNeutro:     'audio/final-do-jogo-bem-amigos-terminou.mp3'
+};
+let RF_SOM_ATUAL = null;
+function rfSomVolume(){
+  const v = (S && S.config && S.config.somVol != null) ? Number(S.config.somVol) : 0.7;
+  return Math.max(0, Math.min(1, isNaN(v) ? 0.7 : v));
+}
+function rfSomLigado(){ return !!(S && S.config && S.config.sound); }
+/* `forcar` e' o teste do controle de volume: toca mesmo fora do Camarote,
+   porque ali o utilizador esta' justamente a regular o volume. */
+function rfSomTocar(chave, forcar){
+  const src = RF_SONS[chave]; if(!src) return;
+  if(!forcar && !rfSomLigado()) return;
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    if(RF_SOM_ATUAL){ RF_SOM_ATUAL.pause(); RF_SOM_ATUAL = null; }
+    const a = new Audio(src); a.volume = vol;
+    /* navegador recusa audio sem gesto do utilizador; a promessa rejeitada nao
+       pode subir e derrubar o tique da partida */
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    RF_SOM_ATUAL = a;
+  }catch(err){}
+}
+
 function camOnEvent(m,e){
   if(typeof RF_NARRA==='undefined') return;
   camEnsure(m); const ctx=camCtx(m);
@@ -7893,9 +7942,38 @@ function camOnEvent(m,e){
     if(out==='defesa'){ A.onTarget++; D.saves++; } }
   else if(e.type==='cartao'){ if(e.cardType==='vermelho'){ A.red++; m.presBias+=(e.side==='H'?-8:8); } else A.yellow++; }
   else if(e.type==='sub'){ A.subs++; }
+  rfSomDoEvento(m,e,out);
   const l=RF_NARRA.narrate(e,{...ctx,out});
   if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind,side:e.side}); m._camLastLine=e.min; }
   m.pres=Math.max(-100,Math.min(100,(m.pres||0)+RF_NARRA.pressureOf(e,out)));
+}
+/* Cada som dispara UMA vez por partida (m._camSons): a goleada continuaria a
+   valer a cada gol depois do quinto, e o mesmo artilheiro marcando tres vezes
+   repetiria o audio da dobradinha. */
+function rfSomDoEvento(m,e,out){
+  if(!camOn()) return;
+  m._camSons = m._camSons || {};
+  const soar = (chave) => { if(m._camSons[chave]) return; m._camSons[chave]=1; rfSomTocar(chave); };
+  if(e.type==='cartao' && e.cardType!=='vermelho') soar('cartaoAmarelo');
+  else if(e.type==='penalti' && !e.scored && out==='defesa') soar('penaltiDefendido');
+  if(e.type==='gol' || (e.type==='penalti' && e.scored)){
+    if(((m.hg||0)+(m.ag||0)) >= 5) soar('goleada');
+    /* dobradinha: o mesmo nome marcando pela segunda vez nesta partida */
+    const meus=(m.goals||[]).filter(g=>g.scorer && g.scorer===e.scorer);
+    if(meus.length >= 2) soar('dobradinha');
+  }
+}
+/* DECISIVO = final de mata-mata. A partida ao vivo nao guarda `fase`, mas
+   guarda `div`, que nas copas E' a chave da copa — e dali o estado do
+   chaveamento responde. E' o MESMO teste do motor (isFinal em core.js): sem
+   rodadas restantes, e' a final. Liga cai fora sozinha, porque 'A'..'D' nao
+   existem em S.cups. */
+function rfSomFinalDeCopa(m){
+  if(!m || !m.div || typeof S==='undefined' || !S || !S.cups) return false;
+  const c=S.cups[m.div]; if(!c) return false;             // div de liga ('A'..'D') nao esta' em cups
+  const b = (m.div==='copaBrasil') ? c : c.bracket;
+  if(!b || b.roundsTotal==null || b.round==null) return false;
+  return (b.roundsTotal - b.round) <= 0;                  // mesmo teste do motor (core.js isFinal)
 }
 function camPush(m,kind,extra,mn){
   if(typeof RF_NARRA==='undefined') return;
@@ -7964,7 +8042,23 @@ function camEndCheck(m,RL){
 }
 function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.fim=1;
   if(m._camEndMin==null) m._camEndMin=(mn!=null?mn:camMinuteNow(m,CL.live));
-  camPush(m,'fim',null,m._camEndMin); }
+  camPush(m,'fim',null,m._camEndMin);
+  /* O APITO FINAL tem quatro vozes, e a ordem importa: decisivo ganha de
+     tudo (e' o jogo que vale titulo ou acesso), depois o resultado, e o
+     neutro fica para o empate. */
+  if(camOn()){
+    const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+    const meus = meuLado==='H' ? (m.hg||0) : (m.ag||0);
+    const deles = meuLado==='H' ? (m.ag||0) : (m.hg||0);
+    /* DECISIVO tem de ser uma pergunta que o objeto da partida saiba responder.
+       `m.decisivo` nao existia — o som nunca tocaria. A resposta que existe:
+       ser a FINAL de um mata-mata, que o proprio jogo ja' rotula em
+       cupPhaseLabel (dist<=0 -> 'Final'). Fora da copa, o apito segue o
+       resultado. */
+    if(rfSomFinalDeCopa(m)) rfSomTocar('fimDecisivo');
+    else if(meuLado==null || meus===deles) rfSomTocar('fimNeutro');
+    else rfSomTocar(meus>deles ? 'fimVitoria' : 'fimDerrota');
+  } }
 
 /* ---- interruptor 🎥 MODO CAMAROTE (topo direito, igual ao design) ---- */
 function camSwitchHTML(){

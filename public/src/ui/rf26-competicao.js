@@ -1419,6 +1419,11 @@ function rfCampeaoAbrir(key, aoFechar){
   host.innerHTML=rfCampeaoHTML(d);
   document.body.appendChild(host);
   try{ const v=host.querySelector('.rf-cmp-vid'); if(v){ v.muted=true; v.volume=0; const p=v.play(); if(p&&p.catch) p.catch(()=>{}); } }catch(e){}
+  /* O TITULO E' A EXCECAO A' REGRA DO CAMAROTE. Os outros sons so' tocam
+     assistindo a partida, mas o modal de campeao abre por conta propria, em
+     tela cheia e com video — e' o momento mais alto do save, e chegar ate' ele
+     em silencio seria perder o unico que o utilizador nao esquece. */
+  if(typeof rfSomTocar==='function' && d.souEu) rfSomTocar('campeao');
   return true;
 }
 function rfCampeaoFechar(){
