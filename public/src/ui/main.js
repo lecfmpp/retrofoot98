@@ -8350,8 +8350,14 @@ function rfGolSom(meu){
       else rfTorcidaGol(false);   // gol sofrido: so' um levantar breve do fundo
     }, RF_GOL_ATRASO);
   };
-  if(Math.random() < RF_CHUTE_CHANCE){ rfChute(); setTimeout(rede, RF_CHUTE_ANTES); }
-  else rede();
+  /* SEM CHUTE POSTICO AQUI. `gol-bola-na-rede.mp3` nao e' so' a rede: medido, o
+     ficheiro tem DOIS impactos — um pico a 0,1s (a bola a ser batida) e outro
+     a 0,9s (a rede). Ou seja, ele ja' e' a sequencia chute→gol inteira.
+     Pôr o `chute-forte` a' frente dava tres impactos: o meu, o dele, e a rede —
+     e era o "chute a mais depois da bola bater na rede" que se ouvia.
+     O `chute-forte` continua a existir para a finalizacao QUE NAO E' GOL, onde
+     o "uuuh" da arquibancada nao traz impacto nenhum consigo. */
+  rede();
 }
 /* a festa, com o fundo a dar-lhe espaco: sem isto o ciclo de 39s continua no
    mesmo nivel por baixo e as duas multidoes brigam pelo mesmo lugar */
