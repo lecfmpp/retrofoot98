@@ -8052,6 +8052,8 @@ let RF_SOM_ATUAL = null, RF_SOM_FILA = null, RF_SOM_FIM = 0, RF_SOM_AGENDA = nul
    esta' a mostrar. Um segundo e meio entre falas e' o que separa "dois lances"
    de "um borrao". */
 const RF_SOM_RESPIRO = 1500;
+/* quanto tempo o gol fica sozinho no ar (cobre a rede + a entrada da festa) */
+const RF_SOM_GOL_ESPACO = 3000;
 /* Quanto vale cada momento. So' um som MAIS importante interrompe o que esta'
    a tocar; igual ou menor espera a vez. */
 /* A ORDEM DE QUEM MANDA. So' um peso MAIOR interrompe o que esta' no ar; igual
@@ -8111,8 +8113,15 @@ function rfSomTocar(chave, forcar){
       return;
     }
   }
+  /* ===== O GOL TEM A PALAVRA POR TRES SEGUNDOS =====
+     A bola na rede, a festa e a linha do gol sao o momento; uma fala que
+     comeca por cima deles rouba os tres o mesmo espaco. Qualquer narracao que
+     chegue nesta janela espera o fim dela — menos o apito final, que nunca
+     espera por nada (peso 4). */
+  const esperaGol = forcar ? 0 : RF_SOM_GOL_ESPACO - (Date.now() - RF_TORCIDA_GOL);
   /* acabou de tocar agora mesmo: espera o respiro em vez de emendar */
-  const falta = forcar ? 0 : RF_SOM_RESPIRO - (Date.now() - RF_SOM_FIM);
+  const respiro = forcar ? 0 : RF_SOM_RESPIRO - (Date.now() - RF_SOM_FIM);
+  const falta = (peso >= 4) ? respiro : Math.max(respiro, esperaGol);
   if(falta > 0){
     if(!RF_SOM_FILA || peso > (RF_SOM_FILA.peso || 1)) RF_SOM_FILA = { chave, peso };
     if(!RF_SOM_AGENDA) RF_SOM_AGENDA = setTimeout(rfSomDaFila, falta);
@@ -8486,7 +8495,10 @@ function camMinuteTick(m,RL){
   // fase morna: nenhuma linha há 7 minutos -> comenta o momento do jogo (pressão/placar).
   // `avoid` é a ÚLTIMA fala de ambiente (não a última linha qualquer): com um lance no meio,
   // comparar só com a linha anterior deixava a mesma frase de ambiente voltar logo em seguida.
-  if(mn-(m._camLastLine||0)>=7){
+  /* A FASE MORNA NAO INTERROMPE A FESTA. Ela existe para preencher silencio —
+     e nos segundos a seguir ao gol nao ha' silencio nenhum para preencher: ha'
+     a linha do gol no topo do feed, a piscar, e o estadio de pe'. */
+  if(mn-(m._camLastLine||0)>=7 && Date.now()-RF_TORCIDA_GOL >= RF_SOM_GOL_ESPACO){
     camPush(m,'momento',{share:camShare(m), avoid:m._camLastMomento||null},mn);
     m._camLastMomento=m.narr.length?m.narr[m.narr.length-1].text:null;
   }
