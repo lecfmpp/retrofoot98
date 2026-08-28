@@ -260,6 +260,20 @@ function rfGo(page, tab){
 }
 function rfSetTab(page, tab){ rfState().tab[page]=tab; cdraw(); }
 
+/* NAVEGAR PELO MENU SEMPRE VOLTA AO PROPRIO CLUBE. Visitar o elenco de outro
+   time deixa CL.viewClubId marcado, e a pagina Elenco & Base atende o clube
+   visitado — entao clicar em "Elenco & Base" no menu depois de uma visita
+   mostrava o elenco do OUTRO, sem nada na tela explicando por que.
+
+   Fica separado de rfGo() de proposito: clViewTeam() usa rfGo() justamente
+   para ENTRAR na visita, e se ele limpasse a marca, visitar seria impossivel.
+   Quem navega pelo menu quer a propria casa; quem clica num clube quer a
+   visita. Sao duas intencoes, e agora sao duas funcoes. */
+function rfNavegar(page){
+  if(CL.viewClubId){ CL.viewClubId=null; CL.viewSelPlayer=null; }
+  rfGo(page);
+}
+
 /* =====================================================================
    PEÇAS DO ENVELOPE
    ===================================================================== */
@@ -521,7 +535,7 @@ function rfSidebarHTML(){
   const itens=RF_PAGES.map(p=>{
     const n=badgeDe(p.key);
     return `<button type="button" class="rf-nav-i ${st.page===p.key?'on':''}" title="${escC(p.label)}"
-      onclick="rfGo('${p.key}')">
+      onclick="rfNavegar('${p.key}')">
       <span class="rf-nav-ico" aria-hidden="true">${rfIcone(p.ico,18)}</span>
       <span class="rf-nav-l">${escC(p.label)}</span>
       ${n>0?`<span class="rf-nav-b">${n>9?'9+':n}</span>`:''}
@@ -542,7 +556,7 @@ function rfSidebarHTML(){
   const recolhida=rfSidebarCollapsed();
 
   return `<aside class="rf-sidebar">
-    <button type="button" class="rf-sb-club" onclick="rfGo('hub')" title="Voltar à Formação">
+    <button type="button" class="rf-sb-club" onclick="rfNavegar('hub')" title="Voltar à Formação">
       <span class="rf-sb-crest">${rfCrest(cl,34)}</span>
       <span class="rf-sb-cnames">
         <span class="rf-sb-cname">${escC(cl.short)}</span>
@@ -1833,7 +1847,7 @@ function rfBottomNavHTML(){
     // na barra inferior vale o rótulo CURTO: "Elenco & Base" e "Campeonatos"
     // não cabem em 375px sem quebrar em duas linhas, e rótulo quebrado é
     // justamente o que o checklist do design system proíbe.
-    return `<button type="button" class="rf-bn-i ${st.page===k?'on':''}" onclick="rfGo('${k}')">
+    return `<button type="button" class="rf-bn-i ${st.page===k?'on':''}" onclick="rfNavegar('${k}')">
       <span class="rf-bn-ico">${rfIcone(p.ico,20)}</span><span class="rf-bn-l">${escC(p.curto||p.label)}</span></button>`;
   }).join('');
   const restantes=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
@@ -1872,7 +1886,7 @@ function rfMaisSheet(){
   const chaves=RF_NAV_MOBILE.concat((CL.online&&rfChatDisponivel())?['chat']:[]);
   const resto=RF_PAGES.filter(p=>chaves.indexOf(p.key)<0);
   const linhas=resto.map(p=>`<button type="button" class="rf-sheet-i ${st.page===p.key?'on':''}"
-    onclick="clCloseOverlay();rfGo('${p.key}')">
+    onclick="clCloseOverlay();rfNavegar('${p.key}')">
     <span class="rf-nav-ico">${rfIcone(p.ico,18)}</span><span class="rf-nav-l">${escC(p.label)}</span></button>`).join('');
   /* A CONTA ENTRA AQUI. O menu "Mais" so listava paginas; sair da conta vivia
      em Configuracoes, a dois toques e dentro de uma aba. Como no telefone a

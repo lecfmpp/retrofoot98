@@ -5770,11 +5770,16 @@ function clDragMove(ev){
        fantasma VAZIO: a substituição acontecia, mas nada seguia o mouse. */
     const camisa=DRAG.el.querySelector('.cl-pp-shirt, .rf-bj');
     const doBanco=!!camisa && camisa.classList.contains('rf-bj');
+    /* CAMISA DE IMAGEM entra INTEIRA. O clube com uniforme do Estúdio desenha
+       `.rf-jersey-img`, cujo miolo é um <img> de 1024px posicionado pelo
+       PRÓPRIO invólucro. Copiando só o miolo, o <img> ficava solto no fantasma
+       — e `.cl-dnd-ghost svg` dimensiona svg, não imagem — então ele estourava
+       em tamanho natural na tela e sumia ao soltar. Com o invólucro junto, ele
+       leva o tamanho consigo. */
+    const deImagem=!!camisa && camisa.classList.contains('rf-jersey-img');
     DRAG.ghost=document.createElement('div');
     DRAG.ghost.className='cl-dnd-ghost'+(doBanco?' de-banco':'');
-    // a camisa antiga entra pelo miolo (o CSS dimensiona o svg); a nova entra
-    // inteira, porque ela é um conjunto de caixas posicionadas entre si
-    DRAG.ghost.innerHTML = !camisa ? '' : (doBanco ? camisa.outerHTML : camisa.innerHTML);
+    DRAG.ghost.innerHTML = !camisa ? '' : ((doBanco||deImagem) ? camisa.outerHTML : camisa.innerHTML);
     document.body.appendChild(DRAG.ghost);
     DRAG.el.classList.add('dragging');
     // acende só quem pode receber: mesma posição, e um dos dois tem que estar em campo

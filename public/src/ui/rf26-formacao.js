@@ -187,7 +187,12 @@ function rfBancoHTML(th, nums){
         title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${unavail?'':' · arraste pro campo pra escalar'}">
         ${rfBancoJerseyHTML(th, nums[p.pid])}
         <span class="rf-bp-mid">
-          <span class="rf-bp-n">${escC(sobrenome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
+          <span class="rf-bp-n"><span class="rf-bp-link" role="link" tabindex="0"
+            title="Ver a ficha de ${escC(p.n)}"
+            onpointerdown="event.stopPropagation()"
+            onclick="event.stopPropagation();rfSelPlayer('${escC(p.pid)}')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();rfSelPlayer('${escC(p.pid)}')}"
+            >${escC(sobrenome)}</span>${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
           <span class="rf-bp-bar"><i style="width:${en}%;background:${cor}"></i></span>
         </span>
         <span class="rf-bp-f">${p.f}</span>

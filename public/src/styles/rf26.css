@@ -839,6 +839,17 @@
 .rf-pitch-card .cl-bp.alvo{background:var(--club-primary-soft);border-radius:var(--r-row)}
 .rf-pitch-card .cl-pitch.alvo-zona{box-shadow:var(--shadow-pitch),inset 0 0 0 3px var(--club-cta-bg,var(--club-secondary))}
 .cl-dnd-ghost{filter:var(--shadow-piece)}
+/* TRAVA DE TAMANHO. O CSS antigo só dimensionava `svg`; qualquer imagem que
+   entrasse no fantasma saía no tamanho natural — o kit do Estúdio tem 1024px e
+   tomava a tela inteira durante o arraste. A regra vale para o que vier. */
+.cl-dnd-ghost img{max-width:100%;height:auto;display:block}
+/* O NOME DO RESERVA VIRA LINK para a ficha. Ele mora dentro do botao de
+   arraste, entao o pointerdown dele para aqui — senao clicar no nome comecava
+   um arraste em vez de abrir a ficha. */
+.rf-bp-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
+  text-underline-offset:2px;text-decoration-color:var(--line-2)}
+.rf-bp-link:hover,.rf-bp-link:focus-visible{text-decoration-style:solid;text-decoration-color:currentColor}
+.cl-dnd-ghost .rf-jersey-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 /* vindo do banco o fantasma é a própria camisa `.rf-bj`, que já tem tamanho
    próprio — o `width:44px` da pele antiga a esmagaria */
 .cl-dnd-ghost.de-banco{width:auto;transform:translate(-50%,-50%) scale(1.25)}
