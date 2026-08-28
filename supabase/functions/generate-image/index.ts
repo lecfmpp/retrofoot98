@@ -39,6 +39,11 @@ const TIPOS: Record<string, { bucket: string; background: "transparent" | "opaqu
   jogador: { bucket: "jogadores", background: "opaque",      size: "1024x1024" }, // retrato inteiro (legado)
   rosto:   { bucket: "jogadores", background: "transparent", size: "1024x1024" }, // só cabeça+pescoço, recortado
   torso:   { bucket: "jogadores", background: "opaque",      size: "1024x1536" }, // a camisa do clube — base única
+  /* CAMISA SOZINHA, sem corpo e sem fundo. Substitui o `torso` na geração dos
+     moldes: com fundo transparente não há cinza para raspar, e sem pescoço não
+     há pele sobre pele quando a cabeça entra. Mesmo 2:3 do torso, para o
+     enquadramento não mudar de família. */
+  camisa:  { bucket: "jogadores", background: "transparent", size: "1024x1536" },
 };
 const FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80; // 0-100, 80 é leve sem serrilhar
 
@@ -99,7 +104,7 @@ Deno.serve(async (req) => {
     ? { bucket: "jogadores", background: "opaque" as const, size: "1024x1536" }
     : TIPOS[tipo];
   const prompt = String(body.prompt || "").trim();
-  if (!cfg) return resp(400, { error: "tipo tem que ser escudo, jogador, rosto, torso ou montagem." });
+  if (!cfg) return resp(400, { error: "tipo tem que ser escudo, jogador, rosto, torso, camisa ou montagem." });
   if (!prompt || prompt.length > 4000) return resp(400, { error: "prompt vazio ou longo demais." });
   const qualidade = ["low", "medium", "high"].includes(String(body.qualidade)) ? String(body.qualidade) : "medium";
 

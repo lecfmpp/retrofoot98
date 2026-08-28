@@ -5200,6 +5200,38 @@ const ESTILOS_CAMISA = [
   ['diagonal',  'Faixa diagonal',           (a,b)=>`a plain ${a} football jersey with ONE single wide ${b} diagonal sash crossing the ENTIRE chest corner to corner — starting at the wearer's right shoulder seam and reaching the left bottom hem, edge to edge`],
   ['lisa',      'Cor única',                (a,b)=>`a plain solid ${a} football jersey with no secondary color`]
 ];
+/* ===== O MOLDE VIRA CAMISA, NAO TORSO =====
+   O molde antigo era a foto de um homem sem cabeca: vinha com PESCOCO e com
+   FUNDO CINZA chapado. Os dois atrapalhavam a montagem por camadas — o
+   pescoco ficava por baixo do pescoco da cabeca gerada (pele sobre pele na
+   gola) e o fundo embutido impedia trocar o fundo ou pôr a cabeca atras do
+   colarinho. Tentei resolver isso depois, em canvas, e furei a pele do
+   jogador; a origem e' o lugar certo.
+
+   Agora a camisa nasce em GHOST MANNEQUIN com fundo transparente — a mesma
+   receita que ja' funciona na miniatura do campo, e' so' trazê-la para o
+   molde grande. Ganho de brinde: com transparencia, a gola deixa de ser um
+   numero medido a mao por estilo (MOLDE_GOLA) e passa a ser o topo do proprio
+   recorte, que o codigo consegue medir sozinho.
+
+   O QUE NAO MUDA: magenta e ciano continuam sendo as cores-marcador, entao a
+   repintura por clube segue exatamente como hoje, sem IA e sem custo. */
+function promptCamisaLimpa(estiloChave, corA, corB){
+  const est = ESTILOS_CAMISA.find(e=>e[0]===estiloChave) || ESTILOS_CAMISA[0];
+  const camisa = est[2](corA, corB);
+  return [
+    `A single football jersey photographed alone as a ghost-mannequin product shot: ${camisa}.`,
+    'ABSOLUTELY NO PERSON: no head, no neck, no face, no skin, no hands, no arms, no mannequin visible — only the empty jersey itself.',
+    'The jersey keeps a full 3D worn volume as if an invisible body filled it: shoulders sloping naturally, sleeves rounded and held out, chest and torso with realistic depth and fabric folds.',
+    'The collar is a COMPLETE ROUND COLLAR with the neckline opening fully visible and open at the top, showing the inside back of the collar through the opening — the top must NEVER be a flat straight cut.',
+    'The jersey is COMPLETELY CLEAN: no club crest, no badge, no sponsor, no manufacturer mark, no text, no numbers, no logos anywhere — plain fabric only, because crest and sponsor are overlaid later as separate layers.',
+    'Straight front view, perfectly centered horizontally, short sleeves, standard adult fit.',
+    'FULLY TRANSPARENT BACKGROUND — no studio backdrop, no floor, no shadow cast on any surface, nothing behind or around the jersey.',
+    'The jersey fills the frame vertically from the collar at the top to the bottom hem, with a small even margin on the left and right.',
+    'Soft even studio lighting on the fabric, sharp focus, high-end catalogue product photography.'
+  ].join(' ');
+}
+
 function promptTorso(item, estiloChave, corA, corB){
   const c = item.c;
   const est = ESTILOS_CAMISA.find(e=>e[0]===estiloChave) || ESTILOS_CAMISA[0];
@@ -5299,7 +5331,16 @@ function promptRostoMolde(item, p, at){
    refeito, remedir e atualizar aqui. */
 const MOLDE_GOLA = { diagonal:0.161, horizontal:0.194, lisa:0.190, mangas:0.199, vertical:0.165 };
 const MOLDE_GOLA_PADRAO = 0.182;   // media, para estilo desconhecido
-const golaDoEstilo = estilo => MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO;
+/* A MEDIDA MANDA. Molde ghost-mannequin tem fundo transparente, entao o topo
+   do recorte E' a gola — medido no proprio arquivo, sem tabela e sem eu
+   chutar. A tabela abaixo continua valendo para os moldes antigos, que tinham
+   fundo chapado e nada para medir. */
+const golaDoEstilo = estilo => {
+  const m = (typeof D === 'object' && D.fotos) ? D.fotos[MOLDE_KEY+'|'+estilo] : null;
+  const med = m && m.atributos && m.atributos.medida;
+  if(med && med.topo != null) return med.topo;
+  return MOLDE_GOLA[estilo] != null ? MOLDE_GOLA[estilo] : MOLDE_GOLA_PADRAO;
+};
 /* ===== O ENCAIXE, MEDIDO A MAO =====
    Os dois numeros abaixo nao sao estimativa: sairam da bancada de encaixe,
    com a cabeca arrastada ate' assentar e a medida lida na tela.
@@ -5451,6 +5492,34 @@ async function tirarFundo(url, tol){
   }
   cx.putImageData(im, 0, 0);
   return cv.toDataURL('image/png');
+}
+
+/* Mede o recorte inteiro: topo, base e centro horizontal do que e' opaco.
+   Num molde ghost-mannequin o TOPO e' a propria gola — e' o que dispensa a
+   tabela MOLDE_GOLA, que eu tinha medido a mao estilo por estilo. */
+async function medirMolde(url){
+  try{
+    const img = await new Promise((ok, erro) => {
+      const i = new Image(); i.crossOrigin = 'anonymous';
+      i.onload = () => ok(i); i.onerror = () => erro(new Error('cors'));
+      i.src = url + (url.includes('?') ? '&' : '?') + 'm=1';
+    });
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    cv.getContext('2d').drawImage(img, 0, 0);
+    const d = cv.getContext('2d').getImageData(0, 0, W, H).data;
+    let topo = null, base = null, esq = W, dir = 0;
+    for(let y = 0; y < H; y++){
+      let achou = false;
+      for(let x = 0; x < W; x++){
+        if(d[((y*W)+x)*4+3] > 25){ achou = true; if(x < esq) esq = x; break; }
+      }
+      for(let x = W-1; x >= 0; x--) if(d[((y*W)+x)*4+3] > 25){ if(x > dir) dir = x; break; }
+      if(achou){ if(topo === null) topo = y; base = y; }
+    }
+    if(topo === null) return null;
+    return { topo: topo/H, base: base/H, larg: (dir-esq)/W, cx: ((esq+dir)/2)/W, ratio: H/W };
+  }catch(_){ return null; }
 }
 
 async function medirCentroX(url){
@@ -5918,16 +5987,19 @@ function compostoCropHTML(torsoUrl, px, raio, camadas){
 /* garante o molde de um estilo: devolve o existente ou gera UMA vez por IA
    (ancorado na referência quando há) e grava. Usado pelo wizard e pela
    repintura em massa. */
-async function garantirMolde(item, estilo){
+async function garantirMolde(item, estilo, refazer){
   let molde = D.fotos[MOLDE_KEY+'|'+estilo];
-  if(molde) return molde;
+  if(molde && !refazer) return molde;
   /* SEMPRE do zero: gerar por edição da referência "remenda" o desenho (faixa
      que não atravessa, listras tortas e assimétricas). O enquadramento fica por
      conta do prompt do torso, que já trava corte, pose e fundo. */
-  const urlMolde = await gerarImagemIA('torso', promptTorso(item, estilo,
+  const urlMolde = await gerarImagemIA('camisa', promptCamisaLimpa(estilo,
     'pure flat saturated magenta (#FF00FF)', 'pure flat saturated cyan (#00FFFF)') + AVISO_MARCADOR, 'medium',
-    null, 'moldes/uniforme-'+estilo, 'Gerando o molde do estilo…');
-  molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde, atributos:{ recorte:'molde', estilo } };
+    null, 'moldes/camisa-'+estilo, 'Gerando o molde do estilo…');
+  /* mede assim que nasce: a gola do estilo passa a sair daqui */
+  const medida = await medirMolde(urlMolde);
+  molde = { pack_id: ST.packId, club_id: MOLDE_KEY, jogador: estilo, url: urlMolde,
+            atributos:{ recorte:'molde', estilo, semPessoa:true, medida } };
   const rM = await jogo('player_photos').upsert(molde, { onConflict:'pack_id,club_id,jogador' });
   if(rM.error) throw new Error(erroMsg(rM.error));
   D.fotos[MOLDE_KEY+'|'+estilo] = molde;
@@ -5949,10 +6021,10 @@ function promptMiniCamisa(estilo){
     'Isolated cutout on a fully transparent background, soft even studio lighting, sharp focus.'
   ].join(' ') + AVISO_MARCADOR;
 }
-async function garantirMoldeMini(estilo, item){
+async function garantirMoldeMini(estilo, item, refazer){
   const chave = 'mini-'+estilo;
   let molde = D.fotos[MOLDE_KEY+'|'+chave];
-  if(molde) return molde;
+  if(molde && !refazer) return molde;
   /* a miniatura é EXTRAÍDA do molde do uniforme (edição sobre a mesma imagem):
      é o que garante listras com a mesma largura, espaçamento e simetria da
      camisa vestida — gerar solta dava um padrão parecido, nunca igual. */
@@ -6006,6 +6078,37 @@ async function prepararEstilos(btn){
 /* repinta TODOS os uniformes de molde do patch com os moldes atuais — gera os
    moldes que faltarem (IA, 1x por estilo) e o resto é pintura local, grátis.
    É o botão de virada quando a pintura ou os moldes melhoram. */
+/* Refaz os 5 moldes na receita nova: camisa sozinha, sem pescoco, fundo
+   transparente. Nao repinta ninguem — separar os dois passos e' de proposito,
+   para dar' para OLHAR os moldes antes de propagar para 79 clubes. Foi a falta
+   disso que deixou um uniforme furado ir para o ar. */
+async function refazerMoldes(btn){
+  const estilos = ESTILOS_CAMISA.map(e => e[0]);
+  if(!await rfConfirm({ titulo:'Refazer os moldes dos 5 estilos',
+    texto:'Gera de novo os <b>5 moldes</b> como <b>camisa sozinha</b>: sem pescoço, sem corpo e com fundo transparente. As miniaturas do campo saem dos moldes novos, na sequência.',
+    detalhe:`Custo: <b>~US$ ${(estilos.length*2*0.044).toFixed(2)}</b> (${estilos.length} moldes + ${estilos.length} miniaturas).
+      Magenta e ciano continuam sendo as cores-marcador, então <b>a repintura por clube segue igual</b>.
+      <b>Nenhum uniforme de clube muda agora</b> — depois de olhar os moldes, use "Repintar todos".
+      Nada é apagado: os moldes antigos continuam no Storage.`,
+    nao:'Cancelar', sim:`Refazer ${estilos.length} moldes (~US$ ${(estilos.length*2*0.044).toFixed(2)})` })) return;
+  const item = (D.catalogo||[])[0];
+  if(!item) return toast('Sem catálogo carregado.', true);
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const e of estilos){
+    try{
+      btn.textContent = `Molde ${ok+erros+1}/${estilos.length}…`;
+      await garantirMolde(item, e, true);
+      await garantirMoldeMini(e, item, true);
+      ok++;
+    }catch(err){ erros++; console.warn('molde falhou:', e, err.message); }
+  }
+  registrar('estudio.moldes.refazer', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} molde(s) refeitos${erros?`, ${erros} falharam`:''}. Confira antes de repintar os clubes.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
 async function repintarTodosUniformes(btn){
   const alvos = [];
   for(const x of (D.catalogo||[])){
@@ -6307,13 +6410,13 @@ async function compararMetodos(item, p){
      pontos entre si, entao um numero que assenta num pode desencaixar noutro.
      Nada e' gerado — sao os torsos que ja' existem, so' remontados. */
   const vistos = new Set([estilo]);
-  const amostras = [{ estilo, nome: item.c.name || item.c.id, url: t.url, centro: centroMolde }];
+  const amostras = [{ estilo, nome: item.c.name || item.c.id, url: t.url, centro: centroMolde, reg: t }];
   for(const x of (D.catalogo || [])){
     const tt = D.fotos[x.c.id+'|'+TORSO_KEY];
     const e = tt && (tt.atributos||{}).estilo;
     if(!e || !tt.url || vistos.has(e)) continue;
     vistos.add(e);
-    amostras.push({ estilo:e, nome: x.c.name || x.c.id, url: tt.url, centro: 0.5 });
+    amostras.push({ estilo:e, nome: x.c.name || x.c.id, url: tt.url, centro: 0.5, reg: tt });
   }
   await Promise.all(amostras.slice(1).map(async a => { a.centro = await medirCentroX(a.url); }));
   /* CADA CAMISA VIRA CAMADA: o fundo cinza sai por inundacao de borda, aqui e
@@ -6321,6 +6424,13 @@ async function compararMetodos(item, p){
      a bancada — sem recorte, usa-se a imagem original. */
   await Promise.all(amostras.map(async a => {
     try{ a.limpo = await tirarFundo(a.url); }catch(_){ a.limpo = null; }
+    /* O MANEQUIM JA' EXISTE. A miniatura do campo de cada clube e' a camisa
+       dele em ghost-mannequin: sem pessoa, sem pescoco e com fundo
+       transparente — exatamente o que a montagem precisa, ja' pintada nas
+       cores do clube e sem custo nenhum. Refazer o molde com IA era resolver
+       na origem um problema que ja' estava resolvido ao lado. */
+    a.mini = (a.reg && a.reg.atributos && a.reg.atributos.miniatura) || null;
+    a.medMini = a.mini ? await medirMolde(a.mini) : null;
   }));
   const camisaDe = a => (st.semFundo && a.limpo) ? a.limpo : a.url;
   const rotuloEstilo = e => ((ESTILOS_CAMISA.find(x=>x[0]===e)||[])[1]) || e || '—';
@@ -6336,14 +6446,23 @@ async function compararMetodos(item, p){
      quadro), e nao mais a RATIO_FOTO. O molde continua 2:3 — ele nao mudou —
      mas sua ALTURA dentro do quadro passa a depender do formato escolhido. */
   const FORMATOS = { ficha:[RATIO_QUADRO, 'Ficha do Jogador (1:1)'], foto:[RATIO_FOTO, 'Foto guardada (2:3)'] };
-  const alturaTorso = () => TORSO_ESCALA*RATIO_FOTO/st.rq;   // fracao da ALTURA do quadro
+  /* A base pode ser a FOTO do uniforme (com pescoco e fundo) ou o MANEQUIM
+     (a miniatura do clube, ja' limpa). No manequim a gola nao e' tabela: e' o
+     topo do proprio recorte, medido no arquivo. */
+  const ehMan   = a => st.base === 'manequim' && !!(a && a.mini);
+  const baseDe  = a => ehMan(a) ? a.mini : ((st.semFundo && a.limpo) ? a.limpo : a.url);
+  const largBase = () => st.base === 'manequim' ? st.corpoLarg : TORSO_ESCALA;
+  const altBase = a => largBase() * (ehMan(a) && a.medMini ? a.medMini.ratio : RATIO_FOTO) / st.rq;
+  const golaDe  = a => st.corpoY + (ehMan(a) && a.medMini ? a.medMini.topo : golaDoEstilo(a.estilo)) * altBase(a);
+  const eixoDe  = a => st.corpoX + ((ehMan(a) && a.medMini ? a.medMini.cx : a.centro) - 0.5) * largBase();
+  const alturaTorso = () => altBase(amostras[0]);
   /* PARAMETRIZADO PELO TOPO, nao pelo rodape. Num quadro 1:1 o molde 2:3 e'
      mais alto que o quadro (128%): ancorar embaixo empurra a gola para fora
      por cima. O padrao reproduz o que o jogo mostra — em 2:3, o torso comeca
      em 14,5%; no quadrado, o mesmo ponto visto pela janela da Ficha. */
   const topoPadrao = rq => rq === RATIO_QUADRO ? ENCAIXE_TOPO_CORPO : (1-TORSO_ESCALA);
   const corpoTopo   = () => st.corpoY;
-  const golaNoQuadro = e => corpoTopo() + golaDoEstilo(e)*alturaTorso();
+
   const largRender  = () => st.alt*st.rq;                    // largura do render do rosto
   /* o recorte que a Ficha faz na foto 2:3, para se ver o que o jogo mostra */
   const JANELA = { alt: 1/RATIO_FOTO, topo: 0.08*(1 - 1/RATIO_FOTO) };
@@ -6371,12 +6490,12 @@ async function compararMetodos(item, p){
   /* estado: alt = altura do render; ancX/ancY = a base do pescoco no quadro */
   const st = { rq: RATIO_QUADRO, corpoX: TORSO_X, corpoY: 0,   /* = topo do corpo; ajustado logo abaixo */ junto: true,
                alt: ENCAIXE_LARG_CABECA/(medida.larg*RATIO_QUADRO),
-               ancX: eixoNoQuadro(centroMolde, TORSO_X), ancY: 0,
+               ancX: TORSO_X, base:'manequim', corpoLarg: 0.62, ancY: 0,
                cola: 'meia', ima: true, cortar: true, corte: auto.corte,
                semFundo: true, fundo: '#e8e8e4' };
-  const eixoAtual = () => eixoNoQuadro(centroMolde, st.corpoX);
+  const eixoAtual = () => eixoDe(amostras[0]);
   st.corpoY = topoPadrao(st.rq);
-  st.ancY = golaNoQuadro(estilo);   // nasce colada na gola
+  st.ancY = golaDe(amostras[0]);   // nasce colada na gola
 
   const gradeHTML = () => {
     let h = '';
@@ -6436,6 +6555,11 @@ async function compararMetodos(item, p){
 
         <div class="col" style="gap:12px;flex:1;min-width:290px">
           <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12.5px;color:var(--dim)">Base</span>
+            <select id="enc-base" class="inp inp-sm" style="width:auto">
+              <option value="manequim" selected>Manequim do clube (limpo)</option>
+              <option value="foto">Foto do uniforme</option>
+            </select>
             <span style="font-size:12.5px;color:var(--dim)">Quadro</span>
             <select id="enc-rq" class="inp inp-sm" style="width:auto">
               <option value="ficha" selected>Ficha do Jogador (1:1)</option>
@@ -6470,6 +6594,8 @@ async function compararMetodos(item, p){
             </div>
             <label class="aj-sl" style="color:var(--fg)"><span style="width:96px">↔ livre</span>
               <input id="enc-corpox" type="range" min="25" max="75" step="0.05" value="${(TORSO_X*100).toFixed(2)}"></label>
+            <label class="aj-sl" style="color:var(--fg)"><span style="width:96px">largura</span>
+              <input id="enc-larg" type="range" min="30" max="100" step="0.1" value="62"></label>
             <label class="aj-sl" style="color:var(--fg)"><span style="width:96px">↕ livre</span>
               <input id="enc-corpoy" type="range" min="-30" max="90" step="0.05" value="0"></label>
           </div>
@@ -6535,7 +6661,7 @@ async function compararMetodos(item, p){
     st.ancY = Math.max(0, Math.min(1, gruda(st.ancY, py)));
     /* IMA DA GOLA: dentro de meia celula, a ancora salta para a linha da gola.
        E' o encaixe que interessa, e ele quase nunca cai num canto da grade. */
-    if(st.ima && Math.abs(st.ancY - golaNoQuadro(estilo)) < (py || 1/24)/2 + 0.004) st.ancY = golaNoQuadro(estilo);
+    if(st.ima && Math.abs(st.ancY - golaDe(amostras[0])) < (py || 1/24)/2 + 0.004) st.ancY = golaDe(amostras[0]);
 
     palco.style.aspectRatio = (1/st.rq).toFixed(4);
     const topo = st.ancY - medida.base*st.alt;
@@ -6549,21 +6675,24 @@ async function compararMetodos(item, p){
     img.style.left   = ((st.ancX - (cx-0.5)*lr)*100).toFixed(2)+'%';
     img.style.transform = 'translateX(-50%)';
     fundoEl.style.background = st.semFundo ? st.fundo : 'transparent';
-    const srcCamisa = camisaDe(amostras[0]);
+    const srcCamisa = baseDe(amostras[0]);
     if(corpo.getAttribute('src') !== srcCamisa) corpo.src = srcCamisa;
-    corpo.style.left = (st.corpoX*100).toFixed(2)+'%';
-    corpo.style.top  = (cTopo*100).toFixed(2)+'%';
+    corpo.style.left  = (st.corpoX*100).toFixed(2)+'%';
+    corpo.style.top   = (cTopo*100).toFixed(2)+'%';
+    corpo.style.width = (largBase()*100).toFixed(2)+'%';
     caixa.style.left = (st.corpoX*100).toFixed(2)+'%';
+    caixa.style.width = (largBase()*100).toFixed(2)+'%';
     caixa.style.top  = (cTopo*100).toFixed(2)+'%';
     caixa.style.height = (hTorso*100).toFixed(2)+'%';
-    linhaGola.style.top = (golaNoQuadro(estilo)*100).toFixed(2)+'%';
+    linhaGola.style.top = (golaDe(amostras[0])*100).toFixed(2)+'%';
     linhaCorte.style.left = (st.corpoX*100).toFixed(2)+'%';
     eixo.style.left  = (eixoAtual()*100).toFixed(2)+'%';
     /* a janela que a Ficha recorta so' faz sentido sobre a foto 2:3 */
     janela.style.display = st.rq === 1 ? 'none' : '';
     janela.style.top = (JANELA.topo*100).toFixed(2)+'%';
     janela.style.height = (JANELA.alt*100).toFixed(2)+'%';
-    corpo.style.clipPath = st.cortar ? `inset(${(st.corte*100).toFixed(2)}% 0 0 0)` : '';
+    /* manequim nao tem pescoco nem fundo: nada a recortar */
+    corpo.style.clipPath = (!ehMan(amostras[0]) && st.cortar) ? `inset(${(st.corte*100).toFixed(2)}% 0 0 0)` : '';
     linhaCorte.style.display = st.cortar ? '' : 'none';
     /* a linha do corte esta' na altura do MOLDE; no quadro ela vira: */
     linhaCorte.style.top = ((cTopo + st.corte*hTorso)*100).toFixed(2)+'%';
@@ -6577,13 +6706,15 @@ async function compararMetodos(item, p){
     /* a imagem e' quadrada: o lado renderizado em fracao da LARGURA e' alt*RATIO_FOTO */
     const cab = medida.larg * lr;
     saida.textContent =
-      `camadas             : fundo · camisa${st.cortar?' (sem pescoço)':''}${st.semFundo?' · sem fundo':''} · cabeça\n`+
+      `base                : ${ehMan(amostras[0]) ? 'manequim do clube (limpo)' : 'foto do uniforme'}\n`+
+      `largura da base     : ${(largBase()*100).toFixed(2)}%\n`+
+      `camadas             : fundo · camisa${ehMan(amostras[0])?'':(st.cortar?' (sem pescoço)':'')}${ehMan(amostras[0])?'':(st.semFundo?' · sem fundo':'')} · cabeça\n`+
       `cor do fundo        : ${st.fundo}${amostras.some(a=>!a.limpo)?'   (⚠ algum molde não recortou)':''}\n`+
       `formato do quadro   : ${st.rq === 1 ? '1:1 — Ficha do Jogador' : '2:3 — foto guardada'}\n`+
       `quadrante da âncora : ${celulaDe(st.ancX, st.ancY)}   (cola: ${st.cola})\n`+
       `âncora ↔            : ${(st.ancX*100).toFixed(2)}%\n`+
-      `âncora ↕ (pescoço)  : ${(st.ancY*100).toFixed(2)}%${perto(st.ancY,golaNoQuadro(estilo))?'   ← na gola':''}\n`+
-      `gola do uniforme    : ${(golaNoQuadro(estilo)*100).toFixed(2)}%   (${st.ancY>golaNoQuadro(estilo)?'+':''}${((st.ancY-golaNoQuadro(estilo))*100).toFixed(2)}%)\n`+
+      `âncora ↕ (pescoço)  : ${(st.ancY*100).toFixed(2)}%${perto(st.ancY,golaDe(amostras[0]))?'   ← na gola':''}\n`+
+      `gola do uniforme    : ${(golaDe(amostras[0])*100).toFixed(2)}%   (${st.ancY>golaDe(amostras[0])?'+':''}${((st.ancY-golaDe(amostras[0]))*100).toFixed(2)}%)\n`+
       `tamanho do render   : ${(st.alt*100).toFixed(2)}%\n`+
       `topo do rosto        : ${(topo*100).toFixed(2)}%\n`+
       `cabeça no quadro    : ${(cab*100).toFixed(2)}% de largura\n`+
@@ -6601,7 +6732,7 @@ async function compararMetodos(item, p){
     /* OS NUMEROS VIAJAM COMO DISTANCIA, nao como absoluto: tamanho e posicao
        do corpo sao os mesmos, mas ancora e corte sao medidos a partir da gola
        DAQUELE estilo — e' o que faz um ajuste so' valer para os cinco. */
-    const dAncY  = st.ancY - golaNoQuadro(estilo);
+    const dAncY  = st.ancY - golaDe(amostras[0]);
     const dAncX  = st.ancX - eixoAtual();
     const dCorte = st.corte - golaDoEstilo(estilo);
     amostras.forEach((a,i) => {
@@ -6609,22 +6740,25 @@ async function compararMetodos(item, p){
       if(!c || !r) return;
       const q = el('enc-q'+i); if(q) q.style.aspectRatio = (1/st.rq).toFixed(4);
       if(q) q.style.background = st.semFundo ? st.fundo : '#d9d9d9';
-      const sc = camisaDe(a); if(c.getAttribute('src') !== sc) c.src = sc;
+      const sc = baseDe(a); if(c.getAttribute('src') !== sc) c.src = sc;
+      c.style.width = (largBase()*100).toFixed(2)+'%';
+      c.style.clipPath = '';
       c.style.top = (cTopo*100).toFixed(2)+'%';
-      const aY = golaNoQuadro(a.estilo) + dAncY;
-      const aX = eixoNoQuadro(a.centro, st.corpoX) + dAncX;
+      const aY = golaDe(a) + dAncY;
+      const aX = eixoDe(a) + dAncX;
       const aC = golaDoEstilo(a.estilo) + dCorte;
+      if(!ehMan(a)) c.style.clipPath = st.cortar ? `inset(${(aC*100).toFixed(2)}% 0 0 0)` : '';
       c.style.left = (st.corpoX*100).toFixed(2)+'%';
-      c.style.clipPath = st.cortar ? `inset(${(aC*100).toFixed(2)}% 0 0 0)` : '';
       r.style.height = (st.alt*100).toFixed(2)+'%';
       r.style.top    = ((aY - medida.base*st.alt)*100).toFixed(2)+'%';
       r.style.left   = ((aX - (cx-0.5)*lr)*100).toFixed(2)+'%';
-      if(m) m.textContent = `gola ${(golaNoQuadro(a.estilo)*100).toFixed(1)}% · eixo ${(eixoNoQuadro(a.centro, st.corpoX)*100).toFixed(1)}%`;
+      if(m) m.textContent = `gola ${(golaDe(a)*100).toFixed(1)}% · eixo ${(eixoDe(a)*100).toFixed(1)}%`;
     });
 
     el('enc-corte').value  = (st.corte*100).toFixed(2);
     el('enc-corpox').value = (st.corpoX*100).toFixed(2);
     el('enc-corpoy').value = (st.corpoY*100).toFixed(2);
+    el('enc-larg').value   = (st.corpoLarg*100).toFixed(2);
   };
   desenha();
 
@@ -6644,7 +6778,13 @@ async function compararMetodos(item, p){
     st.rq = FORMATOS[e.target.value][0];
     st.alt = ENCAIXE_LARG_CABECA/(medida.larg*st.rq);
     st.corpoY = topoPadrao(st.rq);
-    st.ancY = golaNoQuadro(estilo); st.ancX = eixoAtual(); desenha(); };
+    st.ancY = golaDe(amostras[0]); st.ancX = eixoAtual(); desenha(); };
+  el('enc-base').onchange = e => {
+    st.base = e.target.value;
+    st.cortar = st.base !== 'manequim';
+    st.ancY = golaDe(amostras[0]); st.ancX = eixoAtual(); desenha(); };
+  el('enc-larg').oninput     = e => { st.corpoLarg = Number(e.target.value)/100;
+    st.ancY = golaDe(amostras[0]); st.ancX = eixoAtual(); desenha(); };
   el('enc-corpoy').oninput   = e => { st.corpoY = Number(e.target.value)/100; desenha(); };
   el('enc-corpox').oninput   = e => {
     const novo = Number(e.target.value)/100;
@@ -6688,12 +6828,12 @@ async function compararMetodos(item, p){
   };
   document.addEventListener('keydown', tecla);
 
-  el('enc-gola').onclick = () => { st.ancY = golaNoQuadro(estilo); st.ancX = eixoAtual(); desenha(); };
+  el('enc-gola').onclick = () => { st.ancY = golaDe(amostras[0]); st.ancX = eixoAtual(); desenha(); };
   el('enc-copiar').onclick = () => navigator.clipboard.writeText(saida.textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
     () => toast('Não consegui copiar; selecione o texto à mão.', true));
   el('enc-auto').onclick = () => { st.alt = ENCAIXE_LARG_CABECA/(medida.larg*st.rq); st.corpoY = topoPadrao(st.rq);
-    st.ancX = eixoAtual(); st.ancY = golaNoQuadro(estilo); st.corte = auto.corte; desenha(); };
+    st.ancX = eixoAtual(); st.ancY = golaDe(amostras[0]); st.corte = auto.corte; desenha(); };
 
   /* os ouvintes vivem no documento; sem isto o teclado seguiria mexendo
      num palco que ja' foi fechado */
@@ -6893,7 +7033,8 @@ async function pgEstudio(){
         <input class="busca" id="est-busca" placeholder="Procurar clube…" value="${h(ST.buscaEstudio||'')}">
         ${aba==='escudos' && podeEditar('dados') ? '<button class="btn btn-sm" id="est-lote">Enviar em lote</button>' : ''}
         ${aba==='uniformes' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-estilos" title="Gera os moldes que faltam (uniforme + miniatura) dos 5 estilos, para reuso em todos os clubes">Preparar estilos</button>
-        <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>` : ''}
+        <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
+        <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -6941,6 +7082,8 @@ async function pgEstudio(){
   if(btLote) btLote.onclick = modalLoteEscudos;
   const btRep = el('est-repintar');
   if(btRep) btRep.onclick = () => repintarTodosUniformes(btRep);
+  const btRM = el('est-remoldes');
+  if(btRM) btRM.onclick = () => refazerMoldes(btRM);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const btFaces = el('est-faces');
