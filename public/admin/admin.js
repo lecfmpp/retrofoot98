@@ -5738,12 +5738,40 @@ const FOTO_CAMISA_LARG = 1.310;   // largura do manequim / largura do quadro
 const FOTO_GOLA_SOBRE  = 0.030;   // quanto a gola sobe sobre o fim do pescoco
 const FOTO_W = 1024, FOTO_H = 1536;
 
+/* ===== O DECOTE =====
+   O manequim veio com a gola MACICA: medido, a primeira linha dele e' uma
+   borda reta de 29,5% de largura, sem abertura nenhuma no meio. Com a cabeca
+   atras, essa borda atravessa o pescoco na horizontal e le-se como um corte,
+   nao como um colarinho.
+
+   Em vez de gerar o molde de novo (US$ 0,044 x5, e o modelo ja' ignorou o
+   pedido de "neckline aberta" uma vez), recorta-se um arco no proprio topo da
+   camisa. E' meia elipse centrada na borda de cima: some a parte de fora do
+   quadro e sobra o decote, por onde o pescoco aparece. Local, de graca, e
+   ajustavel sem regerar nada. */
+const FOTO_DECOTE_LARG = 0.150;   // largura da abertura, fracao da largura do quadro
+const FOTO_DECOTE_FUNDO = 0.045;  // quanto ela desce, fracao da ALTURA do quadro
+
 /* Monta a foto do jogador: manequim do clube + cabeca, sem escudo, sem
    patrocinador e sem fabricante. Canvas puro — nenhuma chamada de IA. */
 /* A MESMA MONTAGEM, em HTML. montarFotoJogador() desenha no canvas para
    gravar; esta desenha em <img> para mostrar. As duas leem as MESMAS quatro
    constantes — se divergissem, a previa mentiria sobre o que vai ser salvo,
    que e' o pior defeito que uma previa pode ter. */
+/* O MESMO decote do canvas, em mascara CSS. A elipse esta' em % da CAMISA
+   (nao do quadro), porque a mascara acompanha o elemento — entao a medida do
+   quadro e' convertida pela escala da camisa. Se as duas contas divergirem, a
+   previa deixa de valer. */
+function decoteCSS(topoCamisaNoQuadro){
+  if(!(FOTO_DECOTE_LARG > 0 && FOTO_DECOTE_FUNDO > 0)) return '';
+  const largNaCamisa = FOTO_DECOTE_LARG / FOTO_CAMISA_LARG * 100;
+  const altCamisaNoQuadro = FOTO_CAMISA_LARG / RATIO_FOTO;      // manequim quadrado
+  const fundoNaCamisa = FOTO_DECOTE_FUNDO / altCamisaNoQuadro * 100;
+  const g = `radial-gradient(ellipse ${largNaCamisa.toFixed(2)}% ${fundoNaCamisa.toFixed(2)}% at 50% 0%,`
+          + `transparent 99%,#000 100%)`;
+  return `-webkit-mask-image:${g};mask-image:${g};`;
+}
+
 function composicaoFotoHTML(rostoUrl, manequimUrl, med){
   const m = med || { topo:0.02, base:0.93, larg:0.52, cx:0.5 };
   const lw = FOTO_CABECA_LARG / m.larg;          // largura da imagem da cabeça, fracao da largura
@@ -5754,7 +5782,7 @@ function composicaoFotoHTML(rostoUrl, manequimUrl, med){
   return `<img src="${h(rostoUrl)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
       transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">`
    + (manequimUrl ? `<img src="${h(manequimUrl)}" style="position:absolute;left:50%;transform:translateX(-50%);
-      top:${((fimPescoco - FOTO_GOLA_SOBRE)*100).toFixed(3)}%;width:${(FOTO_CAMISA_LARG*100).toFixed(3)}%;z-index:2">` : '');
+      top:${((fimPescoco - FOTO_GOLA_SOBRE)*100).toFixed(3)}%;width:${(FOTO_CAMISA_LARG*100).toFixed(3)}%;z-index:2;${decoteCSS(fimPescoco - FOTO_GOLA_SOBRE)}">` : '');
 }
 
 async function montarFotoJogador(rostoUrl, manequimUrl, medida){
@@ -5779,11 +5807,25 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida){
   const esqImg = FOTO_W/2 - wpx/2 - (cxImg - 0.5)*wpx;     // centra a CABECA, nao o quadrado
   cx.drawImage(rosto, esqImg, topoImg, wpx, hpx);
 
-  /* CAMISA por cima, com a gola cobrindo o fim do pescoco */
+  /* CAMISA por cima, com a gola cobrindo o fim do pescoco. Ela e' desenhada
+     ANTES numa tela propria para o decote ser recortado SO' NELA: um
+     destination-out na tela principal comeria tambem a cabeca, que ja' esta'
+     desenhada por baixo. */
   const fimPescoco = topoImg + m.base*hpx;
   const cw = FOTO_CAMISA_LARG * FOTO_W;
   const ch = cw * (camisa.naturalHeight / camisa.naturalWidth);
-  cx.drawImage(camisa, FOTO_W/2 - cw/2, fimPescoco - FOTO_GOLA_SOBRE*FOTO_H, cw, ch);
+  const topoCamisa = fimPescoco - FOTO_GOLA_SOBRE*FOTO_H;
+  const cv2 = document.createElement('canvas'); cv2.width = FOTO_W; cv2.height = FOTO_H;
+  const cx2 = cv2.getContext('2d');
+  cx2.drawImage(camisa, FOTO_W/2 - cw/2, topoCamisa, cw, ch);
+  if(FOTO_DECOTE_LARG > 0 && FOTO_DECOTE_FUNDO > 0){
+    cx2.globalCompositeOperation = 'destination-out';
+    cx2.beginPath();
+    cx2.ellipse(FOTO_W/2, topoCamisa, (FOTO_DECOTE_LARG*FOTO_W)/2, FOTO_DECOTE_FUNDO*FOTO_H, 0, 0, Math.PI*2);
+    cx2.fill();
+    cx2.globalCompositeOperation = 'source-over';
+  }
+  cx.drawImage(cv2, 0, 0);
 
   const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
   if(!blob) throw new Error('não consegui exportar a foto.');
@@ -7792,7 +7834,8 @@ function modalEncaixeFoto(item, p){
   if(!manequim) return toast('Este clube ainda não tem manequim — repinte o uniforme.', true);
 
   const st = { larg: FOTO_CABECA_LARG, topo: FOTO_CABECA_TOPO,
-               camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE };
+               camisa: FOTO_CAMISA_LARG, sobre: FOTO_GOLA_SOBRE,
+               decL: FOTO_DECOTE_LARG, decF: FOTO_DECOTE_FUNDO };
   let med = null;
 
   abrirModal(`
@@ -7823,6 +7866,10 @@ function modalEncaixeFoto(item, p){
             <input id="enf-camisa" type="range" min="70" max="200" step="0.5" value="${(st.camisa*100).toFixed(1)}"></label>
           <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Gola sobre o pescoço</span>
             <input id="enf-sobre" type="range" min="-5" max="15" step="0.1" value="${(st.sobre*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — largura</span>
+            <input id="enf-decl" type="range" min="0" max="40" step="0.5" value="${(st.decL*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:118px">Decote — fundo</span>
+            <input id="enf-decf" type="range" min="0" max="15" step="0.1" value="${(st.decF*100).toFixed(1)}"></label>
           <div class="card" style="padding:12px 14px;background:var(--card2)">
             <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida — é isto que eu preciso</div>
             <pre id="enf-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
@@ -7845,11 +7892,19 @@ function modalEncaixeFoto(item, p){
     const cw = st.camisa, chh = cw / RATIO_FOTO;
     const topoCamisa = fimPescoco - st.sobre;
     const cx = med.cx == null ? 0.5 : med.cx;
+    /* MESMA conta do decote do canvas, so' que com os valores em ajuste */
+    const largNaCamisa = st.decL / cw * 100;
+    const altCamisa = cw / RATIO_FOTO;
+    const fundoNaCamisa = st.decF / altCamisa * 100;
+    const mascara = (st.decL>0 && st.decF>0)
+      ? (g => `-webkit-mask-image:${g};mask-image:${g};`)(
+          `radial-gradient(ellipse ${largNaCamisa.toFixed(2)}% ${fundoNaCamisa.toFixed(2)}% at 50% 0%,transparent 99%,#000 100%)`)
+      : '';
     const html =
       `<img src="${h(f.url)}" style="position:absolute;left:${((0.5-(cx-0.5)*lw)*100).toFixed(3)}%;
          transform:translateX(-50%);top:${(topoImg*100).toFixed(3)}%;width:${(lw*100).toFixed(3)}%;z-index:1">` +
       `<img src="${h(manequim)}" style="position:absolute;left:50%;transform:translateX(-50%);
-         top:${(topoCamisa*100).toFixed(3)}%;width:${(cw*100).toFixed(3)}%;z-index:2">`;
+         top:${(topoCamisa*100).toFixed(3)}%;width:${(cw*100).toFixed(3)}%;z-index:2;${mascara}">`;
     return { html, fimPescoco, topoCamisa, chh };
   };
 
@@ -7873,6 +7928,8 @@ function modalEncaixeFoto(item, p){
       `FOTO_CABECA_TOPO : ${st.topo.toFixed(4)}   (${(st.topo*100).toFixed(2)}% da altura)\n`+
       `FOTO_CAMISA_LARG : ${st.camisa.toFixed(4)}   (${(st.camisa*100).toFixed(2)}% da largura)\n`+
       `FOTO_GOLA_SOBRE  : ${st.sobre.toFixed(4)}   (${(st.sobre*100).toFixed(2)}% da altura)\n`+
+      `FOTO_DECOTE_LARG : ${st.decL.toFixed(4)}   (${(st.decL*100).toFixed(2)}% da largura)\n`+
+      `FOTO_DECOTE_FUNDO: ${st.decF.toFixed(4)}   (${(st.decF*100).toFixed(2)}% da altura)\n`+
       `— fim do pescoço em ${(g.fimPescoco*100).toFixed(2)}%, gola entra em ${(g.topoCamisa*100).toFixed(2)}%\n`+
       `— a Ficha mostra y 2,67%..53,34% e x 12%..88% deste quadro\n`+
       `— cabeça medida: topo ${(med.topo*100).toFixed(1)}% · base ${(med.base*100).toFixed(1)}% · larg ${(med.larg*100).toFixed(1)}% · centro ${((med.cx==null?0.5:med.cx)*100).toFixed(1)}%`;
@@ -7884,14 +7941,17 @@ function modalEncaixeFoto(item, p){
   });
   const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
   liga('enf-larg','larg'); liga('enf-topo','topo'); liga('enf-camisa','camisa'); liga('enf-sobre','sobre');
+  liga('enf-decl','decL'); liga('enf-decf','decF');
   el('enf-copiar').onclick = () => navigator.clipboard.writeText(el('enf-saida').textContent).then(
     () => toast('Medida copiada — cole aqui na conversa.'),
     () => toast('Não consegui copiar; selecione o texto à mão.', true));
   el('enf-auto').onclick = () => {
     st.larg = FOTO_CABECA_LARG; st.topo = FOTO_CABECA_TOPO;
     st.camisa = FOTO_CAMISA_LARG; st.sobre = FOTO_GOLA_SOBRE;
+    st.decL = FOTO_DECOTE_LARG; st.decF = FOTO_DECOTE_FUNDO;
     el('enf-larg').value=(st.larg*100).toFixed(1); el('enf-topo').value=(st.topo*100).toFixed(1);
     el('enf-camisa').value=(st.camisa*100).toFixed(1); el('enf-sobre').value=(st.sobre*100).toFixed(1);
+    el('enf-decl').value=(st.decL*100).toFixed(1); el('enf-decf').value=(st.decF*100).toFixed(1);
     desenha(); };
 }
 
