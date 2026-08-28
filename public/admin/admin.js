@@ -6757,6 +6757,7 @@ async function remontarFotos(btn){
     const clube = k.slice(0, i), nome = k.slice(i+1);
     if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
     const f = D.fotos[k]; if(!f || !f.url) continue;
+    if((f.atributos||{}).recorte !== 'camadas') continue;   // so' a foto em camadas se remonta
     const t = D.fotos[clube+'|'+TORSO_KEY];
     const man = t && t.atributos && t.atributos.miniatura;
     if(!man) continue;                       // sem manequim nao ha' em que encaixar
@@ -8319,7 +8320,8 @@ function modalFotosIA(item){
         ${editar && f && (f.atributos||{}).recorte !== 'cartao'
             ? botao('data-recortar','✂','Recortar o fundo desta foto — sem custo') :''}
         ${f ? botao('data-baixar','⤓','Baixar a imagem deste jogador') :''}
-        ${editar && f ? botao('data-remontar','⟳','Remontar esta foto com o encaixe atual — sem custo') :''}
+        ${editar && f && (f.atributos||{}).recorte === 'camadas'
+            ? botao('data-remontar','⟳','Remontar: refaz a montagem cabeça + camisa do clube — só para as fotos em camadas') :''}
         ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
@@ -8467,6 +8469,13 @@ function modalFotosIA(item){
     }
     const btRm = ev.target.closest('[data-remontar]');
     if(btRm){
+      /* REMONTAR SO' SERVE A FOTO EM CAMADAS. Nela o `url` e' a CABECA, e a
+         montagem e' cabeca + manequim do clube. No retrato de card o `url` e'
+         a foto INTEIRA — remonta-la trataria o jogador todo como se fosse uma
+         cabeca, e o resultado seria lixo gravado por cima do bom. */
+      const f0 = D.fotos[c.id+'|'+p.n];
+      if(!f0 || (f0.atributos||{}).recorte !== 'camadas')
+        return toast('Remontar só vale para foto em camadas — esta é um retrato inteiro.', true);
       const alvo = alvoRemontagem(String(c.id), p.n);
       if(!alvo) return toast('Precisa de cabeça e de manequim do clube.', true);
       btRm.disabled = true;
@@ -8540,7 +8549,11 @@ function modalFotosIA(item){
     if(!fila.length) return toast('Todo o elenco já tem foto.');
     /* valores MEDIDOS na fatura (rosto US$ 0,044 + montagem US$ 0,070), nao a
        tabela antiga por imagem, que subestimava a montagem em 11%. */
-    const custo = (fila.length*0.044).toFixed(2);   // so' a cabeca; o encaixe e' canvas
+    /* MEDIDO na fatura, nao estimado: o retrato de card e' 1024x1536 e sai por
+       US$ 0,0647 (1584 tokens de saida). Eu tinha deixado 0,044, que era o
+       preco do rosto QUADRADO de 1024x1024 — 47% a menos do que o real, e
+       subestimar custo e' o pior lado para errar. */
+    const custo = (fila.length*0.0647).toFixed(2);
     if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
       texto:`Vou gerar <b>${fila.length} retrato(s)</b> — cabeça e peito, camisa neutra e fundo transparente.`,
       detalhe:`Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe.
