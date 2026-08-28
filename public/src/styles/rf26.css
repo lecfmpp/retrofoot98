@@ -1702,11 +1702,17 @@
 .pc-overlay{position:absolute;left:0;right:0;bottom:0;height:40%;pointer-events:none;
   background:linear-gradient(0deg,#09120d 0%,rgba(9,18,13,.98) 30%,rgba(9,18,13,.88) 48%,
     rgba(9,18,13,.66) 64%,rgba(9,18,13,.4) 78%,rgba(9,18,13,.18) 90%,rgba(9,18,13,0) 100%)}
-/* AFASTAR A FOTO abre o fundo em volta. So' vale para foto vazada: a opaca
-   afastada vira um retangulo cinza flutuando sobre as listras. */
-.pc .pc-vazada{--pc-zoom:86%;
-  left:50%;right:auto;top:auto;bottom:0;transform:translateX(-50%);
-  width:var(--pc-zoom);height:auto;max-height:100%;object-fit:contain;object-position:50% 100%}
+/* A FOTO ABRE O FUNDO EM VOLTA — so' a vazada: a opaca afastada viraria um
+   retangulo cinza flutuando sobre as listras.
+
+   ANCORADA PELO TOPO, e a conta explica por que. A foto e' 2:3 e o card e'
+   200x305, entao a 120% de largura ela fica 118% da ALTURA do card. Ancorada
+   embaixo, esses 18% de sobra saem por cima e levam a cabeca junto — o topo
+   do conteudo cairia em -11,8%, fora do quadro. Ancorada em cima, a cabeca
+   fica em 6,3% e a sobra sai por baixo, onde o degrade ja' cobre. */
+.pc .pc-vazada{--pc-zoom:120%;--pc-topo:0%;
+  left:50%;right:auto;bottom:auto;top:var(--pc-topo);transform:translateX(-50%);
+  width:var(--pc-zoom);height:auto;object-fit:contain;object-position:50% 0}
 .pc .pc-foto-comp.pc-vazada{height:auto;aspect-ratio:2/3}
 .pc-num{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;justify-content:center;
   min-width:30px;height:30px;padding:0 9px;box-sizing:border-box;border-radius:10px;
