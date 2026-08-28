@@ -199,6 +199,11 @@ window.RF_ROSTOS = window.RF_ROSTOS || {};
 window.RF_ROSTOS_NOME = window.RF_ROSTOS_NOME || {};
 window.RF_ROSTO_MED = window.RF_ROSTO_MED || {};
 window.RF_ROSTO_AJ = window.RF_ROSTO_AJ || {};
+/* QUE TIPO DE RECORTE a foto tem. O card poe a identidade do clube no fundo,
+   e isso so' funciona com foto de fundo TRANSPARENTE: as antigas sao opacas e
+   tapam o fundo inteiro. O card precisa saber a diferenca para nao afastar a
+   foto e deixar um retangulo cinza flutuando sobre as listras. */
+window.RF_FOTO_RECORTE = window.RF_FOTO_RECORTE || {};
 window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 /* RF_TREINADORES['m1'..'f5'] -> as 10 faces padrão de treinador, escolhidas no
    assistente por quem não gera a própria. Moram na MESMA tabela (linhas com
@@ -244,6 +249,7 @@ function buscarFotos(packId){
           window.RF_ROSTO_MED[f.jogador] = at.medida;
           if(at.encaixe) window.RF_ROSTO_AJ[f.jogador] = at.encaixe;
         }
+        if(at.recorte) window.RF_FOTO_RECORTE[f.jogador] = at.recorte;
         const foto = at.montagem || null;   // a foto costurada segue de reserva
         if(!foto) continue;
         /* ajuste de camadas SÓ desta foto: a costura por IA nunca devolve o

@@ -2546,10 +2546,16 @@ function rfCardJogadorHTML(p, num, clubId){
   const c1 = th.col || '#17458F', c2 = th.col2 || '#F2B90C';
   const crest = (typeof clubCrestUrl==='function') ? clubCrestUrl(cl) : (cl.crest||null);
   const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, cid) : null;
+  /* SO' FOTO RECORTADA PODE AFASTAR-SE. A montada em camadas e a nova de card
+     tem fundo transparente, entao afastar deixa as listras aparecerem em
+     volta. As antigas sao opacas: afasta-las poria um retangulo cinza
+     flutuando sobre o fundo, que e' pior do que nao mostrar o fundo. */
+  const recorte = (window.RF_FOTO_RECORTE||{})[p.n];
+  const vazado = recorte === 'cartao' || recorte === 'camadas';
   const miolo = !foto ? ''
     : (typeof foto==='string' && foto.charAt(0)==='<')
-      ? `<span class="pc-foto pc-foto-comp">${foto}</span>`
-      : `<img class="pc-foto" src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
+      ? `<span class="pc-foto pc-foto-comp pc-vazada">${foto}</span>`
+      : `<img class="pc-foto${vazado?' pc-vazada':''}" src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
   const idade = p.age ? p.age+' ANOS' : '';
   const pos = String(rfPosLabel(p.s)||'').toUpperCase();
   return `<div class="pc" style="--clube-1:${escC(c1)};--clube-2:${escC(c2)}">
