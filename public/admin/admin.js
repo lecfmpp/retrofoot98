@@ -6151,6 +6151,23 @@ async function compararMetodos(item, p){
   const estilo = (t.atributos||{}).estilo;
   /* o eixo do CORPO: a cabeca casa com o uniforme, nao com a moldura */
   const centroMolde = await medirCentroX(t.url);
+
+  /* UM CLUBE DE CADA ESTILO, com a MESMA cabeca e os MESMOS numeros. Sem isto
+     a calibragem e' uma amostra de um: as golas dos 5 moldes divergem quase 4
+     pontos entre si, entao um numero que assenta num pode desencaixar noutro.
+     Nada e' gerado — sao os torsos que ja' existem, so' remontados. */
+  const vistos = new Set([estilo]);
+  const amostras = [{ estilo, nome: item.c.name || item.c.id, url: t.url, centro: centroMolde }];
+  for(const x of (D.catalogo || [])){
+    const tt = D.fotos[x.c.id+'|'+TORSO_KEY];
+    const e = tt && (tt.atributos||{}).estilo;
+    if(!e || !tt.url || vistos.has(e)) continue;
+    vistos.add(e);
+    amostras.push({ estilo:e, nome: x.c.name || x.c.id, url: tt.url, centro: 0.5 });
+  }
+  await Promise.all(amostras.slice(1).map(async a => { a.centro = await medirCentroX(a.url); }));
+  const rotuloEstilo = e => ((ESTILOS_CAMISA.find(x=>x[0]===e)||[])[1]) || e || '—';
+  const golaNoQuadro = e => TORSO_TOPO + golaDoEstilo(e)*TORSO_ESCALA;
   const auto = encaixeComposto(medida, estilo, eixoNoQuadro(centroMolde, TORSO_X)) || { rostoAltura:0.35, rostoTopo:0.02 };
   const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
 
@@ -6289,6 +6306,27 @@ async function compararMetodos(item, p){
           </div>
         </div>
       </div>
+      <div class="card" style="padding:12px 14px;background:var(--card2)">
+        <div class="tt" style="font-size:12.5px;margin-bottom:4px">Os ${amostras.length} estilos com esta mesma cabeça</div>
+        <div class="st" style="font-size:12px;margin-bottom:10px">
+          Mesmos números, aplicados como <b>distância</b> — o tamanho e a posição do uniforme são iguais em todos;
+          a âncora e o corte acompanham a gola de cada estilo, que difere entre eles.
+          Nada foi gerado aqui: são os uniformes que já existem.
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          ${amostras.map((a,i)=>`<div style="width:150px">
+            <div id="enc-q${i}" style="position:relative;width:150px;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};
+                 border-radius:8px;overflow:hidden;background:#d9d9d9">
+              <img id="enc-q${i}-c" src="${h(a.url)}" style="position:absolute;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%">
+              <img id="enc-q${i}-r" src="${h(rosto)}" style="position:absolute;transform:translateX(-50%);object-fit:contain">
+            </div>
+            <div style="margin-top:6px;font-size:11px;line-height:1.4;color:var(--dim)">
+              <b style="color:var(--fg)">${h(rotuloEstilo(a.estilo))}</b><br>${h(a.nome)}
+              <span class="mono" id="enc-q${i}-m" style="display:block;color:var(--dim2);font-size:10px"></span>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
       <small style="font-size:12px;color:var(--dim2)">${h(resumoAtributos(at))} · nada foi salvo no elenco.</small>
     </div>`, 'xl');
 
@@ -6349,6 +6387,26 @@ async function compararMetodos(item, p){
     el('enc-alt').value = (st.alt*100).toFixed(1);
     el('enc-y').value   = (st.ancY*100).toFixed(1);
     el('enc-x').value   = (st.ancX*100).toFixed(1);
+    /* OS NUMEROS VIAJAM COMO DISTANCIA, nao como absoluto: tamanho e posicao
+       do corpo sao os mesmos, mas ancora e corte sao medidos a partir da gola
+       DAQUELE estilo — e' o que faz um ajuste so' valer para os cinco. */
+    const dAncY  = st.ancY - gola;
+    const dAncX  = st.ancX - eixoAtual();
+    const dCorte = st.corte - golaDoEstilo(estilo);
+    amostras.forEach((a,i) => {
+      const c = el('enc-q'+i+'-c'), r = el('enc-q'+i+'-r'), m = el('enc-q'+i+'-m');
+      if(!c || !r) return;
+      const aY = golaNoQuadro(a.estilo) + dAncY;
+      const aX = eixoNoQuadro(a.centro, st.corpoX) + dAncX;
+      const aC = golaDoEstilo(a.estilo) + dCorte;
+      c.style.left = (st.corpoX*100).toFixed(2)+'%';
+      c.style.clipPath = st.cortar ? `inset(${(aC*100).toFixed(2)}% 0 0 0)` : '';
+      r.style.height = (st.alt*100).toFixed(2)+'%';
+      r.style.top    = ((aY - medida.base*st.alt)*100).toFixed(2)+'%';
+      r.style.left   = ((aX - (cx-0.5)*largRender)*100).toFixed(2)+'%';
+      if(m) m.textContent = `gola ${(golaNoQuadro(a.estilo)*100).toFixed(1)}% · eixo ${(eixoNoQuadro(a.centro, st.corpoX)*100).toFixed(1)}%`;
+    });
+
     el('enc-corte').value  = (st.corte*100).toFixed(2);
     el('enc-corpox').value = (st.corpoX*100).toFixed(2);
   };
