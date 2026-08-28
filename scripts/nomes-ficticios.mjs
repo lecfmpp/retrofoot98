@@ -134,20 +134,33 @@ set search_path to elifoot_v3;
 begin;
 `;
 
-/* RENOMEAR FOTO EM DOIS TEMPOS. A PK de player_photos é (pack_id, club_id,
-   jogador) e a planilha encadeia nomes ("Renato Marques" vira "Bruno Melo"
-   enquanto o "Bruno Melo" de verdade vira outra coisa): um UPDATE por jogador,
-   em sequência, estouraria a PK no meio da cadeia. Então todos os alvos passam
-   antes por um nome de passagem e só depois recebem o definitivo. */
-function renomearFotos(de, para){
-  const linhas = fotos.map(f => `(${asp(f.club)},${asp(f[de])},${asp(f[para])})`).join(',\n       ');
-  const onde = alvo => `from (values\n       ${linhas}\n     ) as m(club, de, para)\n`
-                     + ` where p.pack_id = ${asp(PACOTE_OFICIAL)} and p.club_id = m.club and p.jogador = ${alvo};`;
+/* AS FOTOS SAEM DO PRÓPRIO PATCH. player_photos é indexada por (pack_id,
+   club_id, jogador) com o nome REAL; renomear o jogador sem renomear a foto
+   quebraria RF_FOTOS[club_id|nome]. O mapa "real -> fictício" já é exatamente o
+   `squad` que acabou de entrar em pack_edits, então o SQL lê de lá em vez de
+   repetir 1.900 pares — o que mantém o arquivo legível e impede que as duas
+   metades saiam de sincronia.
+
+   FORA DO MAPA: as chaves com sufixo `##N`. Homônimo tem no máximo uma foto e
+   ela seguiria o primeiro dos dois — melhor não trocar a foto de dono.
+
+   DOIS TEMPOS por causa da PK: a planilha encadeia nomes ("Renato Marques" vira
+   "Bruno Melo" enquanto o "Bruno Melo" de verdade vira outra coisa), então todos
+   os alvos passam por um nome de passagem antes de receber o definitivo. */
+const MAPA = `with mapa as (
+       select e.club_id, k as de, e.patch->'squad'->k->>'n' as para
+         from pack_edits e, lateral jsonb_object_keys(e.patch->'squad') k
+        where e.pack_id = ${asp(PACOTE_OFICIAL)} and e.patch ? 'squad' and k !~ '##[0-9]+$'
+     )`;
+function renomearFotos(inverso){
+  const de = inverso ? 'm.para' : 'm.de', para = inverso ? 'm.de' : 'm.para';
+  const onde = alvo => `\n from mapa m\n where p.pack_id = ${asp(PACOTE_OFICIAL)}`
+                     + ` and p.club_id = m.club_id and p.jogador = ${alvo};`;
   return [
-    `-- 1/2 tira os alvos do caminho`,
-    `update player_photos p set jogador = '~ren~' || p.jogador\n ` + onde('m.de'),
-    `-- 2/2 grava o nome definitivo`,
-    `update player_photos p set jogador = m.para\n ` + onde(`'~ren~' || m.de`)
+    '-- 1/2 tira os alvos do caminho (a PK não aceita a cadeia de uma vez)',
+    `${MAPA}\nupdate player_photos p set jogador = '~ren~' || p.jogador` + onde(de),
+    '-- 2/2 grava o nome definitivo',
+    `${MAPA}\nupdate player_photos p set jogador = ${para}` + onde(`'~ren~' || ${de}`)
   ];
 }
 
@@ -156,11 +169,13 @@ for(const [cid, squad] of porClube){
   aplicar.push(`update pack_edits set patch = patch || ${jsonb({ squad })}`
              + ` where pack_id = ${asp(PACOTE_OFICIAL)} and club_id = ${asp(cid)};`);
 }
-aplicar.push('', ...renomearFotos('de', 'para'), 'commit;');
+aplicar.push('', ...renomearFotos(false), 'commit;');
 
+/* ORDEM IMPORTA na volta: as fotos são renomeadas ANTES de a chave `squad` sair,
+   porque é dela que o mapa é lido. */
 const reverter = [cabecalho('REVERTER os nomes fictícios de jogador')];
-reverter.push(`update pack_edits set patch = patch - 'squad' where pack_id = ${asp(PACOTE_OFICIAL)};`);
-reverter.push('', ...renomearFotos('para', 'de'), 'commit;');
+reverter.push(...renomearFotos(true), '',
+  `update pack_edits set patch = patch - 'squad' where pack_id = ${asp(PACOTE_OFICIAL)};`, 'commit;');
 
 /* --json <arquivo>: despeja o mesmo payload no formato que net/dados.js recebe do
    banco. É o que scripts/teste-nomes-ficticios.mjs aplica no bundle para conferir
