@@ -6079,46 +6079,112 @@ async function compararMetodos(item, p){
 
   const estilo = (t.atributos||{}).estilo;
   const auto = encaixeComposto(medida, estilo) || { rostoAltura:0.35, rostoTopo:0.02 };
-  /* estado do ajuste, em fracoes do quadro */
-  const st = { alt: auto.rostoAltura, topo: auto.rostoTopo, x: 0.5 };
   const gola = TORSO_TOPO + golaDoEstilo(estilo)*TORSO_ESCALA;
 
+  /* ---- A GRADE ----------------------------------------------------------
+     4 colunas x 6 linhas = 24 quadrantes de 25% x 16,67%, nomeados A1..D6.
+     O nome nao e' enfeite: e' assim que a medida vira instrucao repetivel
+     ("ancora em C4"), em vez de um numero solto que so vale para esta foto.
+
+     A ANCORA NAO E' O TOPO DA CABECA, e' a BASE DO PESCOCO. E' o unico ponto
+     que precisa encontrar a gola; ancorar pelo topo faz cada cabeca — que tem
+     testa e cabelo de altura diferente — cair num lugar diferente com o mesmo
+     numero. Pela base do pescoco, o mesmo numero encaixa qualquer cabeca. */
+  const GRADE = { cols:4, linhas:6 };
+  const COLA = { celula:[1/4, 1/6], meia:[1/8, 1/12], quarto:[1/16, 1/24], livre:[0, 0] };
+  const LETRA = 'ABCDEFGH';
+  const celulaDe = (x, y) => {
+    const c = Math.max(0, Math.min(GRADE.cols-1,  Math.floor(x*GRADE.cols)));
+    const l = Math.max(0, Math.min(GRADE.linhas-1, Math.floor(y*GRADE.linhas)));
+    return LETRA[c] + (l+1);
+  };
+  const gruda = (v, passo) => passo ? Math.round(v/passo)*passo : v;
+
+  /* estado: alt = altura do render; ancX/ancY = a base do pescoco no quadro */
+  const st = { alt: auto.rostoAltura, ancX: 0.5,
+               ancY: auto.rostoTopo + medida.base*auto.rostoAltura,
+               cola: 'meia', ima: true };
+
+  const gradeHTML = () => {
+    let h = '';
+    for(let c=1; c<GRADE.cols; c++)
+      h += `<span style="position:absolute;top:0;bottom:0;left:${(c/GRADE.cols*100).toFixed(2)}%;border-left:1px solid #00000026"></span>`;
+    for(let l=1; l<GRADE.linhas; l++)
+      h += `<span style="position:absolute;left:0;right:0;top:${(l/GRADE.linhas*100).toFixed(2)}%;border-top:1px solid #00000026"></span>`;
+    for(let c=0; c<GRADE.cols; c++) for(let l=0; l<GRADE.linhas; l++)
+      h += `<span style="position:absolute;left:${(c/GRADE.cols*100).toFixed(2)}%;top:${(l/GRADE.linhas*100).toFixed(2)}%;
+             width:${(100/GRADE.cols).toFixed(2)}%;height:${(100/GRADE.linhas).toFixed(2)}%;
+             font:600 8.5px/1 ui-monospace,monospace;color:#00000038;padding:2px 0 0 3px;box-sizing:border-box">${LETRA[c]}${l+1}</span>`;
+    return h;
+  };
+  /* pontos de cola visiveis: os cantos dos quadrantes */
+  const pontosHTML = () => {
+    let h = '';
+    for(let c=0; c<=GRADE.cols; c++) for(let l=0; l<=GRADE.linhas; l++)
+      h += `<span class="enc-pt" data-x="${(c/GRADE.cols).toFixed(4)}" data-y="${(l/GRADE.linhas).toFixed(4)}"
+             style="position:absolute;left:${(c/GRADE.cols*100).toFixed(2)}%;top:${(l/GRADE.linhas*100).toFixed(2)}%;
+             width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;background:#00000030"></span>`;
+    return h;
+  };
+
   abrirModal(`
-    <div class="card-h"><b>${h(p.n)} — arraste e redimensione até encaixar</b></div>
+    <div class="card-h"><b>${h(p.n)} — encaixe na grade</b></div>
     <div class="card-p col" style="gap:16px">
       <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
-        <div style="flex:0 0 280px">
-          <div id="enc-palco" style="position:relative;width:280px;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};
-               border-radius:10px;overflow:hidden;background:#d9d9d9;cursor:grab;touch-action:none">
+        <div style="flex:0 0 300px">
+          <div id="enc-palco" style="position:relative;width:300px;aspect-ratio:${(1/RATIO_FOTO).toFixed(4)};
+               border-radius:10px;overflow:hidden;background:#d9d9d9;cursor:grab;touch-action:none;user-select:none">
             <img src="${h(t.url)}" draggable="false"
                  style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:${(TORSO_ESCALA*100).toFixed(1)}%;pointer-events:none">
             <img id="enc-rosto" src="${h(rosto)}" draggable="false" style="position:absolute;object-fit:contain;pointer-events:none">
-            <span id="enc-guias" style="position:absolute;inset:0;pointer-events:none">
-              <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(1)}%;border-top:1px dashed #35c46a"></span>
-              <span style="position:absolute;left:0;right:0;top:${(gola*100).toFixed(1)}%;border-top:1px dashed #e3b23c"></span>
-              <span style="position:absolute;left:${((1-TORSO_ESCALA)/2*100).toFixed(1)}%;right:${((1-TORSO_ESCALA)/2*100).toFixed(1)}%;
-                    top:${(TORSO_TOPO*100).toFixed(1)}%;bottom:0;border:1px dashed #35c46a55"></span>
+            <span style="position:absolute;inset:0;pointer-events:none">
+              ${gradeHTML()}${pontosHTML()}
+              <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(2)}%;border-top:1px dashed #35c46a"></span>
+              <span style="position:absolute;left:0;right:0;top:${(gola*100).toFixed(2)}%;border-top:1.5px dashed #e3b23c"></span>
+              <span style="position:absolute;left:${((1-TORSO_ESCALA)/2*100).toFixed(2)}%;right:${((1-TORSO_ESCALA)/2*100).toFixed(2)}%;
+                    top:${(TORSO_TOPO*100).toFixed(2)}%;bottom:0;border:1px dashed #35c46a55"></span>
+              <span id="enc-anc" style="position:absolute;width:13px;height:13px;margin:-6.5px 0 0 -6.5px">
+                <span style="position:absolute;left:6px;top:0;bottom:0;border-left:1.5px solid #d94a4a"></span>
+                <span style="position:absolute;top:6px;left:0;right:0;border-top:1.5px solid #d94a4a"></span>
+              </span>
             </span>
           </div>
-          <div style="margin-top:8px;font-size:11.5px;color:var(--dim2);line-height:1.6">
-            <span style="color:#35c46a">— — topo do uniforme</span> · <span style="color:#e3b23c">— — gola</span><br>
-            Arraste a cabeça no palco. Setas do teclado ajustam de 0,2% em 0,2%.
+          <div style="margin-top:8px;font-size:11.5px;color:var(--dim2);line-height:1.7">
+            <span style="color:#35c46a">— topo do uniforme</span> ·
+            <span style="color:#e3b23c">— gola</span> ·
+            <span style="color:#d94a4a">✛ âncora (base do pescoço)</span><br>
+            Arraste no palco. Setas do teclado andam um ponto de cola; <b>+</b>/<b>−</b> mudam o tamanho.
           </div>
         </div>
 
-        <div class="col" style="gap:12px;flex:1;min-width:280px">
+        <div class="col" style="gap:12px;flex:1;min-width:290px">
+          <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12.5px;color:var(--dim)">Cola</span>
+            <select id="enc-cola" class="inp inp-sm" style="width:auto">
+              <option value="celula">Quadrante inteiro (25% × 16,7%)</option>
+              <option value="meia" selected>Meio quadrante (12,5% × 8,3%)</option>
+              <option value="quarto">Um quarto (6,25% × 4,2%)</option>
+              <option value="livre">Livre (sem cola)</option>
+            </select>
+            <label style="font-size:12.5px;color:var(--dim);display:flex;gap:6px;align-items:center">
+              <input type="checkbox" id="enc-ima" checked> ímã da gola</label>
+          </div>
+
           <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Tamanho</span>
-            <input id="enc-alt" type="range" min="10" max="80" step="0.2" value="${(st.alt*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Altura (topo)</span>
-            <input id="enc-topo" type="range" min="-20" max="60" step="0.2" value="${(st.topo*100).toFixed(1)}"></label>
-          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Horizontal</span>
-            <input id="enc-x" type="range" min="20" max="80" step="0.2" value="50"></label>
+            <input id="enc-alt" type="range" min="10" max="80" step="0.5" value="${(st.alt*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Âncora ↕</span>
+            <input id="enc-y" type="range" min="0" max="100" step="0.1" value="${(st.ancY*100).toFixed(1)}"></label>
+          <label class="aj-sl" style="color:var(--fg)"><span style="width:110px">Âncora ↔</span>
+            <input id="enc-x" type="range" min="0" max="100" step="0.1" value="50"></label>
 
           <div class="card" style="padding:12px 14px;background:var(--card2)">
             <div class="tt" style="font-size:12.5px;margin-bottom:8px">Medida atual — é isto que eu preciso</div>
             <pre id="enc-saida" class="mono" style="margin:0;font-size:12px;line-height:1.7;white-space:pre-wrap;color:var(--fg)"></pre>
-            <button class="btn btn-sm btn-ghost" id="enc-copiar" style="margin-top:10px">Copiar medida</button>
-            <button class="btn btn-sm btn-ghost" id="enc-auto" style="margin-top:10px">Voltar ao calculado</button>
+            <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+              <button class="btn btn-sm" id="enc-gola">Colar na gola</button>
+              <button class="btn btn-sm btn-ghost" id="enc-copiar">Copiar medida</button>
+              <button class="btn btn-sm btn-ghost" id="enc-auto">Voltar ao calculado</button>
+            </div>
           </div>
 
           <div class="st" style="font-size:12px;line-height:1.6">
@@ -6132,42 +6198,60 @@ async function compararMetodos(item, p){
       <small style="font-size:12px;color:var(--dim2)">${h(resumoAtributos(at))} · nada foi salvo no elenco.</small>
     </div>`, 'xl');
 
-  const palco = el('enc-palco'), img = el('enc-rosto'), saida = el('enc-saida');
+  const palco = el('enc-palco'), img = el('enc-rosto'), saida = el('enc-saida'), anc = el('enc-anc');
+  const pts = Array.from(palco.querySelectorAll('.enc-pt'));
+
   const desenha = () => {
-    img.style.height = (st.alt*100).toFixed(1)+'%';
-    img.style.top    = (st.topo*100).toFixed(1)+'%';
-    img.style.left   = (st.x*100).toFixed(1)+'%';
+    const [px, py] = COLA[st.cola];
+    st.ancX = Math.max(0, Math.min(1, gruda(st.ancX, px)));
+    st.ancY = Math.max(0, Math.min(1, gruda(st.ancY, py)));
+    /* IMA DA GOLA: dentro de meia celula, a ancora salta para a linha da gola.
+       E' o encaixe que interessa, e ele quase nunca cai num canto da grade. */
+    if(st.ima && Math.abs(st.ancY - gola) < (py || 1/24)/2 + 0.004) st.ancY = gola;
+
+    const topo = st.ancY - medida.base*st.alt;
+    img.style.height = (st.alt*100).toFixed(2)+'%';
+    img.style.top    = (topo*100).toFixed(2)+'%';
+    img.style.left   = (st.ancX*100).toFixed(2)+'%';
     img.style.transform = 'translateX(-50%)';
-    /* largura da CABECA dentro do quadro: a imagem e' quadrada, entao o lado
-       renderizado em fracoes da largura e' alt*RATIO_FOTO */
+    anc.style.left = (st.ancX*100).toFixed(2)+'%';
+    anc.style.top  = (st.ancY*100).toFixed(2)+'%';
+
+    const perto = (a,b) => Math.abs(a-b) < 0.004;
+    pts.forEach(d => { const on = perto(+d.dataset.x, st.ancX) && perto(+d.dataset.y, st.ancY);
+      d.style.background = on ? '#d94a4a' : '#00000030'; d.style.transform = on ? 'scale(1.6)' : ''; });
+
+    /* a imagem e' quadrada: o lado renderizado em fracao da LARGURA e' alt*RATIO_FOTO */
     const cab = medida.larg * st.alt * RATIO_FOTO;
-    const pescoco = st.topo + medida.base*st.alt;
     saida.textContent =
-      `tamanho (altura do render) : ${(st.alt*100).toFixed(1)}%\n`+
-      `topo do rosto              : ${(st.topo*100).toFixed(1)}%\n`+
-      `horizontal                 : ${(st.x*100).toFixed(1)}%\n`+
-      `cabeça no quadro           : ${(cab*100).toFixed(1)}% de largura\n`+
-      `pescoço termina em         : ${(pescoco*100).toFixed(1)}%\n`+
-      `gola do uniforme           : ${(gola*100).toFixed(1)}%  (${pescoco>gola?'+':''}${((pescoco-gola)*100).toFixed(1)}%)\n`+
-      `— o rosto mede topo ${(medida.topo*100).toFixed(1)}% · base ${(medida.base*100).toFixed(1)}% · larg ${(medida.larg*100).toFixed(1)}%`;
+      `quadrante da âncora : ${celulaDe(st.ancX, st.ancY)}   (cola: ${st.cola})\n`+
+      `âncora ↔            : ${(st.ancX*100).toFixed(2)}%\n`+
+      `âncora ↕ (pescoço)  : ${(st.ancY*100).toFixed(2)}%${perto(st.ancY,gola)?'   ← na gola':''}\n`+
+      `gola do uniforme    : ${(gola*100).toFixed(2)}%   (${st.ancY>gola?'+':''}${((st.ancY-gola)*100).toFixed(2)}%)\n`+
+      `tamanho do render   : ${(st.alt*100).toFixed(2)}%\n`+
+      `topo do rosto        : ${(topo*100).toFixed(2)}%\n`+
+      `cabeça no quadro    : ${(cab*100).toFixed(2)}% de largura\n`+
+      `— rosto: topo ${(medida.topo*100).toFixed(1)}% · base ${(medida.base*100).toFixed(1)}% · larg ${(medida.larg*100).toFixed(1)}%`;
+
+    el('enc-alt').value = (st.alt*100).toFixed(1);
+    el('enc-y').value   = (st.ancY*100).toFixed(1);
+    el('enc-x').value   = (st.ancX*100).toFixed(1);
   };
   desenha();
 
-  const liga = (id, campo, div) => { const c = el(id); if(c) c.oninput = () => { st[campo] = Number(c.value)/div; desenha(); }; };
-  liga('enc-alt','alt',100); liga('enc-topo','topo',100); liga('enc-x','x',100);
+  el('enc-cola').onchange = e => { st.cola = e.target.value; desenha(); };
+  el('enc-ima').onchange  = e => { st.ima = e.target.checked; desenha(); };
+  const liga = (id, campo) => { const c = el(id); c.oninput = () => { st[campo] = Number(c.value)/100; desenha(); }; };
+  liga('enc-alt','alt'); liga('enc-y','ancY'); liga('enc-x','ancX');
 
-  /* arraste em fracoes do palco — o palco muda de tamanho com a janela */
   let arr = null;
   const pt = e => (e.touches && e.touches[0]) || e;
   const baixa = e => { const r = palco.getBoundingClientRect(), q = pt(e);
-    arr = { px:q.clientX, py:q.clientY, x:st.x, topo:st.topo, w:r.width, h:r.height };
+    arr = { px:q.clientX, py:q.clientY, x:st.ancX, y:st.ancY, w:r.width, h:r.height };
     palco.style.cursor='grabbing'; e.preventDefault(); };
   const move = e => { if(!arr) return; const q = pt(e);
-    st.x    = Math.max(0.2, Math.min(0.8,  arr.x    + (q.clientX-arr.px)/arr.w));
-    st.topo = Math.max(-0.2, Math.min(0.6, arr.topo + (q.clientY-arr.py)/arr.h));
-    el('enc-alt').value = (st.alt*100).toFixed(1);
-    el('enc-topo').value = (st.topo*100).toFixed(1);
-    el('enc-x').value = (st.x*100).toFixed(1);
+    st.ancX = arr.x + (q.clientX-arr.px)/arr.w;
+    st.ancY = arr.y + (q.clientY-arr.py)/arr.h;
     desenha(); e.preventDefault(); };
   const solta = () => { if(arr){ arr = null; palco.style.cursor='grab'; } };
   palco.addEventListener('mousedown', baixa);
@@ -6176,32 +6260,31 @@ async function compararMetodos(item, p){
   document.addEventListener('touchmove', move, { passive:false });
   document.addEventListener('mouseup', solta);
   document.addEventListener('touchend', solta);
+
   const tecla = e => {
-    const passo = e.shiftKey ? 0.01 : 0.002;
-    if(e.key==='ArrowUp')    st.topo -= passo;
-    else if(e.key==='ArrowDown')  st.topo += passo;
-    else if(e.key==='ArrowLeft')  st.x -= passo;
-    else if(e.key==='ArrowRight') st.x += passo;
-    else if(e.key==='+'||e.key==='=') st.alt += passo;
-    else if(e.key==='-') st.alt -= passo;
+    if(/^(INPUT|SELECT|TEXTAREA)$/.test((e.target||{}).tagName||'')) return;
+    const [px, py] = COLA[st.cola];
+    const dx = px || 0.005, dy = py || 0.005;
+    if(e.key==='ArrowUp')         st.ancY -= dy;
+    else if(e.key==='ArrowDown')  st.ancY += dy;
+    else if(e.key==='ArrowLeft')  st.ancX -= dx;
+    else if(e.key==='ArrowRight') st.ancX += dx;
+    else if(e.key==='+'||e.key==='=') st.alt += 0.005;
+    else if(e.key==='-')              st.alt -= 0.005;
     else return;
-    e.preventDefault();
-    el('enc-alt').value=(st.alt*100).toFixed(1); el('enc-topo').value=(st.topo*100).toFixed(1); el('enc-x').value=(st.x*100).toFixed(1);
-    desenha();
+    e.preventDefault(); desenha();
   };
   document.addEventListener('keydown', tecla);
 
-  el('enc-copiar').onclick = () => {
-    navigator.clipboard.writeText(saida.textContent).then(
-      () => toast('Medida copiada — cole aqui na conversa.'),
-      () => toast('Não consegui copiar; selecione o texto à mão.', true));
-  };
-  el('enc-auto').onclick = () => { st.alt = auto.rostoAltura; st.topo = auto.rostoTopo; st.x = 0.5;
-    el('enc-alt').value=(st.alt*100).toFixed(1); el('enc-topo').value=(st.topo*100).toFixed(1); el('enc-x').value='50';
-    desenha(); };
+  el('enc-gola').onclick = () => { st.ancY = gola; st.ancX = 0.5; desenha(); };
+  el('enc-copiar').onclick = () => navigator.clipboard.writeText(saida.textContent).then(
+    () => toast('Medida copiada — cole aqui na conversa.'),
+    () => toast('Não consegui copiar; selecione o texto à mão.', true));
+  el('enc-auto').onclick = () => { st.alt = auto.rostoAltura; st.ancX = 0.5;
+    st.ancY = auto.rostoTopo + medida.base*auto.rostoAltura; desenha(); };
 
-  /* solta os ouvintes do documento quando o modal fechar, senao eles ficam
-     vivos e o teclado passa a mexer num palco que nao existe mais */
+  /* os ouvintes vivem no documento; sem isto o teclado seguiria mexendo
+     num palco que ja' foi fechado */
   const obs = new MutationObserver(() => {
     if(!document.getElementById('enc-palco')){
       document.removeEventListener('mousemove', move); document.removeEventListener('touchmove', move);
