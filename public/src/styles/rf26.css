@@ -8702,7 +8702,21 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 
 /* retrato */
 .rf-fx-retrato{position:relative;border-radius:16px;overflow:hidden;background:#0f1c14;min-height:300px;display:flex;align-items:flex-end}
-.rf-fx-retrato>img:first-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block}
+/* MESMO CORTE SEM BRAÇOS do retrato pequeno, agora no grande. Aqui o quadro
+   já é 2:3 como a fonte, então `cover` mostra a imagem inteira — braço e tudo.
+   A aproximação de 1/0,76 = 1,3158 deixa visível o miolo x 12..88%, que é a
+   janela sem pele que medimos no uniforme.
+   ESCALA O CONJUNTO, NÃO SÓ A FOTO: escudo, patrocinador e fabricante são
+   camadas posicionadas em % dentro do mesmo quadro. Aproximar só a foto os
+   deixaria para trás, cada um no lugar errado.
+   ÂNCORA NO TOPO, e isso é medido: o braço começa em ~55% da altura e vai
+   entrando à medida que desce. Numa janela que termina em 76% ele só alcança
+   6,6% da largura — bem fora do corte. Numa que termina em 81% ele já chega a
+   12%, que é exatamente a borda, e vaza pelos cantos de baixo. Com origem em
+   0% a janela vai de 0 a 76% e fica limpa. */
+.rf-fx-retrato{--rf-fx-zoom:1.3158;--rf-fx-anc:0%}
+.rf-fx-retrato>img:first-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%;display:block;
+  transform:scale(var(--rf-fx-zoom));transform-origin:50% var(--rf-fx-anc)}
 .rf-fx-retrato-veu{position:absolute;left:0;right:0;bottom:0;height:52%;background:linear-gradient(180deg,rgba(15,28,20,0),rgba(15,28,20,.92));pointer-events:none}
 .rf-fx-num.flutua{position:absolute;top:12px;left:12px;min-width:30px;height:30px;padding:0 9px;box-sizing:border-box;border-radius:10px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center}
 .rf-fx-retrato-crest{position:absolute;top:10px;right:10px;width:40px;height:40px;object-fit:contain;filter:drop-shadow(0 1px 4px rgba(0,0,0,.5))}
@@ -8891,7 +8905,8 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 
 /* quadro 2:3 da foto composta na ficha: cobre o retrato como o cover fazia,
    ancorado no topo (a cabeça manda); foto e camadas cortam JUNTAS */
-.rf-fx-retrato .rf-fx-quadro{position:absolute;left:50%;top:0;transform:translateX(-50%);
+.rf-fx-retrato .rf-fx-quadro{position:absolute;left:50%;top:0;
+  transform:translateX(-50%) scale(var(--rf-fx-zoom));transform-origin:50% var(--rf-fx-anc);
   height:100%;aspect-ratio:2/3;display:block}
 .rf-fx-retrato .rf-fx-quadro>img:first-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 
