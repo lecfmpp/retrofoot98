@@ -5645,6 +5645,101 @@ async function medirMolde(url){
   }catch(_){ return null; }
 }
 
+/* ===== RECORTAR O FUNDO DA FOTO ANTIGA =====
+   As 765 fotos costuradas nasceram com fundo de estudio opaco, e no card ele
+   tapa as listras do clube. Recortar e' o que as traz para o mesmo padrao das
+   novas, sem gerar nada.
+
+   INUNDACAO A PARTIR DAS BORDAS, nunca "apague o que for cinza": cinza tambem
+   e' sombra no rosto e camisa clara, e a regra por cor abriria buracos no
+   meio do jogador. Inundando so' de fora, o que estiver cercado por ele nunca
+   e' alcancado.
+
+   MEDIDO nestas fotos antes de escrever: o fundo tem desvio ~6 em 255 (bem
+   liso) e o sujeito so' encosta nas bordas a partir de ~70% da altura — dali
+   para baixo nao ha' fundo, e nao precisa haver. E' o oposto do caso do molde
+   de uniforme, onde a camisa preenchia o quadro e a inundacao comia tecido.
+
+   A borda ganha meia transparencia para nao serrilhar, e o limiar e' medido na
+   PROPRIA foto (media dos cantos), porque cada geracao saiu com um cinza um
+   pouco diferente. */
+async function recortarFundoFoto(url, tolerancia){
+  const img = await new Promise((ok, erro) => {
+    const i = new Image(); i.crossOrigin = 'anonymous';
+    i.onload = () => ok(i); i.onerror = () => erro(new Error('não carreguei a foto (CORS?)'));
+    i.src = url + (url.includes('?') ? '&' : '?') + 'corte=1';
+  });
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d', { willReadFrequently:true });
+  cx.drawImage(img, 0, 0);
+  const im = cx.getImageData(0, 0, W, H), d = im.data;
+  if(d[3] === 0) return null;                 // ja' vazada: nada a fazer
+
+  const T = tolerancia == null ? 34 : tolerancia;
+  /* cor do fundo pela MEDIANA dos cantos e do topo — media se desloca quando
+     um canto pega cabelo */
+  const amostras = [];
+  for(const [x,y] of [[0,0],[W-1,0],[2,2],[W-3,2],[W>>1,0],[W>>2,1],[(W*3)>>2,1]])
+    amostras.push([d[((y*W)+x)*4], d[((y*W)+x)*4+1], d[((y*W)+x)*4+2]]);
+  const med = k => amostras.map(a=>a[k]).sort((a,b)=>a-b)[amostras.length>>1];
+  const r0 = med(0), g0 = med(1), b0 = med(2);
+  const dist = k => Math.max(Math.abs(d[k]-r0), Math.abs(d[k+1]-g0), Math.abs(d[k+2]-b0));
+
+  const visto = new Uint8Array(W*H), fila = [];
+  const poe = (x,y) => { if(x<0||y<0||x>=W||y>=H) return; const i=y*W+x;
+    if(visto[i]) return; visto[i]=1; if(dist(i*4) <= T) fila.push(i); };
+  for(let x=0; x<W; x++){ poe(x,0); poe(x,H-1); }
+  for(let y=0; y<H; y++){ poe(0,y); poe(W-1,y); }
+  let apagados = 0;
+  while(fila.length){ const i = fila.pop(), x = i%W, y = (i/W)|0;
+    d[i*4+3] = 0; apagados++;
+    poe(x+1,y); poe(x-1,y); poe(x,y+1); poe(x,y-1); }
+
+  /* borda meio transparente: opaco que encosta em buraco e ainda parece fundo */
+  for(let y=1; y<H-1; y++) for(let x=1; x<W-1; x++){
+    const i=y*W+x; if(!d[i*4+3]) continue;
+    if((!d[(i-1)*4+3] || !d[(i+1)*4+3] || !d[(i-W)*4+3] || !d[(i+W)*4+3]) && dist(i*4) <= T*1.6)
+      d[i*4+3] = 105;
+  }
+  cx.putImageData(im, 0, 0);
+  const blob = await new Promise(ok => cv.toBlob(ok, 'image/webp', 0.9));
+  if(!blob) throw new Error('não consegui exportar o recorte.');
+  return { blob, apagados, fracao: apagados/(W*H) };
+}
+
+/* Recorta e grava. Devolve o registro novo — a foto anterior nao se perde:
+   fica em atributos.anteriores, com o arquivo intacto no Storage. */
+async function recortarESalvar(clube, nome){
+  const k = clube+'|'+nome, f = D.fotos[k];
+  if(!f) throw new Error('sem foto.');
+  const base0 = (f.atributos && f.atributos.montagem) || f.url;
+  const r = await recortarFundoFoto(base0);
+  if(!r) throw new Error('esta foto já tem fundo transparente.');
+  /* SANIDADE: recorte que apaga quase nada (fundo nao encontrado) ou quase
+     tudo (limiar largo demais) e' erro, nao resultado — melhor recusar do que
+     gravar uma foto destruida por cima da boa. */
+  if(r.fracao < 0.04) throw new Error(`recorte suspeito: só ${(r.fracao*100).toFixed(1)}% saiu — o fundo não foi encontrado.`);
+  if(r.fracao > 0.80) throw new Error(`recorte suspeito: ${(r.fracao*100).toFixed(1)}% da imagem saiu — o limiar pegou o jogador.`);
+  const x = (D.catalogo||[]).find(c => String(c.c.id) === String(clube));
+  const caminho = `${(x ? caminhoClube(x) : 'recorte')}/jogadores/${chaveNome(nome)||'jogador'}-vazada-${Date.now()}.webp`;
+  const up = await sb.storage.from('jogadores').upload(caminho, r.blob, { upsert:false, cacheControl:'31536000' });
+  if(up.error) throw new Error(up.error.message);
+  const nova = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
+  const at = Object.assign({}, f.atributos || {});
+  const anteriores = (at.anteriores || []).slice(-9);
+  if(at.montagem) anteriores.push(at.montagem);
+  if(anteriores.length) at.anteriores = anteriores;
+  at.montagem = nova;
+  at.recorte = 'cartao';          // vazada: o card passa a afasta-la e mostrar o fundo
+  at.fundoRemovido = Number(r.fracao.toFixed(4));
+  const reg = Object.assign({}, f, { atributos: at });
+  const res = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+  if(res.error) throw new Error(erroMsg(res.error));
+  D.fotos[k] = reg;
+  return reg;
+}
+
 async function medirCentroX(url){
   try{
     const img = await new Promise((ok, erro) => {
@@ -6545,6 +6640,41 @@ function alvoRemontagem(clube, nome){
 
    Este lote NAO sobe imagem nenhuma — so' le' e grava o numero. E' rapido, e
    nao mexe em como as fotos estao hoje. */
+/* O lote geral. Chama o MESMO recortarESalvar do botao de um jogador e do
+   lote do elenco — tres alcances, um caminho so'. */
+async function recortarFundosTodos(btn){
+  const alvos = [];
+  for(const k of Object.keys(D.fotos||{})){
+    const i = k.indexOf('|'); if(i < 0) continue;
+    const clube = k.slice(0, i), nome = k.slice(i+1);
+    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    const f = D.fotos[k];
+    if(!f || !f.url) continue;
+    if((f.atributos||{}).recorte === 'cartao') continue;   // ja' vazada
+    alvos.push({ clube, nome });
+  }
+  if(!alvos.length) return toast('Todas as fotos já estão recortadas.');
+  if(!await rfConfirm({ titulo:'Recortar o fundo de todas as fotos',
+    texto:`Tira o fundo de estúdio de <b>${alvos.length} foto(s)</b>, para o card mostrar as cores do clube.`,
+    detalhe:`<b>Sem custo</b> — canvas no navegador, sem IA. A foto anterior fica guardada em
+      <code>anteriores</code> e nenhum arquivo é apagado.
+      Recorte suspeito é RECUSADO em vez de gravado: se sair menos de 4% (fundo não encontrado)
+      ou mais de 80% (o limiar pegou o jogador), aquela foto fica como está.
+      Demora vários minutos.`,
+    nao:'Cancelar', sim:`Recortar ${alvos.length}` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const a of alvos){
+    btn.textContent = `Recortando ${ok+erros+1}/${alvos.length}…`;
+    try{ await recortarESalvar(a.clube, a.nome); ok++; }
+    catch(err){ erros++; console.warn('recorte falhou:', a.clube+'|'+a.nome, err.message); }
+  }
+  registrar('estudio.fotos.recortar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`${ok} recortada(s)${erros?`, ${erros} recusadas ou falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+
 async function medirCabecas(btn){
   const alvos = [];
   for(const k of Object.keys(D.fotos||{})){
@@ -7687,7 +7817,8 @@ async function pgEstudio(){
         <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>
         <button class="btn btn-sm" id="est-camisas" title="Manequim + escudo numa imagem só por clube — é o que o jogo usa na transferência">Montar camisas</button>` : ''}
         ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-remontar" title="Refaz a montagem de todas as fotos com o encaixe atual — canvas, sem IA">Remontar fotos</button>
-        <button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda a medida de cada cabeça — é o que o JOGO precisa para montar a camisa nova numa transferência">Medir cabeças</button>` : ''}
+        <button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda a medida de cada cabeça — é o que o JOGO precisa para montar a camisa nova numa transferência">Medir cabeças</button>
+        <button class="btn btn-sm btn-ghost" id="est-recortar" title="Tira o fundo de estúdio de todas as fotos antigas — canvas, sem IA">Recortar fundos</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
         <span></span><span>Clube</span><span>País</span><span style="text-align:center">Divisão</span>
@@ -7744,6 +7875,8 @@ async function pgEstudio(){
   if(btRmt) btRmt.onclick = () => remontarFotos(btRmt);
   const btMed = el('est-medir');
   if(btMed) btMed.onclick = () => medirCabecas(btMed);
+  const btRec = el('est-recortar');
+  if(btRec) btRec.onclick = () => recortarFundosTodos(btRec);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
   const btFaces = el('est-faces');
@@ -8342,6 +8475,8 @@ function modalFotosIA(item){
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
+        ${editar && f && (f.atributos||{}).recorte !== 'cartao'
+            ? botao('data-recortar','✂','Recortar o fundo desta foto — sem custo') :''}
         ${editar && f ? botao('data-remontar','⟳','Remontar esta foto com o encaixe atual — sem custo') :''}
         ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
         ${editar? botao('data-comparar','⌗','Encaixe') :''}
@@ -8380,6 +8515,8 @@ function modalFotosIA(item){
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
       <button class="btn btn-sm btn-ghost" id="ft-remontar"
         title="Refaz a montagem de todo o elenco deste clube com o encaixe atual — canvas, sem IA">Remontar o elenco</button>
+      <button class="btn btn-sm btn-ghost" id="ft-recortar"
+        title="Tira o fundo de estúdio das fotos deste elenco — canvas, sem IA">Recortar fundos</button>
       <span id="ft-progresso" style="font-size:12px;color:var(--dim2)"></span></div>`:''}
     <div class="jog-wrap">
       <div id="ft-lista">${sq.map(linhaFoto).join('') || '<div class="vazio">Elenco vazio.</div>'}</div>
@@ -8472,6 +8609,18 @@ function modalFotosIA(item){
         modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true, p.n);
       return;
     }
+    const btCt = ev.target.closest('[data-recortar]');
+    if(btCt){
+      btCt.disabled = true;
+      recortarESalvar(String(c.id), p.n).then(reg => {
+        const pc = Math.round((reg.atributos.fundoRemovido||0)*100);
+        toast(`${p.n}: ${pc}% da imagem era fundo e saiu. Confira no card.`);
+        const th = ev.target.closest('.ft-row').querySelector('[data-thumb]');
+        if(th) th.innerHTML = thumbHTML(reg, 40);
+        btCt.disabled = false;
+      }).catch(err => { toast(err.message||'Não consegui recortar.', true); btCt.disabled = false; });
+      return;
+    }
     const btRm = ev.target.closest('[data-remontar]');
     if(btRm){
       const alvo = alvoRemontagem(String(c.id), p.n);
@@ -8514,6 +8663,27 @@ function modalFotosIA(item){
     }
     el('ft-progresso').textContent = '';
     toast(`${ok} remontada(s)${erros?`, ${erros} falharam`:''}.`);
+    modalFotosIA(item);
+  };
+
+  const btCortar = el('ft-recortar');
+  if(btCortar) btCortar.onclick = async () => {
+    const alvos = sq.filter(x => { const f = D.fotos[c.id+'|'+x.n];
+      return f && (f.atributos||{}).recorte !== 'cartao'; });
+    if(!alvos.length) return toast('Todas as fotos deste elenco já estão recortadas.');
+    if(!await rfConfirm({ titulo:`Recortar o fundo — ${h(c.short||c.name)}`,
+      texto:`Tira o fundo de estúdio de <b>${alvos.length} foto(s)</b>, para o card mostrar as cores do clube.`,
+      detalhe:'<b>Sem custo</b> — canvas, sem IA. A foto anterior fica guardada e nada é apagado. Recorte suspeito (quase nada ou quase tudo) é recusado em vez de gravado.',
+      nao:'Cancelar', sim:`Recortar ${alvos.length}` })) return;
+    btCortar.disabled = true;
+    let ok=0, erros=0;
+    for(const x of alvos){
+      el('ft-progresso').textContent = `Recortando ${ok+erros+1}/${alvos.length} — ${x.n}…`;
+      try{ await recortarESalvar(String(c.id), x.n); ok++; }
+      catch(err){ erros++; console.warn('recorte:', x.n, err.message); }
+    }
+    el('ft-progresso').textContent = '';
+    toast(`${ok} recortada(s)${erros?`, ${erros} falharam`:''}.`);
     modalFotosIA(item);
   };
 
