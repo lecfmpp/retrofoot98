@@ -7129,7 +7129,16 @@ const RF_VITORIA_ESPERA = 1700;   // os tres sopros longos do apito
    depois mais tres segundos: o aplauso marca o fim, nao acompanha o que vem
    a seguir. A entrada fica como esta': ela ja' e' curta e e' o que emenda no
    apito. */
-const RF_VITORIA_ENTRA = 900, RF_VITORIA_DURA = 2500, RF_VITORIA_SAI = 1300;
+/* NAO DA' PARA TIRAR OS QUATRO SEGUNDOS PEDIDOS: depois do corte a metade e
+   dos tres segundos seguintes, o aplauso tinha 4,7s de ponta a ponta, e menos
+   quatro deixava 0,7s — que nao chega para uma rampa de entrada, quanto mais
+   para se ouvir aplauso nenhum. Foi ao MINIMO que ainda e' um aplauso com as
+   duas rampas: 1,9s. Somando a espera do apito, sao 3,6s desde o fim do jogo,
+   contra os 6,4s de antes. */
+/* Repartido dentro dos mesmos 1,9s: com 500 de entrada e 400 de patamar o
+   aplauso comecava a sair antes de ter chegado la' em cima — medido, so'
+   alcancava 0,365 de um alvo de 0,57. A entrada encurta e o patamar cresce. */
+const RF_VITORIA_ENTRA = 350, RF_VITORIA_DURA = 650, RF_VITORIA_SAI = 900;
 let RF_VITORIA = null;
 /* ---- rampa de volume num <audio> ----
    `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
@@ -7161,10 +7170,16 @@ function rfVitoriaSom(){
       const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
       RF_VITORIA = a;
       rfFade(a, 0, alvo, RF_VITORIA_ENTRA);
+      /* ENTRA + DURA, nao so' DURA: `DURA` e' o PATAMAR, o tempo no alto, e a
+         saida comeca depois de a entrada ter acabado. Com os valores antigos
+         (0,9s de entrada, 2,5s de patamar) o erro passava despercebido —
+         2,5 > 0,9, sobrava patamar. Encurtando os dois, a saida passou a
+         comecar praticamente em cima da entrada e o aplauso nunca chegava ao
+         volume: medido, 0,012 de um alvo de 0,57. */
       a._rfFim = setTimeout(() => {
         if(RF_VITORIA !== a) return;
         rfFade(a, a.volume, 0, RF_VITORIA_SAI, () => { try{ a.pause(); }catch(e){} });
-      }, RF_VITORIA_DURA);
+      }, RF_VITORIA_ENTRA + RF_VITORIA_DURA);
     }catch(err){}
   }, RF_VITORIA_ESPERA);
 }
@@ -8408,7 +8423,11 @@ function rfGolSom(meu){
    A gravacao tem 5s, mas nao se usa inteira: entra a subir, fica no alto o
    tempo da animacao da linha, e sai a descer. Cortar a seco no fim de um
    coro de multidao e' o que mais se ouve como defeito. */
-const RF_FESTA_ENTRA = 400, RF_FESTA_DURA = 2200, RF_FESTA_SAI = 800;
+/* Menos dois segundos: eram 3,4s de ponta a ponta, ficam 1,4s. O que sobra e'
+   quase so' rampa — e' de proposito, porque o que faz o gol nesta altura ja'
+   nao e' o comprimento do coro, e' a linha a piscar e o relogio em camera
+   lenta por tras dele. */
+const RF_FESTA_ENTRA = 400, RF_FESTA_DURA = 400, RF_FESTA_SAI = 600;
 let RF_FESTA = null;
 function rfGolFesta(){
   const vol = rfSomVolume(); if(vol <= 0) return;
