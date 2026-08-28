@@ -2552,10 +2552,19 @@ function rfCardJogadorHTML(p, num, clubId){
      flutuando sobre o fundo, que e' pior do que nao mostrar o fundo. */
   const recorte = (window.RF_FOTO_RECORTE||{})[p.n];
   const vazado = recorte === 'cartao' || recorte === 'camadas';
+  /* ALINHA TODAS PELO MESMO PONTO. A foto entra a 120% de largura, ou seja
+     118% da altura do card. O conteudo dela comeca em `topo` (fracao da
+     propria imagem); para ele cair sempre em RF_CARD_TOPO do card, a imagem
+     recua a diferenca. Sem isso as antigas, que comecam mais cedo, ficariam
+     com a cabeca mais alta que as novas. */
+  const RF_CARD_TOPO = 0.063, RF_CARD_ALT = 1.18;
+  const topoFoto = (window.RF_FOTO_TOPO||{})[p.n];
+  const desloca = (vazado && topoFoto != null)
+    ? ` --pc-topo:${((RF_CARD_TOPO - topoFoto*RF_CARD_ALT)*100).toFixed(2)}%;` : '';
   const miolo = !foto ? ''
     : (typeof foto==='string' && foto.charAt(0)==='<')
-      ? `<span class="pc-foto pc-foto-comp pc-vazada">${foto}</span>`
-      : `<img class="pc-foto${vazado?' pc-vazada':''}" src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
+      ? `<span class="pc-foto pc-foto-comp pc-vazada" style="${desloca}">${foto}</span>`
+      : `<img class="pc-foto${vazado?' pc-vazada':''}" style="${desloca}" src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
   const idade = p.age ? p.age+' ANOS' : '';
   const pos = String(rfPosLabel(p.s)||'').toUpperCase();
   return `<div class="pc" style="--clube-1:${escC(c1)};--clube-2:${escC(c2)}">

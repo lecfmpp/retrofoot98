@@ -204,6 +204,11 @@ window.RF_ROSTO_AJ = window.RF_ROSTO_AJ || {};
    tapam o fundo inteiro. O card precisa saber a diferenca para nao afastar a
    foto e deixar um retangulo cinza flutuando sobre as listras. */
 window.RF_FOTO_RECORTE = window.RF_FOTO_RECORTE || {};
+/* ONDE O CONTEUDO DE CADA FOTO COMECA, em fracao da altura dela. As antigas
+   recortadas comecam por volta de 2% e as novas por volta de 5,3% — sem
+   corrigir, umas ficariam mais altas que outras no card. Com este numero o
+   card desloca cada uma para todas comecarem no mesmo ponto. */
+window.RF_FOTO_TOPO = window.RF_FOTO_TOPO || {};
 window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 /* RF_TREINADORES['m1'..'f5'] -> as 10 faces padrão de treinador, escolhidas no
    assistente por quem não gera a própria. Moram na MESMA tabela (linhas com
@@ -250,6 +255,7 @@ function buscarFotos(packId){
           if(at.encaixe) window.RF_ROSTO_AJ[f.jogador] = at.encaixe;
         }
         if(at.recorte) window.RF_FOTO_RECORTE[f.jogador] = at.recorte;
+        if(at.medidaFoto && at.medidaFoto.topo != null) window.RF_FOTO_TOPO[f.jogador] = at.medidaFoto.topo;
         const foto = at.montagem || null;   // a foto costurada segue de reserva
         if(!foto) continue;
         /* ajuste de camadas SÓ desta foto: a costura por IA nunca devolve o

@@ -5769,6 +5769,11 @@ async function recortarESalvar(clube, nome){
   at.montagem = nova;
   at.recorte = 'cartao';          // vazada: o card passa a afasta-la e mostrar o fundo
   at.fundoRemovido = Number(r.fracao.toFixed(4));
+  /* MEDE A FOTO RECORTADA. As antigas comecam o conteudo por volta de 2% da
+     imagem e as novas por volta de 5,3% — sem corrigir, umas ficariam mais
+     altas que outras no card. Guardando o topo de cada uma, o jogo desloca
+     cada foto para o conteudo comecar sempre no mesmo ponto. */
+  try{ const m = await medirMolde(nova); if(m) at.medidaFoto = m; }catch(_){}
   const reg = Object.assign({}, f, { atributos: at });
   const res = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
   if(res.error) throw new Error(erroMsg(res.error));
@@ -6633,38 +6638,6 @@ function modalPosCamisa(item, estilo, aoSalvar){
    Storage, listada em atributos.anteriores. */
 /* UMA foto. O lote chama isto em cada alvo e o botao de um jogador chama a
    MESMA funcao — testar um so' vale se for o mesmo caminho dos outros. */
-async function remontarUma(a){
-  const at = Object.assign({}, a.f.atributos || {});
-  at.medida = at.medida || await medirMolde(a.f.url);
-  const blob = await montarFotoJogador(a.f.url, a.man, at.medida, at.encaixe);
-  const base = (a.x ? caminhoClube(a.x) : 'remontagem') + '/jogadores/' + (chaveNome(a.nome)||'jogador');
-  const caminho = `${base}-montagem-${Date.now()}.webp`;
-  const up = await sb.storage.from('jogadores').upload(caminho, blob, { upsert:false, cacheControl:'31536000' });
-  if(up.error) throw new Error(up.error.message);
-  /* a montagem anterior nao se perde: vai para a lista, e o arquivo dela
-     continua no Storage — da' para voltar se a nova sair pior */
-  const anteriores = (at.anteriores || []).slice(-9);
-  if(at.montagem) anteriores.push(at.montagem);
-  if(anteriores.length) at.anteriores = anteriores;
-  at.montagem = sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl;
-  at.recorte = 'camadas';
-  delete at.revisar; delete at.medidas;
-  const reg = Object.assign({}, a.f, { atributos: at });
-  const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
-  if(r.error) throw new Error(erroMsg(r.error));
-  D.fotos[a.k] = reg;
-  return reg;
-}
-
-/* monta o alvo de um jogador, no formato que remontarUma espera */
-function alvoRemontagem(clube, nome){
-  const k = clube+'|'+nome, f = D.fotos[k];
-  const t = D.fotos[clube+'|'+TORSO_KEY];
-  const man = t && t.atributos && t.atributos.miniatura;
-  if(!f || !f.url || !man) return null;
-  return { k, clube, nome, f, man, x:(D.catalogo||[]).find(c => String(c.c.id) === String(clube)) };
-}
-
 /* ===== MEDIR AS CABECAS =====
    O JOGO nao consegue medir a cabeca na hora de desenhar: seria uma leitura
    de canvas por retrato, com CORS, a cada tela. Entao a medida vem pronta do
@@ -6719,25 +6692,32 @@ async function medirCabecas(btn){
     if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
     const f = D.fotos[k];
     if(!f || !f.url) continue;
-    if(f.atributos && f.atributos.medida) continue;          // ja' medida
-    if(f.atributos && f.atributos.montagem === f.url) continue; // foto antiga: nao ha' cabeca solta
+    if(f.atributos && f.atributos.medidaFoto) continue;      // ja' medida
     alvos.push({ k, f });
   }
   if(!alvos.length) return toast('Todas as cabeças já estão medidas.');
   if(!await rfConfirm({ titulo:'Medir as cabeças',
-    texto:`Vou medir <b>${alvos.length} cabeça(s)</b> e guardar a medida de cada uma.`,
+    texto:`Vou medir <b>${alvos.length} foto(s)</b> e guardar onde o conteúdo de cada uma começa.`,
     detalhe:`<b>Sem custo e sem upload</b>: só lê a imagem e grava quatro números (topo, base, largura, centro).
-      É o que o <b>jogo</b> precisa para montar a camisa do clube novo numa transferência — sem isso ele
-      cai na foto antiga, com a camisa antiga. <b>Nenhuma imagem é alterada.</b>`,
+      É o que o <b>card</b> usa para alinhar todas as fotos no mesmo ponto — as antigas começam o
+      conteúdo por volta de 2% da imagem e as novas por volta de 5,3%, e sem isso umas ficam mais
+      altas que outras. <b>Nenhuma imagem é alterada.</b>`,
     nao:'Cancelar', sim:`Medir ${alvos.length}` })) return;
   btn.disabled = true; const rot = btn.textContent;
   let ok=0, erros=0;
   for(const a of alvos){
     btn.textContent = `Medindo ${ok+erros+1}/${alvos.length}…`;
     try{
-      const med = await medirMolde(a.f.url);
+      const at0 = a.f.atributos || {};
+      const alvo = at0.montagem || a.f.url;
+      const med = await medirMolde(alvo);
       if(!med) throw new Error('não consegui medir');
-      const reg = Object.assign({}, a.f, { atributos: Object.assign({}, a.f.atributos||{}, { medida: med }) });
+      /* `medida` e' da CABECA (montagem em camadas); `medidaFoto` e' da foto
+         EXIBIDA, que e' o que o card usa para alinhar. Sao coisas diferentes e
+         guardar as duas evita confundi-las depois. */
+      const novos = { medidaFoto: med };
+      if(at0.recorte === 'camadas' && !at0.medida) novos.medida = med;
+      const reg = Object.assign({}, a.f, { atributos: Object.assign({}, at0, novos) });
       const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
       if(r.error) throw new Error(r.error.message);
       D.fotos[a.k] = reg;
@@ -6746,41 +6726,6 @@ async function medirCabecas(btn){
   }
   registrar('estudio.fotos.medir', String(ok), { pacote: ST.packId, falhas: erros });
   toast(`${ok} cabeça(s) medidas${erros?`, ${erros} falharam`:''}.`);
-  btn.disabled = false; btn.textContent = rot;
-  pgEstudio();
-}
-
-async function remontarFotos(btn){
-  const alvos = [];
-  for(const k of Object.keys(D.fotos||{})){
-    const i = k.indexOf('|'); if(i < 0) continue;
-    const clube = k.slice(0, i), nome = k.slice(i+1);
-    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
-    const f = D.fotos[k]; if(!f || !f.url) continue;
-    if((f.atributos||{}).recorte !== 'camadas') continue;   // so' a foto em camadas se remonta
-    const t = D.fotos[clube+'|'+TORSO_KEY];
-    const man = t && t.atributos && t.atributos.miniatura;
-    if(!man) continue;                       // sem manequim nao ha' em que encaixar
-    const x = (D.catalogo||[]).find(c => String(c.c.id) === clube);
-    alvos.push({ k, clube, nome, f, man, x });
-  }
-  if(!alvos.length) return toast('Nenhuma foto com manequim para remontar.', true);
-  if(!await rfConfirm({ titulo:'Remontar todas as fotos',
-    texto:`Refaz a montagem de <b>${alvos.length} foto(s)</b> com o encaixe atual: a cabeça que já existe sobre o manequim do clube.`,
-    detalhe:`<b>Sem custo</b> — canvas no navegador, nenhuma chamada de IA.
-      É o passo que falta para o corte novo da Ficha valer no jogo: ele foi calibrado sobre esta montagem.
-      <b>Nada é apagado</b>: cada montagem sobe com nome novo e a anterior fica guardada.
-      Demora alguns minutos.`,
-    nao:'Cancelar', sim:`Remontar ${alvos.length} fotos` })) return;
-  btn.disabled = true; const rot = btn.textContent;
-  let ok=0, erros=0;
-  for(const a of alvos){
-    btn.textContent = `Remontando ${ok+erros+1}/${alvos.length}…`;
-    try{ await remontarUma(a); ok++; }
-    catch(err){ erros++; console.warn('remontagem falhou:', a.k, err.message); }
-  }
-  registrar('estudio.fotos.remontar', String(ok), { pacote: ST.packId, falhas: erros });
-  toast(`${ok} foto(s) remontadas${erros?`, ${erros} falharam`:''}.`);
   btn.disabled = false; btn.textContent = rot;
   pgEstudio();
 }
@@ -7853,8 +7798,7 @@ async function pgEstudio(){
         <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
         <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>
         <button class="btn btn-sm" id="est-camisas" title="Manequim + escudo numa imagem só por clube — é o que o jogo usa na transferência">Montar camisas</button>` : ''}
-        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm" id="est-remontar" title="Refaz a montagem de todas as fotos com o encaixe atual — canvas, sem IA">Remontar fotos</button>
-        <button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda a medida de cada cabeça — é o que o JOGO precisa para montar a camisa nova numa transferência">Medir cabeças</button>
+        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda a medida de cada cabeça — é o que o JOGO precisa para montar a camisa nova numa transferência">Medir cabeças</button>
         <button class="btn btn-sm btn-ghost" id="est-recortar" title="Tira o fundo de estúdio de todas as fotos antigas — canvas, sem IA">Recortar fundos</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
@@ -7908,8 +7852,6 @@ async function pgEstudio(){
   if(btRM) btRM.onclick = () => refazerMoldes(btRM);
   const btCam = el('est-camisas');
   if(btCam) btCam.onclick = () => assarCamisasTodas(btCam);
-  const btRmt = el('est-remontar');
-  if(btRmt) btRmt.onclick = () => remontarFotos(btRmt);
   const btMed = el('est-medir');
   if(btMed) btMed.onclick = () => medirCabecas(btMed);
   const btRec = el('est-recortar');
@@ -8320,8 +8262,6 @@ function modalFotosIA(item){
         ${editar && f && (f.atributos||{}).recorte !== 'cartao'
             ? botao('data-recortar','✂','Recortar o fundo desta foto — sem custo') :''}
         ${f ? botao('data-baixar','⤓','Baixar a imagem deste jogador') :''}
-        ${editar && f && (f.atributos||{}).recorte === 'camadas'
-            ? botao('data-remontar','⟳','Remontar: refaz a montagem cabeça + camisa do clube — só para as fotos em camadas') :''}
         ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
@@ -8359,8 +8299,6 @@ function modalFotosIA(item){
       <label style="font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center"
         title="Gera com o azul da marca em vez da camisa neutra — vale para o próximo ✦ que você clicar">
         <input type="checkbox" id="ft-marca"> camisa azul da marca (teste)</label>
-      <button class="btn btn-sm btn-ghost" id="ft-remontar"
-        title="Refaz a montagem de todo o elenco deste clube com o encaixe atual — canvas, sem IA">Remontar o elenco</button>
       <button class="btn btn-sm btn-ghost" id="ft-recortar"
         title="Tira o fundo de estúdio das fotos deste elenco — canvas, sem IA">Recortar fundos</button>
       <span id="ft-progresso" style="font-size:12px;color:var(--dim2)"></span></div>`:''}
@@ -8434,6 +8372,7 @@ function modalFotosIA(item){
       url = await gerarImagemIA('camisa', promptCartaoJogador(item, p, at, uni), 'medium', null, base+'-cartao');
     }catch(err){ throw new Error(err.message); }
     at.montagem = url;
+    try{ const m = await medirMolde(url); if(m) at.medidaFoto = m; }catch(_){}
     const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: p.n, url, atributos: at };
     const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
     if(error) throw new Error(erroMsg(error));
@@ -8467,26 +8406,6 @@ function modalFotosIA(item){
       }).catch(err => { toast(err.message||'Não consegui recortar.', true); btCt.disabled = false; });
       return;
     }
-    const btRm = ev.target.closest('[data-remontar]');
-    if(btRm){
-      /* REMONTAR SO' SERVE A FOTO EM CAMADAS. Nela o `url` e' a CABECA, e a
-         montagem e' cabeca + manequim do clube. No retrato de card o `url` e'
-         a foto INTEIRA — remonta-la trataria o jogador todo como se fosse uma
-         cabeca, e o resultado seria lixo gravado por cima do bom. */
-      const f0 = D.fotos[c.id+'|'+p.n];
-      if(!f0 || (f0.atributos||{}).recorte !== 'camadas')
-        return toast('Remontar só vale para foto em camadas — esta é um retrato inteiro.', true);
-      const alvo = alvoRemontagem(String(c.id), p.n);
-      if(!alvo) return toast('Precisa de cabeça e de manequim do clube.', true);
-      btRm.disabled = true;
-      remontarUma(alvo).then(reg => {
-        toast(`${p.n} remontado. Confira no ⌗.`);
-        const th = ev.target.closest('.ft-row').querySelector('[data-thumb]');
-        if(th) th.innerHTML = thumbHTML(reg, 40);
-        btRm.disabled = false;
-      }).catch(err => { toast(err.message||'Não consegui remontar.', true); btRm.disabled = false; });
-      return;
-    }
     if(ev.target.closest('[data-reusar]')){ modalAcervo(item, p); return; }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
     const antes = rotuloDe(bt);
@@ -8495,53 +8414,6 @@ function modalFotosIA(item){
     catch(err){ rotulo(bt, antes, '✦'); toast(err.message||'Falha ao gerar.', true); }
     bt.disabled = false; if(rotuloDe(bt)==='Gerando…') rotulo(bt, 'Gerar', '✦');
   });
-
-  /* O DEGRAU DO MEIO: um jogador -> um elenco -> o jogo inteiro. Conferir num
-     so' nao diz como fica um time inteiro lado a lado, e ir direto para as 756
-     e' apostar. Chama a MESMA remontarUma dos outros dois. */
-  const btRemontar = el('ft-remontar');
-  if(btRemontar) btRemontar.onclick = async () => {
-    const alvos = sq.map(x => alvoRemontagem(String(c.id), x.n)).filter(Boolean);
-    if(!alvos.length) return toast('Nenhuma foto deste elenco pode ser remontada (falta cabeça ou manequim).', true);
-    if(!await rfConfirm({ titulo:`Remontar o elenco do ${h(c.short||c.name)}`,
-      texto:`Refaz a montagem de <b>${alvos.length} foto(s)</b> com o encaixe atual.`,
-      detalhe:'<b>Sem custo</b> — canvas, sem IA. Ajustes próprios de jogador são respeitados. Nada é apagado.',
-      nao:'Cancelar', sim:`Remontar ${alvos.length}` })) return;
-    btRemontar.disabled = true;
-    let ok=0, erros=0;
-    for(const a of alvos){
-      el('ft-progresso').textContent = `Remontando ${ok+erros+1}/${alvos.length} — ${a.nome}…`;
-      try{ await remontarUma(a); ok++; }catch(err){ erros++; console.warn('remontagem:', a.k, err.message); }
-    }
-    el('ft-progresso').textContent = '';
-    toast(`${ok} remontada(s)${erros?`, ${erros} falharam`:''}.`);
-    modalFotosIA(item);
-  };
-
-  /* o interruptor vale para o proximo ✦: e' teste, entao nao se guarda em
-     lugar nenhum — recarregou, volta ao neutro, que e' o padrao */
-  const uniformeEscolhido = () => (el('ft-marca') && el('ft-marca').checked) ? 'marca' : 'neutro';
-
-  const btCortar = el('ft-recortar');
-  if(btCortar) btCortar.onclick = async () => {
-    const alvos = sq.filter(x => { const f = D.fotos[c.id+'|'+x.n];
-      return f && (f.atributos||{}).recorte !== 'cartao'; });
-    if(!alvos.length) return toast('Todas as fotos deste elenco já estão recortadas.');
-    if(!await rfConfirm({ titulo:`Recortar o fundo — ${h(c.short||c.name)}`,
-      texto:`Tira o fundo de estúdio de <b>${alvos.length} foto(s)</b>, para o card mostrar as cores do clube.`,
-      detalhe:'<b>Sem custo</b> — canvas, sem IA. A foto anterior fica guardada e nada é apagado. Recorte suspeito (quase nada ou quase tudo) é recusado em vez de gravado.',
-      nao:'Cancelar', sim:`Recortar ${alvos.length}` })) return;
-    btCortar.disabled = true;
-    let ok=0, erros=0;
-    for(const x of alvos){
-      el('ft-progresso').textContent = `Recortando ${ok+erros+1}/${alvos.length} — ${x.n}…`;
-      try{ await recortarESalvar(String(c.id), x.n); ok++; }
-      catch(err){ erros++; console.warn('recorte:', x.n, err.message); }
-    }
-    el('ft-progresso').textContent = '';
-    toast(`${ok} recortada(s)${erros?`, ${erros} falharam`:''}.`);
-    modalFotosIA(item);
-  };
 
   const btTodos = el('ft-todos');
   if(btTodos) btTodos.onclick = async () => {
