@@ -5751,7 +5751,19 @@ async function recortarESalvar(clube, nome){
   if(!f) throw new Error('sem foto.');
   const base0 = (f.atributos && f.atributos.montagem) || f.url;
   const r = await recortarFundoFoto(base0);
-  if(!r) throw new Error('esta foto já tem fundo transparente.');
+  /* JA' TRANSPARENTE NAO E' ERRO. As montagens em camadas e os rostos soltos
+     nunca tiveram fundo — recusa-las fazia o lote contar como falha uma foto
+     que ja' esta' pronta. Aqui elas so' recebem a marca e a medida, sem
+     upload: nada a recortar, nada a gravar de imagem. */
+  if(!r){
+    const at0 = Object.assign({}, f.atributos || {}, { recorte:'cartao', fundoRemovido:0 });
+    try{ const m = await medirMolde(base0); if(m) at0.medidaFoto = m; }catch(_){}
+    const reg0 = Object.assign({}, f, { atributos: at0 });
+    const res0 = await jogo('player_photos').upsert(reg0, { onConflict:'pack_id,club_id,jogador' });
+    if(res0.error) throw new Error(erroMsg(res0.error));
+    D.fotos[k] = reg0;
+    return reg0;
+  }
   /* SANIDADE: recorte que apaga quase nada (fundo nao encontrado) ou quase
      tudo (limiar largo demais) e' erro, nao resultado — melhor recusar do que
      gravar uma foto destruida por cima da boa. */
@@ -6638,8 +6650,8 @@ function modalPosCamisa(item, estilo, aoSalvar){
    Storage, listada em atributos.anteriores. */
 /* UMA foto. O lote chama isto em cada alvo e o botao de um jogador chama a
    MESMA funcao — testar um so' vale se for o mesmo caminho dos outros. */
-/* ===== MEDIR AS CABECAS =====
-   O JOGO nao consegue medir a cabeca na hora de desenhar: seria uma leitura
+/* ===== MEDIR AS FOTOS =====
+   O JOGO nao consegue medir a foto na hora de desenhar: seria uma leitura
    de canvas por retrato, com CORS, a cada tela. Entao a medida vem pronta do
    painel, guardada em atributos.medida.
 
@@ -6684,7 +6696,7 @@ async function recortarFundosTodos(btn){
   pgEstudio();
 }
 
-async function medirCabecas(btn){
+async function medirFotos(btn){
   const alvos = [];
   for(const k of Object.keys(D.fotos||{})){
     const i = k.indexOf('|'); if(i < 0) continue;
@@ -6695,8 +6707,8 @@ async function medirCabecas(btn){
     if(f.atributos && f.atributos.medidaFoto) continue;      // ja' medida
     alvos.push({ k, f });
   }
-  if(!alvos.length) return toast('Todas as cabeças já estão medidas.');
-  if(!await rfConfirm({ titulo:'Medir as cabeças',
+  if(!alvos.length) return toast('Todas as fotos já estão medidas.');
+  if(!await rfConfirm({ titulo:'Medir as fotos',
     texto:`Vou medir <b>${alvos.length} foto(s)</b> e guardar onde o conteúdo de cada uma começa.`,
     detalhe:`<b>Sem custo e sem upload</b>: só lê a imagem e grava quatro números (topo, base, largura, centro).
       É o que o <b>card</b> usa para alinhar todas as fotos no mesmo ponto — as antigas começam o
@@ -6725,7 +6737,7 @@ async function medirCabecas(btn){
     }catch(err){ erros++; console.warn('medição falhou:', a.k, err.message); }
   }
   registrar('estudio.fotos.medir', String(ok), { pacote: ST.packId, falhas: erros });
-  toast(`${ok} cabeça(s) medidas${erros?`, ${erros} falharam`:''}.`);
+  toast(`${ok} foto(s) medidas${erros?`, ${erros} falharam`:''}.`);
   btn.disabled = false; btn.textContent = rot;
   pgEstudio();
 }
@@ -7798,7 +7810,7 @@ async function pgEstudio(){
         <button class="btn btn-sm btn-ghost" id="est-repintar" title="Repinta todos os uniformes de molde com os moldes atuais">Repintar todos</button>
         <button class="btn btn-sm btn-ghost" id="est-remoldes" title="Refaz os 5 moldes como camisa sozinha — sem pescoço e com fundo transparente">Refazer moldes</button>
         <button class="btn btn-sm" id="est-camisas" title="Manequim + escudo numa imagem só por clube — é o que o jogo usa na transferência">Montar camisas</button>` : ''}
-        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda a medida de cada cabeça — é o que o JOGO precisa para montar a camisa nova numa transferência">Medir cabeças</button>
+        ${aba==='fotos' && podeEditar('dados') ? `<button class="btn btn-sm btn-ghost" id="est-medir" title="Guarda onde o conteúdo de cada foto começa — é o que alinha todas no mesmo ponto do card">Medir fotos</button>
         <button class="btn btn-sm btn-ghost" id="est-recortar" title="Tira o fundo de estúdio de todas as fotos antigas — canvas, sem IA">Recortar fundos</button>` : ''}
       </div>
       <div class="rowh" style="grid-template-columns:44px 1.7fr .9fr .6fr 1fr">
@@ -7853,7 +7865,7 @@ async function pgEstudio(){
   const btCam = el('est-camisas');
   if(btCam) btCam.onclick = () => assarCamisasTodas(btCam);
   const btMed = el('est-medir');
-  if(btMed) btMed.onclick = () => medirCabecas(btMed);
+  if(btMed) btMed.onclick = () => medirFotos(btMed);
   const btRec = el('est-recortar');
   if(btRec) btRec.onclick = () => recortarFundosTodos(btRec);
   const btEst = el('est-estilos');
