@@ -6887,6 +6887,7 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
   if(!RL._apitoIni){
     RL._apitoIni = 1;
     if(typeof rfVitoriaParar==='function') rfVitoriaParar();   // a festa da rodada passada nao entra nesta
+    if(typeof rfSomPreCarregar==='function') rfSomPreCarregar();
     if(typeof rfSomLigado==='function' && rfSomLigado()){
       if(typeof rfTorcidaLigar==='function') rfTorcidaLigar();   // o estadio ja' esta' la'
       if(typeof rfApito==='function') rfApito(1);
@@ -7117,22 +7118,10 @@ function liveRitmoMs(RL){
 const LIVE_FIM_ESPERA_MS = 1600;   // a tela segura, o relogio nao
 const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entrar
 /* ===== A COMEMORACAO DA VITORIA =====
-   Entra a seguir ao apito, nao por cima dele: os tres sopros longos duram
-   ~1,7s, e comecar antes disso seria apagar o proprio apito que a anuncia.
-   E' torcida, nao narracao — nao espera pelo ritmo lento, como o gol e os
-   apitos. A gravacao tem 20s; e' desvanecida ao fim de doze, para nao correr
-   por cima da tela seguinte, e cortada a seco se comecar outra rodada. */
+   Entra a seguir ao apito, nao por cima dele: os tres sopros longos ocupam
+   ~1,6s. E' torcida, nao narracao — nao espera pelo ritmo lento, como o gol e
+   os apitos. */
 const RF_VITORIA_SRC = 'audio/torcida-vitoria.mp3';
-/* UM SEGUNDO, nao os 1,7s do apito inteiro. Os tres sopros longos ocupam ~1,6s
-   (0,42s cada mais 0,12s de intervalo), entao o aplauso passa a ENTRAR por cima
-   do terceiro — e entra bem, porque entra em rampa: a 1s ele ainda esta' quase
-   inaudivel e so' chega ao alto depois de o apito ter acabado. */
-const RF_VITORIA_ESPERA = 1000;
-/* Eram 11s no ar mais 2,6s a sair — quase catorze segundos de aplauso, que se
-   arrastavam para dentro da tela seguinte. Cortados a metade primeiro, e
-   depois mais tres segundos: o aplauso marca o fim, nao acompanha o que vem
-   a seguir. A entrada fica como esta': ela ja' e' curta e e' o que emenda no
-   apito. */
 /* NAO DA' PARA TIRAR OS QUATRO SEGUNDOS PEDIDOS: depois do corte a metade e
    dos tres segundos seguintes, o aplauso tinha 4,7s de ponta a ponta, e menos
    quatro deixava 0,7s — que nao chega para uma rampa de entrada, quanto mais
@@ -7142,26 +7131,25 @@ const RF_VITORIA_ESPERA = 1000;
 /* Repartido dentro dos mesmos 1,9s: com 500 de entrada e 400 de patamar o
    aplauso comecava a sair antes de ter chegado la' em cima — medido, so'
    alcancava 0,365 de um alvo de 0,57. A entrada encurta e o patamar cresce. */
-const RF_VITORIA_ENTRA = 350, RF_VITORIA_DURA = 650, RF_VITORIA_SAI = 900;
+/* ===== O CORTE FOI FEITO NO FICHEIRO, NAO EM CODIGO =====
+   Medida a gravacao original meio segundo a meio segundo: ela ABRIA FRACA
+   (RMS 8) e so' chegava ao pico aos 3,0s (RMS 19), assentando depois em 11-12
+   pelos restantes dezassete segundos. Tocar os primeiros dois segundos era
+   usar justamente a subida — que nunca chegava a lado nenhum, e por isso
+   parecia longa por muito curta que fosse.
+   A primeira tentativa foi saltar para o pico em tempo de execucao com
+   `currentTime`, e isso trouxe uma fila de problemas que nao valiam o preco:
+   a procura precisa de metadados, os metadados de um pedido, o pedido de
+   esperar por `canplay` — e com tres caminhos a poder arrancar o som (canplay,
+   seeked, rede de seguranca) o arranque acontecia duas vezes, com o relogio de
+   saida orfao da primeira a matar a rampa da segunda. Sintoma medido: o
+   aplauso a tocar com volume 0,023 do principio ao fim.
+   O ficheiro passou a ser o pedaco que interessa — 1,9s a partir dos 2,4s, com
+   as rampas ja' gravadas nele (ffmpeg, afade). Sem procura, sem espera, sem
+   caminhos a competir: cria, toca, acabou. De 400 KB para 39 KB, ainda por
+   cima. */
+const RF_VITORIA_ESPERA = 1000;   // deixa passar o apito, que dura ~1,6s
 let RF_VITORIA = null;
-/* ---- rampa de volume num <audio> ----
-   `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
-   e' feita a mao. Passo de 50ms: abaixo disto o navegador engasga, acima ouve-se
-   a escada. A curva e' quadratica de proposito — o ouvido le' volume em escala
-   logaritmica, e uma rampa linear soa a saltar no fim. */
-function rfFade(a, de, para, ms, aoFim){
-  if(!a) return;
-  clearInterval(a._rfFade); clearInterval(a._rfRampa);
-  const passo = 50, n = Math.max(1, Math.round(ms/passo));
-  let i = 0;
-  try{ a.volume = Math.max(0, Math.min(1, de)); }catch(e){ return; }
-  a._rfFade = setInterval(() => {
-    i++;
-    const k = i/n, curva = de < para ? k*k : 1-(1-k)*(1-k);
-    try{ a.volume = Math.max(0, Math.min(1, de + (para-de)*curva)); }catch(e){ clearInterval(a._rfFade); return; }
-    if(i >= n){ clearInterval(a._rfFade); if(aoFim) aoFim(); }
-  }, passo);
-}
 function rfVitoriaSom(){
   if(!rfSomLigado()) return;
   if(rfSomVolume() <= 0) return;
@@ -7169,57 +7157,34 @@ function rfVitoriaSom(){
     if(!rfSomLigado()) return;
     try{
       rfVitoriaParar();
-      const alvo = Math.min(1, 0.95*rfSomVolume());
-      const a = new Audio(RF_VITORIA_SRC); a.volume = 0;
+      const a = new Audio(RF_VITORIA_SRC);
+      a.volume = Math.min(1, 0.95*rfSomVolume());
       const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
       RF_VITORIA = a;
-      rfFade(a, 0, alvo, RF_VITORIA_ENTRA);
-      /* ENTRA + DURA, nao so' DURA: `DURA` e' o PATAMAR, o tempo no alto, e a
-         saida comeca depois de a entrada ter acabado. Com os valores antigos
-         (0,9s de entrada, 2,5s de patamar) o erro passava despercebido —
-         2,5 > 0,9, sobrava patamar. Encurtando os dois, a saida passou a
-         comecar praticamente em cima da entrada e o aplauso nunca chegava ao
-         volume: medido, 0,012 de um alvo de 0,57. */
-      a._rfFim = setTimeout(() => {
-        if(RF_VITORIA !== a) return;
-        rfFade(a, a.volume, 0, RF_VITORIA_SAI, () => { try{ a.pause(); }catch(e){} });
-      }, RF_VITORIA_ENTRA + RF_VITORIA_DURA);
     }catch(err){}
   }, RF_VITORIA_ESPERA);
 }
-/* ===== A DISPUTA DE PENALTIS TEM SOM COBRANCA A COBRANCA =====
-   Ela decide classificacao e titulo e corria muda: so' o `sfx` de interface,
-   dois bips iguais para converter e para perder. Cada batida passa a ter o
-   som do que aconteceu — a rede quando entra, o "perdeu" quando nao entra.
-   O INTERVALO e' obrigatorio aqui: a revelacao tem ritmo proprio (1,2s de
-   suspense, 1,8s de resultado) mas o modo "⏩ Simular o resto" corta isso para
-   200ms, e sem trava as cinco cobrancas sairiam praticamente juntas. */
-const RF_PEN_INTERVALO = 900;
-let RF_PEN_EM = 0;
-function rfPenaltiSom(scored){
-  if(!rfSomLigado()) return;
-  if(Date.now() - RF_PEN_EM < RF_PEN_INTERVALO) return;
-  RF_PEN_EM = Date.now();
-  const vol = rfSomVolume(); if(vol <= 0) return;
-  try{
-    const a = new Audio(scored ? RF_GOL_REDE : RF_SONS.penaltiPerdido);
-    a.volume = Math.min(1, 0.9*vol);
-    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
-  }catch(err){}
-}
-/* Qual dos dois lados e' "o utilizador" para efeito de comemoracao.
-   Fora do hotseat e' simples: o clube dele. No HOTSEAT sao dois humanos no
-   mesmo ecra, e a pergunta nao tem resposta unica — a regra combinada e' que
-   o DONO DA CASA prevalece. */
-function rfLadoDoUtilizador(m){
-  const RL = CL.live;
-  if(RL && RL.humanSeat) return 'H';
-  return (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+
+/* ===== O PRIMEIRO DE CADA SESSAO CHEGA ATRASADO =====
+   Medido: a primeira vitoria de uma sessao so' comecava a soar 2,9s depois do
+   pedido — o tempo de ir buscar o ficheiro — contra 1,05s nas seguintes. Pior
+   ainda no aplauso, que agora salta para o pico do clipe e por isso PRECISA de
+   metadados antes de arrancar.
+   Um pedido no inicio da rodada resolve: o navegador guarda a resposta e todos
+   os momentos do jogo passam a sair no instante certo. Sao ficheiros pequenos
+   e ja' vao no mesmo deploy. */
+let RF_SOM_PRE = false;
+function rfSomPreCarregar(){
+  if(RF_SOM_PRE) return;
+  RF_SOM_PRE = true;
+  [RF_GOL_REDE, RF_GOL_FESTA, RF_CHUTE_SRC, RF_QUASE_SRC, RF_VITORIA_SRC,
+   RF_SONS.penaltiPerdido, RF_SONS.cartaoVermelho].forEach(src => {
+    try{ const a = new Audio(); a.preload = 'auto'; a.src = src; a.load(); }catch(err){}
+  });
 }
 function rfVitoriaParar(){
   const a = RF_VITORIA; if(!a) return;
   RF_VITORIA = null;
-  clearTimeout(a._rfFim); clearInterval(a._rfFade);
   try{ a.pause(); }catch(e){}
 }
 function liveApitoFinal(RL){
