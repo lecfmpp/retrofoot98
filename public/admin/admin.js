@@ -6320,7 +6320,7 @@ async function compararMetodos(item, p){
             <span style="position:absolute;inset:0;pointer-events:none">
               ${gradeHTML()}${pontosHTML()}
               <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(2)}%;border-top:1px dashed #35c46a"></span>
-              <span style="position:absolute;left:0;right:0;top:${(gola*100).toFixed(2)}%;border-top:1.5px dashed #e3b23c"></span>
+              <span id="enc-linha-gola" style="position:absolute;left:0;right:0;border-top:1.5px dashed #e3b23c"></span>
               <span id="enc-caixa" style="position:absolute;width:${(TORSO_ESCALA*100).toFixed(2)}%;transform:translateX(-50%);border:1px dashed #35c46a55"></span>
               <span id="enc-janela" style="position:absolute;left:0;right:0;border:1.5px solid #2f7fd655;display:none"></span>
               <span id="enc-eixo" style="position:absolute;top:0;bottom:0;border-left:1px dashed #2f7fd6"></span>
@@ -6432,7 +6432,7 @@ async function compararMetodos(item, p){
   const palco = el('enc-palco'), img = el('enc-rosto'), saida = el('enc-saida'), anc = el('enc-anc');
   const corpo = el('enc-corpo'), linhaCorte = el('enc-linha-corte');
   const caixa = el('enc-caixa'), eixo = el('enc-eixo'), janela = el('enc-janela');
-  const fundoEl = el('enc-fundo');
+  const fundoEl = el('enc-fundo'), linhaGola = el('enc-linha-gola');
   const pts = Array.from(palco.querySelectorAll('.enc-pt'));
 
   const desenha = () => {
@@ -6462,6 +6462,7 @@ async function compararMetodos(item, p){
     caixa.style.left = (st.corpoX*100).toFixed(2)+'%';
     caixa.style.top  = (cTopo*100).toFixed(2)+'%';
     caixa.style.height = (hTorso*100).toFixed(2)+'%';
+    linhaGola.style.top = (golaNoQuadro(estilo)*100).toFixed(2)+'%';
     linhaCorte.style.left = (st.corpoX*100).toFixed(2)+'%';
     eixo.style.left  = (eixoAtual()*100).toFixed(2)+'%';
     /* a janela que a Ficha recorta so' faz sentido sobre a foto 2:3 */
