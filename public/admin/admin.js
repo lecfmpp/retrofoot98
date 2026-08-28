@@ -7345,6 +7345,96 @@ function modalEscudoIA(item, onSalvo){
 }
 
 /* ---------- modal: fotos do elenco ---------- */
+/* ===== ACERVO DE CABECAS =====
+   Padronizar os elencos deixou retratos sem dono: o jogador saiu, a foto
+   ficou. E do outro lado ha' jogadores sem foto. Como o que esta' gravado e' a
+   CABECA (o uniforme entra como camada na hora de exibir), uma cabeca orfa
+   serve para qualquer jogador de qualquer clube — o rosto e' ficticio, nao
+   representa ninguem.
+
+   Reaproveitar e' US$ 0,07 que nao se gasta por retrato.
+
+   NADA E' APAGADO, nem arquivo nem linha: atribuir COPIA a URL para o novo
+   dono e a orfa continua no acervo. Uma cabeca pode servir a mais de um
+   jogador — em divisoes diferentes ninguem cruza —, e essa decisao fica com
+   quem olha, nao comigo. */
+function fotosOrfas(){
+  const donos = new Map();   // club_id -> Set(nomes do elenco)
+  for(const x of (D.catalogo||[]))
+    donos.set(String(x.c.id), new Set((x.c.squad||[]).map(p => p.n)));
+  const out = [];
+  for(const k of Object.keys(D.fotos||{})){
+    const i = k.indexOf('|'); if(i < 0) continue;
+    const clube = k.slice(0, i), nome = k.slice(i+1);
+    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    const elenco = donos.get(clube);
+    if(!elenco || elenco.has(nome)) continue;   // sem catalogo nao da' para julgar: nao e' orfa
+    out.push({ clube, nome, f: D.fotos[k],
+               deQuem: ((D.catalogo||[]).find(x => String(x.c.id)===clube)||{c:{}}).c.short || clube });
+  }
+  return out.sort((a,b) => a.deQuem.localeCompare(b.deQuem,'pt-BR') || a.nome.localeCompare(b.nome,'pt-BR'));
+}
+
+/* Da' a cabeca orfa a um jogador sem foto. So' a URL e os atributos viajam —
+   o ajuste de escudo/patrocinio (atributos.pos) NAO vem junto, porque ele foi
+   medido sobre o uniforme do clube de origem. */
+async function reaproveitarFoto(orfa, clubeDestino, nome){
+  const at = Object.assign({}, orfa.f.atributos || {});
+  delete at.pos;
+  at.reusadaDe = orfa.clube + '|' + orfa.nome;
+  const reg = { pack_id: ST.packId, club_id: String(clubeDestino), jogador: nome,
+                url: orfa.f.url, atributos: at };
+  const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[clubeDestino+'|'+nome] = reg;
+  registrar('estudio.fotos.reaproveitar', nome, { de: at.reusadaDe, clube: String(clubeDestino) });
+  return reg;
+}
+
+/* O acervo em forma de escolha: mostra a cabeca sobre o uniforme DO CLUBE DE
+   DESTINO, e nao sobre o de origem — e' assim que ela vai aparecer, e julgar
+   pela origem enganaria. */
+function modalAcervo(item, p){
+  const orfas = fotosOrfas();
+  if(!orfas.length) return toast('O acervo está vazio: nenhuma cabeça sem dono.', true);
+  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  const quadro = (o) => {
+    const cab = (o.f.atributos && o.f.atributos.montagem) ? o.f.atributos.montagem : o.f.url;
+    return `<button class="acv-i" data-usar="${h(o.clube+'|'+o.nome)}" title="Dar esta cabeça a ${h(p.n)}"
+      style="all:unset;cursor:pointer;width:104px;display:block">
+      <span style="position:relative;display:block;width:104px;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#d9d9d9">
+        ${t?`<img src="${h(t.url)}" style="position:absolute;left:50%;transform:translateX(-50%);bottom:0;width:85.5%">`:''}
+        <img src="${h(cab)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain">
+      </span>
+      <span style="display:block;margin-top:5px;font-size:11px;line-height:1.35;color:var(--dim)">
+        <b style="color:var(--fg);display:block">${h(o.nome)}</b>${h(o.deQuem)}</span>
+    </button>`;
+  };
+  abrirModal(`
+    <div class="card-h"><b>Uma cabeça do acervo para ${h(p.n)}</b></div>
+    <div class="card-p col" style="gap:12px">
+      <div class="st" style="font-size:12.5px;line-height:1.6">
+        ${orfas.length} cabeça(s) sem dono — de jogadores que saíram na padronização dos elencos.
+        O rosto é fictício e o uniforme entra como camada, então <b>qualquer uma serve</b>.
+        Aqui elas aparecem já sobre a camisa do <b>${h(item.c.short||item.c.name)}</b>.
+        <b>Nada é apagado</b>: a cabeça escolhida continua no acervo, disponível para outro jogador.
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;max-height:52vh;overflow:auto">${orfas.map(quadro).join('')}</div>
+    </div>
+    <div class="acoes"><button class="btn btn-ghost" data-fechar>Cancelar</button></div>`, 'xl');
+
+  document.querySelectorAll('[data-usar]').forEach(b => b.onclick = async () => {
+    const [clube, nome] = b.dataset.usar.split('|');
+    const o = orfas.find(x => x.clube===clube && x.nome===nome); if(!o) return;
+    b.disabled = true;
+    try{
+      await reaproveitarFoto(o, item.c.id, p.n);
+      toast(`${p.n} ficou com a cabeça de ${nome}.`);
+      modalFotosIA(item);
+    }catch(err){ toast(err.message||'Não consegui reaproveitar.', true); b.disabled = false; }
+  });
+}
+
 function modalFotosIA(item){
   const c = item.c, editar = podeEditar('dados');
   const sq = (c.squad||[]).slice().sort((a,b)=>(b.f||0)-(a.f||0));
@@ -7413,6 +7503,7 @@ function modalFotosIA(item){
       <span class="ft-acoes">
         ${f&&f.atributos&&f.atributos.revisar?`<span class="tag t-bad" title="${h(String(f.atributos.revisar))}">revisar</span>`:''}
         ${botao('data-escudo','⛶','Posicionar', temMontagem?'':'disabled')}
+        ${editar && !f ? botao('data-reusar','♻','Reaproveitar uma cabeça do acervo') :''}
         ${editar? botao('data-comparar','⌗','Encaixe') :''}
         ${editar? botao('data-gerar', '✦', 'Gerar') :''}
       </span>
@@ -7545,6 +7636,7 @@ function modalFotosIA(item){
         modalAjustePatrocinio(item, () => modalFotosIA(item), f.atributos.montagem, true, p.n);
       return;
     }
+    if(ev.target.closest('[data-reusar]')){ modalAcervo(item, p); return; }
     if(ev.target.closest('[data-comparar]')){ compararMetodos(item, p); return; }
     const bt = ev.target.closest('[data-gerar]'); if(!bt) return;
     const antes = rotuloDe(bt);
