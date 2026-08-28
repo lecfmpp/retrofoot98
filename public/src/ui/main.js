@@ -7030,6 +7030,9 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
   if(pendingInjury){ openInjuryModal(pendingInjury.m, pendingInjury.e); return; }
   if(pendingRed){ openRedCardModal(pendingRed.m, pendingRed.e); return; }
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
+    /* APITO DO INTERVALO, antes de tudo o resto: e' este o instante em que o
+       primeiro tempo acaba, e daqui ele nunca sai atrasado (ver camMinuteTick). */
+    if(typeof camOn==='function' && camOn() && typeof rfApito==='function') rfApito(2);
     const ui=RL.matches.findIndex(m=>m.user);
     if(ui>=0 && clOpcoes().subsIntervalo!=='Não'){ RL.paused=true; RL.sel=ui;
       if(CL.online) startHalftimeCountdown(); // Resenha: intervalo dura no máximo 10s (mantém todos sincronizados)
@@ -8077,7 +8080,7 @@ function rfSomTocarJa(chave, src, vol, peso){
    nao ha' nada para acompanhar neles.
    Se um dia entrarem gravacoes de verdade, e' so' trocar o corpo destas duas
    funcoes — o resto do jogo chama por nome. */
-let RF_AC = null, RF_TORCIDA = null;
+let RF_AC = null;
 function rfAudioCtx(){
   try{
     const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null;
@@ -8111,68 +8114,64 @@ function rfApito(vezes, longo){
     lfo.start(t0); lfo.stop(t0+dur+0.02);
   }
 }
-/* a torcida: fica no fundo a partida toda, sobe no gol e volta a assentar */
+/* ===== A TORCIDA PRECISA DE GRAVACAO, NAO DE SINTESE =====
+   A versao sintetizada (ruido rosa num passa-banda grave) soava a MAR, nao a
+   estadio — e faz sentido: uma multidao nao e' ruido continuo, e' milhares de
+   vozes com ataque, palmas e cantos, coisa que ruido filtrado nao imita. Em
+   vez de insistir na sintese, o codigo passa a esperar um ficheiro.
+
+   Basta pousar `public/audio/torcida-estadio.mp3` (qualquer coisa entre 30s e
+   2min, que entra em ciclo) e o estadio volta sozinho — sem tocar em codigo.
+   Enquanto o ficheiro nao existir, tudo isto e' silencio: o `onerror` desarma
+   e nada mais tenta. E' por isso que o GOL esta' mudo por agora — o rugido era
+   feito do mesmo ruido. */
+const RF_TORCIDA_SRC = 'audio/torcida-estadio.mp3';
+const RF_TORCIDA_BASE = 0.34;   // fracao do volume do save, com o jogo a correr
+let RF_TORCIDA = null, RF_TORCIDA_SEM = false, RF_TORCIDA_GOL = 0;
 function rfTorcidaLigar(){
-  if(!rfSomLigado()) return;
-  const ac = rfAudioCtx(); if(!ac) return;
-  if(RF_TORCIDA) return;
+  if(RF_TORCIDA || RF_TORCIDA_SEM || !rfSomLigado()) return;
+  const vol = rfSomVolume(); if(vol <= 0) return;
   try{
-    const n = ac.sampleRate * 2, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
-    /* ruido rosa simplificado (Voss-McCartney reduzido): o branco puro soa a
-       chuveiro, o rosa soa a gente. */
-    let b0=0,b1=0,b2=0;
-    for(let i=0;i<n;i++){
-      const w = Math.random()*2-1;
-      b0 = 0.99765*b0 + w*0.0990460; b1 = 0.96300*b1 + w*0.2965164; b2 = 0.57000*b2 + w*1.0526913;
-      d[i] = (b0+b1+b2+w*0.1848)*0.22;
-    }
-    const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
-    const bp = ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=520; bp.Q.value=0.7;
-    const g = ac.createGain(); g.gain.value = 0;
-    /* a MARE: a intensidade da multidao nunca e' constante, e uma oscilacao
-       lenta e' o que tira o som de "chiado de fundo". */
-    const lfo = ac.createOscillator(), lfoG = ac.createGain();
-    lfo.type='sine'; lfo.frequency.value = 0.09; lfoG.gain.value = 0.30;
-    lfo.connect(lfoG); lfoG.connect(g.gain);
-    src.connect(bp); bp.connect(g); g.connect(ac.destination);
-    src.start(); lfo.start();
-    RF_TORCIDA = { src, g, lfo, base: 0 };
-    rfTorcidaNivel(0.9);
-  }catch(err){}
+    const a = new Audio(RF_TORCIDA_SRC);
+    a.loop = true; a.volume = RF_TORCIDA_BASE * vol;
+    a.onerror = () => { RF_TORCIDA_SEM = true; RF_TORCIDA = null; };
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    RF_TORCIDA = a;
+  }catch(err){ RF_TORCIDA_SEM = true; }
 }
-/* nivel base, 0..1 relativo ao volume do save */
-function rfTorcidaNivel(k, quando){
-  if(!RF_TORCIDA || !RF_AC) return;
-  const alvo = 0.13 * k * rfSomVolume();
-  RF_TORCIDA.base = alvo;
-  try{ RF_TORCIDA.g.gain.linearRampToValueAtTime(alvo, RF_AC.currentTime + (quando||0.8)); }catch(err){}
-}
-/* o rugido do gol: sobe depressa e desce devagar, como um estadio de verdade */
-let RF_TORCIDA_GOL = 0;
+/* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
+   um elemento <audio>, entao a rampa e' feita a mao, de 60 em 60ms. */
 function rfTorcidaGol(){
-  if(!RF_TORCIDA || !RF_AC) return;
-  /* O MESMO GOL CHEGA POR DOIS CAMINHOS quando e' de penalti: a revelacao do
-     modal e, logo depois, o laco que consome o evento. Dois rugidos colados
-     soam como um corte. */
+  if(!RF_TORCIDA) return;
+  /* o gol de penalti chega por DOIS caminhos (revelacao do modal e o laco que
+     consome o evento); dois rugidos colados soam a corte. */
   if(Date.now() - RF_TORCIDA_GOL < 2500) return;
   RF_TORCIDA_GOL = Date.now();
-  const t = RF_AC.currentTime, alto = 0.52 * rfSomVolume();
-  try{
-    RF_TORCIDA.g.gain.cancelScheduledValues(t);
-    RF_TORCIDA.g.gain.setValueAtTime(Math.max(0.0001, RF_TORCIDA.base), t);
-    RF_TORCIDA.g.gain.linearRampToValueAtTime(alto, t + 0.35);
-    RF_TORCIDA.g.gain.setValueAtTime(alto, t + 1.8);
-    RF_TORCIDA.g.gain.linearRampToValueAtTime(Math.max(0.0001, RF_TORCIDA.base), t + 7);
-  }catch(err){}
+  const a = RF_TORCIDA, vol = rfSomVolume();
+  const base = RF_TORCIDA_BASE * vol, alto = Math.min(1, 0.95 * vol);
+  clearInterval(a._rfRampa);
+  let t = 0;
+  a._rfRampa = setInterval(() => {
+    t += 0.06;
+    if(RF_TORCIDA !== a){ clearInterval(a._rfRampa); return; }
+    const k = t < 0.4 ? (t/0.4)                       // sobe em 0,4s
+            : t < 2.2 ? 1                             // segura
+            : Math.max(0, 1 - (t-2.2)/5);             // desce em 5s
+    a.volume = Math.min(1, base + (alto-base)*k);
+    if(t > 7.4){ clearInterval(a._rfRampa); a.volume = base; }
+  }, 60);
 }
 function rfTorcidaDesligar(){
-  if(!RF_TORCIDA) return;
-  const T = RF_TORCIDA; RF_TORCIDA = null;
-  try{
-    if(RF_AC){ T.g.gain.cancelScheduledValues(RF_AC.currentTime);
-               T.g.gain.linearRampToValueAtTime(0.0001, RF_AC.currentTime + 1.2); }
-    setTimeout(()=>{ try{ T.src.stop(); T.lfo.stop(); }catch(e){} }, 1500);
-  }catch(err){}
+  const a = RF_TORCIDA; if(!a) return;
+  RF_TORCIDA = null;
+  clearInterval(a._rfRampa);
+  /* desvanece em vez de cortar: um loop que para a seco assusta */
+  let v = a.volume;
+  const t = setInterval(() => {
+    v -= 0.05;
+    if(v <= 0){ clearInterval(t); try{ a.pause(); }catch(e){} return; }
+    try{ a.volume = Math.max(0, v); }catch(e){ clearInterval(t); }
+  }, 60);
 }
 
 function camOnEvent(m,e){
@@ -8271,7 +8270,15 @@ function camMinuteTick(m,RL){
   /* A TORCIDA NAO SE CALA NO INTERVALO. Ela baixava aos 45 e voltava aos 46,
      e esse vale era ouvido como uma falha do som — o estadio nao esvazia entre
      os tempos. Fica no mesmo nivel do apito inicial ao final. */
-  if(mn>=45) mark('ht', ()=>{ camPush(m,'intervalo',null,mn); if(camOn()) rfApito(2); });
+  /* O APITO DO INTERVALO NAO MORA AQUI. Este marco anda pelo relogio da
+     PARTIDA (`m.sim.dispMin()`), e a pausa do intervalo anda pelo relogio da
+     RODADA (`RL.minute`) — quando a sessao fica um tique atras, a pausa abre
+     primeiro, o utilizador faz as substituicoes, carrega em Continuar, e so'
+     entao o marco chegava aos 45 e apitava: o apito do intervalo caia com o
+     segundo tempo ja' a rolar. Era exactamente o relatado. O apito passou
+     para o mesmo sitio que decide o intervalo (ver liveTick), onde nao ha'
+     dois relogios para discordarem. */
+  if(mn>=45) mark('ht', ()=>camPush(m,'intervalo',null,mn));
   if(mn>=46) mark('h2', ()=>camPush(m,'recomeco',null,mn));
   if(mn>=91 && RL.extraStartMinute==null) mark('acr',()=>camPush(m,'acrescimos',null,mn));
   if(over) return; // apito final é responsabilidade do camEndCheck (depois dos eventos do minuto)
