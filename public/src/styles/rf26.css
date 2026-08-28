@@ -1743,8 +1743,14 @@
   background:var(--club-secondary,#8b9a1f);color:var(--club-on-secondary,#fff);
   font-family:var(--font-mono);font-weight:var(--fw-bold);font-size:14px}
 .pc-info{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px 16px 16px;min-width:0}
-.pc-escudo{width:62px;height:62px;object-fit:contain;display:block;margin-bottom:6px;
+/* ESCUDO NO CANTO INFERIOR DIREITO, tirado do fluxo do texto. Ele deixa de
+   empurrar nome e forca para baixo, entao o bloco de texto sobe e sobra mais
+   foto a' vista. O padding do lado direito do .pc-info abre espaco para ele
+   nao encostar no nome em nome comprido. */
+.pc-escudo{position:absolute;right:14px;bottom:14px;z-index:5;
+  width:62px;height:62px;object-fit:contain;display:block;
   filter:drop-shadow(0 2px 10px rgba(0,0,0,.75))}
+.pc-info{padding-right:86px}
 .pc-pos{font-family:var(--font-mono);font-weight:var(--fw-semibold);font-size:9.5px;
   letter-spacing:.14em;color:#d5e08a}
 .pc-nome{font-weight:var(--fw-bold);font-size:20px;line-height:1.15;letter-spacing:-.02em;
