@@ -44,9 +44,14 @@ function rfFotoDe(p, clubId){
   const F = window.RF_FOTOS||{}, N = window.RF_FOTOS_NOME||{};
   const propria = (clubId!=null && F[String(clubId)+'|'+p.n]) || F[String(CL.clubId)+'|'+p.n] || N[p.n];
   if(propria) return propria;
-  /* SEM FOTO PROPRIA, cai no acervo da base. Cobre os jogadores que SOBEM da
-     base — que nao existiam quando as fotos foram geradas — e tambem quem
-     ainda nao tem retrato: melhor uma cara do acervo que a camisa vazia. */
+  /* O ACERVO E' SO' DE QUEM VEIO DA BASE. Ele existe porque o garoto promovido
+     nao existia quando as fotos foram geradas, entao nunca vai ter retrato
+     proprio. Usa-lo como rede para TODO jogador sem foto gastava um acervo
+     pequeno em centenas de jogadores, e a mesma cara reaparecia pelo elenco
+     inteiro — quem nao veio da base cai na camisa vazia, como antes.
+     `_youthSeason` e' o carimbo da promocao (confirmYouthPromotion, no motor):
+     so' o jovem promovido tem, e ele sobrevive ao save e a' ida pelo servidor. */
+  if(p._youthSeason == null) return null;
   return (typeof rfFaceDaBase==='function') ? rfFaceDaBase(p) : null;
 }
 function rfElCamisa(num, tam, p, clubId){
