@@ -7953,8 +7953,11 @@ function camOnEvent(m,e){
 function rfSomDoEvento(m,e,out){
   if(!camOn()) return;
   m._camSons = m._camSons || {};
-  const soar = (chave) => { if(m._camSons[chave]) return; m._camSons[chave]=1; rfSomTocar(chave); };
-  if(e.type==='cartao' && e.cardType!=='vermelho') soar('cartaoAmarelo');
+  /* `trava` separa "ja' tocou isto" de "qual audio tocar": o vermelho usa o
+     MESMO som do amarelo, mas com trava propria — senao um amarelo aos 12'
+     calaria a expulsao aos 70', que e' o lance maior dos dois. */
+  const soar = (trava, chave) => { if(m._camSons[trava]) return; m._camSons[trava]=1; rfSomTocar(chave||trava); };
+  if(e.type==='cartao') soar(e.cardType==='vermelho' ? 'cartaoVermelho' : 'cartaoAmarelo', 'cartaoAmarelo');
   else if(e.type==='penalti' && !e.scored && out==='defesa') soar('penaltiDefendido');
   if(e.type==='gol' || (e.type==='penalti' && e.scored)){
     if(((m.hg||0)+(m.ag||0)) >= 5) soar('goleada');
