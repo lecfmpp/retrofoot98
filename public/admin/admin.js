@@ -6458,7 +6458,10 @@ async function garantirFaceTreinador(genero, i, refazer){
   const chave = faceChave(genero, i);
   const est = ESTILOS_TREINADOR[i];
   if(!refazer && D.fotos[TREINADOR_KEY+'|'+chave]) return D.fotos[TREINADOR_KEY+'|'+chave];
-  const url = await gerarImagemIA('jogador', promptFaceTreinador(genero, i), 'medium', null,
+  /* `camisa` e' o tipo TRANSPARENTE (1024x1536). O card do treinador poe a
+     identidade do clube no fundo, e a face opaca — que era o tipo `jogador` —
+     tapava esse fundo inteiro. */
+  const url = await gerarImagemIA('camisa', promptFaceTreinador(genero, i), 'medium', null,
     'treinadores/'+faceNome(genero, est[0]), 'Gerando a face do treinador…');
   const linha = { pack_id: ST.packId, club_id: TREINADOR_KEY, jogador: chave, url,
                   atributos: { genero, estilo: est[0], rotulo: est[1] } };
@@ -6466,6 +6469,44 @@ async function garantirFaceTreinador(genero, i, refazer){
   if(r.error) throw new Error(erroMsg(r.error));
   D.fotos[TREINADOR_KEY+'|'+chave] = linha;
   return linha;
+}
+
+/* RECORTA as faces de treinador ja' geradas, que nasceram opacas. Mesma
+   inundacao de borda das fotos de jogador — e o mesmo motivo: sem alfa, o
+   fundo do clube nao aparece no card. */
+async function recortarFacesTreinador(btn){
+  const alvos = [];
+  ['f','m'].forEach(g => ESTILOS_TREINADOR.forEach((_e, i) => {
+    const f = D.fotos[TREINADOR_KEY+'|'+faceChave(g, i)];
+    if(f && f.url && !(f.atributos||{}).vazada) alvos.push({ g, i, f });
+  }));
+  if(!alvos.length) return toast('As faces de treinador já estão recortadas.');
+  if(!await rfConfirm({ titulo:'Recortar o fundo das faces',
+    texto:`Tira o fundo de estúdio de <b>${alvos.length} face(s)</b> de treinador.`,
+    detalhe:'<b>Sem custo</b> — canvas, sem IA. É o que faz o fundo do clube aparecer no card do treinador. Nada é apagado.',
+    nao:'Cancelar', sim:`Recortar ${alvos.length}` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok=0, erros=0;
+  for(const a of alvos){
+    btn.textContent = `Recortando ${ok+erros+1}/${alvos.length}…`;
+    try{
+      const r = await recortarFundoFoto(a.f.url);
+      if(!r) throw new Error('já transparente');
+      if(r.fracao < 0.04 || r.fracao > 0.80) throw new Error(`recorte suspeito (${(r.fracao*100).toFixed(1)}%)`);
+      const caminho = `treinadores/${faceChave(a.g, a.i)}-vazada-${Date.now()}.webp`;
+      const up = await sb.storage.from('jogadores').upload(caminho, r.blob, { upsert:false, cacheControl:'31536000' });
+      if(up.error) throw new Error(up.error.message);
+      const at = Object.assign({}, a.f.atributos || {}, { vazada:true, anterior:a.f.url });
+      const reg = Object.assign({}, a.f, { url: sb.storage.from('jogadores').getPublicUrl(caminho).data.publicUrl, atributos: at });
+      const res = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
+      if(res.error) throw new Error(erroMsg(res.error));
+      D.fotos[TREINADOR_KEY+'|'+faceChave(a.g, a.i)] = reg;
+      ok++;
+    }catch(err){ erros++; console.warn('face treinador:', a.g, a.i, err.message); }
+  }
+  toast(`${ok} face(s) recortadas${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
 }
 
 function facesQueFaltam(){
@@ -7579,7 +7620,9 @@ function blocoTreinadoresHTML(){
         <span class="mono" style="font-size:11.5px;color:var(--dim3);white-space:nowrap;flex:0 0 auto">${prontas} de 10 geradas</span>
         ${faltam && podeEditar('dados')
           ? `<button class="btn btn-sm" id="est-faces" style="white-space:nowrap;flex:0 0 auto"
-               title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>`
+               title="Gera só as faces que ainda não existem, nos 5 estilos de roupa">Gerar as faces que faltam (${faltam})</button>
+          <button class="btn btn-sm btn-ghost" id="est-faces-recorte" style="white-space:nowrap;flex:0 0 auto"
+            title="Tira o fundo cinza das faces já geradas — é o que faz o fundo do clube aparecer no card do treinador">Recortar fundos</button>`
           : ''}
       </div>
       ${blocoMarcaHTML()}
@@ -7754,6 +7797,8 @@ async function pgEstudio(){
   if(btBase) btBase.onclick = () => prepararFacesBase(btBase);
   const btEst = el('est-estilos');
   if(btEst) btEst.onclick = () => prepararEstilos(btEst);
+  const btFacesRec = el('est-faces-recorte');
+  if(btFacesRec) btFacesRec.onclick = () => recortarFacesTreinador(btFacesRec);
   const btFaces = el('est-faces');
   if(btFaces) btFaces.onclick = () => prepararFacesTreinador(btFaces);
   document.querySelectorAll('[data-face-refazer]').forEach(x => x.onclick = () => {

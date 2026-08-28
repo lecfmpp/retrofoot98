@@ -1764,6 +1764,12 @@
 .pc-forca span{font-family:var(--font-mono);font-weight:var(--fw-semibold);font-size:10px;
   letter-spacing:.12em;color:#a8b79c}
 @media (max-width:520px){ .pc{width:100%;max-width:260px} }
+/* o card do TREINADOR e' o mesmo, so' fica ao lado dos campos do perfil */
+.pc-tr{margin:0 0 14px}
+/* sem retrato, a inicial ocupa o lugar dele — o fundo do clube ja' identifica */
+.pc-inicial{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-serif);font-size:96px;font-weight:var(--fw-bold);
+  color:rgba(255,255,255,.82);text-shadow:0 4px 18px rgba(0,0,0,.45)}
 /* dentro da grade de Características o card ocupa a coluna do retrato, que e'
    mais alta que os 305px do padrao — esticar mantem o alinhamento com a
    coluna dos atributos ao lado */

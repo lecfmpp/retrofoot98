@@ -96,7 +96,8 @@ function montarPrompt(genero: string, estilo: string, idade: number, comReferenc
     NUNCA,
     ROUPA_LIMPA,
     "Head and shoulders, facing the camera directly, official club media day photo style.",
-    "Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.",
+    "Soft professional studio lighting, sharp focus, DSLR photo quality.",
+    "FULLY TRANSPARENT BACKGROUND — no backdrop and NO SHADOW cast behind the person (a cast shadow becomes a grey fringe when the portrait is placed over colours).",
     "The head is centered and fills about half of the frame height.",
   ];
   if (comReferencia) {
@@ -236,7 +237,10 @@ Deno.serve(async (req) => {
         headers: { "Authorization": `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "gpt-image-1", prompt, n: 1, size: TAMANHO, quality: QUALIDADE,
-          background: "opaque", output_format: FORMATO, output_compression: COMPRESSAO,
+          /* TRANSPARENTE, como o retrato de jogador. O card poe a identidade do
+             clube no FUNDO e o avatar opaco tapava esse fundo inteiro. Vale
+             para os avatares NOVOS; os ja' gerados sao recortados no painel. */
+          background: "transparent", output_format: FORMATO, output_compression: COMPRESSAO,
         }),
       });
     }

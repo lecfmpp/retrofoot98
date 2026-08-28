@@ -43,6 +43,39 @@ function rfTrCabecalhoHTML(){
    enfeite, nunca requisito: quem pulou o passo no assistente, quem ainda nao
    recebeu a face padrao da rede, e os saves antigos — todos caem na inicial,
    que e' o que a tela mostrava antes. */
+/* O CARD DO TREINADOR — o MESMO do jogador, com o retrato dele e o clube que
+   ele treina AGORA. Muda de clube, muda o fundo e o escudo, e o retrato
+   continua o mesmo: e' a razao de o card existir, e vale para o treinador
+   tanto quanto para o jogador.
+
+   Reaproveita as classes `.pc` inteiras — se fosse um desenho proprio, os dois
+   cards divergiriam na primeira mexida em qualquer um deles. */
+function rfCardTreinadorHTML(nome, idade, temps, rep){
+  const cl = (typeof clubOf==='function' ? clubOf(CL.clubId) : null) || {};
+  const th = (typeof clubTheme==='function') ? clubTheme(CL.clubId) : {};
+  const c1 = th.col || '#17458F', c2 = th.col2 || '#F2B90C';
+  const crest = (typeof clubCrestUrl==='function') ? clubCrestUrl(cl) : (cl.crest||null);
+  const url = (typeof rfCoachAvatarUrl==='function') ? rfCoachAvatarUrl() : null;
+  const ini = escC(String(nome||'T').slice(0,1).toUpperCase());
+  /* o avatar do treinador ainda e' OPACO: ele tapa o fundo do clube. Recortado
+     no painel, passa a vazar e o fundo aparece — a classe entra sozinha
+     quando a foto tem alfa, sem precisar saber qual e' qual aqui. */
+  return `<div class="pc pc-tr" style="--clube-1:${escC(c1)};--clube-2:${escC(c2)}">
+    <span class="pc-fundo"></span>
+    <span class="pc-vinheta"></span>
+    ${url ? `<img class="pc-foto" src="${escC(url)}" alt="" loading="lazy" draggable="false"
+              onerror="this.remove()">`
+          : `<span class="pc-inicial">${ini}</span>`}
+    <span class="pc-overlay"></span>
+    <span class="pc-info">
+      ${crest?`<img class="pc-escudo" src="${escC(crest)}" alt="${escC(cl.short||'')}" loading="lazy">`:''}
+      <span class="pc-pos">TREINADOR · ${idade} ANOS</span>
+      <span class="pc-nome">${escC(nome)}</span>
+      <span class="pc-forca"><b>${rep}</b><span>DE REPUTAÇÃO</span></span>
+    </span>
+  </div>`;
+}
+
 function rfTrAvatarHTML(nome, cls){
   const url=(typeof rfCoachAvatarUrl==='function')?rfCoachAvatarUrl():null;
   const ini=escC(String(nome||'T').slice(0,1).toUpperCase());
@@ -455,13 +488,7 @@ function rfTrPerfilHTML(){
   if(CL.formation) chips.push('fiel ao '+CL.formation);
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">DADOS DO TREINADOR</span></div>
-      <div class="rf-tr-perfil-top">
-        ${rfTrAvatarHTML(nome, 'rf-tr-av-g')}
-        <div class="rf-tr-perfil-nm">
-          <span class="rf-tr-perfil-n">${escC(nome)}</span>
-          <span class="rf-tr-perfil-s">${idade} anos · ${temps}ª temporada · reputação ${rep}</span>
-        </div>
-      </div>
+      ${rfCardTreinadorHTML(nome, idade, temps, rep)}
       <div class="rf-tr-campos">
         ${rfTrCampo('Nome', escC(nome))}
         ${rfTrCampo('Nacionalidade', ((typeof universeFlag==='function')?universeFlag():'')+' '+escC((typeof universeCountryName==='function')?universeCountryName():'—'))}
