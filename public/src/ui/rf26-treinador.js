@@ -57,13 +57,15 @@ function rfCardTreinadorHTML(nome, idade, temps, rep){
   const crest = (typeof clubCrestUrl==='function') ? clubCrestUrl(cl) : (cl.crest||null);
   const url = (typeof rfCoachAvatarUrl==='function') ? rfCoachAvatarUrl() : null;
   const ini = escC(String(nome||'T').slice(0,1).toUpperCase());
-  /* o avatar do treinador ainda e' OPACO: ele tapa o fundo do clube. Recortado
-     no painel, passa a vazar e o fundo aparece — a classe entra sozinha
-     quando a foto tem alfa, sem precisar saber qual e' qual aqui. */
+  /* AGORA VAZA. As 10 faces padrao foram refeitas pelo tipo transparente, e o
+     retrato gerado por IA tambem passou a sair transparente (o ramo da foto de
+     referencia no coach-avatar so' faltava mandar `background` no form). Sem
+     `pc-vazada` a foto cobria o fundo e o card do treinador ficava sem a
+     identidade do clube — que e' o ponto do card. */
   return `<div class="pc pc-tr" style="--clube-1:${escC(c1)};--clube-2:${escC(c2)}">
     <span class="pc-fundo"></span>
     <span class="pc-vinheta"></span>
-    ${url ? `<img class="pc-foto" src="${escC(url)}" alt="" loading="lazy" draggable="false"
+    ${url ? `<img class="pc-foto pc-vazada" src="${escC(url)}" alt="" loading="lazy" draggable="false"
               onerror="this.remove()">`
           : `<span class="pc-inicial">${ini}</span>`}
     <span class="pc-overlay"></span>

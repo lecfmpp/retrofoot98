@@ -5558,6 +5558,9 @@
   transition:background var(--dur-fast) var(--ease)}
 .rf-el-row:hover{background:#f5f8f4}
 .rf-el-row.sel{background:var(--club-primary-soft);border-color:var(--club-primary)}
+/* A celula do nome na aba Base leva a miniatura ao lado. `min-width:0` e' o que
+   deixa o nome truncar em vez de esticar a coluna. */
+.rf-el-jog{display:flex;align-items:center;gap:10px;min-width:0}
 .rf-el-nome{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-el-c{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);
