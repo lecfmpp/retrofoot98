@@ -1724,6 +1724,10 @@
 .pc-forca span{font-family:var(--font-mono);font-weight:var(--fw-semibold);font-size:10px;
   letter-spacing:.12em;color:#a8b79c}
 @media (max-width:520px){ .pc{width:100%;max-width:260px} }
+/* dentro da grade de Características o card ocupa a coluna do retrato, que e'
+   mais alta que os 305px do padrao — esticar mantem o alinhamento com a
+   coluna dos atributos ao lado */
+.rf-fx-carac-grid .pc{width:100%;max-width:240px;min-height:340px}
 
 .rf-ficha-id{display:flex;align-items:center;gap:12px}
 .rf-ficha-nm{display:flex;flex-direction:column;gap:2px;min-width:0}

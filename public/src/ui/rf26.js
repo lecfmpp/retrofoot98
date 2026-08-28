@@ -107,7 +107,7 @@ const RF_PAGES=[
     sub:()=>rfElSubHTML(),
     acoes:()=>rfElAcoesHTML(), grid:'minmax(0,1fr) 340px',
     tabs:[ {k:'elenco', l:()=>'Elenco',           build:()=>rfElElencoHTML()},
-           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML(), show:()=>!rfElVisita()},
+           {k:'ficha',  l:()=>'Ficha do jogador', build:()=>rfElFichaHTML()},   /* tambem na visita: ver quem e' o jogador deixou de ser privilegio de dono */
            {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML(), show:()=>!rfElVisita()},
            {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML(), show:()=>!rfElVisita()} ] },
 

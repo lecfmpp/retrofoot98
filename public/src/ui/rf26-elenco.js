@@ -537,17 +537,9 @@ function rfElFichaHTML(clubIdArg, pidArg){
           <span class="rf-sp"></span>
           <span class="rf-fx-legenda"><i></i>MÉDIA DA POSIÇÃO NA SÉRIE</span></div>
         <div class="rf-fx-carac-grid">
-          <div class="rf-fx-retrato">
-            ${rfFxFotoComposta(p)}
-            <i class="rf-fx-retrato-veu"></i>
-            <span class="rf-fx-num flutua">${escC(String(num))}</span>
-            ${crest?`<img class="rf-fx-retrato-crest" src="${escC(crest)}" alt="">`:''}
-            <span class="rf-fx-retrato-id">
-              <span class="rf-fx-microt claro">${escC(String(rfPosLabel(p.s)).toUpperCase())} · ${p.age||'?'} ANOS</span>
-              <b>${escC(p.n)}</b>
-              <span class="rf-fx-retrato-f"><b>${p.f}</b><i>DE FORÇA</i></span>
-            </span>
-          </div>
+          ${(typeof rfCardJogadorHTML==='function')
+            ? rfCardJogadorHTML(p, num, cid)
+            : `<div class="rf-fx-retrato">${rfFxFotoComposta(p)}<i class="rf-fx-retrato-veu"></i></div>`}
           <div class="rf-fx-hexcol">
             ${rfFxMotorHTML(p)}
             ${ff?`<div class="rf-fx-ff">
