@@ -171,24 +171,12 @@ Deno.serve(async (req) => {
   const b64 = out?.data?.[0]?.b64_json;
   if (!b64) return resp(502, { error: "OpenAI não devolveu imagem." });
 
-  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  // nome organizado vindo do painel (pais/divisao/clube/...), saneado — só
-  // minúsculas, números, hífen, underscore e barras, sem subir de nível
-  const nomeSeguro = String(body.nome || "")
-    .toLowerCase().replace(/[^a-z0-9/_-]/g, "").replace(/\/{2,}/g, "/")
-    .replace(/^\/+|\/+$/g, "").slice(0, 180);
-  const caminho = `${nomeSeguro || "ia"}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${FORMATO}`;
-  const up = await admin.storage.from(cfg.bucket).upload(caminho, bytes, {
-    contentType: CONTENT_TYPE,
-    cacheControl: "31536000",
-    upsert: false,
-  });
-  if (up.error) {
-    console.error("Upload falhou:", up.error.message);
-    return resp(500, { error: "Imagem gerada, mas o upload falhou: " + up.error.message });
-  }
-
-  // custo REGISTRADO a cada geração — alimenta os cards de Finanças do painel.
+  /* CUSTO REGISTRADO ASSIM QUE A OPENAI RESPONDE, antes do upload. A cobranca
+     acontece quando ela devolve a imagem — se o upload falhar depois, o
+     dinheiro saiu do mesmo jeito e o painel precisa saber. Registrando so'
+     apos o upload, uma falha de Storage tornava o gasto INVISIVEL, que e'
+     exatamente o tipo de buraco que ja' nos custou uma conciliacao. */
+  // Tabela oficial de preço do gpt-image-1 por tamanho×qualidade (USD/imagem).
   // Tabela oficial de preço do gpt-image-1 por tamanho×qualidade (USD/imagem).
   const PRECOS: Record<string, Record<string, number>> = {
     "1024x1024": { low: 0.011, medium: 0.042, high: 0.167 },
@@ -205,6 +193,42 @@ Deno.serve(async (req) => {
   });
   if (logErr) console.error("registro de custo falhou:", logErr.message);
 
-  const publica = admin.storage.from(cfg.bucket).getPublicUrl(caminho).data.publicUrl;
-  return resp(200, { url: publica, caminho });
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  // nome organizado vindo do painel (pais/divisao/clube/...), saneado — só
+  // minúsculas, números, hífen, underscore e barras, sem subir de nível
+  const nomeSeguro = String(body.nome || "")
+    .toLowerCase().replace(/[^a-z0-9/_-]/g, "").replace(/\/{2,}/g, "/")
+    .replace(/^\/+|\/+$/g, "").slice(0, 180);
+  const caminho = `${nomeSeguro || "ia"}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${FORMATO}`;
+  /* TRES TENTATIVAS. O 520 que apareceu aqui e' erro generico da Cloudflare
+     entre a funcao e o Storage — a requisicao nem chega a aparecer no log do
+     Storage. E' transitorio, mas custa uma imagem JA' PAGA a cada vez, entao
+     desistir na primeira e' jogar dinheiro fora. Cada tentativa usa um caminho
+     novo: repetir o mesmo com upsert:false falharia por conflito se a primeira
+     tiver gravado antes de a resposta se perder. */
+  let up: { error: { message: string } | null } = { error: { message: "sem tentativa" } };
+  let caminhoFinal = caminho;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    if (tentativa > 0) {
+      await new Promise((r) => setTimeout(r, 400 * tentativa));
+      caminhoFinal = `${nomeSeguro || "ia"}-${Date.now()}-${crypto.randomUUID().slice(0, 6)}.${FORMATO}`;
+    }
+    up = await admin.storage.from(cfg.bucket).upload(caminhoFinal, bytes, {
+      contentType: CONTENT_TYPE,
+      cacheControl: "31536000",
+      upsert: false,
+    });
+    if (!up.error) break;
+    console.error(`Upload tentativa ${tentativa + 1} falhou:`, up.error.message);
+  }
+  if (up.error) {
+    console.error("Upload falhou nas 3 tentativas:", up.error.message);
+    return resp(500, {
+      error: "Imagem gerada, mas o upload falhou depois de 3 tentativas: " + up.error.message +
+        ". A geração já foi cobrada e está registrada no painel.",
+    });
+  }
+
+  const publica = admin.storage.from(cfg.bucket).getPublicUrl(caminhoFinal).data.publicUrl;
+  return resp(200, { url: publica, caminho: caminhoFinal });
 });
