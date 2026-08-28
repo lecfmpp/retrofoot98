@@ -13,8 +13,9 @@
    ===================================================================== */
 
 const RF_LP_NAV=[
-  ['jogo','O jogo'],['resenha','Modo Resenha'],['ranking','Ranking'],
-  ['ligas','Ligas Oficiais'],['canais','Para canais'],['blog','Blog'],['apoie','Apoie o projeto'],
+  ['jogo','O jogo'],['telas','Por dentro'],['resenha','Modo Resenha'],
+  ['momentos','Momentos'],['oficial','Seu jogador'],['grana','Ganhar com a resenha'],
+  ['planos','Planos'],['ligas','Embaixadores'],
 ];
 
 /* ===== A CONTA VIVE NO CABEÇALHO, EM TODA A TELA =====
@@ -153,120 +154,416 @@ function rfLpSecaoHTML(o){
 }
 
 /* ---- as maquetes: telas do jogo desenhadas dentro da landing ---- */
-function rfLpMaqueteAoVivoHTML(){
-  const linha=(pub,h,gh,ga,a,min)=>`<div class="rf-lpm-linha">
-    <span class="rf-lpm-pub">${rfLvTicketHTML()}${pub}</span>
-    <span class="rf-lpm-casa">${escC(h)}</span>
-    <span class="rf-lv-placar"><span>${gh}</span><span class="rf-lv-d">:</span><span>${ga}</span></span>
-    <span class="rf-lpm-fora">${escC(a)}</span>
-    <span class="rf-lpm-min">${min}'</span>
-  </div>`;
-  return `<div class="rf-lpm rf-lpm-live">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">Semana ao vivo</span>
-      <span class="rf-lv-aovivo">● Ao vivo</span><div class="rf-sp"></div>
-      <span class="rf-lpm-s">Séries A–D</span></div>
-    <div class="rf-lpm-body">
-      <span class="rf-label-t">1ª Divisão · Série A</span>
-      ${linha('55.744','Corinthians',1,0,'Palmeiras',78)}
-      ${linha('55.744','Flamengo',2,2,'Vasco da Gama',63)}
-      <span class="rf-label-t">2ª Divisão · Série B</span>
-      ${linha('55.744','Atlético-MG',0,1,'Cruzeiro',71)}
+/* As duas maquetes do hero (semana ao vivo e camarote desenhados a mao) sairam
+   em 28/08: o hero passou a levar o video de apresentacao, e as telas de
+   verdade — fotografadas do jogo — vivem agora na seccao "Por dentro do jogo".
+   Maquete desenhada ao lado de foto real so serviria para lembrar que uma
+   delas e mentira. As tres que restam (tabela, chat e leilao) continuam a
+   ilustrar as seccoes de texto. */
+/* ---- as telas do jogo, fotografadas (ver scripts/capture-home.mjs) ----
+   AS MAQUETES MORRERAM AQUI. Classificação, chat e leilão eram HTML escrito à
+   mão dentro desta página: números inventados, colunas que foram saindo do
+   lugar conforme o jogo mudava, e um leilão que já não parecia o leilão. Uma
+   página que vende um produto não pode desenhar o produto — mostra ele. */
+function rfLpFotoHTML(src, alt, cls){
+  return `<figure class="rf-lp-foto ${cls||''}">
+    <img src="${escC(src)}" alt="${escC(alt)}" loading="lazy" width="1600" height="1000">
+  </figure>`;
+}
+
+
+/* =====================================================================
+   O VÍDEO DE APRESENTAÇÃO — o palco está montado, o filme ainda não
+   ---------------------------------------------------------------------
+   Enquanto o vídeo de divulgação não existe, o hero mostra o LUGAR dele:
+   moldura 16:9, botão de play e o recado de que está a caminho. Quando o
+   arquivo chegar, é UMA linha a mudar — troque RF_LP_HERO_VIDEO por
+   'video/apresentacao.mp4' e o mesmo espaço vira o player, sem mexer em
+   mais nada. Placeholder sem essa saída vira placeholder eterno.
+   ===================================================================== */
+const RF_LP_HERO_VIDEO = null;         // ex.: 'video/apresentacao.mp4'
+const RF_LP_HERO_POSTER = 'img/home/camarote.webp';
+
+function rfLpHeroVideoHTML(){
+  if(RF_LP_HERO_VIDEO){
+    return `<div class="rf-lp-video">
+      <video class="rf-lp-video-el" controls preload="metadata"
+        poster="${escC(RF_LP_HERO_POSTER)}" playsinline>
+        <source src="${escC(RF_LP_HERO_VIDEO)}" type="video/mp4">
+      </video>
+    </div>`;
+  }
+  return `<div class="rf-lp-video vazio" aria-hidden="true">
+    <div class="rf-lp-video-in">
+      <span class="rf-lp-video-play">▶</span>
+      <span class="rf-lp-video-t">O trailer está no forno</span>
+      <span class="rf-lp-video-s">Aqui vai rodar o vídeo de apresentação do RetroFoot98.</span>
     </div>
+    <span class="rf-lp-video-tag">Em breve</span>
   </div>`;
 }
-function rfLpMaqueteCamaroteHTML(){
-  return `<div class="rf-lpm rf-lpm-cam">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">🎥 Camarote</span>
-      <span class="rf-lv-aovivo">● Ao vivo</span></div>
-    <div class="rf-lpm-placar">
-      <span class="rf-lpm-time">XV Piracicaba</span>
-      <span class="rf-lv-placar"><span>1</span><span class="rf-lv-d">:</span><span>1</span></span>
-      <span class="rf-lpm-time">Cianorte</span>
-    </div>
-    <div class="rf-lpm-pressao">
-      <span class="rf-label-t">Pressão</span>
-      <span class="rf-lpm-bar"><i style="width:62%"></i></span>
-    </div>
-    <div class="rf-lpm-narra"><span class="rf-lpm-min">56'</span>
-      <span>⚽ <b>GOL DO XV!</b> Carlos Miguel empurrou pro fundo.</span></div>
-  </div>`;
+
+/* =====================================================================
+   POR DENTRO DO JOGO — as telas de VERDADE, não maquete
+   ---------------------------------------------------------------------
+   As imagens saem de scripts/capture-home.mjs, que dirige o jogo rodando
+   em localhost e fotografa cada tela na pele atual. Quando a interface
+   mudar, rode o script outra vez em vez de retocar imagem à mão — é por
+   isso que ele existe.
+
+   A TROCA DE ABA NÃO PASSA POR cdraw(). Redesenhar a landing inteira a
+   cada clique jogaria a rolagem de volta para o topo, e o visitante que
+   está no meio da página seria cuspido para fora dela. Aqui só se acende
+   e apaga classe, com o DOM que já está na tela.
+   ===================================================================== */
+const RF_LP_TELAS=[
+  ['formacao','Formação','Escale o time, escolha a tática e veja o campo se montar. É aqui que a semana começa.','img/home/formacao.webp'],
+  ['elenco','Elenco','Vinte e poucos nomes, energia, moral, salário e valor de mercado — tudo numa tela só.','img/home/elenco.webp'],
+  ['ficha','Ficha do jogador','Cada atleta tem características, pontos fortes, fracos e uma cara. Dá pra saber quem decide.','img/home/ficha-jogador.webp'],
+  ['rodada','Rodada ao vivo','Os 10 jogos da divisão rolando ao mesmo tempo, com gol saindo na tela ao lado.','img/home/rodada-ao-vivo.webp'],
+  ['camarote','Modo Camarote','Só o seu jogo, em tela cheia, com narração lance a lance e as estatísticas do confronto.','img/home/camarote.webp'],
+  ['penalti','Pênalti','Pênalti a favor: você escolhe quem bate e pra que canto. E aí a torcida cala a boca.','img/home/penalti.webp'],
+];
+function rfLpTela(k){
+  document.querySelectorAll('[data-tela]').forEach(el=>{
+    el.classList.toggle('on', el.getAttribute('data-tela')===k);
+  });
+  document.querySelectorAll('[data-telafoto]').forEach(el=>{
+    el.classList.toggle('on', el.getAttribute('data-telafoto')===k);
+  });
 }
-function rfLpMaqueteTabelaHTML(){
-  const l=(p,n,j,v,e,d,g,pt,me,zona)=>`<div class="rf-tb-row ${me?'me':''}">
-    <span class="rf-tb-pos"><i class="rf-zona ${zona||''}"></i><b>${p}</b></span>
-    <span class="rf-tb-n">${escC(n)}</span>
-    <span class="rf-tb-x">${j}</span><span class="rf-tb-x">${v}</span>
-    <span class="rf-tb-x">${e}</span><span class="rf-tb-x">${d}</span>
-    <span class="rf-tb-x">${g}</span><span class="rf-tb-p">${pt}</span></div>`;
-  return `<div class="rf-lpm rf-lpm-tabela">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">🏆 Classificação — Série D</span></div>
-    <div class="rf-lpm-body">
-      <div class="rf-label"><span class="rf-label-t">Classificação · Série D</span>
-        <span class="rf-label-r">4º de 64</span></div>
-      <!-- MAQUETE, NÃO CONTROLO. Estas abas e o botão do leilão mais abaixo são
-           o retrato do jogo dentro da página de apresentação: ninguém os pode
-           clicar, porque não há jogo nenhum por trás. Eram <button> de verdade,
-           e quem navegasse a landing pelo teclado batia em quatro paragens que
-           recebiam foco e não faziam nada. Viram <span>, com a aparência
-           intacta e escondidos do leitor de tela. -->
-      <div class="rf-tabs" aria-hidden="true">
-        <span class="rf-tab on">Série D</span>
-        <span class="rf-tab">Copa do Brasil</span>
-        <span class="rf-tab">Libertadores</span>
-      </div>
-      <div class="rf-tb-head"><span></span><span></span><span>J</span><span>V</span>
-        <span>E</span><span>D</span><span>GM:GS</span><span>P</span></div>
-      ${l(1,'Nacional-PR',7,5,1,1,'13:5',16,false,'promo')}
-      ${l(2,'Cascavel',7,4,3,0,'10:4',15,false,'promo')}
-      ${l(3,'Cianorte',7,4,2,1,'11:6',14,false,'promo')}
-      ${l(4,'XV Piracicaba',7,3,2,2,'9:7',11,true,'promo')}
-      ${l(5,'Aimoré',7,3,2,2,'8:8',11)}
-      ${l(6,'Azuriz',7,2,3,2,'7:8',9)}
-      ${l(7,'Rio Branco-PR',7,1,3,3,'5:10',6,false,'drop')}
-      <div class="rf-lpm-legenda">
-        <span><i class="rf-zona promo"></i>acesso</span>
-        <span><i class="rf-zona drop"></i>rebaixamento</span>
-      </div>
+function rfLpTelasHTML(){
+  const abas=RF_LP_TELAS.map(([k,l],i)=>
+    `<button type="button" class="rf-lp-tela-ab ${i===0?'on':''}" data-tela="${k}"
+      onclick="rfLpTela('${k}')">${escC(l)}</button>`).join('');
+  const fotos=RF_LP_TELAS.map(([k,l,d,img],i)=>
+    `<figure class="rf-lp-tela-foto ${i===0?'on':''}" data-telafoto="${k}">
+      <img src="${escC(img)}" alt="${escC(l)} — tela do RetroFoot98" loading="lazy" width="1600" height="1000">
+      <figcaption>${escC(d)}</figcaption>
+    </figure>`).join('');
+  return `<section class="rf-lp-telas" id="rf-lp-telas">
+    <div class="rf-lp-telas-in">
+      <span class="rf-lp-eyebrow">Por dentro do jogo</span>
+      <h2 class="rf-lp-h2">Isto aqui não é maquete. É o jogo rodando.</h2>
+      <p class="rf-lp-p">Nenhuma dessas telas foi desenhada pra propaganda: são fotos do RetroFoot98 aberto, no meio de uma temporada da Série D.</p>
+      <div class="rf-lp-tela-abas">${abas}</div>
+      <div class="rf-lp-tela-palco">${fotos}</div>
     </div>
-  </div>`;
+  </section>`;
 }
-function rfLpMaqueteChatHTML(){
-  const m=(q,t)=>`<div class="cl-chat-msg"><span class="cl-chat-who">${escC(q)}:</span>
-    <span class="cl-chat-txt">${escC(t)}</span></div>`;
-  return `<div class="rf-lpm rf-lpm-chat">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">💬 Resenha — sala do canal</span></div>
-    <div class="rf-lpm-body">
-      <div class="rf-chat-msgs">
-        ${m('lucão','contratei o camisa 10 no leilão 🔨')}
-        ${m('tiu','tomou 4 do meu time reserva kkk')}
-        ${m('marreco','sobe logo essa Série D, treinador')}
-      </div>
-      <div class="rf-chat-in">
-        <span class="rf-chat-input rf-lpm-ph">Manda a braba na resenha</span>
-        <span class="rf-chat-send">➤</span>
-      </div>
-      <div class="rf-lpm-sala">
-        <span>🟢 18 de 20 treinadores na sala</span><div class="rf-sp"></div>
-        <span class="rf-label-r">Sala #RF-7742</span>
-      </div>
+
+/* =====================================================================
+   MOMENTOS — os vídeos que o jogo solta sozinho
+   ---------------------------------------------------------------------
+   Os cinco arquivos já existem em public/video/ e o jogo os usa nos modais
+   de convite, título, artilharia e crise. O cartaz de cada um é um quadro
+   extraído do próprio vídeo (ffmpeg), então nunca vai divergir do filme.
+
+   O play NÃO troca a página: injeta o <video> dentro do próprio cartão e
+   toca ali. Pelo mesmo motivo das abas acima — quem está no meio da
+   landing continua no meio dela.
+   ===================================================================== */
+const RF_LP_VIDEOS=[
+  ['convite-jantar','Convite pro jantar','O presidente chama pra jantar. Pode ser elogio, pode ser cilada.'],
+  ['convite-assinatura','Outro clube te quer','Chegou proposta de fora. Fica no projeto ou pula pra grana?'],
+  ['momento-campeao','Campeão','Taça na mão, confete caindo. O motivo de tudo isso.'],
+  ['momento-artilheiro','Artilheiro','O seu camisa 9 termina a temporada como o cara que mais fez gol.'],
+  ['momento-crise','Time em crise','Sequência ruim, torcida na bronca e a diretoria de olho na sua cadeira.'],
+];
+function rfLpTocar(k, botao){
+  const cx=botao&&botao.closest?botao.closest('.rf-lp-mom'):null;
+  const palco=cx?cx.querySelector('.rf-lp-mom-media'):null;
+  if(!palco) return;
+  palco.innerHTML=`<video class="rf-lp-mom-video" controls autoplay playsinline
+    preload="metadata" poster="img/home/posters/${k}.webp">
+    <source src="video/${k}.mp4" type="video/mp4">
+  </video>`;
+}
+function rfLpMomentosHTML(){
+  const cartoes=RF_LP_VIDEOS.map(([k,t,d])=>`<div class="rf-lp-mom">
+    <div class="rf-lp-mom-media">
+      <img src="img/home/posters/${k}.webp" alt="${escC(t)}" loading="lazy" width="720" height="405">
+      <button type="button" class="rf-lp-mom-play" onclick="rfLpTocar('${k}',this)"
+        aria-label="Assistir: ${escC(t)}">▶</button>
     </div>
-  </div>`;
-}
-function rfLpMaqueteLeilaoHTML(){
-  const l=(n,p,i,v)=>`<div class="rf-lpm-lote">
-    <span class="rf-lpm-ln">${escC(n)}</span>
-    <span class="rf-lpm-lp">${escC(p)} · ${i}</span>
-    <span class="rf-lpm-lv">${escC(v)}</span></div>`;
-  return `<div class="rf-lpm rf-lpm-leilao">
-    <div class="rf-lpm-hd"><span class="rf-lpm-t">🔨 Leilão de jogadores</span></div>
-    <div class="rf-lpm-body">
-      ${l('Kauã Patrick','MEI',22,'R$ 240k')}
-      ${l('Fidel Rocha','ATA',24,'R$ 230k')}
-      ${l('Bruno Limão','ZAG',26,'R$ 120k')}
-      <span class="rf-lp-cta2" aria-hidden="true">🔨 Cobrir lance</span>
+    <span class="rf-lp-mom-t">${escC(t)}</span>
+    <span class="rf-lp-mom-d">${escC(d)}</span>
+  </div>`).join('');
+  return `<section class="rf-lp-momentos" id="rf-lp-momentos">
+    <div class="rf-lp-momentos-in">
+      <span class="rf-lp-eyebrow">Momentos</span>
+      <h2 class="rf-lp-h2">O jogo te procura. E às vezes é pra dar notícia ruim.</h2>
+      <p class="rf-lp-p">Não é só tabela e planilha: o presidente liga, o rival assedia, a torcida comemora e a diretoria cobra. Dá play e veja o que aparece na sua tela.</p>
+      <div class="rf-lp-mom-grade">${cartoes}</div>
     </div>
-  </div>`;
+  </section>`;
 }
+
+/* =====================================================================
+   OS PLANOS
+   ---------------------------------------------------------------------
+   Fonte única dos preços e do que cada plano dá. Mexeu aqui, mudou na
+   página — não há segunda lista de preço espalhada pela landing, e é
+   assim que tem de continuar: preço em dois sítios é preço errado num
+   deles mais cedo ou mais tarde.
+
+   O Embaixador leva o MESMO dourado do botão Pro do cabeçalho (a coroa e o
+   degradê de .rf-lp-conta.pro). Não é enfeite: quem paga o plano de cima
+   já vê essa cor no próprio nome depois de entrar, e a página promete
+   exatamente o que o jogo entrega.
+   ===================================================================== */
+const RF_PLANOS=[
+  { key:'peladeiro', nome:'Peladeiro', preco:'R$ 0', ciclo:'pra sempre',
+    resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
+    itens:['Até 3 saves no modo solo','Joga o Modo Resenha nas salas dos outros','Séries A, B, C e D com elencos reais'],
+    falta:['Não abre sala como anfitrião'],
+    cta:'Começar de graça' },
+
+  { key:'resenha', nome:'Resenha', preco:'R$ 19,90', ciclo:'por mês',
+    anual:'ou R$ 199 por ano — dá R$ 16,58/mês',
+    resumo:'Pra quem joga direto com a turma e quer o nome no ranking.',
+    itens:['Até 10 saves no modo solo','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
+    falta:['Não abre sala como anfitrião'],
+    cta:'Assinar o Resenha' },
+
+  { key:'embaixador', nome:'Embaixador', preco:'R$ 49,90', ciclo:'por mês',
+    anual:'ou R$ 399 por ano — dá R$ 33,25/mês',
+    destaque:true, selo:'O mais completo',
+    resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
+    itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
+           'Saves ilimitados no solo e no Resenha',
+           'Seu jogador na base de dados oficial, com avatar na sua cara',
+           'Seu nome no ranking oficial de treinadores',
+           'Selo de Embaixador no seu perfil',
+           'Código pra passar aos seus seguidores — e monetizar com ele'],
+    cta:'Quero ser Embaixador' },
+];
+/* Na fase de lista de espera nenhum plano tem checkout: o botão leva à
+   lista, com o plano escolhido carimbado na origem para saber DEPOIS quem
+   queria pagar o quê. Prometer "assinar" sem ter onde cobrar é botão morto. */
+function rfPlanoCta(key){
+  const nome=(RF_PLANOS.find(p=>p.key===key)||{}).nome||key;
+  if(typeof clWaitlistOpen==='function') return clWaitlistOpen('landing · plano '+nome);
+  rfLpIr('lista');
+}
+function rfLpPlanosHTML(){
+  const cartoes=RF_PLANOS.map(p=>{
+    const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
+    const falta=(p.falta||[]).map(i=>`<li class="nao"><span class="rf-lp-tick">—</span>${escC(i)}</li>`).join('');
+    return `<div class="rf-lp-plano ${p.destaque?'ouro':''}">
+      ${p.selo?`<span class="rf-lp-plano-selo">👑 ${escC(p.selo)}</span>`:''}
+      <span class="rf-lp-plano-n">${escC(p.nome)}</span>
+      <span class="rf-lp-plano-r">${escC(p.resumo)}</span>
+      <div class="rf-lp-plano-preco">
+        <span class="rf-lp-plano-v">${escC(p.preco)}</span>
+        <span class="rf-lp-plano-c">${escC(p.ciclo)}</span>
+      </div>
+      <span class="rf-lp-plano-a">${p.anual?escC(p.anual):'sem cartão, sem pegadinha'}</span>
+      <ul class="rf-lp-plano-l">${itens}${falta}</ul>
+      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}')">${escC(p.cta)}</button>
+    </div>`;
+  }).join('');
+  return `<section class="rf-lp-planos" id="rf-lp-planos">
+    <div class="rf-lp-planos-in">
+      <span class="rf-lp-eyebrow">Planos</span>
+      <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
+      <p class="rf-lp-p">Dá pra jogar de graça pra sempre. Os planos pagos existem pra quem quer abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
+      <div class="rf-lp-plano-grade">${cartoes}</div>
+      <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus.</span>
+    </div>
+  </section>`;
+}
+
+
+/* =====================================================================
+   MODO RESENHA — a seção grande
+   ---------------------------------------------------------------------
+   O Resenha era duas frases ao lado de um chat desenhado à mão. É o motivo
+   pelo qual alguém paga o plano de cima, então ganhou seção própria: a
+   cerimônia do sorteio com a turma inteira (a foto que mais explica o modo
+   em um segundo), a sala sendo montada e o chat de verdade.
+
+   OITO, NÃO VINTE. A sala do jogo comporta 20 assentos, mas o plano
+   Embaixador dá salas de 3 a 8 — e a página tem de prometer o que o plano
+   entrega. A foto do sorteio é tirada com 8 treinadores pelo mesmo motivo
+   (ver RF_TURMA em scripts/capture-home.mjs).
+   ===================================================================== */
+function rfLpResenhaHTML(){
+  const passo=(n,t,d)=>`<div class="rf-lp-passo">
+    <span class="rf-lp-passo-n">${n}</span>
+    <span class="rf-lp-passo-t">${escC(t)}</span>
+    <span class="rf-lp-passo-d">${escC(d)}</span></div>`;
+  return `<section class="rf-lp-resenha" id="rf-lp-resenha">
+    <div class="rf-lp-resenha-in">
+      <span class="rf-lp-eyebrow">Modo Resenha</span>
+      <h2 class="rf-lp-h2">A liga é sua. A zoeira é do grupo.</h2>
+      <p class="rf-lp-p">Você abre a sala, manda o link no grupo e cada um pega um clube no sorteio — ninguém escolhe, ninguém reclama. Daí em diante todo mundo joga a mesma semana, na mesma tabela, com o mesmo mercado.</p>
+
+      ${rfLpFotoHTML('img/home/sorteio-resenha.webp','Cerimônia do sorteio com oito treinadores e seus clubes','grande')}
+
+      <div class="rf-lp-passos">
+        ${passo(1,'Abre a sala','Dá um nome e pronto. Salas de 3 a 8 treinadores.')}
+        ${passo(2,'Manda o link','No grupo do WhatsApp, por e-mail ou pelo nome de quem já tem conta.')}
+        ${passo(3,'Sorteia os clubes','A cerimônia roda pra todo mundo ao mesmo tempo. Choro é grátis.')}
+        ${passo(4,'Joga a semana','Rodada ao vivo, tabela única e o chat da sala rolando junto.')}
+      </div>
+
+      <div class="rf-lp-resenha-par">
+        <figure class="rf-lp-foto">
+          <img src="img/home/sala-resenha.webp" alt="Sala do Modo Resenha com oito treinadores dentro"
+            loading="lazy" width="1600" height="1000">
+          <figcaption>A sala enchendo: link, convite por WhatsApp e quem já está dentro.</figcaption>
+        </figure>
+        <figure class="rf-lp-foto retrato">
+          <img src="img/home/chat-resenha.webp" alt="Chat da sala do Modo Resenha"
+            loading="lazy" width="600" height="682">
+          <figcaption>O chat da sala fica no canto e cala a boca sozinho durante a partida.</figcaption>
+        </figure>
+      </div>
+
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
+        👑 Quero abrir a minha sala</button>
+      <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — <b>abrir a sua</b> é do Embaixador.</span>
+    </div>
+  </section>`;
+}
+
+/* =====================================================================
+   SEJA UM JOGADOR OFICIAL — o benefício que só o Embaixador tem
+   ---------------------------------------------------------------------
+   O "antes" é uma MOLDURA VAZIA de propósito, e não um retrato genérico
+   tirado de banco de imagens: a graça é a pessoa se ver ali. Quando houver
+   a foto de exemplo (autorizada por quem aparece nela), é trocar
+   RF_LP_ALBUM_ANTES pelo caminho dela e a moldura vira retrato. Enquanto
+   não houver, a moldura assume ser moldura em vez de fingir.
+   ===================================================================== */
+const RF_LP_ALBUM_ANTES = null;   // ex.: 'img/home/album-crianca.webp'
+
+function rfLpJogadorOficialHTML(){
+  const antes = RF_LP_ALBUM_ANTES
+    ? `<img src="${escC(RF_LP_ALBUM_ANTES)}" alt="Foto de infância" loading="lazy">`
+    : `<span class="rf-lp-album-vazio">
+         <span class="rf-lp-album-ic" aria-hidden="true">📷</span>
+         <span class="rf-lp-album-t">a sua foto</span>
+         <span class="rf-lp-album-s">aquela de criança, com a camisa do time</span>
+       </span>`;
+  return `<section class="rf-lp-oficial" id="rf-lp-oficial">
+    <div class="rf-lp-oficial-in">
+      <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
+      <h2 class="rf-lp-h2">Você não virou jogador. Mas ainda dá tempo.</h2>
+      <p class="rf-lp-p">O Embaixador entra na base de dados oficial do RetroFoot98 como jogador — nome seu, rosto seu, ficha sua. Ele nasce nos elencos, é escalado, leva cartão, faz gol e aparece na artilharia dos outros treinadores. Enquanto você jogar, ele joga.</p>
+
+      <div class="rf-lp-album">
+        <figure class="rf-lp-album-q antes">
+          <div class="rf-lp-album-media">${antes}</div>
+          <figcaption>Você, quando ainda ia ser jogador</figcaption>
+        </figure>
+        <span class="rf-lp-album-seta" aria-hidden="true">→</span>
+        <figure class="rf-lp-album-q depois">
+          <div class="rf-lp-album-media">
+            <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot98"
+              loading="lazy" width="400" height="828">
+          </div>
+          <figcaption>Você, na ficha, com força 11 e a torcida no seu nome</figcaption>
+        </figure>
+      </div>
+
+      <ul class="rf-lp-oficial-l">
+        <li><span class="rf-lp-tick">✓</span>Seu nome e o seu rosto na base oficial, para todos os treinadores</li>
+        <li><span class="rf-lp-tick">✓</span>Ficha completa: características, ponto forte, ponto fraco e valor de mercado</li>
+        <li><span class="rf-lp-tick">✓</span>Pode ser comprado, vendido e disputado no leilão como qualquer outro</li>
+        <li><span class="rf-lp-tick">✓</span>Fica no jogo enquanto você for Embaixador</li>
+      </ul>
+
+      ${rfLpFotoHTML('img/home/ficha-jogador.webp','Ficha do jogador dentro do RetroFoot98','grande')}
+
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
+        👑 Quero o meu jogador no jogo</button>
+    </div>
+  </section>`;
+}
+
+/* =====================================================================
+   O EMBAIXADOR PODE GANHAR DINHEIRO COM ISSO
+   ---------------------------------------------------------------------
+   O plano dá um CÓDIGO para o Embaixador passar aos seguidores. Esta seção
+   é sobre isso e só sobre isso — sem número de comissão, porque nenhum
+   número foi definido. Percentagem inventada numa página de vendas é
+   promessa que alguém vai cobrar depois.
+   ===================================================================== */
+function rfLpGranaHTML(){
+  const quem=(ic,t,d)=>`<div class="rf-lp-quem">
+    <span class="rf-lp-quem-ic" aria-hidden="true">${ic}</span>
+    <span class="rf-lp-quem-t">${escC(t)}</span>
+    <span class="rf-lp-quem-d">${escC(d)}</span></div>`;
+  return `<section class="rf-lp-grana" id="rf-lp-grana">
+    <div class="rf-lp-grana-in">
+      <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
+      <h2 class="rf-lp-h2">Monte a sua resenha. E ganhe com ela.</h2>
+      <p class="rf-lp-p">Todo Embaixador recebe um código próprio pra passar pra galera dele. Quem entrar pelo seu código conta como seu — e isso vira dinheiro no seu bolso, não só audiência.</p>
+
+      <div class="rf-lp-quem-grade">
+        ${quem('🎥','Criador de conteúdo','Transmite a semana ao vivo no Modo Camarote e joga a liga com a audiência.')}
+        ${quem('📣','Influencer','O código vai na bio. Quem entrar por ele entra na sua liga — e conta pra você.')}
+        ${quem('🍻','O cara que junta a galera','Não precisa ter canal. Precisa ter gente querendo jogar com você.')}
+      </div>
+
+      <div class="rf-lp-grana-como">
+        <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">1</span>
+          <span>Você vira Embaixador e recebe o seu código.</span></div>
+        <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">2</span>
+          <span>Passa o código pra sua galera, pro canal, pro grupo.</span></div>
+        <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">3</span>
+          <span>Abre a sala, joga com eles e acompanha quem entrou pelo seu código.</span></div>
+      </div>
+
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
+        👑 Quero o meu código</button>
+      <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada.</span>
+    </div>
+  </section>`;
+}
+
+/* =====================================================================
+   A SEÇÃO DOS EMBAIXADORES — os cartões
+   ---------------------------------------------------------------------
+   Antes eram três cartões genéricos (acesso antecipado, ligas fechadas,
+   "prêmios em dinheiro, produtos e patrocínio"). O último não estava em
+   lado nenhum do plano — página de vendas não pode inventar contrapartida,
+   porque alguém cobra depois. Agora cada cartão é UM item do plano
+   Embaixador, palavra por palavra do que RF_PLANOS promete.
+   ===================================================================== */
+const RF_LP_EMBAIXADOR=[
+  ['👑','Você é o anfitrião','Abre salas de 3 a 8 treinadores e chama quem quiser. Nos outros planos você só entra na sala dos outros.'],
+  ['♾️','Saves ilimitados','Quantas carreiras você quiser, no solo e no Resenha. Sem ter de apagar uma pra começar outra.'],
+  ['🧍','Seu jogador no jogo','Nome seu, rosto seu, ficha sua — dentro da base oficial, para todo mundo escalar.'],
+  ['🏅','Selo de Embaixador','No seu perfil e ao lado do seu nome. Quem joga com você sabe quem você é.'],
+  ['📊','Ranking oficial','Sua campanha entra no ranking de treinadores do RetroFoot98.'],
+  ['💰','Código pra monetizar','Um código só seu pra passar aos seus seguidores — e ganhar com quem entrar por ele.'],
+];
+/* o preço sai de RF_PLANOS — digitado outra vez aqui, um dia os dois discordam */
+function rfPlanoPreco(key){
+  const p=RF_PLANOS.find(x=>x.key===key); if(!p) return '';
+  return p.preco+'/'+(p.ciclo||'').replace('por ','');
+}
+function rfLpLigasHTML(){
+  const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d])=>`<div class="rf-lp-embc">
+    <span class="rf-lp-embc-ic" aria-hidden="true">${ic}</span>
+    <span class="rf-lp-embc-t">${escC(t)}</span>
+    <span class="rf-lp-embc-d">${escC(d)}</span>
+  </div>`).join('');
+  return `<section class="rf-lp-ligas" id="rf-lp-ligas">
+    <div class="rf-lp-ligas-in">
+      <span class="rf-lp-selo-emb">👑 Plano Embaixador</span>
+      <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
+      <p class="rf-lp-p">Seis coisas que só existem no plano de cima — e nenhuma delas é enfeite.</p>
+      <div class="rf-lp-embc-grade">${cartoes}</div>
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
+        👑 Ser Embaixador — ${escC(rfPlanoPreco('embaixador'))}</button>
+    </div>
+  </section>`;
+}
+
 
 /* ---- a página ---- */
 function rfLandingHTML(){
@@ -277,16 +574,15 @@ function rfLandingHTML(){
       <div class="rf-lp-hero-txt">
         <span class="rf-lp-pill">● 100% online — nada pra instalar</span>
         <h1 class="rf-lp-h1">O clássico da sua infância,<br>agora online e com os amigos.</h1>
-        <p class="rf-lp-p">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com até 20 treinadores na mesma liga.</p>
+        <p class="rf-lp-p">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com a turma toda na mesma liga.</p>
         <div class="rf-lp-ctas">
-          <button type="button" class="rf-wiz-cta" onclick="rfLpIr('lista')">👑 Entrar na lista de espera</button>
-          <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar agora</button>
+          <button type="button" class="rf-wiz-cta" onclick="rfLpIr('planos')">👑 Ver os planos</button>
+          <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar de graça</button>
         </div>
-        <span class="rf-lp-nota">Primeira versão liberada para apenas <b>500 treinadores</b>.</span>
+        <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>. Sem instalar nada, sem cartão.</span>
       </div>
       <div class="rf-lp-hero-art">
-        ${rfLpMaqueteAoVivoHTML()}
-        ${rfLpMaqueteCamaroteHTML()}
+        ${rfLpHeroVideoHTML()}
       </div>
     </header>
 
@@ -295,41 +591,30 @@ function rfLandingHTML(){
         prosa:'Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
         itens:['Séries A, B, C e D com elencos reais','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
         cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
-      ${rfLpMaqueteTabelaHTML()}
+      ${rfLpFotoHTML('img/home/classificacao.webp','Classificação da Série D dentro do RetroFoot98')}
     </section>
 
-    <section class="rf-lp-sec invertida" id="rf-lp-resenha">
-      ${rfLpMaqueteChatHTML()}
-      ${rfLpSecaoHTML({eyebrow:'Modo Resenha', titulo:'Um campeonato com a sua turma, na mesma semana.',
-        prosa:'Monte a liga do grupo do trabalho, da turma da faculdade ou da comunidade inteira. Todo mundo joga a mesma semana ao vivo, com tabela, mercado e a zoeira rolando junto.',
-        itens:['Até 20 treinadores na mesma liga','Semana ao vivo para todo mundo ao mesmo tempo','Chat da sala durante os jogos'],
-        cta:rfIcone('chat',16)+' Criar a minha sala', ctaOn:rfLpEntrarOn("clGoModo('resenha')")})}
-    </section>
+    ${rfLpTelasHTML()}
+
+    ${rfLpResenhaHTML()}
 
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
         prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria e sócios'],
         cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
-      ${rfLpMaqueteLeilaoHTML()}
+      ${rfLpFotoHTML('img/home/leilao.webp','Leilão de jogadores dentro do RetroFoot98')}
     </section>
 
-    <section class="rf-lp-ligas" id="rf-lp-ligas">
-      <span class="rf-lp-eyebrow">Ligas Oficiais RetroFoot</span>
-      <h2 class="rf-lp-h2">Seja um dos Embaixadores RetroFoot</h2>
-      <p class="rf-lp-p">Teste novos recursos antes de todo mundo e concorra a prêmios reais. Os treinadores mais bem colocados no ranking recebem convite para as Ligas Oficiais — competições fechadas, disputadas só entre embaixadores.</p>
-      <div class="rf-lp-tres">
-        <div class="rf-card"><span class="rf-lp-ic">🎟</span>
-          <span class="rf-lp-ct">Acesso antecipado</span>
-          <span class="rf-lp-cd">Recursos novos chegam primeiro para quem está no topo do ranking.</span></div>
-        <div class="rf-card"><span class="rf-lp-ic">🏅</span>
-          <span class="rf-lp-ct">Ligas fechadas</span>
-          <span class="rf-lp-cd">Competições só entre embaixadores, com tabela e premiação própria.</span></div>
-        <div class="rf-card"><span class="rf-lp-ic">💰</span>
-          <span class="rf-lp-ct">Premiação real</span>
-          <span class="rf-lp-cd">As competições valem prêmios em dinheiro, produtos e patrocínio da temporada.</span></div>
-      </div>
-    </section>
+    ${rfLpMomentosHTML()}
+
+    ${rfLpJogadorOficialHTML()}
+
+    ${rfLpGranaHTML()}
+
+    ${rfLpPlanosHTML()}
+
+    ${rfLpLigasHTML()}
 
     ${rfLpListaHTML()}
 

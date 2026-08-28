@@ -2759,30 +2759,10 @@
 .rf-lpm-hd{display:flex;align-items:center;gap:10px;padding:10px 14px;color:#fff;
   background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%)}
 .rf-lpm-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);white-space:nowrap}
-.rf-lpm-s{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-soft)}
 .rf-lpm-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-.rf-lpm-linha{display:grid;grid-template-columns:56px minmax(0,1fr) 70px minmax(0,1fr) 34px;
-  gap:0 10px;align-items:center;height:40px}
-.rf-lpm-pub{display:flex;align-items:center;justify-content:flex-end;gap:4px;
-  font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-muted)}
-.rf-lpm-casa{text-align:right;font-size:var(--fs-caption);font-weight:var(--fw-semibold);
-  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-lpm-fora{font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-1);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-lpm-min{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-muted);text-align:right}
-.rf-lpm .rf-lv-placar{font-size:15px;padding:4px 8px;gap:6px}
-/* as duas maquetes do hero se sobrepõem, como na tela */
-.rf-lpm-live{max-width:460px}
-.rf-lpm-cam{max-width:400px;margin-top:-56px;margin-right:-24px;position:relative;z-index:2}
-.rf-lpm-cam .rf-lpm-hd{background:linear-gradient(100deg,#0b1a2e,var(--club-primary-deep))}
-.rf-lpm-placar{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px}
-.rf-lpm-time{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap}
-.rf-lpm-pressao{display:flex;align-items:center;gap:10px;padding:0 14px 10px}
-.rf-lpm-bar{flex:1;height:var(--bar-h);border-radius:var(--r-pill);background:var(--surface-sunken);
-  overflow:hidden;display:block}
-.rf-lpm-bar>i{display:block;height:100%;background:var(--club-primary);border-radius:var(--r-pill)}
-.rf-lpm-narra{display:flex;align-items:baseline;gap:8px;padding:10px 14px;background:var(--surface-sunken);
-  font-size:var(--fs-caption);color:var(--text-2)}
+/* As regras da "semana ao vivo" e do "camarote" desenhados a mão saíram com as
+   duas maquetes do hero (ver rf26-landing.js): o hero agora leva o vídeo e as
+   telas de verdade estão na seção "Por dentro do jogo". */
 .rf-lpm-legenda{display:flex;gap:16px;padding-top:6px;font-size:var(--fs-label);color:var(--text-4)}
 .rf-lpm-legenda span{display:flex;align-items:center;gap:6px}
 .rf-lpm-ph{color:var(--text-faint);display:flex;align-items:center}
@@ -2794,15 +2774,9 @@
 .rf-lpm-lv{grid-row:1/3;align-self:center;font-family:var(--font-mono);font-size:var(--fs-body-sm);
   font-weight:var(--fw-semibold);color:var(--club-primary);text-align:right}
 
-/* Ligas Oficiais */
-.rf-lp-ligas{max-width:1180px;margin:0 auto;padding:48px 28px;display:flex;flex-direction:column;gap:14px;
-  align-items:center;text-align:center}
-.rf-lp-ligas .rf-lp-p{text-align:center;max-width:72ch}
-.rf-lp-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:100%;margin-top:10px}
-.rf-lp-tres .rf-card{align-items:center;text-align:center;gap:8px}
-.rf-lp-ic{font-size:26px;line-height:1}
-.rf-lp-ct{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
-.rf-lp-cd{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+/* As Ligas Oficiais eram três cartões genéricos aqui (.rf-lp-tres/.rf-lp-ic/
+   .rf-lp-ct/.rf-lp-cd). A seção virou os seis benefícios reais do plano
+   Embaixador — o desenho novo está mais abaixo, em .rf-lp-embc. */
 
 /* lista de espera */
 .rf-lp-lista{padding:48px 28px}
@@ -2832,21 +2806,319 @@
   .rf-lp-hero,.rf-lp-sec{grid-template-columns:minmax(0,1fr);gap:28px}
   .rf-lp-sec.invertida .rf-lp-sec-txt{order:0}
   .rf-lp-hero-art{align-items:stretch}
-  .rf-lpm-cam{margin:-32px 0 0;max-width:100%}
-  .rf-lpm-live{max-width:100%}
-  .rf-lp-tres{grid-template-columns:minmax(0,1fr)}
   .rf-lp-fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:760px){
   .rf-lp-nav{padding:10px 14px;gap:8px}
   .rf-lp-links{display:none}
-  .rf-lp-hero,.rf-lp-sec,.rf-lp-ligas,.rf-lp-lista{padding:28px 16px}
+  .rf-lp-hero,.rf-lp-sec,.rf-lp-lista{padding:28px 16px}
   .rf-lp-h1{font-size:30px}
   .rf-lp-h2{font-size:24px}
   .rf-lp-ctas .rf-wiz-cta,.rf-lp-ctas .rf-wiz-b2{flex:1 1 100%}
   .rf-lp-fgrid{grid-template-columns:minmax(0,1fr);padding:28px 16px 16px}
   .rf-lp-fbase{flex-wrap:wrap;padding:14px 16px 24px}
   .rf-lp-lista-in{padding:22px 16px}
+}
+
+
+/* =====================================================================
+   HOME 2026 — VÍDEO DO HERO, TELAS REAIS, MOMENTOS E PLANOS
+   ---------------------------------------------------------------------
+   Tudo aqui vive dentro de .rf-lp, onde --club-* já foi redefinido para as
+   cores da MARCA (ver o bloco no topo da landing). Por isso var(--club-*)
+   nestas regras é azul/amarelo do RetroFoot, e não a cor do clube sorteado.
+   ===================================================================== */
+
+/* ----- o lugar do vídeo de apresentação, no hero ----- */
+.rf-lp-video{width:100%;max-width:560px;aspect-ratio:16/9;border-radius:var(--r-card);
+  overflow:hidden;position:relative;background:var(--ad-dark);box-shadow:var(--shadow-shell);
+  border:var(--border-hairline)}
+.rf-lp-video-el{width:100%;height:100%;object-fit:cover;display:block}
+/* vazio = ainda não há filme. O quadro tem de LER como espaço reservado, não
+   como vídeo quebrado: fundo escuro da marca, play apagado e o recado escrito. */
+.rf-lp-video.vazio{display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,#0b1a2e,var(--brand-primary-deep) 70%)}
+.rf-lp-video-in{display:flex;flex-direction:column;align-items:center;gap:8px;
+  text-align:center;padding:24px;max-width:34ch}
+.rf-lp-video-play{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:22px;color:var(--brand-primary);
+  background:var(--brand-secondary);box-shadow:0 6px 22px -8px rgba(0,0,0,.6);
+  padding-left:4px;box-sizing:border-box}
+.rf-lp-video-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:#fff}
+.rf-lp-video-s{font-size:var(--fs-caption);color:var(--text-on-dark-soft);line-height:1.5}
+.rf-lp-video-tag{position:absolute;top:12px;right:12px;font-family:var(--font-mono);
+  font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:#3a2a00;background:var(--brand-secondary);
+  padding:4px 10px;border-radius:var(--r-pill)}
+
+/* ----- por dentro do jogo: abas + palco das fotos ----- */
+.rf-lp-telas{background:var(--surface-card);border-top:1px solid var(--line-1);
+  border-bottom:1px solid var(--line-1);padding:56px 28px}
+.rf-lp-telas-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-telas-in .rf-lp-p{text-align:center;max-width:66ch}
+.rf-lp-tela-abas{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}
+.rf-lp-tela-ab{height:38px;padding:0 16px;border:var(--border-control);border-radius:var(--r-pill);
+  background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
+  font-weight:var(--fw-semibold);color:var(--text-3);cursor:pointer;white-space:nowrap;
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.rf-lp-tela-ab:hover{background:var(--surface-sunken);color:var(--text-1)}
+.rf-lp-tela-ab.on{background:var(--club-primary);border-color:var(--club-primary);
+  color:var(--club-on-primary)}
+/* O PALCO NÃO PODE PULAR DE ALTURA. As seis fotos têm a mesma proporção, e a
+   que está fora de cena continua ocupando a grade (grid-area comum) em vez de
+   sair do fluxo — assim a página não dá um solavanco a cada troca de aba. */
+.rf-lp-tela-palco{width:100%;display:grid;margin-top:6px}
+.rf-lp-tela-foto{grid-area:1/1;margin:0;display:flex;flex-direction:column;gap:10px;
+  opacity:0;visibility:hidden;transition:opacity var(--dur-fast) var(--ease)}
+.rf-lp-tela-foto.on{opacity:1;visibility:visible}
+.rf-lp-tela-foto img{width:100%;height:auto;display:block;border-radius:var(--r-card);
+  border:var(--border-hairline);box-shadow:var(--shadow-shell);background:var(--surface-sunken)}
+.rf-lp-tela-foto figcaption{font-size:var(--fs-body-sm);color:var(--text-3);line-height:1.5}
+
+/* ----- momentos: os vídeos do jogo ----- */
+.rf-lp-momentos{padding:56px 28px}
+.rf-lp-momentos-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-momentos-in .rf-lp-p{text-align:center;max-width:70ch}
+/* FLEX, NÃO GRID, POR CAUSA DA ÚLTIMA FILA. São cinco vídeos em filas de três:
+   os dois que sobram têm de ficar CENTRADOS e do MESMO tamanho dos outros. Com
+   grid a solução seria empurrar as células com margem — e a margem encolhe o
+   cartão, que foi o que aconteceu. O flex-basis mantém a largura da fila cheia
+   e o justify-content centra o resto. */
+.rf-lp-mom-grade{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;
+  width:100%;margin-top:12px}
+.rf-lp-mom{flex:0 1 calc((100% - 32px)/3);display:flex;flex-direction:column;gap:8px;
+  text-align:left;min-width:0}
+.rf-lp-mom-media{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--r-card);
+  overflow:hidden;background:var(--ad-dark);border:var(--border-hairline)}
+.rf-lp-mom-media img,.rf-lp-mom-video{width:100%;height:100%;object-fit:cover;display:block}
+.rf-lp-mom-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding-left:3px;
+  font-size:18px;color:var(--brand-primary);background:var(--brand-secondary);
+  box-shadow:0 6px 22px -8px rgba(0,0,0,.7);transition:transform var(--dur-fast) var(--ease)}
+.rf-lp-mom-play:hover{transform:translate(-50%,-50%) scale(1.08)}
+.rf-lp-mom-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-lp-mom-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+
+/* ----- planos ----- */
+.rf-lp-planos{background:var(--surface-card);border-top:1px solid var(--line-1);
+  border-bottom:1px solid var(--line-1);padding:56px 28px}
+.rf-lp-planos-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-planos-in .rf-lp-p{text-align:center;max-width:68ch}
+.rf-lp-plano-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+  width:100%;margin-top:14px;align-items:stretch}
+.rf-lp-plano{display:flex;flex-direction:column;gap:8px;text-align:left;position:relative;
+  padding:26px 22px;border:var(--border-hairline);border-radius:var(--r-shell);
+  background:var(--surface-card);box-shadow:var(--shadow-shell);min-width:0}
+/* ===== O EMBAIXADOR LEVA O DOURADO DO BOTÃO PRO =====
+   Mesmo degradê e mesma coroa de .rf-lp-conta.pro, lá no cabeçalho. É a mesma
+   promessa vista duas vezes: aqui, antes de pagar; lá, no próprio nome depois
+   de pagar. Se o dourado mudar num sítio, tem de mudar no outro. */
+.rf-lp-plano.ouro{border-color:#C8901A;box-shadow:0 14px 40px -20px rgba(200,144,26,.85);
+  background:linear-gradient(180deg,#fffaf0,var(--surface-card) 180px)}
+.rf-lp-plano.ouro .rf-lp-plano-n{color:#8a6210}
+.rf-lp-plano-selo{position:absolute;top:-13px;left:22px;display:flex;align-items:center;gap:6px;
+  height:26px;padding:0 12px;border-radius:var(--r-pill);
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  color:#3a2a00;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  box-shadow:0 2px 10px -4px rgba(200,144,26,.7)}
+.rf-lp-plano-n{font-size:22px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight)}
+.rf-lp-plano-r{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal);
+  min-height:2.8em}
+.rf-lp-plano-preco{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.rf-lp-plano-v{font-size:34px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight);line-height:1}
+.rf-lp-plano-c{font-size:var(--fs-body-sm);color:var(--text-4)}
+.rf-lp-plano-a{font-size:var(--fs-caption);color:var(--text-4);min-height:1.6em}
+.rf-lp-plano-l{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;
+  gap:9px;flex:1}
+.rf-lp-plano-l li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);
+  color:var(--text-2);line-height:var(--lh-normal)}
+.rf-lp-plano-l li.nao{color:var(--text-4)}
+.rf-lp-tick{flex:0 0 auto;width:16px;text-align:center;font-size:12px;
+  color:var(--club-primary);line-height:1.5}
+.rf-lp-plano-l li.nao .rf-lp-tick{color:var(--text-faint)}
+.rf-lp-plano.ouro .rf-lp-tick{color:#C8901A}
+.rf-lp-plano-bt{margin-top:16px;height:46px;padding:0 18px;border:var(--border-control);
+  border-radius:var(--r-control);background:var(--surface-card);font-family:var(--font-sans);
+  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--club-primary);
+  cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+.rf-lp-plano-bt:hover{background:var(--surface-sunken)}
+.rf-lp-plano.ouro .rf-lp-plano-bt{border:none;color:#3a2a00;
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  box-shadow:0 2px 12px -4px rgba(200,144,26,.8)}
+.rf-lp-plano.ouro .rf-lp-plano-bt:hover{filter:brightness(1.05)}
+
+@media (max-width:1024px){
+  .rf-lp-video{max-width:100%}
+  .rf-lp-mom{flex-basis:calc((100% - 16px)/2)}
+  .rf-lp-plano-grade{grid-template-columns:minmax(0,1fr);max-width:520px}
+  /* empilhado, o destaque não pode ficar no meio da fila: sobe pra primeira posição */
+  .rf-lp-plano.ouro{order:-1}
+}
+@media (max-width:760px){
+  .rf-lp-telas,.rf-lp-momentos,.rf-lp-planos{padding:32px 16px}
+  .rf-lp-mom{flex-basis:100%}
+  .rf-lp-tela-ab{height:34px;padding:0 12px;font-size:var(--fs-caption)}
+  .rf-lp-plano-r{min-height:0}
+}
+
+
+/* =====================================================================
+   HOME 2026 — RESENHA, JOGADOR OFICIAL, MONETIZAÇÃO E EMBAIXADOR
+   ---------------------------------------------------------------------
+   O dourado destas seções é o MESMO do botão Pro do cabeçalho e do cartão
+   Embaixador dos planos (#C8901A → --brand-secondary). São três lugares e
+   uma cor só: mudou aqui, muda nos três.
+   ===================================================================== */
+
+/* ----- foto de tela do jogo, emoldurada ----- */
+.rf-lp-foto{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rf-lp-foto img{width:100%;height:auto;display:block;border-radius:var(--r-card);
+  border:var(--border-hairline);box-shadow:var(--shadow-shell);background:var(--surface-sunken)}
+.rf-lp-foto figcaption{font-size:var(--fs-caption);color:var(--text-4);line-height:1.5}
+.rf-lp-foto.grande{width:100%;max-width:1000px;margin:6px auto 0}
+/* o painel do chat é retrato e estreito: emoldurado na largura cheia ficaria
+   uma coluna de 264px esticada até virar borrão */
+/* o painel do chat já vem recortado com o fundo da página em volta (ver
+   capture-home.mjs): emoldurar outra vez daria moldura dentro de moldura */
+.rf-lp-foto.retrato img{max-width:300px;margin:0 auto;border:none;box-shadow:none;background:none}
+
+/* ----- selo dourado "só no Embaixador" ----- */
+.rf-lp-selo-emb{align-self:center;display:inline-flex;align-items:center;gap:7px;
+  height:28px;padding:0 14px;border-radius:var(--r-pill);
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  color:#3a2a00;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
+  box-shadow:0 2px 10px -4px rgba(200,144,26,.7)}
+.rf-lp-bt-ouro{align-self:center;margin-top:8px;height:50px;padding:0 26px;border:none;
+  border-radius:var(--r-control);cursor:pointer;font-family:var(--font-sans);
+  font-size:var(--fs-body);font-weight:var(--fw-bold);color:#3a2a00;
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  box-shadow:0 4px 16px -6px rgba(200,144,26,.85)}
+.rf-lp-bt-ouro:hover{filter:brightness(1.05)}
+
+/* ----- Modo Resenha ----- */
+.rf-lp-resenha{background:var(--surface-card);border-top:1px solid var(--line-1);
+  border-bottom:1px solid var(--line-1);padding:56px 28px}
+.rf-lp-resenha-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-resenha-in .rf-lp-p{text-align:center;max-width:70ch}
+.rf-lp-passos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;
+  width:100%;margin-top:8px}
+.rf-lp-passo{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;
+  padding:16px 18px;border:var(--border-hairline);border-radius:var(--r-card);
+  background:var(--surface-sunken);min-width:0}
+.rf-lp-passo-n{display:flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border-radius:50%;background:var(--club-primary);color:var(--club-on-primary);
+  font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);flex:0 0 auto}
+.rf-lp-passo-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-lp-passo-d{font-size:var(--fs-caption);color:var(--text-3);line-height:var(--lh-normal)}
+/* a sala (paisagem) e o chat (retrato) lado a lado; o chat pede menos largura */
+.rf-lp-resenha-par{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);
+  gap:18px;width:100%;margin-top:10px;align-items:center;text-align:left}
+
+/* ----- seja um jogador oficial ----- */
+.rf-lp-oficial{padding:56px 28px;
+  background:radial-gradient(120% 90% at 50% 0%,#fff8e8 0%,var(--surface-desk) 62%)}
+.rf-lp-oficial-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-oficial-in .rf-lp-p{text-align:center;max-width:72ch}
+.rf-lp-album{display:flex;align-items:center;justify-content:center;gap:22px;
+  flex-wrap:wrap;margin-top:10px}
+.rf-lp-album-q{margin:0;display:flex;flex-direction:column;gap:10px;align-items:center;
+  width:260px;padding:12px 12px 16px;background:#fff;border:1px solid var(--line-1);
+  border-radius:6px;box-shadow:0 16px 40px -22px rgba(18,32,26,.6)}
+/* as duas fotos são POLAROIDES, e polaroide torta é polaroide. A inclinação é o
+   que faz o par ler como álbum em vez de duas imagens coladas. */
+.rf-lp-album-q.antes{transform:rotate(-2.5deg)}
+.rf-lp-album-q.depois{transform:rotate(2deg)}
+.rf-lp-album-media{width:100%;aspect-ratio:3/4;border-radius:3px;overflow:hidden;
+  background:var(--surface-sunken);display:flex;align-items:center;justify-content:center}
+/* AS DUAS POLAROIDES NÃO TÊM O MESMO FORMATO, de propósito. O retrato do jogo
+   é um cartão alto (400×828): metido num 3/4 ele perde justamente o nome e a
+   força, que é o que a seção está a prometer. A polaroide do "depois" fica
+   estreita e alta, com a do "antes" no formato de foto de álbum — e é essa
+   diferença que faz o par parecer álbum, e não duas imagens iguais. */
+.rf-lp-album-q.depois{width:212px}
+.rf-lp-album-q.depois .rf-lp-album-media{aspect-ratio:400/828}
+.rf-lp-album-media img{width:100%;height:100%;object-fit:cover;display:block}
+.rf-lp-album-q figcaption{font-size:var(--fs-caption);color:var(--text-3);text-align:center;
+  line-height:1.4}
+/* moldura vazia: tem de LER como lugar reservado, não como imagem que não carregou */
+.rf-lp-album-vazio{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;width:100%;height:100%;padding:18px;box-sizing:border-box;text-align:center;
+  border:2px dashed var(--line-2);border-radius:3px;background:var(--surface-sunken)}
+.rf-lp-album-ic{font-size:28px;line-height:1;opacity:.7}
+.rf-lp-album-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-3)}
+.rf-lp-album-s{font-size:var(--fs-label);color:var(--text-faint);line-height:1.4}
+.rf-lp-album-seta{font-size:26px;color:#C8901A;font-weight:var(--fw-bold)}
+.rf-lp-oficial-l{list-style:none;margin:14px 0 0;padding:0;display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 22px;text-align:left;max-width:860px}
+.rf-lp-oficial-l li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);
+  color:var(--text-2);line-height:var(--lh-normal)}
+.rf-lp-oficial-l .rf-lp-tick{color:#C8901A}
+
+/* ----- ganhar dinheiro com a resenha ----- */
+.rf-lp-grana{background:var(--surface-card);border-top:1px solid var(--line-1);
+  border-bottom:1px solid var(--line-1);padding:56px 28px}
+.rf-lp-grana-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-grana-in .rf-lp-p{text-align:center;max-width:70ch}
+.rf-lp-quem-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;
+  width:100%;margin-top:8px}
+.rf-lp-quem{display:flex;flex-direction:column;gap:7px;align-items:flex-start;text-align:left;
+  padding:20px;border:var(--border-hairline);border-radius:var(--r-card);
+  background:var(--surface-sunken);min-width:0}
+.rf-lp-quem-ic{font-size:26px;line-height:1}
+.rf-lp-quem-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-lp-quem-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+.rf-lp-grana-como{display:flex;flex-direction:column;gap:10px;width:100%;max-width:660px;
+  margin-top:12px;text-align:left}
+.rf-lp-grana-p{display:flex;align-items:center;gap:12px;font-size:var(--fs-body-sm);
+  color:var(--text-2)}
+
+/* ----- os cartões do Embaixador ----- */
+.rf-lp-ligas{padding:56px 28px;
+  background:radial-gradient(120% 90% at 50% 0%,#fff8e8 0%,var(--surface-desk) 62%)}
+.rf-lp-ligas-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
+  gap:14px;align-items:center;text-align:center}
+.rf-lp-ligas-in .rf-lp-p{text-align:center;max-width:66ch}
+.rf-lp-embc-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;
+  width:100%;margin-top:10px}
+.rf-lp-embc{display:flex;flex-direction:column;gap:7px;align-items:flex-start;text-align:left;
+  padding:20px;border:1px solid #eadfc4;border-radius:var(--r-card);background:var(--surface-card);
+  box-shadow:0 10px 30px -22px rgba(200,144,26,.8);min-width:0}
+.rf-lp-embc-ic{font-size:24px;line-height:1}
+.rf-lp-embc-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:#8a6210}
+.rf-lp-embc-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+
+@media (max-width:1024px){
+  .rf-lp-passos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-lp-resenha-par{grid-template-columns:minmax(0,1fr)}
+  .rf-lp-quem-grade,.rf-lp-embc-grade{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-lp-oficial-l{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:760px){
+  .rf-lp-resenha,.rf-lp-oficial,.rf-lp-grana,.rf-lp-ligas{padding:32px 16px}
+  /* ===== FOTO DE TELA LARGA NO TELEFONE =====
+     Uma captura de 1600px encolhida para 358 vira textura: dá pra ver que é o
+     jogo e não dá pra ler nada — e o que vende é justamente o que está escrito
+     ali. A moldura passa a rolar na horizontal com a imagem num tamanho
+     legível, em vez de espremer. Só a foto rola; a página, não. */
+  .rf-lp-foto:not(.retrato),.rf-lp-tela-foto{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .rf-lp-foto:not(.retrato)>img,.rf-lp-tela-foto>img{min-width:720px}
+  .rf-lp-foto figcaption,.rf-lp-tela-foto figcaption{position:sticky;left:0}
+  .rf-lp-passos,.rf-lp-quem-grade,.rf-lp-embc-grade{grid-template-columns:minmax(0,1fr)}
+  /* a seta do álbum aponta pra baixo quando as polaroides empilham */
+  .rf-lp-album-seta{transform:rotate(90deg)}
+  .rf-lp-album-q{width:100%;max-width:280px}
+  .rf-lp-bt-ouro{width:100%}
 }
 
 /* =====================================================================
@@ -8660,7 +8932,18 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    selo do número em VERDE VIVO para leitura imediata sobre qualquer foto */
 .rf-fotonum{position:relative;display:inline-block;width:38px;height:38px;border-radius:10px;
   overflow:hidden;background:#e8e8e4;flex:0 0 auto;vertical-align:middle}
-.rf-fotonum img{width:100%;height:100%;object-fit:cover;object-position:50% 8%;display:block}
+/* CORTE SEM BRAÇOS. Medido no uniforme: abaixo da gola a pele do braço
+   esquerdo vai até 12% da largura e a do direito começa em 89% — a janela
+   central limpa é 76%. Mostrar os braços traria um problema que o resto da
+   arquitetura evita: o corpo é o mesmo para todo o clube, então a pele do
+   braço nunca casaria com a de todas as cabeças.
+   Em vez de object-fit (que aqui só enquadra, não aproxima), a imagem entra
+   maior que o quadro: 100/76 = 131,58% de largura. Como a fonte é 2:3, ela
+   fica 197,4% da altura do quadro, e o topo recua 2,67% dela — 5,27% do
+   quadro — para a janela começar onde começava antes. */
+.rf-fotonum{--rf-foto-larg:131.58%;--rf-foto-topo:-5.27%}
+.rf-fotonum img{position:absolute;left:50%;transform:translateX(-50%);
+  top:var(--rf-foto-topo);width:var(--rf-foto-larg);height:auto;display:block}
 .rf-fotonum .rf-fnum{position:absolute;right:3px;bottom:3px;min-width:15px;height:15px;padding:0 4px;
   box-sizing:border-box;border-radius:6px;background:#2fd96a;color:#06240f;
   font-size:9.5px;font-weight:800;line-height:15px;text-align:center;display:inline-block;

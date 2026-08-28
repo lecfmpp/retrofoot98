@@ -7,3 +7,8 @@ supabase/.temp/
 gifs/
 modo-camarote/
 public/_ref
+
+# 663 MB de material de trabalho (screenshots, PDFs, zips) que sairam do repo.
+# Ficam no disco, fora do git: um `git add -A` distraido versionaria tudo isso.
+/Arquivos - Nao e Codigo/
+deno.lock
