@@ -8969,6 +8969,11 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-fotonum.g{width:52px;height:52px;border-radius:12px}
 .rf-fotonum.g .rf-fnum{min-width:17px;height:17px;line-height:17px;font-size:10.5px;right:4px;bottom:4px}
 .rf-fotonum.eln{width:40px;height:40px;border-radius:10px}
+/* retrato na Ficha do jogador: ocupa o lugar da camisa (44x41), um pouco
+   maior porque agora e' o rosto que identifica o jogador ali */
+.rf-fotonum.ficha{width:52px;height:52px;border-radius:12px}
+.rf-fotonum.ficha .rf-fnum{min-width:17px;height:17px;line-height:17px;font-size:10.5px;right:4px;bottom:4px}
+.rf-ficha-foto{display:inline-flex;flex:0 0 auto}
 
 
 /* ===== CABEÇALHO ALINHADO COM A COLUNA =====

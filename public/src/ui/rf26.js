@@ -2414,8 +2414,15 @@ function rfFichaHTML(){
   // a força do jogo é uma escala aberta; a barra usa a maior força do meu
   // elenco como topo, senão um clube de Série D teria todas as barras no chão
   const topo=Math.max(1,...squad(CL.clubId).map(x=>x.f||0));
+  /* O RETRATO NA FICHA. Ate' agora a Ficha mostrava so' a camisa do clube com
+     o numero — o jogador nao aparecia na propria ficha. Com o corte sem
+     bracos ja' calibrado, o retrato cabe no mesmo espaco da camisa.
+     A camisa continua como reserva: clube sem foto do Estudio, ou jogador
+     ainda sem retrato, cai nela como antes. */
+  const retrato = (typeof rfFotoDe==='function') ? rfFotoDe(p, CL.clubId) : null;
   return `<div class="rf-ficha-id">
-      ${rfJerseyHTML(nums[p.pid])}
+      ${retrato ? `<span class="rf-ficha-foto">${rfFotoNumHTML(retrato, nums[p.pid], 'ficha')}</span>`
+                : rfJerseyHTML(nums[p.pid])}
       <div class="rf-ficha-nm">
         <span class="rf-ficha-n">${escC(p.n)}</span>
         <span class="rf-ficha-s">${p.nat?rfNacHTML(p)+' '+escC(p.nat)+' · ':''}${escC(rfPosLabel(p.s))} · ${p.age||'?'} anos${fim?' · contrato até '+fim:''}</span>
