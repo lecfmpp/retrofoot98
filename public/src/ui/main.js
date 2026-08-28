@@ -7124,11 +7124,12 @@ const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entr
    por cima da tela seguinte, e cortada a seco se comecar outra rodada. */
 const RF_VITORIA_SRC = 'audio/torcida-vitoria.mp3';
 const RF_VITORIA_ESPERA = 1700;   // os tres sopros longos do apito
-/* METADE DO TEMPO. Eram 11s no ar mais 2,6s a sair — quase catorze segundos de
-   aplauso, que se arrastavam para dentro da tela seguinte. Os dois numeros
-   foram cortados ao meio, e a entrada fica como esta': ela ja' e' curta e e' o
-   que emenda no apito. */
-const RF_VITORIA_ENTRA = 900, RF_VITORIA_DURA = 5500, RF_VITORIA_SAI = 1300;
+/* Eram 11s no ar mais 2,6s a sair — quase catorze segundos de aplauso, que se
+   arrastavam para dentro da tela seguinte. Cortados a metade primeiro, e
+   depois mais tres segundos: o aplauso marca o fim, nao acompanha o que vem
+   a seguir. A entrada fica como esta': ela ja' e' curta e e' o que emenda no
+   apito. */
+const RF_VITORIA_ENTRA = 900, RF_VITORIA_DURA = 2500, RF_VITORIA_SAI = 1300;
 let RF_VITORIA = null;
 /* ---- rampa de volume num <audio> ----
    `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
@@ -8360,14 +8361,28 @@ function rfGolSom(meu){
   rede();
 }
 /* a festa, com o fundo a dar-lhe espaco: sem isto o ciclo de 39s continua no
-   mesmo nivel por baixo e as duas multidoes brigam pelo mesmo lugar */
+   mesmo nivel por baixo e as duas multidoes brigam pelo mesmo lugar.
+   A gravacao tem 5s, mas nao se usa inteira: entra a subir, fica no alto o
+   tempo da animacao da linha, e sai a descer. Cortar a seco no fim de um
+   coro de multidao e' o que mais se ouve como defeito. */
+const RF_FESTA_ENTRA = 400, RF_FESTA_DURA = 2200, RF_FESTA_SAI = 800;
+let RF_FESTA = null;
 function rfGolFesta(){
   const vol = rfSomVolume(); if(vol <= 0) return;
   try{
-    const a = new Audio(RF_GOL_FESTA); a.volume = Math.min(1, vol);
+    if(RF_FESTA){ clearTimeout(RF_FESTA._rfFim); clearInterval(RF_FESTA._rfFade);
+                  try{ RF_FESTA.pause(); }catch(e){} }
+    const a = new Audio(RF_GOL_FESTA); a.volume = 0;
     const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    RF_FESTA = a;
+    rfFade(a, 0, Math.min(1, vol), RF_FESTA_ENTRA);
+    a._rfFim = setTimeout(() => {
+      if(RF_FESTA !== a) return;
+      rfFade(a, a.volume, 0, RF_FESTA_SAI, () => { try{ a.pause(); }catch(e){} });
+    }, RF_FESTA_ENTRA + RF_FESTA_DURA);
   }catch(err){}
-  rfTorcidaAbafar(0.55, 6000);
+  /* o fundo volta quando a festa ja' saiu, nao antes */
+  rfTorcidaAbafar(0.55, RF_FESTA_ENTRA + RF_FESTA_DURA + RF_FESTA_SAI);
 }
 /* baixa o fundo por um tempo e devolve-o sozinho */
 function rfTorcidaAbafar(k, ms){
