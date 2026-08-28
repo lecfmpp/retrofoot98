@@ -1682,16 +1682,16 @@
    torna a foto independente do clube. */
 .rf-ficha-topo{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 .rf-ficha-lado{flex:1;min-width:220px;display:flex;flex-direction:column;gap:12px}
-/* ALTURA ENCURTADA PELO RODAPE, de 305 para 270px. A ancora da foto e' o
+/* ALTURA ENCURTADA PELO RODAPE: 305 -> 270 -> 230px. A ancora da foto e' o
    TOPO, entao a cabeca nao se mexe: ela continua a 19px da borda de cima,
    qualquer que seja a altura. O que muda e' onde o card corta o jogador — em
-   270px ele mostra 75% da foto, contra 85% antes.
+   230px ele mostra 64% da foto.
    Vale dizer que a base da foto JA' estava alinhada com a base do card: a
    120% de largura ela tem 360px de altura, mais que os 305 do card, entao o
    que passava disso ja' era cortado pela borda. Encurtar nao aproxima as
    bases — corta o jogador mais cedo. */
 .pc{--clube-1:var(--club-primary,#17458F);--clube-2:var(--club-secondary,#F2B90C);
-  --pc-alt:270px;
+  --pc-alt:230px;
   position:relative;width:200px;min-height:var(--pc-alt);flex:0 0 auto;
   border-radius:16px;overflow:hidden;background:var(--clube-1);
   display:flex;align-items:flex-end}
