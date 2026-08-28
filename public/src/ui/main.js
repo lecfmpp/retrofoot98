@@ -8164,7 +8164,26 @@ function rfTorcidaLigar(){
    penalti chega por dois caminhos (a revelacao do modal e o laco que consome
    o evento) e sem ela sairiam duas bolas na rede e dois rugidos. */
 const RF_GOL_REDE = 'audio/gol-bola-na-rede.mp3';
+/* A FESTA E' UMA GRAVACAO PROPRIA, nao o fundo levantado. Levantar o volume do
+   ciclo de fundo dava um estadio mais ALTO, nao um estadio a FESTEJAR — e a
+   diferenca entre as duas coisas e' exactamente o gol. Entra emendada na bola
+   na rede, e so' no gol DELE: o estadio nao explode quando se sofre. */
+const RF_GOL_FESTA = 'audio/torcida-gol-festa.mp3';
+/* O CHUTE E' O QUE VEM ANTES. Ele nao e' um momento por si: e' o instante que
+   antecede o desfecho — a bola para fora, a defesa, ou a rede. Por isso entra
+   como entrada de outra coisa, nunca sozinho, e SO' AS VEZES: sair em toda a
+   finalizacao daria um metronomo, e o que se quer e' variacao. */
+const RF_CHUTE_SRC = 'audio/chute-forte.mp3';
+const RF_CHUTE_CHANCE = 0.5;    // metade das finalizacoes ganha a entrada
+const RF_CHUTE_ANTES = 620;     // quanto o desfecho espera pelo chute
 const RF_GOL_ATRASO = 2000;   // da rede ate' a torcida subir
+function rfChute(){
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(RF_CHUTE_SRC); a.volume = Math.min(1, 0.9*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+}
 /* O GOL DELE E O GOL DO ADVERSARIO NAO SAO O MESMO ACONTECIMENTO. Sair os dois
    com o mesmo rugido e a mesma duracao achatava justamente o momento que a
    pessoa veio ver. O gol do utilizador tem festa mais alta e mais longa; o do
@@ -8174,13 +8193,42 @@ function rfGolSom(meu){
   if(Date.now() - RF_TORCIDA_GOL < 2500) return;
   RF_TORCIDA_GOL = Date.now();
   const vol = rfSomVolume(); if(vol <= 0) return;
+  const rede = () => {
+    try{
+      const a = new Audio(RF_GOL_REDE); a.volume = Math.min(1, 0.9*vol);
+      const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    }catch(err){}
+    /* a torcida entra por cima, sem esperar que a rede acabe — sao camadas do
+       mesmo momento, nao uma fila */
+    setTimeout(() => {
+      if(meu) rfGolFesta();
+      else rfTorcidaGol(false);   // gol sofrido: so' um levantar breve do fundo
+    }, RF_GOL_ATRASO);
+  };
+  if(Math.random() < RF_CHUTE_CHANCE){ rfChute(); setTimeout(rede, RF_CHUTE_ANTES); }
+  else rede();
+}
+/* a festa, com o fundo a dar-lhe espaco: sem isto o ciclo de 39s continua no
+   mesmo nivel por baixo e as duas multidoes brigam pelo mesmo lugar */
+function rfGolFesta(){
+  const vol = rfSomVolume(); if(vol <= 0) return;
   try{
-    const a = new Audio(RF_GOL_REDE); a.volume = Math.min(1, 0.9*vol);
+    const a = new Audio(RF_GOL_FESTA); a.volume = Math.min(1, vol);
     const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
   }catch(err){}
-  /* a torcida entra por cima, sem esperar que a rede acabe — sao camadas do
-     mesmo momento, nao uma fila */
-  setTimeout(() => rfTorcidaGol(meu), RF_GOL_ATRASO);
+  rfTorcidaAbafar(0.55, 6000);
+}
+/* baixa o fundo por um tempo e devolve-o sozinho */
+function rfTorcidaAbafar(k, ms){
+  const a = RF_TORCIDA; if(!a) return;
+  clearInterval(a._rfRampa);
+  clearTimeout(a._rfVolta);
+  const base = RF_TORCIDA_BASE * rfSomVolume();
+  try{ a.volume = Math.max(0, base*k); }catch(e){ return; }
+  a._rfVolta = setTimeout(() => {
+    if(RF_TORCIDA !== a) return;
+    try{ a.volume = RF_TORCIDA_BASE * rfSomVolume(); }catch(e){}
+  }, ms);
 }
 /* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
    um elemento <audio>, entao a rampa e' feita a mao, de 60 em 60ms.
@@ -8203,6 +8251,35 @@ function rfTorcidaGol(meu){
     a.volume = Math.min(1, base + (alto-base)*k);
     if(t > segura+desce+0.2){ clearInterval(a._rfRampa); a.volume = base; }
   }, 60);
+}
+/* ===== O "UUUH" DA ARQUIBANCADA =====
+   Defesa do goleiro, bola na trave, chute para fora — os tres desfechos de uma
+   finalizacao que nao virou gol (ver chanceOutcome, no motor). E' reacao de
+   torcida, nao narracao: entra por cima do que estiver a tocar e nao espera
+   pelo ritmo lento, como o gol.
+   O que ele PRECISA e' de intervalo proprio. Finalizacao e' o evento mais
+   comum depois do passe, e no ritmo rapido sairiam varios por segundo — seis
+   segundos entre um e outro e' o que separa "o estadio reagiu" de metralhadora. */
+const RF_QUASE_SRC = 'audio/torcida-quase-gol.mp3';
+const RF_QUASE_INTERVALO = 6000;
+let RF_QUASE_EM = 0;
+function rfQuaseGol(){
+  if(!rfSomLigado()) return;
+  if(Date.now() - RF_QUASE_EM < RF_QUASE_INTERVALO) return;
+  /* nao se sobrepoe a' festa do gol: la' o estadio ja' esta' de pe' */
+  if(Date.now() - RF_TORCIDA_GOL < 6000) return;
+  /* a TRAVA E' DA FINALIZACAO INTEIRA, nao do "uuuh": marcada aqui, antes de
+     decidir a entrada, para o chute nao sair mais vezes do que o desfecho */
+  RF_QUASE_EM = Date.now();
+  if(Math.random() < RF_CHUTE_CHANCE){ rfChute(); setTimeout(rfUuuh, RF_CHUTE_ANTES); }
+  else rfUuuh();
+}
+function rfUuuh(){
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(RF_QUASE_SRC); a.volume = Math.min(1, 0.85*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
 }
 function rfTorcidaDesligar(){
   const a = RF_TORCIDA; if(!a) return;
@@ -8246,6 +8323,8 @@ function rfSomDoEvento(m,e,out){
   /* O TAFAREL E' DO MEU GOLEIRO. Isto tocava em qualquer penalti defendido,
      inclusive num que o MEU time desperdicava — festejar a defesa contra mim.
      So' vale quando quem bateu foi o adversario. */
+  /* finalizacao que nao virou gol: defesa, trave ou para fora */
+  if(e.type==='chance' && (out==='defesa'||out==='trave'||out==='fora')) rfQuaseGol();
   else if(e.type==='penalti' && !e.scored && out==='defesa'){
     const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
     if(meuLado && e.side!==meuLado) soar('penaltiDefendido');
