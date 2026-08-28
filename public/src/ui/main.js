@@ -8073,14 +8073,22 @@ function rfSomLigado(){ return !!(S && S.config && S.config.sound); }
    disso o Camarote continua com o apito e a torcida, que sao curtos e nao
    dependem de ser acompanhados. */
 const RF_SOM_MS_MIN = 360;   // = TEMPO_MS['Curto']
-function rfSomNarracaoOk(){
+/* A EXCECAO DA REGRA. A porta acima existe porque uma fala que comenta um
+   lance precisa de caber no tempo em que o lance esta' na tela. O cartao
+   VERMELHO passa nos dois testes que importam: dura 1,4s (o clipe mais curto
+   dos dez) e acontece no maximo uma vez por partida. Manda-lo esperar pelo
+   ritmo lento so' fazia com que a expulsao — o maior lance do jogo depois do
+   gol — nao se ouvisse nunca no ritmo padrao. */
+const RF_SOM_SEMPRE = { cartaoVermelho:1 };
+function rfSomNarracaoOk(chave){
+  if(RF_SOM_SEMPRE[chave]) return true;
   const ms = (typeof camTempoMs==='function') ? camTempoMs() : RF_SOM_MS_MIN;
   return ms >= RF_SOM_MS_MIN - 1;
 }
 function rfSomTocar(chave, forcar){
   const src = RF_SONS[chave]; if(!src) return;
   if(!forcar && !rfSomLigado()) return;
-  if(!forcar && !rfSomNarracaoOk()) return;
+  if(!forcar && !rfSomNarracaoOk(chave)) return;
   const vol = rfSomVolume(); if(vol <= 0) return;
   const peso = RF_SOM_PESO[chave] || 1;
   if(RF_SOM_ATUAL && !RF_SOM_ATUAL.ended && !forcar){
