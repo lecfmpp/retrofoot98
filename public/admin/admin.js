@@ -3074,6 +3074,11 @@ function montarPatch(item){
   const c = item.c;
   const patch = {};
   const inicial = D.formInicial || {};
+  /* O FORMULARIO PRECISA ESTAR NA TELA. Sem ele, `valor()` devolve null em
+     todo o campo e o diff sai vazio — e patch vazio, gravado por cima, APAGA
+     o clube inteiro. Quem chama tem de saber a diferenca entre "nada mudou" e
+     "nao havia formulario para ler". */
+  const temForm = !!el('c-name');
   const valor = id => { const n = el(id); return n ? n.value : null; };
   for(const k of CAMPOS_CLUBE){
     const v = valor('c-'+k);
@@ -3111,17 +3116,37 @@ function montarPatch(item){
   if(Object.keys(squad).length) patch.squad = squad;
   if(novos.length) patch.squad_novos = novos;
   if(remover.length) patch.squad_remover = remover;
-  return { patch, squad, novos, remover };
+  return { patch, squad, novos, remover, temForm };
 }
 
+/* ===== GRAVAR UM CAMPO NAO PODE APAGAR OS OUTROS =====
+   `patch` e' uma coluna inteira: o upsert grava o objeto TODO. Isto escrevia
+   apenas o diff desta passagem, entao qualquer gravacao parcial levava o resto
+   embora. Medido no Palmeiras (auditoria de 28/08, 21:31:44 e 21:45:04): o
+   escudo era gravado pelo Estudio e, um segundo depois, um "Salvar" no editor
+   — onde o campo do escudo e' so' leitura e o nome nao tinha sido tocado —
+   gravava `{}` por cima e levava nome, curto e escudo de uma vez.
+   Sao duas causas, e as duas ficam fechadas aqui:
+     · o diff so' contem o que MUDOU AGORA (campo intocado nao entra), logo ele
+       nunca foi um retrato completo do patch e nao pode ser gravado como se
+       fosse — passa a ser mesclado sobre o que ja' estava la';
+     · o escudo nem sequer e' deste formulario (mora na aba Escudos), entao
+       nada aqui pode decidir apaga-lo.
+   O ELENCO e' a excecao: dele o formulario E' dono, e apagar uma edicao de
+   jogador tem de valer. Por isso as tres chaves de elenco saem da base antes
+   da mesclagem — mas so' quando o formulario esteve mesmo na tela. */
+const CHAVES_DO_ELENCO = ['squad','squad_novos','squad_remover'];
 async function salvarClube(item){
   const c = item.c, ed = D.edits[c.id];
-  const { patch, squad, novos, remover } = montarPatch(item);
+  const { patch, squad, novos, remover, temForm } = montarPatch(item);
+  if(!temForm){ toast('O formulário do clube não está aberto — nada foi gravado.', true); return; }
   if(!Object.keys(patch).length && !ed){ toast('Nada mudou.'); return; }
 
+  const base = Object.assign({}, (ed && ed.patch) || {});
+  CHAVES_DO_ELENCO.forEach(k => delete base[k]);
   const linha = {
     pack_id: ST.packId, club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
-    patch: (ed && ed.novo) ? Object.assign({}, ed.patch, patch) : patch
+    patch: Object.assign(base, patch)
   };
   const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
   if(error) return toast(erroMsg(error), true);
