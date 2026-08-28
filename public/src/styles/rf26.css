@@ -3110,6 +3110,67 @@
   box-shadow:0 2px 12px -4px rgba(200,144,26,.8)}
 .rf-lp-plano.ouro .rf-lp-plano-bt:hover{filter:brightness(1.05)}
 
+/* ===== O CADEADO EXPLICADO (rfTrava, ui/rf26-landing.js) =====
+   A janela que abre quando uma trava de plano barra alguém. O cartão do plano
+   aqui dentro é o MESMO cartão da secção de planos, em miniatura: mesmo
+   dourado, mesmo tique, mesmo preço — quem já viu a página reconhece, e quem
+   não viu não estranha depois. Tudo com respiro: é uma janela que vende, não
+   um alerta de erro. */
+.rf-trava{display:flex;flex-direction:column;gap:var(--sp-6)}
+.rf-trava-p{margin:0;font-size:var(--fs-body);color:var(--text-2);
+  line-height:var(--lh-normal)}
+/* O DOURADO CONTINUA A SER SÓ DO EMBAIXADOR, aqui como na secção de planos:
+   é o cartão .destaque que o traz (.ouro). O Resenha aparece no cartão comum —
+   se o dourado valesse para os dois, deixava de querer dizer o plano de cima. */
+.rf-trava-plano{display:flex;flex-direction:column;gap:var(--sp-5);
+  padding:18px 20px;border:var(--border-hairline);border-radius:var(--r-card);
+  background:var(--surface-sunken)}
+.rf-trava-plano.ouro{border:1px solid #C8901A;
+  background:linear-gradient(180deg,#fffaf0,var(--surface-card) 120px)}
+.rf-trava-hd{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-5)}
+.rf-trava-n{font-size:19px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight)}
+.rf-trava-plano.ouro .rf-trava-n{color:#8a6210}
+.rf-trava-coroa{font-style:normal;margin-right:7px}
+.rf-trava-v{font-size:22px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:var(--ls-tight);white-space:nowrap}
+.rf-trava-v i{margin-left:6px;font-style:normal;font-size:var(--fs-caption);
+  font-weight:var(--fw-regular);color:var(--text-4)}
+.rf-trava-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.rf-trava-l li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);
+  color:var(--text-2);line-height:var(--lh-normal)}
+.rf-trava-l .rf-lp-tick{color:var(--club-primary)}
+.rf-trava-plano.ouro .rf-lp-tick{color:#C8901A}
+.rf-trava-a{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-trava-saida{font-size:var(--fs-body-sm);color:var(--text-3);
+  line-height:var(--lh-normal)}
+.rf-trava-bts{display:flex;justify-content:flex-end;gap:var(--sp-5);margin-top:2px}
+.rf-trava-bt,.rf-trava-bt-2{height:46px;padding:0 20px;border-radius:var(--r-control);
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  cursor:pointer;transition:filter var(--dur-fast) var(--ease)}
+.rf-trava-bt{border:none;color:#fff;background:var(--club-primary)}
+.rf-trava.ouro .rf-trava-bt{color:#3a2a00;
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  box-shadow:0 2px 12px -4px rgba(200,144,26,.8)}
+.rf-trava-bt:hover{filter:brightness(1.05)}
+.rf-trava-bt-2{border:var(--border-control);background:var(--surface-card);
+  color:var(--text-3)}
+.rf-trava-bt-2:hover{background:var(--surface-sunken)}
+
+/* ===== UM CARTÃO TRANCADO CONTINUA CLICÁVEL =====
+   Cartão apagado e sem clique é beco sem saída: a pessoa toca, não acontece
+   nada, e ela não descobre porquê. O trancado fica mais claro, ganha o cadeado
+   e o selo do plano — mas o clique continua lá, a abrir a janela que explica.
+   Mesmo princípio do cartão do retrato por IA, que já fazia assim. */
+.rf-travado{position:relative}
+.rf-travado>*{opacity:.62}
+.rf-travado>.rf-selo-plano{opacity:1}
+.rf-selo-plano{position:absolute;top:10px;right:10px;z-index:2;display:flex;
+  align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:var(--r-pill);
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  color:#3a2a00;font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}
+
 @media (max-width:1024px){
   .rf-lp-video{max-width:100%}
   .rf-lp-mom{flex-basis:calc((100% - 16px)/2)}

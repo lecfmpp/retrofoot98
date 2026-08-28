@@ -314,8 +314,13 @@ function rfResenhaComecarHTML(){
   const ativas=todas.filter(r=>r.phase!=='finished');
   const codigo=String(CL.net.code||'').toUpperCase();
 
+  /* ABRIR SALA E' DO EMBAIXADOR (rfPodeHospedar, ui/rf26-landing.js). O cartao
+     trancado continua a receber o clique — clResenhaCreate abre a janela que
+     explica. Entrar com codigo fica intacto: e' de graca em qualquer plano. */
+  const podeHosp=(typeof rfPodeHospedar!=='function')||rfPodeHospedar();
   const cartao=(o)=>`
-    <button type="button" class="rf-rc-card ${o.destaque?'on':''}" onclick="${o.on}">
+    <button type="button" class="rf-rc-card ${o.destaque?'on':''} ${o.travado?'rf-travado':''}" onclick="${o.on}">
+      ${o.travado?'<span class="rf-selo-plano">🔒 Embaixador</span>':''}
       <span class="rf-rc-ic" aria-hidden="true">${o.ic}</span>
       <span class="rf-rc-t">${escC(o.t)}</span>
       <span class="rf-rc-d">${escC(o.d)}</span>
@@ -323,9 +328,9 @@ function rfResenhaComecarHTML(){
     </button>`;
 
   const cartoes=[
-    cartao({ic:'🍺', t:'Criar uma sala', on:'clResenhaCreate()', destaque:true,
+    cartao({ic:'🍺', t:'Criar uma sala', on:'clResenhaCreate()', destaque:true, travado:!podeHosp,
       d:'Você é o anfitrião: escolhe divisão, ritmo e quem entra.',
-      selo:'ATÉ '+rfSalaTeto()+' TREINADORES'}),
+      selo:podeHosp?('ATÉ '+rfTetoHumanos()+' TREINADORES'):'PLANO EMBAIXADOR'}),
     cartao({ic:'🔑', t:'Entrar com código', on:'clResenhaJoinPrompt()',
       d:'Alguém te passou um código de '+RF_CODIGO_TAM+' caracteres. Cole e entre direto.',
       selo:'ENTRADA IMEDIATA'}),

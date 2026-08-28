@@ -162,15 +162,36 @@ function netWarnDeadSession(){
    desenho (o cabecalho pergunta a cada cdraw): uma consulta por redesenho
    seria absurdo. A cache e preenchida uma vez por sessao, ao ligar, e ao
    trocar de conta — ver netCarregarPlano. */
-let SB_PLANO = { plan:'free', pro:false, until:null };
+/* OS LIMITES VEM DO BANCO, NAO DAQUI. my_plan() devolve, alem do plano,
+   quantos saves ele guarda, se abre sala, quantos treinadores cabem nela e se
+   tem retrato por IA — os mesmos numeros que o servidor usa para RECUSAR
+   (trigger em solo_saves, create_game, claim_seat). Escrever "3" ou "10" no
+   navegador seria uma segunda lista de limites, e uma delas ficaria errada.
+
+   PLANO_PADRAO e' o que vale sem sessao ou com o banco fora do ar: e' o plano
+   de graca, mas com os limites em null — ver rfLimites(), que nesse caso NAO
+   tranca nada. Trancar por falta de resposta seria trancar quem pagou. */
+const PLANO_PADRAO = { plan:'free', pro:false, until:null,
+  savesMax:null, podeHospedar:null, salaMax:null, avatarIA:null };
+let SB_PLANO = { ...PLANO_PADRAO };
 async function netCarregarPlano(){
-  SB_PLANO = { plan:'free', pro:false, until:null };
+  SB_PLANO = { ...PLANO_PADRAO };
   if(!sb || !SB_AUTH_USER) return SB_PLANO;
   try{
     const { data, error } = await sb.rpc('my_plan');
     if(error) throw error;
     const r = Array.isArray(data) ? data[0] : data;
-    if(r) SB_PLANO = { plan:r.plan||'free', pro:!!r.pro, until:r.until||null };
+    if(r) SB_PLANO = { plan:r.plan||'free', pro:!!r.pro, until:r.until||null,
+      /* saves_max null = sem teto (Embaixador). O `?? null` distingue isso de
+         "o banco nao respondeu", que fica com o campo ausente. */
+      /* CAMPO AUSENTE != CAMPO FALSO. Um banco ainda sem a migracao dos tres
+         planos devolve my_plan() sem estas colunas; ler isso como "nao pode"
+         trancaria toda a gente de uma vez. Ausente fica null = desconhecido, e
+         rfLimites() nao tranca no desconhecido. */
+      savesMax: ('saves_max' in r) ? r.saves_max : null,
+      podeHospedar: ('pode_hospedar' in r) ? !!r.pode_hospedar : null,
+      salaMax: ('sala_max' in r) ? (r.sala_max||0) : null,
+      avatarIA: ('avatar_ia' in r) ? !!r.avatar_ia : null };
   }catch(e){ console.warn('plano do treinador:', e && e.message); }
   return SB_PLANO;
 }
@@ -178,7 +199,9 @@ function netAuthStatus(){
   if(!SB_AUTH_USER) return { loggedIn:false };
   return { loggedIn:true, email: SB_AUTH_USER.email,
     name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0],
-    plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until };
+    plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until,
+    savesMax: SB_PLANO.savesMax, podeHospedar: SB_PLANO.podeHospedar,
+    salaMax: SB_PLANO.salaMax, avatarIA: SB_PLANO.avatarIA };
 }
 
 /* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.
@@ -841,7 +864,15 @@ async function netAssignClub(pid, clubId){
     } else { return; }
     NET._claimed[pid] = { clubId, ready:false, name:nm, email:em };
     netMergeParticipants();
-  } catch(e) { console.error('assignClub erro:', e); if(typeof toastC==='function') toastC('⚠ Não foi possível escolher esse clube (já ocupado?).'); }
+  } catch(e) { console.error('assignClub erro:', e);
+    /* SALA CHEIA DE GENTE != CLUBE OCUPADO. O claim_seat recusa a pessoa que
+       passa do teto de treinadores do plano do anfitriao (PLANO_SALA_CHEIA), e
+       o aviso de sempre — "já ocupado?" — mandaria essa pessoa tentar outro
+       clube a vida toda, porque nenhum ia funcionar. */
+    const msg=(e&&e.message)||'';
+    if(typeof toastC==='function') toastC(/PLANO_SALA_CHEIA/.test(msg)
+      ? '⚠ Esta sala já está com o número máximo de treinadores.'
+      : '⚠ Não foi possível escolher esse clube (já ocupado?).'); }
 }
 
 /* Sorteia clubes para os participantes.

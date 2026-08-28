@@ -613,6 +613,7 @@ function scResenhaChoice(){
   // MAIS RECENTE EM CIMA: a sala aberta agora é a que a pessoa quer reentrar (o adapter já
   // devolve ordenado por created_at; aqui fica garantido mesmo se a lista vier de outra fonte).
   const rooms=(CL.net.myRooms||[]).slice().sort((a,b)=> new Date(b.createdAt||0) - new Date(a.createdAt||0));
+  const podeHosp=(typeof rfPodeHospedar!=='function')||rfPodeHospedar();
   const rejoin = rooms.length ? `<button class="cl-wiz-rejoin" onclick="CL.net.step='minhassalas';cdraw()">↻ Você já joga ${rooms.length} Resenha${rooms.length>1?'s':''} — toque pra reentrar</button>` : '';
   return wizShell({
     step:rfPasso('Modo','resenha'), modo:'resenha', title:'Modo Resenha', back:'clGoModo()', backLabel:'Voltar ao início',
@@ -622,7 +623,8 @@ function scResenhaChoice(){
       <div class="cl-wiz-h">O que você quer fazer?</div>
       <div class="cl-wiz-sub">Jogue online com amigos — cada um assume um clube.</div>
       <div class="cl-wiz-cards">
-        <div class="cl-mc-card" onclick="clResenhaCreate()">
+        <div class="cl-mc-card ${podeHosp?'':'rf-travado'}" onclick="clResenhaCreate()">
+          ${podeHosp?'':'<span class="rf-selo-plano">🔒 Embaixador</span>'}
           <div class="cl-mc-ic">🏟️</div>
           <div class="cl-mc-t">Criar nova Resenha</div>
           <div class="cl-mc-d">Você vira o anfitrião e convida os amigos com um código.</div>
@@ -636,7 +638,18 @@ function scResenhaChoice(){
       ${rejoin}`
   });
 }
-function clResenhaCreate(){ CL.net.intent='host'; CL.net.step='sala'; cdraw(); }
+/* ABRIR SALA E' DO EMBAIXADOR. Ponto unico: os tres sitios que oferecem
+   "criar" (o cartao da pele antiga, o cartao e o botao da tela de entrada nova)
+   chamam esta funcao. ENTRAR na sala dos outros nao passa por aqui e continua
+   livre em qualquer plano — e' exatamente o que a landing promete.
+   O servidor recusa na mesma, dentro de create_game; isto e' a explicacao. */
+function clResenhaCreate(){
+  if(typeof rfPodeHospedar==='function' && !rfPodeHospedar()){
+    if(typeof rfTrava==='function') rfTrava('hospedar');
+    return;
+  }
+  CL.net.intent='host'; CL.net.step='sala'; cdraw();
+}
 function clResenhaJoinPrompt(){ CL.net.intent='join'; CL.net.code=''; CL.net.step='joincode'; cdraw(); }
 function clResenhaBackChoice(){ CL.net.step='escolha'; cdraw(); }
 /* ---- entrar por código ---- */
@@ -1008,7 +1021,13 @@ function clOpenRoom(){ if(!CL.net.roomName)return;
     wireNet(); // liga onState antes do sorteio pra a lista atualizar
     await clAutoSeatLobby(); // sorteia o time do PRÓPRIO anfitrião já no lobby (aparece na sala)
     CL.net.step='lobby'; cdraw();
-  } catch(e) { toastC('⚠ Erro ao abrir: '+e.message); } })();
+  } catch(e) {
+    /* O SERVIDOR TAMBEM RECUSA (create_game). Quando a recusa e' de plano ela
+       vem carimbada com PLANO_HOSPEDAR — nesse caso mostra-se a mesma janela do
+       cadeado, e nao um "Erro ao abrir" cru que nao diz o que fazer a seguir. */
+    if(/PLANO_HOSPEDAR/.test(e&&e.message||'') && typeof rfTrava==='function'){ rfTrava('hospedar'); return; }
+    toastC('⚠ Erro ao abrir: '+e.message);
+  } })();
 }
 
 /* ---- lobby (código, convite WhatsApp, participantes, começar) ----

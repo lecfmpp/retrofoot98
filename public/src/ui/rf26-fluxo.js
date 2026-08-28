@@ -242,16 +242,20 @@ function rfAvatarCarregar(){
 function rfAvatarBlocoHTML(){
   rfAvatarCarregar();
   const g=rfAvGenero();
-  const pro=!!((typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus().pro:false);
+  /* O RETRATO É DO EMBAIXADOR (é o plano que promete "a sua cara no jogo").
+     rfPodeAvatarIA lê o limite vindo do banco — o mesmo que a edge function
+     coach-avatar confere antes de gerar seja o que for. */
+  const pro=(typeof rfPodeAvatarIA==='function')?rfPodeAvatarIA()
+    :!!((typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus().pro:false);
   /* O RETRATO GERADO MORA NESTE CARTAO. Ele nasceu so' com um icone fixo, e o
      resultado da geracao nao aparecia em lugar nenhum: o dialogo fechava e a
      tela ficava igual — parecia que o botao nao tinha feito nada. */
   const meu = rfAvEhUrl(CL.coachAvatar) ? CL.coachAvatar : null;
   const cartaoIA=`<div class="rf-esc rf-av-ia ${meu?'on':''} ${pro?'':'off'}"
-      ${pro?`onclick="rfAvatarIA()" role="button" tabindex="0"`:''}
+      onclick="${pro?'rfAvatarIA()':`rfTrava('avatar')`}" role="button" tabindex="0"
       aria-pressed="${meu?'true':'false'}"
-      title="${pro?(meu?'Refazer o seu retrato':'Crie o seu retrato com IA'):'O retrato por IA é do plano Pro'}">
-    ${pro?'':'<span class="rf-esc-tag">Pro</span>'}
+      title="${pro?(meu?'Refazer o seu retrato':'Crie o seu retrato com IA'):'O retrato por IA é do plano Embaixador'}">
+    ${pro?'':'<span class="rf-esc-tag">Embaixador</span>'}
     <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
     <span class="rf-av-l">${meu?'A minha<br>(refazer)':'Criar a minha<br>com IA'}</span>
   </div>`;
@@ -815,6 +819,12 @@ function rfObSoloHTML(){
   const saves=(CL.soloSaves||[]).slice()
     .sort((a,b)=>new Date(b.updated_at||0)-new Date(a.updated_at||0));
   const n=saves.length;
+  /* O TETO DO PLANO APARECE ANTES DE BATER NELE. "2 de 3" no cabeçalho e a
+     última linha trancada quando não cabe mais — quem está no limite descobre
+     olhando, não ao ser barrado. Os números vêm do banco (ver rfSavesTeto em
+     ui/rf26-landing.js); sem plano conhecido, teto é Infinity e nada muda. */
+  const teto=(typeof rfSavesTeto==='function')?rfSavesTeto():Infinity;
+  const travado=(typeof rfPodeSalvarNovo==='function') && !rfPodeSalvarNovo();
 
   const linha=(s,i)=>{
     const st=s.state||{};
@@ -850,16 +860,20 @@ function rfObSoloHTML(){
     <div class="rf-sc">
       ${(carregando||n)?`<div class="rf-sc-hd">
         <span class="rf-label-t">${carregando?'Os seus saves':'Os seus saves'}</span>
-        <span class="rf-sc-cont">${carregando?'—':`${n} na nuvem`}</span>
+        <span class="rf-sc-cont">${carregando?'—':(teto===Infinity?`${n} na nuvem`:`${n} de ${teto}`)}</span>
       </div>`:''}
       <div class="rf-sc-lista">
         ${carregando?'<span class="rf-note">Carregando os seus jogos salvos</span>'
                     :saves.map(linha).join('')}
-        <button type="button" class="rf-sv2 novo" onclick="clSoloNew()">
-          <span class="rf-sv2-cr"><span class="rf-sv2-vazio">${rfIcone('mais',16)}</span></span>
+        <button type="button" class="rf-sv2 novo ${travado?'rf-travado':''}"
+          onclick="${travado?`rfTrava('saves')`:'clSoloNew()'}">
+          ${travado?'<span class="rf-selo-plano">🔒 Plano</span>':''}
+          <span class="rf-sv2-cr"><span class="rf-sv2-vazio">${travado?'🔒':rfIcone('mais',16)}</span></span>
           <span class="rf-sv2-id">
             <span class="rf-sv2-n">Começar um jogo novo</span>
-            <span class="rf-sv2-s">Uma carreira do zero contra a máquina — você escolhe país, divisão e clube</span>
+            <span class="rf-sv2-s">${travado
+              ? `${n} de ${n} saves usados — apague uma carreira para abrir espaço, ou suba de plano`
+              : 'Uma carreira do zero contra a máquina — você escolhe país, divisão e clube'}</span>
           </span>
         </button>
       </div>

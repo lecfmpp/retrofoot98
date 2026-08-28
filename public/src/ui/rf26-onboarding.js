@@ -317,7 +317,7 @@ function rfOb2(){
             <span class="rf-modo-tag">Multi-player</span>
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfSalaTeto()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</span>
+          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Jogar com a galera'}</button>
         </div>
       </div>
@@ -590,7 +590,7 @@ function rfOb4(){
       <div class="rf-sl-faixa">
         <div class="rf-sl-fx"><span class="rf-sl-l">CÓDIGO</span><span class="rf-sl-fx-v mono">${escC(codigo)}</span></div>
         <span class="rf-sl-fx-sep"></span>
-        <div class="rf-sl-fx"><span class="rf-sl-l">TREINADORES</span><span class="rf-sl-fx-v">até ${rfSalaTeto()}</span></div>
+        <div class="rf-sl-fx"><span class="rf-sl-l">TREINADORES</span><span class="rf-sl-fx-v">até ${rfTetoHumanos()}</span></div>
         <span class="rf-sl-fx-sep"></span>
         <div class="rf-sl-fx"><span class="rf-sl-l">CLUBES</span><span class="rf-sl-fx-v">por sorteio</span></div>
       </div>
@@ -629,8 +629,11 @@ function rfOb5(){
   const parts=room.participants||[];
   const dentro=parts.filter(p=>p.confirmed).length;
   const convidados=parts.length-dentro;
-  /* o teto e o numero de assentos da sala, nao um numero escrito a mao (ver rfSalaTeto) */
-  const teto=rfSalaTeto(room), vagas=Math.max(0,teto-parts.length);
+  /* AS VAGAS SAO DE PESSOAS, NAO DE CLUBES. Eram os assentos da sala (20 na
+     Serie D) — mas quem entra e' gente, e o plano do anfitriao limita as
+     pessoas em 8. Mostrar 18 vagas numa sala que recusa a nona pessoa e'
+     prometer o que o claim_seat vai negar (ver rfTetoHumanos). */
+  const teto=rfTetoHumanos(), vagas=Math.max(0,teto-parts.length);
   const link=(typeof NET.inviteLink==='function')?NET.inviteLink():'';
   const codigo=room.code||'';
   // mesma armadilha do lobby: aqui `S` ainda é null (ver rfDivisaoSala)

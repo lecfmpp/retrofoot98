@@ -2164,6 +2164,7 @@ function scModoSolo(){
   const step=CL.soloStep||'choice';
   if(step==='novo') return scSoloNovo();
   const loading=CL.soloSaves==null; const n=(CL.soloSaves||[]).length;
+  const travado = (typeof rfPodeSalvarNovo==='function') && !rfPodeSalvarNovo();
   const contDesc = loading?'Carregando seus jogos salvos' : (n?`Você tem <b>${n}</b> jogo${n>1?'s':''} salvo${n>1?'s':''} na nuvem.`:'Nenhum jogo salvo ainda.');
   return wizShell({ step:rfPasso('Save','solo'), modo:'solo', title:'Modo Solo', back:'clGoModo()',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',
@@ -2172,10 +2173,12 @@ function scModoSolo(){
       <div class="cl-wiz-h">Como você quer começar?</div>
       <div class="cl-wiz-sub">Comece do zero ou retome um dos seus saves na nuvem.</div>
       <div class="cl-wiz-cards">
-        <div class="cl-mc-card sel" onclick="clSoloNew()">
-          <span class="cl-mc-badge">NEW</span>
+        <div class="cl-mc-card sel ${travado?'rf-travado':''}" onclick="${travado?`rfTrava('saves')`:'clSoloNew()'}">
+          ${travado?'<span class="rf-selo-plano">🔒 Plano</span>':'<span class="cl-mc-badge">NEW</span>'}
           <div class="cl-mc-t">Novo jogo</div>
-          <div class="cl-mc-d">Comece uma carreira nova do zero, contra a máquina.</div>
+          <div class="cl-mc-d">${travado
+            ? `Você já tem ${n} carreiras salvas — o máximo do seu plano. Apague uma para abrir espaço, ou suba de plano.`
+            : 'Comece uma carreira nova do zero, contra a máquina.'}</div>
         </div>
         <div class="cl-mc-card" onclick="clPickSolo()">
           <div class="cl-mc-ic">📁</div>
@@ -2247,6 +2250,17 @@ function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); 
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
 function clModoOk(){
   if(CL.mode==='cont'&&CL.contSel){ clLoadSave(CL.contSel); return; }
+  /* TETO DE SAVES DO PLANO. Este e' o funil de TODA carreira nova — clSoloNew,
+     os cartoes da pele nova e o atalho das configuracoes passam todos por aqui
+     —, entao a trava mora num sitio so'. Quem ja tem save nenhum perde: a
+     lista continua inteira e jogavel, so' o "mais um" e' que para (ver
+     rfPodeSalvarNovo / RF_TRAVAS.saves, em ui/rf26-landing.js).
+     O servidor recusa na mesma, por trigger em solo_saves — isto aqui e' a
+     explicacao, nao a fechadura. */
+  if(typeof rfPodeSalvarNovo==='function' && !rfPodeSalvarNovo()){
+    if(typeof rfTrava==='function') rfTrava('saves');
+    return;
+  }
   // patch escolhido pelo jogador entra AQUI, antes de o universo ser montado (o wizard
   // ainda tem telas pela frente, então a busca na rede não segura ninguém)
   if(typeof aplicarPatchEscolhido==='function') aplicarPatchEscolhido();
@@ -3469,6 +3483,16 @@ async function saveV3(explicit){
     }
   } catch(e){
     console.warn('saveSolo erro:', e);
+    /* TETO DE SAVES — ESTE ERRO NAO PODE SER SILENCIOSO. O trigger do banco
+       (PLANO_SAVES) recusa a carreira que passa do teto do plano, e os
+       auto-saves de fim de rodada sao mudos de proposito: sem este desvio, a
+       pessoa jogaria uma temporada inteira sem nada estar a ser gravado e so'
+       daria por isso ao voltar no dia seguinte. Aqui a janela abre mesmo sem
+       ser um "Gravar" explicito. */
+    if(/PLANO_SAVES/.test((e&&e.message)||'') && typeof rfTrava==='function'){
+      if(explicit) clCloseOverlay();
+      rfTrava('saves'); return;
+    }
     if(explicit){
       clCloseOverlay();
       const msg=(e&&e.message)?String(e.message):'';

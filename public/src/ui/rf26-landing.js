@@ -37,6 +37,123 @@ function rfContaEhPro(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return st.pro===true;
 }
+/* ===== O PLANO E OS SEUS LIMITES =====
+   Mesma regra do rfContaEhPro acima, um degrau mais fino: com tres planos
+   (Peladeiro / Resenha / Embaixador — ver RF_PLANOS mais abaixo) nao chega
+   saber se e' pago, e preciso saber QUAL, porque o que os separa sao numeros.
+
+   OS NUMEROS NAO ESTAO AQUI DE PROPOSITO. Vem do banco, por my_plan(), que e'
+   a mesma funcao que o servidor consulta para RECUSAR (o trigger de solo_saves,
+   o create_game, o claim_seat). Escrever "3" e "10" tambem no navegador criaria
+   uma segunda tabela de limites, e um dia uma das duas ficava por atualizar.
+
+   E QUANDO NAO SE SABE, NAO SE TRANCA. Sem sessao, com o banco fora do ar, ou
+   na bancada de testes (harness-adapter devolve authStatus sem plano), os
+   campos chegam null — e null aqui quer dizer "liberado". Trancar por falta de
+   resposta e' trancar quem pagou; deixar passar um clique a mais nao custa
+   nada, porque a trava que vale e' a do servidor. */
+function rfPlanoAtual(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.plan || 'free';
+}
+/* O plano gratis chama-se 'free' no banco e 'peladeiro' na pagina (a chave em
+   RF_PLANOS). Os dois pagos tem o mesmo nome dos dois lados. Esta ponte existe
+   para nao haver um `plan==='peladeiro'` nunca verdadeiro escondido algures. */
+function rfPlanoCartao(plano){
+  const k=plano||rfPlanoAtual();
+  return (k==='free') ? 'peladeiro' : k;
+}
+function rfSavesTeto(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  const t=st.savesMax;
+  return (t===null||t===undefined) ? Infinity : Number(t);
+}
+function rfSavesUsados(){
+  return ((typeof CL!=='undefined'&&CL.soloSaves)||[]).length;
+}
+/* Falta ainda espaco para mais uma carreira? Enquanto a lista nao carregou
+   (CL.soloSaves === null) responde que sim: o cartao nao pode nascer trancado
+   so' porque a rede esta lenta. */
+function rfPodeSalvarNovo(){
+  if(typeof CL==='undefined' || CL.soloSaves==null) return true;
+  return rfSavesUsados() < rfSavesTeto();
+}
+function rfPodeHospedar(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.podeHospedar !== false;
+}
+/* QUANTAS PESSOAS CABEM NUMA SALA — que não é o mesmo que quantos assentos ela
+   tem (a Série D tem 20 clubes; o plano é que limita as pessoas, ver rfSalaTeto
+   em rf26-resenha-entrada).
+
+   O número certo é o do ANFITRIÃO, e um convidado não vê o plano de outra
+   pessoa. Mas só o Embaixador abre sala, logo toda sala existente tem o teto
+   dele — é o que RF_SALA_HUMANOS serve, e só quando não dá para perguntar. A
+   autoridade continua a ser sala_max, no banco, que é o número por que o
+   claim_seat recusa. */
+const RF_SALA_HUMANOS = 8;
+function rfTetoHumanos(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return Number(st.salaMax||0) || RF_SALA_HUMANOS;
+}
+function rfPodeAvatarIA(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.avatarIA !== false;
+}
+
+/* ===== O CADEADO EXPLICA-SE =====
+   Uma trava que so' diz "nao" perde a pessoa. Cada uma delas abre esta janela:
+   o motivo em primeiro (o que ela tentou fazer agora mesmo), e so' depois o
+   plano que destranca — com o preco e os itens lidos de RF_PLANOS, para nao
+   nascer aqui uma segunda lista de precos.
+
+   O botao chama rfPlanoCta(), que ja e' o caminho de sempre: enquanto nao ha
+   checkout, leva a' lista de espera. A origem vai carimbada com a trava que
+   trouxe a pessoa ate' aqui ("jogo · saves · Resenha"), que e' o que depois
+   diz qual das travas de facto converte. */
+const RF_TRAVAS={
+  saves:{ tier:'resenha', titulo:'Os seus saves estão no limite',
+    texto:(n)=>`O plano Peladeiro guarda até <b>${n}</b> carreiras ao mesmo tempo. Para começar mais uma agora, apague uma que já acabou — ou suba de plano e leve todas.`,
+    saida:'Nenhuma carreira sua se perde: as que já existem continuam na nuvem, do jeito que estão.' },
+  savesResenha:{ tier:'embaixador', titulo:'Os seus saves estão no limite',
+    texto:(n)=>`O plano Resenha guarda até <b>${n}</b> carreiras ao mesmo tempo. Para começar mais uma agora, apague uma que já acabou — ou suba para o Embaixador e jogue sem conta.`,
+    saida:'Nenhuma carreira sua se perde: as que já existem continuam na nuvem, do jeito que estão.' },
+  hospedar:{ tier:'embaixador', titulo:'Abrir a sala é do Embaixador',
+    texto:()=>'Entrar na resenha dos outros dá em qualquer plano, inclusive no grátis. <b>Abrir a sua</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é do plano Embaixador.',
+    saida:'Já tem o código de alguém? Volte e entre na sala dele: isso não custa nada.' },
+  avatar:{ tier:'embaixador', titulo:'O retrato por IA é do Embaixador',
+    texto:()=>'O Embaixador põe a sua cara dentro do jogo: retrato gerado a partir de uma foto sua, na beira do campo e na ficha de treinador.',
+    saida:'As caras prontas continuam à sua disposição, de graça.' },
+};
+function rfTrava(chave){
+  /* A trava de saves aponta para o plano SEGUINTE ao de quem bateu no teto:
+     quem esta no Peladeiro sobe para o Resenha, quem ja esta no Resenha so'
+     resolve com o Embaixador. Oferecer a alguem o plano que ele ja tem e' o
+     jeito mais rapido de perder a venda. */
+  if(chave==='saves' && rfPlanoAtual()==='resenha') chave='savesResenha';
+  const t=RF_TRAVAS[chave]; if(!t) return;
+  const p=RF_PLANOS.find(x=>x.key===t.tier)||{};
+  const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
+  const corpo=`<div class="rf-trava ${p.destaque?'ouro':''}">
+    <p class="rf-trava-p">${t.texto(rfSavesTeto())}</p>
+    <div class="rf-trava-plano ${p.destaque?'ouro':''}">
+      <div class="rf-trava-hd">
+        <span class="rf-trava-n">${p.destaque?'<i class="rf-trava-coroa">👑</i>':''}${escC(p.nome||'')}</span>
+        <span class="rf-trava-v">${escC(p.preco||'')}<i>${escC(p.ciclo||'')}</i></span>
+      </div>
+      <ul class="rf-trava-l">${itens}</ul>
+      ${p.anual?`<span class="rf-trava-a">${escC(p.anual)}</span>`:''}
+    </div>
+    <span class="rf-trava-saida">${escC(t.saida)}</span>
+    <div class="rf-trava-bts">
+      <button type="button" class="rf-trava-bt-2" onclick="clCloseOverlay()">Agora não</button>
+      <button type="button" class="rf-trava-bt" onclick="clCloseOverlay();rfPlanoCta('${t.tier}','${chave}')">${escC(p.cta||'Quero assinar')}</button>
+    </div>
+  </div>`;
+  if(typeof overlayC==='function' && typeof dlg==='function')
+    overlayC(dlg(t.titulo, corpo, {w:520, tone:'marca', glyph:'🔒'}));
+  else if(typeof toastC==='function') toastC(t.titulo);
+}
 /* FASE LISTA DE ESPERA: com a flag ligada, quem NÃO tem sessão não vê o
    "Entrar" — a única porta é a lista de espera. Quem já tem conta (sessão
    aberta) continua entrando normalmente. Desligar = voltar o login. */
@@ -63,6 +180,11 @@ function rfContaChipHTML(){
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
   const pro=rfContaEhPro();
+  /* O CRACHA DIZ O PLANO, NAO "Pro". Havia um plano pago so', e o cracha dizia
+     o nome dele; agora ha dois, e "Pro" nao distingue um Resenha de um
+     Embaixador — logo nao diz nada a quem paga o de cima. O nome sai de
+     RF_PLANOS, a mesma lista que a pagina de precos usa. */
+  const selo=pro?((RF_PLANOS.find(p=>p.key===rfPlanoCartao())||{}).nome||'Pro'):'';
   /* O NOME E O BOTAO DE JOGAR. Com sessao aberta o cabecalho ficava sem
      nenhuma porta de entrada: o "Entrar" some (ja esta dentro) e sobrava um
      cracha passivo com o nome. */
@@ -70,7 +192,7 @@ function rfContaChipHTML(){
       title="Jogar como ${escC(st.email||nome)}">
       ${pro?'<span class="rf-lp-coroa" aria-hidden="true">👑</span>':rfIcone('jogar',16)}
       <span class="rf-lp-conta-n">${escC(nome)}</span>
-      ${pro?'<span class="rf-lp-pro">Pro</span>':''}
+      ${pro?`<span class="rf-lp-pro">${escC(selo)}</span>`:''}
     </button>
     <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>
     <button type="button" class="rf-lp-burger" onclick="rfLpMenu()" aria-label="Menu">
@@ -341,9 +463,13 @@ const RF_PLANOS=[
 /* Na fase de lista de espera nenhum plano tem checkout: o botão leva à
    lista, com o plano escolhido carimbado na origem para saber DEPOIS quem
    queria pagar o quê. Prometer "assinar" sem ter onde cobrar é botão morto. */
-function rfPlanoCta(key){
+function rfPlanoCta(key, trava){
   const nome=(RF_PLANOS.find(p=>p.key===key)||{}).nome||key;
-  if(typeof clWaitlistOpen==='function') return clWaitlistOpen('landing · plano '+nome);
+  /* De onde veio o lead. Da landing e' o botao do cartao do plano; de dentro do
+     jogo e' um cadeado, e ai o nome da trava vai junto — e' assim que se sabe
+     qual delas de facto empurra alguem para a lista. */
+  const origem = trava ? ('jogo · '+trava+' · plano '+nome) : ('landing · plano '+nome);
+  if(typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
   rfLpIr('lista');
 }
 function rfLpPlanosHTML(){
