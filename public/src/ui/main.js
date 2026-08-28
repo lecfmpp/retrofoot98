@@ -7123,7 +7123,11 @@ const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entr
    apitos. A gravacao tem 20s; e' desvanecida ao fim de doze, para nao correr
    por cima da tela seguinte, e cortada a seco se comecar outra rodada. */
 const RF_VITORIA_SRC = 'audio/torcida-vitoria.mp3';
-const RF_VITORIA_ESPERA = 1700;   // os tres sopros longos do apito
+/* UM SEGUNDO, nao os 1,7s do apito inteiro. Os tres sopros longos ocupam ~1,6s
+   (0,42s cada mais 0,12s de intervalo), entao o aplauso passa a ENTRAR por cima
+   do terceiro — e entra bem, porque entra em rampa: a 1s ele ainda esta' quase
+   inaudivel e so' chega ao alto depois de o apito ter acabado. */
+const RF_VITORIA_ESPERA = 1000;
 /* Eram 11s no ar mais 2,6s a sair — quase catorze segundos de aplauso, que se
    arrastavam para dentro da tela seguinte. Cortados a metade primeiro, e
    depois mais tres segundos: o aplauso marca o fim, nao acompanha o que vem
