@@ -6492,7 +6492,7 @@ async function compararMetodos(item, p){
                alt: ENCAIXE_LARG_CABECA/(medida.larg*RATIO_QUADRO),
                ancX: TORSO_X, base:'manequim', corpoLarg: 0.62, ancY: 0,
                cola: 'meia', ima: true, cortar: true, corte: auto.corte,
-               semFundo: true, fundo: '#e8e8e4' };
+               semFundo: true, fundo: '#e8e8e4', ordem: 'atras' };
   const eixoAtual = () => eixoDe(amostras[0]);
   st.corpoY = topoPadrao(st.rq);
   st.ancY = golaDe(amostras[0]);   // nasce colada na gola
@@ -6530,7 +6530,7 @@ async function compararMetodos(item, p){
             <img id="enc-corpo" src="${h(t.url)}" draggable="false"
                  style="position:absolute;transform:translateX(-50%);width:${(TORSO_ESCALA*100).toFixed(1)}%;pointer-events:none">
             <img id="enc-rosto" src="${h(rosto)}" draggable="false" style="position:absolute;object-fit:contain;pointer-events:none">
-            <span style="position:absolute;inset:0;pointer-events:none">
+            <span style="position:absolute;inset:0;pointer-events:none;z-index:5">
               ${gradeHTML()}${pontosHTML()}
               <span style="position:absolute;left:0;right:0;top:${(TORSO_TOPO*100).toFixed(2)}%;border-top:1px dashed #35c46a"></span>
               <span id="enc-linha-gola" style="position:absolute;left:0;right:0;border-top:1.5px dashed #e3b23c"></span>
@@ -6559,6 +6559,11 @@ async function compararMetodos(item, p){
             <select id="enc-base" class="inp inp-sm" style="width:auto">
               <option value="manequim" selected>Manequim do clube (limpo)</option>
               <option value="foto">Foto do uniforme</option>
+            </select>
+            <span style="font-size:12.5px;color:var(--dim)">Cabeça</span>
+            <select id="enc-ordem" class="inp inp-sm" style="width:auto">
+              <option value="atras" selected>Atrás da camisa</option>
+              <option value="frente">À frente da camisa</option>
             </select>
             <span style="font-size:12.5px;color:var(--dim)">Quadro</span>
             <select id="enc-rq" class="inp inp-sm" style="width:auto">
@@ -6674,6 +6679,14 @@ async function compararMetodos(item, p){
        que o que casa com o eixo do corpo seja ela, nao o quadrado dela */
     img.style.left   = ((st.ancX - (cx-0.5)*lr)*100).toFixed(2)+'%';
     img.style.transform = 'translateX(-50%)';
+    /* ORDEM DAS CAMADAS. Com a cabeca ATRAS, a gola passa por cima do pescoco
+       e o encontro deixa de ser um encosto — vira sobreposicao, que e' como
+       uma camisa se comporta. So' funciona porque a base e' transparente:
+       sobre a foto antiga, o fundo cinza da camisa engoliria a cabeca. */
+    const zCabeca = st.ordem === 'atras' ? 1 : 3;
+    img.style.zIndex   = String(zCabeca);
+    corpo.style.zIndex = '2';
+    fundoEl.style.zIndex = '0';
     fundoEl.style.background = st.semFundo ? st.fundo : 'transparent';
     const srcCamisa = baseDe(amostras[0]);
     if(corpo.getAttribute('src') !== srcCamisa) corpo.src = srcCamisa;
@@ -6706,6 +6719,7 @@ async function compararMetodos(item, p){
     /* a imagem e' quadrada: o lado renderizado em fracao da LARGURA e' alt*RATIO_FOTO */
     const cab = medida.larg * lr;
     saida.textContent =
+      `ordem das camadas   : ${st.ordem === 'atras' ? 'cabeça ATRÁS da camisa' : 'cabeça à frente'}\n`+
       `base                : ${ehMan(amostras[0]) ? 'manequim do clube (limpo)' : 'foto do uniforme'}\n`+
       `largura da base     : ${(largBase()*100).toFixed(2)}%\n`+
       `camadas             : fundo · camisa${ehMan(amostras[0])?'':(st.cortar?' (sem pescoço)':'')}${ehMan(amostras[0])?'':(st.semFundo?' · sem fundo':'')} · cabeça\n`+
@@ -6741,6 +6755,7 @@ async function compararMetodos(item, p){
       const q = el('enc-q'+i); if(q) q.style.aspectRatio = (1/st.rq).toFixed(4);
       if(q) q.style.background = st.semFundo ? st.fundo : '#d9d9d9';
       const sc = baseDe(a); if(c.getAttribute('src') !== sc) c.src = sc;
+      c.style.zIndex = '2'; r.style.zIndex = String(zCabeca);
       c.style.width = (largBase()*100).toFixed(2)+'%';
       c.style.clipPath = '';
       c.style.top = (cTopo*100).toFixed(2)+'%';
@@ -6759,6 +6774,7 @@ async function compararMetodos(item, p){
     el('enc-corpox').value = (st.corpoX*100).toFixed(2);
     el('enc-corpoy').value = (st.corpoY*100).toFixed(2);
     el('enc-larg').value   = (st.corpoLarg*100).toFixed(2);
+    el('enc-ordem').value  = st.ordem;
   };
   desenha();
 
@@ -6779,6 +6795,7 @@ async function compararMetodos(item, p){
     st.alt = ENCAIXE_LARG_CABECA/(medida.larg*st.rq);
     st.corpoY = topoPadrao(st.rq);
     st.ancY = golaDe(amostras[0]); st.ancX = eixoAtual(); desenha(); };
+  el('enc-ordem').onchange = e => { st.ordem = e.target.value; desenha(); };
   el('enc-base').onchange = e => {
     st.base = e.target.value;
     st.cortar = st.base !== 'manequim';
