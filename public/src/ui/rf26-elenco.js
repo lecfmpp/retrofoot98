@@ -536,6 +536,7 @@ function rfElFichaHTML(clubIdArg, pidArg){
         <div class="rf-fx-carac-hd"><span class="rf-fx-microt">CARACTERÍSTICAS · ${escC(perfil)}</span>
           <span class="rf-sp"></span>
           <span class="rf-fx-legenda"><i></i>MÉDIA DA POSIÇÃO NA SÉRIE</span></div>
+        <div class="rf-fx-carac-cols">
         <div class="rf-fx-carac-grid">
           ${(typeof rfCardJogadorHTML==='function')
             ? rfCardJogadorHTML(p, num, cid)
@@ -555,6 +556,7 @@ function rfElFichaHTML(clubIdArg, pidArg){
             ${rfFxGrupoHTML('GOLEIRO',[['ref','Reflexos'],['mao','Defesa/mãos']],p,ehGK,
               `<span class="rf-fx-nota caixa">${escC(ehGK?notaGK:notaLinha)}</span>`)}
           </div>
+        </div>
         <span class="rf-fx-rodape">Os 16 atributos vão de 1 a 20 e evoluem rodada a rodada. Eles alimentam a força do jogador pelo perfil da posição — e finalização, reflexos e mãos ainda entram direto na partida, decidindo gol, pênalti e defesa.</span>
       </div>
       <div class="rf-fx-lateral">
