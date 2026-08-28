@@ -5434,10 +5434,11 @@ const rostoEncaixe = () => {
    corta (object-position 50% 12%) e onde o degrade ainda nao cobriu. */
 const MARCA_AZUL = '#17458F', MARCA_AMARELO = '#F2B90C';
 
-/* DUAS PALETAS. A da marca (azul com detalhe amarelo) e' o padrao; a NEUTRA
-   — branco ou cinza claro — existe para testar como o card fica quando a
-   camisa nao disputa com as cores do clube no fundo. Como o degrade escuro
-   cobre boa parte dela, a diferenca aparece sobretudo nos ombros e na gola. */
+/* DUAS PALETAS, e a NEUTRA e' o padrao — decidido olhando o resultado, nao no
+   papel. Branco/cinza claro nao disputa com as cores do clube no fundo do
+   card, que sao a identidade da peca; o azul da marca competia com elas
+   justamente nos ombros e na gola, o trecho acima do degrade.
+   A da marca fica disponivel, mas deixa de ser o que sai por omissao. */
 const UNIFORMES_RETRATO = {
   marca:  `a PLAIN football jersey in deep royal blue (${MARCA_AZUL}) with narrow golden yellow (${MARCA_AMARELO}) trim on the collar and sleeve cuffs — no stripes, no pattern, no club identity`,
   neutro: 'a PLAIN off-white / light grey football jersey with subtly darker grey trim on the collar and sleeve cuffs — no stripes, no pattern, no colour, no club identity'
@@ -5448,7 +5449,7 @@ function promptCartaoJogador(item, p, at, uniforme){
     /* os mesmos atributos sorteados do retrato antigo — sem eles os jogadores
        novos sairiam todos parecidos, que era o motivo de existir o sorteio */
     `${at.idade} years old, ${at.pele}, ${/bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
-    `Wearing ${UNIFORMES_RETRATO[uniforme] || UNIFORMES_RETRATO.marca}.`,
+    `Wearing ${UNIFORMES_RETRATO[uniforme] || UNIFORMES_RETRATO.neutro}.`,
     'The jersey is COMPLETELY CLEAN: no crest, no badge, no sponsor, no manufacturer mark, no text, no numbers, no logos anywhere.',
     'Framing: the top of the head near the top edge, the face in the UPPER THIRD, cropped at mid-chest, shoulders fully visible and centered.',
     'FULLY TRANSPARENT BACKGROUND — no studio backdrop, no floor, and NO SHADOW cast behind or around the player (a cast shadow becomes a grey fringe when the photo is placed over colours).',
@@ -8354,8 +8355,8 @@ function modalFotosIA(item){
     ${editar && sq.length ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <button class="btn btn-sm" id="ft-todos">Gerar os que faltam (${faltantes().length})</button>
       <label style="font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center"
-        title="Testa a camisa neutra em vez do azul da marca — vale para o próximo ✦ que você clicar">
-        <input type="checkbox" id="ft-neutro"> camisa branca (teste)</label>
+        title="Gera com o azul da marca em vez da camisa neutra — vale para o próximo ✦ que você clicar">
+        <input type="checkbox" id="ft-marca"> camisa azul da marca (teste)</label>
       <button class="btn btn-sm btn-ghost" id="ft-remontar"
         title="Refaz a montagem de todo o elenco deste clube com o encaixe atual — canvas, sem IA">Remontar o elenco</button>
       <button class="btn btn-sm btn-ghost" id="ft-recortar"
@@ -8509,8 +8510,8 @@ function modalFotosIA(item){
   };
 
   /* o interruptor vale para o proximo ✦: e' teste, entao nao se guarda em
-     lugar nenhum — recarregou, volta ao azul da marca */
-  const uniformeEscolhido = () => (el('ft-neutro') && el('ft-neutro').checked) ? 'neutro' : 'marca';
+     lugar nenhum — recarregou, volta ao neutro, que e' o padrao */
+  const uniformeEscolhido = () => (el('ft-marca') && el('ft-marca').checked) ? 'marca' : 'neutro';
 
   const btCortar = el('ft-recortar');
   if(btCortar) btCortar.onclick = async () => {
@@ -8541,9 +8542,9 @@ function modalFotosIA(item){
        tabela antiga por imagem, que subestimava a montagem em 11%. */
     const custo = (fila.length*0.044).toFixed(2);   // so' a cabeca; o encaixe e' canvas
     if(!await rfConfirm({ titulo:'Gerar as fotos que faltam',
-      texto:`Vou gerar <b>${fila.length} retrato(s)</b> — cabeça e peito, uniforme da marca e fundo transparente.`,
+      texto:`Vou gerar <b>${fila.length} retrato(s)</b> — cabeça e peito, camisa neutra e fundo transparente.`,
       detalhe:`Custo: <b>~US$ ${custo}</b> — este é o teto, não sobe.
-               O uniforme é o <b>genérico da marca</b> e o fundo é transparente, então a foto
+               A camisa é <b>neutra</b> (off-white) e o fundo é transparente, então a foto
                <b>serve a qualquer clube para sempre</b>: no card, a identidade vem do fundo e o degradê
                cobre a camisa. Numa transferência não há nada a refazer.
                Antes de gastar, veja o acervo (♻) — há cabeças sem dono.`,
