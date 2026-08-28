@@ -241,7 +241,7 @@ function rfLpTelasHTML(){
       <img src="${escC(img)}" alt="${escC(l)} — tela do RetroFoot98" loading="lazy" width="1600" height="1000">
       <figcaption>${escC(d)}</figcaption>
     </figure>`).join('');
-  return `<section class="rf-lp-telas" id="rf-lp-telas">
+  return `<section class="rf-lp-telas rf-lp-f-branco" id="rf-lp-telas">
     <div class="rf-lp-telas-in">
       <span class="rf-lp-eyebrow">Por dentro do jogo</span>
       <h2 class="rf-lp-h2">Isto aqui não é maquete. É o jogo rodando.</h2>
@@ -289,7 +289,7 @@ function rfLpMomentosHTML(){
     <span class="rf-lp-mom-t">${escC(t)}</span>
     <span class="rf-lp-mom-d">${escC(d)}</span>
   </div>`).join('');
-  return `<section class="rf-lp-momentos" id="rf-lp-momentos">
+  return `<section class="rf-lp-momentos rf-lp-f-navy" id="rf-lp-momentos">
     <div class="rf-lp-momentos-in">
       <span class="rf-lp-eyebrow">Momentos</span>
       <h2 class="rf-lp-h2">O jogo te procura. E às vezes é pra dar notícia ruim.</h2>
@@ -363,7 +363,7 @@ function rfLpPlanosHTML(){
       <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}')">${escC(p.cta)}</button>
     </div>`;
   }).join('');
-  return `<section class="rf-lp-planos" id="rf-lp-planos">
+  return `<section class="rf-lp-planos rf-lp-f-branco" id="rf-lp-planos">
     <div class="rf-lp-planos-in">
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
@@ -393,7 +393,7 @@ function rfLpResenhaHTML(){
     <span class="rf-lp-passo-n">${n}</span>
     <span class="rf-lp-passo-t">${escC(t)}</span>
     <span class="rf-lp-passo-d">${escC(d)}</span></div>`;
-  return `<section class="rf-lp-resenha" id="rf-lp-resenha">
+  return `<section class="rf-lp-resenha rf-lp-f-creme" id="rf-lp-resenha">
     <div class="rf-lp-resenha-in">
       <span class="rf-lp-eyebrow">Modo Resenha</span>
       <h2 class="rf-lp-h2">A liga é sua. A zoeira é do grupo.</h2>
@@ -447,7 +447,7 @@ function rfLpJogadorOficialHTML(){
          <span class="rf-lp-album-t">a sua foto</span>
          <span class="rf-lp-album-s">aquela de criança, com a camisa do time</span>
        </span>`;
-  return `<section class="rf-lp-oficial" id="rf-lp-oficial">
+  return `<section class="rf-lp-oficial rf-lp-f-branco" id="rf-lp-oficial">
     <div class="rf-lp-oficial-in">
       <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
       <h2 class="rf-lp-h2">Você não virou jogador. Mas ainda dá tempo.</h2>
@@ -496,7 +496,7 @@ function rfLpGranaHTML(){
     <span class="rf-lp-quem-ic" aria-hidden="true">${ic}</span>
     <span class="rf-lp-quem-t">${escC(t)}</span>
     <span class="rf-lp-quem-d">${escC(d)}</span></div>`;
-  return `<section class="rf-lp-grana" id="rf-lp-grana">
+  return `<section class="rf-lp-grana rf-lp-f-creme" id="rf-lp-grana">
     <div class="rf-lp-grana-in">
       <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
       <h2 class="rf-lp-h2">Monte a sua resenha. E ganhe com ela.</h2>
@@ -552,7 +552,7 @@ function rfLpLigasHTML(){
     <span class="rf-lp-embc-t">${escC(t)}</span>
     <span class="rf-lp-embc-d">${escC(d)}</span>
   </div>`).join('');
-  return `<section class="rf-lp-ligas" id="rf-lp-ligas">
+  return `<section class="rf-lp-ligas rf-lp-f-creme" id="rf-lp-ligas">
     <div class="rf-lp-ligas-in">
       <span class="rf-lp-selo-emb">👑 Plano Embaixador</span>
       <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
@@ -634,7 +634,7 @@ function rfLpListaHTML(){
     CL.waitlistCount=-1;                       // pede uma vez só, não a cada desenho
     setTimeout(()=>{ CL.waitlistCount=null; clWaitlistCount(); },0);
   }
-  return `<section class="rf-lp-lista" id="rf-lp-lista">
+  return `<section class="rf-lp-lista rf-lp-f-navy" id="rf-lp-lista">
     <div class="rf-lp-lista-in">
       <span class="rf-lp-eyebrow">Lista de espera</span>
       <h2 class="rf-lp-h2">Só ${vagas} treinadores entram na primeira versão.</h2>
