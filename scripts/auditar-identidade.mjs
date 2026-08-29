@@ -62,8 +62,8 @@ if (EXIGIR) {
 
 /* ---------- 3. NOMES — a identidade de fato usada hoje ----------
    Duas medidas diferentes, e só a primeira é um defeito:
-   · repetido DENTRO do mesmo clube quebra o casamento por nome do pack_edits e do backfill de
-     fotos, porque não há como saber de qual dos dois se está falando;
+   · repetido DENTRO do mesmo clube quebra o casamento por nome do pack_edits, porque não há
+     como saber de qual dos dois se está falando (o id, por ser posicional, não se importa);
    · repetido ENTRE clubes é o que faz RF_FOTOS_NOME (o índice global por nome, dados.js) servir
      a foto do jogador errado. É o número que a leitura por id vem corrigir. */
 const porClube = new Map();
@@ -86,9 +86,15 @@ console.log(`   repetidos DENTRO do mesmo clube: ${dentroDoClube.length}  ${dent
 console.log(`   repetidos ENTRE clubes:          ${entreClubes.length}  ← servidos pela foto errada hoje (RF_FOTOS_NOME)`);
 dentroDoClube.slice(0, 10).forEach(s => console.log(`     · ${s}`));
 
-/* Um homônimo dentro do mesmo clube impede a Fase 4 de casar por (club_id, nome). Só é fatal
-   quando já se exige id — antes disso é o aviso que diz quanto trabalho manual vem pela frente. */
-if (EXIGIR && dentroDoClube.length) reprova(`${dentroDoClube.length} homônimo(s) dentro do mesmo clube`);
+/* HOMONIMO NAO REPROVA — e essa decisao mudou durante a Fase 4. A regra antiga supunha que a
+   atribuicao de id casaria por (club_id, nome), e dois "Joao Pedro" no mesmo elenco travariam
+   tudo. A atribuicao acabou sendo POSICIONAL — percorre o elenco na ordem e numera —, entao
+   homonimo nunca foi obstaculo para ela. Mais: e' precisamente o caso que o id resolve.
+
+   Continua sendo aviso porque `pack_edits` ainda casa por nome (dados.js) e continua ambiguo
+   nesses dois elencos. E' divida conhecida e pre-existente; travar o build por ela pararia o
+   deploy por uma condicao que ja' estava la' antes deste trabalho comecar. */
+if (dentroDoClube.length) console.log(`   ⚠ homônimo no mesmo elenco não impede o id (que é posicional), mas mantém pack_edits ambíguo nesses clubes`);
 
 console.log();
 if (falhas) { console.log(`✘ auditoria de identidade reprovou (${falhas})`); process.exit(1); }

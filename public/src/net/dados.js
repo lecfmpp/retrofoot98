@@ -64,6 +64,11 @@ function acharClube(id){
    do objeto de clube que o motor lê */
 const CAMPOS_CLUBE   = ['name','short','color','color2','crest','OS','MS','DS','overall'];
 const CAMPOS_JOGADOR = ['n','p','s','f','age','mv','num','nat','ft','moral','energy'];
+/* O ID FICA DE FORA DA LISTA EDITAVEL, e entra so' aqui. Um jogador que NASCE pelo patch
+   (squad_novos) precisa trazer o seu id, senao fica fora do registro e sem foto propria. Mas
+   por-lo em CAMPOS_JOGADOR deixaria um patch trocar a identidade de um jogador que ja' existe
+   -- e identidade que se pode reescrever nao e' identidade. */
+const CAMPOS_JOGADOR_NOVO = CAMPOS_JOGADOR.concat('id');
 function copiar(destino, patch, permitidos){
   for(const k of permitidos) if(patch[k] !== undefined && patch[k] !== null) destino[k] = patch[k];
 }
@@ -160,7 +165,7 @@ function aplicar(edits){
         }
         if(Array.isArray(e.patch.squad_novos)) for(const novo of e.patch.squad_novos){
           if(!novo || !novo.n || sq.some(x => x.n === novo.n)) continue;
-          const p = { moral:70, energy:100 }; copiar(p, novo, CAMPOS_JOGADOR); sq.push(p);
+          const p = { moral:70, energy:100 }; copiar(p, novo, CAMPOS_JOGADOR_NOVO); sq.push(p);
         }
       }
       n++;

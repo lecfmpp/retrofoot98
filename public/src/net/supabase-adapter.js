@@ -550,7 +550,7 @@ async function netHeartbeatSeen(){
 /* PUBLICA a última escalação/tática do MEU clube no meu assento — os outros clientes leem isso
    (via game_seats -> _claimed -> S.clubXI) pra simular o MEU clube com a MINHA escalação real quando
    eu estou ausente/não jogo ao vivo. Sem isso, cada cliente simulava com autoXI e os resultados
-   divergiam. jsonb aceita o array de nomes de S.xi. */
+   divergiam. jsonb aceita o array de S.xi — que são PIDS desde julho/2026, não nomes. */
 async function netPublishLineup(xi, tactic){
   if(!sb || !NET.gameId || !SB_AUTH_USER) return;
   try{ await sb.from('game_seats').update({ last_xi:(xi&&xi.length)?xi:null, last_tactic:tactic||null }).eq('game_id', NET.gameId).eq('user_id', SB_UID()); }catch(e){}

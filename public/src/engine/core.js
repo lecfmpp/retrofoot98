@@ -3447,8 +3447,9 @@ function isIntlUniverse(){ return ACTIVE_UNI!=='brasil'; }
 const PROC_CITY=['Norte','Sul','Vale','Serra','Litoral','Central','Oeste','Leste','União','Palmares','Bela Vista','Rio Claro','Boa Esperança','Alto Paraná','Campo Verde','Porto Novo','Santa Fé','Monte Azul','Vitória','Progresso'];
 const PROC_SUFFIX=['FC','EC','AC','SC','Atlético','Esporte Clube','Futebol Clube'];
 /* nomes de jogador procedural (city+letra) precisam ser ÚNICOS NO JOGO INTEIRO, não só
-   dentro de um elenco — o motor identifica jogador pelo nome, não por ID (findP, S.scorers,
-   S.xi...), e com só 20 cidades x 26 letras (520 combinações) pra até ~80 clubes de B/C/D,
+   dentro de um elenco — parte do motor ainda identifica jogador pelo nome (findP e S.scorers;
+   S.xi já é por pid, e o catálogo já tem p.id desde a padronização de identidade), e com só
+   20 cidades x 26 letras (520 combinações) pra até ~80 clubes de B/C/D,
    nomes repetidos entre clubes diferentes eram praticamente garantidos. Resetado a cada
    novo jogo (newGame) pra não vazar entre saves. */
 let PROC_USED_NAMES=new Set();
