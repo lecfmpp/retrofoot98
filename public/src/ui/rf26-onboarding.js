@@ -957,7 +957,16 @@ function rfOb7(){
           <b>${seg>=70?'alta':seg>=40?'média':'curta'}</b></div>
         <div class="rf-ob-esc-bar"><i style="width:${Math.max(0,Math.min(100,seg))}%"></i></div>
       </div>
-    </div>`;
+    </div>
+    ${/* A ENTRADA NO CLUBE É O MOMENTO MAIS VISTO DE TODO O FUNIL: toda carreira
+         nova passa por aqui, uma vez, com a atenção inteira na tela — e era o
+         único momento grande do jogo sem espaço de inventário. Fica DEPOIS dos
+         números e ANTES do botão de entrar: quem lê o elenco e o objetivo passa
+         por ele a caminho do clique, sem que nada seja empurrado para baixo da
+         dobra. Sem criativo publicado, rfAdEspaco desenha o lugar vazio com a
+         medida exata — publicar não mexe no layout. */''}
+    ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.entrada.sorteio',
+        {cls:'rf-ad-entrada',formato:'970×250'}):''}`;
   /* JOGAR é o passo 7, o último. Estava em 5 ("Convites"). */
   return rfWiz({passo:rfPasso('Jogar'), corpo,
     sobre:'Você é o novo treinador', titulo:'Bem-vindo ao '+(cl.short||'clube')+'.',

@@ -8412,6 +8412,17 @@
 .rf-adph.rf-ad-rect{width:100%;max-width:300px;height:250px;margin:8px auto 0}
 .rf-adph.rf-ad-inline{width:100%;max-width:468px;height:60px;margin:10px auto}
 .rf-adph.rf-ad-splash,.rf-adph.rf-ad-card{width:100%;max-width:520px;aspect-ratio:16/9;margin:14px auto}
+/* Boas-vindas ao clube (rf98.entrada.sorteio, rfOb7) — 970×250 no desktop e
+   320×100 no telemóvel, as duas medidas que o inventário vende. `aspect-ratio`
+   em vez de altura fixa: assim o lugar encolhe com a coluna sem cortar o
+   criativo, e reservar o espaço certo é o que impede a publicação de empurrar
+   o botão de entrar para baixo da dobra. */
+.rf-ad-entrada,.rf-adph.rf-ad-entrada{width:100%;max-width:970px;aspect-ratio:970/250;
+  margin:18px auto 4px;border-radius:var(--r-inner)}
+.rf-ad-entrada img,.rf-ad-entrada video{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:720px){
+  .rf-ad-entrada,.rf-adph.rf-ad-entrada{aspect-ratio:320/100}
+}
 .rf-adph.cl-ad{width:100%;max-width:728px;height:90px;margin:12px auto 0;background:var(--surface-sunken)}
 .rf-adph.rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
   width:min(970px,100vw);height:90px;border-radius:var(--r-inner,12px) var(--r-inner,12px) 0 0;
