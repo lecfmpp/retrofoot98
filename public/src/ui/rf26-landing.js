@@ -435,21 +435,19 @@ function rfLpMomentosHTML(){
    exatamente o que o jogo entrega.
    ===================================================================== */
 const RF_PLANOS=[
-  { key:'peladeiro', nome:'Peladeiro', preco:'R$ 0', ciclo:'pra sempre',
+  { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
     itens:['Até 3 saves no modo solo','Joga o Modo Resenha nas salas dos outros','Séries A, B, C e D com elencos reais'],
     falta:['Não abre sala como anfitrião'],
     cta:'Começar de graça' },
 
-  { key:'resenha', nome:'Resenha', preco:'R$ 19,90', ciclo:'por mês',
-    anual:'ou R$ 199 por ano — dá R$ 16,58/mês',
+  { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
     resumo:'Pra quem joga direto com a turma e quer o nome no ranking.',
     itens:['Até 10 saves no modo solo','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
     falta:['Não abre sala como anfitrião'],
     cta:'Assinar o Resenha' },
 
-  { key:'embaixador', nome:'Embaixador', preco:'R$ 49,90', ciclo:'por mês',
-    anual:'ou R$ 399 por ano — dá R$ 33,25/mês',
+  { key:'embaixador', nome:'Embaixador', mes:4990, ano:39900,
     destaque:true, selo:'O mais completo',
     resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
     itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
@@ -460,6 +458,47 @@ const RF_PLANOS=[
            'Código pra passar aos seus seguidores — e monetizar com ele'],
     cta:'Quero ser Embaixador' },
 ];
+
+/* ===== O PRECO EM CENTAVOS, E O RESTO CALCULADO =====
+   Os valores eram frases ('R$ 19,90', 'ou R$ 199 por ano — dá R$ 16,58/mês').
+   Com o seletor mensal/anual isso deixou de servir: a economia tem de ser
+   CONTADA, senão nasce uma quarta e uma quinta frase para alguém esquecer de
+   atualizar no dia do reajuste. Agora só existem dois números por plano, e
+   mensalidade equivalente, desconto e economia saem deles.
+
+   Os centavos são os MESMOS do Stripe (metadata plano+ciclo) — 1990, 19900,
+   4990, 39900. Se um dia divergirem, o site mente sobre o que a cobrança faz. */
+function rfBRL(cent, comCentavos){
+  const v = cent/100;
+  return 'R$ ' + v.toLocaleString('pt-BR', {
+    minimumFractionDigits: (comCentavos===false && v%1===0) ? 0 : 2,
+    maximumFractionDigits: 2 });
+}
+function rfPlanoEconomia(p){
+  if(!p.mes || !p.ano) return null;
+  const cheio = p.mes*12, poupa = cheio - p.ano;
+  if(poupa <= 0) return null;
+  return { poupa, pct: Math.round(poupa*100/cheio), porMes: Math.round(p.ano/12) };
+}
+/* o maior desconto entre os planos pagos — é o número que a etiqueta do
+   seletor mostra, e ele também deixa de ser digitado à mão */
+function rfEconomiaMaxima(){
+  return RF_PLANOS.reduce((m,p)=>{ const e=rfPlanoEconomia(p); return e&&e.pct>m ? e.pct : m; }, 0);
+}
+let RF_LP_CICLO = 'mes';
+/* O que cada cartão mostra no ciclo escolhido: número grande, legenda e a linha
+   de baixo. Uma função só, usada no desenho inicial E na troca — desenhar de um
+   jeito e atualizar de outro é como as duas versões passam a discordar. */
+function rfPlanoPrecoPartes(p, ciclo){
+  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre', nota:'sem cartão, sem pegadinha' };
+  const e = rfPlanoEconomia(p);
+  if(ciclo === 'ano' && e){
+    return { v:rfBRL(e.porMes), c:'por mês',
+             nota:`${rfBRL(p.ano,false)} cobrados uma vez por ano · você economiza ${rfBRL(e.poupa)}` };
+  }
+  return { v:rfBRL(p.mes), c:'por mês',
+           nota: e ? `no anual sai ${rfBRL(e.porMes)}/mês — ${e.pct}% mais barato` : 'sem fidelidade' };
+}
 /* ===== O BOTÃO DE ASSINAR =====
    Tem DOIS destinos, e o certo é escolhido na hora:
 
@@ -502,29 +541,77 @@ function rfLpPlanosHTML(){
   const cartoes=RF_PLANOS.map(p=>{
     const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
     const falta=(p.falta||[]).map(i=>`<li class="nao"><span class="rf-lp-tick">—</span>${escC(i)}</li>`).join('');
-    return `<div class="rf-lp-plano ${p.destaque?'ouro':''}">
+    const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
+    return `<div class="rf-lp-plano ${p.destaque?'ouro':''}" data-plano="${p.key}">
       ${p.selo?`<span class="rf-lp-plano-selo">👑 ${escC(p.selo)}</span>`:''}
       <span class="rf-lp-plano-n">${escC(p.nome)}</span>
       <span class="rf-lp-plano-r">${escC(p.resumo)}</span>
       <div class="rf-lp-plano-preco">
-        <span class="rf-lp-plano-v">${escC(p.preco)}</span>
-        <span class="rf-lp-plano-c">${escC(p.ciclo)}</span>
+        <span class="rf-lp-plano-v">${escC(q.v)}</span>
+        <span class="rf-lp-plano-c">${escC(q.c)}</span>
       </div>
-      <span class="rf-lp-plano-a">${p.anual?escC(p.anual):'sem cartão, sem pegadinha'}</span>
+      <span class="rf-lp-plano-a">${escC(q.nota)}</span>
       <ul class="rf-lp-plano-l">${itens}${falta}</ul>
-      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}')">${escC(p.cta)}</button>
+      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}',null,RF_LP_CICLO)">${escC(p.cta)}</button>
     </div>`;
   }).join('');
+  const pct=rfEconomiaMaxima();
+  /* ===== O SELETOR MENSAL / ANUAL =====
+     Dois botões de verdade num `role="radiogroup"`, não um checkbox estilizado:
+     quem chega pelo teclado troca com as setas e ouve "Anual, economize 33%",
+     que é a informação que faz a escolha — escondê-la num enfeite visual seria
+     esconder o desconto de quem mais precisa dele.
+
+     A pastilha que desliza é UM elemento, movido por transform. Animar
+     `left`/`width` obriga o browser a refazer o layout a cada quadro e engasga
+     no telemóvel; transform anda na composição e sai liso. */
   return `<section class="rf-lp-planos rf-lp-f-branco" id="rf-lp-planos">
     <div class="rf-lp-planos-in">
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
       <p class="rf-lp-p">Dá pra jogar de graça pra sempre. Os planos pagos existem pra quem quer abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
+      <div class="rf-lp-ciclo" role="radiogroup" aria-label="Como você quer pagar"
+           data-ciclo="${RF_LP_CICLO}">
+        <span class="rf-lp-ciclo-pilula" aria-hidden="true"></span>
+        <button type="button" class="rf-lp-ciclo-b" role="radio" data-c="mes"
+          aria-checked="${RF_LP_CICLO==='mes'}" onclick="rfCicloTrocar('mes')">Mensal</button>
+        <button type="button" class="rf-lp-ciclo-b" role="radio" data-c="ano"
+          aria-checked="${RF_LP_CICLO==='ano'}" onclick="rfCicloTrocar('ano')">Anual
+          <span class="rf-lp-ciclo-selo">economize ${pct}%</span></button>
+      </div>
       <div class="rf-lp-plano-grade">${cartoes}</div>
       <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus.</span>
     </div>
   </section>`;
 }
+
+/* TROCA SEM REDESENHAR A PÁGINA. Um cdraw() aqui refaria a landing inteira: a
+   secção saltaria sob o dedo de quem tocou e o vídeo dos Momentos recomeçaria.
+   Aqui só três nós por cartão mudam de texto, e a pastilha desliza sozinha pelo
+   atributo data-ciclo. */
+function rfCicloTrocar(c){
+  if(c!==RF_LP_CICLO) RF_LP_CICLO=c;
+  const cx=document.querySelector('.rf-lp-ciclo');
+  if(cx){
+    cx.setAttribute('data-ciclo', c);
+    cx.querySelectorAll('.rf-lp-ciclo-b').forEach(b=>
+      b.setAttribute('aria-checked', String(b.dataset.c===c)));
+  }
+  document.querySelectorAll('.rf-lp-plano[data-plano]').forEach(cartao=>{
+    const p=RF_PLANOS.find(x=>x.key===cartao.dataset.plano); if(!p) return;
+    const q=rfPlanoPrecoPartes(p, c);
+    const v=cartao.querySelector('.rf-lp-plano-v');
+    const l=cartao.querySelector('.rf-lp-plano-c');
+    const n=cartao.querySelector('.rf-lp-plano-a');
+    if(v){ v.textContent=q.v; v.classList.remove('troca'); void v.offsetWidth; v.classList.add('troca'); }
+    if(l) l.textContent=q.c;
+    if(n) n.textContent=q.nota;
+  });
+  /* o botão de ouro lá embaixo repete o preço do Embaixador */
+  const ouro=document.querySelector('.rf-lp-bt-ouro');
+  if(ouro) ouro.innerHTML='👑 Ser Embaixador — '+escC(rfPlanoPreco('embaixador'));
+}
+
 
 
 /* =====================================================================
@@ -690,7 +777,8 @@ const RF_LP_EMBAIXADOR=[
 /* o preço sai de RF_PLANOS — digitado outra vez aqui, um dia os dois discordam */
 function rfPlanoPreco(key){
   const p=RF_PLANOS.find(x=>x.key===key); if(!p) return '';
-  return p.preco+'/'+(p.ciclo||'').replace('por ','');
+  const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
+  return q.v+'/'+q.c.replace('por ','');
 }
 function rfLpLigasHTML(){
   const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d])=>`<div class="rf-lp-embc">
@@ -704,7 +792,7 @@ function rfLpLigasHTML(){
       <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
       <p class="rf-lp-p">Seis coisas que só existem no plano de cima — e nenhuma delas é enfeite.</p>
       <div class="rf-lp-embc-grade">${cartoes}</div>
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador',null,RF_LP_CICLO)">
         👑 Ser Embaixador — ${escC(rfPlanoPreco('embaixador'))}</button>
     </div>
   </section>`;
