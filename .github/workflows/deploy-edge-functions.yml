@@ -85,6 +85,8 @@ jobs:
           npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/generate-image/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/coach-avatar/index.ts --outfile=/dev/null --platform=neutral --format=esm
+          npx esbuild supabase/functions/criar-checkout/index.ts --outfile=/dev/null --platform=neutral --format=esm
+          npx esbuild supabase/functions/stripe-webhook/index.ts --outfile=/dev/null --platform=neutral --format=esm
 
       # ESBUILD SÓ VÊ SINTAXE. Uma constante APAGADA por engano passa por ele sem
       # um pio e só aparece em produção, como ReferenceError em tempo de execução
@@ -101,8 +103,12 @@ jobs:
       # e mexer no resolve-round, que fecha rodada de sala ao vivo, não se faz
       # de passagem. O portão nasce cobrindo o que está limpo; cada função que
       # for saneada entra nesta lista.
-      - name: Conferir nomes da coach-avatar
-        run: deno check --config scripts/deno-check.json supabase/functions/coach-avatar/index.ts
+      - name: Conferir nomes da coach-avatar e das funcoes de pagamento
+        run: |
+          deno check --config scripts/deno-check.json \
+            supabase/functions/coach-avatar/index.ts \
+            supabase/functions/criar-checkout/index.ts \
+            supabase/functions/stripe-webhook/index.ts
 
       - uses: supabase/setup-cli@v1
         with:
@@ -126,11 +132,23 @@ jobs:
           supabase functions deploy kickoff-round --project-ref "$PROJECT_REF"
           supabase functions deploy generate-image --project-ref "$PROJECT_REF"
           supabase functions deploy coach-avatar --project-ref "$PROJECT_REF"
+          supabase functions deploy criar-checkout --project-ref "$PROJECT_REF"
 
       # send-password-reset é a EXCEÇÃO e vai sozinha: quem esqueceu a senha não tem
       # sessão, então ela precisa continuar pública. Sem --no-verify-jwt o deploy a
       # trancaria atrás de um JWT que o usuário não tem, e o "esqueci minha senha"
       # morreria com 401 — por isso a flag não é opcional aqui.
+      # stripe-webhook vai SEM JWT pelo mesmo motivo da send-password-reset, e o
+      # motivo aqui é ainda mais forte: quem chama é o servidor do Stripe, que não
+      # tem sessão de utilizador nenhuma. A porta dela é a assinatura HMAC do
+      # corpo, conferida dentro da função — trancá-la atrás de JWT faria todo
+      # evento de pagamento morrer com 401, e o plano nunca chegaria a quem pagou.
+      - name: Deploy stripe-webhook (pública, sem JWT — a porta é a assinatura)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy stripe-webhook --project-ref "$PROJECT_REF" --no-verify-jwt
+
       - name: Deploy send-password-reset (pública, sem JWT)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -141,7 +159,7 @@ jobs:
       # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
       - name: Verificar que as funções sobem
         run: |
-          for fn in resolve-round kickoff-round generate-image coach-avatar; do
+          for fn in resolve-round kickoff-round generate-image coach-avatar criar-checkout; do
             ok=0
             for i in 1 2 3; do
               code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
@@ -153,6 +171,25 @@ jobs:
             done
             if [ "$ok" != "1" ]; then echo "FALHOU: esperava 401 ($fn no ar), veio $code"; exit 1; fi
           done
+
+      # stripe-webhook é pública: 401 aqui seria BUG (o Stripe não manda JWT).
+      # Sem cabeçalho de assinatura ela responde 400 — é esse 400 que prova ao
+      # mesmo tempo que o worker subiu E que segue pública. Repare que isto vale
+      # ANTES de as chaves do Stripe existirem: a função confere a assinatura
+      # antes dos secrets justamente para este portão não depender delas.
+      - name: Verificar que stripe-webhook sobe e segue pública
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
+              "https://${PROJECT_REF}.supabase.co/functions/v1/stripe-webhook" \
+              -H 'Content-Type: application/json' -d '{}')
+            echo "stripe-webhook tentativa $i -> HTTP $code : $(head -c 160 /tmp/r.txt)"
+            if [ "$code" = "400" ]; then echo "OK: no ar e pública"; ok=1; break; fi
+            if [ "$code" = "401" ]; then echo "FALHOU: subiu exigindo JWT — todo evento de pagamento morreria"; exit 1; fi
+            sleep 5
+          done
+          if [ "$ok" != "1" ]; then echo "FALHOU: esperava 400, veio $code"; exit 1; fi
 
       # send-password-reset é pública: 401 aqui seria BUG, não saúde. Sem e-mail no
       # corpo ela responde 400 ("Informe um e-mail válido") — é esse 400 que prova

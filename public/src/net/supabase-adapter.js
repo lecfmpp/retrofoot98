@@ -1384,6 +1384,33 @@ async function netLoadGame(){
   } catch(e) { console.error('loadGame erro:', e); return null; }
 }
 
+/* ---- PAGAMENTO: abre o checkout do plano escolhido ----
+   Só pede a URL e devolve. Quem CONCEDE o plano é o webhook, quando o Stripe
+   confirma a cobrança — abrir o checkout não é ter pago, e por isso nada aqui
+   escreve em user_plans.
+
+   `sem_chave` é resposta esperada, não erro: enquanto o Stripe não estiver
+   ligado no projeto, a função responde 503 com esse motivo e quem chamou volta
+   para a lista de espera, que é o comportamento de hoje. Botão nenhum morre no
+   meio do caminho. */
+async function netCriarCheckout(plano, ciclo){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
+  const res = await netInvokeFn('criar-checkout', {
+    plano, ciclo: ciclo||'mes',
+    origem: (typeof location!=='undefined' ? location.origin : '')
+  });
+  if(res.error){
+    /* o corpo do erro vem no context do invoke(); sem ele, trata como
+       indisponível — quem chamou cai na lista de espera de qualquer forma */
+    let motivo='falhou';
+    try{ const c = await res.error.context?.json?.(); if(c && c.motivo) motivo=c.motivo; }catch(e){}
+    return { erro: motivo };
+  }
+  const url = res.data && res.data.url;
+  return url ? { url } : { erro:'sem_url' };
+}
+
 /* ---- SAVES DO MODO SOLO (só nuvem, por usuário) ---- */
 async function netListSoloSaves(){
   if(!sb) await netInitSupabase();
@@ -1837,6 +1864,7 @@ NET.motorDivergente = netMotorDivergente;   // a UI pode travar o "resolver roda
 NET.isOnlineUser = netIsOnline;
 NET.authStatus = netAuthStatus;
 NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
+NET.criarCheckout = netCriarCheckout;   // devolve {url} ou {erro}
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;

@@ -1,0 +1,993 @@
+[
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/palmeiras/jogadores/marcelolomba-rosto-1787689671146-de40f3.webp",
+  "club_id": "1023",
+  "jogador": "Marcelo Lomba",
+  "atributos": {
+   "pele": "black skin",
+   "barba": "clean-shaven",
+   "idade": 27,
+   "brinco": "no earrings",
+   "cabelo": "curly top fade",
+   "corCab": "black",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/palmeiras/jogadores/marcelolomba-vazada-1787947817157.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/palmeiras/jogadores/marcelolomba-foto-1787689691424-ba8d81.webp"
+   ],
+   "fundoRemovido": 0.3407
+  },
+  "criado_em": "2026-08-25T20:28:11.927708+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/caiocesarrodriguessouza-rosto-1787786321314-e94f23.webp",
+  "club_id": "br_B_1693",
+  "jogador": "Caio César Rodrigues Souza",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 63.22,
+     "y": 31.52
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "brown skin",
+   "barba": "full short beard",
+   "idade": 21,
+   "brinco": "small diamond earrings in both ears",
+   "cabelo": "messy short hair",
+   "corCab": "black",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tubaraodonorte/jogadores/caiocesarrodriguessouza-vazada-1787947851522.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/caiocesarrodriguessouza-foto-1787786393079-2e9ac0.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3847,
+   "revisar_limpo": "cabeça com 41% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:19:56.260768+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/mauriciokozlinski-rosto-1787786082538-c94df8.webp",
+  "club_id": "br_B_1693",
+  "jogador": "Mauricio Kozlinski",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 66.58,
+     "y": 44.52
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "light brown skin",
+   "barba": "thin mustache",
+   "idade": 35,
+   "brinco": "no earrings",
+   "cabelo": "afro hair",
+   "corCab": "dyed platinum blond",
+   "tattoo": "tattoos partially visible on the arm",
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tubaraodonorte/jogadores/mauriciokozlinski-vazada-1787947829179.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/mauriciokozlinski-foto-1787786148719-6aed64.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.4096,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:15:51.056503+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/rafaelsoaresdejesus-rosto-1787839905811-7e7e17.webp",
+  "club_id": "br_B_1693",
+  "jogador": "Rafael Soares de Jesus",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 64.86,
+     "y": 31.09
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "full short beard",
+   "idade": 21,
+   "brinco": "a small stud earring in one ear",
+   "cabelo": "completely bald head",
+   "corCab": "",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tubaraodonorte/jogadores/rafaelsoaresdejesus-vazada-1787947852422.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/rafaelsoaresdejesus-foto-1787841437743-103eb7.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.4614,
+   "revisar_limpo": "cabeça com 41% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-27T14:39:54.257745+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/wallacereisdasilva-rosto-1787786317573-73afb3.webp",
+  "club_id": "br_B_1693",
+  "jogador": "Wallace Reis da Silva",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 64.49,
+     "y": 28.41
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "goatee",
+   "idade": 38,
+   "brinco": "no earrings",
+   "cabelo": "messy short hair",
+   "corCab": "dark brown",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tubaraodonorte/jogadores/wallacereisdasilva-vazada-1787947830110.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/wallacereisdasilva-foto-1787786385938-c21270.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3797,
+   "revisar_limpo": "cabeça com 41% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:19:48.250417+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/yagolincolnrochasantos-rosto-1787786320215-7bc3e1.webp",
+  "club_id": "br_B_1693",
+  "jogador": "Yago Lincoln Rocha Santos",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 66.58,
+     "y": 26.7
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "light brown skin",
+   "barba": "light stubble",
+   "idade": 23,
+   "brinco": "no earrings",
+   "cabelo": "buzz cut",
+   "corCab": "bleached blond",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tubaraodonorte/jogadores/yagolincolnrochasantos-vazada-1787947846708.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/londrinapr/jogadores/yagolincolnrochasantos-foto-1787786386687-594f47.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3879,
+   "revisar_limpo": "cabeça com 41% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:19:48.960551+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/albertomagnosantosdemelofilho-rosto-1787784934920-15c058.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Alberto Magno Santos de Melo Filho",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 69.03,
+     "y": 33.15
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "clean-shaven",
+   "idade": 27,
+   "brinco": "small diamond earrings in both ears",
+   "cabelo": "completely bald head",
+   "corCab": "",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/albertomagnosantosdemelofilho-vazada-1787947838832.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/albertomagnosantosdemelofilho-foto-1787784999758-d29ef3.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3389,
+   "revisar_limpo": "cabeça com 43% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T22:56:42.427732+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/fagnerironidaponte-rosto-1787784935953-de8d54.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Fagner Ironi Daponte",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 68.41,
+     "y": 29.07
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "light stubble",
+   "idade": 35,
+   "brinco": "no earrings",
+   "cabelo": "buzz cut",
+   "corCab": "black",
+   "tattoo": "tattoos partially visible on the arm",
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/fagnerironidaponte-vazada-1787947837913.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/fagnerironidaponte-foto-1787785004186-6dccf9.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3216,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T22:56:46.60269+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/gabrielseverinodesousa-rosto-1787785353114-bcd056.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Gabriel Severino de Sousa",
+  "atributos": {
+   "pele": "light skin",
+   "barba": "thin mustache",
+   "idade": 22,
+   "brinco": "a small stud earring in one ear",
+   "cabelo": "short fade haircut",
+   "corCab": "brown",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/gabrielseverinodesousa-vazada-1787947839642.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/gabrielseverinodesousa-foto-1787785421619-743b27.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.33,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:00:46.018825+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/gustavohenriquedasilva-rosto-1787785225492-37289f.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Gustavo Henrique da Silva",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 69.03,
+     "y": 32.7
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "black skin",
+   "barba": "clean-shaven",
+   "idade": 20,
+   "brinco": "no earrings",
+   "cabelo": "medium curly hair",
+   "corCab": "dyed platinum blond",
+   "tattoo": "tattoos partially visible on the arm",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/gustavohenriquedasilva-vazada-1787947845796.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/gustavohenriquedasilva-foto-1787785294404-7bb35e.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3236,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:01:37.738416+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/leonardodeoliveirasilva-rosto-1787785657264-4d5923.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Leonardo de Oliveira Silva",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 67.79,
+     "y": 37.46
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "goatee",
+   "idade": 30,
+   "brinco": "no earrings",
+   "cabelo": "short dreadlocks",
+   "corCab": "bleached blond",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/leonardodeoliveirasilva-vazada-1787947828306.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/leonardodeoliveirasilva-foto-1787785721599-5b04de.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3478,
+   "revisar_limpo": "cabeça com 46% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:08:43.067273+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/mateusferreiradasilva-rosto-1787784936339-3a0675.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Mateus Ferreira da Silva",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 68.41,
+     "y": 29.07
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "full short beard",
+   "idade": 31,
+   "brinco": "no earrings",
+   "cabelo": "messy short hair",
+   "corCab": "black",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/mateusferreiradasilva-vazada-1787947844976.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/mateusferreiradasilva-foto-1787785002993-ee842f.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3176,
+   "revisar_limpo": "cabeça com 43% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T22:56:45.026872+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/murielgustavobecker-rosto-1787784759540-005b0d.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Muriel Gustavo Becker",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 69.34,
+     "y": 32.01
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "very light skin",
+   "barba": "light stubble",
+   "idade": 39,
+   "brinco": "a small stud earring in one ear",
+   "cabelo": "short dreadlocks",
+   "corCab": "dark brown",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/murielgustavobecker-vazada-1787947841277.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/murielgustavobecker-foto-1787784829154-e8499c.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3193,
+   "revisar_limpo": "topo da cabeça em 1% (gabarito 6%)"
+  },
+  "criado_em": "2026-08-26T22:53:50.964682+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/wandersoncameloviana-rosto-1787785222978-20729e.webp",
+  "club_id": "br_B_2646",
+  "jogador": "Wanderson Camelo Viana",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.5,
+     "x": 69.65,
+     "y": 40.86
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "black skin",
+   "barba": "goatee",
+   "idade": 31,
+   "brinco": "no earrings",
+   "cabelo": "afro hair",
+   "corCab": "dark brown",
+   "tattoo": "a small tattoo visible on the neck",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/timburecife/jogadores/wandersoncameloviana-vazada-1787947827465.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/nautico/jogadores/wandersoncameloviana-foto-1787785294106-980c25.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3599,
+   "revisar_limpo": "cabeça com 54% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T23:01:36.815116+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/botafogosp/jogadores/gustavovilardossantos-foto-1787878068544-fb51ba.webp",
+  "club_id": "br_B_9030",
+  "jogador": "Gustavo Vilar dos Santos",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 25.97,
+     "x": 62.47,
+     "y": 26.42
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "light brown skin",
+   "barba": "light stubble",
+   "idade": 26,
+   "brinco": "no earrings",
+   "cabelo": "curly top fade",
+   "corCab": "black",
+   "tattoo": "no visible tattoos",
+   "medidas": {
+    "topo": "3%",
+    "cabeca": "35%",
+    "ombros": "97%"
+   },
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tricolorderibeirao/jogadores/gustavovilardossantos-vazada-1787947822240.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/botafogosp/jogadores/gustavovilardossantos-foto-1787878068544-fb51ba.webp"
+   ],
+   "fundoRemovido": 0.3395
+  },
+  "criado_em": "2026-08-28T00:47:49.611507+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/botafogosp/jogadores/victorbernardesandradeesouza-foto-1787878067506-fb0a6d.webp",
+  "club_id": "br_B_9030",
+  "jogador": "Victor Bernardes Andrade e Souza",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 25.97,
+     "x": 64.1,
+     "y": 30.37
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "light brown skin",
+   "barba": "thin mustache",
+   "idade": 33,
+   "brinco": "no earrings",
+   "cabelo": "mullet haircut",
+   "corCab": "black",
+   "tattoo": "no visible tattoos",
+   "medidas": {
+    "topo": "4%",
+    "cabeca": "37%",
+    "ombros": "98%"
+   },
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/tricolorderibeirao/jogadores/victorbernardesandradeesouza-vazada-1787947823059.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-b/botafogosp/jogadores/victorbernardesandradeesouza-foto-1787878067506-fb0a6d.webp"
+   ],
+   "fundoRemovido": 0.3584
+  },
+  "criado_em": "2026-08-28T00:47:48.46117+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/amazonas/jogadores/gabrielcipriano-rosto-1787779360639-b190cc.webp",
+  "club_id": "br_C_amazonas",
+  "jogador": "Gabriel Cipriano",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 38.91,
+     "y": 34.76
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "dark brown skin",
+   "barba": "goatee",
+   "idade": 33,
+   "brinco": "no earrings",
+   "cabelo": "curly top fade",
+   "corCab": "brown",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/oncaamazonica/jogadores/gabrielcipriano-vazada-1787947843120.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/amazonas/jogadores/gabrielcipriano-foto-1787779428163-46f12c.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3212,
+   "revisar_limpo": "cabeça com 42% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T21:22:09.881493+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/amazonas/jogadores/iury-rosto-1787779361876-2e269e.webp",
+  "club_id": "br_C_amazonas",
+  "jogador": "Iury",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 39.37,
+     "y": 44.97
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "black skin",
+   "barba": "light stubble",
+   "idade": 25,
+   "brinco": "small diamond earrings in both ears",
+   "cabelo": "short dreadlocks",
+   "corCab": "dyed platinum blond",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/oncaamazonica/jogadores/iury-vazada-1787947844088.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/amazonas/jogadores/iury-foto-1787779430661-661ad4.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3174,
+   "revisar_limpo": "cabeça com 50% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T21:22:06.281994+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/brusque/jogadores/joaopedro-rosto-1787781706614-134e4f.webp",
+  "club_id": "br_C_brusque",
+  "jogador": "João Pedro",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 25.5,
+     "x": 37.38,
+     "y": 34.78
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "brown skin",
+   "barba": "full short beard",
+   "idade": 33,
+   "brinco": "no earrings",
+   "cabelo": "mullet haircut",
+   "corCab": "dyed platinum blond",
+   "tattoo": "tattoos partially visible on the arm",
+   "recorte": "cartao",
+   "sorriso": "confident slight smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/marrecodaserra/jogadores/joaopedro-vazada-1787947842209.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-c/brusque/jogadores/joaopedro-foto-1787781778898-366513.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3022,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T22:00:40.966187+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/gama/jogadores/paulovitor-rosto-1787805655105-367c36.webp",
+  "club_id": "br_D_gama",
+  "jogador": "Paulo Vitor",
+  "atributos": {
+   "pele": "very light skin",
+   "barba": "thin mustache",
+   "idade": 33,
+   "brinco": "no earrings",
+   "cabelo": "completely bald head",
+   "corCab": "",
+   "tattoo": "a small tattoo visible on the neck",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/periquitoverdebranco/jogadores/paulovitor-vazada-1787947848504.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/gama/jogadores/paulovitor-foto-1787805715752-491622.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3266,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-27T04:41:56.57482+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/luverdense/jogadores/danieledvani-rosto-1787806214515-03ef69.webp",
+  "club_id": "br_D_luverdense",
+  "jogador": "Daniel Edvani",
+  "atributos": {
+   "pele": "black skin",
+   "barba": "full short beard",
+   "idade": 32,
+   "brinco": "small diamond earrings in both ears",
+   "cabelo": "afro hair",
+   "corCab": "dyed platinum blond",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "confident slight smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/verdaodonorte/jogadores/danieledvani-vazada-1787947850320.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/luverdense/jogadores/danieledvani-foto-1787806276214-2e7091.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3583,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-27T04:51:17.078694+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/luverdense/jogadores/lucasgoes-rosto-1787806120894-d4ed71.webp",
+  "club_id": "br_D_luverdense",
+  "jogador": "Lucas Goes",
+  "atributos": {
+   "pele": "very light skin",
+   "barba": "clean-shaven",
+   "idade": 32,
+   "brinco": "no earrings",
+   "cabelo": "slicked back hair",
+   "corCab": "bleached blond",
+   "tattoo": "a small tattoo visible on the neck",
+   "recorte": "cartao",
+   "sorriso": "confident slight smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/verdaodonorte/jogadores/lucasgoes-vazada-1787947849358.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/luverdense/jogadores/lucasgoes-foto-1787806194826-999e17.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3536,
+   "revisar_limpo": "cabeça com 43% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-27T04:49:55.780953+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/marciliodias/jogadores/joaovitor-rosto-1787804337914-5f8128.webp",
+  "club_id": "br_D_marciliodias",
+  "jogador": "João Vitor",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 23.38,
+     "x": 65.96,
+     "y": 27.72
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "brown skin",
+   "barba": "clean-shaven",
+   "idade": 31,
+   "brinco": "no earrings",
+   "cabelo": "medium curly hair",
+   "corCab": "black",
+   "tattoo": "a small tattoo visible on the neck",
+   "recorte": "cartao",
+   "sorriso": "confident slight smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/marinheirodesanta/jogadores/joaovitor-vazada-1787947847614.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/marciliodias/jogadores/joaovitor-foto-1787804400912-74a432.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.338,
+   "revisar_limpo": "cabeça com 38% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-27T03:11:35.341021+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/portuguesarj/jogadores/lucascosta-rosto-1787796983332-802b02.webp",
+  "club_id": "br_D_portuguesacarioca",
+  "jogador": "Lucas Costa",
+  "atributos": {
+   "pele": "dark brown skin",
+   "barba": "full short beard",
+   "idade": 22,
+   "brinco": "no earrings",
+   "cabelo": "short dreadlocks",
+   "corCab": "black",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/lusacarioca/jogadores/lucascosta-vazada-1787947832722.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/portuguesarj/jogadores/lucascosta-foto-1787797042352-22f436.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3256,
+   "revisar_limpo": "cabeça com 47% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-27T02:17:23.217053+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/saojose/jogadores/evaristodemacedo-rosto-1787777654646-c3bdc3.webp",
+  "club_id": "br_D_saojose",
+  "jogador": "Evaristo de Macedo",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 22,
+     "x": 60.71,
+     "y": 30.34
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "light brown skin",
+   "barba": "full short beard",
+   "idade": 29,
+   "brinco": "no earrings",
+   "cabelo": "messy short hair",
+   "corCab": "dark brown",
+   "tattoo": "no visible tattoos",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/aguiadovale/jogadores/evaristodemacedo-vazada-1787947825839.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/saojose/jogadores/evaristodemacedo-foto-1787777721159-77f6eb.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3951,
+   "revisar_limpo": "cabeça com 38% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T20:54:34.632544+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/uberlandia/jogadores/alexandre-rosto-1787711988491-d14e4f.webp",
+  "club_id": "br_D_uberlandia",
+  "jogador": "Alexandre",
+  "atributos": {
+   "pos": {
+    "patro": {
+     "w": 34,
+     "x": 33,
+     "y": 65
+    },
+    "escudo": {
+     "w": 24.03,
+     "x": 66.82,
+     "y": 33.87
+    },
+    "fabricante": {
+     "w": 9,
+     "x": 27,
+     "y": 57
+    }
+   },
+   "pele": "brown skin",
+   "barba": "full short beard",
+   "idade": 28,
+   "brinco": "no earrings",
+   "cabelo": "completely bald head",
+   "corCab": "",
+   "tattoo": "tattoos partially visible on the arm",
+   "recorte": "cartao",
+   "sorriso": "big friendly smile",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/alviverdemineiro/jogadores/alexandre-vazada-1787947840411.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/uberlandia/jogadores/alexandre-foto-1787712052259-a446c4.webp"
+   ],
+   "tentativas": 3,
+   "fundoRemovido": 0.3402,
+   "revisar_limpo": "cabeça com 44% de largura (gabarito 27%)"
+  },
+  "criado_em": "2026-08-26T01:56:52.101098+00:00"
+ },
+ {
+  "url": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/velo/jogadores/sergioraphael-rosto-1787708388373-4d4271.webp",
+  "club_id": "br_D_veloclube",
+  "jogador": "Sergio Raphael",
+  "atributos": {
+   "pele": "dark brown skin",
+   "barba": "clean-shaven",
+   "idade": 24,
+   "brinco": "small diamond earrings in both ears",
+   "cabelo": "mullet haircut",
+   "corCab": "dyed platinum blond",
+   "tattoo": "a small tattoo visible on the neck",
+   "recorte": "cartao",
+   "sorriso": "neutral serious expression",
+   "montagem": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/galorubroverde/jogadores/sergioraphael-vazada-1787947820515.webp",
+   "anteriores": [
+    "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-d/velo/jogadores/sergioraphael-foto-1787708408600-cec56a.webp"
+   ],
+   "tentativas": 1,
+   "fundoRemovido": 0.3219
+  },
+  "criado_em": "2026-08-26T01:40:09.438926+00:00"
+ }
+]

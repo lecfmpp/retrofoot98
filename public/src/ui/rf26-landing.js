@@ -460,17 +460,43 @@ const RF_PLANOS=[
            'Código pra passar aos seus seguidores — e monetizar com ele'],
     cta:'Quero ser Embaixador' },
 ];
-/* Na fase de lista de espera nenhum plano tem checkout: o botão leva à
-   lista, com o plano escolhido carimbado na origem para saber DEPOIS quem
-   queria pagar o quê. Prometer "assinar" sem ter onde cobrar é botão morto. */
-function rfPlanoCta(key, trava){
+/* ===== O BOTÃO DE ASSINAR =====
+   Tem DOIS destinos, e o certo é escolhido na hora:
+
+   · com sessão aberta e Stripe ligado -> abre o checkout de verdade;
+   · sem uma coisa ou outra -> lista de espera, com o plano carimbado na origem.
+
+   A LISTA CONTINUA A SER O CHÃO, e não é provisório por preguiça: o Peladeiro
+   não tem o que comprar, quem não entrou ainda não tem conta para assinar, e
+   enquanto as chaves do Stripe não estiverem postas no projeto a função
+   responde `sem_chave`. Em qualquer um desses casos o botão tem de levar a
+   ALGUM lugar — botão que não faz nada é pior do que botão que pede o e-mail.
+
+   O ciclo entra como parâmetro (mês/ano) para o dia em que a landing ganhar o
+   seletor anual: a canalização já leva, só falta quem o mostre. */
+function rfPlanoCta(key, trava, ciclo){
   const nome=(RF_PLANOS.find(p=>p.key===key)||{}).nome||key;
   /* De onde veio o lead. Da landing e' o botao do cartao do plano; de dentro do
      jogo e' um cadeado, e ai o nome da trava vai junto — e' assim que se sabe
      qual delas de facto empurra alguem para a lista. */
   const origem = trava ? ('jogo · '+trava+' · plano '+nome) : ('landing · plano '+nome);
-  if(typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
-  rfLpIr('lista');
+  const paraLista = () => {
+    if(typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
+    rfLpIr('lista');
+  };
+
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(key==='peladeiro' || !st.loggedIn || !(typeof NET!=='undefined'&&NET.criarCheckout))
+    return paraLista();
+
+  if(typeof toastC==='function') toastC('Abrindo o pagamento…');
+  NET.criarCheckout(key, ciclo||'mes').then(r=>{
+    if(r && r.url){ location.href = r.url; return; }
+    /* sem_chave / sem_sessao / falhou: o caminho de sempre, sem alarde. O que
+       NÃO se faz aqui é mostrar erro técnico a quem só queria assinar. */
+    console.warn('checkout indisponível:', r && r.erro);
+    paraLista();
+  }).catch(e=>{ console.warn('checkout:', e); paraLista(); });
 }
 function rfLpPlanosHTML(){
   const cartoes=RF_PLANOS.map(p=>{
