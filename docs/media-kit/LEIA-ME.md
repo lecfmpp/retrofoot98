@@ -1,7 +1,18 @@
 # Media kit — os espaços publicitários
 
 `media-kit.html` é o documento pronto (imagens embutidas, abre sozinho no navegador).
+`media-kit.pdf` é o mesmo, paginado em A4, para anexar em e-mail e imprimir.
 `telas/` são as capturas em PNG e `web/` as mesmas em JPEG, para reaproveitar noutro lugar.
+
+## Como refazer o PDF
+
+```
+node scripts/media-kit-pdf.mjs
+```
+
+Sai do próprio HTML, pelo Chrome — o mesmo motor que o desenha no ecrã é o que o pagina, então
+não há uma segunda versão do documento para manter. As regras de quebra (nenhum cartão partido
+ao meio, nenhuma linha de tabela cortada) vivem no `@media print` dentro do `media-kit.html`.
 
 ## Como refazer as capturas
 

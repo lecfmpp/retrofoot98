@@ -231,6 +231,29 @@ footer{
 a{color:var(--accent)}
 a:focus-visible,button:focus-visible{outline:2px solid var(--accent-lamp); outline-offset:3px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+
+/* ===== IMPRESSÃO / PDF =====
+   O documento nasceu para o ecrã e partia mal no papel: um cartão de formato
+   podia ficar com o nome numa página e a medida na seguinte, que é justamente
+   a informação que o anunciante recorta. As três regras que importam são as de
+   `break-inside` — o resto é acerto de margem e de largura, porque a coluna de
+   1080px não cabe num A4 sem encolher.
+
+   Os fundos ficam: é peça de marca, e um media kit impresso a branco perde a
+   identidade que ele próprio está a vender. */
+@page{ size:A4; margin:11mm 10mm }
+@media print{
+  html,body{ background:var(--bg)!important; -webkit-print-color-adjust:exact; print-color-adjust:exact }
+  .wrap{ max-width:none; padding:0 }
+  /* nada de cortar um cartão, uma figura ou uma linha de tabela ao meio */
+  article.formato,figure.shot,.spec,tr,.tabela-caixa{ break-inside:avoid; page-break-inside:avoid }
+  section{ break-inside:auto }
+  h2,.eyebrow{ break-after:avoid; page-break-after:avoid }
+  .capa{ break-after:page; page-break-after:always }
+  figure.shot img{ max-height:150mm; object-fit:contain }
+  /* âncoras de navegação não servem no papel */
+  a{ text-decoration:none }
+}
 </style>
 
 <div class="wrap">
