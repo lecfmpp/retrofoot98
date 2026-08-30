@@ -8884,7 +8884,18 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}
-    ${m.user?adSlotHTML(injury?'modal-machucado-728x90':red?'modal-expulsao-728x90':(penalty||shooting)?'modal-penalti-escolha-728x90':halftime?'rf98.match.halftime':'modal-partida-728x90','cl-ad-live'):''}`;
+    ${/* TODOS OS MODAIS DA PARTIDA USAM O MESMO ESPAÇO DO INVENTÁRIO.
+          Eram cinco chaves diferentes conforme o momento — machucado, expulsão,
+          pênalti, intervalo, partida — e QUATRO delas não existem em
+          elifoot_v3.ad_spaces: o painel nunca as listou, ninguém podia vendê-las
+          e o lugar ficava eternamente vazio. Só a do intervalo era real.
+
+          É a mesma faixa 728×90, no mesmo sítio da tela, em momentos diferentes
+          do mesmo jogo — um espaço, não cinco. Quem compra a faixa do modal
+          aparece em todos eles. Se um dia valer separar por momento, o caminho
+          é criar as chaves no inventário PRIMEIRO; a divisão não pode nascer no
+          cliente, que é como estas quatro nasceram órfãs. */''}
+    ${m.user?adSlotHTML('rf98.match.halftime','cl-ad-live'):''}`;
 }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
 function penaltyRating(p){ return Math.max(1,Math.min(9,Math.round((p.f-40)/7))); }

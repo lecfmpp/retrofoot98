@@ -52,7 +52,13 @@ try{
 
 async function carregar(){
   try{
-    const url = REST + 'ad_creatives?select=id,chave_espaco,ficheiro_url,link_destino,mime,no_ar_ate'
+    /* `no_ar_de` VEM JUNTO, e não é detalhe: o painel só mostra como no ar o
+       criativo cuja janela já começou (ver admin_rf98.publicidade), e o jogo
+       lia apenas a data de FIM. Uma campanha marcada para o mês seguinte
+       entrava no ar no dia em que era carregada — queimando voo que o
+       patrocinador comprou para outra data, e divergindo do que o painel
+       mostrava a quem a vendeu. */
+    const url = REST + 'ad_creatives?select=id,chave_espaco,ficheiro_url,link_destino,mime,no_ar_de,no_ar_ate'
               + '&ativo=eq.true&order=criado_em.desc';
     const r = await fetch(url, { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY,
       'Accept-Profile':'elifoot_v3' } });
@@ -61,7 +67,8 @@ async function carregar(){
     const novo = {};
     const agora = Date.now();
     linhas.forEach(c => {
-      if(c.no_ar_ate && new Date(c.no_ar_ate).getTime() < agora) return;
+      if(c.no_ar_de  && new Date(c.no_ar_de ).getTime() > agora) return;   // ainda não começou
+      if(c.no_ar_ate && new Date(c.no_ar_ate).getTime() < agora) return;   // já terminou
       if(!novo[c.chave_espaco]) novo[c.chave_espaco] = c;   // o mais recente vence (order desc)
     });
     porChave = novo; carregado = true;

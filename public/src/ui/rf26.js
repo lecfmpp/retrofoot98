@@ -1026,8 +1026,21 @@ function rfAdEspaco(chave, opts){
   </div>`;
 }
 /* trilhos de publicidade — ficam FORA da coluna de conteúdo e somem antes dela */
+/* O LADO TEM DOIS NOMES, E ISSO NÃO É DESCUIDO QUE SE APAGUE RENOMEANDO UM.
+   O layout fala inglês: o CSS esconde `[data-ad-rail="right"]` primeiro, em
+   quatro regras (rf26.css, telas ao vivo e Camarote). O inventário fala
+   português: as chaves vendidas são `rf98.rail.esq` e `.dir`, e é por elas que
+   o painel publica.
+
+   Faltava a tradução entre os dois. O jogo pedia `rf98.rail.left`, chave que
+   não existe no inventário, e o skyscraper publicado em `rf98.rail.esq` nunca
+   aparecia — espaço vendido, criativo no ar e tela vazia. Renomear o atributo
+   teria arrastado o CSS junto; renomear a chave teria quebrado o que o painel
+   já publicou. O mapa fica aqui, no ponto onde os dois mundos se encontram. */
+const RF_RAIL_CHAVE = { left:'esq', right:'dir' };
 function rfRail(lado){
-  return `<div data-ad-rail="${lado}">${rfAdEspaco('rf98.rail.'+lado,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
+  const chave = 'rf98.rail.' + (RF_RAIL_CHAVE[lado] || lado);
+  return `<div data-ad-rail="${lado}">${rfAdEspaco(chave,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
 }
 /* =====================================================================
    IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta
