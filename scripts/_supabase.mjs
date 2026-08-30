@@ -18,12 +18,26 @@ export const SB_URL = 'https://alxwgqvjmetjbbqtjkhx.supabase.co';
 export const SCHEMA = 'elifoot_v3';
 const PUBLICAVEL = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 
+/* Uma service_role e' um JWT (`eyJ...`, tre^s partes) ou uma chave nova (`sb_secret_...`).
+   Conferir o FORMATO antes de sair usando evita o modo de falha mais chato: copiar o
+   placeholder do exemplo, ou meia chave, e receber de volta um "HTTP 401 Invalid API key" com
+   stack trace do fetch -- que nao diz que o problema esta' na variavel de ambiente. */
+function pareceChave(k) {
+  return /^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(k) || /^sb_secret_[\w-]{10,}$/.test(k);
+}
+
 export function chave({ escrita = false } = {}) {
   const k = process.env.SUPABASE_SERVICE_KEY;
-  if (k) return k;
+  if (k && pareceChave(k)) return k;
+  if (k) {
+    console.error(`❌ SUPABASE_SERVICE_KEY não parece uma chave: ${JSON.stringify(k.slice(0, 24))}${k.length > 24 ? '…' : ''}`);
+    console.error('   A service_role começa com "eyJ" (JWT) ou "sb_secret_".');
+    console.error('   Pegue em: Supabase > Settings > API > service_role (secret).');
+    process.exit(1);
+  }
   if (escrita) {
     console.error('❌ Esta operação precisa de SUPABASE_SERVICE_KEY (service_role, painel Supabase > Settings > API).');
-    console.error('   Ex.: SUPABASE_SERVICE_KEY="..." node scripts/<este-script>.mjs');
+    console.error('   Ex.: SUPABASE_SERVICE_KEY="eyJ..." node scripts/<este-script>.mjs');
     process.exit(1);
   }
   return PUBLICAVEL;
