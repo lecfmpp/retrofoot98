@@ -44,8 +44,7 @@ Eram quinze; são catorze. O que mexeu, e porquê:
 - **Saiu `rf98.pausa.video`** (vídeo da pausa). O bloco foi removido do desenho da Resenha.
 - **Entrou `rf98.entrada.sorteio`** (boas-vindas ao clube, 970×250). É a entrada no clube depois
   do sorteio — o momento mais visto do funil: toda carreira nova passa por ele uma vez, entre
-  saber que clube tirou e entrar nele. Ainda **sem captura de tela** neste documento; a tabela
-  de resumo já o traz. Para gerar a captura, correr `node scripts/capture-ads.mjs`.
+  saber que clube tirou e entrar nele. Já com cartão e captura no documento.
 - **A faixa do intervalo (`rf98.match.halftime`) passou a cobrir todos os modais da partida** —
   intervalo, machucado, expulsão e escolha de pênalti. Antes cada momento pedia uma chave
   própria e quatro delas não existiam no inventário: ninguém as podia vender e o lugar ficava
