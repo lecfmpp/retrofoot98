@@ -27,6 +27,30 @@ const BUCKET = 'publicidade';
 let sb = null;
 /* tabelas do jogo (ad_spaces, ad_creatives): mesmo client, outro schema */
 const jogo = (t) => sb.schema(SCHEMA_JOGO).from(t);
+
+/* ===== O SUPABASE PARA DE CONTAR EM 1000, E NAO AVISA =====
+   `.select()` sem `.range()` devolve no maximo 1000 linhas — sem erro, sem
+   aviso no corpo, so' um `content-range` que ninguem le. player_photos passou
+   disso e o Estudio comecou a mostrar contador de fotos MENOR do que a
+   realidade: clube com o elenco inteiro fotografado aparecia pela metade, e
+   quem operava o painel gerava de novo o que ja' existia — pagando IA duas
+   vezes pela mesma cara.
+
+   `ordem` nao e' enfeite: sem ela o banco devolve na ordem fisica, que muda a
+   cada gravacao, e cada leitura traz um recorte diferente. Foi isso que fez o
+   sintoma parecer aleatorio. */
+const PAGINA_SB = 1000;
+async function todasAsLinhas(tabela, packId, ordem){
+  const linhas = [];
+  for(let de = 0; ; de += PAGINA_SB){
+    let q = jogo(tabela).select('*').eq('pack_id', packId);
+    for(const col of ordem) q = q.order(col, { ascending:true });
+    const r = await q.range(de, de + PAGINA_SB - 1);
+    if(r.error) return { data:null, error:r.error };
+    linhas.push.apply(linhas, r.data||[]);
+    if(!r.data || r.data.length < PAGINA_SB) return { data:linhas, error:null };
+  }
+}
 let ME = null;                     // linha de adm_users
 const D  = {};                     // dados carregados por página
 const SEL = { salas:new Set(), saves:new Set(), contas:new Set(), convites:new Set() }; // seleções em massa
@@ -2279,7 +2303,7 @@ async function pgEditor(){
   const pack = D.packs.find(p=>p.id===ST.packId);
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
-  const eds = await jogo('pack_edits').select('*').eq('pack_id', pack.id);
+  const eds = await todasAsLinhas('pack_edits', pack.id, ['club_id']);
   if(eds.error) throw eds.error;
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
@@ -7681,8 +7705,8 @@ async function pgEstudio(){
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const [eds, fotos] = await Promise.all([
-    jogo('pack_edits').select('*').eq('pack_id', pack.id),
-    jogo('player_photos').select('*').eq('pack_id', pack.id)
+    todasAsLinhas('pack_edits', pack.id, ['club_id']),
+    todasAsLinhas('player_photos', pack.id, ['club_id','jogador'])
   ]);
   if(eds.error) throw eds.error;
   if(fotos.error) throw fotos.error;

@@ -169,12 +169,44 @@ function aplicar(edits){
   return n;
 }
 
+/* ===== O SUPABASE PARA DE CONTAR EM 1000, E NAO AVISA NO CORPO =====
+   A API corta a resposta em 1000 linhas por omissao. Nao e' erro: vem HTTP 200
+   com mil linhas e um cabecalho `content-range: 0-999/1090` que ninguem le. Foi
+   assim que 90 fotos de jogador desapareceram do jogo com a tabela intacta —
+   clube inteiro sem retrato, e regerar nao adiantava, porque o problema estava
+   em quem PERGUNTA, nao em quem guarda.
+
+   Duas regras aqui, e as duas sao necessarias:
+
+   · PAGINA ate a resposta vir menor que a pagina. Sem isto o teto volta assim
+     que a tabela crescer de novo — e ela cresce a cada clube que o Estudio
+     povoa.
+   · ORDENA por chave estavel. Sem `order`, o banco devolve na ordem fisica, que
+     muda a cada gravacao: duas perguntas iguais trazem recortes diferentes, e o
+     clube que sumiu hoje volta amanha no lugar de outro. Foi o que fez isto
+     parecer aleatorio durante dias. */
+const PAGINA = 1000;
+function buscarPaginado(tabela, select, filtro, ordem){
+  const cab = { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' };
+  const tudo = [];
+  const passo = (de) => fetch(
+      REST + tabela + '?select=' + select + '&' + filtro +
+      '&order=' + ordem + '&limit=' + PAGINA + '&offset=' + de, { headers:cab })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+    .then(linhas => {
+      tudo.push.apply(tudo, linhas||[]);
+      /* pagina cheia = pode haver mais. Pagina curta = acabou. Empatar em
+         exatamente PAGINA gasta uma busca vazia a mais, e tudo bem: e' mais
+         barato do que adivinhar. */
+      return (linhas && linhas.length === PAGINA) ? passo(de + PAGINA) : tudo;
+    });
+  return passo(0);
+}
+
 function buscarEdits(packId){
   const q = packId ? 'pack_id=eq.'+encodeURIComponent(packId)
                    : 'pack_id=eq.'+encodeURIComponent(PACOTE_OFICIAL||'');
-  return fetch(REST + 'pack_edits?select=club_id,divisao,novo,patch&' + q,
-    { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)));
+  return buscarPaginado('pack_edits', 'club_id,divisao,novo,patch', q, 'club_id.asc');
 }
 
 /* FOTOS E UNIFORMES DO PACOTE (Estúdio IA do painel dos sócios):
@@ -225,9 +257,10 @@ window.RF_TREINADOR_MARCA = window.RF_TREINADOR_MARCA || {};   // {escudoUrl, ma
 window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto por face
 function buscarFotos(packId){
   if(!packId) return;
-  fetch(REST + 'player_photos?select=club_id,jogador,url,atributos&pack_id=eq.'+encodeURIComponent(packId),
-    { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
-    .then(r => r.ok ? r.json() : [])
+  /* A tabela das fotos e' a que ja' passou dos 1000 — ver buscarPaginado. */
+  buscarPaginado('player_photos', 'club_id,jogador,url,atributos',
+                 'pack_id=eq.'+encodeURIComponent(packId), 'club_id.asc,jogador.asc')
+    .catch(() => [])
     .then(rows => {
       for(const f of rows||[]){
         if(!f || f.club_id === '__molde__') continue;
