@@ -510,12 +510,26 @@ function duplaHTML(a, b, rotuloA, rotuloB, troféu){
     <small style="display:block;font-size:9.5px;color:var(--dim3);letter-spacing:.3px">solo/res</small>
   </span>`;
 }
+/* ===== OS TRES PLANOS, COM O NOME QUE O JOGADOR VE' =====
+   O painel dizia so' "gratis" ou "pago" enquanto a landing vendia tres planos e
+   o jogo ja' os distinguia: quem operava aqui nao tinha como saber se a conta
+   era Resenha ou Embaixador — que e' justamente a diferenca entre poder abrir
+   sala e nao poder. As chaves sao as do banco (elifoot_v3.user_plans). */
+const PLANOS_ADM = {
+  free:       { nome:'Peladeiro',  tag:'t-dim',  preco:0 },
+  resenha:    { nome:'Resenha',    tag:'t-azul', preco:1990 },
+  embaixador: { nome:'Embaixador', tag:'t-warn', preco:4990 },
+};
+const planoAdm = (k) => PLANOS_ADM[k] || PLANOS_ADM.free;
+const ehPago   = (u) => !!u.plano && u.plano !== 'free';
+
 async function pgUsuarios(){
   const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
   if(error) throw error;
   D.usuarios = data || [];
   const us = D.usuarios;
-  const pagos = us.filter(u=>u.plano==='pago');
+  const pagos = us.filter(ehPago);
+  const porPlano = (k) => us.filter(u => (u.plano||'free') === k).length;
   const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
   const minutos = us.reduce((a,u)=>a+ +u.minutos, 0);
   const podeApagar = ME.papel==='socio';
@@ -529,8 +543,9 @@ async function pgUsuarios(){
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Contas totais', v:num(us.length), d:`${num(us.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
-      ${kpiHTML({l:'Plano grátis',  v:num(us.length-pagos.length), d:'sem cobrança ligada'})}
-      ${kpiHTML({l:'Plano pago',    v:num(pagos.length), d:`${brl(mrr)} de MRR`})}
+      ${kpiHTML({l:'Peladeiro', v:num(porPlano('free')), d:'plano grátis'})}
+      ${kpiHTML({l:'Assinantes', v:num(pagos.length),
+                 d:`${num(porPlano('resenha'))} Resenha · ${num(porPlano('embaixador'))} Embaixador${mrr?' · '+brl(mrr)+' de MRR':''}`})}
       ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:'somado de todas as contas'})}
     </div>
     <div class="card" style="overflow:hidden">
@@ -560,7 +575,9 @@ async function pgUsuarios(){
             <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(u.nome)}</b>
             <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(u.email)}</small></span>
           </span>
-          <span class="tag ${u.plano==='pago'?'t-ok':'t-dim'}" style="justify-self:start">${u.plano==='pago'?'pago':'grátis'}</span>
+          <span class="tag ${planoAdm(u.plano).tag}" style="justify-self:start"
+                title="${h(u.plano_ate ? 'até '+dmy(u.plano_ate) : 'sem prazo')}${u.plano_origem?' · '+h(u.plano_origem):''}">${
+            h(planoAdm(u.plano).nome)}</span>
           <span style="min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis">${u.referral
             ? `<b style="font-weight:600;color:var(--fg2)">${h(u.parceiro||u.referral)}</b>
                <small class="mono" style="display:block;font-size:10.5px;color:var(--verde2)">${h(u.referral)}</small>`
@@ -1054,7 +1071,8 @@ async function pgAnalytics(){
     ga4 && ga4.visitas ? {n:'Visitas ao site', v:+ga4.visitas, nota:'GA4'} : null,
     { n:'Contas criadas', v:+f.contas, nota:'base do jogo' },
     { n:'Primeiro jogo concluído', v:+f.jogaram, nota:'tem save solo ou assento numa sala' },
-    { n:'Plano pago', v:+f.pagos, nota:'marcado em Usuários' }
+    { n:'Assinantes', v:+f.pagos,
+      nota:`${+f.resenha||0} Resenha · ${+f.embaixador||0} Embaixador` }
   ].filter(Boolean);
 
   el('page').innerHTML = `
@@ -1062,7 +1080,7 @@ async function pgAnalytics(){
       ${kpiHTML({l:'Sessões (período)', v:num(totalSes), d:'contas com tempo de jogo registrado'})}
       ${kpiHTML({l:'Contas criadas', v:num(totalContas), d:`${num(f.contas)} no total`})}
       ${kpiHTML({l:'Chegaram a jogar', v:num(f.jogaram), d:`${pct(f.jogaram,f.contas)}% das contas`})}
-      ${kpiHTML({l:'Plano pago', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
+      ${kpiHTML({l:'Assinantes', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
     </div>
     <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
       <div class="card card-p">
