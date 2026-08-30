@@ -1,0 +1,6884 @@
+[
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "__competicoes__",
+  "divisao": null,
+  "novo": true,
+  "patch": {
+   "lista": [
+    {
+     "id": "serieA",
+     "nome": "Brasileirão Série A",
+     "nota": "mesma tabela de datas para as quatro divisões",
+     "pais": "brasil",
+     "sobe": 0,
+     "tipo": "liga",
+     "datas": [
+      "2026-03-01",
+      "2026-03-07",
+      "2026-03-30",
+      "2026-04-10",
+      "2026-04-16",
+      "2026-05-06",
+      "2026-05-11",
+      "2026-05-15",
+      "2026-06-01",
+      "2026-06-07",
+      "2026-06-11",
+      "2026-06-22",
+      "2026-07-05",
+      "2026-07-11",
+      "2026-07-22",
+      "2026-07-25",
+      "2026-08-05",
+      "2026-08-18",
+      "2026-08-23",
+      "2026-08-30",
+      "2026-09-14",
+      "2026-09-20",
+      "2026-09-24",
+      "2026-09-28",
+      "2026-10-01",
+      "2026-10-05",
+      "2026-10-10",
+      "2026-10-18",
+      "2026-10-21",
+      "2026-10-24",
+      "2026-10-27",
+      "2026-10-30",
+      "2026-11-03",
+      "2026-11-07",
+      "2026-11-11",
+      "2026-11-18",
+      "2026-12-01",
+      "2026-12-03"
+     ],
+     "desce": 4,
+     "clubes": 20,
+     "divisao": "A",
+     "playoff": false,
+     "idaEVolta": true,
+     "continental": {
+      "libertadores": 6,
+      "sulamericana": 6
+     }
+    },
+    {
+     "id": "copaBrasil",
+     "nome": "Copa do Brasil",
+     "pais": "brasil",
+     "sobe": 0,
+     "tipo": "mata-mata",
+     "datas": [
+      "2026-03-26",
+      "2026-04-04",
+      "2026-05-01",
+      "2026-08-19",
+      "2026-09-03",
+      "2026-11-08",
+      "2026-12-06"
+     ],
+     "desce": 0,
+     "clubes": 32,
+     "divisao": null,
+     "playoff": true,
+     "sorteio": "2026-03-21",
+     "idaEVolta": true,
+     "continental": null
+    },
+    {
+     "id": "libertadores",
+     "nome": "Copa Libertadores",
+     "pais": "brasil",
+     "sobe": 0,
+     "tipo": "mata-mata",
+     "datas": [
+      "2026-03-04",
+      "2026-04-01",
+      "2026-04-21",
+      "2026-05-21",
+      "2026-06-16",
+      "2026-07-15",
+      "2026-08-11",
+      "2026-09-08",
+      "2026-10-13",
+      "2026-11-28"
+     ],
+     "desce": 0,
+     "clubes": 32,
+     "divisao": null,
+     "playoff": true,
+     "sorteio": "2026-03-02",
+     "idaEVolta": true,
+     "continental": null
+    },
+    {
+     "id": "sulamericana",
+     "nome": "Copa Sul-Americana",
+     "pais": "brasil",
+     "sobe": 0,
+     "tipo": "mata-mata",
+     "datas": [
+      "2026-03-14",
+      "2026-04-02",
+      "2026-04-27",
+      "2026-05-28",
+      "2026-06-17",
+      "2026-07-18",
+      "2026-08-13",
+      "2026-09-09",
+      "2026-10-14",
+      "2026-11-21"
+     ],
+     "desce": 0,
+     "clubes": 32,
+     "divisao": null,
+     "playoff": true,
+     "sorteio": "2026-03-11",
+     "idaEVolta": true,
+     "continental": null
+    }
+   ]
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "10010",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor Baiano",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/bahia/escudo-semfundo-1787708920737.webp",
+   "short": "Tricolor Baiano",
+   "squad": {
+    "Dell": {
+     "n": "Júlio Batista"
+    },
+    "Iago": {
+     "n": "Emerson Bezerra"
+    },
+    "Kanu": {
+     "n": "Matheus Teixeira"
+    },
+    "Erick": {
+     "n": "Marcos Tavares"
+    },
+    "Ademir": {
+     "n": "Alan Nascimento"
+    },
+    "Victor": {
+     "n": "Leandro Xavier"
+    },
+    "Ronaldo": {
+     "n": "Fernando Monteiro"
+    },
+    "Everaldo": {
+     "n": "Alex Cavalcanti"
+    },
+    "Jean Lucas": {
+     "n": "Lucas Pinto"
+    },
+    "Ruan Pablo": {
+     "n": "Eduardo Silva"
+    },
+    "Alejo Veliz": {
+     "n": "Otávio Melo"
+    },
+    "Erick Pulga": {
+     "n": "Paulo Barbosa"
+    },
+    "Fredi Gomes": {
+     "n": "Pedrão"
+    },
+    "David Duarte": {
+     "n": "Leleco"
+    },
+    "Luciano Juba": {
+     "n": "Wesley Machado"
+    },
+    "Luiz Gustavo": {
+     "n": "Maicon Tavares"
+    },
+    "Marco Moreno": {
+     "n": "Nathinho"
+    },
+    "Marcos Victor": {
+     "n": "Wagner Dias"
+    },
+    "Roger Gabriel": {
+     "n": "Matheus Souza"
+    },
+    "Román Gómez": {
+     "n": "Robinho Monteiro"
+    },
+    "Willian José": {
+     "n": "Rafael Almeida"
+    },
+    "Zé Guilherme": {
+     "n": "Diego Vieira"
+    },
+    "Caio Alexandre": {
+     "n": "Júlio Barbosa"
+    },
+    "Mateo Sanabria": {
+     "n": "Anderson Gomes"
+    },
+    "Michel Araújo": {
+     "n": "Lucas Siqueira"
+    },
+    "Rodrigo Nestor": {
+     "n": "Leonardo Guimarães"
+    },
+    "Everton Ribeiro": {
+     "n": "Valdir Bezerra"
+    },
+    "Cristian Olivera": {
+     "n": "Samuel Vieira"
+    },
+    "Nicolás Acevedo": {
+     "n": "Tiago Vieira"
+    },
+    "Santiago Ramos Mingo": {
+     "n": "Wallace Monteiro"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "1023",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Academia Palestra",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/palmeiras/escudo-semfundo-1787953502665.webp",
+   "short": "Academia Palestra",
+   "squad": {
+    "Allan": {
+     "n": "Gabriel Teixeira"
+    },
+    "Naves": {
+     "n": "Antônio Guimarães"
+    },
+    "Jefté": {
+     "n": "Paulinho"
+    },
+    "Larson": {
+     "n": "Sebastião Martins"
+    },
+    "Luighi": {
+     "n": "Wellington Bezerra"
+    },
+    "Murilo": {
+     "n": "Vinícius Farias"
+    },
+    "Khellven": {
+     "n": "Tiago Nascimento"
+    },
+    "Mauricio": {
+     "n": "Maicon Freitas"
+    },
+    "Paulinho": {
+     "n": "Anderson Oliveira"
+    },
+    "Jhon Arias": {
+     "n": "Gabriel Correia"
+    },
+    "Bruno Fuchs": {
+     "n": "Cícero Batista"
+    },
+    "Erick Belé": {
+     "n": "Fábio Nascimento"
+    },
+    "Ramón Sosa": {
+     "n": "André Rocha"
+    },
+    "Vitor Roque": {
+     "n": "Vagner Teixeira"
+    },
+    "Flaco López": {
+     "n": "Matheus Silva"
+    },
+    "Luis Pacheco": {
+     "n": "Carlos Machado"
+    },
+    "Agustín Giay": {
+     "n": "Alex Oliveira"
+    },
+    "Carlos Miguel": {
+     "n": "Samuel Correia"
+    },
+    "Arthur Gabriel": {
+     "n": "Vinícius Souza"
+    },
+    "Gustavo Gómez": {
+     "n": "Wesley Peixoto"
+    },
+    "Kaique Pereira": {
+     "n": "Gustavo Farias"
+    },
+    "Luis Benedetti": {
+     "n": "Emerson Ferreira"
+    },
+    "Marlon Freitas": {
+     "n": "Cico"
+    },
+    "Andreas Pereira": {
+     "n": "Otávio Guimarães"
+    },
+    "Felipe Anderson": {
+     "n": "Felipe Nascimento"
+    },
+    "Riquelme Fillipi": {
+     "n": "Vagner Pereira"
+    },
+    "Alexander Barboza": {
+     "n": "Carlos Melo"
+    },
+    "Joaquín Piquerez": {
+     "n": "Vitor Machado"
+    },
+    "Lucas Evangelista": {
+     "n": "Alex Bezerra"
+    },
+    "Emiliano Martínez": {
+     "n": "André Cavalcanti"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "10997",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Azulão do Norte",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/remo/escudo-semfundo-1787709724786.webp",
+   "short": "Azulão do Norte",
+   "squad": {
+    "Ivan": {
+     "n": "José Xavier"
+    },
+    "Mayk": {
+     "n": "Márcio Nascimento"
+    },
+    "Jajá": {
+     "n": "Sebastião Guimarães"
+    },
+    "Marllon": {
+     "n": "Emerson Santos"
+    },
+    "Patrick": {
+     "n": "Marcos Nunes"
+    },
+    "Tchamba": {
+     "n": "Wesley Almeida"
+    },
+    "Carlinhos": {
+     "n": "Eliazinho"
+    },
+    "Jáderson": {
+     "n": "Valdir Farias"
+    },
+    "Thalisson": {
+     "n": "Fábio Peixoto"
+    },
+    "Alef Manga": {
+     "n": "Matheus Xavier"
+    },
+    "Marcelinho": {
+     "n": "Gustavo Souza"
+    },
+    "David Braga": {
+     "n": "Vagner Peixoto"
+    },
+    "João Lucas": {
+     "n": "Emerson Barbosa"
+    },
+    "Vitor Bueno": {
+     "n": "Renato Batista"
+    },
+    "Ygor Vinhas": {
+     "n": "Francisco Guimarães"
+    },
+    "Zé Ricardo": {
+     "n": "Wesley Costa"
+    },
+    "Zé Welison": {
+     "n": "Jean Vieira"
+    },
+    "Leonel Picco": {
+     "n": "Anderson Tavares"
+    },
+    "Léo Andrade": {
+     "n": "Tiagão"
+    },
+    "Rafael Monti": {
+     "n": "Igorzinho"
+    },
+    "Yago Pikachu": {
+     "n": "Matheus Rodrigues"
+    },
+    "Braian Cufré": {
+     "n": "João Souza"
+    },
+    "Kayky Almeida": {
+     "n": "Douglas Gomes"
+    },
+    "Edson Fernando": {
+     "n": "Leonardo Ribeiro"
+    },
+    "Gabriel Poveda": {
+     "n": "Eduardo Ferreira"
+    },
+    "Gabriel Taliari": {
+     "n": "Cícero Andrade"
+    },
+    "Giovanni Pavani": {
+     "n": "Sebastião Rodrigues"
+    },
+    "Cristian Tassano": {
+     "n": "Jonathan Correia"
+    },
+    "Franco Catarozzi": {
+     "n": "Samuel Barbosa"
+    },
+    "Matheus Alexandre": {
+     "n": "Leonardo Cardoso"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "17776",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Chapecó FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/chapecoense/escudo-semfundo-1787709481985.webp",
+   "short": "Chapecó FC",
+   "squad": {
+    "Max": {
+     "n": "Vagner Silva"
+    },
+    "Doma": {
+     "n": "Renato Guimarães"
+    },
+    "Ênio": {
+     "n": "Antônio Andrade"
+    },
+    "Camilo": {
+     "n": "Sebastião Gomes"
+    },
+    "Mancha": {
+     "n": "Márcio Dias"
+    },
+    "Rubens": {
+     "n": "Emerson Araújo"
+    },
+    "Everton": {
+     "n": "André Nunes"
+    },
+    "Anderson": {
+     "n": "Raimundo Vieira"
+    },
+    "Marcinho": {
+     "n": "Renato Ribeiro"
+    },
+    "João Bom": {
+     "n": "Vitão"
+    },
+    "Carvalheira": {
+     "n": "Igor Xavier"
+    },
+    "João Paulo": {
+     "n": "Leandro Dias"
+    },
+    "João Vitor": {
+     "n": "Ricardo Martins"
+    },
+    "Kauan Faria": {
+     "n": "Anderson Araújo"
+    },
+    "Neto Pessoa": {
+     "n": "Elias Monteiro"
+    },
+    "Bruno Matias": {
+     "n": "Marcos Siqueira"
+    },
+    "Italo Vargas": {
+     "n": "Anderson Freitas"
+    },
+    "Bruno Pacheco": {
+     "n": "Tiago Gomes"
+    },
+    "David Antunes": {
+     "n": "Márcio Nunes"
+    },
+    "Rafael Thyere": {
+     "n": "Douglas Machado"
+    },
+    "Robert Santos": {
+     "n": "José Correia"
+    },
+    "Bruno Leonardo": {
+     "n": "Denilson Costa"
+    },
+    "Gustavo Talles": {
+     "n": "Leonardo Pinto"
+    },
+    "Higor Meritão": {
+     "n": "Danilo Martins"
+    },
+    "Kevin Ramírez": {
+     "n": "Otávio Rocha"
+    },
+    "Victor Caetano": {
+     "n": "Diego Silva"
+    },
+    "Marcos Vinícius": {
+     "n": "Alex Correia"
+    },
+    "Matheus Aurélio": {
+     "n": "Jean Dias"
+    },
+    "Maurício Garcez": {
+     "n": "Zezinho"
+    },
+    "Vinicius Balieiro": {
+     "n": "Emerson Pinto"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "199",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Fiel Paulista",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/corinthians/escudo-semfundo-1787715663699.webp",
+   "short": "Fiel Paulista",
+   "squad": {
+    "Hugo": {
+     "n": "Wallace Cardoso"
+    },
+    "Allan": {
+     "n": "Leandro Freitas"
+    },
+    "Kayke": {
+     "n": "Fábio Oliveira"
+    },
+    "André": {
+     "n": "Matheus Vieira"
+    },
+    "Tchoca": {
+     "n": "Wellington Monteiro"
+    },
+    "Charles": {
+     "n": "Nathan Freitas"
+    },
+    "Raniele": {
+     "n": "Otávio Pereira"
+    },
+    "Vitinho": {
+     "n": "Alex Santos"
+    },
+    "Dieguinho": {
+     "n": "Tavinho"
+    },
+    "Gui Negão": {
+     "n": "Gustavo Ferreira"
+    },
+    "Hugo Souza": {
+     "n": "Fabinho"
+    },
+    "Pedro Raul": {
+     "n": "Renato Nunes"
+    },
+    "Breno Bidon": {
+     "n": "Everton Rocha"
+    },
+    "Kaio César": {
+     "n": "Carlos Farias"
+    },
+    "Matheuzinho": {
+     "n": "Antônio Melo"
+    },
+    "Alex Santana": {
+     "n": "Robson Guimarães"
+    },
+    "Felipe Longo": {
+     "n": "Bruno Ribeiro"
+    },
+    "Matheus Bidu": {
+     "n": "Fábio Barbosa"
+    },
+    "Pedro Milans": {
+     "n": "Renato Santos"
+    },
+    "Yuri Alberto": {
+     "n": "Raimundo Melo"
+    },
+    "Jesse Lingard": {
+     "n": "Deco"
+    },
+    "Memphis Depay": {
+     "n": "Thiago Cardoso"
+    },
+    "Rodrigo Garro": {
+     "n": "Everton Bezerra"
+    },
+    "André Ramalho": {
+     "n": "Kaiquinho"
+    },
+    "André Carrillo": {
+     "n": "Yuri Freitas"
+    },
+    "Matheus Donelli": {
+     "n": "Denilson Araújo"
+    },
+    "Matheus Pereira": {
+     "n": "Raimundo Martins"
+    },
+    "Gabriel Paulista": {
+     "n": "Fernando Carvalho"
+    },
+    "Gustavo Henrique": {
+     "n": "Denilson Correia"
+    },
+    "Fabrizio Angileri": {
+     "n": "Yuri Costa"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "210",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor Gaúcho",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/gremio/escudo-semfundo-1787715547468.webp",
+   "short": "Tricolor Gaúcho",
+   "squad": {
+    "Dodi": {
+     "n": "Denilsinho"
+    },
+    "Roger": {
+     "n": "Wellington Martins"
+    },
+    "Tetê": {
+     "n": "Ricardo Gomes"
+    },
+    "Adriel": {
+     "n": "Everton Barbosa"
+    },
+    "Marlon": {
+     "n": "Gabo"
+    },
+    "Willian": {
+     "n": "Wesley Barbosa"
+    },
+    "Riquelme": {
+     "n": "Nathan Pereira"
+    },
+    "Weverton": {
+     "n": "Bruno Tavares"
+    },
+    "Tiaguinho": {
+     "n": "Rafa"
+    },
+    "Gabriel Mec": {
+     "n": "Igor Costa"
+    },
+    "João Pedro": {
+     "n": "Rodrigo Santos"
+    },
+    "Juan Nardoni": {
+     "n": "José Peixoto"
+    },
+    "Luis Eduardo": {
+     "n": "Bruno Lima"
+    },
+    "Caio Paulista": {
+     "n": "Kaique Farias"
+    },
+    "Erick Noriega": {
+     "n": "Rafael Araújo"
+    },
+    "Francis Amuzu": {
+     "n": "Eduardo Guimarães"
+    },
+    "Leonel Pérez": {
+     "n": "Robinho Rodrigues"
+    },
+    "Pedro Gabriel": {
+     "n": "Gustavo Batista"
+    },
+    "Gabriel Grando": {
+     "n": "João Peixoto"
+    },
+    "Cristian Pavón": {
+     "n": "Ricardo Dias"
+    },
+    "Gabriel Menegon": {
+     "n": "Maicon Costa"
+    },
+    "Gustavo Martins": {
+     "n": "Leandro Cardoso"
+    },
+    "José Enamorado": {
+     "n": "Alex Guimarães"
+    },
+    "Miguel Monsalve": {
+     "n": "Lucão"
+    },
+    "Wagner Leonardo": {
+     "n": "Douglas Souza"
+    },
+    "Carlos Vinícius": {
+     "n": "Kaique Machado"
+    },
+    "Fabián Balbuena": {
+     "n": "Vinícius Peixoto"
+    },
+    "Walter Kannemann": {
+     "n": "Emerson Siqueira"
+    },
+    "Martin Braithwaite": {
+     "n": "João Siqueira"
+    },
+    "Mathías Villasanti": {
+     "n": "Vitor Batista"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "2125",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Rubro-Negro Baiano",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/vitoria/escudo-semfundo-1787709021334.webp",
+   "short": "Rubro-Negro Baiano",
+   "squad": {
+    "Dudu": {
+     "n": "Robinho Barbosa"
+    },
+    "Cacá": {
+     "n": "André Peixoto"
+    },
+    "Erick": {
+     "n": "Hugo Farias"
+    },
+    "Fabri": {
+     "n": "Eduardo Martins"
+    },
+    "Ramon": {
+     "n": "Raimundo Farias"
+    },
+    "Renê": {
+     "n": "Jeaninho"
+    },
+    "Walace": {
+     "n": "Jean Monteiro"
+    },
+    "Gabriel": {
+     "n": "Thiago Lima"
+    },
+    "Baralhas": {
+     "n": "Anderson Farias"
+    },
+    "Jamerson": {
+     "n": "Wagner Monteiro"
+    },
+    "Riccieli": {
+     "n": "Thiago Pinto"
+    },
+    "Claudinho": {
+     "n": "Douglas Correia"
+    },
+    "Zé Vitor": {
+     "n": "Felipe Pereira"
+    },
+    "Edu Ribeiro": {
+     "n": "Valdir Lima"
+    },
+    "Lucas Braga": {
+     "n": "Yuri Pereira"
+    },
+    "Lucas Silva": {
+     "n": "Francisco Ribeiro"
+    },
+    "Matheuzinho": {
+     "n": "André Batista"
+    },
+    "Diego Tarzia": {
+     "n": "Júlio Carvalho"
+    },
+    "Kike Saverio": {
+     "n": "Carlos Souza"
+    },
+    "Mateus Silva": {
+     "n": "Robinho Ribeiro"
+    },
+    "Renzo López": {
+     "n": "Marcos Almeida"
+    },
+    "Luan Cândido": {
+     "n": "Jean Barbosa"
+    },
+    "Lucas Arcanjo": {
+     "n": "Matheus Carvalho"
+    },
+    "Nathan Mendes": {
+     "n": "Anderson Bezerra"
+    },
+    "Renato Kayzer": {
+     "n": "Carlos Lima"
+    },
+    "Rúben Ismael": {
+     "n": "Julinho"
+    },
+    "Pedro Henrique": {
+     "n": "Maiquinho"
+    },
+    "Caíque Gonçalves": {
+     "n": "Tiaguinho"
+    },
+    "Emmanuel Martínez": {
+     "n": "Nathan Melo"
+    },
+    "Aitor Cantalapiedra": {
+     "n": "Zeca"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "221",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Vila Praiana",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/santos/escudo-semfundo-1787717497573.webp",
+   "short": "Vila Praiana",
+   "squad": {
+    "Rony": {
+     "n": "Emerson Almeida"
+    },
+    "Mayke": {
+     "n": "Júlio Farias"
+    },
+    "Neymar": {
+     "n": "Lucas Ferreira"
+    },
+    "Moisés": {
+     "n": "Jonathan Vieira"
+    },
+    "Thaciano": {
+     "n": "Pedro Melo"
+    },
+    "Miguelito": {
+     "n": "Wagner Oliveira"
+    },
+    "Gustavinho": {
+     "n": "Cleiton Teixeira"
+    },
+    "Luan Peres": {
+     "n": "Everton Siqueira"
+    },
+    "Zé Ivaldo": {
+     "n": "Leandro Andrade"
+    },
+    "Zé Rafael": {
+     "n": "Nathan Farias"
+    },
+    "João Paulo": {
+     "n": "Vitor Farias"
+    },
+    "Adonis Frías": {
+     "n": "Valdir Rocha"
+    },
+    "Alexis Duarte": {
+     "n": "Rafael Vieira"
+    },
+    "João Ananias": {
+     "n": "Alex Carvalho"
+    },
+    "João Schmidt": {
+     "n": "Nathan Tavares"
+    },
+    "Lautaro Díaz": {
+     "n": "Eduardo Farias"
+    },
+    "Vinicius Lira": {
+     "n": "Robson Teixeira"
+    },
+    "Willian Arão": {
+     "n": "Márcio Carvalho"
+    },
+    "Billal Brahimi": {
+     "n": "Adriano Melo"
+    },
+    "Gabriel Menino": {
+     "n": "Fernando Nascimento"
+    },
+    "Igor Vinícius": {
+     "n": "João Martins"
+    },
+    "Robinho Junior": {
+     "n": "Igor Souza"
+    },
+    "Christian Oliva": {
+     "n": "Vagner Ribeiro"
+    },
+    "Gabriel Brazão": {
+     "n": "Júlio Vieira"
+    },
+    "Gonzalo Escobar": {
+     "n": "André Melo"
+    },
+    "Álvaro Barreal": {
+     "n": "Wallace Araújo"
+    },
+    "Gabriel Bontempo": {
+     "n": "Rafael Costa"
+    },
+    "Lucas Veríssimo": {
+     "n": "Francisco Teixeira"
+    },
+    "Gustavo Caballero": {
+     "n": "João Machado"
+    },
+    "Benjamín Rollheiser": {
+     "n": "Leandro Moreira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "2462",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Guerreiros FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/fluminense/escudo-semfundo-1787708349811.webp",
+   "short": "Guerreiros FC",
+   "squad": {
+    "Guga": {
+     "n": "Wallace Lima"
+    },
+    "Hulk": {
+     "n": "Raimundo Almeida"
+    },
+    "Ganso": {
+     "n": "Antônio Martins"
+    },
+    "Renê": {
+     "n": "Fernando Tavares"
+    },
+    "Jemmes": {
+     "n": "Denilson Andrade"
+    },
+    "Nonato": {
+     "n": "Felipão"
+    },
+    "Alisson": {
+     "n": "Elias Tavares"
+    },
+    "Otávio": {
+     "n": "Emerson Correia"
+    },
+    "Ignácio": {
+     "n": "Everton Monteiro"
+    },
+    "Riquelme": {
+     "n": "André Santos"
+    },
+    "Hércules": {
+     "n": "Pedro Peixoto"
+    },
+    "Martinelli": {
+     "n": "Lucas Souza"
+    },
+    "Kevin Serna": {
+     "n": "Marcinho"
+    },
+    "Vitor Eudes": {
+     "n": "Samuel Bezerra"
+    },
+    "David Terans": {
+     "n": "Vitor Peixoto"
+    },
+    "Germán Cano": {
+     "n": "Adriano Cavalcanti"
+    },
+    "Igor Rabello": {
+     "n": "João Vieira"
+    },
+    "John Kennedy": {
+     "n": "Igor Teixeira"
+    },
+    "Thiago Silva": {
+     "n": "Carlos Santos"
+    },
+    "Julio Fidelis": {
+     "n": "Sebá"
+    },
+    "Facundo Bernal": {
+     "n": "Jean Santos"
+    },
+    "Luciano Acosta": {
+     "n": "Emerson Machado"
+    },
+    "Guilherme Arana": {
+     "n": "Pedro Santos"
+    },
+    "Julián Millán": {
+     "n": "Antônio Lima"
+    },
+    "Marcelo Pitaluga": {
+     "n": "Sebastião Cardoso"
+    },
+    "Rodrigo Castillo": {
+     "n": "Emerson Rodrigues"
+    },
+    "Yeferson Soteldo": {
+     "n": "Francisco Tavares"
+    },
+    "Agustín Canobbio": {
+     "n": "Pedro Nascimento"
+    },
+    "Jefferson Savarino": {
+     "n": "Márcio Andrade"
+    },
+    "Juan Pablo Freytes": {
+     "n": "Ricardo Nunes"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "330",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Alvinegro Mineiro",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/atleticomg/escudo-semfundo-1787708675454.webp",
+   "short": "Alvinegro Mineiro",
+   "squad": {
+    "Dudu": {
+     "n": "Valdir Araújo"
+    },
+    "Ruan": {
+     "n": "João Melo"
+    },
+    "Lyanco": {
+     "n": "Wesinho"
+    },
+    "Maycon": {
+     "n": "Júlio Machado"
+    },
+    "Vitão": {
+     "n": "Douglas Lima"
+    },
+    "Bernard": {
+     "n": "Robson Ferreira"
+    },
+    "Everson": {
+     "n": "Marcos Santos"
+    },
+    "Patrick": {
+     "n": "Nathan Silva"
+    },
+    "Reinier": {
+     "n": "Rafael Melo"
+    },
+    "Rômulo": {
+     "n": "Wagner Vieira"
+    },
+    "Natanael": {
+     "n": "Otávio Costa"
+    },
+    "Alan Minda": {
+     "n": "Otávio Carvalho"
+    },
+    "Alexsander": {
+     "n": "Dola"
+    },
+    "Igor Gomes": {
+     "n": "Robinho Andrade"
+    },
+    "Renan Lodi": {
+     "n": "Kaique Araújo"
+    },
+    "Vitor Hugo": {
+     "n": "Alan Ribeiro"
+    },
+    "Alan Franco": {
+     "n": "Kaique Gomes"
+    },
+    "Léo Duarte": {
+     "n": "Felipe Dias"
+    },
+    "Pedro Cobra": {
+     "n": "Jean Lima"
+    },
+    "Victor Hugo": {
+     "n": "Francisco Correia"
+    },
+    "Cauã Soares": {
+     "n": "Francisco Cavalcanti"
+    },
+    "Iván Román": {
+     "n": "Cícero Almeida"
+    },
+    "Kauã Pascini": {
+     "n": "Samuel Santos"
+    },
+    "Mamady Cissé": {
+     "n": "Vinícius Cavalcanti"
+    },
+    "Tomás Cuello": {
+     "n": "Alex Monteiro"
+    },
+    "Tomás Pérez": {
+     "n": "Maicon Machado"
+    },
+    "Gustavo Scarpa": {
+     "n": "Júlio Silva"
+    },
+    "Júnior Alonso": {
+     "n": "Paulo Costa"
+    },
+    "Angelo Preciado": {
+     "n": "Robson Araújo"
+    },
+    "Mateo Cassierra": {
+     "n": "Adriano Nascimento"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "3876",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Amarelinho do Interior",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/mirassol/escudo-semfundo-1787709667337.webp",
+   "short": "Amarelinho do Interior",
+   "squad": {
+    "Walter": {
+     "n": "Thiago Correia"
+    },
+    "Alesson": {
+     "n": "Paulo Andrade"
+    },
+    "Eduardo": {
+     "n": "Anderson Nunes"
+    },
+    "Negueba": {
+     "n": "Matheus Siqueira"
+    },
+    "Shaylon": {
+     "n": "Gustavo Araújo"
+    },
+    "Denilson": {
+     "n": "André Teixeira"
+    },
+    "Georgemy": {
+     "n": "Wagner Guimarães"
+    },
+    "Reinaldo": {
+     "n": "Leonardo Barbosa"
+    },
+    "Chico Kim": {
+     "n": "Francisco Ferreira"
+    },
+    "Rodrigues": {
+     "n": "Everton Machado"
+    },
+    "José Aldo": {
+     "n": "Anderson Rocha"
+    },
+    "Neto Moura": {
+     "n": "Thiago Melo"
+    },
+    "Thomazella": {
+     "n": "Jean Costa"
+    },
+    "André Luis": {
+     "n": "Bruno Rodrigues"
+    },
+    "Luiz Filipe": {
+     "n": "Ricardo Araújo"
+    },
+    "Alex Muralha": {
+     "n": "Gabriel Rodrigues"
+    },
+    "Igor Formiga": {
+     "n": "Juca"
+    },
+    "João Victor": {
+     "n": "Diego Correia"
+    },
+    "Victor Luís": {
+     "n": "Alex Farias"
+    },
+    "Daniel Borges": {
+     "n": "Léo"
+    },
+    "Edson Carioca": {
+     "n": "Vinícius Teixeira"
+    },
+    "Gabriel Pires": {
+     "n": "Leonardo Teixeira"
+    },
+    "Paulo Martins": {
+     "n": "Paulo Santos"
+    },
+    "Carlos Eduardo": {
+     "n": "Vinícius Nunes"
+    },
+    "Lucas Oliveira": {
+     "n": "Otávio Souza"
+    },
+    "Nathan Fogaça": {
+     "n": "Francisco Oliveira"
+    },
+    "Antonio Galeano": {
+     "n": "Gustavo Tavares"
+    },
+    "Everton Galdino": {
+     "n": "Tiago Lima"
+    },
+    "Tiquinho Soares": {
+     "n": "Yuri Bezerra"
+    },
+    "Willian Machado": {
+     "n": "Samuel Batista"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "537",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Alvinegro Carioca",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/botafogo/escudo-semfundo-1787715849327.webp",
+   "short": "Alvinegro Carioca",
+   "squad": {
+    "Kaio": {
+     "n": "Tiago Teixeira"
+    },
+    "Raul": {
+     "n": "Bruno Vieira"
+    },
+    "Allan": {
+     "n": "Anderson Peixoto"
+    },
+    "Bastos": {
+     "n": "Júlio Andrade"
+    },
+    "Danilo": {
+     "n": "Eduardo Costa"
+    },
+    "Newton": {
+     "n": "Márcio Correia"
+    },
+    "Anthony": {
+     "n": "Gabriel Ferreira"
+    },
+    "Vitinho": {
+     "n": "Evertinho"
+    },
+    "Huguinho": {
+     "n": "André Nascimento"
+    },
+    "Léo Linck": {
+     "n": "Fernando Batista"
+    },
+    "Alex Telles": {
+     "n": "Denilson Freitas"
+    },
+    "Mateo Ponte": {
+     "n": "Robinho Pinto"
+    },
+    "Elias Manoel": {
+     "n": "Wallacinho"
+    },
+    "Wallace Davi": {
+     "n": "Carlos Ribeiro"
+    },
+    "Arthur Cabral": {
+     "n": "Pedro Correia"
+    },
+    "Kadir Barría": {
+     "n": "Lucas Almeida"
+    },
+    "Cristhian Loor": {
+     "n": "Antônio Bezerra"
+    },
+    "Jordan Barrera": {
+     "n": "Paulo Peixoto"
+    },
+    "Júnior Santos": {
+     "n": "Duguinho"
+    },
+    "Lucas Villalba": {
+     "n": "Kaique Freitas"
+    },
+    "Cristian Medina": {
+     "n": "Danilo Bezerra"
+    },
+    "Joaquín Correa": {
+     "n": "Sebastião Araújo"
+    },
+    "Matheus Martins": {
+     "n": "Gabriel Araújo"
+    },
+    "Álvaro Montoro": {
+     "n": "Marcos Pereira"
+    },
+    "Diego Hernández": {
+     "n": "Ricardo Batista"
+    },
+    "Nahuel Ferraresi": {
+     "n": "Robson Monteiro"
+    },
+    "Nathan Fernandes": {
+     "n": "Márcio Barbosa"
+    },
+    "Patrick de Paula": {
+     "n": "Paulo Souza"
+    },
+    "Matheus Nascimento": {
+     "n": "Rafael Santos"
+    },
+    "Santiago Rodríguez": {
+     "n": "Kaique Ribeiro"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "585",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Morumbi FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/saopaulo/escudo-semfundo-1787717385084.webp",
+   "short": "Morumbi FC",
+   "squad": {
+    "Luan": {
+     "n": "Maicon Peixoto"
+    },
+    "Maik": {
+     "n": "Gabriel Martins"
+    },
+    "Artur": {
+     "n": "Wesley Rocha"
+    },
+    "Cauly": {
+     "n": "Elias Siqueira"
+    },
+    "Lucca": {
+     "n": "Otávio Martins"
+    },
+    "Tetê": {
+     "n": "Carlos Almeida"
+    },
+    "Rafael": {
+     "n": "Renato Oliveira"
+    },
+    "Sabino": {
+     "n": "Hugo Carvalho"
+    },
+    "Luciano": {
+     "n": "Emersinho"
+    },
+    "Wendell": {
+     "n": "Jean Andrade"
+    },
+    "Enzo Díaz": {
+     "n": "Wesley Martins"
+    },
+    "Pablo Maia": {
+     "n": "Denilson Teixeira"
+    },
+    "Victor Sá": {
+     "n": "Diego Pinto"
+    },
+    "Alan Franco": {
+     "n": "Leonardo Santos"
+    },
+    "Danielzinho": {
+     "n": "Wagner Lima"
+    },
+    "Ferreirinha": {
+     "n": "Raimundo Nascimento"
+    },
+    "Lucas Moura": {
+     "n": "Yuri Lima"
+    },
+    "Lucas Ramon": {
+     "n": "Rafael Lima"
+    },
+    "André Silva": {
+     "n": "Ricardo Bezerra"
+    },
+    "Gonzalo Tapia": {
+     "n": "Leozinho"
+    },
+    "João Moreira": {
+     "n": "Alan Machado"
+    },
+    "Rafael Tolói": {
+     "n": "Emerson Vieira"
+    },
+    "Carlos Coronel": {
+     "n": "Bruno Ferreira"
+    },
+    "Cédric Soares": {
+     "n": "Alan Cardoso"
+    },
+    "Matheus Belém": {
+     "n": "Leonardo Batista"
+    },
+    "Ryan Francisco": {
+     "n": "Elias Carvalho"
+    },
+    "Felipe Negrucci": {
+     "n": "Ricardo Pinto"
+    },
+    "Marcos Antônio": {
+     "n": "Vinizinho"
+    },
+    "Jonathan Calleri": {
+     "n": "Vagner Ferreira"
+    },
+    "Damián Bobadilla": {
+     "n": "Wagner Santos"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "609",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Raposa Azul",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/cruzeiro/escudo-semfundo-1787708838542.webp",
+   "short": "Raposa Azul",
+   "squad": {
+    "Japa": {
+     "n": "Cícero Cardoso"
+    },
+    "Gerson": {
+     "n": "Marcos Nascimento"
+    },
+    "Cássio": {
+     "n": "Fernando Siqueira"
+    },
+    "William": {
+     "n": "Tonzinho"
+    },
+    "Christian": {
+     "n": "Everton Teixeira"
+    },
+    "Wanderson": {
+     "n": "Guguinho"
+    },
+    "Kaio Jorge": {
+     "n": "Renato Barbosa"
+    },
+    "Marquinhos": {
+     "n": "Maicon Gomes"
+    },
+    "Keny Arroyo": {
+     "n": "Rafael Peixoto"
+    },
+    "Lucas Silva": {
+     "n": "Paulo Araújo"
+    },
+    "Kaique Kenji": {
+     "n": "Yuka"
+    },
+    "Kauã Moraes": {
+     "n": "Adriano Santos"
+    },
+    "Kauã Prates": {
+     "n": "Valdirzinho"
+    },
+    "Lucas Romero": {
+     "n": "Denilson Dias"
+    },
+    "Léo Aragão": {
+     "n": "Vinícius Freitas"
+    },
+    "Gabriel Rojas": {
+     "n": "Raiu"
+    },
+    "João Marcelo": {
+     "n": "Tiago Pinto"
+    },
+    "Matheus Cunha": {
+     "n": "Denilson Rodrigues"
+    },
+    "Otávio Costa": {
+     "n": "Adriano Bezerra"
+    },
+    "Chico da Costa": {
+     "n": "Renato Pinto"
+    },
+    "Jonathan Jesus": {
+     "n": "Tiago Santos"
+    },
+    "Lucas Villalba": {
+     "n": "Vitor Gomes"
+    },
+    "Murilo Rhikman": {
+     "n": "Everton Guimarães"
+    },
+    "Bruno Rodrigues": {
+     "n": "Raimundo Ribeiro"
+    },
+    "Fabrício Bruno": {
+     "n": "Jean Teixeira"
+    },
+    "Luis Sinisterra": {
+     "n": "Pedrinho"
+    },
+    "Matheus Pereira": {
+     "n": "Toninho"
+    },
+    "Fabrizio Peralta": {
+     "n": "Nathan Batista"
+    },
+    "Matheus Henrique": {
+     "n": "Tião"
+    },
+    "Néiser Villarreal": {
+     "n": "Denilson Siqueira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "614",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Urubu da Gávea",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/flamengo/escudo-semfundo-1787717572029.webp",
+   "short": "Urubu da Gávea",
+   "squad": {
+    "Pedro": {
+     "n": "Marcos Freitas"
+    },
+    "Andrew": {
+     "n": "Alexinho"
+    },
+    "Danilo": {
+     "n": "Lucas Peixoto"
+    },
+    "Lorran": {
+     "n": "Diego Moreira"
+    },
+    "Vitão": {
+     "n": "Cleiton Peixoto"
+    },
+    "Everton": {
+     "n": "Everton Freitas"
+    },
+    "Jorginho": {
+     "n": "Robinho Lima"
+    },
+    "Léo Ortiz": {
+     "n": "Antônio Correia"
+    },
+    "Alex Sandro": {
+     "n": "Samuel Moreira"
+    },
+    "Dyogo Alves": {
+     "n": "Maicon Nascimento"
+    },
+    "João Souza": {
+     "n": "Thiago Guimarães"
+    },
+    "Samuel Lino": {
+     "n": "Thiago Teixeira"
+    },
+    "Wallace Yan": {
+     "n": "Raimundo Oliveira"
+    },
+    "Ayrton Lucas": {
+     "n": "Adrianinho"
+    },
+    "Erick Pulgar": {
+     "n": "Leléo"
+    },
+    "Luiz Araújo": {
+     "n": "Eduardo Santos"
+    },
+    "Léo Pereira": {
+     "n": "Paulo Tavares"
+    },
+    "Emerson Royal": {
+     "n": "Marcos Pinto"
+    },
+    "Gonzalo Plata": {
+     "n": "Samuka"
+    },
+    "Tiago Pereira": {
+     "n": "Márcio Almeida"
+    },
+    "Agustín Rossi": {
+     "n": "Douglas Pereira"
+    },
+    "Bruno Henrique": {
+     "n": "José Gomes"
+    },
+    "Lucas Paquetá": {
+     "n": "Ricardinho"
+    },
+    "Saúl Ñíguez": {
+     "n": "Marcos Costa"
+    },
+    "Jorge Carrascal": {
+     "n": "Everton Cavalcanti"
+    },
+    "Evertton Araújo": {
+     "n": "Robson Dias"
+    },
+    "Guillermo Varela": {
+     "n": "Kaique Costa"
+    },
+    "Henrique Martins": {
+     "n": "Emerson Souza"
+    },
+    "Nicolás de la Cruz": {
+     "n": "Sebastião Barbosa"
+    },
+    "Giorgian de Arrascaeta": {
+     "n": "Adriano Souza"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "6600",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Campeão do Povo",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/internacional/escudo-semfundo-1787715976803.webp",
+   "short": "Campeão do Povo",
+   "squad": {
+    "Allex": {
+     "n": "Vinícius Xavier"
+    },
+    "Kayky": {
+     "n": "Cleiton Bezerra"
+    },
+    "Anthoni": {
+     "n": "Francisco Vieira"
+    },
+    "Clayton": {
+     "n": "Digão"
+    },
+    "Juninho": {
+     "n": "Andersinho"
+    },
+    "Richard": {
+     "n": "Wagner Cardoso"
+    },
+    "Ronaldo": {
+     "n": "Dedé"
+    },
+    "Vitinho": {
+     "n": "Everton Costa"
+    },
+    "Benjamin": {
+     "n": "Tiago Batista"
+    },
+    "Raykkonen": {
+     "n": "Igor Lima"
+    },
+    "Yago Noal": {
+     "n": "Robinho Santos"
+    },
+    "Alerrandro": {
+     "n": "Maicon Correia"
+    },
+    "Bruno Gomes": {
+     "n": "Maicon Lima"
+    },
+    "Diego Esser": {
+     "n": "Vagner Pinto"
+    },
+    "Thiago Maia": {
+     "n": "Sebastião Oliveira"
+    },
+    "Alan Patrick": {
+     "n": "Pedro Martins"
+    },
+    "Bruno Tabata": {
+     "n": "Bruno Gomes"
+    },
+    "Félix Torres": {
+     "n": "Cleiton Batista"
+    },
+    "Matheus Bahia": {
+     "n": "Everton Correia"
+    },
+    "Sergio Rochet": {
+     "n": "Antônio Siqueira"
+    },
+    "Braian Aguirre": {
+     "n": "Duda"
+    },
+    "Bruno Henrique": {
+     "n": "Elias Silva"
+    },
+    "Henrique Menke": {
+     "n": "Jean Bezerra"
+    },
+    "Paulinho Paula": {
+     "n": "Huguinho"
+    },
+    "Victor Gabriel": {
+     "n": "Renato Cavalcanti"
+    },
+    "Alan Rodríguez": {
+     "n": "Wellington Costa"
+    },
+    "Gabriel Mercado": {
+     "n": "Antônio Nunes"
+    },
+    "Johan Carbonero": {
+     "n": "Emerson Moreira"
+    },
+    "Rodrigo Villagra": {
+     "n": "Anderson Martins"
+    },
+    "Alexandro Bernabei": {
+     "n": "Robinho Rocha"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "679",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Furacão do Sul",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/athleticopr/escudo-semfundo-1787709223709.webp",
+   "short": "Furacão do Sul",
+   "squad": {
+    "Dudu": {
+     "n": "Matheus Melo"
+    },
+    "Léo": {
+     "n": "Samuel Nascimento"
+    },
+    "Isaac": {
+     "n": "Igor Moreira"
+    },
+    "Mycael": {
+     "n": "Júlio Ferreira"
+    },
+    "Santos": {
+     "n": "Vagner Batista"
+    },
+    "Eduardo": {
+     "n": "Samuel Xavier"
+    },
+    "Jádson": {
+     "n": "Alex Lima"
+    },
+    "Bruninho": {
+     "n": "Lucas Barbosa"
+    },
+    "Chiqueti": {
+     "n": "José Pereira"
+    },
+    "Gilberto": {
+     "n": "José Andrade"
+    },
+    "Leozinho": {
+     "n": "Lucas Carvalho"
+    },
+    "Felipinho": {
+     "n": "Adriano Ribeiro"
+    },
+    "João Cruz": {
+     "n": "Paulo Farias"
+    },
+    "Léo Derik": {
+     "n": "Hugo Cardoso"
+    },
+    "Arthur Dias": {
+     "n": "Yuri Vieira"
+    },
+    "Bruno Zapelli": {
+     "n": "Vitor Barbosa"
+    },
+    "Carlos Terán": {
+     "n": "Fábio Monteiro"
+    },
+    "Jorge Rivaldo": {
+     "n": "Nathan Moreira"
+    },
+    "Juan Portilla": {
+     "n": "Samuel Freitas"
+    },
+    "Kevin Viveros": {
+     "n": "Raimundo Lima"
+    },
+    "Renan Peixoto": {
+     "n": "José Dias"
+    },
+    "Daniel Aguilar": {
+     "n": "Paulo Pereira"
+    },
+    "Hayen Palacios": {
+     "n": "Thiago Rodrigues"
+    },
+    "Lucas Esquivel": {
+     "n": "Leandro Bezerra"
+    },
+    "Romeo Benítez": {
+     "n": "Douglas Guimarães"
+    },
+    "Stiven Mendoza": {
+     "n": "Tiago Rocha"
+    },
+    "Gilberto Junior": {
+     "n": "Vitor Pinto"
+    },
+    "Alejandro García": {
+     "n": "Antônio Carvalho"
+    },
+    "Gastón Benavídez": {
+     "n": "Gustavo Cavalcanti"
+    },
+    "Juan Felipe Aguirre": {
+     "n": "Wesley Araújo"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "776",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Curitiba FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/coritiba/escudo-semfundo-1787709269352.webp",
+   "short": "Curitiba FC",
+   "squad": {
+    "Jacy": {
+     "n": "Felipe Peixoto"
+    },
+    "Keno": {
+     "n": "Leandro Peixoto"
+    },
+    "Tinga": {
+     "n": "Yuri Andrade"
+    },
+    "Josué": {
+     "n": "Kaique Batista"
+    },
+    "Maicon": {
+     "n": "Bruninho"
+    },
+    "Fabinho": {
+     "n": "Jonathan Rocha"
+    },
+    "Gustavo": {
+     "n": "Júlio Rodrigues"
+    },
+    "Keiller": {
+     "n": "Vitor Costa"
+    },
+    "Éberth": {
+     "n": "Jean Gomes"
+    },
+    "Wallisson": {
+     "n": "Antônio Souza"
+    },
+    "Bruno Melo": {
+     "n": "Márcio Cardoso"
+    },
+    "Breno Lopes": {
+     "n": "Marcos Ribeiro"
+    },
+    "JP Chermont": {
+     "n": "Fernando Melo"
+    },
+    "Pedro Rocha": {
+     "n": "Marcos Gomes"
+    },
+    "Brian Ocampo": {
+     "n": "André Rodrigues"
+    },
+    "Lucas Ronier": {
+     "n": "Thiago Martins"
+    },
+    "Pedro Rangel": {
+     "n": "Júlio Almeida"
+    },
+    "Tiago Cóser": {
+     "n": "Renato Machado"
+    },
+    "João Almeida": {
+     "n": "Cícero Rocha"
+    },
+    "Pedro Morisco": {
+     "n": "Ricardo Vieira"
+    },
+    "Vini Paulista": {
+     "n": "Wellington Correia"
+    },
+    "Felipe Jonatan": {
+     "n": "Wesley Bezerra"
+    },
+    "Geovane Meurer": {
+     "n": "Leonardo Siqueira"
+    },
+    "Renato Marques": {
+     "n": "Bruno Melo"
+    },
+    "Rodrigo Moledo": {
+     "n": "André Costa"
+    },
+    "Fernando Sobral": {
+     "n": "Wallace Gomes"
+    },
+    "Joaquín Lavega": {
+     "n": "André Ferreira"
+    },
+    "Willian Oliveira": {
+     "n": "Adriano Araújo"
+    },
+    "Rodrigo Rodrigues": {
+     "n": "Sebastião Machado"
+    },
+    "Sebastián Gómez": {
+     "n": "Márcio Vieira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "8793",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Bragança",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/bragantino/escudo-semfundo-1787709604900.webp",
+   "short": "Bragança",
+   "squad": {
+    "Alix": {
+     "n": "Jonathan Oliveira"
+    },
+    "Cleiton": {
+     "n": "Paulo Almeida"
+    },
+    "Eduardo": {
+     "n": "Cacá"
+    },
+    "Fabinho": {
+     "n": "Vinícius Vieira"
+    },
+    "Gabriel": {
+     "n": "Wagner Machado"
+    },
+    "Bruninho": {
+     "n": "Marcos Rodrigues"
+    },
+    "Fernando": {
+     "n": "Bruno Nunes"
+    },
+    "Praxedes": {
+     "n": "Jonathan Freitas"
+    },
+    "Vanderlan": {
+     "n": "Chiquinho"
+    },
+    "Vinicinho": {
+     "n": "Sebastião Dias"
+    },
+    "Rodriguinho": {
+     "n": "Marcos Xavier"
+    },
+    "Tiago Volpi": {
+     "n": "Emerson Cardoso"
+    },
+    "Eric Ramires": {
+     "n": "Anderson Dias"
+    },
+    "Ignacio Sosa": {
+     "n": "Pedro Monteiro"
+    },
+    "Isidro Pitta": {
+     "n": "Douglas Nunes"
+    },
+    "Ryan Augusto": {
+     "n": "Samuel Siqueira"
+    },
+    "Eduardo Sasha": {
+     "n": "Denilson Farias"
+    },
+    "Gustavo Neves": {
+     "n": "Nathan Nunes"
+    },
+    "José Herrera": {
+     "n": "Marcos Oliveira"
+    },
+    "Lucas Barbosa": {
+     "n": "Adriano Silva"
+    },
+    "Thiago Borbas": {
+     "n": "Otávio Teixeira"
+    },
+    "Henry Mosquera": {
+     "n": "Jean Pereira"
+    },
+    "Pedro Henrique": {
+     "n": "Hugo Batista"
+    },
+    "Gustavo Marques": {
+     "n": "Bruno Teixeira"
+    },
+    "Juninho Capixaba": {
+     "n": "Antônio Freitas"
+    },
+    "Matheus Fernandes": {
+     "n": "Denilson Bezerra"
+    },
+    "Agustín Sant'Anna": {
+     "n": "Wagner Melo"
+    },
+    "Guzmán Rodríguez": {
+     "n": "Ricardo Pereira"
+    },
+    "Ignacio Laquintana": {
+     "n": "Antônio Dias"
+    },
+    "José Andrés Hurtado": {
+     "n": "Fábio Rocha"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "978",
+  "divisao": "A",
+  "novo": false,
+  "patch": {
+   "name": "Cruz-Maltino",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/vasco/escudo-semfundo-1787708360341.webp",
+   "short": "Cruz-Maltino",
+   "squad": {
+    "JP": {
+     "n": "Carlos Peixoto"
+    },
+    "Jair": {
+     "n": "Alex Andrade"
+    },
+    "Adson": {
+     "n": "Bruno Martins"
+    },
+    "David": {
+     "n": "Jean Freitas"
+    },
+    "Brenner": {
+     "n": "Raimundo Batista"
+    },
+    "Cuiabano": {
+     "n": "Pedro Ferreira"
+    },
+    "Paulinho": {
+     "n": "Igor Melo"
+    },
+    "Riquelme": {
+     "n": "Cícero Rodrigues"
+    },
+    "Hugo Moura": {
+     "n": "Wellington Freitas"
+    },
+    "JV Fonseca": {
+     "n": "Paulo Rocha"
+    },
+    "Johan Rojas": {
+     "n": "Felipe Correia"
+    },
+    "Lucas Piton": {
+     "n": "Nathan Pinto"
+    },
+    "Léo Jardim": {
+     "n": "Vitor Oliveira"
+    },
+    "Tchê Tchê": {
+     "n": "Bruno Barbosa"
+    },
+    "Cauan Barros": {
+     "n": "Eduardo Correia"
+    },
+    "Nuno Moreira": {
+     "n": "Fábio Lima"
+    },
+    "Robert Renan": {
+     "n": "Fábio Bezerra"
+    },
+    "Alan Saldivia": {
+     "n": "Thiago Gomes"
+    },
+    "Carlos Cuesta": {
+     "n": "Gustavo Nunes"
+    },
+    "Daniel Fuzato": {
+     "n": "Denilson Nunes"
+    },
+    "Loide Augusto": {
+     "n": "Fábio Farias"
+    },
+    "Lucas Freitas": {
+     "n": "Wesley Tavares"
+    },
+    "Thiago Mendes": {
+     "n": "Pipo"
+    },
+    "Andrés Gómez": {
+     "n": "Vinícius Barbosa"
+    },
+    "Paulo Henrique": {
+     "n": "Elias Peixoto"
+    },
+    "Mateus Carvalho": {
+     "n": "Vitor Moreira"
+    },
+    "Claudio Spinelli": {
+     "n": "Wagner Silva"
+    },
+    "Lukas Zuccarello": {
+     "n": "José Machado"
+    },
+    "Marino Hinestroza": {
+     "n": "Gabriel Gomes"
+    },
+    "José Luis Rodríguez": {
+     "n": "Adriano Xavier"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_10492",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Alviverde Serrano",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/juventude/escudo-semfundo-1787707619006.webp",
+   "short": "Alviverde Serrano",
+   "squad": {
+    "Iba Ly": {
+     "n": "Idrissa Camara"
+    },
+    "Lucas Alves": {
+     "n": "Alex Rodrigues"
+    },
+    "Alan Ruschel": {
+     "n": "Alan Tavares"
+    },
+    "Manuel Castro": {
+     "n": "Édison Rojas"
+    },
+    "Alisson Safira": {
+     "n": "Nathan Monteiro"
+    },
+    "Raí dos Reis Ramos": {
+     "n": "Vado"
+    },
+    "Fábio de Lima Costa": {
+     "n": "Igor Silva"
+    },
+    "Diogo Barbosa Mendanha": {
+     "n": "Vitor Rodrigues"
+    },
+    "Lucas da Silva Izidoro": {
+     "n": "Leonardo Freitas"
+    },
+    "Patryck Lanza dos Reis": {
+     "n": "Everton Martins"
+    },
+    "Raí da Silva Pessanha": {
+     "n": "Vitinho"
+    },
+    "Luan Martins Gonçalves": {
+     "n": "Alan Costa"
+    },
+    "Gabriel Barbosa Pinheiro": {
+     "n": "Rafael Andrade"
+    },
+    "Nathan Santos de Araújo": {
+     "n": "Francisco Xavier"
+    },
+    "Ray Breno Silva Valentim": {
+     "n": "Matheus Oliveira"
+    },
+    "Rodrigo Eduardo da Silva": {
+     "n": "Raimundo Xavier"
+    },
+    "Jandrei Chitolina Carniel": {
+     "n": "Francisco Silva"
+    },
+    "Allan Victor Oliveira Mota": {
+     "n": "Antônio Tavares"
+    },
+    "José Henrique Venancio Camargo": {
+     "n": "Leandro Melo"
+    },
+    "Marcos Paulo Lima Batista Silva": {
+     "n": "Cleiton Freitas"
+    },
+    "Marcos Paulo Costa do Nascimento": {
+     "n": "Vasco Fonseca"
+    },
+    "Pablo Roberto dos Santos Barbosa": {
+     "n": "Gabriel Carvalho"
+    },
+    "Messias Rodrigues da Silva Júnior": {
+     "n": "Leonardo Gomes"
+    },
+    "Alan Kardec de Souza Pereira Junior": {
+     "n": "José Moreira"
+    },
+    "Luiz Gustavo da Silva Machado Duarte": {
+     "n": "Alan Andrade"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_10870",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor de Aço",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/fortaleza/escudo-semfundo-1787708102451.webp",
+   "short": "Tricolor de Aço",
+   "squad": {
+    "Lucas Gazal": {
+     "n": "Fernando Xavier"
+    },
+    "Lucas Crispim": {
+     "n": "Fernando Barbosa"
+    },
+    "Juan Miritello": {
+     "n": "Kevin Rojas"
+    },
+    "Tomás Cardona": {
+     "n": "Santiago Aguirre"
+    },
+    "Gabriel Fuentes": {
+     "n": "Juan Benítez"
+    },
+    "Matheus Rossetto": {
+     "n": "Vagner Dias"
+    },
+    "João Ricardo Riedi": {
+     "n": "Maiconzinho"
+    },
+    "Lucca Prior Pimenta": {
+     "n": "Wellington Lima"
+    },
+    "Lucas Pacheco Affini": {
+     "n": "Danilo Lima"
+    },
+    "Ryan Gustavo de Lima": {
+     "n": "Robão"
+    },
+    "Gabriel Souza da Silva": {
+     "n": "Welinton"
+    },
+    "Ronald Cardoso Falkoski": {
+     "n": "Marcos Araújo"
+    },
+    "Maílton dos Santos de Sá": {
+     "n": "Yuri Carvalho"
+    },
+    "Rodrigo Oliveira dos Santos": {
+     "n": "Dani"
+    },
+    "Paulo Henrique Silva Ribeiro": {
+     "n": "Fernando Andrade"
+    },
+    "Vinícius Silvestre da Costa": {
+     "n": "Renatinho"
+    },
+    "Vitor Samuel Ferreira Arantes": {
+     "n": "Gabriel Andrade"
+    },
+    "Luiz Fernando Moraes dos Santos": {
+     "n": "Wesley Monteiro"
+    },
+    "Luan de Freitas Molarinho Chagas": {
+     "n": "Vagner Melo"
+    },
+    "Maurício Júnior Lima Rodrigues": {
+     "n": "Yuri Santos"
+    },
+    "Rodrigo Henrique Santos de Souza": {
+     "n": "Carlinhos"
+    },
+    "Pierre Wagner Oliveira dos Santos": {
+     "n": "Vinícius Moreira"
+    },
+    "Welliton Silva de Azevedo Matheus": {
+     "n": "Alan Araújo"
+    },
+    "Calebe Goncalves Ferreira da Silva": {
+     "n": "Leonardo Melo"
+    },
+    "Pedro Henrique Konzen Medina da Silva": {
+     "n": "Emerson Ribeiro"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_1134",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Campineiro",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/pontepreta/escudo-semfundo-1787707971065.webp",
+   "short": "Campineiro",
+   "squad": {
+    "Pedro Costa": {
+     "n": "Fernando Lima"
+    },
+    "Wesley Rocha": {
+     "n": "André Bezerra"
+    },
+    "Fábio Santos": {
+     "n": "José Ferreira"
+    },
+    "Felipe Martins": {
+     "n": "Leonardo Ferreira"
+    },
+    "Wesley Barbosa": {
+     "n": "Antônio Santos"
+    },
+    "Sergio Palacios": {
+     "n": "Juan López"
+    },
+    "Wesley Carvalho": {
+     "n": "Cícero Oliveira"
+    },
+    "André da Silva Lima": {
+     "n": "Wagner Costa"
+    },
+    "Lucas de Souza Cunha": {
+     "n": "Wagnão"
+    },
+    "Diogo Ribeiro de Mora": {
+     "n": "Ricardo Nascimento"
+    },
+    "Kevyson Costa e Silva": {
+     "n": "Matheus Freitas"
+    },
+    "Élvis Vieira Araújo": {
+     "n": "Francisco Rocha"
+    },
+    "Leonardo da Silva Gomes": {
+     "n": "Sebastião Correia"
+    },
+    "Danilo Carvalho Barcelos": {
+     "n": "Felipe Cardoso"
+    },
+    "Diego Porfírio da Silva": {
+     "n": "Ricardo Melo"
+    },
+    "Guilherme Viana Sant'Ana": {
+     "n": "Fabão"
+    },
+    "Rodrigo de Souza Fonseca": {
+     "n": "Tiago Ferreira"
+    },
+    "Vinicius Ferrari Andreoli": {
+     "n": "Felipe Machado"
+    },
+    "Guilherme Martins Ferreira": {
+     "n": "Wellington Ribeiro"
+    },
+    "Murilo Henrique Cavalcante": {
+     "n": "Robson Correia"
+    },
+    "Thalys Victor Martins Sena": {
+     "n": "Rodrigo Barbosa"
+    },
+    "Márcio Gleyson Leite da Silva": {
+     "n": "Leandro Monteiro"
+    },
+    "Diogo José Gonçalves da Silva": {
+     "n": "Valdir Guimarães"
+    },
+    "Diego Barbosa de Oliveira Tavares": {
+     "n": "Ricardo Peixoto"
+    },
+    "Kawann Kleberth Rodrigues de Carvalho Desiderio": {
+     "n": "Fábio Santos"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_11449",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Galo de Alagoas",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/crb/escudo-semfundo-1787707728542.webp",
+   "short": "Galo de Alagoas",
+   "squad": {
+    "Lucas Lovat": {
+     "n": "Pedro Souza"
+    },
+    "Guilherme Estrella": {
+     "n": "Cleiton Ferreira"
+    },
+    "Leonardo de Campos": {
+     "n": "Otávio Lima"
+    },
+    "Diogo Hereda da Silva": {
+     "n": "Robinho Pereira"
+    },
+    "Daniel Sampaio Simões": {
+     "n": "Samuel Rodrigues"
+    },
+    "Matheus Albino Carneiro": {
+     "n": "Gustavo Cardoso"
+    },
+    "Fábio Augusto Schirmann": {
+     "n": "André Machado"
+    },
+    "Henri Marinho dos Santos": {
+     "n": "Marquinhos"
+    },
+    "Guilherme Nunes Rodrigues": {
+     "n": "Bruno Cavalcanti"
+    },
+    "Thiago Fernandes Rodrigues": {
+     "n": "Eduardo Rocha"
+    },
+    "Crystopher Ribeiro Oliveira": {
+     "n": "José Monteiro"
+    },
+    "Luiz Phellype Luciano Silva": {
+     "n": "Jonathan Santos"
+    },
+    "Luiz Gustavo Novaes Palhares": {
+     "n": "Paulo Batista"
+    },
+    "Matheus Simonete Bressanelli": {
+     "n": "Kaique Andrade"
+    },
+    "Mikael Filipe Viana de Sousa": {
+     "n": "Wesley Freitas"
+    },
+    "Fábio Henrique Souza Santana": {
+     "n": "Leonardo Machado"
+    },
+    "Reverson Valuarth Paiva Silva": {
+     "n": "Vaguinho"
+    },
+    "Pedro Henrique de Castro Silva": {
+     "n": "Otávio Pinto"
+    },
+    "Kevin Peterson dos Santos Silva": {
+     "n": "Cleiton Lima"
+    },
+    "Adailson Freire Pereira da Silva": {
+     "n": "Wallace Xavier"
+    },
+    "Douglas Baggio de Oliveira Costa": {
+     "n": "Danilo Souza"
+    },
+    "Luís Vinícius Nunes Cavalcante": {
+     "n": "Vinícius Pinto"
+    },
+    "João Batista da Cruz Santos Neto": {
+     "n": "Lucas Correia"
+    },
+    "Geovane da Silva de Souza Montanari": {
+     "n": "Marcos Melo"
+    },
+    "Patrick de Lucca Chaves de Oliveira": {
+     "n": "Ricardo Souza"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_15172",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Dragão Goiano",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/atleticogo/escudo-semfundo-1787708071688.webp",
+   "short": "Dragão Goiano",
+   "squad": {
+    "Jader Gentil": {
+     "n": "Pedro Cardoso"
+    },
+    "Junior Barreto": {
+     "n": "Wilson Vargas"
+    },
+    "Guilherme Romão": {
+     "n": "Alex Nascimento"
+    },
+    "Bruno José de Souza": {
+     "n": "Wagner Siqueira"
+    },
+    "Daniel Alves de Lima": {
+     "n": "Yurizinho"
+    },
+    "Gabriel Araújo Lima": {
+     "n": "Francisco Nunes"
+    },
+    "Guilherme Costa Marques": {
+     "n": "Thiago Ferreira"
+    },
+    "Matheus Salgueiro Pains": {
+     "n": "Yuri Pinto"
+    },
+    "Geovane Batista de Faria": {
+     "n": "Raimundo Pereira"
+    },
+    "Geovany dos Santos Soares": {
+     "n": "Gustavo Nascimento"
+    },
+    "Adriano Martins da Fonseca": {
+     "n": "Adriano Cardoso"
+    },
+    "Guilherme Lopes de Almeida": {
+     "n": "Gustavo Teixeira"
+    },
+    "Leonardo Santiago Barcelar": {
+     "n": "Jean Almeida"
+    },
+    "Ewerthon Diógenes da Silva": {
+     "n": "Carlão"
+    },
+    "Gustavo Coutinho Silva Lopes": {
+     "n": "Igor Guimarães"
+    },
+    "João Victor Vaz Lopes Pinto": {
+     "n": "Fernando Costa"
+    },
+    "Igor Henrique Martins Machado": {
+     "n": "Tonico"
+    },
+    "Leandro Vilela Sales Teixeira": {
+     "n": "Raimundo Costa"
+    },
+    "Leonardo Gomes da Silva Jacó": {
+     "n": "Adriano Teixeira"
+    },
+    "Natã Felipe de Amorim Santos": {
+     "n": "Elias Dias"
+    },
+    "Redney Emanuel de Jesus Assis": {
+     "n": "Wesley Vieira"
+    },
+    "Paulo Vítor Fagundes dos Anjos": {
+     "n": "Rodrigo Siqueira"
+    },
+    "Marrony da Silva Liberato Silveira": {
+     "n": "Paulo Xavier"
+    },
+    "Leonardo de Medeiros Guimarães Rosa": {
+     "n": "Diego Oliveira"
+    },
+    "Guilherme Henrique de Oliveira Morais": {
+     "n": "Daninho"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_16439",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Tigre do ABC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/saobernardo/escudo-semfundo-1787707688663.webp",
+   "short": "Tigre do ABC",
+   "squad": {
+    "Lucas Fernandes": {
+     "n": "Vagner Cardoso"
+    },
+    "Alex Alves de Lima": {
+     "n": "Nathan Santos"
+    },
+    "Hyoran Kaue Dalmoro": {
+     "n": "Robinho Peixoto"
+    },
+    "Hélder Gomes Maciel": {
+     "n": "João Silva"
+    },
+    "Lucas dos Santos Reis": {
+     "n": "Rodrigo Correia"
+    },
+    "Augusto de Souza Silva": {
+     "n": "Thiago Bezerra"
+    },
+    "Mário Sérgio Valerio": {
+     "n": "Maicon Santos"
+    },
+    "Daniel Davi Simão Roque": {
+     "n": "Robinho Batista"
+    },
+    "Romisson Lino dos Santos": {
+     "n": "Rafael Rodrigues"
+    },
+    "Fabrício Daniel de Souza": {
+     "n": "Elias Guimarães"
+    },
+    "Guilherme Seefeldt Krolow": {
+     "n": "Alan Peixoto"
+    },
+    "Ocimar de Almeida Júnior": {
+     "n": "Thiago Siqueira"
+    },
+    "Rodrigo Ferreira da Silva": {
+     "n": "Paulo Vieira"
+    },
+    "Anderson Ferreira da Silva": {
+     "n": "Wellington Siqueira"
+    },
+    "Lucas Rian Santos Oliveira": {
+     "n": "Lucas Lima"
+    },
+    "Daniel Amorim Dias da Silva": {
+     "n": "Everton Silva"
+    },
+    "José Rodrigo Andrade Ramos": {
+     "n": "Anderson Monteiro"
+    },
+    "Lucas Eduardo Lima da Silva": {
+     "n": "Anderson Correia"
+    },
+    "Pedro Gabriel Pereira Lopes": {
+     "n": "Otávio Freitas"
+    },
+    "Eduardo da Silva Albuquerque": {
+     "n": "Diego Dias"
+    },
+    "Jemerson de Jesus Nascimento": {
+     "n": "Otávio Tavares"
+    },
+    "Pedro Vitor Ferreira da Silva": {
+     "n": "Francisco Rodrigues"
+    },
+    "Luiz Gustavo Oliveira da Silva": {
+     "n": "Leonardo Cavalcanti"
+    },
+    "Arnaldo Francisco da Costa Neto": {
+     "n": "Rodrigo Bezerra"
+    },
+    "Matheus Vinícius Matos Nogueira": {
+     "n": "Gabriel Freitas"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_1693",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Tubarão do Norte",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/londrinapr/escudo-semfundo-1787707955987.webp",
+   "short": "Tubarão do Norte",
+   "squad": {
+    "Raí Nascimento": {
+     "n": "Sebastião Ferreira"
+    },
+    "Emiliano Rodríguez": {
+     "n": "Wilson Restrepo"
+    },
+    "Eduardo Alves Zanella": {
+     "n": "Lucas Costa"
+    },
+    "Heron Crespo da Silva": {
+     "n": "Thiago Souza"
+    },
+    "Luan Fernandes Ribeiro": {
+     "n": "Fernando Guimarães"
+    },
+    "Paulo Roberto Moccelin": {
+     "n": "Marcos Andrade"
+    },
+    "Caio Rafael Aquino Lima": {
+     "n": "Pedro Carvalho"
+    },
+    "Willian da Silva Santos": {
+     "n": "Paulão"
+    },
+    "Athyrson Ferreira Prates": {
+     "n": "André Pereira"
+    },
+    "Lucas Marques de Oliveira": {
+     "n": "Samuzinho"
+    },
+    "Pablo Dyego da Silva Rosa": {
+     "n": "Elias Oliveira"
+    },
+    "Victor Hugo de Faria Mota": {
+     "n": "Anderson Pereira"
+    },
+    "Kevyn Lucas Ramos da Costa": {
+     "n": "Gustavo Bezerra"
+    },
+    "Thalis Henrique Cantanhede": {
+     "n": "Robsinho"
+    },
+    "Francisco Vitor Silva Costa": {
+     "n": "Sebastião Freitas"
+    },
+    "João Vitor Tavares da Mota": {
+     "n": "Rafael Rocha"
+    },
+    "João Vitor de Souza Martins": {
+     "n": "Fábio Correia"
+    },
+    "André Cardoso da Silva Junior": {
+     "n": "Wallace Siqueira"
+    },
+    "Fabricio Francelino dos Santos": {
+     "n": "Biel"
+    },
+    "Gabriel Santos Cordeiro Lacerda": {
+     "n": "Maicon Dias"
+    },
+    "Gilberto Oliveira Souza Júnior": {
+     "n": "Carlos Andrade"
+    },
+    "Francisco Murilo de Sousa Almeida": {
+     "n": "Waltinho"
+    },
+    "Weverton Guilherme Da Silva Souza": {
+     "n": "Gustavo Santos"
+    },
+    "André Luiz Guimarães Siqueira Junior": {
+     "n": "Wesley Ferreira"
+    },
+    "André Dhominique Queiroz Santiago da Silva": {
+     "n": "André Cardoso"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_2029",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Vovô Cearense",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/cearasporting/escudo-semfundo-1787707842795.webp",
+   "short": "Vovô Cearense",
+   "squad": {
+    "Lucas Mugni": {
+     "n": "Nicolás Duarte"
+    },
+    "Rafael Ramos": {
+     "n": "Vasco Pinto"
+    },
+    "Renzo López": {
+     "n": "Joaquín Pérez"
+    },
+    "Gustavo Prado Alves": {
+     "n": "Ricardo Carvalho"
+    },
+    "Sávio António Alves": {
+     "n": "Elias Santos"
+    },
+    "Wendel da Silva Costa": {
+     "n": "Diego Bezerra"
+    },
+    "Jorge Meurer Bartholdy": {
+     "n": "Dri"
+    },
+    "Kauã Ziegler da Silva": {
+     "n": "Ricardo Cavalcanti"
+    },
+    "Giulio Gabriel da Silva": {
+     "n": "Raimundo Monteiro"
+    },
+    "Éder Ferreira Graminho": {
+     "n": "Gabriel Siqueira"
+    },
+    "Bryan Borges Mascarenhas": {
+     "n": "Kaique Xavier"
+    },
+    "Matheus de Araújo Andrade": {
+     "n": "Adriano Oliveira"
+    },
+    "Bruno Ferreira Ventura Diniz": {
+     "n": "Valdir Moreira"
+    },
+    "João Gabriel Santos Batista": {
+     "n": "Douglas Batista"
+    },
+    "Luiz Otávio da Silva Santos": {
+     "n": "Leonardo Araújo"
+    },
+    "Juan Matheus Alano Nascimento": {
+     "n": "Kaique Guimarães"
+    },
+    "Lucca Holanda Sampaio Tavares": {
+     "n": "Robson Nascimento"
+    },
+    "Júlio César Alves Gonçalves": {
+     "n": "Robson Pereira"
+    },
+    "Matheus Leonardo Sales Cardoso": {
+     "n": "Jonatinho"
+    },
+    "Melquisedeque Costa de Oliveira": {
+     "n": "Dieguinho"
+    },
+    "Richardson Fernandes dos Santos": {
+     "n": "Adriano Gomes"
+    },
+    "Vinícius Goes Barbosa de Souza": {
+     "n": "Bruno Cardoso"
+    },
+    "Pedro Gilmar de Sousa Amorim Neto": {
+     "n": "Leonardo Andrade"
+    },
+    "Vinicius Nelson de Souza Zanocelo": {
+     "n": "Carlos Monteiro"
+    },
+    "Fernando Augusto Pereira Bueno Júnior": {
+     "n": "Emerson Costa"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_2035",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Azurra Catarinense",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/avai/escudo-semfundo-1787707880135.webp",
+   "short": "Azurra Catarinense",
+   "squad": {
+    "Daniel Penha": {
+     "n": "Emerson Dias"
+    },
+    "Igor José Bohn": {
+     "n": "Otávio Almeida"
+    },
+    "Romildo Del Piage": {
+     "n": "Sebastião Batista"
+    },
+    "Paulo Vitor Monteiro": {
+     "n": "Eduardo Cavalcanti"
+    },
+    "Wallison Nunes Silva": {
+     "n": "Kaique Lima"
+    },
+    "Jean Lucas Figueiredo": {
+     "n": "Matheus Peixoto"
+    },
+    "Jefferson Maciel Bento": {
+     "n": "Cleiton Dias"
+    },
+    "Gabriel Pereira Simples": {
+     "n": "Wagner Batista"
+    },
+    "Mateus Quaresma Correia": {
+     "n": "Leandro Guimarães"
+    },
+    "Vinicius Gugel da Silva": {
+     "n": "Everton Farias"
+    },
+    "Isaías Pereira da Silva": {
+     "n": "Igão"
+    },
+    "Juan Sousa Rocha Leandro": {
+     "n": "José Costa"
+    },
+    "Leonardo Gamalho de Souza": {
+     "n": "Danilo Barbosa"
+    },
+    "José Artur Pedro da Silva": {
+     "n": "Samuel Nunes"
+    },
+    "Luiz Henrique Araujo Silva": {
+     "n": "Robson Carvalho"
+    },
+    "Hyan Carvalho Machado Silva": {
+     "n": "Cícero Araújo"
+    },
+    "Jamerson dos Santos Nascimento": {
+     "n": "Paulo Gomes"
+    },
+    "Otávio Augusto de Paula Passos": {
+     "n": "Sebastião Silva"
+    },
+    "João Victor Oliveira dos Santos": {
+     "n": "Cícero Ribeiro"
+    },
+    "Wenderson Oliveira do Nascimento": {
+     "n": "Antônio Costa"
+    },
+    "Wesley David de Oliveira Andrade": {
+     "n": "Sebastião Souza"
+    },
+    "Guilherme Aquino Vargas dos Santos": {
+     "n": "Nathan Cavalcanti"
+    },
+    "Thayllon Roberth dos Santos Rebelo": {
+     "n": "Weslinho"
+    },
+    "José Ricardo Barbosa Ribeiro Drumond": {
+     "n": "João Rodrigues"
+    },
+    "Renan Rodrigues da Silva Dias Júnior": {
+     "n": "Denilson Santos"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_2646",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Timbu Recife",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/nautico/escudo-semfundo-1787707576664.webp",
+   "short": "Timbu Recife",
+   "squad": {
+    "Benjamín Borasi": {
+     "n": "Édison Guerrero"
+    },
+    "Gastón Guruceaga": {
+     "n": "Diego Muñoz"
+    },
+    "Jean Carlos Vicente": {
+     "n": "Yuri Gomes"
+    },
+    "Derek Freitas Ribeiro": {
+     "n": "Jean Ferreira"
+    },
+    "Victor Andrade Santos": {
+     "n": "Luquinhas"
+    },
+    "Kauan Almeida da Costa": {
+     "n": "Bruno Moreira"
+    },
+    "Samuel Felix Rodrigues": {
+     "n": "André Correia"
+    },
+    "Vinícius Santos Silva": {
+     "n": "Naguinho"
+    },
+    "Felipe de Lima Redaelli": {
+     "n": "Carlos Freitas"
+    },
+    "Geremias Ribeiro Junior": {
+     "n": "Alan Pereira"
+    },
+    "Leonai Souza de Almeida": {
+     "n": "Paulo Dias"
+    },
+    "Matheus Antunes Ribeiro": {
+     "n": "Renato Lima"
+    },
+    "Reginaldo Lopes de Jesus": {
+     "n": "Elias Lima"
+    },
+    "Arnaldo Manoel de Almeida": {
+     "n": "Vitor Dias"
+    },
+    "Leonardo Joventino Honorio": {
+     "n": "Carlos Barbosa"
+    },
+    "Leonardo de Oliveira Jance": {
+     "n": "Sebastião Teixeira"
+    },
+    "Paulo Sérgio Luiz de Souza": {
+     "n": "Samuel Cardoso"
+    },
+    "Yuri Antonio Costa da Silva": {
+     "n": "Leonardo Nunes"
+    },
+    "Luiz Felipe Oliveira de Paula": {
+     "n": "Everton Ribeiro"
+    },
+    "Auremir Evangelista dos Santos": {
+     "n": "Júlio Souza"
+    },
+    "Igor Fernandes da Silva Araújo": {
+     "n": "Lucas Silva"
+    },
+    "Luiz Paulo França do Nascimento": {
+     "n": "Alan Rocha"
+    },
+    "Wenderson da Silva Costa Ferreira": {
+     "n": "Maicon Pereira"
+    },
+    "Eduardo José Barbosa da Silva Junior": {
+     "n": "Wallace Melo"
+    },
+    "Vinicius Rodrigues Adelino dos Santos": {
+     "n": "Vagnão"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_27214",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Fantasma dos Campos",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/operario/escudo-semfundo-1787707755764.webp",
+   "short": "Fantasma dos Campos",
+   "squad": {
+    "José Cuenú": {
+     "n": "Facundo Viveros"
+    },
+    "Juan Zuluaga": {
+     "n": "Federico Castillo"
+    },
+    "William Klaus": {
+     "n": "Samuel Andrade"
+    },
+    "Vagner da Silva": {
+     "n": "Gabriel Nascimento"
+    },
+    "Gabriel Boschilia": {
+     "n": "Adriano Martins"
+    },
+    "Aylon Darwin Tavella": {
+     "n": "Antônio Vieira"
+    },
+    "Pablo Felipe Teixeira": {
+     "n": "Carlos Vieira"
+    },
+    "Pedro Veronez Vilhena": {
+     "n": "Hugo Barbosa"
+    },
+    "Diego Vermudt Monteiro": {
+     "n": "Sebastião Cavalcanti"
+    },
+    "Emaxwell Souza de Lima": {
+     "n": "Maicon Cavalcanti"
+    },
+    "Charles Raphael de Almeida": {
+     "n": "Alex Freitas"
+    },
+    "Gabriel Feliciano da Silva": {
+     "n": "Thiago Moreira"
+    },
+    "Matheus dos Santos Miranda": {
+     "n": "Márcio Rodrigues"
+    },
+    "Luis Felipe de Paula Favero": {
+     "n": "Tiago Monteiro"
+    },
+    "Matheus Trindade Gonçalves": {
+     "n": "Everton Lima"
+    },
+    "Vinicius Alessandro Mingotti": {
+     "n": "Yuri Farias"
+    },
+    "Bruno Aparecido Reis Ezequiel": {
+     "n": "Douglas Araújo"
+    },
+    "Caio Henrique da Silva Dantas": {
+     "n": "Naninho"
+    },
+    "Renan Gustavo Ribeiro Moreira": {
+     "n": "Pedro Barbosa"
+    },
+    "Vinícius Diniz Dall Antônia": {
+     "n": "Igor Cavalcanti"
+    },
+    "Antonio Mikael Rodrigues Brito": {
+     "n": "Júlio Guimarães"
+    },
+    "Bernardo Korquievicz Rodrigues": {
+     "n": "Hugo Correia"
+    },
+    "João Gabriel Rodrigues Botão": {
+     "n": "Deni"
+    },
+    "Hildeberto José Morgado Pereira": {
+     "n": "Success Camara"
+    },
+    "Onitlasi Junior de Moraes Rodrigues": {
+     "n": "Anderson Ferreira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_28022",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Dourado do Pantanal",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/cuiabamt/escudo-semfundo-1787707923764.webp",
+   "short": "Dourado do Pantanal",
+   "squad": {
+    "João Basso": {
+     "n": "Lucas Cavalcanti"
+    },
+    "Alan Empereur": {
+     "n": "Samuel Farias"
+    },
+    "Mateus Santos": {
+     "n": "Nathan Nascimento"
+    },
+    "Marcelo Carné": {
+     "n": "Gustavão"
+    },
+    "Jean Dias da Costa": {
+     "n": "Gabriel Rocha"
+    },
+    "Raul Lô Gonçalves": {
+     "n": "Kaique Martins"
+    },
+    "Jadson Alves de Lima": {
+     "n": "José Almeida"
+    },
+    "Raylan Reis Ferreira": {
+     "n": "Cicinho"
+    },
+    "Wesley Dias Claudino": {
+     "n": "Tiago Bezerra"
+    },
+    "Calebe Oliveira Costa": {
+     "n": "Bruno Almeida"
+    },
+    "João Pedro Vilardi Pinto": {
+     "n": "Lucas Guimarães"
+    },
+    "Pedro Henrique Melo Santos": {
+     "n": "Robson Farias"
+    },
+    "Rodrigo Antônio Rodrigues": {
+     "n": "Guga"
+    },
+    "Derik Gean Severino Lacerda": {
+     "n": "Rafael Cavalcanti"
+    },
+    "Luiz Otavio Alves Marcolino": {
+     "n": "Maicon Bezerra"
+    },
+    "Hernandes Rodrigues da Silva": {
+     "n": "Gustavo Gomes"
+    },
+    "João Vitor Araújo da Silva": {
+     "n": "Gabriel Farias"
+    },
+    "David Miguel de Souza Arcanjo": {
+     "n": "Matheus Tavares"
+    },
+    "Eliel Chrystian Pereira Silva": {
+     "n": "Leandro Carvalho"
+    },
+    "Marcos Júnior Lima dos Santos": {
+     "n": "Vitor Guimarães"
+    },
+    "Tarcísio Lopes Dionizio Muniz": {
+     "n": "Bruno Dias"
+    },
+    "Kauan Cristtyan Cabral do Carmo": {
+     "n": "Marcão"
+    },
+    "Pedro Henrique Alves de Almeida": {
+     "n": "Rafael Ribeiro"
+    },
+    "Marlon Matheus Lopes do Nascimento": {
+     "n": "Cleiton Siqueira"
+    },
+    "Vinicius Peixoto Trindade da Silva": {
+     "n": "Yuri Tavares"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_2863",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Coelho Mineiro",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/americamg/escudo-semfundo-1787707663967.webp",
+   "short": "Coelho Mineiro",
+   "squad": {
+    "Luca Sosa": {
+     "n": "Dudu"
+    },
+    "Alex da Silva": {
+     "n": "Fernando Peixoto"
+    },
+    "Alexandre Egea": {
+     "n": "Vagner Vieira"
+    },
+    "Matías Segovia": {
+     "n": "Miguel Salazar"
+    },
+    "Tobias Ostchega": {
+     "n": "Maximiliano Rojas"
+    },
+    "Fernando Elizari": {
+     "n": "Andrés Pérez"
+    },
+    "Rodrigo Piñeiro": {
+     "n": "Agustín Viveros"
+    },
+    "Gonzalo Mastriani": {
+     "n": "Jhon Gómez"
+    },
+    "Yago Souza de Santana": {
+     "n": "Vitor Lima"
+    },
+    "Jhonny Cardinoti Pedro": {
+     "n": "Pedro Freitas"
+    },
+    "Yarlen Faustino Augusto": {
+     "n": "Emer"
+    },
+    "Guilherme Parede Pinheiro": {
+     "n": "Denilson Nascimento"
+    },
+    "Willian Gomes de Siqueira": {
+     "n": "Vinícius Correia"
+    },
+    "Luiz Gustavo Almeida Pinto": {
+     "n": "Jão"
+    },
+    "Thauan Willian Jesus Silva": {
+     "n": "Sebastião Peixoto"
+    },
+    "Valdemir de Oliveira Soares": {
+     "n": "Carlos Dias"
+    },
+    "Leandro Santos do Nascimento": {
+     "n": "Fábio Dias"
+    },
+    "Nathan Raphael Pelae Cardoso": {
+     "n": "Otávio Nunes"
+    },
+    "Breno Henrique Neres Teixeira": {
+     "n": "Wagner Peixoto"
+    },
+    "Italo Gustavo de Aquino Brito": {
+     "n": "Denilson Machado"
+    },
+    "Manoel Messias Silva Carvalho": {
+     "n": "Jota"
+    },
+    "Paulo Victor Ferreira De Jesus": {
+     "n": "Robinho Bezerra"
+    },
+    "Ricardo César Dantas da Silva": {
+     "n": "Marciel"
+    },
+    "Felipe Amaral Casarin Damasceno": {
+     "n": "Fábio Andrade"
+    },
+    "Dalbert Henrique Chagas Estevão": {
+     "n": "Wellington Oliveira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_3197",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Esmeraldino",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/goias/escudo-semfundo-1787707828965.webp",
+   "short": "Esmeraldino",
+   "squad": {
+    "Esli García": {
+     "n": "Bryan Gómez"
+    },
+    "Lucas Ribeiro": {
+     "n": "Alanzinho"
+    },
+    "Ramon Menezes Roma": {
+     "n": "Cleiton Pereira"
+    },
+    "Rodrigo Alves Soares": {
+     "n": "Cícero Monteiro"
+    },
+    "Brayann Brito Batista": {
+     "n": "Sebastião Pereira"
+    },
+    "Bruno Sávio da Silva": {
+     "n": "Adriano Carvalho"
+    },
+    "Danilo Cunha da Silva": {
+     "n": "Márcio Pereira"
+    },
+    "Geirton Marques Aires": {
+     "n": "Vitor Ribeiro"
+    },
+    "Tadeu Antonio Ferreira": {
+     "n": "Lucas Nunes"
+    },
+    "Lucas Rafael Araújo Lima": {
+     "n": "Gustavo Barbosa"
+    },
+    "Luis Fellipe Campos Doria": {
+     "n": "Elias Cardoso"
+    },
+    "Adilson dos Anjos Oliveira": {
+     "n": "Cícero Farias"
+    },
+    "Nicolas Vecchiato da Silva": {
+     "n": "Jonathan Martins"
+    },
+    "Luiz Filipe da Rosa Machado": {
+     "n": "Otávio Gomes"
+    },
+    "Pedro Junqueira de Oliveira": {
+     "n": "Wellington Teixeira"
+    },
+    "Anselmo Ramon Alves Herculano": {
+     "n": "Felipe Araújo"
+    },
+    "Djalma Antônio da Silva Filho": {
+     "n": "Vagner Santos"
+    },
+    "Guilherme Baldória de Camargo": {
+     "n": "Jean Correia"
+    },
+    "João Paulo Ferreira Lourenço": {
+     "n": "Tiago Martins"
+    },
+    "Halerrandrio dos Santos Feitosa": {
+     "n": "Fernandinho"
+    },
+    "Carlos Eduardo de Sousa Leopoldino": {
+     "n": "Gabriel Batista"
+    },
+    "Luiz Felipe do Nascimento dos Santos": {
+     "n": "Nathan Guimarães"
+    },
+    "Thiago Rodrigues de Oliveira Nogueira": {
+     "n": "Nando"
+    },
+    "Carlos Eduardo Amaral Pereira de Castro": {
+     "n": "Eduardo Xavier"
+    },
+    "Diego Caito Barcellos Oliveira dos Santos": {
+     "n": "Thiaguinho"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_37474",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Tigre do Vale",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/novorizontino/escudo-semfundo-1787707809124.webp",
+   "short": "Tigre do Vale",
+   "squad": {
+    "Jhilmar Lora": {
+     "n": "Facundo Rojas"
+    },
+    "Eduardo Brock": {
+     "n": "Lucas Andrade"
+    },
+    "Alexis Alvariño": {
+     "n": "Diego González"
+    },
+    "Christian Ortíz": {
+     "n": "Miguel Esquivel"
+    },
+    "Luiz Otávio Maria": {
+     "n": "Robson Vieira"
+    },
+    "Luís Felipe Oyama": {
+     "n": "Raimundo Nunes"
+    },
+    "Nilson Castrillón": {
+     "n": "Édison Restrepo"
+    },
+    "Jordi Martins Almeida": {
+     "n": "Matheus Araújo"
+    },
+    "Nicolas Mores da Cruz": {
+     "n": "Wagner Tavares"
+    },
+    "Rômulo Azevedo Simão": {
+     "n": "Douglas Pinto"
+    },
+    "Leonardo Naldi de Matos": {
+     "n": "Mundinho"
+    },
+    "Marlon Adriano Prezotti": {
+     "n": "João Andrade"
+    },
+    "Diego Mathias de Almeida": {
+     "n": "João Oliveira"
+    },
+    "Hector Bianchi Rodrigues": {
+     "n": "Jonathan Machado"
+    },
+    "Matheus Henrique Bianqui": {
+     "n": "Alan Farias"
+    },
+    "Robson dos Santos Fernandes": {
+     "n": "Marcos Martins"
+    },
+    "Diego Henrique Galo da Silva": {
+     "n": "Renato Dias"
+    },
+    "Carlos Henrique de Moura Brito": {
+     "n": "João Costa"
+    },
+    "Maykon Kesley de Jesus Ramalho": {
+     "n": "Douglas Santos"
+    },
+    "Patrick Marcos de Sousa Freitas": {
+     "n": "Bruno Pinto"
+    },
+    "Jardiel Maciel Libertino da Silva": {
+     "n": "Vinícius Costa"
+    },
+    "Alexandre de Almeida Silva Júnior": {
+     "n": "Rodrigo Freitas"
+    },
+    "Carlos Adalberto de Oliveira Junior": {
+     "n": "Bruno Nascimento"
+    },
+    "César Augusto Soares dos Reis Ribela": {
+     "n": "Robson Souza"
+    },
+    "Vinícius dos Santos de Oliveira Paiva": {
+     "n": "Emerson Gomes"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_5677",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Colorado do Cerrado",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/vilanovago/escudo-semfundo-1787707639090.webp",
+   "short": "Colorado do Cerrado",
+   "squad": {
+    "Helton Leite": {
+     "n": "Matheusinho"
+    },
+    "Higor Meritão": {
+     "n": "Wesley Santos"
+    },
+    "Rafael da Silva": {
+     "n": "Marcos Silva"
+    },
+    "Tiago Pagnussat": {
+     "n": "Wellington Vieira"
+    },
+    "Eduardo Dos Santos": {
+     "n": "Leandro Ferreira"
+    },
+    "João Pedro Vieira": {
+     "n": "Igor Peixoto"
+    },
+    "Enzo Bizzotto Costa": {
+     "n": "Paulo Cardoso"
+    },
+    "Higor Luiz de Souza": {
+     "n": "Nathan Ribeiro"
+    },
+    "Emerson Lima Freitas": {
+     "n": "Eduardo Siqueira"
+    },
+    "Igor Aquino da Silva": {
+     "n": "Jonathan Rodrigues"
+    },
+    "Willian Prado Camargo": {
+     "n": "Rodriguinho"
+    },
+    "Caíque Jesus da Silva": {
+     "n": "Leonardo Souza"
+    },
+    "Anderson de Jesus Santos": {
+     "n": "Lucas Nascimento"
+    },
+    "Bruno César Xavier Sislo": {
+     "n": "Samuel Martins"
+    },
+    "Janderson Santos de Souza": {
+     "n": "Fábio Tavares"
+    },
+    "Luiz Henrique de Melo Silva": {
+     "n": "Anderson Ribeiro"
+    },
+    "André Luis da Costa Alfredo": {
+     "n": "André Gomes"
+    },
+    "Marcos Gabriel do Nascimento": {
+     "n": "Leonardo Lima"
+    },
+    "Ryan Aparecido Lima Cassiano": {
+     "n": "Igor Rocha"
+    },
+    "Gustavo Puskas Pinheiro Lemos": {
+     "n": "Valdir Siqueira"
+    },
+    "Caio Marcelo Pinheiro da Silva": {
+     "n": "Rodrigo Vieira"
+    },
+    "Willian Marlon Ferreira Moraes": {
+     "n": "Douglas Cardoso"
+    },
+    "Gabriel Átila Cardoso da Silva": {
+     "n": "Tiago Almeida"
+    },
+    "Hayner Willian Monjardim Cordeiro": {
+     "n": "Fábio Moreira"
+    },
+    "Guilherme Augusto Alves Dellatorre": {
+     "n": "Waguinho"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_64918",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Esquadrão de Aço",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/athleticclub/escudo-semfundo-1787717075347.webp",
+   "short": "Esquadrão de Aço",
+   "squad": {
+    "Dixon Vera": {
+     "n": "Édison Mendoza"
+    },
+    "Gian Cabezas": {
+     "n": "Édison Gómez"
+    },
+    "Lucas Belezi": {
+     "n": "Raimundo Siqueira"
+    },
+    "Philipe Sampaio": {
+     "n": "Maicon Siqueira"
+    },
+    "Ronaldo Tavares": {
+     "n": "Miguel Carvalho"
+    },
+    "Samuel Otusanya": {
+     "n": "Chukwuemeka Furtado"
+    },
+    "Luan Polli Gomes": {
+     "n": "Leandro Pinto"
+    },
+    "Wilinton Aponzá": {
+     "n": "Joaquín Flores"
+    },
+    "Ruan Lucas de Assis": {
+     "n": "Rafael Nunes"
+    },
+    "Diogo Batista de Souza": {
+     "n": "Vinícius Oliveira"
+    },
+    "Yago Santos de Andrade": {
+     "n": "Marcos Batista"
+    },
+    "Douglas da Silva Santos": {
+     "n": "Elias Farias"
+    },
+    "Jhonatan Paulo da Silva": {
+     "n": "Vitor Andrade"
+    },
+    "Gabriel da Silva Moysés": {
+     "n": "Wallace Oliveira"
+    },
+    "Ian Luccas Baroni Boetto": {
+     "n": "Hugo Xavier"
+    },
+    "José Carlos Cracco Neto": {
+     "n": "Wesley Batista"
+    },
+    "Kauan Rodrigues da Silva": {
+     "n": "Cícero Dias"
+    },
+    "Otávio Bruno dos Santos": {
+     "n": "Douglas Andrade"
+    },
+    "Rodrigo Silva Nascimento": {
+     "n": "Taves"
+    },
+    "Jhonatan Luiz da Siqueira": {
+     "n": "Vitor Cardoso"
+    },
+    "Leonardo Alves Chú Franco": {
+     "n": "Wagner Freitas"
+    },
+    "João Adriano Sá de Almeida": {
+     "n": "Renato Vieira"
+    },
+    "Kauan Gabriel Cordeiro Lindes": {
+     "n": "Danilo Batista"
+    },
+    "Gustavo César Mendonça Gravino": {
+     "n": "Robson Andrade"
+    },
+    "João Victor Broad Moreira Guimarães": {
+     "n": "Valdir Gomes"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_7178",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Onda Amarela",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/criciuma/escudo-semfundo-1787707777171.webp",
+   "short": "Onda Amarela",
+   "squad": {
+    "Rómulo Otero": {
+     "n": "Yerson Rojas"
+    },
+    "Yuri Jonathan": {
+     "n": "Jeanzinho"
+    },
+    "Marcelo Hermes": {
+     "n": "Vinícius Andrade"
+    },
+    "Diego Gonçalves": {
+     "n": "Adriano Andrade"
+    },
+    "Wagner da Silva Souza": {
+     "n": "Lucas Araújo"
+    },
+    "Nicolas Godinho Johann": {
+     "n": "Jonathan Siqueira"
+    },
+    "Airton Moraes Michellon": {
+     "n": "Kaique Teixeira"
+    },
+    "César Henrique Martins": {
+     "n": "Igor Barbosa"
+    },
+    "Guilherme Teixeira Lobo": {
+     "n": "Rafael Carvalho"
+    },
+    "Leonardo Mana Hernandes": {
+     "n": "Cícero Cavalcanti"
+    },
+    "Ronald dos Santos Lopes": {
+     "n": "Antônio Ferreira"
+    },
+    "Eduardo Jacinto de Biasi": {
+     "n": "Paulo Martins"
+    },
+    "Luciano Castán da Silva": {
+     "n": "Tiago Tavares"
+    },
+    "Cauê Vinicius dos Santos": {
+     "n": "Joãozinho"
+    },
+    "João Carlos Barros Lopes": {
+     "n": "Rafael Barbosa"
+    },
+    "Willean Bernardo Willemen": {
+     "n": "Wesley Moreira"
+    },
+    "Alisson Machado dos Santos": {
+     "n": "Bruno Freitas"
+    },
+    "Jean Carlos de Souza Irmer": {
+     "n": "Alan Teixeira"
+    },
+    "Marcio Almeida de Oliveira": {
+     "n": "Maicon Cardoso"
+    },
+    "Sandry Roberto Santos Goes": {
+     "n": "Raimundo Silva"
+    },
+    "Thales Lourenço Rodrigues": {
+     "n": "Douglas Moreira"
+    },
+    "Fellipe Mateus de Sena Araujo": {
+     "n": "José Batista"
+    },
+    "Jhonata Robert Alves da Silva": {
+     "n": "Emerson Teixeira"
+    },
+    "José Romário Silva de Souza": {
+     "n": "Robson Santos"
+    },
+    "Bruno Fabiano Alves Nascimento": {
+     "n": "Igor Siqueira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_8718",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Leão do Recife",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/sportclub/escudo-semfundo-1787707856050.webp",
+   "short": "Leão do Recife",
+   "squad": {
+    "João Silva": {
+     "n": "Gonçalo Carvalho"
+    },
+    "Carlos de Pena": {
+     "n": "Cleitão"
+    },
+    "Diego Hernández": {
+     "n": "Jefferson Vargas"
+    },
+    "Chrystian Barletta": {
+     "n": "Xexéu"
+    },
+    "Gustavo Maia da Silva": {
+     "n": "Ricardo Siqueira"
+    },
+    "Marcelo Alexandre Ajul": {
+     "n": "Vagner Rocha"
+    },
+    "Pedro Henrique Perotti": {
+     "n": "Vinícius Guimarães"
+    },
+    "Thiago Couto Wenceslau": {
+     "n": "Yuri Batista"
+    },
+    "Augusto Pucci de Freitas": {
+     "n": "Leandro Souza"
+    },
+    "Claudio Coelho Salvático": {
+     "n": "Jonathan Carvalho"
+    },
+    "Hedhe Halls Rocha da Silva": {
+     "n": "Vagner Barbosa"
+    },
+    "José Lucas Gomes da Silva": {
+     "n": "Danilo Xavier"
+    },
+    "Madson Ferreira dos Santos": {
+     "n": "Vinícius Almeida"
+    },
+    "Yago Felipe da Costa Rocha": {
+     "n": "Leonardo Dias"
+    },
+    "Fábio Matheus Ribeiro Lima": {
+     "n": "Júlio Pereira"
+    },
+    "Marlon Douglas de Sales Silva": {
+     "n": "Wallace Moreira"
+    },
+    "Iury Lirio Freitas de Castilho": {
+     "n": "Wesley Correia"
+    },
+    "José Gabriel dos Santos Silva": {
+     "n": "Ricardo Moreira"
+    },
+    "André Felipe de Almeida Santos": {
+     "n": "Wesley Oliveira"
+    },
+    "Clayson Henrique da Silva Vieira": {
+     "n": "Vinícius Batista"
+    },
+    "Luiz Gabriel de Oliveira Fonseca": {
+     "n": "Anderson Pinto"
+    },
+    "Pedro Victor Martins Silva Costa": {
+     "n": "Andrezinho"
+    },
+    "Habraão Lincon Do Nascimento Saraiva": {
+     "n": "Francisco Peixoto"
+    },
+    "Jose Roberto Assunção de Araujo Filho": {
+     "n": "Robinho Correia"
+    },
+    "Marcelo da Conceição Benevenuto Malaquias": {
+     "n": "Paulo Silva"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_B_9030",
+  "divisao": "B",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor de Ribeirão",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-b/botafogosp/escudo-semfundo-1787707988809.webp",
+   "short": "Tricolor de Ribeirão",
+   "squad": {
+    "Patrick Brey": {
+     "n": "Denilson Batista"
+    },
+    "Leandro Maciel": {
+     "n": "Cristian Sánchez"
+    },
+    "Brenno Faro Klippel": {
+     "n": "Matheus Batista"
+    },
+    "Felipe Vieira Augusto": {
+     "n": "Jean Rocha"
+    },
+    "Wesley Pinheiro Santos": {
+     "n": "Lucas Bezerra"
+    },
+    "Kauã dos Santos Freire": {
+     "n": "Adriano Moreira"
+    },
+    "Matheus de Sales Cabral": {
+     "n": "Vagner Nascimento"
+    },
+    "Everton Morelli Casimiro": {
+     "n": "Robinho Gomes"
+    },
+    "Guilherme Mariano Barbosa": {
+     "n": "Tiago Guimarães"
+    },
+    "Hygor Cléber Garcia Silva": {
+     "n": "Ricardo Teixeira"
+    },
+    "Wallace Fortuna dos Santos": {
+     "n": "Marcos Carvalho"
+    },
+    "Gabriel de Souza Inocêncio": {
+     "n": "Jonathan Guimarães"
+    },
+    "José Hugo Sousa dos Santos": {
+     "n": "Danilo Andrade"
+    },
+    "João Vitor Hipólito Costa": {
+     "n": "Rafinha"
+    },
+    "Márcio Carlos Pestana Dutra": {
+     "n": "Wagner Almeida"
+    },
+    "Rafael Gustavo Meneghel Gava": {
+     "n": "Fernando Almeida"
+    },
+    "Jordan Esteves da Costa Daniel": {
+     "n": "Jonathan Tavares"
+    },
+    "Luiz Guilherme Vieira da Silva": {
+     "n": "Eduardo Bezerra"
+    },
+    "Kelvin Giacobe Alves dos Santos": {
+     "n": "Carlos Costa"
+    },
+    "Arthur Caíke do Nascimento Cruz": {
+     "n": "Danilo Melo"
+    },
+    "Guilherme de Queiróz Gonçalves": {
+     "n": "Francisco Bezerra"
+    },
+    "Yuri Felipe Santos da Conceição": {
+     "n": "Bruno Guimarães"
+    },
+    "Pedro Henrique Souza do Nascimento": {
+     "n": "Wellington Xavier"
+    },
+    "Jefferson Vasconcelos Braz da Silva": {
+     "n": "Jonathan Xavier"
+    },
+    "Thalles Eduardo Gomes Ferreira dos Ramos": {
+     "n": "Danilo Pinto"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_amazonas",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Onça Amazônica",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/amazonas/escudo-semfundo-1787705626104.webp",
+   "short": "Onça Amazônica",
+   "squad": {
+    "Axel": {
+     "n": "Tiago Oliveira"
+    },
+    "Italo": {
+     "n": "Alan Moreira"
+    },
+    "Renan": {
+     "n": "Alaninho"
+    },
+    "Alyson": {
+     "n": "Márcio Pinto"
+    },
+    "Fabinho": {
+     "n": "Gabriel Tavares"
+    },
+    "Pedrinho": {
+     "n": "Robson Tavares"
+    },
+    "Diego Ivo": {
+     "n": "Everton Santos"
+    },
+    "Léo Coelho": {
+     "n": "André Araújo"
+    },
+    "Léo Guerra": {
+     "n": "Jean Cardoso"
+    },
+    "Yaider Mena": {
+     "n": "Hugo Moreira"
+    },
+    "Jhonny Lucas": {
+     "n": "Denilson Cavalcanti"
+    },
+    "Rafael Vitor": {
+     "n": "Igor Tavares"
+    },
+    "Rafael Furlan": {
+     "n": "Tiago Freitas"
+    },
+    "Bernardo Paias": {
+     "n": "Paulo Guimarães"
+    },
+    "Patricio Nunez": {
+     "n": "Antônio Xavier"
+    },
+    "Rafael Tavaraes": {
+     "n": "Yuri Araújo"
+    },
+    "Vinícius Leite": {
+     "n": "Sebastião Pinto"
+    },
+    "Ronaldo Henrique": {
+     "n": "Robinho Nunes"
+    },
+    "Ignacio Panzariello": {
+     "n": "Gabriel Guimarães"
+    },
+    "Nicolás Schiappacasse": {
+     "n": "Vitor Carvalho"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_anapolisgo",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor do Planalto",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/anapolisgo/escudo-semfundo-1787705477728.webp",
+   "short": "Tricolor do Planalto",
+   "squad": {
+    "Kaik": {
+     "n": "Renato Teixeira"
+    },
+    "Mila": {
+     "n": "Robson Siqueira"
+    },
+    "Leonan": {
+     "n": "Matheus Pereira"
+    },
+    "Robson": {
+     "n": "Hugo Costa"
+    },
+    "Carioca": {
+     "n": "Wellington Rocha"
+    },
+    "João Vitor": {
+     "n": "Thiago Cavalcanti"
+    },
+    "Lucas Milla": {
+     "n": "Leandro Correia"
+    },
+    "Victor Hugo": {
+     "n": "José Barbosa"
+    },
+    "Kaik Viçoza": {
+     "n": "Cícero Peixoto"
+    },
+    "Paulo Santos": {
+     "n": "Danilo Guimarães"
+    },
+    "Kauan Martins": {
+     "n": "Weltinho"
+    },
+    "Lucas Kallyel": {
+     "n": "Tiago Moreira"
+    },
+    "Matheus Lagoa": {
+     "n": "José Silva"
+    },
+    "Fernando Paiva": {
+     "n": "Brunão"
+    },
+    "Fernando Viana": {
+     "n": "Samuel Costa"
+    },
+    "Gabriel Batista": {
+     "n": "Igor Santos"
+    },
+    "Gonzalo Fornari": {
+     "n": "Carlos Gomes"
+    },
+    "Jorge Rodrigues": {
+     "n": "Vitor Tavares"
+    },
+    "Ravel Pelegrini": {
+     "n": "Everton Almeida"
+    },
+    "Gustavo Henrique": {
+     "n": "Bruno Oliveira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_barra",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Pescador Catarinense",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/barra/escudo-semfundo-1787705438434.webp",
+   "short": "Pescador Catarinense",
+   "squad": {
+    "Barba": {
+     "n": "Cadu"
+    },
+    "Fábio": {
+     "n": "Adriano Rodrigues"
+    },
+    "Kayque": {
+     "n": "Hugo Bezerra"
+    },
+    "Warley": {
+     "n": "Nathan Lima"
+    },
+    "Everton": {
+     "n": "Vagner Carvalho"
+    },
+    "Nicolas": {
+     "n": "Adriano Costa"
+    },
+    "Péricles": {
+     "n": "Vagner Xavier"
+    },
+    "Marcelinho": {
+     "n": "Francisco Moreira"
+    },
+    "Cléo Silva": {
+     "n": "Júlio Melo"
+    },
+    "Jean Pierre": {
+     "n": "Wagner Souza"
+    },
+    "José Rivas": {
+     "n": "Jean Tavares"
+    },
+    "Léo Duarte": {
+     "n": "Thiago Xavier"
+    },
+    "João Miguel": {
+     "n": "Renato Martins"
+    },
+    "Fabiano Volpi": {
+     "n": "Vitor Siqueira"
+    },
+    "Gabriel Gomes": {
+     "n": "Eli"
+    },
+    "Gabriel Silva": {
+     "n": "Matheus Santos"
+    },
+    "Pablo Gabriel": {
+     "n": "Gustavo Vieira"
+    },
+    "Everton Alemão": {
+     "n": "Júlio Monteiro"
+    },
+    "Eduardo Nascimento": {
+     "n": "Diego Machado"
+    },
+    "Guilherme Lazaroni": {
+     "n": "Robinho Machado"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_botafogopb",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor do Interior",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/botafogopb/escudo-semfundo-1787705389253.webp",
+   "short": "Tricolor do Interior",
+   "squad": {
+    "PK": {
+     "n": "Alex Barbosa"
+    },
+    "Nenê": {
+     "n": "Kaique Correia"
+    },
+    "Michael": {
+     "n": "Leandro Nunes"
+    },
+    "Giovanni": {
+     "n": "Jean Ribeiro"
+    },
+    "Thalyson": {
+     "n": "Leandro Tavares"
+    },
+    "Ed Carlos": {
+     "n": "Chico"
+    },
+    "Max Walef": {
+     "n": "Wagner Cavalcanti"
+    },
+    "Yan Souto": {
+     "n": "Felipe Cavalcanti"
+    },
+    "Lucas Sena": {
+     "n": "Vinícius Carvalho"
+    },
+    "Igor Morais": {
+     "n": "Alex Peixoto"
+    },
+    "João Diogo": {
+     "n": "Wallace Rodrigues"
+    },
+    "Dudu Nardini": {
+     "n": "Nathan Machado"
+    },
+    "Dudu Hatamoto": {
+     "n": "Thiago Araújo"
+    },
+    "Gustavo Santos": {
+     "n": "Márcio Costa"
+    },
+    "Jhonata Varela": {
+     "n": "Leandro Cavalcanti"
+    },
+    "Renato Araújo": {
+     "n": "Fernando Dias"
+    },
+    "Anderson Chaves": {
+     "n": "Júlio Peixoto"
+    },
+    "Guilherme Santos": {
+     "n": "Bruno Correia"
+    },
+    "Henrique Dourado": {
+     "n": "Felipe Santos"
+    },
+    "Henrique Carvalho": {
+     "n": "Yuri Cavalcanti"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_brusque",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Marreco da Serra",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/brusque/escudo-semfundo-1787705333023.webp",
+   "short": "Marreco da Serra",
+   "squad": {
+    "Gazão": {
+     "n": "Diego Cavalcanti"
+    },
+    "Raimar": {
+     "n": "Nathan Correia"
+    },
+    "Luizão": {
+     "n": "Cícero Barbosa"
+    },
+    "Roberto": {
+     "n": "Alex Xavier"
+    },
+    "Álvaro": {
+     "n": "Samuel Oliveira"
+    },
+    "Bernardo": {
+     "n": "José Tavares"
+    },
+    "L. Moura": {
+     "n": "Wellington Almeida"
+    },
+    "J. Félix": {
+     "n": "Yuri Moreira"
+    },
+    "Petterson": {
+     "n": "Lucas Teixeira"
+    },
+    "Frank Salas": {
+     "n": "Nathan Andrade"
+    },
+    "Biel Fonseca": {
+     "n": "Robinho Dias"
+    },
+    "Lucas de Sá": {
+     "n": "Rodrigo Teixeira"
+    },
+    "Léo Ataíde": {
+     "n": "Wellington Cardoso"
+    },
+    "Adriano Filho": {
+     "n": "André Freitas"
+    },
+    "Diego Araújo": {
+     "n": "Vitor Cavalcanti"
+    },
+    "Vitor Martins": {
+     "n": "Vini"
+    },
+    "João Pedro##1": {
+     "n": "Wagner Gomes"
+    },
+    "João Pedro##2": {
+     "n": "Relâmpago"
+    },
+    "Alisson Cassiano": {
+     "n": "Cleitinho"
+    },
+    "Matheus Nogueira": {
+     "n": "Gabriel Silva"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_caxiasdosul",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Grená Gaúcho",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/caxiassul/escudo-semfundo-1787705262751.webp",
+   "short": "Grená Gaúcho",
+   "squad": {
+    "Jean": {
+     "n": "Douglas Cavalcanti"
+    },
+    "Ronei": {
+     "n": "Denilson Moreira"
+    },
+    "Calyson": {
+     "n": "Alan Carvalho"
+    },
+    "Roberto": {
+     "n": "Lucas Xavier"
+    },
+    "Vitinho": {
+     "n": "Ricardo Machado"
+    },
+    "Joílson": {
+     "n": "José Ribeiro"
+    },
+    "Léo Lang": {
+     "n": "Gustavo Carvalho"
+    },
+    "Maurício": {
+     "n": "Leandro Machado"
+    },
+    "Yann Rolim": {
+     "n": "Pedro Nunes"
+    },
+    "Arthur Viana": {
+     "n": "Carlos Guimarães"
+    },
+    "Breno Santos": {
+     "n": "Rodrigo Farias"
+    },
+    "Carlos Silva": {
+     "n": "Teteu"
+    },
+    "Thiago Ennes": {
+     "n": "Canivete"
+    },
+    "Gabriel Gomes": {
+     "n": "Fernando Gomes"
+    },
+    "Vitor Feijão": {
+     "n": "Anderson Silva"
+    },
+    "Andrés Robles": {
+     "n": "Adriano Machado"
+    },
+    "Gustavo Nescau": {
+     "n": "Maicon Melo"
+    },
+    "Lucas Cândido": {
+     "n": "João Tavares"
+    },
+    "Wellington Reis": {
+     "n": "Igor Pinto"
+    },
+    "Marcelo Dal Soler": {
+     "n": "Denilson Souza"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_confianca",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Proletário FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/confianca/escudo-semfundo-1787705220897.webp",
+   "short": "Proletário FC",
+   "squad": {
+    "Iago": {
+     "n": "Fábio Vieira"
+    },
+    "Adryan": {
+     "n": "Jonathan Pinto"
+    },
+    "Kelvyn": {
+     "n": "Jean Farias"
+    },
+    "Sassá": {
+     "n": "Thiago Barbosa"
+    },
+    "Valdir": {
+     "n": "João Rocha"
+    },
+    "Wendel": {
+     "n": "Rodrigo Melo"
+    },
+    "Ícaro": {
+     "n": "Emerson Cavalcanti"
+    },
+    "Marcelo": {
+     "n": "Bode"
+    },
+    "Weriton": {
+     "n": "Passarinho"
+    },
+    "Bruno Silva": {
+     "n": "Paulo Lima"
+    },
+    "Danielzinho": {
+     "n": "Fernando Souza"
+    },
+    "André Rocha": {
+     "n": "Sebastião Almeida"
+    },
+    "Mateus Ludke": {
+     "n": "Pedro Siqueira"
+    },
+    "Eduardo Moura": {
+     "n": "Otávio Barbosa"
+    },
+    "Fabrício Oya": {
+     "n": "Jonathan Souza"
+    },
+    "Maikon Aquino": {
+     "n": "Thiago Peixoto"
+    },
+    "Rafael Pascoal": {
+     "n": "Tronco"
+    },
+    "Guilherme Nunes": {
+     "n": "Valdir Pereira"
+    },
+    "Eduardo Oliveira": {
+     "n": "Douglas Siqueira"
+    },
+    "Matheus Emiliano": {
+     "n": "Hugo Vieira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_ferroviaria",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Locomotiva Paulista",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/ferroviaria/escudo-semfundo-1787705245726.webp",
+   "short": "Locomotiva Paulista",
+   "squad": {
+    "Erik": {
+     "n": "Valdir Peixoto"
+    },
+    "David": {
+     "n": "Valdir Almeida"
+    },
+    "Albano": {
+     "n": "Wesley Carvalho"
+    },
+    "Alencar": {
+     "n": "José Nascimento"
+    },
+    "Denilson": {
+     "n": "Alan Santos"
+    },
+    "Hernâni": {
+     "n": "Danilo Nascimento"
+    },
+    "Léo Wall": {
+     "n": "Maicon Andrade"
+    },
+    "Zé Vitor": {
+     "n": "Anderson Carvalho"
+    },
+    "Ricardinho": {
+     "n": "Vagner Cavalcanti"
+    },
+    "Edson Lucas": {
+     "n": "Tiago Rodrigues"
+    },
+    "Leandro Melo": {
+     "n": "Leão"
+    },
+    "Fábio Soares": {
+     "n": "Márcio Siqueira"
+    },
+    "Leandro Rocha": {
+     "n": "João Lima"
+    },
+    "Vitor Barreto": {
+     "n": "Thiago Andrade"
+    },
+    "Dênis Júnior": {
+     "n": "Hugo Tavares"
+    },
+    "Gustavo Medina": {
+     "n": "Júlio Freitas"
+    },
+    "Lucas Rodrigues": {
+     "n": "Márcio Teixeira"
+    },
+    "Felipe Rodrigues": {
+     "n": "Wellington Nascimento"
+    },
+    "Rafael Rodrigues": {
+     "n": "Cleiton Rocha"
+    },
+    "Guilherme Ferreira": {
+     "n": "Aranha"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_figueirense",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Figueira da Ilha",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/figueirense/escudo-semfundo-1787705305394.webp",
+   "short": "Figueira da Ilha",
+   "squad": {
+    "Breno": {
+     "n": "Professor"
+    },
+    "Hyuri": {
+     "n": "Leandro Rocha"
+    },
+    "Kayke": {
+     "n": "Vagner Souza"
+    },
+    "Pablo": {
+     "n": "Cleiton Pinto"
+    },
+    "Douglas": {
+     "n": "Danilo Machado"
+    },
+    "Flávio": {
+     "n": "Douglas Freitas"
+    },
+    "Ezequiel": {
+     "n": "Sebastião Siqueira"
+    },
+    "Jorginho": {
+     "n": "Francisco Farias"
+    },
+    "Silvinho": {
+     "n": "Wellington Guimarães"
+    },
+    "Fabrício": {
+     "n": "Hugo Dias"
+    },
+    "Jhonnathan": {
+     "n": "Vitor Pereira"
+    },
+    "Diego Costa": {
+     "n": "Anderson Barbosa"
+    },
+    "Dudu Sampaio": {
+     "n": "Paulo Nascimento"
+    },
+    "Felipe Silva": {
+     "n": "Alan Freitas"
+    },
+    "Igor Gabriel": {
+     "n": "Tiago Carvalho"
+    },
+    "Felipe Augusto": {
+     "n": "Ouro"
+    },
+    "Arthur Henrique": {
+     "n": "Vitor Melo"
+    },
+    "Jean Mangabeira": {
+     "n": "Espeto"
+    },
+    "Matheus Mascarenhas": {
+     "n": "Jean Siqueira"
+    },
+    "Anderson Conceição": {
+     "n": "André Almeida"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_floresta",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Verdão Cearense",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/floresta/escudo-semfundo-1787705351486.webp",
+   "short": "Verdão Cearense",
+   "squad": {
+    "Tiepo": {
+     "n": "Emerson Monteiro"
+    },
+    "Valdo": {
+     "n": "Danilo Araújo"
+    },
+    "Cedric": {
+     "n": "Hugo Souza"
+    },
+    "César": {
+     "n": "André Vieira"
+    },
+    "Dalton": {
+     "n": "Antônio Machado"
+    },
+    "Nonato": {
+     "n": "Wagner Pereira"
+    },
+    "Bismark": {
+     "n": "Valdir Batista"
+    },
+    "Danrley": {
+     "n": "Elias Almeida"
+    },
+    "Eduardo": {
+     "n": "Vitor Rocha"
+    },
+    "Rafinha": {
+     "n": "Cícero Lima"
+    },
+    "Mathesinho": {
+     "n": "Jonathan Barbosa"
+    },
+    "Diego Matos": {
+     "n": "Adriano Rocha"
+    },
+    "Wesley Dias": {
+     "n": "Baixinho"
+    },
+    "João Celeri": {
+     "n": "Wellington Batista"
+    },
+    "Diego Ribeiro": {
+     "n": "Alan Almeida"
+    },
+    "Diogo Mourão": {
+     "n": "Diego Ribeiro"
+    },
+    "Jeferson Souza": {
+     "n": "Fernando Bezerra"
+    },
+    "Marco Antônio": {
+     "n": "João Dias"
+    },
+    "Guilherme Borges": {
+     "n": "Robson Cavalcanti"
+    },
+    "Eliandro Carvalho": {
+     "n": "Marechal"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_guarani",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Alviverde Campineiro",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/guarani/escudo-semfundo-1787705412372.webp",
+   "short": "Alviverde Campineiro",
+   "squad": {
+    "Ralf": {
+     "n": "Everton Gomes"
+    },
+    "Lucca": {
+     "n": "Thiago Costa"
+    },
+    "Isaque": {
+     "n": "Matheus Nunes"
+    },
+    "Samuel": {
+     "n": "Maicon Pinto"
+    },
+    "Cicinho": {
+     "n": "Sebastião Lima"
+    },
+    "Maranhão": {
+     "n": "Sapo"
+    },
+    "Mirandinha": {
+     "n": "Robson Silva"
+    },
+    "Nathan Melo": {
+     "n": "Gustavo Rodrigues"
+    },
+    "Diego Torres": {
+     "n": "Gustavo Almeida"
+    },
+    "Mateus Claus": {
+     "n": "Kaique Silva"
+    },
+    "Nathan Santos": {
+     "n": "Márcio Martins"
+    },
+    "Rafael Donato": {
+     "n": "Cleiton Farias"
+    },
+    "Jonathan Costa": {
+     "n": "Kaique Santos"
+    },
+    "Willian Farias": {
+     "n": "Wesley Ribeiro"
+    },
+    "Bruno Rodrigues": {
+     "n": "Jonathan Silva"
+    },
+    "Caíque França": {
+     "n": "Vagner Correia"
+    },
+    "Emerson Barbosa": {
+     "n": "Eduardo Barbosa"
+    },
+    "Guilherme Parede": {
+     "n": "Vagner Freitas"
+    },
+    "Maurício Antônio": {
+     "n": "Wallace Souza"
+    },
+    "Guilherme Cachoeira": {
+     "n": "Valdir Xavier"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_interdelimeira",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Leão de Limeira",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/interlimeira/escudo-semfundo-1787705454994.webp",
+   "short": "Leão de Limeira",
+   "squad": {
+    "Alef": {
+     "n": "Wallace Ribeiro"
+    },
+    "Saulo": {
+     "n": "Cleiton Araújo"
+    },
+    "Vidal": {
+     "n": "Zorro"
+    },
+    "Frazan": {
+     "n": "Fernando Nunes"
+    },
+    "Robson": {
+     "n": "Jonathan Teixeira"
+    },
+    "Robinho": {
+     "n": "Rodrigo Cavalcanti"
+    },
+    "Getúlio": {
+     "n": "Alan Rodrigues"
+    },
+    "Claudinho": {
+     "n": "Paulo Carvalho"
+    },
+    "Maurício": {
+     "n": "Prata"
+    },
+    "Robertinho": {
+     "n": "Sebastião Melo"
+    },
+    "Vitor Leque": {
+     "n": "Thiago Vieira"
+    },
+    "Breno Santos": {
+     "n": "Yuri Cardoso"
+    },
+    "Juan Tavares": {
+     "n": "Raimundo Peixoto"
+    },
+    "Bruno Ribeiro": {
+     "n": "Adriano Monteiro"
+    },
+    "Igor Oliveira": {
+     "n": "Pedro Ribeiro"
+    },
+    "Emerson Santos": {
+     "n": "Padre"
+    },
+    "Marco Antônio": {
+     "n": "Elias Freitas"
+    },
+    "Emerson Júnior": {
+     "n": "Tiago Farias"
+    },
+    "Miguel Bianconi": {
+     "n": "Douglas Ribeiro"
+    },
+    "Gustavo Bochecha": {
+     "n": "Douglas Ferreira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_itabaiana",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor Serrano",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/itabaiana/escudo-semfundo-1787705493974.webp",
+   "short": "Tricolor Serrano",
+   "squad": {
+    "Geaze": {
+     "n": "Igor Freitas"
+    },
+    "Betão": {
+     "n": "Xerife"
+    },
+    "Elimar": {
+     "n": "Robson Bezerra"
+    },
+    "Isaque": {
+     "n": "Hugo Pereira"
+    },
+    "Ligger": {
+     "n": "Alex Almeida"
+    },
+    "Lucão": {
+     "n": "Elias Costa"
+    },
+    "Tarcísio": {
+     "n": "Cleiton Silva"
+    },
+    "Luan Silva": {
+     "n": "Alan Monteiro"
+    },
+    "Léo Souza": {
+     "n": "Hugo Rocha"
+    },
+    "Diego Gomes": {
+     "n": "André Ribeiro"
+    },
+    "Karl Junior": {
+     "n": "Emerson Nunes"
+    },
+    "Lucas Bessa": {
+     "n": "Douglas Xavier"
+    },
+    "Victor Hugo": {
+     "n": "Júlio Araújo"
+    },
+    "Rodrigo Alves": {
+     "n": "Yuri Dias"
+    },
+    "Everton Kanela": {
+     "n": "Wallace Correia"
+    },
+    "Gustavo Crecci": {
+     "n": "Pedro Guimarães"
+    },
+    "João Ferreira": {
+     "n": "Igor Pereira"
+    },
+    "Brandon Mondaca": {
+     "n": "Cícero Moreira"
+    },
+    "Gustavo Brischke": {
+     "n": "Sebastião Monteiro"
+    },
+    "Gabriel Rodrigues": {
+     "n": "Leandro Batista"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_ituano",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Rubro-Negro de Itu",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/ituano/escudo-semfundo-1787705527810.webp",
+   "short": "Rubro-Negro de Itu",
+   "squad": {
+    "Osman": {
+     "n": "Maicon Vieira"
+    },
+    "Saulo": {
+     "n": "Foguinho"
+    },
+    "Marllá": {
+     "n": "Kaique Bezerra"
+    },
+    "Richard": {
+     "n": "Adriano Tavares"
+    },
+    "Thassio": {
+     "n": "Danilo Gomes"
+    },
+    "Bruno Alves": {
+     "n": "Rafael Batista"
+    },
+    "Jorge Gomes": {
+     "n": "Fábio Martins"
+    },
+    "Kaio Mendes": {
+     "n": "Vinícius Silva"
+    },
+    "Léo Cittro": {
+     "n": "Sebastião Costa"
+    },
+    "Neto Berola": {
+     "n": "Márcio Freitas"
+    },
+    "Thiago Silva": {
+     "n": "Guri"
+    },
+    "Bruno Mezenga": {
+     "n": "Alex Vieira"
+    },
+    "Lucas Wingert": {
+     "n": "Douglas Carvalho"
+    },
+    "Wesley Borges": {
+     "n": "Igor Carvalho"
+    },
+    "Alason Carioca": {
+     "n": "Robson Almeida"
+    },
+    "Daniel Carvalho": {
+     "n": "Anderson Lima"
+    },
+    "Matheus Mancini": {
+     "n": "Jean Carvalho"
+    },
+    "Fernando Canesin": {
+     "n": "Otávio Dias"
+    },
+    "Guilherme Xavier": {
+     "n": "Igor Oliveira"
+    },
+    "Matheus Aluísio": {
+     "n": "Samuel Peixoto"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_maranhao",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Bode Maranhense",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/maranhao/escudo-semfundo-1787705566004.webp",
+   "short": "Bode Maranhense",
+   "squad": {
+    "Ball": {
+     "n": "Vitor Silva"
+    },
+    "Jean": {
+     "n": "Thiago Silva"
+    },
+    "Will": {
+     "n": "Igor Vieira"
+    },
+    "Rafael": {
+     "n": "Highlander"
+    },
+    "Rodrigo": {
+     "n": "Gabriel Nunes"
+    },
+    "Erverson": {
+     "n": "Fábio Batista"
+    },
+    "Tagarela": {
+     "n": "João Almeida"
+    },
+    "Vagalume": {
+     "n": "Robson Gomes"
+    },
+    "Pimentinha": {
+     "n": "Anderson Nascimento"
+    },
+    "Felipe Cruz": {
+     "n": "Antônio Oliveira"
+    },
+    "Jorge Rocha": {
+     "n": "Felipe Batista"
+    },
+    "Lucão Goes": {
+     "n": "Carlos Bezerra"
+    },
+    "Marcos Luiz": {
+     "n": "Canhão"
+    },
+    "Paulo Souza": {
+     "n": "Danilo Pereira"
+    },
+    "Luis Gustavo": {
+     "n": "Perninha"
+    },
+    "André Radija": {
+     "n": "Kaique Pinto"
+    },
+    "Edson Fernando": {
+     "n": "André Martins"
+    },
+    "Eduardo Araújo": {
+     "n": "Robinho Teixeira"
+    },
+    "Rodrigo Negueba": {
+     "n": "Paulo Oliveira"
+    },
+    "Victor Guilherme": {
+     "n": "Everton Tavares"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_maringa",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Vira-lata Tricolor",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/maringa/escudo-semfundo-1787705605216.webp",
+   "short": "Vira-lata Tricolor",
+   "squad": {
+    "Tonu": {
+     "n": "Foguete"
+    },
+    "Keven": {
+     "n": "Yuri Silva"
+    },
+    "Rafinha": {
+     "n": "Francisco Santos"
+    },
+    "Danielzinho": {
+     "n": "André Carvalho"
+    },
+    "Felipe Melo": {
+     "n": "Cabeludo"
+    },
+    "Thiago Rosa": {
+     "n": "Everton Melo"
+    },
+    "André Gomes": {
+     "n": "Igor Nascimento"
+    },
+    "Rai Natalino": {
+     "n": "Hugo Oliveira"
+    },
+    "Caique Calito": {
+     "n": "Everton Batista"
+    },
+    "Felipe Santos": {
+     "n": "Thiago Batista"
+    },
+    "Gabriel Souza": {
+     "n": "Thiago Machado"
+    },
+    "Giovane Gomez": {
+     "n": "Júlio Cavalcanti"
+    },
+    "Sérgio Gomes": {
+     "n": "Kaique Rocha"
+    },
+    "Edison Negueba": {
+     "n": "Gabriel Bezerra"
+    },
+    "Guilherme Pira": {
+     "n": "Jean Guimarães"
+    },
+    "Wendel da Cruz": {
+     "n": "Nathan Siqueira"
+    },
+    "Wesley Ribeiro": {
+     "n": "Robinho Siqueira"
+    },
+    "Romario da Silva": {
+     "n": "Raimundo Carvalho"
+    },
+    "Gabriel Travassos": {
+     "n": "Vagner Bezerra"
+    },
+    "Adeílson Maranhão": {
+     "n": "Vinícius Nascimento"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_paysandu",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Bicolor da Amazônia",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/paysandu/escudo-semfundo-1787705649606.webp",
+   "short": "Bicolor da Amazônia",
+   "squad": {
+    "Peu": {
+     "n": "Denilson Peixoto"
+    },
+    "Castro": {
+     "n": "Wellington Barbosa"
+    },
+    "Edinho": {
+     "n": "Vagner Farias"
+    },
+    "Edílson": {
+     "n": "Leonardo Peixoto"
+    },
+    "Marcinho": {
+     "n": "Wallace Dias"
+    },
+    "Reverson": {
+     "n": "Fábio Pinto"
+    },
+    "Thayllon": {
+     "n": "Eduardo Melo"
+    },
+    "Tiago Lima": {
+     "n": "Fernando Ribeiro"
+    },
+    "André Lima": {
+     "n": "Paulo Siqueira"
+    },
+    "Jean Drosny": {
+     "n": "Elias Vieira"
+    },
+    "Kleiton Pego": {
+     "n": "Diego Cardoso"
+    },
+    "Thiago Heleno": {
+     "n": "Samuel Tavares"
+    },
+    "Matheus Vargas": {
+     "n": "Valdir Nunes"
+    },
+    "Gustavo Barbosa": {
+     "n": "Otávio Cardoso"
+    },
+    "Ítalo Carvalho": {
+     "n": "Marcos Monteiro"
+    },
+    "Facundo Bonifazi": {
+     "n": "Ricardo Oliveira"
+    },
+    "Gabriel Mesquita": {
+     "n": "Francisco Andrade"
+    },
+    "Pedro Gonçalves": {
+     "n": "Adriano Correia"
+    },
+    "Ronaldo Henrique": {
+     "n": "Wellington Melo"
+    },
+    "Yeferson Quintana": {
+     "n": "Robinho Vieira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_santacruz",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor do Arruda",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/santacruz/escudo-semfundo-1787705584270.webp",
+   "short": "Tricolor do Arruda",
+   "squad": {
+    "Andrey": {
+     "n": "Touro"
+    },
+    "Eurico": {
+     "n": "Denilson Xavier"
+    },
+    "Ianson": {
+     "n": "Márcio Ferreira"
+    },
+    "Israel": {
+     "n": "Índio"
+    },
+    "Renato": {
+     "n": "Tiago Cavalcanti"
+    },
+    "Quirino": {
+     "n": "Rafael Souza"
+    },
+    "Robinho": {
+     "n": "João Correia"
+    },
+    "Alex Ruan": {
+     "n": "Alex Pinto"
+    },
+    "Rodrigues": {
+     "n": "Sebastião Xavier"
+    },
+    "Pedro Costa": {
+     "n": "Robinho Souza"
+    },
+    "Felipe Alves": {
+     "n": "Vagner Tavares"
+    },
+    "Patrick Alan": {
+     "n": "Rafael Freitas"
+    },
+    "Gabriel Souza": {
+     "n": "Cícero Teixeira"
+    },
+    "Jorge Martins": {
+     "n": "Wesley Guimarães"
+    },
+    "Kaique Santos": {
+     "n": "Fera"
+    },
+    "Willian Alves": {
+     "n": "Samuel Rocha"
+    },
+    "Lucas Siqueira": {
+     "n": "Gabriel Pinto"
+    },
+    "Matheus Régis": {
+     "n": "Raimundo Andrade"
+    },
+    "Ariel Nahuelpán": {
+     "n": "Kaique Almeida"
+    },
+    "Wagner Balotelli": {
+     "n": "Bruno Xavier"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_voltaredonda",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Tricolor do Aço",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/voltaredonda/escudo-semfundo-1787705545264.webp",
+   "short": "Tricolor do Aço",
+   "squad": {
+    "MV": {
+     "n": "Robson Cardoso"
+    },
+    "PK": {
+     "n": "Antônio Monteiro"
+    },
+    "Dener": {
+     "n": "João Bezerra"
+    },
+    "Deivid": {
+     "n": "Coelho"
+    },
+    "Avelino": {
+     "n": "Bruno Araújo"
+    },
+    "Wagninho": {
+     "n": "Anderson Santos"
+    },
+    "Fabrício": {
+     "n": "Alex Gomes"
+    },
+    "Marquinhos": {
+     "n": "Maicon Ferreira"
+    },
+    "Bruno Barra": {
+     "n": "Vagner Andrade"
+    },
+    "Jean Victor": {
+     "n": "Leonardo Almeida"
+    },
+    "João Gomes": {
+     "n": "Igor Ferreira"
+    },
+    "Lucas Adell": {
+     "n": "Jonathan Cardoso"
+    },
+    "Du Fernandes": {
+     "n": "Alex Dias"
+    },
+    "Ygor Catatau": {
+     "n": "Kaique Dias"
+    },
+    "Rafael Castro": {
+     "n": "Cachorrão"
+    },
+    "Gustavo Santos": {
+     "n": "André Silva"
+    },
+    "Henrique Silva": {
+     "n": "Renato Peixoto"
+    },
+    "Oswaldo Blanco": {
+     "n": "Elias Batista"
+    },
+    "Mizael Monteiro": {
+     "n": "André Oliveira"
+    },
+    "Wellington Silva": {
+     "n": "Yuri Nascimento"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_C_ypiranga",
+  "divisao": "C",
+  "novo": false,
+  "patch": {
+   "name": "Erechim FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-c/ypiranga/escudo-semfundo-1787705509880.webp",
+   "short": "Erechim FC",
+   "squad": {
+    "Dudu": {
+     "n": "Carlos Rodrigues"
+    },
+    "Walace": {
+     "n": "Marcos Moreira"
+    },
+    "Marlone": {
+     "n": "Formiga"
+    },
+    "Estevão": {
+     "n": "Buldogue"
+    },
+    "Henrique": {
+     "n": "Vagner Lima"
+    },
+    "Reinaldo": {
+     "n": "Beiçola"
+    },
+    "Dionísio": {
+     "n": "Fábio Ribeiro"
+    },
+    "Marcelinho": {
+     "n": "Marcos Correia"
+    },
+    "Zé Carlos": {
+     "n": "Tiago Pereira"
+    },
+    "Lucas Ramos": {
+     "n": "Alan Correia"
+    },
+    "Renan Gorne": {
+     "n": "Thiago Nunes"
+    },
+    "Sérgio Rocha": {
+     "n": "Ricardo Barbosa"
+    },
+    "Willian Gomes": {
+     "n": "Emerson Peixoto"
+    },
+    "Gabriel Werner": {
+     "n": "Francisco Souza"
+    },
+    "Kaique Barbosa": {
+     "n": "Alan Guimarães"
+    },
+    "Maxuel Cássio": {
+     "n": "João Guimarães"
+    },
+    "Nicolas Schulz": {
+     "n": "Matheus Almeida"
+    },
+    "Ramon Vinicius": {
+     "n": "Gustavo Costa"
+    },
+    "Felipe Ferreira": {
+     "n": "André Monteiro"
+    },
+    "Gustavo Simões": {
+     "n": "Wesley Pereira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_abc",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Elefante Potiguar",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/abc/escudo-semfundo-1787705044575.webp",
+   "short": "Elefante Potiguar",
+   "squad": {
+    "Lima": {
+     "n": "Sebastião Andrade"
+    },
+    "Edson": {
+     "n": "Lucas Ribeiro"
+    },
+    "Fabão": {
+     "n": "Rodrigo Araújo"
+    },
+    "Brunão": {
+     "n": "Muralha"
+    },
+    "Rikelmi": {
+     "n": "Robson Melo"
+    },
+    "Rodolfo": {
+     "n": "Diego Guimarães"
+    },
+    "Jhosefer": {
+     "n": "Renato Xavier"
+    },
+    "Jonathan": {
+     "n": "Cleiton Gomes"
+    },
+    "Wallysom": {
+     "n": "Emerson Tavares"
+    },
+    "Maurício": {
+     "n": "Douglas Vieira"
+    },
+    "Igor Bahia": {
+     "n": "Elias Pinto"
+    },
+    "Bruno Leite": {
+     "n": "José Melo"
+    },
+    "Esquerdinha": {
+     "n": "Tiago Dias"
+    },
+    "João Pedro": {
+     "n": "Adriano Guimarães"
+    },
+    "João Victor": {
+     "n": "Francisco Barbosa"
+    },
+    "Luís Felipe": {
+     "n": "Hugo Lima"
+    },
+    "Lucar Marques": {
+     "n": "Júlio Nascimento"
+    },
+    "Matheus Alves": {
+     "n": "Valdir Machado"
+    },
+    "Wellignton Reis": {
+     "n": "Adriano Barbosa"
+    },
+    "Wellington Carvalho": {
+     "n": "Cícero Machado"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_aguiademaraba",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Águia de Carajás",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/aguiamaraba/escudo-semfundo-1787704812424.webp",
+   "short": "Águia de Carajás",
+   "squad": {
+    "Axel": {
+     "n": "Ricardo Xavier"
+    },
+    "Esdras": {
+     "n": "Vagner Gomes"
+    },
+    "Kaique": {
+     "n": "Vagner Nunes"
+    },
+    "Murilo": {
+     "n": "Robinho Freitas"
+    },
+    "Thalyson": {
+     "n": "Eduardo Nascimento"
+    },
+    "Yago Melo": {
+     "n": "Vagner Almeida"
+    },
+    "Alan Pires": {
+     "n": "Lucas Rodrigues"
+    },
+    "Fidel Rocha": {
+     "n": "Ricardo Silva"
+    },
+    "Lucca Lanes": {
+     "n": "Furacão"
+    },
+    "Bruno Limão": {
+     "n": "Vitor Santos"
+    },
+    "Biel Potiguar": {
+     "n": "Denilson Almeida"
+    },
+    "Erico Júnior": {
+     "n": "Alan Xavier"
+    },
+    "Kauan Cardoso": {
+     "n": "Kaique Pereira"
+    },
+    "Kauã Patrick": {
+     "n": "Jean Batista"
+    },
+    "Pablo Rykelme": {
+     "n": "Márcio Santos"
+    },
+    "Welves Santos": {
+     "n": "Lucas Pereira"
+    },
+    "Carlos Alberto": {
+     "n": "Júlio Pinto"
+    },
+    "Rômulo Cabral": {
+     "n": "Marcos Souza"
+    },
+    "Wylhamys Araujo": {
+     "n": "Otávio Oliveira"
+    },
+    "Jefferson Riguimar": {
+     "n": "Robinho Farias"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_americarn",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Alvirrubro Potiguar",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/americarn/escudo-semfundo-1787704709773.webp",
+   "short": "Alvirrubro Potiguar",
+   "squad": {
+    "Dudu": {
+     "n": "Robson Oliveira"
+    },
+    "Giva": {
+     "n": "Igor Rodrigues"
+    },
+    "Hiago": {
+     "n": "Gordinho"
+    },
+    "Heitor": {
+     "n": "Gato"
+    },
+    "Robson": {
+     "n": "Robson Martins"
+    },
+    "Elierce": {
+     "n": "Wallace Teixeira"
+    },
+    "Jonathan": {
+     "n": "Matheus Correia"
+    },
+    "Salatiel": {
+     "n": "Maicon Oliveira"
+    },
+    "Romarinho": {
+     "n": "Matheus Monteiro"
+    },
+    "Italo Melo": {
+     "n": "Cleiton Martins"
+    },
+    "Joãozinho": {
+     "n": "Felipe Freitas"
+    },
+    "Marquinhos": {
+     "n": "Antônio Cardoso"
+    },
+    "Renan Dida": {
+     "n": "Rodrigo Costa"
+    },
+    "Thiaguinho": {
+     "n": "Nathan Araújo"
+    },
+    "Lucas Mendes": {
+     "n": "Gabriel Xavier"
+    },
+    "Rafael Jansen": {
+     "n": "Samuel Guimarães"
+    },
+    "Antônio Filho": {
+     "n": "Douglas Nascimento"
+    },
+    "Lucas Oliveira": {
+     "n": "Eduardo Nunes"
+    },
+    "Lucas Rodrigues": {
+     "n": "Pedro Machado"
+    },
+    "Guilherme Paraíba": {
+     "n": "Danilo Correia"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_asa",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Fantasma FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/asa/escudo-semfundo-1787704558482.webp",
+   "short": "Fantasma FC",
+   "squad": {
+    "Fábio": {
+     "n": "Wagner Pinto"
+    },
+    "Sammuel": {
+     "n": "Otávio Batista"
+    },
+    "Wandson": {
+     "n": "Márcio Xavier"
+    },
+    "Jeferson": {
+     "n": "Diego Freitas"
+    },
+    "Paulinho": {
+     "n": "Wagner Teixeira"
+    },
+    "Leo Bahia": {
+     "n": "Marcos Machado"
+    },
+    "Alex Bruno": {
+     "n": "Francisco Costa"
+    },
+    "Crismério": {
+     "n": "Bruno Farias"
+    },
+    "Arthurzinho": {
+     "n": "Grilo"
+    },
+    "Higor Leite": {
+     "n": "Francisco Freitas"
+    },
+    "Lima Victor": {
+     "n": "Paulo Machado"
+    },
+    "Filipe Ramon": {
+     "n": "Rafael Pinto"
+    },
+    "Leo Príncipe": {
+     "n": "Igor Martins"
+    },
+    "Léo Carvalho": {
+     "n": "Eduardo Moreira"
+    },
+    "Ramos Gustavo": {
+     "n": "Kaique Moreira"
+    },
+    "Cristian Lucca": {
+     "n": "Felipe Silva"
+    },
+    "Vini Locatelli": {
+     "n": "Wallace Farias"
+    },
+    "Júnior Viçosa": {
+     "n": "Matheus Ferreira"
+    },
+    "De Freita Rodrigues": {
+     "n": "Gustavo Machado"
+    },
+    "Nascimento da Silva": {
+     "n": "Wellington Dias"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_capital",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Distrito Central",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/capital/escudo-semfundo-1787705150145.webp",
+   "short": "Distrito Central",
+   "squad": {
+    "Lima": {
+     "n": "Vinícius Tavares"
+    },
+    "Luan": {
+     "n": "Nathan Rocha"
+    },
+    "Ingro": {
+     "n": "Jean Nunes"
+    },
+    "Alison": {
+     "n": "Danilo Teixeira"
+    },
+    "Cesinha": {
+     "n": "Cícero Silva"
+    },
+    "Rodrigo": {
+     "n": "Cícero Correia"
+    },
+    "Delsinho": {
+     "n": "Gabriel Ribeiro"
+    },
+    "Genilson": {
+     "n": "Maicon Rodrigues"
+    },
+    "Jeremias": {
+     "n": "Leandro Almeida"
+    },
+    "Lessinho": {
+     "n": "Jonathan Peixoto"
+    },
+    "Richardson": {
+     "n": "Palito"
+    },
+    "Éder Lima": {
+     "n": "Diego Ferreira"
+    },
+    "Matheuzinho": {
+     "n": "Jonathan Dias"
+    },
+    "Renan Luís": {
+     "n": "Adriano Siqueira"
+    },
+    "João Villela": {
+     "n": "Hugo Gomes"
+    },
+    "Matheus Rocha": {
+     "n": "Felipe Oliveira"
+    },
+    "Torres Carlos": {
+     "n": "Igor Gomes"
+    },
+    "Gustavo Nescau": {
+     "n": "Fábio Cavalcanti"
+    },
+    "Gustavo Santos": {
+     "n": "Robinho Moreira"
+    },
+    "Henrique Pereira": {
+     "n": "Wallace Ferreira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_cianorte",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Leão Tricolor",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/cianorte/escudo-semfundo-1787704586742.webp",
+   "short": "Leão Tricolor",
+   "squad": {
+    "Ibson": {
+     "n": "Antônio Gomes"
+    },
+    "Euller": {
+     "n": "Samuel Almeida"
+    },
+    "Pedoca": {
+     "n": "Yuri Correia"
+    },
+    "Wesley": {
+     "n": "Adriano Batista"
+    },
+    "Jackson": {
+     "n": "Danilo Freitas"
+    },
+    "Robinho": {
+     "n": "Elias Xavier"
+    },
+    "Dentinho": {
+     "n": "Gavião"
+    },
+    "Cristovam": {
+     "n": "Hugo Teixeira"
+    },
+    "Pedro Ivo": {
+     "n": "Carlos Moreira"
+    },
+    "Iago Motta": {
+     "n": "Kaique Siqueira"
+    },
+    "Felipe Garcia": {
+     "n": "Pantera"
+    },
+    "Gabriel Silva": {
+     "n": "Fábio Xavier"
+    },
+    "Luiz Fermando": {
+     "n": "Leonardo Silva"
+    },
+    "Matheus Souza": {
+     "n": "Samuel Ferreira"
+    },
+    "Wagner Manaus": {
+     "n": "Anderson Andrade"
+    },
+    "Daniel Pereira": {
+     "n": "Tiago Araújo"
+    },
+    "Gabriel Chagas": {
+     "n": "Vinícius Santos"
+    },
+    "Guilherme Luan": {
+     "n": "Flecha"
+    },
+    "Felipe Laurindo": {
+     "n": "Antônio Barbosa"
+    },
+    "Nathan Nascimento": {
+     "n": "Bruno Costa"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_crac",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Catalão FC",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/crac/escudo-semfundo-1787705081931.webp",
+   "short": "Catalão FC",
+   "squad": {
+    "Tata": {
+     "n": "André Souza"
+    },
+    "Airton": {
+     "n": "Danilo Costa"
+    },
+    "Daniel": {
+     "n": "Marcos Rocha"
+    },
+    "Danrlei": {
+     "n": "Danilo Santos"
+    },
+    "Menezes": {
+     "n": "Robinho Carvalho"
+    },
+    "Henrique": {
+     "n": "Raimundo Araújo"
+    },
+    "Riquelmo": {
+     "n": "Emerson Pereira"
+    },
+    "Cleriston": {
+     "n": "Kaique Melo"
+    },
+    "Jefferson": {
+     "n": "Eduardo Andrade"
+    },
+    "Caio Cunha": {
+     "n": "Bruno Andrade"
+    },
+    "Luan Sales": {
+     "n": "Nathan Teixeira"
+    },
+    "Vitor Mota": {
+     "n": "Elástico"
+    },
+    "João Veras": {
+     "n": "Nathan Martins"
+    },
+    "Leo Azevedo": {
+     "n": "Doidão"
+    },
+    "Iago Martins": {
+     "n": "Vitor Teixeira"
+    },
+    "Rafhael Lucas": {
+     "n": "Careca"
+    },
+    "Dias Gregório": {
+     "n": "Diego Barbosa"
+    },
+    "Robson Alemão": {
+     "n": "Rafael Pereira"
+    },
+    "Valter Júnior": {
+     "n": "Jonathan Costa"
+    },
+    "Leandro Ribeiro": {
+     "n": "Diego Araújo"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_csa",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Azulão Alagoano",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/csa/escudo-semfundo-1787705075008.webp",
+   "short": "Azulão Alagoano",
+   "squad": {
+    "Buiú": {
+     "n": "Denilson Monteiro"
+    },
+    "Kaike": {
+     "n": "Vinícius Machado"
+    },
+    "Ramon": {
+     "n": "Gabriel Lima"
+    },
+    "Rayan": {
+     "n": "Ricardo Ribeiro"
+    },
+    "Lucão": {
+     "n": "Hugo Almeida"
+    },
+    "Marlon Lopes": {
+     "n": "José Araújo"
+    },
+    "Matheus Melo": {
+     "n": "Júlio Ribeiro"
+    },
+    "Nathan Souza": {
+     "n": "Elias Rodrigues"
+    },
+    "Rian Santana": {
+     "n": "Yuri Teixeira"
+    },
+    "Matheus Souza": {
+     "n": "Wallace Cavalcanti"
+    },
+    "Igor Guilherme": {
+     "n": "Tiago Siqueira"
+    },
+    "Lucas Serafini": {
+     "n": "Danilo Cardoso"
+    },
+    "Pitbull Renato": {
+     "n": "Rafael Monteiro"
+    },
+    "Ronaldo Mendes": {
+     "n": "Capitão"
+    },
+    "Dudu Figueiredo": {
+     "n": "Wellington Farias"
+    },
+    "Igor Nascimento": {
+     "n": "Gustavo Correia"
+    },
+    "Otávio Pereira": {
+     "n": "Rodrigo Batista"
+    },
+    "Fabrício Bigode": {
+     "n": "Eduardo Pereira"
+    },
+    "Ferreira Kayllan": {
+     "n": "José Souza"
+    },
+    "Wallerson Raphaelli": {
+     "n": "Diego Martins"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_ferroviario",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Tubarão do Povo",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/ferroviario/escudo-semfundo-1787705067420.webp",
+   "short": "Tubarão do Povo",
+   "squad": {
+    "Luan": {
+     "n": "Antônio Ribeiro"
+    },
+    "Bruno": {
+     "n": "Wellington Silva"
+    },
+    "Kiuan": {
+     "n": "Diego Gomes"
+    },
+    "Camilo": {
+     "n": "Júlio Gomes"
+    },
+    "Jefinho": {
+     "n": "Bruno Bezerra"
+    },
+    "Ramires": {
+     "n": "Bruno Machado"
+    },
+    "Pedrinho": {
+     "n": "Jean Peixoto"
+    },
+    "Carlinhos": {
+     "n": "Alex Cardoso"
+    },
+    "Iago Reis": {
+     "n": "Denilson Barbosa"
+    },
+    "Jefferson": {
+     "n": "Everton Pinto"
+    },
+    "Mena Yair": {
+     "n": "Tiago Peixoto"
+    },
+    "Thalisson": {
+     "n": "Thiago Oliveira"
+    },
+    "João Neto": {
+     "n": "Maicon Martins"
+    },
+    "Lucas Black": {
+     "n": "Samuel Silva"
+    },
+    "Rosa Brayan": {
+     "n": "Besouro"
+    },
+    "Pabo Maldini": {
+     "n": "Matheus Machado"
+    },
+    "Paulo Ricardo": {
+     "n": "Jonathan Almeida"
+    },
+    "Victor Diotti": {
+     "n": "Mosquito"
+    },
+    "Sivaldo Junior": {
+     "n": "Valdir Teixeira"
+    },
+    "Fernando Portel": {
+     "n": "Júlio Rocha"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_gama",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Periquito Verde Branco",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/gama/escudo-semfundo-1787704655014.webp",
+   "short": "Periquito Verde Branco",
+   "squad": {
+    "Zulu": {
+     "n": "Doutor"
+    },
+    "Ramon": {
+     "n": "Diego Lima"
+    },
+    "Renan": {
+     "n": "Terminator"
+    },
+    "Russo": {
+     "n": "Maicon Farias"
+    },
+    "Michel": {
+     "n": "Rafael Bezerra"
+    },
+    "Leandro": {
+     "n": "Vitor Ferreira"
+    },
+    "Toninho": {
+     "n": "Matheus Costa"
+    },
+    "Iranílson": {
+     "n": "Carlos Araújo"
+    },
+    "Luan Louza": {
+     "n": "Wallace Batista"
+    },
+    "Wellington": {
+     "n": "Márcio Peixoto"
+    },
+    "David Lucas": {
+     "n": "Otávio Siqueira"
+    },
+    "Gabriel Lima": {
+     "n": "Vitor Nunes"
+    },
+    "Lucas Piauí": {
+     "n": "Cleiton Almeida"
+    },
+    "Renato Soares": {
+     "n": "Elias Martins"
+    },
+    "Willian Junior": {
+     "n": "Renato Cardoso"
+    },
+    "Felipe Clemente": {
+     "n": "Zangado"
+    },
+    "Moisés Ribeiro": {
+     "n": "Denilson Guimarães"
+    },
+    "Henrique Almeida": {
+     "n": "Lucas Gomes"
+    },
+    "Kennedy Cordeiro": {
+     "n": "Otávio Farias"
+    },
+    "Lúcio Fernandes": {
+     "n": "Wellington Gomes"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_luverdense",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Verdão do Norte",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/luverdense/escudo-semfundo-1787717250542.webp",
+   "short": "Verdão do Norte",
+   "squad": {
+    "Kevin": {
+     "n": "Renato Ferreira"
+    },
+    "Hassen": {
+     "n": "Maicon Batista"
+    },
+    "Hitalo": {
+     "n": "Ricardo Correia"
+    },
+    "Gutierrez": {
+     "n": "Wellington Tavares"
+    },
+    "Jan Carlos": {
+     "n": "Rocha"
+    },
+    "Raul Prata": {
+     "n": "Robinho Almeida"
+    },
+    "Isac Miller": {
+     "n": "Gustavo Andrade"
+    },
+    "Lucas Vieira": {
+     "n": "Thiago Nascimento"
+    },
+    "Bruno Eduardo": {
+     "n": "Gustavo Freitas"
+    },
+    "Bryan Gabriel": {
+     "n": "Everton Pereira"
+    },
+    "Danilo Borges": {
+     "n": "Pedro Pinto"
+    },
+    "Gustavo Silva": {
+     "n": "Hugo Peixoto"
+    },
+    "Luiz Fernando": {
+     "n": "Márcio Cavalcanti"
+    },
+    "Wendel Barros": {
+     "n": "Fernando Silva"
+    },
+    "Pedro Henrique": {
+     "n": "Pedro Rodrigues"
+    },
+    "Renato Escobar": {
+     "n": "Renato Silva"
+    },
+    "Feliphe Gabriel": {
+     "n": "Diego Pereira"
+    },
+    "João Guilherme": {
+     "n": "Vovô"
+    },
+    "Pedro Bortoluzo": {
+     "n": "Otávio Araújo"
+    },
+    "Eduardo Fraga Capellari": {
+     "n": "Vagner Siqueira"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_marciliodias",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Marinheiro de Santa",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/marciliodias/escudo-semfundo-1787704840191.webp",
+   "short": "Marinheiro de Santa",
+   "squad": {
+    "Luan": {
+     "n": "Danilo Nunes"
+    },
+    "Kevin": {
+     "n": "Rodrigo Machado"
+    },
+    "Miguel": {
+     "n": "João Monteiro"
+    },
+    "Roldan": {
+     "n": "Matheus Bezerra"
+    },
+    "Cesinha": {
+     "n": "Denilson Martins"
+    },
+    "Evandro": {
+     "n": "Denilson Silva"
+    },
+    "Matheus": {
+     "n": "Piolho"
+    },
+    "Vitinho": {
+     "n": "Thiago Pereira"
+    },
+    "Jonathan": {
+     "n": "José Freitas"
+    },
+    "Claudinho": {
+     "n": "Pedro Araújo"
+    },
+    "Erivelton": {
+     "n": "Diamante"
+    },
+    "Reginaldo": {
+     "n": "Parede"
+    },
+    "Felipe Baiano": {
+     "n": "Nathan Vieira"
+    },
+    "Marcelo Sousa": {
+     "n": "Douglas Barbosa"
+    },
+    "João Vitor##1": {
+     "n": "Rodrigo Andrade"
+    },
+    "João Vitor##2": {
+     "n": "Renato Costa"
+    },
+    "Guilherme Kante": {
+     "n": "Alan Batista"
+    },
+    "Lucas Batatinha": {
+     "n": "André Siqueira"
+    },
+    "Victor Guilherme": {
+     "n": "Felipe Almeida"
+    },
+    "Guilherme Gehring": {
+     "n": "Wagner Xavier"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_nacional",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Leão da Vila",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/nacional/escudo-semfundo-1787704895119.webp",
+   "short": "Leão da Vila",
+   "squad": {
+    "Caio": {
+     "n": "Thiago Rocha"
+    },
+    "Victor": {
+     "n": "Cabeção"
+    },
+    "Wendel": {
+     "n": "José Bezerra"
+    },
+    "Douglas": {
+     "n": "Brasa"
+    },
+    "Hernane": {
+     "n": "Renato Moreira"
+    },
+    "Mardley": {
+     "n": "Marcos Guimarães"
+    },
+    "Miliano": {
+     "n": "Danilo Oliveira"
+    },
+    "Ryan Luka": {
+     "n": "Vinícius Melo"
+    },
+    "Kaio Wilker": {
+     "n": "Douglas Martins"
+    },
+    "Rafa Marcos": {
+     "n": "Otávio Correia"
+    },
+    "Thiago Lopes": {
+     "n": "Gabriel Santos"
+    },
+    "Joao Barbieri": {
+     "n": "Wallace Freitas"
+    },
+    "Mercado Kevin": {
+     "n": "Nathan Almeida"
+    },
+    "Stefano Pinho": {
+     "n": "Vinícius Araújo"
+    },
+    "Renan Oliveira": {
+     "n": "Otávio Machado"
+    },
+    "Rodrigos Alves": {
+     "n": "Marcos Vieira"
+    },
+    "Sales de Jesus": {
+     "n": "Carlos Cardoso"
+    },
+    "Custodio Michel": {
+     "n": "Diego Andrade"
+    },
+    "Leandro Carvalho": {
+     "n": "Nathan Rodrigues"
+    },
+    "Anderson Alagoano": {
+     "n": "Diego Nunes"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_portuguesacarioca",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Lusa Carioca",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/portuguesarj/escudo-semfundo-1787703568338.webp",
+   "short": "Lusa Carioca",
+   "squad": {
+    "Chay": {
+     "n": "Pedro Vieira"
+    },
+    "Lenon": {
+     "n": "Carlos Cavalcanti"
+    },
+    "Lohan": {
+     "n": "Danilo Dias"
+    },
+    "Albert": {
+     "n": "Maicon Monteiro"
+    },
+    "Carlos": {
+     "n": "Ricardo Andrade"
+    },
+    "Sávio": {
+     "n": "Júlio Xavier"
+    },
+    "Uelber": {
+     "n": "Danilo Cavalcanti"
+    },
+    "Victor": {
+     "n": "Rodrigo Lima"
+    },
+    "Patrick": {
+     "n": "Antônio Pereira"
+    },
+    "Leo Cruz": {
+     "n": "Cleiton Carvalho"
+    },
+    "Romarinho": {
+     "n": "Bala"
+    },
+    "Bruno Mota": {
+     "n": "Raimundo Barbosa"
+    },
+    "Alex Moretti": {
+     "n": "Felipe Vieira"
+    },
+    "Luiz Gustavo": {
+     "n": "Fábio Teixeira"
+    },
+    "Alex Reinaldo": {
+     "n": "Danilo Almeida"
+    },
+    "Anderson Rosa": {
+     "n": "Alex Souza"
+    },
+    "Douglas Borges": {
+     "n": "Leandro Martins"
+    },
+    "Gustavo Aguiar": {
+     "n": "Anderson Cardoso"
+    },
+    "Henrique Rocha": {
+     "n": "Vinícius Rodrigues"
+    },
+    "Guilherme Silveira": {
+     "n": "Wesley Andrade"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_portuguesadedesportos",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Lusa Paulista",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/portuguesa/escudo-semfundo-1787703753524.webp",
+   "short": "Lusa Paulista",
+   "squad": {
+    "Denis": {
+     "n": "Wesley Melo"
+    },
+    "Keven": {
+     "n": "Robson Ribeiro"
+    },
+    "Cauari": {
+     "n": "Júlio Tavares"
+    },
+    "Hudson": {
+     "n": "Danilo Monteiro"
+    },
+    "Maceió": {
+     "n": "Renato Monteiro"
+    },
+    "Igor Torres": {
+     "n": "Hugo Nascimento"
+    },
+    "João Vitor": {
+     "n": "Wesley Cavalcanti"
+    },
+    "Gustavo Lima": {
+     "n": "Eduardo Souza"
+    },
+    "Marcelo Lima": {
+     "n": "Antônio Rodrigues"
+    },
+    "Carlos Eduardo": {
+     "n": "Vagner Machado"
+    },
+    "Daniel Araújo": {
+     "n": "Rodrigo Cardoso"
+    },
+    "Eduardo Biazus": {
+     "n": "Elias Gomes"
+    },
+    "Eric Botteghin": {
+     "n": "Jonathan Monteiro"
+    },
+    "Bruno Bertinato": {
+     "n": "Antônio Rocha"
+    },
+    "Guilherme Dantas": {
+     "n": "Anderson Costa"
+    },
+    "Gustavo Henrique": {
+     "n": "Emerson Batista"
+    },
+    "Gustavo Salomão": {
+     "n": "Adriano Lima"
+    },
+    "Gustavo Sciencia": {
+     "n": "Robson Lima"
+    },
+    "Matheus Cadorini": {
+     "n": "Cícero Vieira"
+    },
+    "Matheus Cecchini": {
+     "n": "Kaique Souza"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_saojose",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Águia do Vale",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/saojose/escudo-semfundo-1787705011630.webp",
+   "short": "Águia do Vale",
+   "squad": {
+    "Ivo": {
+     "n": "Vinícius Pereira"
+    },
+    "Caua": {
+     "n": "Carlos Martins"
+    },
+    "Dudu": {
+     "n": "Fernando Cavalcanti"
+    },
+    "Diney": {
+     "n": "Elias Nascimento"
+    },
+    "Lucas": {
+     "n": "Felipe Ribeiro"
+    },
+    "Vitor": {
+     "n": "Lucas Vieira"
+    },
+    "Douglas": {
+     "n": "Alan Souza"
+    },
+    "Gabriel": {
+     "n": "Magrão"
+    },
+    "Keverton": {
+     "n": "Fábio Rodrigues"
+    },
+    "Fabio Rampi": {
+     "n": "Cícero Ferreira"
+    },
+    "Tiago Pedra": {
+     "n": "Foguetinho"
+    },
+    "Alex Peralta": {
+     "n": "João Farias"
+    },
+    "Andrey Nunes": {
+     "n": "Lucas Farias"
+    },
+    "Gustavo Lino": {
+     "n": "Bigode"
+    },
+    "Lucas Grafite": {
+     "n": "Adriano Peixoto"
+    },
+    "Raphael Soares": {
+     "n": "Bronze"
+    },
+    "Gustavo Bagatini": {
+     "n": "Emerson Melo"
+    },
+    "Gustavo Wallison": {
+     "n": "Wagner Carvalho"
+    },
+    "Danilo Guimarães": {
+     "n": "Samuel Cavalcanti"
+    },
+    "Schopf de Oliveira": {
+     "n": "Maicon Nunes"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_treze",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Galo da Borborema",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/treze/escudo-semfundo-1787704991184.webp",
+   "short": "Galo da Borborema",
+   "squad": {
+    "Yan": {
+     "n": "Marcos Cardoso"
+    },
+    "Luan": {
+     "n": "Everton Carvalho"
+    },
+    "Ryan": {
+     "n": "Carlos Siqueira"
+    },
+    "Wilker": {
+     "n": "Matheus Guimarães"
+    },
+    "Gustavo": {
+     "n": "Ricardo Costa"
+    },
+    "Bruno Re": {
+     "n": "Anderson Teixeira"
+    },
+    "Renilson": {
+     "n": "Rafael Ferreira"
+    },
+    "Caio Gomes": {
+     "n": "Pedro Lima"
+    },
+    "Italo Melo": {
+     "n": "Jean Nascimento"
+    },
+    "Jean Carlo": {
+     "n": "Valdir Martins"
+    },
+    "Joãozinho": {
+     "n": "Emerson Guimarães"
+    },
+    "Marquinhos": {
+     "n": "Felipe Melo"
+    },
+    "João Soares": {
+     "n": "Macaco"
+    },
+    "Rafael Tanque": {
+     "n": "Wallace Martins"
+    },
+    "Vinicius Bala": {
+     "n": "Eduardo Monteiro"
+    },
+    "Juninho Pianco": {
+     "n": "Cleiton Nunes"
+    },
+    "Gabriel Feitosa": {
+     "n": "Everton Rodrigues"
+    },
+    "Thiago Alagoano": {
+     "n": "Marcos Peixoto"
+    },
+    "Gomes Vieira Lucas": {
+     "n": "Danilo Rodrigues"
+    },
+    "Gustavo Petrocelli": {
+     "n": "Alan Bezerra"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_uberlandia",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Alviverde Mineiro",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/uberlandia/escudo-semfundo-1787704968745.webp",
+   "short": "Alviverde Mineiro",
+   "squad": {
+    "Jacó": {
+     "n": "Pedro Rocha"
+    },
+    "Rayne": {
+     "n": "Everton Peixoto"
+    },
+    "Renan": {
+     "n": "Escorpião"
+    },
+    "Tomás": {
+     "n": "Alan Barbosa"
+    },
+    "Bem-Hur": {
+     "n": "Leandro Vieira"
+    },
+    "Da Silva": {
+     "n": "Otávio Peixoto"
+    },
+    "Longatto": {
+     "n": "Felipe Teixeira"
+    },
+    "Max Miller": {
+     "n": "Raimundo Souza"
+    },
+    "Renan Mota": {
+     "n": "Fernando Vieira"
+    },
+    "Luís Felipe": {
+     "n": "Lucas Freitas"
+    },
+    "Carlos Miguel": {
+     "n": "Hugo Nunes"
+    },
+    "Diego Fumaça": {
+     "n": "Leandro Rodrigues"
+    },
+    "Dudu Albaceta": {
+     "n": "Wesley Dias"
+    },
+    "Jefferson Luis": {
+     "n": "Robson Pinto"
+    },
+    "Aparicio Brayan": {
+     "n": "Francisco Araújo"
+    },
+    "Mendes da Silva": {
+     "n": "Fábio Costa"
+    },
+    "Jeferson Parrudo": {
+     "n": "José Teixeira"
+    },
+    "Jonatas Paulista": {
+     "n": "Fernando Rocha"
+    },
+    "Ribeiro Fernando": {
+     "n": "Carlos Oliveira"
+    },
+    "Rafael Conceição": {
+     "n": "Felipe Xavier"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_veloclube",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Galo Rubro-Verde",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/velo/escudo-semfundo-1787704942315.webp",
+   "short": "Galo Rubro-Verde",
+   "squad": {
+    "Josué": {
+     "n": "Wellington Moreira"
+    },
+    "Sillas": {
+     "n": "Alex Araújo"
+    },
+    "Timbó": {
+     "n": "Emerson Oliveira"
+    },
+    "Jhoninha": {
+     "n": "Cleiton Melo"
+    },
+    "João Igor": {
+     "n": "Jonathan Bezerra"
+    },
+    "Paulo Vitor": {
+     "n": "Pedro Xavier"
+    },
+    "Flavio Souza": {
+     "n": "Leandro Gomes"
+    },
+    "Léo Steffen": {
+     "n": "Leandro Barbosa"
+    },
+    "Lucas Mingoti": {
+     "n": "Matheus Ribeiro"
+    },
+    "Mateus Norton": {
+     "n": "Márcio Guimarães"
+    },
+    "Felipe Pacajus": {
+     "n": "Júlio Teixeira"
+    },
+    "Gabriel Canela": {
+     "n": "Diego Xavier"
+    },
+    "Roberto Baggio": {
+     "n": "Ricardo Monteiro"
+    },
+    "Anderson Recife": {
+     "n": "Igor Araújo"
+    },
+    "Carlos Henrique": {
+     "n": "Diego Souza"
+    },
+    "Matheus Firmino": {
+     "n": "Francisco Nascimento"
+    },
+    "Ruan Costa Souza": {
+     "n": "Felipe Gomes"
+    },
+    "Thiago Fernandes": {
+     "n": "Elias Moreira"
+    },
+    "Lucas Duni de Lima": {
+     "n": "Everton Cardoso"
+    },
+    "Fernanco Victor Vitinho": {
+     "n": "Pedro Cavalcanti"
+    }
+   }
+  }
+ },
+ {
+  "pack_id": "61717da5-0f7a-48a1-ae6e-acacacad8cf5",
+  "club_id": "br_D_xvdepiracicaba",
+  "divisao": "D",
+  "novo": false,
+  "patch": {
+   "name": "Quinzão Alvinegro",
+   "crest": "https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-d/xvpiracicaba/escudo-semfundo-1787704865741.webp",
+   "short": "Quinzão Alvinegro",
+   "squad": {
+    "Henry": {
+     "n": "Alan Pinto"
+    },
+    "Renna": {
+     "n": "Tiago Barbosa"
+    },
+    "Serginho": {
+     "n": "Trovão"
+    },
+    "Tiago Dias": {
+     "n": "Diego Farias"
+    },
+    "Dudu Vieira": {
+     "n": "Márcio Bezerra"
+    },
+    "Erick Bessa": {
+     "n": "Raimundo Rodrigues"
+    },
+    "Léo Santos": {
+     "n": "Júlio Nunes"
+    },
+    "João Victor": {
+     "n": "Fernando Moreira"
+    },
+    "Kuhn Gustavo": {
+     "n": "Wellington Ferreira"
+    },
+    "Victor Golas": {
+     "n": "Sombra"
+    },
+    "Carlos Manuel": {
+     "n": "Emerson Andrade"
+    },
+    "David Ribeiro": {
+     "n": "Júlio Moreira"
+    },
+    "Paulo Marcelo": {
+     "n": "Paulo Bezerra"
+    },
+    "Vitor Ribeiro": {
+     "n": "André Pinto"
+    },
+    "Thales Oleques": {
+     "n": "Vinícius Rocha"
+    },
+    "Kaique Oliveira": {
+     "n": "Rafael Oliveira"
+    },
+    "Richard Almeyda": {
+     "n": "Ligeiro"
+    },
+    "Antônio Gabriel": {
+     "n": "Hugo Cavalcanti"
+    },
+    "Gabriel Oliveira": {
+     "n": "Leandro Costa"
+    },
+    "Otávio Nascimento": {
+     "n": "Titio"
+    }
+   }
+  }
+ }
+]
