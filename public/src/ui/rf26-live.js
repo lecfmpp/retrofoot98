@@ -322,7 +322,13 @@ function rfCamHTML(RL){
             <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à semana (Esc)">
               <b class="rf-so-desktop">✖ Voltar à semana</b><b class="rf-so-mobile">✖</b></button>
           </div>
-          ${rfTrilhoHTML(CL.live)}
+          <!-- O TRILHO DE COMPETICOES NAO ENTRA AQUI. Ele existe para escolher QUAL
+               competicao se esta a ver, e no Camarote nao ha essa escolha: a tela
+               inteira e uma partida so', a sua. As pastilhas prometiam uma troca
+               que este ecra nao faz -- levavam ao card de outra competicao, que
+               nem sequer esta visivel daqui dentro. Elas ficam na rodada ao vivo
+               (ver rfLiveHTML), que e onde se veem todos os jogos e a escolha
+               significa alguma coisa. -->
           <!-- A BANDA DE PATROCINIO SOBE PARA CIMA DO CONTEUDO. Estava entre o
                miolo dinamico e o rodape, ou seja, no fundo: quem entra no
                Camarote para VER O JOGO nunca rolava ate la, e o espaco vendido
