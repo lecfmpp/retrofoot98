@@ -505,42 +505,68 @@ function rfCamStatsHTML(m){
   </div>`;
 }
 
-/* BANDA DE PATROCÍNIO — CINCO LUGARES, UM POR ANUNCIANTE
+/* BANDA DE PATROCÍNIO — CINCO LUGARES, CADA UM COM O SEU BOTÃO
    ---------------------------------------------------------------------
-   A banda nasceu com cinco pastilhas (o rodízio das marcas de casa) e passou a
-   desenhar UMA só: quando o patrocínio de apresentação (rf98.pausa.barra) tinha
-   criativo, ele tomava a banda inteira; quando não tinha, entravam os logos de
-   casa de AD_SPONSORS, que hoje são três e não estão à venda. Nos dois casos o
-   inventário real do Camarote ficava invisível — não dava para ver quantos
-   lugares existem nem oferecê-los.
+   A banda tem cinco pastilhas de logo e UM botão, à direita. O destaque gira
+   com o relógio da partida (um lugar a cada 8 minutos, em camUpdate) e o botão
+   acompanha: ele é sempre o do patrocinador em destaque.
 
-   Agora são sempre CINCO lugares, todos vendáveis pelo painel. O primeiro é o
-   patrocínio de apresentação, que já estava no catálogo e cobre as três faixas
-   de "apresentado por" do jogo — é ele quem leva o botão. Os outros quatro são
-   chaves próprias do Camarote. Lugar sem criativo desenha o marcador do formato,
-   pela mesma regra de rfAdEspaco: o espaço existe na tela antes de ser vendido.
+   O QUE ESTÁ NO BOTÃO VEM DO PAINEL, não do código. Texto, cor de fundo e cor
+   do texto viajam com o criativo (ad_creatives.cta_texto/cta_bg/cta_fg) e a
+   URL é o mesmo link_destino do logo — o anunciante compra um destino, não
+   dois. Antes isto vinha de AD_SPONSORS, a lista de marcas de casa embutida no
+   jogo: para trocar a chamada de um patrocinador era preciso publicar o jogo.
 
-   AS CHAVES SÃO CONTRATO com elifoot_v3.ad_spaces (ver scripts/sql/ad_spaces_camarote_logos.sql
-   e o cabeçalho de net/ads.js) — não renomear de um lado só. */
-const RF_CAM_LOGOS=['rf98.pausa.barra','rf98.camarote.logo2','rf98.camarote.logo3',
+   SEM TEXTO NÃO HÁ BOTÃO. É assim que um patrocinador que só quer o logo fica
+   só com o logo, sem precisar de outra chave.
+
+   O 1º LUGAR TEM UM SUPLENTE. rf98.pausa.barra é o patrocínio de apresentação
+   e cobre as outras faixas de "apresentado por" do jogo; enquanto
+   rf98.camarote.logo1 estiver vazio, é ele que aparece ali — quem já comprou a
+   apresentação continua a ser entregue no Camarote.
+
+   AS CHAVES SÃO CONTRATO com elifoot_v3.ad_spaces (ver
+   scripts/sql/ad_botao_por_patrocinador.sql) — não renomear de um lado só. */
+const RF_CAM_LOGOS=['rf98.camarote.logo1','rf98.camarote.logo2','rf98.camarote.logo3',
                     'rf98.camarote.logo4','rf98.camarote.logo5'];
-function rfCamPatroHTML(){
+const RF_CAM_LOGO1_ALT='rf98.pausa.barra';
+/* cor do botão do patrocinador; sem cor publicada, a da marca do jogo */
+function rfCamCtaCores(c){
+  const cor=v=>(/^#[0-9a-f]{3,8}$/i.test(String(v||'').trim())?String(v).trim():null);
+  return { bg: cor(c&&c.cta_bg) || 'var(--brand-secondary,#F2B90C)',
+           fg: cor(c&&c.cta_fg) || 'var(--brand-primary,#17458F)' };
+}
+/* o criativo de um lugar da banda (com o suplente do 1º lugar) */
+function rfCamLogo(k){
   const pega=c=>(typeof ADS!=='undefined'&&window.ADS)?ADS.get(c):null;
-  const apres=pega('rf98.pausa.barra');
-  const pecas=RF_CAM_LOGOS.map((chave,k)=>{
-    const c=pega(chave);
-    if(c&&c.ficheiro_url){
-      /* o destaque inicial é do primeiro; camUpdate faz o rodízio a partir daí */
-      return `<img class="rf-cam-ad${k===0?' on':''}" src="${escC(c.ficheiro_url)}" alt="Patrocinador"
-        data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
-        ${c.link_destino?`style="cursor:pointer" onclick="ADS.clique('${escC(chave)}')"`:''}>`;
-    }
+  const c=pega(RF_CAM_LOGOS[k]);
+  if(c&&c.ficheiro_url) return { chave:RF_CAM_LOGOS[k], c };
+  if(k===0){ const alt=pega(RF_CAM_LOGO1_ALT); if(alt&&alt.ficheiro_url) return { chave:RF_CAM_LOGO1_ALT, c:alt }; }
+  return { chave:RF_CAM_LOGOS[k], c:null };
+}
+/* o botão do lugar em destaque — devolve '' quando aquele patrocinador não pediu botão */
+function rfCamCtaHTML(k){
+  const { chave, c } = rfCamLogo(k);
+  const txt=(c&&c.cta_texto||'').trim();
+  if(!c || !txt || !c.link_destino) return '';
+  const cor=rfCamCtaCores(c);
+  return `<button type="button" class="rf-cam-cta" id="rf-cam-cta" data-ad-cta="${escC(chave)}"
+    style="background:${escC(cor.bg)};color:${escC(cor.fg)}"
+    onclick="ADS.clique('${escC(chave)}')">${escC(txt)}</button>`;
+}
+function rfCamPatroHTML(){
+  /* o destaque inicial é o do lugar 1; camUpdate assume a partir daí */
+  const pecas=RF_CAM_LOGOS.map((_,k)=>{
+    const { chave, c } = rfCamLogo(k);
+    if(c) return `<img class="rf-cam-ad${k===0?' on':''}" src="${escC(c.ficheiro_url)}" alt="Patrocinador"
+      data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
+      ${c.link_destino?`style="cursor:pointer" onclick="ADS.clique('${escC(chave)}')"`:''}>`;
     return `<span class="rf-cam-ad rf-cam-ad-vazio" data-ad-vazio="${escC(chave)}">240×80</span>`;
   }).join('');
+  const temAlgum=RF_CAM_LOGOS.some((_,k)=>!!rfCamLogo(k).c);
   return `<div class="rf-cam-patro">
-    <span class="rf-cam-patro-l">${apres?'CAMAROTE APRESENTADO POR':'PATROCINADORES DO CAMAROTE'}</span>
+    <span class="rf-cam-patro-l">${temAlgum?'CAMAROTE APRESENTADO POR':'PATROCINADORES DO CAMAROTE'}</span>
     <div class="rf-cam-patro-marcas">${pecas}</div>
-    ${(apres&&apres.link_destino)?`<button type="button" class="rf-cam-cta"
-      onclick="ADS.clique('rf98.pausa.barra')">Conhecer o patrocinador</button>`:''}
+    ${rfCamCtaHTML(0)}
   </div>`;
 }

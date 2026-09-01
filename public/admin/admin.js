@@ -1483,6 +1483,10 @@ function slotHTML(e, editar){
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
+      ${e.tem_botao ? `<div><span>Botão</span>${c&&c.cta_texto
+        ? `<b><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;
+             background:${h(c.cta_bg||'#F2B90C')};color:${h(c.cta_fg||'#17458F')};font-size:11px">${h(c.cta_texto)}</span></b>`
+        : '<b style="color:var(--dim3)">sem botão</b>'}</div>` : ''}
     </div>
     <div class="foot">
       <span style="flex:1;font-size:12px;color:${c?'var(--verde2)':'var(--dim2)'}">
@@ -1583,11 +1587,51 @@ function modalUpload(chave){
         <label class="f">Link de destino<input class="f" id="up-link" placeholder="https://"></label>
         <label class="f">No ar até<input class="f" id="up-ate" type="date"></label>
       </div>
+      ${e.tem_botao ? `
+      <!-- BOTAO DO PATROCINADOR: so' aparece nos espacos que desenham um (ad_spaces.tem_botao).
+           Sem texto nao ha' botao -- e' assim que um patrocinador que so' quer o logo fica so'
+           com o logo. O botao leva ao MESMO link de destino do logo, acima. -->
+      <div style="border-top:1px solid var(--linha,#243028);margin:4px 0 0;padding-top:14px">
+        <b style="display:block;font-size:13px;margin-bottom:2px">Botão do patrocinador</b>
+        <small style="display:block;font-size:11.5px;color:var(--dim2);line-height:1.5;margin-bottom:12px">
+          Fica à direita da banda, e aparece quando é a vez desta marca no destaque.
+          Deixe o texto vazio para publicar só o logo. O botão leva ao link de destino acima.</small>
+        <label class="f">Texto do botão<input class="f" id="up-cta" maxlength="48"
+          placeholder="ex.: Conhecer a loja"></label>
+        <div class="g2" style="gap:12px;margin-top:12px">
+          <label class="f">Cor do botão<input class="f" id="up-cta-bg" type="color" value="#F2B90C"
+            style="height:38px;padding:4px"></label>
+          <label class="f">Cor do texto<input class="f" id="up-cta-fg" type="color" value="#17458F"
+            style="height:38px;padding:4px"></label>
+        </div>
+        <div id="up-cta-prev" style="margin-top:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:11.5px;color:var(--dim2)">Prévia</span>
+          <span id="up-cta-bolha" style="display:none;height:34px;padding:0 16px;border-radius:11px;
+            align-items:center;font-size:13px;font-weight:700"></span>
+          <span id="up-cta-sem" style="font-size:12px;color:var(--dim3)">sem botão</span>
+        </div>
+      </div>` : ''}
       <div class="acoes">
         <button class="btn" id="up-ok">Publicar criativo</button>
         <button class="btn btn-ghost" data-fechar>Cancelar</button>
       </div>
     </div>`, 'lg');
+
+  /* previa do botao: o socio ve' a peca antes de publicar -- cor de fundo e cor de
+     texto sao escolhidas separadas, e o par errado da' um botao ilegivel */
+  if(e.tem_botao){
+    const pintar = () => {
+      const t = el('up-cta').value.trim();
+      const bolha = el('up-cta-bolha'), sem = el('up-cta-sem');
+      bolha.style.display = t ? 'inline-flex' : 'none';
+      sem.style.display   = t ? 'none' : 'inline';
+      bolha.textContent = t;
+      bolha.style.background = el('up-cta-bg').value;
+      bolha.style.color      = el('up-cta-fg').value;
+    };
+    ['up-cta','up-cta-bg','up-cta-fg'].forEach(id => el(id).oninput = pintar);
+    pintar();
+  }
 
   const drop = el('up-drop'), input = el('up-file'), erro = el('up-erro');
   const falhar = m => { erro.textContent = m; erro.classList.remove('hide'); drop.classList.remove('ok'); arquivo=null; };
@@ -1641,6 +1685,10 @@ function modalUpload(chave){
     if(!arquivo) return falhar('Escolha um arquivo primeiro.');
     const link = el('up-link').value.trim();
     if(link && !/^https?:\/\//i.test(link)) return falhar('O link de destino precisa começar com http:// ou https://');
+    const cta = e.tem_botao ? el('up-cta').value.trim() : '';
+    /* botao sem destino nao leva a lado nenhum: o jogo nao o desenha, e publicar assim
+       seria vender uma peca que nunca aparece */
+    if(cta && !link) return falhar('O botão precisa de um link de destino — preencha o link acima ou apague o texto do botão.');
     const btn = el('up-ok'); btn.disabled = true; btn.textContent = 'Publicando…';
     try{
       const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
@@ -1658,6 +1706,10 @@ function modalUpload(chave){
         ficheiro_url: url, ficheiro_path: caminho,
         mime: MIME_EXT[ext] || arquivo.type, bytes: arquivo.size,
         link_destino: link || null,
+        // o botao viaja com o criativo (ver rfCamCtaHTML em public/src/ui/rf26-live.js)
+        cta_texto: cta || null,
+        cta_bg: cta ? el('up-cta-bg').value : null,
+        cta_fg: cta ? el('up-cta-fg').value : null,
         no_ar_ate: el('up-ate').value ? new Date(el('up-ate').value+'T23:59:59').toISOString() : null
       });
       if(ins.error) throw ins.error;

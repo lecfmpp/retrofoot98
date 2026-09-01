@@ -8808,9 +8808,21 @@ function camUpdate(){
   const ads=document.querySelectorAll('.rf-cam-ad');
   const i=ads.length?Math.floor((((CL.live&&CL.live.minute)||0))/8)%ads.length:0;
   ads.forEach((el,k)=>el.classList.toggle('on',k===i));
-  // o botão do patrocinador gira junto com o logo em destaque (texto + cores da marca)
-  const cta=document.querySelector('#rf-cam-cta');
-  if(cta && AD_SPONSORS[i]){ cta.textContent=AD_SPONSORS[i].cta; cta.setAttribute('style',camCtaStyle(i)); }
+  /* O BOTÃO É DO PATROCINADOR EM DESTAQUE — texto, cores e destino saem do
+     criativo daquele lugar (ver rfCamCtaHTML). Ele é trocado por inteiro, e não
+     campo a campo, porque o lugar em destaque pode simplesmente NÃO TER botão:
+     nesse caso o HTML vem vazio e o botão sai da banda até o próximo. */
+  const banda=document.querySelector('.rf-cam-patro');
+  if(banda && typeof rfCamCtaHTML==='function'){
+    const novo=rfCamCtaHTML(i), atual=banda.querySelector('.rf-cam-cta');
+    const chaveAtual=atual?atual.getAttribute('data-ad-cta'):'';
+    // só mexe no DOM quando muda de patrocinador: trocar a cada minuto mataria o :hover
+    if(!novo && atual) atual.remove();
+    else if(novo && (!atual || novo.indexOf('data-ad-cta="'+chaveAtual+'"')<0)){
+      if(atual) atual.remove();
+      banda.insertAdjacentHTML('beforeend', novo);
+    }
+  }
   // o selo "AO VIVO" mora na barra de título (fora do bloco redesenhado): apaga na mão
   // quando a partida DELE acaba — a rodada pode seguir rolando bem depois disso.
   const onair=document.querySelector('#rf-cam-onair'); if(onair) onair.hidden=camMatchOver(m);

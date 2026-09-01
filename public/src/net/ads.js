@@ -17,8 +17,11 @@
      rf98.live.inline    · faixa 468×60 na rodada ao vivo
      rf98.resenha.invite · cartão do convite da Resenha
      rf98.rail.esq/dir   · trilhos 160×600 da rodada ao vivo e do Camarote
-     rf98.pausa.barra    · patrocínio de apresentação — 1º lugar da banda do Camarote
-     rf98.camarote.logo2..5 · os outros quatro lugares da banda do Camarote
+     rf98.camarote.logo1..5 · os cinco lugares da banda do Camarote. Cada criativo
+                           leva o SEU botão (cta_texto/cta_bg/cta_fg), e o botão à direita da
+                           banda é o do lugar em destaque — o destaque gira com o relógio.
+     rf98.pausa.barra    · patrocínio de apresentação (pausa da Resenha e rodada de copa).
+                           No Camarote ele cobre o 1º lugar enquanto logo1 estiver vazio.
 
    POR QUE FETCH CRU E NÃO O SDK: este arquivo é um <script> clássico que roda
    ANTES do SDK do Supabase estar pronto (ele carrega com async). Uma leitura
@@ -61,6 +64,9 @@ async function carregar(){
        patrocinador comprou para outra data, e divergindo do que o painel
        mostrava a quem a vendeu. */
     const url = REST + 'ad_creatives?select=id,chave_espaco,ficheiro_url,link_destino,mime,no_ar_de,no_ar_ate'
+              /* cta_*: o botao do patrocinador na banda do Camarote — texto e cores viajam
+                 com o criativo, e a URL do botao e' o mesmo link_destino do logo */
+              + ',cta_texto,cta_bg,cta_fg'
               + '&ativo=eq.true&order=criado_em.desc';
     const r = await fetch(url, { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY,
       'Accept-Profile':'elifoot_v3' } });
