@@ -2449,16 +2449,39 @@ function scLoading(){
   return rfCarregandoHTML();
 }
 
-function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.random()*14); if(p>=100)p=100;
-  // a barra E a lista de etapas: sem CL._loadPct, os quatro itens da tela portada
-  // ficariam parados em "na fila" enquanto a barra corre (ver rfCarregandoHTML)
-  CL._loadPct=p;
-  const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
-  if(typeof rfCarregandoEtapas==='function') rfCarregandoEtapas(p);
-  if(p>=100){ clearInterval(t); setTimeout(()=>{
-    if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
-    else { CL.screen='jogadores'; cdraw(); }
-  },350); } }, 180); }
+/* A ESPERA DA ENTRADA E' DE 10 SEGUNDOS, DE PROPOSITO.
+   A barra era um sorteio (8 a 21 por tique de 180ms): chegava a 100% em pouco
+   mais de um segundo e meio, e o splash do patrocinador (rf98.loading.splash)
+   passava rapido demais para ser visto -- um espaco de tela cheia entregue em
+   piscar de olhos. Agora ela e' cronometrada: a barra anda pelo RELOGIO, do
+   inicio ao fim de RF_LOAD_MS, e as quatro etapas acompanham.
+
+   ISTO NAO ESTA A ESPERAR TRABALHO NENHUM: a montagem do save acontece dentro
+   de CL._pendingLaunch, que so' corre no fim. A espera e' o produto -- e' o voo
+   que o espaco vende. Para mudar a duracao, e' este numero e mais nada. */
+const RF_LOAD_MS=10000;
+function runLoading(){
+  /* cdraw() chama isto A CADA DESENHO enquanto a tela e' a de carregamento: sem
+     esta trava, dois relogios corriam ao mesmo tempo e a barra saltava ao dobro
+     da velocidade -- que era exactamente a forma de a espera encolher sozinha. */
+  if(CL._loadT) return;
+  const inicio=Date.now();
+  CL._loadPct=0;
+  CL._loadT=setInterval(()=>{
+    // saiu da tela de carregamento (ou outro fluxo assumiu): o relogio morre com ela
+    if(CL.screen!=='loading'){ clearInterval(CL._loadT); CL._loadT=null; return; }
+    const p=Math.min(100, Math.round((Date.now()-inicio)/RF_LOAD_MS*100));
+    // a barra E a lista de etapas: sem CL._loadPct, os quatro itens da tela portada
+    // ficariam parados em "na fila" enquanto a barra corre (ver rfCarregandoHTML)
+    CL._loadPct=p;
+    const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
+    if(typeof rfCarregandoEtapas==='function') rfCarregandoEtapas(p);
+    if(p>=100){ clearInterval(CL._loadT); CL._loadT=null; setTimeout(()=>{
+      if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
+      else { CL.screen='jogadores'; cdraw(); }
+    },350); }
+  }, 180);
+}
 
 /* ---- 2/4 · JOGADORES (nomes) ---- */
 /* Multiplayer local (hotseat — vários treinadores humanos passando o mesmo aparelho, um save só)
