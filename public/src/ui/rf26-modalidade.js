@@ -24,34 +24,71 @@ function rfFemLigado(){
 }
 function rfModalidadeAtual(){ return (typeof CL!=='undefined' && CL.modalidade) || 'masc'; }
 
-/* ---- a ficha de cada card ----
-   Procura, entre os clubes da Série A daquela modalidade, o primeiro jogador que TENHA foto.
-   Memoizado porque a tela redesenha a cada clique e a varredura não precisa repetir. */
+/* ---- O PAR QUE ILUSTRA A ESCOLHA ----
+   Um jogador e uma jogadora, os dois da MESMA equipa — a Lusa Carioca, Série D. Ser o mesmo
+   clube é o argumento da tela em imagem: mesmo escudo, mesmas cores, mesma camisa, e o que muda
+   é quem está dentro dela. Dois clubes diferentes contariam outra história.
+
+   FIXOS POR ID, NUNCA POR NOME. O pacote oficial troca o nome de fábrica pelo fictício — o
+   "Uelber" do bundle chega ao jogo com outro nome, e é o fictício que está na chave da foto.
+   Resolver pelo `id`, que o pacote não toca, passa por cima disso sem precisar saber dele.
+   No feminino o nome vem do mapa de jogadoras, pelo mesmo id: é a regra de femSquad (core.js),
+   e é a chave que o Estúdio IA usa ao gravar a foto delas. */
+const RF_MOD_CARTAZ = {
+  clube: 'br_D_portuguesacarioca',
+  masc:  'jm001776',   // centroavante, 27 anos
+  fem:   'jm001779'    // centroavante, 23 anos
+};
+/* O clube sai de BRASIL_LOWER, não de DATA.clubs: neste ponto do assistente o país ainda não
+   foi escolhido e DATA.clubs tem só a Série A. BRASIL_LOWER carrega no boot (index.html) e já
+   chega com o pacote aplicado (dados.js remenda os nomes nele mesmo), que é justamente o estado
+   em que os nomes batem com as chaves de RF_FOTOS. */
+function rfClubeDoCartaz(){
+  const lower=(typeof window!=='undefined' && window.BRASIL_LOWER) || null;
+  const serieD=(lower && Array.isArray(lower.D)) ? lower.D : [];
+  return serieD.find(c => String(c.id)===RF_MOD_CARTAZ.clube) || null;
+}
+/* a ficha a partir de um jogador concreto — o nome depende da modalidade, a foto vem do mesmo
+   índice que a tela de elenco usa. */
+function rfFichaDe(c, p, modalidade){
+  if(!c || !p) return null;
+  const mapaFem=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
+  const nome = (modalidade==='fem') ? ((p.id!=null && mapaFem[p.id]) || null) : p.n;
+  if(!nome) return null;
+  const fotos=(typeof window!=='undefined' && window.RF_FOTOS) || {};
+  return { nome, foto: fotos[String(c.id)+'|'+nome] || null, pos:p.s, age:p.age, clube:c };
+}
+/* Memoizado porque a tela redesenha a cada clique e a busca não precisa repetir. */
 let RF_MOD_FICHA={};
 function rfFichaModalidade(modalidade){
   if(RF_MOD_FICHA[modalidade]!==undefined) return RF_MOD_FICHA[modalidade];
   let out=null;
   try{
-    const fotos=(typeof window!=='undefined' && window.RF_FOTOS) || {};
-    const mapaFem=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
-    const clubes=(typeof DATA!=='undefined' && (DATA.clubsSerieA||DATA.clubs)) || [];
-    for(const c of clubes){
-      for(const p of (c.squad||[])){
-        /* No feminino o nome do jogador não é o do bundle: é o do mapa, pelo id. É esse nome
-           que o Estúdio IA vai usar como chave quando gerar as fotos delas. */
-        const nome = (modalidade==='fem') ? ((p.id!=null && mapaFem[p.id]) || null) : p.n;
-        if(!nome) continue;
-        const foto = fotos[String(c.id)+'|'+nome] || null;
-        if(!foto && !out){
-          /* guarda o primeiro como reserva: se ninguém tiver foto, ao menos a ficha aparece
-             preenchida (nome, posição, idade, escudo) com a moldura vazia */
-          out={ nome, foto:null, pos:p.s, age:p.age, clube:c };
-        }
-        if(foto){ out={ nome, foto, pos:p.s, age:p.age, clube:c }; break; }
-      }
-      if(out && out.foto) break;
+    const cz=rfClubeDoCartaz();
+    if(cz){
+      const alvo=RF_MOD_CARTAZ[modalidade==='fem'?'fem':'masc'];
+      out=rfFichaDe(cz, (cz.squad||[]).find(x=>String(x.id)===alvo), modalidade);
     }
-  }catch(e){ out=null; }
+    /* RESERVA — o comportamento anterior, e ele continua valendo por dois motivos: o clube do
+       cartaz pode não estar carregado (save internacional, bundle podado) e o jogador fixado
+       pode ainda não ter foto. Só substitui o fixado quando encontra alguém COM foto: uma ficha
+       do clube certo sem foto é melhor que a de um clube qualquer com foto. */
+    if(!out || !out.foto){
+      const fotos=(typeof window!=='undefined' && window.RF_FOTOS) || {};
+      const mapaFem=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
+      const clubes=(typeof DATA!=='undefined' && (DATA.clubsSerieA||DATA.clubs)) || [];
+      for(const c of clubes){
+        for(const p of (c.squad||[])){
+          const nome = (modalidade==='fem') ? ((p.id!=null && mapaFem[p.id]) || null) : p.n;
+          if(!nome) continue;
+          const foto = fotos[String(c.id)+'|'+nome] || null;
+          if(!foto && !out) out={ nome, foto:null, pos:p.s, age:p.age, clube:c };
+          if(foto){ out={ nome, foto, pos:p.s, age:p.age, clube:c }; break; }
+        }
+        if(out && out.foto) break;
+      }
+    }
+  }catch(e){ out=out||null; }
   /* PRE-CARREGA. `cdraw()` reescreve o innerHTML inteiro a cada clique, entao a <img> e' um
      elemento NOVO toda vez — e sem o arquivo em cache a moldura pisca so'-listras antes da foto
      entrar. Pedir a imagem aqui, uma vez, faz o cache do navegador responder do segundo desenho

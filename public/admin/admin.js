@@ -2926,7 +2926,7 @@ async function pgEditor(){
   if(eds.error) throw eds.error;
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
-  let base = clubesDeFabrica();
+  const base = clubesDeFabrica();
   (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
@@ -8384,7 +8384,7 @@ async function pgEstudio(){
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
   D.fotos = {}; (fotos.data||[]).forEach(f => { D.fotos[f.club_id+'|'+f.jogador] = f; });
 
-  const base = clubesDeFabrica();
+  let base = clubesDeFabrica();
   (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
