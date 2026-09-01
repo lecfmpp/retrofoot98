@@ -310,7 +310,11 @@ function rfOb2(){
       <!-- o ramo do "em breve" chamava rfObAvisar(), que nao existe: se alguem
            voltasse a ligar o RESENHA_EM_BREVE, o botao da lista de espera seria um
            clique morto. Aponta para clWaitlistOpen, que e quem abre a lista. -->
-      <div class="rf-modo resenha ${RESENHA_EM_BREVE?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+      ${/* O CARTAO NASCE TRANCADO PARA QUEM JA' GASTOU OS 7 DIAS. Antes ele
+            estava aceso e o "nao" so' chegava depois de escolher sala e clube.
+            Agora a tela ja' diz — e o clique continua a abrir a janela que
+            explica, em vez de nao fazer nada: cartao morto nao vende plano. */''}
+      <div class="rf-modo resenha ${(RESENHA_EM_BREVE||!rfPodeResenha())?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
         <img class="rf-modo-bg" src="img/modos/modo-resenha.webp" alt="" aria-hidden="true" loading="lazy">
         <div class="rf-modo-veu"></div>
         <div class="rf-modo-txt">
@@ -319,8 +323,13 @@ function rfOb2(){
             <span class="rf-modo-tag">Multi-player</span>
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Jogar com a galera'}</button>
+          <span class="rf-modo-d">${(!RESENHA_EM_BREVE&&!rfPodeResenha())
+            ? 'Os seus 7 dias de Resenha no plano Peladeiro terminaram. O Modo Solo continua seu, sem prazo — o Resenha volta com qualquer plano pago.'
+            : `Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.`}</span>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${
+            RESENHA_EM_BREVE ? rfIcone('coroa',16)+' Entrar na lista de espera'
+            : (!rfPodeResenha() ? '🔒 Ver os planos'
+            : rfIcone('chat',16)+' Jogar com a galera')}</button>
         </div>
       </div>
     </div>

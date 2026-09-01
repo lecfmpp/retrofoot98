@@ -2163,12 +2163,13 @@ function scModoChoice(){
           <div class="cl-mc-t">Modo Solo</div>
           <div class="cl-mc-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</div>
         </div>
-        <div class="cl-mc-card ${RESENHA_EM_BREVE?'embreve':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+        <div class="cl-mc-card ${(RESENHA_EM_BREVE||!rfPodeResenha())?'embreve':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
           <span class="${RESENHA_EM_BREVE?'rf-tag-soon':'rf-tag-rec'}">${RESENHA_EM_BREVE?'Em breve':'Online'}</span>
           <div class="cl-mc-ic">🍺</div>
           <div class="cl-mc-t">Modo Resenha</div>
           <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</div>
-          ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`:''}
+          ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`
+            :(!rfPodeResenha()?`<div class="rf-mc-lock">🔒 Os seus 7 dias de Resenha acabaram — toque para ver os planos.</div>`:'')}
         </div>
       </div>`
   });

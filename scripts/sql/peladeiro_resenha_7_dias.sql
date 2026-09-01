@@ -103,6 +103,14 @@ begin
   if not found then raise exception 'clube indisponível'; end if;
 end; $function$;
 
+-- O ASSENTO SO' SAI NO FIM DO DIA (ajuste de 01/09). A versao anterior tirava o
+-- assento assim que o prazo passava, o que podia acontecer a meio de uma
+-- escalacao, com a pessoa a olhar para o ecra. Agora sai por uma de duas portas:
+--   · ja' cumpriu o dia (day_ack carimbado no dia e momento atuais) -- terminou
+--     o que estava a fazer e a sala nao espera mais nada dele;
+--   · nao da' sinal de vida ha' mais de 10 minutos -- sem isto, quem fecha o
+--     separador antes de confirmar ficava no assento para sempre e a sala
+--     parava a' espera de quem nao pode jogar.
 -- day_ack = null junto com a libertacao: um carimbo antigo de quem ja' saiu
 -- contaria como voto no dia seguinte.
 create or replace function elifoot_v3.liberar_assentos_vencidos()
@@ -112,8 +120,13 @@ begin
   with vencidos as (
     select s.game_id, s.club_id
       from elifoot_v3.game_seats s
+      join elifoot_v3.games g on g.id = s.game_id
       join lateral elifoot_v3.plano_limites(s.user_id) l on true
-     where s.user_id is not null and not l.pode_resenha
+     where s.user_id is not null
+       and not l.pode_resenha
+       and ( s.day_ack = (g.day_idx::text || ':' || g.day_moment)
+             or s.last_seen is null
+             or s.last_seen < now() - interval '10 minutes' )
   )
   update elifoot_v3.game_seats s
      set user_id = null, is_cpu = true, day_ack = null

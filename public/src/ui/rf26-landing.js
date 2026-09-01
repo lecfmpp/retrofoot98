@@ -520,7 +520,12 @@ let RF_LP_CICLO = 'mes';
    de baixo. Uma função só, usada no desenho inicial E na troca — desenhar de um
    jeito e atualizar de outro é como as duas versões passam a discordar. */
 function rfPlanoPrecoPartes(p, ciclo){
-  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre', nota:'sem cartão, sem pegadinha' };
+  /* A LINHA DE BAIXO DO GRATIS mudou com os 7 dias. "sem cartão, sem pegadinha"
+     era verdade quando o Peladeiro não tinha prazo nenhum; com o Resenha
+     limitado, essa frase passa a esconder justamente a pegadinha que ela nega.
+     O Solo é que é para sempre, e é isso que ela diz agora. */
+  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre',
+                      nota:'Solo pra sempre · Resenha por 7 dias · sem cartão' };
   const e = rfPlanoEconomia(p);
   if(ciclo === 'ano' && e){
     return { v:rfBRL(e.porMes), c:'por mês',
@@ -610,7 +615,7 @@ function rfLpPlanosHTML(){
           <span class="rf-lp-ciclo-selo">economize ${pct}%</span></button>
       </div>
       <div class="rf-lp-plano-grade">${cartoes}</div>
-      <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus.</span>
+      <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus — o Modo Solo não tem prazo em nenhum plano.</span>
     </div>
   </section>`;
 }
@@ -843,7 +848,7 @@ function rfLandingHTML(){
           <button type="button" class="rf-wiz-cta" onclick="rfLpIr('planos')">👑 Ver os planos</button>
           <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar de graça</button>
         </div>
-        <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>. Sem instalar nada, sem cartão.</span>
+        <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>: Modo Solo pra sempre e 7 dias de Resenha. Sem instalar nada, sem cartão.</span>
       </div>
       <div class="rf-lp-hero-art">
         ${rfLpHeroVideoHTML()}
