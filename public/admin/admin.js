@@ -1766,9 +1766,20 @@ function modalUpload(chave){
       if(CHAVES_MORADA_FIXA.includes(e.chave)){
         try{
           const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
-          const r = await sb.storage.from(BUCKET).upload(`${e.chave}/atual.png`, arquivo, {
-            contentType: MIME_EXT[ext] || arquivo.type, upsert:true, cacheControl:'300'
-          });
+          const fixo = `${e.chave}/atual.png`;
+          const opts = { contentType: MIME_EXT[ext] || arquivo.type, cacheControl:'300' };
+          let r = await sb.storage.from(BUCKET).upload(fixo, arquivo, { ...opts, upsert:true });
+          /* APAGAR E SUBIR, QUANDO O UPSERT NAO PASSA. `upsert` reescreve o objeto, e
+             reescrever pede permissao de UPDATE em storage.objects -- o bucket nasceu so'
+             com INSERT e DELETE (ver as politicas pub_ads_*). A permissao que faltava foi
+             acrescentada, mas o caminho de recurso fica: ele usa as duas permissoes que o
+             painel sempre teve, e assim a morada fixa nao depende de uma politica para
+             existir. Sem isto, a falha era silenciosa no sitio errado -- o criativo ia
+             para o ar no jogo e so' o cartao de partilha ficava por publicar. */
+          if(r.error){
+            await sb.storage.from(BUCKET).remove([fixo]);
+            r = await sb.storage.from(BUCKET).upload(fixo, arquivo, { ...opts, upsert:false });
+          }
           if(r.error) throw r.error;
         }catch(err){
           /* não derruba a publicação: o criativo já está no ar no jogo. O que falha
