@@ -8502,6 +8502,12 @@
 .rf-adph.rf-ad-top{width:100%;aspect-ratio:970/90;height:auto}
 .rf-adph.rf-ad-slot{width:160px;height:600px}
 .rf-adph.rf-ad-rect{width:100%;max-width:300px;height:250px;margin:8px auto 0}
+/* FAIXA DO TOPO DO E-MAIL — mesma receita das outras: a caixa carrega a proporcao
+   do formato vendido e a arte preenche-a. Ela abre a mensagem, entao leva margem
+   em baixo e nenhuma em cima: encosta no cabecalho do cartao. */
+.rf-ad-email,.rf-adph.rf-ad-email{width:100%;aspect-ratio:728/90;margin:0 0 14px;
+  border-radius:var(--r-inner);overflow:hidden}
+@media (max-width:760px){ .rf-ad-email,.rf-adph.rf-ad-email{aspect-ratio:320/50} }
 .rf-adph.rf-ad-inline{width:100%;aspect-ratio:970/90;margin:10px 0}
 @media (max-width:760px){ .rf-adph.rf-ad-inline{aspect-ratio:320/50} }
 .rf-adph.rf-ad-splash,.rf-adph.rf-ad-card{width:100%;max-width:520px;aspect-ratio:16/9;margin:14px auto}

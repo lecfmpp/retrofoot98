@@ -3924,9 +3924,22 @@ function clTabJogar(){ clTab('seleccao'); }
    assim sobrevive aos adopts do servidor no online. Cada e-mail tem uma chave única; syncInbox
    só ADICIONA os novos (não duplica) e preserva o lido/não-lido. Mensagens curtas, sempre
    assinadas por alguém coerente, e com um botão de ação quando há algo a fazer. */
+/* O DIRETOR E O PRESIDENTE TEM O NOME DO PAIS DO SAVE, e nao um nome brasileiro
+   fixo. Esta funcao chamava BR_FIRST/BR_LAST, duas listas que sairam do motor em
+   18/08/2026 (commit b358785, "O regen deixa de nascer brasileiro em qualquer
+   pais") quando os nomes passaram a vir por pais de WORLD_CONFIG.nomesDoPais.
+   Ninguem reparou que a caixa de entrada tambem as usava: desde esse dia
+   syncInbox() rebentava com `ReferenceError: BR_FIRST is not defined` LOGO NA
+   PRIMEIRA proposta a assinar, e como o erro sobe, a caixa inteira deixava de ser
+   construida -- sem propostas, sem convites de outros clubes, sem avisos da
+   diretoria, sem premiacao. O treinador ficou quinze dias sem receber nada.
+   `_poolNomes` e' a mesma fonte que o motor usa, com o mesmo fallback. */
 function inboxSigner(role, clubId){ // nome determinístico por clube+cargo (dá cara de pessoa)
   const R=makeRng(hashSeed('signer', String(clubId||'x'), role||''));
-  return BR_FIRST[Math.floor(R.random()*BR_FIRST.length)]+' '+BR_LAST[Math.floor(R.random()*BR_LAST.length)];
+  const P=(typeof _poolNomes==='function')
+    ? _poolNomes(typeof activeUniverseKey==='function'?activeUniverseKey():'brasil')
+    : { first:['Gabriel','Lucas','Matheus'], last:['Silva','Santos','Oliveira'] };
+  return P.first[Math.floor(R.random()*P.first.length)]+' '+P.last[Math.floor(R.random()*P.last.length)];
 }
 function addInboxEmail(e){
   CL.inbox=CL.inbox||[]; CL.inboxDeleted=CL.inboxDeleted||{};
@@ -8216,8 +8229,33 @@ function camMinuteNow(m,RL){
 }
 /* quanto do jogo é do MANDANTE agora, em % (0..100) — é o que a barra de pressão desenha.
    Sai da pressão acumulada (eventos recentes, com decaimento) + o viés permanente de expulsão. */
-function camShare(m){ const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias||0)));
-  return Math.max(5,Math.min(95,Math.round(50+p/2))); }
+/* O EQUILIBRIO DA PARTIDA — a MESMA conta que a barrinha de posse da ficha de
+   estatisticas faz. Vive aqui, e nao nos dois sitios, porque as duas barras tem de
+   dizer o mesmo: uma em cima a marcar 50/50 enquanto a de baixo marca 25/75 le-se
+   como defeito, e era. Posse de bola quando o motor a da', dominio em campo
+   enquanto ela nao existe, meio a meio antes de haver jogo. */
+function camEquilibrio(m){
+  const live=(m && ((m.sim&&m.sim.perf)||m.livePerf))||null;
+  if(live && (live.H.poss+live.A.poss)>0){
+    const t=live.H.poss+live.A.poss; return Math.round(100*live.H.poss/t);
+  }
+  const d=((m&&m.domH)||0)+((m&&m.domA)||0);
+  if(d>0) return Math.round(100*(m.domH||0)/d);
+  return 50;
+}
+/* A BARRA DE PRESSAO PARTE DO EQUILIBRIO, e nao do meio.
+   Ela era `50 + pres/2`, e `pres` decai 13% por minuto e e' zerado abaixo de 0,5.
+   Como os lances sao esparsos, ela passava a partida quase toda EXATAMENTE em
+   50/50 -- um pico curto num lance e, tres ou quatro minutos depois, morta no
+   meio outra vez. Medido numa partida: 50/50 aos 8', 40' e do 45' em diante,
+   enquanto a posse dizia 25/75, 43/57 e 49/51.
+
+   Agora o meio da barra e' o equilibrio da partida (a mesma conta da ficha) e a
+   pressao do momento e' o DESVIO em cima disso: ela segue a barra pequena e
+   continua a reagir ao lance, que era o que ela existia para mostrar. */
+function camShare(m){
+  const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias||0)));
+  return Math.max(5,Math.min(95,Math.round(camEquilibrio(m)+p/2))); }
 /* um evento do motor vira: linha de narração + estatística + empurrão na barra de pressão */
 /* =====================================================================
    SONS DO CAMAROTE
@@ -8329,11 +8367,37 @@ function rfSomDaFila(){
   if(!q || (RF_SOM_ATUAL && !RF_SOM_ATUAL.ended)) return;
   rfSomTocarJa(q.chave, RF_SONS[q.chave], rfSomVolume(), q.peso);
 }
+/* TETO DE DURACAO — NENHUM CLIPE PASSA DO APITO FINAL.
+   `final-do-jogo-bem-amigos-terminou` tinha 9,2 s enquanto os irmaos dele -- os
+   outros fins de partida -- tem entre 1,9 e 2,9 s. A narracao seguia a falar muito
+   depois de a tela ja' ter mudado. O ficheiro foi cortado para 3,4 s, na pausa
+   natural da fala, mas o CORTE DO FICHEIRO nao e' regra: o proximo clipe que
+   alguem pousar na pasta pode voltar a ser comprido. Este teto e' a regra --
+   4 segundos, com meio segundo de esvanecimento para nao ser um corte seco.
+   Vale para todos: nenhum momento do jogo merece mais tempo do que o apito. */
+const RF_SOM_TETO_MS = 4000, RF_SOM_FADE_MS = 500;
 function rfSomTocarJa(chave, src, vol, peso){
   try{
-    if(RF_SOM_ATUAL){ RF_SOM_ATUAL.onended=null; RF_SOM_ATUAL.pause(); RF_SOM_ATUAL = null; }
+    if(RF_SOM_ATUAL){ RF_SOM_ATUAL.onended=null; RF_SOM_ATUAL.pause();
+      if(RF_SOM_ATUAL._rfCorte) clearTimeout(RF_SOM_ATUAL._rfCorte);
+      RF_SOM_ATUAL = null; }
     const a = new Audio(src); a.volume = vol; a._rfPeso = peso;
+    /* o corte comeca antes do teto: primeiro baixa, depois pausa -- e so' age se o
+       clipe de facto passar do tempo, entao um clipe curto nunca e' tocado nisto */
+    a._rfCorte = setTimeout(() => {
+      if(a.ended || a.paused) return;
+      const passo = 50, quedas = Math.max(1, Math.round(RF_SOM_FADE_MS/passo));
+      let n = 0;
+      const baixar = setInterval(() => {
+        n++; try{ a.volume = Math.max(0, vol*(1 - n/quedas)); }catch(e){}
+        if(n >= quedas){ clearInterval(baixar);
+          try{ a.pause(); }catch(e){}
+          if(a.onended) a.onended();
+        }
+      }, passo);
+    }, Math.max(0, RF_SOM_TETO_MS - RF_SOM_FADE_MS));
     a.onended = () => {
+      if(a._rfCorte){ clearTimeout(a._rfCorte); a._rfCorte = null; }
       if(RF_SOM_ATUAL === a) RF_SOM_ATUAL = null;
       RF_SOM_FIM = Date.now();
       if(RF_SOM_FILA && !RF_SOM_AGENDA) RF_SOM_AGENDA = setTimeout(rfSomDaFila, RF_SOM_RESPIRO);

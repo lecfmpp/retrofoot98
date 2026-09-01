@@ -1446,7 +1446,7 @@ async function pgPublicidade(){
   if(editar){
     el('p-novo').onclick = modalPatrocinador;
     document.querySelectorAll('[data-del-patro]').forEach(b => b.onclick = async () => {
-      if(!confirm('Apagar este patrocinador? Os criativos dele ficam no ar sem marca associada.')) return;
+      if(!confirm('Apagar este patrocinador?\n\nA receita mensal dele sai junto das Finanças. Os criativos ficam no ar, sem marca associada.')) return;
       const { error } = await sb.from('adm_patrocinadores').delete().eq('id', b.dataset.delPatro);
       if(error) return toast(erroMsg(error), true);
       registrar('patrocinador.apagar', b.dataset.delPatro);
@@ -1583,7 +1583,14 @@ function modalPatrocinador(){
       await sb.from('adm_lancamentos').insert({
         tipo:'receita', data: new Date().toISOString().slice(0,10),
         descricao: 'Patrocínio — '+nome, categoria:'publicidade',
-        valor_centavos: valor, recorrencia:'mensal'
+        valor_centavos: valor, recorrencia:'mensal',
+        /* A RECEITA FICA AMARRADA AO PATROCINADOR. Sem esta ligacao o lancamento
+           era orfao: apagar a marca aqui tirava-a da lista de patrocinadores e a
+           receita CONTINUAVA a somar em Financas, mes apos mes, porque e'
+           recorrente. A coluna tem ON DELETE CASCADE -- quem apaga a receita e' o
+           banco, junto com o patrocinador, e nao uma segunda chamada daqui que
+           pode falhar sozinha ou ser esquecida no proximo caminho de apagar. */
+        patrocinador_id: data.id
       });
     }
     registrar('patrocinador.criar', nome, {valor_mes_centavos:valor});

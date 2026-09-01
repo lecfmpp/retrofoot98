@@ -1960,7 +1960,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    centrada, com a pagina em volta: o mesmo defeito das bordas, por outro caminho. */
 .rf-ad picture{display:block;width:100%;height:100%}
 .rf-ad-slot .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:cover}
-.rf-ad-top .rf-ad-art,.rf-ad-inline .rf-ad-art{
+.rf-ad-top .rf-ad-art,.rf-ad-inline .rf-ad-art,.rf-ad-email .rf-ad-art{
   width:100%;height:100%;max-height:none;object-fit:contain}
 .rf-ad.cl-ad{margin:12px 0 0;border:1px solid var(--line-1)}
 .rf-ad.cl-ad:before{content:"PUBLICIDADE";position:absolute;top:0;left:0;z-index:1;

@@ -469,10 +469,14 @@ function rfCamStatsHTML(m){
   const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
   const cores=camBarColors(hc,ac);
   const live=(m.sim&&m.sim.perf)||m.livePerf||null;
-  let possLbl='Domínio em campo', ph, pa;
-  if(live && ((live.H.poss+live.A.poss)>0)){ possLbl='Posse de bola';
-    const t=live.H.poss+live.A.poss; ph=Math.round(100*live.H.poss/t); pa=100-ph; }
-  else { const t=(m.domH+m.domA)||1; ph=Math.round(100*m.domH/t); pa=100-ph; }
+  /* O NUMERO E' O MESMO DA BARRA DE PRESSAO LA' EM CIMA (camEquilibrio, ui/main.js):
+     uma conta so', em vez de duas iguais que podem divergir na proxima mudanca. O
+     rotulo continua a dizer QUAL das duas fontes esta a ser usada. */
+  const possLbl=(live && ((live.H.poss+live.A.poss)>0)) ? 'Posse de bola' : 'Domínio em campo';
+  const ph=(typeof camEquilibrio==='function')?camEquilibrio(m)
+    :(live&&(live.H.poss+live.A.poss)>0?Math.round(100*live.H.poss/(live.H.poss+live.A.poss))
+      :Math.round(100*(m.domH||0)/((m.domH+m.domA)||1)));
+  const pa=100-ph;
   const H=m.camStats.H, A=m.camStats.A;
   // as duas barras são ESPELHADAS e normalizadas pelo maior dos dois, não pela
   // soma: 11×7 tem que ler como 11 contra 7, não como 61% contra 39%.
