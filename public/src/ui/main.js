@@ -3950,6 +3950,25 @@ function inboxSigner(role, clubId){ // nome determinístico por clube+cargo (dá
     : { first:['Gabriel','Lucas','Matheus'], last:['Silva','Santos','Oliveira'] };
   return P.first[Math.floor(R.random()*P.first.length)]+' '+P.last[Math.floor(R.random()*P.last.length)];
 }
+/* ===== COMPONENTES DO CORPO DO E-MAIL =====
+   Ver .rf-ml-tab / .rf-ml-kv no CSS para o porquê. A regra de uso é simples:
+   dado de jogador vai em TABELA, número solto vai em par rótulo/valor, e texto
+   corrido continua texto — tabela de uma linha só é enfeite, não organização. */
+function mailTab(colunas, linhas){
+  if(!linhas || !linhas.length) return '';
+  const th = colunas.map(c=>`<th${c.m?' style="text-align:right"':''}>${escC(c.t)}</th>`).join('');
+  const tr = linhas.map(l=>'<tr>'+l.map((v,i)=>
+      `<td class="${colunas[i]&&colunas[i].m?'m':(i===0?'n':'')}">${v}</td>`).join('')+'</tr>').join('');
+  return `<table class="rf-ml-tab"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+}
+function mailKV(pares){
+  const p=(pares||[]).filter(x=>x&&x[0]);
+  if(!p.length) return '';
+  return `<div class="rf-ml-kv">${p.map(([k,v])=>
+    `<div><span>${escC(k)}</span><b>${v}</b></div>`).join('')}</div>`;
+}
+function mailNota(txt){ return txt?`<span class="rf-ml-nota">${txt}</span>`:''; }
+
 function addInboxEmail(e){
   CL.inbox=CL.inbox||[]; CL.inboxDeleted=CL.inboxDeleted||{};
   if(CL.inboxDeleted[e.key]) return;                    // usuário apagou -> não ressuscita
@@ -4133,8 +4152,12 @@ function syncInbox(){
     if(meus.length){
       addInboxEmail({ key:'retire-'+(pvR.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:meus.length===1?('Fim de carreira: '+meus[0].name):(meus.length+' jogadores penduraram as chuteiras'),
-        body:meus.map(r=>`<b>${escC(r.name)}</b> (${r.age} anos, ${posLetter(r.pos)}) ${escC(r.reason||'encerrou a carreira')}.`
-          +(r.replacement?` No lugar dele subiu <b>${escC(r.replacement)}</b>${r.replacementAge?' ('+r.replacementAge+' anos)':''}.`:'')).join('<br><br>'),
+        body:`<p>${meus.length===1?'Um jogador pendurou as chuteiras':'Estes jogadores penduraram as chuteiras'} no fim da temporada. Quem subiu da base no lugar já está no elenco:</p>`
+          +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Motivo'},{t:'Substituto'}],
+            meus.map(r=>[ escC(r.name), r.age, posLetter(r.pos),
+                          escC(r.reason||'encerrou a carreira'),
+                          r.replacement ? escC(r.replacement)+(r.replacementAge?' <span style="opacity:.6">('+r.replacementAge+')</span>':'') : '—' ]))
+          +mailNota('Cada saída abre uma vaga na folha — e a base só entrega um por temporada.'),
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4145,9 +4168,12 @@ function syncInbox(){
     if(risco.length){
       addInboxEmail({ key:'risco-'+(S.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:'Elenco envelhecendo — '+risco.length+' jogador'+(risco.length>1?'es':'')+' perto da aposentadoria',
-        body:`Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:<br><br>`
-          +risco.slice(0,6).map(x=>`<b>${escC(x.p.n)}</b> — ${x.p.age} anos, ${posLetter(x.p.s)}, força ${x.p.f} · risco <b>${Math.round(x.chance*100)}%</b> · vale ${fmt(x.p.mv||0)}`).join('<br>')
-          +(risco.length>6?`<br><span style="opacity:.7">e mais ${risco.length-6}.</span>`:''),
+        body:`<p>Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:</p>`
+          +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Força',m:1},{t:'Risco',m:1},{t:'Vale',m:1}],
+            risco.slice(0,8).map(x=>[ escC(x.p.n), x.p.age, posLetter(x.p.s), x.p.f,
+                                      Math.round(x.chance*100)+'%', fmt(x.p.mv||0) ]))
+          +mailNota(risco.length>8 ? `E mais ${risco.length-8} na mesma faixa de idade.` 
+                                   : 'A janela ainda está aberta — depois da virada, não vale mais nada.'),
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4166,7 +4192,7 @@ function syncInbox(){
       if(!linha) return;
       addInboxEmail({ key:'mov-'+(f.round||0)+'-'+i+'-'+hashC(linha), kind:'money', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:(compra&&venda)?'Movimentação no elenco':(compra?'Contratação concluída':'Venda concluída'),
-        body:escC(linha)+`<br><br>Caixa depois do negócio: <b>${fmt(S.budget||0)}</b>.`,
+        body:`<p>${escC(linha)}</p>`+mailKV([['Caixa depois do negócio', fmt(S.budget||0)]]),
         action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
     });
   });
@@ -4182,7 +4208,9 @@ function syncInbox(){
     if(sum && sum.total>0){
       addInboxEmail({ key:'prize-'+pv.season, kind:'prize', from:'CBF', role:'Confederação Brasileira de Futebol',
         subject:'Premiação da temporada '+pv.season,
-        body:`Parabéns! O ${escC(myShort)} recebeu ${fmt(sum.total)} em prêmios da temporada ${pv.season}.`,
+        body:`<p>Parabéns! O ${escC(myShort)} recebeu a premiação da temporada ${pv.season}.</p>`
+          +mailKV([['Total recebido', fmt(sum.total)], ['Temporada', pv.season]])
+          +mailNota('O valor já entrou no caixa do clube.'),
         action:null });
     }
   }
