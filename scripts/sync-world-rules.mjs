@@ -25,7 +25,20 @@ const FOLHAS = [
   { nome: 'CALENDARIOS',  arquivo: 'public/src/engine/calendars.js' },
   { nome: 'WORLD_RULES',  arquivo: 'public/src/engine/world-rules.js' },
   { nome: 'UNIVERSOS',    arquivo: 'public/src/data/universos.js' },
+  /* O UNIVERSO FEMININO. Sem esta folha o servidor não conhece `brasilFem`, e uniCfg() cai no
+     universo PADRÃO — que não declara `src:'conmebol'`. O efeito medido: copasDe('brasilFem')
+     devolvia ["championsLeague","europaLeague"], ou seja, uma sala feminina na Resenha jogaria
+     Champions e Europa no lugar de Copa do Brasil, Libertadores e Sul-Americana. É o mesmo erro
+     que a Fase 8 corrigiu no cliente; faltava o outro lado. DEPOIS de UNIVERSOS: o arquivo
+     estende `root.UNIVERSOS` e desiste se ele ainda não existir. */
+  { nome: 'UNIVERSOS_FEM', arquivo: 'public/src/data/universos-fem.js' },
   { nome: 'WORLD_CONFIG', arquivo: 'public/src/engine/world-config.js' },
+  /* A FOLHA FEMININA — o cabeçalho dela sempre disse "esta folha vai para o servidor", mas ela
+     nunca tinha sido registrada aqui. Traz COPA_NACIONAL.brasilFem e NAME_POOLS.brasilFem: sem o
+     segundo, nomesDoPais('brasilFem') caía em _hispano e a virada de temporada de um mundo
+     feminino gerava reforços com nome masculino (Martín, Diego, Franco). DEPOIS de WORLD_CONFIG,
+     que é o objeto que ela estende. */
+  { nome: 'WORLD_CONFIG_FEM', arquivo: 'public/src/engine/world-config-fem.js' },
   /* AS TABELAS DE ECONOMIA. Eram copiadas À MÃO para dentro do resolve-round — receita, salário,
      capacidade, OPEX, bônus de resultado e premiação de liga — com um comentário lá avisando que
      "qualquer mexida aqui precisa ser refletida no cliente". Bastava esquecer a cópia para o caixa

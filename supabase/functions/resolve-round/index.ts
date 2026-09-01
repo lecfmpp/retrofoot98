@@ -1462,6 +1462,58 @@ root.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália'
 if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:root.UNIVERSOS, UNIVERSO_BANDEIRA:root.UNIVERSO_BANDEIRA }; }
 })(typeof globalThis!=='undefined'?globalThis:this);
 /* <<< UNIVERSOS:FIM >>> */
+/* <<< UNIVERSOS_FEM:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   O UNIVERSO FEMININO — acréscimo puro, num arquivo só.
+
+   POR QUE É UM ARQUIVO NOVO E NÃO UMA CHAVE DENTRO DE `universos.js`. O mundo masculino está no
+   ar, e a garantia que governa este trabalho é que ele não pode mudar em nada. Registrando de
+   fora, `universos.js` e `world-config.js` ficam com diff ZERO — `git diff --name-only` prova, e
+   não é preciso confiar em revisão. Se algo der errado, apagar este arquivo devolve o jogo ao
+   que era, sem `git revert` nem conflito.
+
+   `brasilFem` É GÊMEO DO BRASIL, NÃO UM PAÍS NOVO. Mesma pirâmide, mesmos tamanhos, mesmo
+   acesso e rebaixamento, mesmo calendário — e, sobretudo, OS MESMOS CLUBES: mesmo id, mesmo
+   escudo, mesmas cores, mesmo estádio. O que muda é quem joga.
+
+   OS TRÊS CAMPOS QUE FAZEM ISSO FUNCIONAR SEM TOCAR EM NENHUMA FUNÇÃO:
+
+     src:'conmebol'   `confederacaoDe()` já lê este campo — sem ele, brasilFem cairia na UEFA e
+                      jogaria Champions em vez de Libertadores. Não é preciso envolver a função.
+     base:'brasil'    de que pirâmide e de que catálogo este universo é gêmeo. É o que faz o
+                      motor buscar os clubes brasileiros em vez de um bundle próprio.
+     modalidade:'fem' o eixo, escrito UMA vez, como dado. Quem precisa dele lê por RF_FEM.
+
+   SEM `lg`, DE PROPÓSITO. O Brasil masculino não declara `lg` (cai no fallback 'BRA-'+divisão),
+   e por isso `lgToUniDiv` hoje não tem entrada para 'BRA-A'. Se o gêmeo declarasse `lg`, o mapa
+   reverso passaria a resolver 'BRA-A' para brasilFem — e isso desviaria comportamento no mundo
+   MASCULINO. Sem `lg`, nada muda para ninguém.
+   =================================================================== */
+(function(root){
+  'use strict';
+  var U = root.UNIVERSOS;
+  if(!U){ return; }   /* universos.js tem de vir antes; sem ele, não há o que estender */
+
+  U.brasilFem = {
+    order:['A','B','C','D'], size:{A:20,B:20,C:20,D:20}, promo:{A:0,B:4,C:4,D:4}, releg:{A:4,B:4,C:4,D:0},
+    label:{A:'Série A',B:'Série B',C:'Série C',D:'Série D'}, nat:['Brasil','Brazil'], foreignMax:8,
+    country:'Brasil',
+    src:'conmebol',
+    base:'brasil',
+    modalidade:'fem',
+  };
+
+  if(root.UNIVERSO_BANDEIRA) root.UNIVERSO_BANDEIRA.brasilFem = 'br';
+
+  /* A TRAVA MESTRA. `false` faz o seletor sumir do onboarding e do painel, e nenhum mundo
+     feminino novo nasce — o jogo volta a ser byte a byte o de hoje, com uma linha e um deploy,
+     sem git. Desliga a CRIAÇÃO, não a leitura: um save feminino que já exista continua
+     carregando, porque o universo segue registrado aqui. */
+  root.RF_MODALIDADES = { fem: true };
+
+  if(typeof module!=='undefined' && module.exports){ module.exports={ RF_MODALIDADES:root.RF_MODALIDADES }; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< UNIVERSOS_FEM:FIM >>> */
 /* <<< WORLD_CONFIG:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
 /* ===================================================================
    CONFIGURAÇÃO DE MUNDO — a segunda folha ÚNICA compartilhada cliente ⇄ servidor.
@@ -1692,6 +1744,125 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
 /* <<< WORLD_CONFIG:FIM >>> */
+/* <<< WORLD_CONFIG_FEM:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ===================================================================
+   A FOLHA FEMININA — o que o servidor também precisa saber.
+
+   POR QUE É UM ARQUIVO NOVO. Mesma razão de `universos-fem.js`: `world-config.js` está no ar e
+   fica com diff ZERO. Tudo aqui é ACRÉSCIMO a objetos que já existem — nenhuma função é
+   reescrita nem envolvida.
+
+   ESTA FOLHA VAI PARA O SERVIDOR. Como `world-config.js`, ela é injetada dentro do
+   resolve-round por scripts/sync-world-rules.mjs. É isso que faz a virada de temporada de um
+   save feminino nascer com nomes femininos: `makeRegen` já chama `nomesDoPais(UNI_ATIVO)`, e
+   com `NAME_POOLS.brasilFem` registrado ele acha o pool certo sem uma linha de TypeScript.
+
+   OS POOLS SAÍDOS DA PRÓPRIA BASE. Os 265 primeiros nomes e 63 sobrenomes são os que aparecem
+   nas 1.900 jogadoras — 16.695 combinações. O número importa: `pickProcPlayerName` desiste
+   depois de 400 tentativas e DEVOLVE NOME REPETIDO, e nome repetido corrompe artilharia e
+   escalação, porque parte do motor ainda identifica jogador por nome.
+
+   `_femHispano` é para as adversárias de Libertadores e Sul-Americana: os clubes argentinos e
+   chilenos vêm de universos cuja modalidade é masculina, mas num mundo feminino quem entra em
+   campo por eles são jogadoras.
+   =================================================================== */
+(function(root){
+  'use strict';
+  var W = root.WORLD_CONFIG;
+  if(!W) return;   /* world-config.js tem de vir antes */
+
+  /* A COPA DO BRASIL. Sem esta linha, `copasDe('brasilFem')` devolve só as duas continentais e
+     o universo feminino joga uma temporada sem copa nacional — foi o que o primeiro teste
+     mostrou. */
+  if(W.COPA_NACIONAL) W.COPA_NACIONAL.brasilFem = 'copaBrasil';
+
+  if(W.NAME_POOLS){
+    W.NAME_POOLS.brasilFem = {
+      first:[
+      "Beatriz","Luana","Carla","Roberta","Cristina","Yasmin","Ingrid","Simone",
+      "Bruna","Tatiana","Vanessa","Jéssica","Bianca","Thaís","Adriana","Renata",
+      "Patrícia","Gabriela","Franciele","Gislaine","Lorena","Sabrina","Michele","Giovana",
+      "Viviane","Larissa","Vitória","Talita","Paula","Daniela","Valentina","Helena",
+      "Jaqueline","Fabiana","Camila","Carolina","Kelly","Sandra","Elaine","Márcia",
+      "Luíza","Natália","Eduarda","Débora","Flávia","Karina","Amanda","Rafaela",
+      "Ana","Fernanda","Priscila","Juliana","Aline","Letícia","Mariana","Raquel",
+      "Nathalia","Denise","Maria","Isabela","Antonella","Rocío","Lucía","Brisa",
+      "Khadija","Micaela","Rê","Adrizinha","Cami","Kaki","Flá","Ingridzinha",
+      "Isa","Danizinha","Tati","Debinha","Lalá","Bibi","Gis","Lari",
+      "Carlita","Grid","Bebeta","Gabi","Gabizinha","Mandinha","Lorenzinha","Yas",
+      "Rafaella","Leninha","Gigi","Sanzinha","Fabi","Cris","Mari","Luaninha",
+      "Mariazinha","Driele","Bela","Pri","Marci","Vale","Lane","Debs",
+      "Prisci","Tali","Yasminha","Denizinha","Taisinha","Flavinha","Ali","Sandrinha",
+      "Ju","Vitinha","Brunete","Binha","Lu","Marcinha","Bru","Lainha",
+      "Paulinha","Vaninha","Michelinha","Simoninha","Mi","Lelê","Leonor","Raquelzinha",
+      "Ximena","Vanê","Patyzinha","Ticinha","Renatinha","Rafinha","Manda","Isabella",
+      "Carolzinha","Pauly","Florencia","Carlinha","Carol","Bi","Vivizinha","Lena",
+      "Marizinha","Catalina","Nathalinha","Fabizinha","Vivi","Tatá","Kazinha","Giovaninha",
+      "Aninka","Mone","Talitinha","Jê","Cristininha","Rá","Jessizinha","Beá",
+      "Nicole","Lô","Bia","Rita","Ngozi","Luizinha","Aninha","Kel",
+      "Fefê","Jaquinha","Naty","Kellyzinha","Sabi","Sofía","Valezinha","Julieta",
+      "Franzinha","Andrea","Paty","Milena","Julinha","Fran","Francisca","Robertinha",
+      "Lulu","Nati","Dudinha","Míssil","Gislainezinha","Xerifa","Molecona","Maninha",
+      "Alininha","Coruja","Nandinha","Rainha","Ventania","Fagulha","Cabeçuda","Gata",
+      "Tempestade","Escorpiana","Pulguinha","Craque","Estopim","Platina","Faísca","Cobre",
+      "Jaque","Aranhinha","Sereia","Estrela","Setinha","Espetinho","Magrinha","Trave",
+      "Coelhinha","Fúria","Pedra","Foguetona","Ciclone","Girafinha","Turbina","Turbo",
+      "Cobrinha","Elástica","Loba","Borboleta","Foguetinha","Ourinha","Doida","Bolinha",
+      "Besourinha","Tornado","Princesinha","Esmeralda","Onça","Peste","Fadinha","Bazuca",
+      "Raiz","Danadinha","Vulcão","Ligeira","Trovoada","Vespa","Corça","Agulha",
+      "Leoa","Lua","Pipoca","Bruxinha","Abelha","Barreira","Chama","Tigresa",
+      "Guriazinha","Cometa","Docinho","Jaguara","Encrenqueira","Selvagem","Sorriso","Índia",
+      "Ligeirinha"
+      ],
+      last:[
+      "Barbosa","Freitas","Bezerra","Monteiro","Batista","Costa","Almeida","Peixoto",
+      "Vieira","Araújo","Guimarães","Martins","Melo","Rodrigues","Tavares","Teixeira",
+      "Nunes","Ferreira","Correia","Gomes","Santos","Machado","Siqueira","Lima",
+      "Cavalcanti","Pereira","Andrade","Farias","Dias","Xavier","Silva","Oliveira",
+      "Nascimento","Cardoso","Pinto","Ribeiro","Carvalho","Souza","Moreira","Rocha",
+      "Muñoz","Esquivel","Benavídez","Castillo","Fonseca","Guerrero","Mendoza","Romero",
+      "Flores","Benítez","Furtado","Marques","Martínez","Restrepo","Terán","Rojas",
+      "Eze","Vargas","Viveros","Portilla","Baldé","Rodríguez","Aguirre"
+      ]
+    };
+    W.NAME_POOLS._femHispano = {
+      first:[
+      "María","Camila","Valentina","Sofía","Daniela","Antonella","Martina","Lucía",
+      "Agustina","Micaela","Florencia","Rocío","Julieta","Milagros","Paula","Carolina",
+      "Andrea","Gabriela","Natalia","Belén","Ximena","Fernanda","Catalina","Constanza",
+      "Javiera","Josefa","Renata","Emilia","Isidora","Trinidad","Yamila","Abril",
+      "Delfina","Guadalupe","Malena"
+      ],
+      last:[
+      "Gómez","Fernández","Rodríguez","Sosa","Díaz","Romero","Torres","Núñez",
+      "Silva","Acosta","Ramírez","Vega","Cabrera","Godoy","Molina","Ortiz",
+      "Benítez","Aguirre","Suárez","Ibáñez","Herrera","Castro","Flores","Rojas",
+      "Medina"
+      ]
+    };
+  }
+
+  /* ---------- O EIXO, LIDO DE FORA ----------
+     `base` e `modalidade` são campos do registro do universo (universos-fem.js). Estas duas
+     funções são a única forma de lê-los, para que nenhum ponto do motor precise conhecer o nome
+     'brasilFem'. Para TODO universo que existe hoje, `base(k)` devolve o próprio k e
+     `modalidade(k)` devolve 'masc' — então trocar um literal 'brasil' por base(k)==='brasil' é
+     idêntico por construção, e é isso que deixa a auditoria do motor ser segura. */
+  function cfg(k){ var U = root.UNIVERSOS || {}; return U[k] || null; }
+  root.RF_FEM = {
+    base: function(k){ var c = cfg(k); return (c && c.base) || k; },
+    modalidade: function(k){ var c = cfg(k); return (c && c.modalidade) || 'masc'; },
+    /* pool das adversárias continentais num mundo feminino: o país do CLUBE, mas a modalidade
+       do MUNDO. Sem isto, a Libertadores feminina escalaria 'Gonzalo Fernández' pelo River. */
+    poolFeminino: function(k){
+      var P = (W.NAME_POOLS || {});
+      return P[k + 'Fem'] || (k === 'brasil' ? P.brasilFem : null) || P._femHispano || P.brasilFem;
+    }
+  };
+
+  if(typeof module!=='undefined' && module.exports){ module.exports={ RF_FEM:root.RF_FEM }; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< WORLD_CONFIG_FEM:FIM >>> */
 /* <<< REBALANCE:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
 /* ============================================================================
    REBALANCE (item 4) — reestrutura força, valor, salário, caixa e estádio pra
