@@ -67,6 +67,9 @@ async function carregar(){
               /* cta_*: o botao do patrocinador na banda do Camarote — texto e cores viajam
                  com o criativo, e a URL do botao e' o mesmo link_destino do logo */
               + ',cta_texto,cta_bg,cta_fg'
+              /* a arte do telemovel do MESMO criativo: um espaco com duas medidas tem
+                 dois ficheiros, e quem escolhe entre eles e' o browser (ver html()) */
+              + ',ficheiro_url_mob,mime_mob'
               + '&ativo=eq.true&order=criado_em.desc';
     const r = await fetch(url, { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY,
       'Accept-Profile':'elifoot_v3' } });
@@ -148,15 +151,42 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, ch =>
 /* HTML do criativo — imagem ou vídeo curto, com o rótulo "PUBLICIDADE" que o
    CSS já usa nos slots do jogo. Devolve '' quando o espaço está vazio, e é
    isso que faz o espaço simplesmente não existir. */
+/* QUEM ESCOLHE ENTRE A ARTE DE DESKTOP E A DO TELEMOVEL E' O BROWSER, não o JS.
+   Um espaço vende duas medidas (ex.: 970×90 e 320×100) e o criativo pode trazer
+   as duas artes. Com `<picture>` + `<source media>`, a troca acontece no ponto de
+   corte do CSS e volta a acontecer se a janela mudar de tamanho — um `if` sobre
+   window.innerWidth no momento do desenho ficaria preso à largura de quando a
+   tela foi montada, e o jogo redesenha muito mais do que redimensiona.
+
+   760px é o MESMO ponto de corte do CSS (ver as media queries de rf26.css). Os
+   dois têm de andar juntos: se a arte troca em 760 e a caixa troca de proporção
+   noutro número, existe uma faixa de larguras em que a arte não cabe na caixa.
+
+   `tem-mob` avisa o CSS de que existe arte de telemóvel, e é por ela que a caixa
+   assume a proporção da medida móvel. Sem arte móvel a caixa segue a da arte de
+   desktop, que é a única que há. */
+const RF_AD_CORTE_MOB = '(max-width:760px)';
 function html(chave, opts){
   const c = get(chave); if(!c) return '';
   opts = opts || {};
   const video = /video|mp4/i.test(c.mime||'');
-  const arte = video
-    ? `<video class="rf-ad-art" src="${esc(c.ficheiro_url)}" autoplay muted loop playsinline></video>`
-    : `<img class="rf-ad-art" src="${esc(c.ficheiro_url)}" alt="Publicidade" loading="lazy">`;
+  const mob = c.ficheiro_url_mob || '';
+  const videoMob = /video|mp4/i.test(c.mime_mob||'');
+  let arte;
+  if(video || (mob && videoMob)){
+    /* vídeo não entra em <picture>: a troca por media query é do <source> de imagem.
+       Com arte de telemóvel em vídeo o par continua a ser servido pelo desktop — o
+       inventário de vídeo hoje é um espaço só (o intervalo), e ele não vende medida
+       móvel diferente. */
+    arte = `<video class="rf-ad-art" src="${esc(c.ficheiro_url)}" autoplay muted loop playsinline></video>`;
+  } else if(mob){
+    arte = `<picture><source media="${RF_AD_CORTE_MOB}" srcset="${esc(mob)}">`
+         + `<img class="rf-ad-art" src="${esc(c.ficheiro_url)}" alt="Publicidade" loading="lazy"></picture>`;
+  } else {
+    arte = `<img class="rf-ad-art" src="${esc(c.ficheiro_url)}" alt="Publicidade" loading="lazy">`;
+  }
   const clicavel = c.link_destino ? ` role="link" tabindex="0" style="cursor:pointer"` : '';
-  return `<div class="rf-ad ${opts.cls||''}" data-ad-chave="${esc(chave)}" data-ad-id="${esc(c.id)}"
+  return `<div class="rf-ad ${opts.cls||''}${mob?' tem-mob':''}" data-ad-chave="${esc(chave)}" data-ad-id="${esc(c.id)}"
     ${clicavel} onclick="ADS.clique('${esc(chave)}')">${arte}</div>`;
 }
 

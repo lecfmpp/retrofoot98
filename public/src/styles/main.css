@@ -1952,6 +1952,13 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    onde a caixa e' 320×100. `contain` preenche igual quando a arte bate com a
    caixa e, quando nao bate, mostra o anuncio INTEIRO, menor — cortar a mensagem
    de quem pagou e' pior do que sobrar pagina em volta. */
+/* O <picture> TEM DE ESVAZIAR-SE ENTRE A CAIXA E A ARTE. Ele entra no lugar do
+   <img> quando o criativo tem arte de telemovel (ver html() em net/ads.js), e e'
+   `display:inline` — como filho de um flex ele blocifica e passa a medir o
+   TAMANHO NATURAL da imagem. Ai' o `width:100%` do <img> passa a ser 100% de 970
+   em vez de 100% da caixa, e a arte encolhia para o seu tamanho de ficheiro,
+   centrada, com a pagina em volta: o mesmo defeito das bordas, por outro caminho. */
+.rf-ad picture{display:block;width:100%;height:100%}
 .rf-ad-slot .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:cover}
 .rf-ad-top .rf-ad-art,.rf-ad-inline .rf-ad-art{
   width:100%;height:100%;max-height:none;object-fit:contain}

@@ -3644,8 +3644,17 @@
 .rf-cam-patro-l{flex:0 0 auto;font-size:var(--fs-label);font-weight:var(--fw-bold);
   letter-spacing:var(--ls-label);color:var(--text-4);white-space:nowrap}
 .rf-cam-patro-marcas{flex:1;min-width:0;display:flex;align-items:center;gap:10px;overflow:hidden}
+/* A PASTILHA NAO TEM MARGEM INTERNA. Ela tinha `padding:3px 6px` sobre fundo
+   branco: uma logo com fundo transparente encostava nesse branco e ninguem via,
+   mas um criativo OPACO -- que preenche os 240×80 com a cor da marca -- ficava
+   com uma moldura branca de 6px nas laterais e 3px em cima e em baixo. Era o
+   mesmo defeito dos cantos arredondados dos outros espacos, na medida pequena:
+   a arte parava antes do fim do lugar. O fundo claro FICA (e' o que faz uma logo
+   escura e transparente ser legivel aqui), mas quem manda no recorte e' o raio,
+   e a arte vai de ponta a ponta. Logo com fundo transparente deve trazer a sua
+   margem desenhada -- e' o que a nota do espaco pede no painel. */
 .rf-cam-ad{flex:0 0 auto;max-height:30px;width:auto;border-radius:var(--r-tag);
-  background:var(--surface-card);padding:3px 6px;box-sizing:content-box;
+  background:var(--surface-card);box-sizing:border-box;overflow:hidden;
   opacity:.75;transition:opacity .3s var(--ease),max-height .3s var(--ease),box-shadow .3s var(--ease)}
 .rf-cam-ad.on{opacity:1;max-height:36px;box-shadow:0 2px 10px -4px rgba(20,33,26,.45)}
 /* LUGAR AINDA NÃO VENDIDO — a pastilha existe na banda com a medida que ela pede.
@@ -8464,6 +8473,13 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-ad-top,.rf-adph.rf-ad-top{aspect-ratio:320/100;height:auto}
   .rf-ad.rf-ad-top,.rf-ad.rf-ad-inline{aspect-ratio:auto}
   .rf-ad.rf-ad-top .rf-ad-art,.rf-ad.rf-ad-inline .rf-ad-art{height:auto}
+  /* COM ARTE DE TELEMOVEL PUBLICADA (`tem-mob`, posta por ADS.html) a caixa volta
+     a ter a medida movel: aqui ja' se sabe que a arte na tela e' a de 320×100 ou
+     320×50, e ela preenche o lugar inteiro. Sem arte movel a caixa segue a altura
+     da arte de desktop, que e' a unica que ha'. */
+  .rf-ad.rf-ad-top.tem-mob{aspect-ratio:320/100}
+  .rf-ad.rf-ad-inline.tem-mob{aspect-ratio:320/50}
+  .rf-ad.rf-ad-top.tem-mob .rf-ad-art,.rf-ad.rf-ad-inline.tem-mob .rf-ad-art{height:100%}
   /* No telefone a barra de navegacao ja mora no rodape: a ancora fica ACIMA dela. A conta e a
      altura real da nav — conteudo (47px) + o padding de baixo (12px) + a area segura do
      aparelho, que a propria nav ja soma. Medida no telefone: 67px sem area segura. */

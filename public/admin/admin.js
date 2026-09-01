@@ -1483,6 +1483,9 @@ function slotHTML(e, editar){
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
+      ${(e.mw!==e.w||e.mh!==e.h) ? `<div><span>Arte de celular</span><b style="color:${
+        c ? (c.ficheiro_url_mob?'var(--verde2)':'var(--dim3)') : 'var(--dim3)'}">${
+        c ? (c.ficheiro_url_mob?'publicada':'usa a de desktop') : '—'}</b></div>` : ''}
       ${e.tem_botao ? `<div><span>Botão</span>${c&&c.cta_texto
         ? `<b><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;
              background:${h(c.cta_bg||'#F2B90C')};color:${h(c.cta_fg||'#17458F')};font-size:11px">${h(c.cta_texto)}</span></b>`
@@ -1554,7 +1557,11 @@ function modalUpload(chave){
   const razao = (e.w/e.h).toFixed(2);
   /* vídeo: o espaço só o aceita se tiver duração máxima definida E um formato de vídeo na lista */
   const aceitaVideo = e.dur_max_s != null && exts.some(x=>x==='mp4'||x==='webm');
-  let arquivo = null;
+  /* so' pedimos a arte de celular quando ela e' DIFERENTE da de desktop: os trilhos e as
+     pastilhas do Camarote repetem a medida nas duas pontas, e ali uma segunda zona de
+     envio so' faria o socio subir o mesmo ficheiro duas vezes */
+  const temMob = (e.mw !== e.w || e.mh !== e.h);
+  let arquivo = null, arquivoM = null;
 
   abrirModal(`
     <h3>Enviar criativo</h3>
@@ -1572,12 +1579,34 @@ function modalUpload(chave){
       ${e.nota ? `<div class="full" style="color:var(--dim2);line-height:1.5">${h(e.nota)}</div>` : ''}
     </div>
     <div class="col">
-      <div class="drop" id="up-drop">
-        <div class="ic">⬆</div>
-        <div class="t" id="up-tit">Escolher arquivo</div>
-        <div class="s" id="up-sub">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.w}×${e.h} ou ${e.mw}×${e.mh}</div>
-        <input type="file" id="up-file" accept="${h(accept)}" style="display:none">
+      <!-- DUAS ARTES, UM CRIATIVO. O espaco vende duas medidas e o jogo troca de arte
+           no ponto de corte do telemovel (ver html() em public/src/net/ads.js). Antes so'
+           a de desktop podia ser enviada: a medida movel aparecia na ficha, era cobrada,
+           e nao havia como entregar a arte dela. -->
+      <div class="${temMob?'g2':''}" style="gap:12px">
+        <div>
+          ${temMob?`<b style="display:block;font-size:12px;margin-bottom:6px">Desktop · ${e.w}×${e.h}</b>`:''}
+          <div class="drop" id="up-drop">
+            <div class="ic">⬆</div>
+            <div class="t" id="up-tit">Escolher arquivo</div>
+            <div class="s" id="up-sub">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.w}×${e.h}</div>
+            <input type="file" id="up-file" accept="${h(accept)}" style="display:none">
+          </div>
+        </div>
+        ${temMob?`
+        <div>
+          <b style="display:block;font-size:12px;margin-bottom:6px">Celular · ${e.mw}×${e.mh}
+            <span style="font-weight:400;color:var(--dim3)">(opcional)</span></b>
+          <div class="drop" id="up-drop-m">
+            <div class="ic">⬆</div>
+            <div class="t" id="up-tit-m">Escolher arquivo</div>
+            <div class="s" id="up-sub-m">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.mw}×${e.mh}</div>
+            <input type="file" id="up-file-m" accept="${h(accept)}" style="display:none">
+          </div>
+        </div>`:''}
       </div>
+      ${temMob?`<small style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin-top:-4px">
+        Sem a arte de celular, o telemóvel mostra a de desktop inteira, só que menor.</small>`:''}
       <div class="erro hide" id="up-erro"></div>
       <label class="f">Patrocinador<select class="f" id="up-patro">
         <option value="">— sem marca associada —</option>
@@ -1633,32 +1662,46 @@ function modalUpload(chave){
     pintar();
   }
 
-  const drop = el('up-drop'), input = el('up-file'), erro = el('up-erro');
-  const falhar = m => { erro.textContent = m; erro.classList.remove('hide'); drop.classList.remove('ok'); arquivo=null; };
-  drop.onclick = () => input.click();
-  drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
-  drop.ondragleave = () => drop.classList.remove('ok');
-  drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
-  input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+  const erro = el('up-erro');
+  const limparErro = () => erro.classList.add('hide');
+  const mostrarErro = m => { erro.textContent = m; erro.classList.remove('hide'); };
 
-  /* Validação no cliente: extensão, peso e DIMENSÃO exata (desktop ou celular).
-     A dimensão é lida do próprio arquivo antes de subir — é o que impede um
-     970×250 entrar num espaço de 300×250 e rebentar o layout do jogo. */
-  async function validar(f){
-    erro.classList.add('hide');
-    const ext = (f.name.split('.').pop()||'').toLowerCase();
-    if(!exts.includes(ext)) return falhar(`Formato .${ext} não é aceito aqui (só ${exts.join(', ')}).`);
-    if(f.size > e.peso_kb*1024) return falhar(`O arquivo tem ${Math.round(f.size/1024)} KB e o máximo é ${e.peso_kb} KB.`);
-    let dim = null;
-    try{ dim = await medir(f, ext); }catch(err){ return falhar('Não foi possível ler o arquivo.'); }
-    if(dim){
-      const bate = (dim.w===e.w && dim.h===e.h) || (dim.w===e.mw && dim.h===e.mh);
-      if(!bate) return falhar(`O criativo tem ${dim.w}×${dim.h}. Este espaço aceita ${e.w}×${e.h} (desktop) ou ${e.mw}×${e.mh} (celular).`);
+  /* UMA ZONA DE ENVIO, DUAS INSTANCIAS. Desktop e celular partilham arrastar-e-largar,
+     validacao e mensagens; o que muda entre elas e' a MEDIDA aceite e onde o ficheiro
+     fica guardado. Duplicar isto era a forma segura de a validacao do celular ficar
+     para tras da do desktop na proxima mudanca. */
+  function ligarZona({ idDrop, idInput, idTit, idSub, w, h: alt, qual, guardar }){
+    const drop = el(idDrop); if(!drop) return;
+    const input = el(idInput);
+    const falharAqui = m => { mostrarErro(m); drop.classList.remove('ok'); guardar(null); };
+    drop.onclick = () => input.click();
+    drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
+    drop.ondragleave = () => drop.classList.remove('ok');
+    drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
+    input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+
+    /* Validação no cliente: extensão, peso e DIMENSÃO exata da medida DESTA zona.
+       A dimensão é lida do próprio arquivo antes de subir — é o que impede um
+       970×250 entrar num espaço de 300×250 e rebentar o layout do jogo. */
+    async function validar(f){
+      limparErro();
+      const ext = (f.name.split('.').pop()||'').toLowerCase();
+      if(!exts.includes(ext)) return falharAqui(`Formato .${ext} não é aceito aqui (só ${exts.join(', ')}).`);
+      if(f.size > e.peso_kb*1024) return falharAqui(`O arquivo tem ${Math.round(f.size/1024)} KB e o máximo é ${e.peso_kb} KB.`);
+      let dim = null;
+      try{ dim = await medir(f, ext); }catch(err){ return falharAqui('Não foi possível ler o arquivo.'); }
+      if(dim && !(dim.w===w && dim.h===alt))
+        return falharAqui(`O criativo tem ${dim.w}×${dim.h}. A arte de ${qual} deste espaço é ${w}×${alt}.`);
+      guardar(f); drop.classList.add('ok');
+      el(idTit).textContent = f.name;
+      el(idSub).textContent = `${Math.round(f.size/1024)} KB${dim?` · ${dim.w}×${dim.h}`:''} — pronto para publicar`;
     }
-    arquivo = f; drop.classList.add('ok');
-    el('up-tit').textContent = f.name;
-    el('up-sub').textContent = `${Math.round(f.size/1024)} KB${dim?` · ${dim.w}×${dim.h}`:''} — pronto para publicar`;
   }
+  ligarZona({ idDrop:'up-drop', idInput:'up-file', idTit:'up-tit', idSub:'up-sub',
+              w:e.w, h:e.h, qual:'desktop', guardar:f => { arquivo=f; } });
+  if(temMob) ligarZona({ idDrop:'up-drop-m', idInput:'up-file-m', idTit:'up-tit-m', idSub:'up-sub-m',
+              w:e.mw, h:e.mh, qual:'celular', guardar:f => { arquivoM=f; } });
+  const falhar = m => { mostrarErro(m); };
   function medir(f, ext){
     return new Promise((res, rej) => {
       const url = URL.createObjectURL(f);
@@ -1691,13 +1734,21 @@ function modalUpload(chave){
     if(cta && !link) return falhar('O botão precisa de um link de destino — preencha o link acima ou apague o texto do botão.');
     const btn = el('up-ok'); btn.disabled = true; btn.textContent = 'Publicando…';
     try{
-      const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
-      const caminho = `${e.chave}/${Date.now()}.${ext}`;
-      const up = await sb.storage.from(BUCKET).upload(caminho, arquivo, {
-        contentType: MIME_EXT[ext] || arquivo.type, upsert:false, cacheControl:'300'
-      });
-      if(up.error) throw up.error;
-      const url = sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
+      /* sobe UM ficheiro e devolve o caminho publico — as duas artes do criativo
+         passam por aqui, e a de celular leva o sufixo `-m` no nome para as duas
+         serem distinguiveis no bucket sem abrir a tabela */
+      const subir = async (f, sufixo) => {
+        const ext = (f.name.split('.').pop()||'').toLowerCase();
+        const caminho = `${e.chave}/${Date.now()}${sufixo}.${ext}`;
+        const up = await sb.storage.from(BUCKET).upload(caminho, f, {
+          contentType: MIME_EXT[ext] || f.type, upsert:false, cacheControl:'300'
+        });
+        if(up.error) throw up.error;
+        return { caminho, ext, url: sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl };
+      };
+      const d = await subir(arquivo, '');
+      const m = arquivoM ? await subir(arquivoM, '-m') : null;
+      const ext = d.ext, caminho = d.caminho, url = d.url;
       // publicar SUBSTITUI: o espaço só tem um criativo no ar de cada vez
       await jogo('ad_creatives').update({ ativo:false }).eq('chave_espaco', e.chave).eq('ativo', true);
       const ins = await jogo('ad_creatives').insert({
@@ -1710,10 +1761,15 @@ function modalUpload(chave){
         cta_texto: cta || null,
         cta_bg: cta ? el('up-cta-bg').value : null,
         cta_fg: cta ? el('up-cta-fg').value : null,
+        ficheiro_url_mob:  m ? m.url : null,
+        ficheiro_path_mob: m ? m.caminho : null,
+        mime_mob:  m ? (MIME_EXT[m.ext] || arquivoM.type) : null,
+        bytes_mob: m ? arquivoM.size : null,
         no_ar_ate: el('up-ate').value ? new Date(el('up-ate').value+'T23:59:59').toISOString() : null
       });
       if(ins.error) throw ins.error;
-      registrar('criativo.publicar', e.chave, {arquivo:caminho, bytes:arquivo.size, link:link||null});
+      registrar('criativo.publicar', e.chave, {arquivo:caminho, bytes:arquivo.size, link:link||null,
+        celular: m ? m.caminho : null});
       fecharModal(); toast('Criativo no ar em '+e.chave); pgPublicidade();
     }catch(err){
       btn.disabled = false; btn.textContent = 'Publicar criativo';
