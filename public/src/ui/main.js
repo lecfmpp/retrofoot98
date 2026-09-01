@@ -1106,8 +1106,10 @@ function scAbertura(){
     <header class="cl-lp-hdr">
       <div class="cl-lp-hdr-in">
         <button class="cl-lp-logo" onclick="clLandingGo('home')">
-          <img src="img/logo.webp" width="500" height="500" alt="">
-          <span>RetroFoot<i>98</i></span>
+          <!-- A ASSINATURA E' DESENHADA, e por isso NAO tem "98". Aqui era o simbolo mais
+     a palavra escrita ao lado, com o 98 num <span> proprio; a marca nova tem um
+     lockup unico e nao leva numero. Ver img/marca.svg. -->
+          <img class="rf-marca-svg" src="img/marca.svg" alt="Retrofoot.com.br" height="26">
         </button>
         <nav class="cl-lp-navlinks ${CL.navMenuOpen?'open':''}">${menu}</nav>
         <div class="cl-lp-hdr-r">
@@ -1133,7 +1135,7 @@ function landingRodapeHTML(){
     <div class="cl-lp-wrap">
       <div class="cl-lp-foot-cols">
         <div>
-          <div class="cl-lp-foot-marca"><img src="img/logo.webp" width="500" height="500" alt=""><span>RetroFoot<i>98</i></span></div>
+          <div class="cl-lp-foot-marca"><img class="rf-marca-svg" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="24"></div>
           <p class="cl-lp-foot-sobre">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</p>
         </div>
         ${col('O JOGO', bt('Recursos',"clLpIr('recursos')")+bt('Telas do jogo',"clLpIr('telas')")

@@ -2111,7 +2111,6 @@
 .rf-wiz-marca img{width:32px;height:32px;object-fit:contain}
 .rf-wiz-marca-t{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);
   letter-spacing:var(--ls-tight);white-space:nowrap}
-.rf-wiz-marca-98{font-family:var(--font-mono);color:var(--club-primary)}
 /* o shell é a "mesa" — mesmo envelope de 24px do jogo */
 .rf-wiz-shell{background:var(--surface-desk);border:1px solid #d2e0d0;border-radius:var(--r-shell);
   padding:18px;box-shadow:var(--shadow-shell);display:flex;flex-direction:column;gap:16px}
@@ -2869,8 +2868,31 @@
   padding:14px 28px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
 .rf-lp-marca{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
 .rf-lp-marca img{width:32px;height:32px;object-fit:contain}
-/* a assinatura completa tem proporcao propria: a altura manda e a largura segue */
-.rf-lp-marca img.marca{width:auto;height:26px;max-width:186px}
+/* A ASSINATURA TEM PROPORCAO PROPRIA: a altura manda e a largura segue. Uma classe
+   so' para todos os sitios onde ela entra -- o cabecalho e o rodape da landing, a
+   fita do onboarding e a cerimonia do sorteio -- porque a marca e' a mesma peca e
+   nao deve ganhar uma medida diferente por tela. A altura vem do atributo `height`
+   de cada <img>, que e' o que muda entre uma fita de 20px e um cabecalho de 26px. */
+.rf-lp-marca img.marca,.rf-marca-svg{width:auto;max-width:220px;object-fit:contain}
+.rf-lp-marca img.marca{height:26px;max-width:186px}
+/* AS CAIXAS QUADRADAS DOS CONTENTORES TEM DE PERDER PARA A ASSINATURA. Cada sitio
+   onde ela entra ja' tinha uma regra `img{width:32px;height:32px}` para o SIMBOLO,
+   e uma assinatura larga metida numa caixa de 32x32 com `object-fit:contain`
+   encolhe para ~6px de altura: a marca some. Estas regras sao mais especificas de
+   proposito, e a altura vive aqui e nao no atributo do <img>, que qualquer CSS
+   bate. */
+.rf-wiz-marca img.rf-marca-svg,
+.rf-wiz-fita-l img.rf-marca-svg,
+.cl-lp-logo img.rf-marca-svg,
+.cl-lp-foot-marca img.rf-marca-svg{width:auto;object-fit:contain}
+.rf-wiz-marca img.rf-marca-svg{height:24px}
+.rf-wiz-fita-l img.rf-marca-svg{height:20px}
+.cl-lp-logo img.rf-marca-svg{height:26px}
+.cl-lp-foot-marca img.rf-marca-svg{height:24px}
+@media (max-width:520px){
+  .rf-wiz-marca img.rf-marca-svg{height:20px}
+  .cl-lp-logo img.rf-marca-svg{height:22px}
+}
 @media (max-width:520px){ .rf-lp-marca img.marca{height:22px} }
 .rf-lp-marca>span{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:var(--ls-tight)}
 .rf-lp-links{display:flex;align-items:center;gap:2px;margin-left:14px;overflow-x:auto;scrollbar-width:none}
@@ -5095,7 +5117,6 @@
 .rf-wiz-fita-l{display:flex;align-items:center;gap:10px}
 .rf-wiz-fita-l img{width:28px;height:28px;object-fit:contain;flex:0 0 auto}
 .rf-wiz-fita-m{font-size:14px;font-weight:var(--fw-bold);color:#fff;white-space:nowrap}
-.rf-wiz-fita-98{font-family:var(--font-mono);color:var(--brand-secondary)}
 .rf-wiz-fita-c{font-family:var(--font-mono);font-size:var(--fs-label);color:#c3d3ec;white-space:nowrap}
 .rf-wiz-fita-b{display:flex;gap:4px}
 .rf-wiz-fita-b i{flex:1;height:4px;border-radius:var(--r-pill);background:rgba(255,255,255,.22)}

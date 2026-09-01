@@ -119,8 +119,10 @@ function rfWiz(o){
     <div class="rf-wiz-in">
       ${o.semTrilha?'':`<div class="rf-wiz-fita">
         <div class="rf-wiz-fita-l">
-          <img src="img/logo.webp" width="28" height="28" alt="">
-          <span class="rf-wiz-fita-m">RetroFoot<span class="rf-wiz-fita-98">98</span></span>
+          <!-- A ASSINATURA E' DESENHADA, e por isso NAO tem "98". Aqui era o simbolo mais
+     a palavra escrita ao lado, com o 98 num <span> proprio; a marca nova tem um
+     lockup unico e nao leva numero. Ver img/marca.svg. -->
+          <img class="rf-marca-svg" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="20">
           <div class="rf-sp"></div>
           <span class="rf-wiz-fita-c">${passo} de ${total}</span>
         </div>

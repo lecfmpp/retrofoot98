@@ -29,8 +29,10 @@ function rfSorteioShell(o){
   return `<div class="rf-wiz rf-wiz-larga">
     <div class="rf-wiz-in">
       <div class="rf-wiz-marca">
-        <img src="img/logo.webp" width="32" height="32" alt="RetroFoot98">
-        <span class="rf-wiz-marca-t">RetroFoot<span class="rf-wiz-marca-98">98</span></span>
+        <!-- A ASSINATURA E' DESENHADA, e por isso NAO tem "98". Aqui era o simbolo mais
+     a palavra escrita ao lado, com o 98 num <span> proprio; a marca nova tem um
+     lockup unico e nao leva numero. Ver img/marca.svg. -->
+        <img class="rf-marca-svg" src="img/marca.svg" alt="Retrofoot.com.br" height="24">
       </div>
       <div class="rf-wiz-shell">
         <div class="rf-wiz-card">
