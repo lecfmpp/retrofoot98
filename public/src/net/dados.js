@@ -266,12 +266,15 @@ window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto p
    momento tira-o da lista, e abrirMomento devolve sem desenhar nada. */
 window.RF_MOMENTOS = window.RF_MOMENTOS || {};       // id -> {video_url, ativo}
 function buscarMomentos(){
-  fetch(REST + 'momentos?select=id,video_url,ativo',
+  fetch(REST + 'momentos?select=id,video_url,ativo,chance,max_por_temporada',
     { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
     .then(r => r.ok ? r.json() : [])
     .then(linhas => {
       const novo = {};
-      for(const m of linhas||[]) if(m && m.id) novo[m.id] = { video: m.video_url||null, ativo: m.ativo !== false };
+      for(const m of linhas||[]) if(m && m.id) novo[m.id] = {
+        video: m.video_url||null, ativo: m.ativo !== false,
+        chance: (m.chance==null?100:Number(m.chance)),
+        maxTemporada: (m.max_por_temporada==null?null:Number(m.max_por_temporada)) };
       window.RF_MOMENTOS = novo;
       /* o mapa do jogo é atualizado no lugar: main.js lê VIDEOS_MOMENTO na hora
          de abrir, então basta o objeto estar em dia quando o momento acontecer */

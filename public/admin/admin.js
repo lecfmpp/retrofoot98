@@ -445,7 +445,14 @@ async function pgVideos(){
           <span style="color:var(--dim2)">Quando:</span> ${orfao
             ? `<b style="color:var(--ambar)">${h(m.quando)}</b>`
             : h(m.quando||'—')}</div>
-        <div style="font-size:12px"><span style="color:var(--dim2)">Frequência:</span> <b>${h(m.frequencia||'—')}</b></div>
+        <div style="font-size:12px"><span style="color:var(--dim2)">Regra do jogo:</span> <b>${h(m.frequencia||'—')}</b></div>
+        <div style="font-size:12px;display:flex;gap:14px;flex-wrap:wrap">
+          <span><span style="color:var(--dim2)">Aparece em</span>
+            <b class="mono" style="color:${(m.chance??100)<100?'var(--ambar)':'var(--verde2)'}">${m.chance??100}%</b>
+            <span style="color:var(--dim3)">das vezes</span></span>
+          ${m.max_por_temporada?`<span><span style="color:var(--dim2)">Máx.</span>
+            <b class="mono">${m.max_por_temporada}</b><span style="color:var(--dim3)">/temporada</span></span>`:''}
+        </div>
         <div style="font-size:12px;line-height:1.5;color:var(--dim)">${h(m.conteudo||'')}</div>
       </div>
       ${editar?`<div class="acoes" style="margin-top:11px">
@@ -506,6 +513,20 @@ function abrirVideoMomento(m){
         <div class="s" id="mv-sub">MP4 ou WEBM até 15 MB · 16:9 · sem som, em laço</div>
         <input type="file" id="mv-file" accept="video/mp4,video/webm" style="display:none">
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <label class="f">Aparece em <b id="mv-ch-v" class="mono">${m.chance??100}%</b> das vezes
+          <input type="range" id="mv-chance" min="0" max="100" step="5" value="${m.chance??100}"
+                 style="width:100%;margin-top:6px">
+          <span style="display:block;font-size:11px;color:var(--dim3);line-height:1.5;margin-top:4px">
+            De cada vez que o gatilho dispara. Em 100% aparece sempre — o que
+            para a crise soa a aviso de sistema; abaixo disso vira acontecimento.</span></label>
+        <label class="f">Máximo por temporada
+          <input class="f" id="mv-max" type="number" min="1" placeholder="sem teto"
+                 value="${m.max_por_temporada??''}" style="margin-top:6px">
+          <span style="display:block;font-size:11px;color:var(--dim3);line-height:1.5;margin-top:4px">
+            Vazio = sem teto. Só morde no que pode repetir; o que a regra já
+            limita a uma vez ignora isto.</span></label>
+      </div>
       <label class="f" style="margin-top:10px">Nota interna
         <input class="f" id="mv-nota" placeholder="ex.: refazer com a taça nova"
                value="${m.nota?h(m.nota):''}"></label>
@@ -527,6 +548,9 @@ function abrirVideoMomento(m){
     arquivo = f; drop.classList.add('ok');
     el('mv-sub').textContent = `${f.name} · ${Math.round(f.size/1048576*10)/10} MB`;
   }
+  const sl=el('mv-chance'), slv=el('mv-ch-v');
+  if(sl) sl.oninput = () => { slv.textContent = sl.value+'%'; };
+
   drop.onclick = () => input.click();
   input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
   drop.ondragover = e => { e.preventDefault(); drop.classList.add('sobre'); };
@@ -544,7 +568,10 @@ function abrirVideoMomento(m){
   el('mv-ok').onclick = async () => {
     const bt = el('mv-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
     try{
+      const teto = parseInt(el('mv-max').value,10);
       const campos = { nota: el('mv-nota').value.trim() || null,
+                       chance: parseInt(el('mv-chance').value,10),
+                       max_por_temporada: (Number.isFinite(teto) && teto>0) ? teto : null,
                        atualizado_em: new Date().toISOString() };
       if(arquivo){
         const ext = (arquivo.name.split('.').pop()||'mp4').toLowerCase();

@@ -4987,11 +4987,34 @@ function momentoAcao(acao){
    simplesmente não é desenhado, em vez de aparecer vazio. */
 function abrirMomento(id, dados, aoFechar){
   const def=MOMENTO_DEFS[id]; if(!def) return;
-  /* MOMENTO DESLIGADO NO PAINEL NÃO ABRE. Serve para tirar do ar uma celebração
-     cujo vídeo saiu errado sem ter de publicar o jogo — e o `!== false` é
-     deliberado: tabela que não respondeu deixa passar, como em todo o resto. */
+  /* ===== O QUE O PAINEL DECIDE SOBRE ESTE MOMENTO =====
+     Três perguntas, nesta ordem, e todas com a mesma regra de segurança: só
+     um valor EXPLÍCITO tranca. Tabela que não respondeu deixa passar, como em
+     todo o resto do jogo — celebração que some por causa de rede é pior do que
+     celebração a mais.
+
+     · ligado?            tira do ar um vídeo que saiu errado, sem publicar nada
+     · passou na chance?  o botão que tira o ar de roteiro (ver a coluna chance)
+     · cabe na temporada? teto de aparições, para o que pode repetir
+
+     A CONTAGEM É LOCAL (CL), não vai para S: em sala de Resenha o S é estado
+     partilhado, e um contador de modal do MEU clube não tem que viajar para os
+     outros — nem a sorteada da chance pode divergir entre clientes e mexer no
+     que é partilhado. É o mesmo sítio onde CL._momCopaVista já vive. */
   const cfg=(window.RF_MOMENTOS||{})[id];
-  if(cfg && cfg.ativo === false){ if(typeof aoFechar==='function') aoFechar(); return; }
+  if(cfg){
+    if(cfg.ativo === false){ if(typeof aoFechar==='function') aoFechar(); return; }
+    const ch=(cfg.chance==null?100:cfg.chance);
+    if(ch<100 && Math.random()*100 >= ch){ if(typeof aoFechar==='function') aoFechar(); return; }
+    const teto=cfg.maxTemporada;
+    if(teto!=null && teto>0){
+      CL._momConta=CL._momConta||{};
+      const marca=id+':'+(S.season||1);
+      const n=CL._momConta[marca]||0;
+      if(n>=teto){ if(typeof aoFechar==='function') aoFechar(); return; }
+      CL._momConta[marca]=n+1;
+    }
+  }
   dados=dados||{};
   /* ===== O TITULO TEM TELA PROPRIA (pacote "modal celebracao copas/ligas") =====
      Copa e liga passam pelo modal de campeao, que monta o resultado da final, a premiacao e a

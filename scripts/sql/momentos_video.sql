@@ -18,3 +18,32 @@
 -- para eles nao os faz aparecer.
 -- ============================================================
 -- (ver a migracao no banco para o DDL completo e o seed dos nove)
+
+-- ============================================================
+-- FREQUENCIA AJUSTAVEL (01/09) — migracao momentos_frequencia_ajustavel
+--
+-- POR QUE ESTES DOIS BOTOES E NAO UM "a cada N rodadas": os gatilhos ja' sao
+-- eventos ("foi campeao", "a diretoria perdeu a paciencia"), nao um relogio.
+-- Nao ha' intervalo a regular — ha' o que fazer QUANDO o evento acontece.
+--
+--   chance (0-100)     de cada vez que o gatilho dispara, com que probabilidade
+--                      o modal aparece. E' o botao que tira o ar de roteiro:
+--                      uma crise que aparece SEMPRE que a paciencia cai vira
+--                      aviso de sistema; a 60% vira acontecimento.
+--   max_por_temporada  teto por temporada. NULL = sem teto. Serve ao que pode
+--                      repetir; o que a regra ja' limita a uma vez ignora.
+--
+-- O texto `frequencia` FICA: descreve o que o codigo garante ("uma vez por
+-- copa, por temporada"), que e' outra coisa do que estes dois ajustam. Eles
+-- afinam por cima da regra; nao a substituem.
+--
+-- A CONTAGEM DO TETO E' LOCAL (CL._momConta), nao vai para S: em sala de
+-- Resenha o S e' estado partilhado, e um contador de modal do MEU clube nao tem
+-- que viajar para os outros — nem a sorteada da chance pode divergir entre
+-- clientes e mexer no que e' partilhado.
+-- ============================================================
+alter table elifoot_v3.momentos
+  add column if not exists chance int not null default 100
+    check (chance between 0 and 100),
+  add column if not exists max_por_temporada int
+    check (max_por_temporada is null or max_por_temporada > 0);
