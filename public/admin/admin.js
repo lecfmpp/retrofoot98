@@ -31,6 +31,41 @@ const BUCKET_MOMENTOS = 'momentos';
    (og:image do index.html). Acrescentar uma chave aqui so' faz sentido a par de
    uma meta tag que aponte para ela. */
 const CHAVES_MORADA_FIXA = ['rf98.resenha.invite'];
+/* ===== A MORADA FIXA CONSERTA-SE SOZINHA =====
+   `<chave>/atual.png` e' o endereco que o og:image do site aponta: trocar a arte pelo painel
+   passa a valer sem republicar o site. Ela era escrita SO' na publicacao de um criativo novo --
+   entao, entre o dia em que o codigo entrou e a publicacao seguinte, ela simplesmente nao
+   existia, o build via 404 e reescrevia as paginas para o ficheiro daquela publicacao. Foi o
+   que aconteceu: dois criativos no bucket, `atual.png` nenhum, e cada deploy gerando um
+   og:image novo -- exatamente o que a morada fixa existe para evitar.
+
+   Esperar "a proxima publicacao" nao e' plano: quem abre o painel para trocar a arte nao sabe
+   que ha' uma divida pendente. Entao o reparo acontece ao ABRIR a Publicidade, sem clique e sem
+   subir ficheiro nenhum: se ha' criativo no ar e a morada fixa nao responde, copia-se o objeto
+   que ja' esta' no bucket. `copy` e' do lado do servidor -- nao baixa nem re-envia os bytes.
+
+   Falhar aqui nao pode atrapalhar: a pagina abre na mesma e o aviso so' aparece se houver
+   mesmo o que consertar. */
+async function repararMoradaFixa(espacos){
+  if(!Array.isArray(espacos) || !podeEditar('publicidade')) return;
+  for(const e of espacos){
+    if(!CHAVES_MORADA_FIXA.includes(e.chave)) continue;
+    const c = e.criativo; if(!c || !c.ficheiro_path) continue;
+    const fixo = `${e.chave}/atual.png`;
+    try{
+      const url = sb.storage.from(BUCKET).getPublicUrl(fixo).data.publicUrl;
+      const r = await fetch(url + '?v=' + Date.now(), { method:'HEAD' });
+      if(r.ok) continue;                                    // ja' existe: nada a fazer
+      let cp = await sb.storage.from(BUCKET).copy(c.ficheiro_path, fixo);
+      if(cp.error){                                         // destino orfao -> apaga e copia
+        await sb.storage.from(BUCKET).remove([fixo]);
+        cp = await sb.storage.from(BUCKET).copy(c.ficheiro_path, fixo);
+      }
+      if(cp.error) throw cp.error;
+      toast('Morada fixa do cartão de partilha criada a partir do criativo no ar.');
+    }catch(err){ console.warn('morada fixa:', erroMsg(err)); }
+  }
+}
 
 let sb = null;
 /* tabelas do jogo (ad_spaces, ad_creatives): mesmo client, outro schema */
@@ -1597,6 +1632,7 @@ async function pgPublicidade(){
   if(error) throw error;
   D.pub = data;
   const espacos = data.espacos||[], patros = data.patrocinadores||[];
+  repararMoradaFixa(espacos);            // sem await: a pagina nao espera pelo conserto
   const noAr = espacos.filter(e=>e.criativo).length;
   const editar = podeEditar('publicidade');
   const ctr = data.imp30 ? (data.clq30*100/data.imp30).toFixed(2)+'%' : '—';
