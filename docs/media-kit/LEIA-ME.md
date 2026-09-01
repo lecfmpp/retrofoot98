@@ -1,7 +1,18 @@
 # Media kit — os espaços publicitários
 
 `media-kit.html` é o documento pronto (imagens embutidas, abre sozinho no navegador).
+`media-kit.pdf` é o mesmo, paginado em A4, para anexar em e-mail e imprimir.
 `telas/` são as capturas em PNG e `web/` as mesmas em JPEG, para reaproveitar noutro lugar.
+
+## Como refazer o PDF
+
+```
+node scripts/media-kit-pdf.mjs
+```
+
+Sai do próprio HTML, pelo Chrome — o mesmo motor que o desenha no ecrã é o que o pagina, então
+não há uma segunda versão do documento para manter. As regras de quebra (nenhum cartão partido
+ao meio, nenhuma linha de tabela cortada) vivem no `@media print` dentro do `media-kit.html`.
 
 ## Como refazer as capturas
 
@@ -31,6 +42,25 @@ HTML — para trocar, procure por `contato` em `media-kit.html`.
 
 ## O que fica de fora do inventário
 
-Nada, desde agosto de 2026 — os quinze espaços passam pelo painel. A única coisa que **não** é
-inventário são as marcas na tela de **Finanças**: ali elas ilustram quanto os espaços do estádio
+Nada, desde agosto de 2026 — os **catorze** espaços passam pelo painel. A única coisa que **não**
+é inventário são as marcas na tela de **Finanças**: ali elas ilustram quanto os espaços do estádio
 rendem ao clube, que é ficção do jogo, não publicidade a vender.
+
+## O inventário mudou em 30/08/2026
+
+Eram quinze; são catorze. O que mexeu, e porquê:
+
+- **Saiu `rf98.anchor.bottom`** (billboard âncora). A faixa fixa do rodapé foi aposentada em
+  18/08 por comer a base do ecrã em todas as páginas, e o media kit continuava a vendê-la.
+- **Saiu `rf98.pausa.video`** (vídeo da pausa). O bloco foi removido do desenho da Resenha.
+- **Entrou `rf98.entrada.sorteio`** (boas-vindas ao clube, 970×250). É a entrada no clube depois
+  do sorteio — o momento mais visto do funil: toda carreira nova passa por ele uma vez, entre
+  saber que clube tirou e entrar nele. Já com cartão e captura no documento.
+- **A faixa do intervalo (`rf98.match.halftime`) passou a cobrir todos os modais da partida** —
+  intervalo, machucado, expulsão e escolha de pênalti. Antes cada momento pedia uma chave
+  própria e quatro delas não existiam no inventário: ninguém as podia vender e o lugar ficava
+  vazio. Quem compra esta faixa aparece nos quatro.
+
+**Os dois trilhos não têm versão móvel.** O painel mostra 160×600 no telemóvel porque a coluna
+não aceita vazio, mas o CSS esconde-os abaixo de 1180px (o direito já abaixo de 1420px). Não
+encomende arte móvel para `rf98.rail.esq` nem `rf98.rail.dir` — a nota no painel diz o mesmo.

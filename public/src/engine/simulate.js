@@ -37,6 +37,31 @@ const ENG={rev:0.82, sd:0.33, danger:0.58, shot:0.28, conv:0.52, penaltyChance:0
    motores (simulateMatch solo/ao-vivo e mpSim multiplayer) rodarem idêntico e determinístico.
    Calibrado por harness em massa (ver relatorios / scratchpad) pra placares realistas. */
 const ENG2={ alphaAtk:0.08, alphaMid:0.05, alphaMidCount:0.004, convDiff:0.004 }; // alphaMidCount era 0.018: fazia do 4-5-1 o meta silencioso (59% com times iguais)
+/* PESO DO PAPEL NA ASSISTÊNCIA. Só o atributo não basta: com atributos iguais o
+   sorteio vira proporcional à quantidade de gente, e zagueiro (são 4) assistia
+   mais que meia. Quem cria a jogada é o meio e quem tabela na frente é o ataque;
+   zagueiro assiste, mas é a exceção. Referência do futebol real: meio ~45-50%,
+   ataque ~30-35%, defesa ~15-20%.
+
+   ELA VIVE AQUI, NO FICHEIRO, E NÃO DENTRO DE UMA DAS FUNÇÕES. Este ficheiro tem
+   DOIS sorteios de assistência — o de simulateMatch (partida resolvida de uma
+   vez) e o de liveMatchSession (partida ao vivo, minuto a minuto) — e a tabela
+   estava declarada dentro do primeiro. O segundo usava-a na mesma, de um escopo
+   onde ela não existe: `ReferenceError: PAPEL is not defined` em TODO gol ao vivo
+   que sorteava assistência (68% deles).
+
+   O ESTRAGO NÃO ERA "PERDER A ASSISTÊNCIA". O throw acontecia DEPOIS de o gol já
+   ter sido somado ao placar e ANTES de o marcador e o evento entrarem na lista:
+   o placar subia sem lance na narração e sem gol creditado a ninguém. E como o
+   erro subia até liveTick (ui/main.js), que percorre TODAS as partidas da rodada
+   num forEach, ele abortava o tique inteiro — os outros jogos daquele minuto
+   deixavam de andar junto.
+
+   engine/match-engine.js tem a MESMA tabela, e ela fica lá. Aquele ficheiro é uma
+   folha fechada, colada tal e qual dentro das edge functions kickoff-round e
+   resolve-round: ler uma global do browser ali partiria o servidor. A duplicação
+   é o preço da paridade cliente⇄servidor, e é deliberada. */
+const PESO_PAPEL_ASSIST={MID:1.00, ATT:0.85, DEF:0.32, GK:0};
 /* índice ofensivo: ataque alimentado pelo meio-campo; defensivo: defesa + ajuda do meio (docx) */
 function atkIndex(os,ms){ return 0.55*os + 0.45*ms; }
 function defIndex(ds,ms){ return 0.72*ds + 0.28*ms; }
@@ -204,17 +229,13 @@ function simulateMatch(homeId, awayId, isUser, onTick, onEnd, seed, opts){
      não assiste, e nem todo gol é assistido — 68%, que é a faixa do futebol real.
      O peso é passe+visão, SEM desconto de viés de propósito: o perfil já eleva
      esses dois no meio-campista, e é exatamente ele quem deve assistir mais. */
-  /* PESO DO PAPEL. Só o atributo não basta: com atributos iguais o sorteio vira
-       proporcional à quantidade de gente, e zagueiro (são 4) assistia mais que meia.
-       Quem cria a jogada é o meio e quem tabela na frente é o ataque; zagueiro
-       assiste, mas é a exceção. Referência do futebol real: meio ~45-50%,
-       ataque ~30-35%, defesa ~15-20%. */
-    const PAPEL={MID:1.00, ATT:0.85, DEF:0.32, GK:0};
+  /* o peso por posição é do ficheiro (PESO_PAPEL_ASSIST) — os dois sorteios de
+     assistência daqui usam a MESMA tabela */
   function assistFrom(players, sc){
     if(R.random()>=0.68) return null;
     const pool=players.filter(p=>p.s!=='GK' && p!==sc && p.pid!==sc.pid);
     if(!pool.length) return null;
-    const w=p=>p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);
+    const w=p=>p.f*(PESO_PAPEL_ASSIST[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);
     let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
     for(const p of pool){r-=w(p);if(r<=0)return p;}
     return pool[0];
@@ -507,7 +528,7 @@ function liveMatchSession(homeId, awayId, seed, opts){
   function assistFrom(players, sc){ if(R.random()>=0.68) return null;
     const pool=players.filter(p=>p.s!=='GK' && p!==sc && p.pid!==sc.pid);
     if(!pool.length) return null;
-    const w=p=>p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);
+    const w=p=>p.f*(PESO_PAPEL_ASSIST[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);
     let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
     for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
   function pickFoulPlayer(side){ const pool=cur[side].filter(p=>p.s!=='GK');

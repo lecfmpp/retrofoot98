@@ -44,9 +44,22 @@ async function tira(nome, sel){
 console.log('DESKTOP 1440');
 await run(()=>{ rfGo('hub'); });
 await tira('01-topo-970x90','.rf-ad-top');
-await tira('02-ancora-970x90','.rf-anchor');
 await run(()=>{ const a=document.querySelector('[data-ad-vazio="rf98.hub.sidebar"]'); if(a) a.scrollIntoView({block:'center'}); },600);
 await tira('03-hub-300x250','[data-ad-vazio="rf98.hub.sidebar"]');
+
+/* A ENTRADA NO CLUBE (rf98.entrada.sorteio) — a tela de boas-vindas do pos-sorteio.
+   Chega-se a ela pelo roteador (CL.screen='boasvindas' -> rfOb7), sem refazer o
+   funil: o save de bancada do ?rf= ja' tem clube, elenco e estadio, que e' tudo o
+   que a tela le'.
+
+   VEM ANTES DA RODADA AO VIVO de proposito. startLiveRound() deixa um
+   temporizador a redesenhar, e depois dele qualquer troca de CL.screen e'
+   desfeita no quadro seguinte — a captura saia sempre "nao encontrado". */
+await run(()=>{ CL.screen='boasvindas'; cdraw(); },1200);
+await run(()=>{ const a=document.querySelector('[data-ad-vazio="rf98.entrada.sorteio"]');
+  if(a) a.scrollIntoView({block:'center'}); },700);
+await tira('16-entrada-clube-970x250','[data-ad-vazio="rf98.entrada.sorteio"]');
+await run(()=>{ CL.screen='hub'; cdraw(); },600);
 
 // rodada ao vivo: trilhos + faixa entre divisões
 await run(()=>{ let g=0; while(g++<3){ try{ playRound(null); }catch(e){ S.round++; } }
@@ -65,13 +78,13 @@ await tira('07-modal-728x90','[data-ad-vazio="rf98.auction.footer"]');
 await run(()=>{ clCloseOverlay(); CL.screen='loading'; cdraw(); },900);
 await tira('08-splash-1280x720','[data-ad-vazio="rf98.loading.splash"]');
 
+
 console.log('TELEFONE 375');
 await page.setViewport({ width:375, height:812, deviceScaleFactor:3 });
 await page.goto(URL,{waitUntil:'networkidle2',timeout:60000});
 await sleep(1800);
 await run(()=>{ rfGo('hub'); });
 await tira('09-mobile-topo-320x100','.rf-ad-top');
-await tira('10-mobile-ancora-320x50','.rf-anchor');
 /* no telefone o Hub mostra um bloco de cada vez. A classificacao (e o retangulo que vai com
    ela) aparece na aba "Jogo" — ver rf-cols[data-hubtab="jogo"] no css. */
 await run(()=>{ CL.hubTab='jogo'; cdraw(); },700);
@@ -81,6 +94,11 @@ await tira('11-mobile-hub-300x250','[data-ad-vazio="rf98.hub.sidebar"]');
 await run(()=>{ let g=0; while(g++<3){ try{ playRound(null); }catch(e){ S.round++; } }
   CL.tacticChosen=true; S.xi=autoXI(CL.clubId); startLiveRound(); },1600);
 await tira('12-mobile-faixa-rodada','[data-ad-vazio="rf98.live.inline"]');
+
+await run(()=>{ CL.live=null; CL.screen='boasvindas'; cdraw(); },1200);
+await run(()=>{ const a=document.querySelector('[data-ad-vazio="rf98.entrada.sorteio"]');
+  if(a) a.scrollIntoView({block:'center'}); },700);
+await tira('17-mobile-entrada-clube','[data-ad-vazio="rf98.entrada.sorteio"]');
 
 await browser.close();
 console.log('pronto →', OUT);

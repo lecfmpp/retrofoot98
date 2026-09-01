@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- =====================================================================
+     PÁGINA DO CONVITE DA RESENHA — ela existe POR CAUSA DA PRÉ-VISUALIZAÇÃO.
+     ---------------------------------------------------------------------
+     O WhatsApp (e o Telegram, e o Facebook) lê o HTML no SERVIDOR, antes de
+     qualquer JavaScript correr: o cartão que aparece no chat sai destas meta
+     tags, e não do que o jogo desenha. Enquanto o convite era `/?sala=CODIGO`
+     ele caía no index.html e mostrava a logo do site — o criativo publicado
+     no painel em `rf98.resenha.invite` só era visto DENTRO do jogo, na
+     pré-visualização do modal "Chamar pra Resenha".
+
+     Esta página serve só para o cartão. Quem a abre é levado para a sala num
+     piscar de olhos (ver o script no fim), e o jogo continua a entrar por
+     `?sala=CODIGO` como sempre — os links já partilhados não quebram.
+
+     A IMAGEM É UMA MORADA FIXA, e isso é de propósito. `atual.png` é
+     reescrito pelo painel a cada publicação nesta chave (ver CHAVES_MORADA_FIXA
+     em public/admin/admin.js): trocar a arte no painel troca o cartão sem
+     republicar o site. O nome do ficheiro é sempre .png, mas quem manda para
+     os robôs de pré-visualização é o Content-Type que o Storage devolve — a
+     extensão aqui é só um rótulo estável.
+
+     O WHATSAPP GUARDA O CARTÃO EM CACHE por alguns dias. Depois de trocar a
+     arte, um link JÁ partilhado continua a mostrar a antiga; um link novo
+     mostra a nova.
+     ===================================================================== -->
+<title>Bora pro RetroFoot? — convite da Resenha</title>
+<meta name="robots" content="noindex,follow">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RetroFoot98">
+<meta property="og:title" content="Bora pro RetroFoot? Te chamaram pra uma Resenha.">
+<meta property="og:description" content="Assume um time, escala o elenco e decide a rodada com os teus amigos. É grátis e joga-se no navegador.">
+<meta property="og:image" content="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://retrofoot98.com.br/convite/">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bora pro RetroFoot? Te chamaram pra uma Resenha.">
+<meta name="twitter:description" content="Assume um time, escala o elenco e decide a rodada com os teus amigos. É grátis e joga-se no navegador.">
+<meta name="twitter:image" content="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png">
+
+<style>
+  html,body{height:100%;margin:0}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    background:#eef3ec;color:#14211a;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    text-align:center;padding:24px;box-sizing:border-box}
+  img{width:100%;max-width:520px;height:auto;border-radius:14px;display:block}
+  p{margin:0;font-size:15px;color:#4a5a51}
+  a{display:inline-flex;align-items:center;height:44px;padding:0 22px;border-radius:12px;
+    background:#F2B90C;color:#17458F;font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+  <img src="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png"
+       alt="Bora pro RetroFoot?">
+  <p>A abrir a tua sala na Resenha…</p>
+  <a id="ir" href="/">Entrar agora</a>
+
+<script>
+/* O CÓDIGO DA SALA VEM DO CAMINHO, e o destino é o mesmo de sempre: `?sala=`.
+   O jogo inteiro já sabe entrar por esse parâmetro (ver resenhaRememberRoomInUrl
+   em src/net/local-transport.js) — esta página não aprende nada sobre salas, só
+   traduz `/convite/CODIGO` no endereço que o jogo já entende. Sem código, leva
+   à entrada do jogo em vez de a lado nenhum. */
+(function(){
+  var m = /\/convite\/([^/?#]+)/.exec(location.pathname);
+  var cod = m ? decodeURIComponent(m[1]) : (new URLSearchParams(location.search).get('sala') || '');
+  cod = String(cod).trim().toUpperCase().slice(0, 32).replace(/[^A-Z0-9-]/g, '');
+  var destino = cod ? '/?sala=' + encodeURIComponent(cod) : '/';
+  document.getElementById('ir').href = destino;
+  /* `replace` e não `href`: o botão "voltar" do telemóvel tem de sair do jogo,
+     não regressar a esta página e reencaminhar outra vez em ciclo. */
+  location.replace(destino);
+})();
+</script>
+</body>
+</html>

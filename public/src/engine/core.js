@@ -1283,25 +1283,64 @@ function advanceAuctions(R){
   if(!inTransferWindow() || !auctionEligible()){ S.auctions={round:S.round, lots:[]}; return; }
   S.auctions=S.auctions||{round:S.round, lots:[]};
   mergeAuctionBidsFromSeats(); // traz os lances de TODOS os humanos da sala antes de decidir a cobertura
-  const still=[];
-  S.auctions.lots.forEach(l=>{
-    if(l.status!=='open') return;
-    if(l.leader && l.leader!=='cpu'){
-      const leadAmt=(l.bids&&l.bids[l.leader]&&l.bids[l.leader].amount)||l.bid;
-      if(leadAmt < l.ceiling){ // humano líder mas abaixo do teto -> CPU cobre
-        const incr=Math.max(50000, Math.round(l.ceiling*0.06));
-        l.bid=Math.min(l.ceiling, leadAmt+incr); l.leader='cpu';
-      } // senão: bateu acima do teto -> segue firme na frente
-    } else { // CPU liderando -> sobe rumo ao teto
-      const incr=Math.max(50000, Math.round(l.ceiling*0.08));
-      l.bid=Math.min(l.ceiling, l.bid+incr);
+  /* A REGRA VIVE EM world-rules.js (WORLD_RULES.leilaoRodada) e o servidor roda a
+     MESMA — é o que faz o leilão existir na Resenha, onde o cliente já não comita
+     rodada. Aqui ficam só as decisões que são do cliente: o meu caixa, a minha
+     cota de estrangeiros, a minha notícia e a minha entrada de finanças. */
+  const resolvidos=(typeof WORLD_RULES!=='undefined' && WORLD_RULES.leilaoRodada)
+    ? WORLD_RULES.leilaoRodada(S, R, {
+        ehHumano:(cid)=>String(cid)===String(S.clubId),
+        achar:(nome,dono)=>findP(nome,dono),
+        salario:(p)=>REBAL.wage(p.f),
+        /* SÓ O DONO DO ASSENTO RECUSA. Caixa e cota são autoridade de quem joga
+           aquele clube: para outro humano da sala, deixa passar — o cliente dele
+           é que decide, e o mundo reconcilia. */
+        podeComprar:(cid,p,preco)=>{
+          if(String(cid)!==String(S.clubId)) return {ok:true};
+          if(preco>S.budget) return {ok:false, msg:'caixa insuficiente pra pagar o lance vencedor no leilão'};
+          const fq=checkForeignQuota(p); return fq.ok?{ok:true}:{ok:false, msg:fq.msg};
+        },
+        /* reposição: os dados do solo. `aceita` é a preferência do Perfil — no
+           servidor ela não entra, porque o pool de uma sala é de todos. */
+        alvo: AUCTION_TARGET_LOTS,
+        clubes: DATA.clubs.filter(c=>!isCpuMarketProtected(c.id)),
+        valor: (p)=>liveMV(p),
+        podeSair: (cid,p)=>canReleaseFromSquad(cid,p).ok,
+        aceita: (p)=>{
+          const mode=(S.config&&S.config.profile&&S.config.profile.auctionMode)||'todos';
+          if(mode!=='sem_fracos') return true;
+          const sq=S.squads[S.clubId]||[];
+          const media=sq.length? sq.reduce((s,x)=>s+x.f,0)/sq.length : 65;
+          return p.f >= media*0.85;
+        },
+        rodadasPorLote: AUCTION_ROUNDS,
+      })
+    : [];
+  S.roundNews=S.roundNews||[];
+  resolvidos.forEach(r=>{
+    const l=r.lote;
+    if(!r.vencedor){ if(r.veto) S.roundNews.push(`❌ ${l.player}: ${r.veto}.`); return; }
+    const p=r.jogador, preco=r.preco, meu=String(r.vencedor)===String(S.clubId);
+    applyTradeLock(p); recordTransferHistory(p, l.sellerId, r.vencedor, preco);
+    if(typeof MARKET!=='undefined' && MARKET.revalueOnTransfer) MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
+    recordNetTransfer(l.sellerId, r.vencedor, p.n, p.contract, preco, p.pid); // online: sem isto o arremate é desfeito
+    if(meu){
+      S.budget-=preco; commitBudget();                    // publica: senão o débito do leilão é revertido
+      S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(preco)} — você cobriu a concorrência!`);
+      pushFinanceEntry({playerPurchases:preco, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(preco)}.`]});
+    } else {
+      /* LEILÃO GANHO POR OUTRO CLUBE — guarda a FOTOGRAFIA do jogador (o objeto
+         muda de clube logo a seguir) para o diálogo `mkt-leilao-outro`. */
+      S.auctionSales=S.auctionSales||[];
+      S.auctionSales.push({ nome:p.n, pos:p.s, forca:p.f, idade:p.age||null,
+        salario:(p.contract&&p.contract.salary)||0, base:l.base||0,
+        gols:(S.scorers&&S.scorers[p.n])||0,
+        vendedor:l.sellerId, comprador:r.vencedor, preco:preco, round:S.round });
+      if(S.auctionSales.length>12) S.auctionSales=S.auctionSales.slice(-12);
+      S.roundNews.push(`🔨 ${p.n} foi arrematado por ${fmt(preco)}.`);
     }
-    l.roundsLeft--;
-    if(l.roundsLeft<=0) resolveAuctionLot(l); else still.push(l);
   });
-  S.auctions.lots=still;
-  openAuctionLots(R, AUCTION_TARGET_LOTS - S.auctions.lots.length);
-  S.auctions.round=S.round;
+  S.auctions.round=S.round;   // a reposição já aconteceu dentro da regra (opts.repor)
 }
 function resolveAuctionLot(l){
   if(!l.leader || l.leader==='cpu'){ l.status='lost'; return; } // um clube da CPU levou
@@ -5719,6 +5758,30 @@ function awardSeasonPrizes(tbl, myCups){
       }
     }
   }
+  /* BÔNUS DE ACESSO — subir de divisão não pagava nada. O clube promovido encarava de uma hora para
+     outra os custos da série nova (salários mais caros para não cair de novo, manutenção, elenco a
+     repor) com a receita-base ainda calibrada pelo overall da série anterior.
+
+     PAGO AQUI, COM OS OUTROS PRÊMIOS, E NÃO NA VIRADA. Creditar em newSeasonReset colocava o
+     dinheiro no caixa mas o jogador nunca via de onde veio: o próprio reset da temporada limpa
+     S.finances e S.roundNews logo em seguida, e a linha do extrato ia junto. Entrando em `lines`,
+     o bônus aparece no modal de fim de temporada ao lado da premiação de posição — que é onde o
+     jogador procura. Mesma escolha do caminho online (ver computeMyPrevSeasonPrizes).
+
+     pendingDivisionChange() é a MESMA função que a tela de fim de temporada já usa para anunciar
+     acesso/rebaixamento, então o dinheiro e o anúncio não podem discordar. */
+  if(PRIZES.accessPrize && typeof pendingDivisionChange==='function'){
+    /* pendingDivisionChange devolve a DIVISÃO DE DESTINO (a mesma, se o clube ficou) — não um
+       rótulo 'promoted'. accessPrize já responde 0 para quem ficou e para quem caiu, então não é
+       preciso perguntar antes se houve acesso. */
+    let novaDiv=null;
+    try{ novaDiv=pendingDivisionChange(); }catch(e){}
+    const aamt=novaDiv?(PRIZES.accessPrize(novaDiv, S.division)||0):0;
+    if(aamt>0){
+      const novoLbl=DIV_LABEL_FULL[novaDiv]||('Série '+novaDiv);
+      lines.push({icon:'🎉', comp:'Acesso', place:`Subida à ${novoLbl}`, amount:aamt}); total+=aamt;
+    }
+  }
   if(total>0){
     S.budget=(S.budget||0)+total;
     S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
@@ -5761,6 +5824,19 @@ function computeMyPrevSeasonPrizes(){
     const outcome=PRIZES.cupResultOutcome(res);
     if(outcome){ const camt=PRIZES.cupPrize('copaBrasil', outcome);
       if(camt>0){ lines.push({icon:outcome==='campeao'?'🏆':'🎖️', comp:(COMP_DEFS.copaBrasil&&COMP_DEFS.copaBrasil.short)||'Copa do Brasil', place:res, amount:camt}); total+=camt; } }
+  }
+  /* BÔNUS DE ACESSO na Resenha. `myDiv` é a divisão da temporada que ACABOU (achada acima na foto
+     do servidor) e S.division já é a NOVA — o servidor fez o swap antes de gravar a foto, e
+     applyViewerDivision re-ancorou S.division no clube deste assento. accessPrize devolve 0 para
+     quem ficou e para quem caiu, então não é preciso perguntar se houve acesso.
+     Aqui e SÓ aqui do lado do humano: o servidor paga a CPU (resolveSeasonTurnover) e nunca o
+     humano, cujo caixa vive no assento — creditar dos dois lados pagaria duas vezes. */
+  if(PRIZES.accessPrize && S && S.division){
+    const aamt=PRIZES.accessPrize(S.division, myDiv)||0;
+    if(aamt>0){
+      const novoLbl=(cfg.label&&cfg.label[S.division])||('Série '+S.division);
+      lines.push({icon:'🎉', comp:'Acesso', place:`Subida à ${novoLbl}`, amount:aamt}); total+=aamt;
+    }
   }
   const champId=(myTable[0]&&myTable[0].id)||null;
   // aposentadorias do MEU clube nesta virada (item 5 — sabor). Servidor tagueia motivo em _prevSeason.
@@ -6407,7 +6483,7 @@ function applyCpuSeasonFinances(){
   Object.keys(S.budgets).forEach(id=>{
     if(humans.has(id)) return;                                   // humano já paga/recebe por rodada
     const c=clubOf(id); if(!c) return;
-    const ov=c.overall, base=baseIncome(ov);
+    const ov=c.overall, mDiv=(meta[id]&&meta[id].div)||S.division, base=baseIncome(ov, mDiv);
     let payroll=0;
     (S.squads[id]||[]).forEach(p=>{ payroll += (p.contract && p.contract.salary) || REBAL.wage(p.f); });
 
@@ -6442,6 +6518,45 @@ function applyCpuSeasonFinances(){
     S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0) + bonus + prize));
   });
 }
+/* OVERALL MÉDIO DE CADA DIVISÃO — a metade FIXA da cota de TV (ver REBAL.income em rebalance.js).
+   Antes a receita-base inteira saía do overall do PRÓPRIO clube, então uma fase ruim derrubava
+   tudo justamente quando o clube mais precisava de estabilidade. Um quarto da receita passa a vir
+   da divisão, não do clube — e essa parte não pode balançar durante a temporada, senão deixa de
+   ser a âncora que ela existe para ser.
+
+   POR ISSO É CALCULADO UMA VEZ E CONGELADO EM S. O overall dos clubes MUDA ao longo do ano (os
+   jogadores evoluem, o mercado mexe nos elencos); recalcular a cada rodada faria a "parte fixa"
+   derivar junto com a parte variável, que é exatamente o que se quer evitar. O carimbo cai na
+   virada de temporada (newSeasonReset), quando acesso/rebaixamento redefinem quem está em cada
+   divisão — e só então.
+
+   Lê S.clubOverall, o MESMO mapa que o servidor usa (ver divOverallAvgT no resolve-round), sobre
+   as mesmas tabelas, para os dois lados chegarem ao mesmo número na Resenha. */
+function computeDivOverallAvg(){
+  if(!S) return null;
+  const soma={}, qtd={};
+  const reg=(div,tbl)=>{ Object.keys(tbl||{}).forEach(id=>{
+    const ov=(S.clubOverall&&S.clubOverall[id]!=null)?S.clubOverall[id]:null;
+    if(ov==null) return;
+    soma[div]=(soma[div]||0)+ov; qtd[div]=(qtd[div]||0)+1; }); };
+  reg(S.division, S.table);
+  DIV_ORDER.forEach(d=>{ const od=S.otherDivs&&S.otherDivs[d]; if(od&&od.table) reg(d,od.table); });
+  const out={};
+  Object.keys(soma).forEach(d=>{ if(qtd[d]) out[d]=soma[d]/qtd[d]; });
+  S.divOverallAvg=out;
+  return out;
+}
+/* o overall médio de UMA divisão. Calcula na primeira pergunta da temporada e devolve o carimbo
+   nas seguintes. `undefined` quando não dá para saber (save antigo, estado ainda a montar) — e aí
+   REBAL.income cai em 100% pelo clube, que é exatamente o comportamento de antes desta mudança:
+   nenhum save quebra, a receita só deixa de ter a âncora até o estado existir. */
+function divOverallAvgOf(div){
+  if(!S) return undefined;
+  if(!S.divOverallAvg) computeDivOverallAvg();
+  const a=S.divOverallAvg; if(!a) return undefined;
+  const v=a[div||S.division];
+  return (typeof v==='number' && isFinite(v))?v:undefined;
+}
 /* CAIXA DA CPU POR RODADA (solo/hotseat) — a regra mora em world-rules.js e é a MESMA que o
    servidor roda na Resenha (cpuRoundCash no resolve-round). Ver applyCpuSeasonFinances acima:
    o que é operação entra aqui, rodada a rodada; o que é desempenho fica na virada. */
@@ -6453,10 +6568,17 @@ function applyCpuRoundCash(){
   if(typeof CL!=='undefined' && CL.humans) Object.keys(CL.humans).forEach(id=>humans.add(id));
   WORLD_RULES.cpuCaixaRodada(S, {
     humanos:humans,
-    renda:baseIncome,
+    renda:(ov,div)=>baseIncome(ov,div),
     folha:p=>(p.contract && p.contract.salary) || REBAL.wage(p.f),
     capacidade:ov=>(typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000,
     overall:id=>{ const c=clubOf(id); return c?c.overall:null; },
+    /* A DIVISÃO DE CADA CLUBE, não a do usuário: decide a metade fixa da cota de TV e o preço do
+       ingresso. Sem isto, um rival da Série C arrecadaria como se estivesse na divisão do humano. */
+    divisao:id=>(typeof clubDivisionOf==='function' && clubDivisionOf(id)) || S.division,
+    /* PREÇO DO INGRESSO: a MESMA tabela do usuário (A25/B20/C15/D10). A CPU usava uma fórmula
+       antiga por overall (R$6 a R$16) que sobreviveu à troca — o rival arrecadava menos que o
+       humano pelo mesmo estádio e a mesma divisão, e nada acusava. */
+    preco:div=>(typeof ticketPriceForDivision==='function')?ticketPriceForDivision(div):10,
     OPEX:REBAL.OPEX
   });
 }
@@ -6519,6 +6641,9 @@ function newSeasonReset(){
   // final de cada uma, ANTES de trocar DATA.clubs — assim switchToDivision()/o "senão"
   // abaixo já leem a composição correta pra próxima temporada (ver computeDivisionSwap).
   S.divisionClubs = computeDivisionSwap();
+  /* o overall médio por divisão é da temporada que ACABOU; quem está em cada divisão muda agora.
+     Apagar aqui faz a próxima pergunta recalcular sobre a composição nova (ver divOverallAvgOf). */
+  S.divOverallAvg=null;
 
   if(changingDivision){
     switchToDivision(newDivision, outcome); // troca DATA.clubs/S.squads/S.table/S.sched/S.round/S.division

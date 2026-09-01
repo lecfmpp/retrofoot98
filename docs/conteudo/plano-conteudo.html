@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>RetroFoot98 — Plano de conteúdo e roteiros</title>
+<style>
+  :root{
+    --azul:#17458F; --ouro:#F2B90C; --verde:#0b7a2f; --tinta:#14211a;
+    --dim:#5a6a60; --linha:#d7e2d9; --fundo:#f2f7f1; --claro:#fbfdfa;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    color:var(--tinta);font-size:10.5pt;line-height:1.55;background:#fff}
+  /* A pagina nao tem altura minima: com `min-height` cada seccao mais curta do que
+     uma folha empurrava o resto para uma folha nova e deixava meia pagina em branco.
+     Quem quebra e' o @media print, entre PARTES. */
+  .pag{width:210mm;padding:18mm 16mm;margin:0 auto;background:#fff}
+  .capa{min-height:250mm}
+  h1,h2,h3,h4{margin:0;line-height:1.2}
+  h1{font-size:30pt;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:17pt;font-weight:800;color:var(--azul);margin:0 0 3mm;
+     padding-bottom:2mm;border-bottom:2px solid var(--ouro)}
+  h3{font-size:12.5pt;font-weight:700;margin:6mm 0 2mm}
+  h4{font-size:10.5pt;font-weight:700;margin:4mm 0 1.5mm;color:var(--azul)}
+  p{margin:0 0 3mm}
+  ul,ol{margin:0 0 3mm;padding-left:5mm}
+  li{margin-bottom:1.2mm}
+  .capa{display:flex;flex-direction:column;justify-content:center}
+  .selo{display:inline-block;background:var(--azul);color:#fff;font-size:8.5pt;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;padding:2mm 4mm;border-radius:2mm;align-self:flex-start}
+  .capa h1{margin:8mm 0 4mm;font-size:38pt}
+  .sub{font-size:13pt;color:var(--dim);max-width:150mm}
+  .meta{margin-top:14mm;padding-top:5mm;border-top:1px solid var(--linha);
+    display:flex;gap:12mm;font-size:9pt;color:var(--dim)}
+  .meta b{display:block;color:var(--tinta);font-size:10pt;margin-bottom:1mm}
+  .nota{background:var(--fundo);border-left:3px solid var(--ouro);padding:3mm 4mm;margin:0 0 4mm;
+    font-size:9.5pt}
+  .nota b{color:var(--azul)}
+  table{width:100%;border-collapse:collapse;font-size:9pt;margin:0 0 4mm}
+  th{background:var(--azul);color:#fff;text-align:left;padding:2mm 2.5mm;font-size:8.5pt;
+    text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  td{padding:2mm 2.5mm;border-bottom:1px solid var(--linha);vertical-align:top}
+  tr:nth-child(even) td{background:var(--claro)}
+  .tag{display:inline-block;font-size:7.5pt;font-weight:700;padding:.6mm 2mm;border-radius:1.5mm;
+    text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+  .t-a{background:#e6edf8;color:var(--azul)}
+  .t-b{background:#fdf3d4;color:#8a6800}
+  .t-c{background:#e2f3e8;color:var(--verde)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+  .card{border:1px solid var(--linha);border-radius:3mm;padding:4mm;background:var(--claro)}
+  .card h4{margin-top:0}
+  .card p{font-size:9pt;margin-bottom:2mm}
+  .card p:last-child{margin-bottom:0}
+  .inv{margin-bottom:5mm}
+  .inv h3{border-left:4px solid var(--ouro);padding-left:3mm;margin-bottom:3mm}
+  .inv table td:first-child{font-weight:600;width:52mm}
+  .inv table td:last-child{color:var(--dim)}
+  .roteiro{border:1px solid var(--linha);border-radius:3mm;overflow:hidden;margin-bottom:6mm}
+  .roteiro-h{background:var(--azul);color:#fff;padding:3mm 4mm}
+  .roteiro-h b{font-size:12pt;display:block}
+  .roteiro-h span{font-size:8.5pt;opacity:.85}
+  .roteiro-c{padding:4mm}
+  .beat{display:grid;grid-template-columns:16mm 1fr;gap:3mm;padding:2.5mm 0;
+    border-bottom:1px dashed var(--linha)}
+  .beat:last-child{border-bottom:none}
+  .beat .t{font-size:8.5pt;font-weight:700;color:var(--azul);font-variant-numeric:tabular-nums}
+  .beat .d{font-size:9.5pt}
+  .beat .d em{color:var(--verde);font-style:normal;font-weight:600}
+  .fala{display:block;border-left:2px solid var(--ouro);padding-left:3mm;margin-top:1.5mm;
+    font-size:9.5pt}
+  .tela{display:block;font-size:8.5pt;color:var(--dim);margin-top:1mm}
+  .tela b{color:var(--tinta)}
+  .sumario{columns:2;column-gap:10mm;font-size:10pt}
+  .sumario a{color:var(--tinta);text-decoration:none;display:block;padding:.8mm 0}
+  .sumario .n{color:var(--ouro);font-weight:800;margin-right:2mm}
+  .pe{margin-top:6mm;padding-top:3mm;border-top:1px solid var(--linha);
+    font-size:8pt;color:var(--dim);display:flex;justify-content:space-between}
+  @media print{
+    @page{size:A4;margin:0}
+    .pag{margin:0;break-before:page}
+    .pag:first-child{break-before:auto}
+    .roteiro,.card,table{break-inside:avoid}
+    tr{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== CAPA ===================== -->
+<section class="pag capa">
+  <span class="selo">Plano de conteúdo · 8 semanas</span>
+  <h1>RetroFoot98<br>em vídeo</h1>
+  <p class="sub">O inventário completo do jogo, o calendário de publicação para três pessoas
+  e os roteiros prontos — para mostrar o desenvolvimento e encher a lista de espera.</p>
+  <div class="meta">
+    <div><b>Formato</b>Tela dividida:<br>rosto + jogo</div>
+    <div><b>Equipa</b>3 pessoas,<br>3 trilhas</div>
+    <div><b>Ritmo</b>1 vídeo longo +<br>3 shorts por semana</div>
+    <div><b>Objetivo</b>Lista de espera:<br>100 vagas</div>
+  </div>
+</section>
+
+<!-- ===================== COMO USAR ===================== -->
+<section class="pag">
+  <h2>Como usar este documento</h2>
+  <p>Ele tem quatro partes, e elas servem para coisas diferentes.</p>
+  <div class="sumario">
+    <a><span class="n">1</span>O que existe para filmar — o inventário do jogo, tela por tela</a>
+    <a><span class="n">2</span>O formato e as regras de captura</a>
+    <a><span class="n">3</span>As três trilhas: quem faz o quê</a>
+    <a><span class="n">4</span>O calendário de 8 semanas</a>
+    <a><span class="n">5</span>Os roteiros: 8 vídeos longos</a>
+    <a><span class="n">6</span>Os roteiros: 12 shorts</a>
+    <a><span class="n">7</span>A chamada da lista de espera</a>
+    <a><span class="n">8</span>O que medir</a>
+  </div>
+
+  <div class="nota" style="margin-top:6mm">
+    <b>O que assumi, e que vocês devem trocar se estiver errado.</b>
+    Três pessoas com disponibilidade parecida; oito semanas a partir da próxima segunda;
+    YouTube como casa do vídeo longo e Shorts/Reels/TikTok para o vertical; a lista de espera
+    (100 vagas) como o único objetivo de conversão. Os nomes das trilhas são A, B e C —
+    ponham os nomes de vocês. O calendário é uma grelha, não uma sentença: se uma semana
+    render mais, o excedente vira banco para a semana seguinte.
+  </div>
+
+  <h3>A regra que vale para tudo</h3>
+  <p><b>Nada de tela sem cara, nada de cara sem tela.</b> O formato dividido só funciona quando as
+  duas metades estão a fazer alguma coisa: a pessoa reage ao que acontece no jogo, e o jogo mostra
+  aquilo de que a pessoa está a falar. Quando não houver o que mostrar, é sinal de que o assunto
+  não dá vídeo — dá post.</p>
+
+  <h3>O jogo já tem o gancho embutido</h3>
+  <p>O RetroFoot98 é o Elifoot que muita gente jogou na escola, refeito para 2026 e no navegador.
+  Isso resolve o problema mais difícil de canal novo: <b>não é preciso explicar o que é o jogo,
+  é preciso lembrar</b>. Quase todo vídeo pode abrir por memória e fechar por novidade.</p>
+</section>
+
+<!-- ===================== PARTE 1 — INVENTÁRIO ===================== -->
+<section class="pag">
+  <h2>1 · O que existe para filmar</h2>
+  <p>Levantado do próprio jogo, não de memória. Cada linha é uma tela ou um sistema que já está
+  no ar e aguenta câmara.</p>
+
+  <div class="inv">
+    <h3>Entrada e criação do save</h3>
+    <table>
+      <tr><td>Landing / abertura</td><td>Página de apresentação com telas reais, planos e a barra de vagas da lista de espera</td></tr>
+      <tr><td>Escolha do modo</td><td>Solo ou Modo Resenha (multiplayer)</td></tr>
+      <tr><td>Seleção de países</td><td>Brasil e ligas europeias; os países não escolhidos rodam ao fundo</td></tr>
+      <tr><td>Escolha de moeda</td><td>O jogo inteiro passa a falar na moeda escolhida</td></tr>
+      <tr><td>Sorteio dos clubes</td><td>O clube não se escolhe: sorteia-se — é o momento mais filmável do funil</td></tr>
+      <tr><td>Tela de carregamento</td><td>Dez segundos de montagem do save, com as quatro etapas a correr</td></tr>
+      <tr><td>Entrada no clube</td><td>Boas-vindas com os números do clube antes da primeira escalação</td></tr>
+    </table>
+  </div>
+
+  <div class="inv">
+    <h3>O clube — a área de trabalho do treinador</h3>
+    <table>
+      <tr><td>Formação</td><td>O campo visto de cima, com as onze camisas, número, energia e arrasto entre campo e banco</td></tr>
+      <tr><td>Elenco &amp; Base</td><td>Elenco completo, ficha de jogador, treino e os jovens que sobem da base</td></tr>
+      <tr><td>Mercado</td><td>Comprar, vender, propostas, contrapropostas e o leilão aberto a todos os clubes da liga</td></tr>
+      <tr><td>Campeonatos</td><td>Classificação, calendário, copas (sorteio, grupos, chave), artilharia e o arquivo das temporadas</td></tr>
+      <tr><td>Treinador</td><td>Carreira, troféus, perfil com avatar e o ranking oficial de treinadores</td></tr>
+      <tr><td>Finanças</td><td>Extrato, folha salarial, bilheteria, sócios, patrocínio e a obra do estádio</td></tr>
+      <tr><td>E-mail</td><td>Imprensa, propostas e recados — o clube fala com o treinador por caixa de entrada</td></tr>
+      <tr><td>Configurações</td><td>Ritmo do jogo, conta, saves e saída</td></tr>
+    </table>
+  </div>
+
+  <div class="inv">
+    <h3>A partida</h3>
+    <table>
+      <tr><td>Rodada ao vivo</td><td>Todas as divisões a correr ao mesmo tempo, minuto a minuto, com placar e lances</td></tr>
+      <tr><td>Modo Camarote</td><td>A sua partida em tela cheia: narração, barra de pressão, estatísticas e ficha do jogo</td></tr>
+      <tr><td>Intervalo</td><td>Parar aos 45' e mexer no time antes do segundo tempo</td></tr>
+      <tr><td>Substituição</td><td>Escolher quem sai e quem entra, com a energia à vista</td></tr>
+      <tr><td>Lesão e expulsão</td><td>O time joga com dez de verdade — o motor recalcula sem o jogador</td></tr>
+      <tr><td>Pênalti</td><td>Escolher o batedor, o suspense e o resultado</td></tr>
+      <tr><td>Prorrogação e disputa</td><td>Mata-mata até ao fim, com a série de pênaltis bola a bola</td></tr>
+      <tr><td>Pós-rodada</td><td>A classificação das quatro divisões logo depois do apito</td></tr>
+      <tr><td>Fim de temporada</td><td>Premiação, acessos e rebaixamentos</td></tr>
+    </table>
+  </div>
+
+  <div class="inv">
+    <h3>Modo Resenha — o multiplayer</h3>
+    <table>
+      <tr><td>Criar sala / entrar por código</td><td>Anfitrião abre a sala; os amigos entram por link ou código</td></tr>
+      <tr><td>Convite por link</td><td>Link de WhatsApp com cartão próprio — o convidado cai direto na sala</td></tr>
+      <tr><td>Sala de espera e chat</td><td>Quem já chegou, quem falta, e a conversa antes da rodada</td></tr>
+      <tr><td>Rodada sincronizada</td><td>Todos jogam a mesma jornada; o servidor é o dono do resultado</td></tr>
+      <tr><td>Pausa patrocinada</td><td>A janela entre jornadas, enquanto a rodada fecha para todos</td></tr>
+      <tr><td>Virada de temporada</td><td>A liga inteira muda de ano junta, com acessos e quedas</td></tr>
+    </table>
+  </div>
+
+  <div class="inv">
+    <h3>Bastidores — o que só vocês podem mostrar</h3>
+    <table>
+      <tr><td>Motor de partida</td><td>O mesmo código corre no navegador e no servidor: o que se vê ao vivo é o que fica gravado</td></tr>
+      <tr><td>Painel dos sócios</td><td>Inventário de publicidade, patrocinadores, finanças e funcionalidades em kanban</td></tr>
+      <tr><td>Estúdio de IA</td><td>Geração de escudos e fotos de jogador dentro do painel</td></tr>
+      <tr><td>Publicidade no jogo</td><td>Placas do campo, trilhos, faixas e o Camarote — inventário real, vendável</td></tr>
+      <tr><td>Planos</td><td>Peladeiro (grátis), Resenha (R$&nbsp;19,90/mês) e Embaixador (R$&nbsp;49,90/mês)</td></tr>
+      <tr><td>Lista de espera</td><td>100 vagas, com contagem real na barra da landing</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== PARTE 2 — FORMATO ===================== -->
+<section class="pag">
+  <h2>2 · O formato e as regras de captura</h2>
+
+  <div class="grid">
+    <div class="card">
+      <h4>Vídeo longo (YouTube, 8–12 min)</h4>
+      <p><b>Tela:</b> jogo a 70% do quadro, rosto num canto a 30%, com a divisão a mudar de tamanho
+      conforme o momento — o rosto cresce na reação, o jogo cresce na demonstração.</p>
+      <p><b>Áudio:</b> a narração manda; o som do jogo entra só nos momentos (gol, pênalti, apito).</p>
+    </div>
+    <div class="card">
+      <h4>Short / Reel / TikTok (30–45 s)</h4>
+      <p><b>Tela:</b> dividida ao meio na horizontal — rosto em cima, jogo em baixo. Vertical 9:16,
+      o jogo em <i>zoom</i> na parte que interessa (nunca a tela inteira encolhida).</p>
+      <p><b>Regra:</b> o gancho tem de caber nos primeiros 2 segundos, antes de qualquer contexto.</p>
+    </div>
+  </div>
+
+  <h3>Sete regras de captura que poupam retrabalho</h3>
+  <ol>
+    <li><b>Gravem sempre num save de verdade</b>, com temporada em andamento. Save vazio não tem
+    história: sem elenco cansado, sem dívida, sem rival na cola.</li>
+    <li><b>Uma tela por vídeo longo.</b> Passear por cinco telas em oito minutos não mostra nenhuma.</li>
+    <li><b>O zoom é de captura, não de edição.</b> Aproximem a tabela ou o campo na gravação; ampliar
+    depois entrega imagem borrada.</li>
+    <li><b>Escolham o clube pequeno.</b> Série D com caixa curta rende mais decisão do que time rico.</li>
+    <li><b>Nunca mostrem o painel dos sócios com dados reais</b> de anunciante ou de utilizador.
+    Para bastidores, usem uma conta de demonstração.</li>
+    <li><b>Gravem o momento inteiro e cortem depois.</b> Pênalti, leilão e virada de temporada não
+    se repetem: o mesmo save não devolve o mesmo lance.</li>
+    <li><b>A cara reage antes de explicar.</b> Dois segundos de reação valem mais do que dez de
+    contexto — e é o que segura o Short.</li>
+  </ol>
+
+  <div class="nota">
+    <b>Uma coisa que vale mais do que qualquer roteiro:</b> o jogo é feito por vocês, ao vivo.
+    Bug encontrado, decisão de desenho, número que mudou — isso é conteúdo que ninguém pode copiar,
+    e é o que faz alguém entrar numa lista de espera. Guardem os prints e as mensagens do dia a dia;
+    metade dos Shorts da trilha B sai daí.
+  </div>
+</section>
+
+<!-- ===================== PARTE 3 — TRILHAS ===================== -->
+<section class="pag">
+  <h2>3 · As três trilhas</h2>
+  <p>Cada pessoa é dona de uma trilha do princípio ao fim — grava, edita e publica a sua. Assim
+  ninguém espera por ninguém, e o canal ganha três vozes reconhecíveis em vez de uma média.</p>
+
+  <table>
+    <tr><th style="width:26mm">Trilha</th><th>O que é</th><th style="width:38mm">Entrega semanal</th></tr>
+    <tr>
+      <td><span class="tag t-a">A · O Jogo</span></td>
+      <td>O vídeo longo da semana. Uma tela, um sistema, do zero ao fim. É a trilha que
+      explica <i>o que o jogo é</i> — a que traz gente de fora.</td>
+      <td>1 vídeo de 8–12 min<br><b>Quinta</b></td>
+    </tr>
+    <tr>
+      <td><span class="tag t-b">B · Bastidores</span></td>
+      <td>Como o jogo é feito: a decisão, o bug, o número, a tela antes e depois. É a trilha
+      que cria vínculo — a que faz voltar.</td>
+      <td>2 Shorts + 1 post<br><b>Segunda e sexta</b></td>
+    </tr>
+    <tr>
+      <td><span class="tag t-c">C · Resenha</span></td>
+      <td>O multiplayer e a comunidade: partidas com a turma, desafios, reações, respostas a
+      comentários. É a trilha que converte — a que enche a lista.</td>
+      <td>1 Short + 1 live/clipe<br><b>Quarta e sábado</b></td>
+    </tr>
+  </table>
+
+  <h3>Por que dividir assim, e não por tema solto</h3>
+  <p>Porque as três trilhas têm ritmos de produção diferentes. O vídeo longo precisa de roteiro e de
+  um save preparado; o bastidor precisa de estar por perto quando a coisa acontece; a resenha precisa
+  de gente online. Misturar os três na mesma pessoa faz a semana render o mais lento dos três.</p>
+
+  <h3>O que as três têm em comum, sempre</h3>
+  <ul>
+    <li>A mesma abertura de marca (3 s) e o mesmo cartão de fim com a lista de espera.</li>
+    <li>O link da lista em primeiro comentário fixado e na descrição, nunca só na fala.</li>
+    <li>Um corte vertical de cada vídeo longo — o melhor minuto vira Short da semana seguinte.</li>
+  </ul>
+</section>
+
+<!-- ===================== PARTE 4 — CALENDÁRIO ===================== -->
+<section class="pag">
+  <h2>4 · O calendário de 8 semanas</h2>
+  <p>Cada semana tem um <b>tema</b>, e tudo o que sai nela puxa para o mesmo lado — o vídeo longo
+  de quinta é o centro, e os Shorts da semana são as suas portas de entrada. A ordem dos temas não
+  é arbitrária: começa pelo que é fácil de reconhecer e termina no que exige confiança.</p>
+  <table>
+    <tr><th>Dia</th><th>Formato</th><th>Trilha</th><th>Peça</th></tr>
+    <tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 1 — Apresentação <span style="font-weight:400;color:#5a6a60">· O jogo existe e é jogável</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>O primeiro commit do RetroFoot98 (print do repositório e a data)</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>“Qual clube o sorteio te deu?” — sorteio ao vivo, 3 tentativas</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V1 · O Elifoot da escola, refeito para 2026</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>As telas antigas ao lado das novas — o rebranding em duas imagens</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Resenha: convidar alguém por link e ver a pessoa entrar na sala</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 2 — Escalação <span style="font-weight:400;color:#5a6a60">· Quem já jogou reconhece</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Por que o campo mostra a energia de cada titular</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Desafio: escalar um 3-3-4 e sofrer as consequências</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V2 · Escalar é desenhar: o campo, o arrasto e a formação</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>O número da camisa não é aleatório — como o clube é numerado</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Reagir à escalação de um seguidor</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 3 — Mercado <span style="font-weight:400;color:#5a6a60">· O sistema que mais gera discussão</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Como o leilão decide quem leva o jogador</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Perder um jogador na última semana do leilão (reação)</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V3 · O leilão decide a liga</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Contraproposta: o que o clube adversário responde, e porquê</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>“Quanto você pagaria neste jogador?” — enquete no Short</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 4 — Partida ao vivo <span style="font-weight:400;color:#5a6a60">· O coração do jogo</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>A barra de pressão: o que ela mede de verdade</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Pênalti no último minuto, sem cortes</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V4 · A rodada ao vivo e o Modo Camarote</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Expulsão: o time joga com dez de verdade, e o motor recalcula</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Assistir à rodada inteira em 40 segundos (timelapse)</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 5 — Resenha <span style="font-weight:400;color:#5a6a60">· A conversão começa aqui</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>O cronómetro da rodada: por que a sala inteira espera</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>8 amigos, uma liga: o lobby a encher</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V5 · Resenha: oito amigos, uma liga, um cronómetro</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Como o servidor garante que ninguém “ganha no cliente”</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Live</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Liga aberta com a comunidade — 1 h, clipes no dia seguinte</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 6 — Dinheiro <span style="font-weight:400;color:#5a6a60">· O que segura o jogador a longo prazo</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>A bilheteria muda quando o estádio cresce — o número na tela</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Vender o craque para pagar a folha (dilema em 30 s)</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V6 · As contas do clube: folha, bilheteria, sócios e estádio</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Patrocínio no jogo: as placas do campo são inventário de verdade</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Reagir ao clube mais endividado enviado pela comunidade</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 7 — Temporada <span style="font-weight:400;color:#5a6a60">· Mostra a profundidade</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>O sorteio da copa, e por que ele é o mesmo para todos</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Chegar à final e perder nos pênaltis (reação real)</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V7 · A temporada inteira: copas, chaves, artilharia e a premiação</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>O arquivo: o que o jogo guarda de cada temporada</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>Ranking de treinadores: quem está em primeiro esta semana</td></tr><tr><td colspan="4" style="background:#e6edf8;font-weight:700;color:#17458F;padding:2.5mm">Semana 8 — Bastidores e lista <span style="font-weight:400;color:#5a6a60">· O pedido explícito</span></td></tr><tr><td style="width:14mm">Seg</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Um bug real, e a correção no mesmo dia</td></tr><tr><td style="width:14mm">Qua</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>O que a comunidade pediu e já entrou no jogo</td></tr><tr><td style="width:14mm">Qui</td><td style="width:20mm">Longo</td><td style="width:16mm"><span class="tag t-a">A</span></td><td><b>V8 · Como este jogo é feito (e como entrar na lista)</b></td></tr><tr><td style="width:14mm">Sex</td><td style="width:20mm">Post</td><td style="width:16mm"><span class="tag t-b">B</span></td><td>Os números das 8 semanas, abertos</td></tr><tr><td style="width:14mm">Sáb</td><td style="width:20mm">Short</td><td style="width:16mm"><span class="tag t-c">C</span></td><td>As 100 vagas: quantas faltam</td></tr>
+  </table>
+  <div class="nota">
+    <b>O vídeo longo entra à quinta por um motivo.</b> Dá dois dias de Shorts a aquecer o tema antes,
+    e o fim de semana — quando a audiência de jogos vê vídeo comprido — logo a seguir. Se falhar uma
+    quinta, publique-se na sexta e mova-se o post; nunca se acumula dois longos na mesma semana.
+  </div>
+</section>
+
+<!-- ===================== PARTE 5 — ROTEIROS LONGOS ===================== -->
+<section class="pag">
+  <h2>5 · Os oito vídeos longos</h2>
+  <p>Cada roteiro é uma estrutura com tempos, não um texto para decorar. As falas entre barras
+  são o <b>sentido</b> da frase — digam com as palavras de vocês. O que está em verde é o que a
+  câmara e a tela fazem.</p>
+  <div class="roteiro"><div class="roteiro-h"><b>V1 · O Elifoot da escola, refeito para 2026</b><span>9–11 min · Trilha A · Semana 1</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho — só rosto.</em><span class="fala">“Se você tem mais de trinta anos, você já perdeu uma tarde inteira nisto aqui.”</span><span class="tela">Corte seco para a tela de abertura do RetroFoot98.</span></div></div><div class="beat"><div class="t">0:12</div><div class="d"><em>Tela cheia.</em> Landing a rolar devagar, sem falar por cima. Três segundos de silêncio.<span class="tela">Deixar a música do jogo respirar.</span></div></div><div class="beat"><div class="t">0:20</div><div class="d"><em>Divisão 30/70.</em> Apresentação.<span class="fala">“Isto é o RetroFoot98. É o jogo de gerenciamento que a gente jogava na escola, refeito para 2026, e roda no navegador — não tem que instalar nada. Eu sou um dos três que estão a construir isto, e a partir de hoje vocês vão ver o jogo a ficar pronto em tempo real.”</span><span class="tela">Rosto maior enquanto fala; jogo parado na landing.</span></div></div><div class="beat"><div class="t">1:00</div><div class="d"><em>Demonstração.</em> Criar o save do zero: modo solo, países, moeda, nome.<span class="fala">“Repara numa coisa: em nenhum momento eu escolhi o meu clube.”</span><span class="tela">Jogo a 70%. Ir devagar, comentando cada escolha.</span></div></div><div class="beat"><div class="t">2:30</div><div class="d"><em>O sorteio.</em> Tela dos clubes, sorteio a correr.<span class="fala">“O clube é sorteado. Você não pega o time rico — você pega o que te calhou, e vira o que der para virar. É isto que faz a carreira valer.”</span><span class="tela">Rosto cresce no momento do resultado. Reação genuína.</span></div></div><div class="beat"><div class="t">3:20</div><div class="d"><em>Entrada no clube.</em> Boas-vindas, números do clube, primeira olhada no elenco.<span class="fala">“Série D, caixa curta, elenco fraco. Perfeito.”</span><span class="tela">Passar o rato pelos números enquanto fala.</span></div></div><div class="beat"><div class="t">4:00</div><div class="d"><em>Volta guiada, sem entrar em nada.</em> Menu lateral, uma frase por página.<span class="fala">“Formação, elenco, mercado, campeonatos, treinador, finanças, e-mail. Cada uma destas vai virar um vídeo — hoje é só para você ver o tamanho da coisa.”</span><span class="tela">Clique lento, uma pausa por página.</span></div></div><div class="beat"><div class="t">6:00</div><div class="d"><em>Uma rodada ao vivo, sem explicar nada.</em><span class="fala">“Aperta aqui e a rodada inteira começa a rolar. As quatro divisões, ao mesmo tempo.”</span><span class="tela">Jogo a 85%. Deixar o placar mexer. Silêncio de 10 s.</span></div></div><div class="beat"><div class="t">8:00</div><div class="d"><em>Rosto.</em> O pedido.<span class="fala">“O jogo está a ser feito agora. Tem uma lista de espera de cem vagas para quem quer entrar antes de abrir para todo mundo — o link está aqui em baixo e no primeiro comentário. E na quinta que vem eu volto com a tela de escalação, que é onde este jogo ganha ou perde você.”</span><span class="tela">Cartão final com a barra de vagas real da landing.</span></div></div></div></div><div class="roteiro"><div class="roteiro-h"><b>V2 · Escalar é desenhar: o campo, o arrasto e a formação</b><span>8–10 min · Trilha A · Semana 2</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> Campo cheio, onze camisas.<span class="fala">“Toda a gente que jogou isto na escola escalava por uma lista de nomes. Olha o que a lista escondia.”</span><span class="tela">Corte da lista de elenco para o campo desenhado.</span></div></div><div class="beat"><div class="t">0:15</div><div class="d"><em>Divisão.</em> O problema.<span class="fala">“Uma lista diz quem joga. Ela não diz quantos você tem na frente, quem está aberto na ponta e quem sobrou no meio. Escalar é uma coisa que se vê.”</span></div></div><div class="beat"><div class="t">1:00</div><div class="d"><em>Demonstração.</em> Campo de cima: camisa, número, energia.<span class="fala">“Cada camisa tem o número e a energia. Verde é jogador inteiro; quando aparece vermelho, ele está a jogar cansado — e cansado ele rende menos.”</span><span class="tela">Zoom numa camisa, depois abrir.</span></div></div><div class="beat"><div class="t">2:00</div><div class="d"><em>O arrasto.</em> Trocar um titular pelo banco arrastando.<span class="fala">“Trocar é arrastar. E repara: a lista da esquerda acende junto. Campo e lista são duas janelas para a mesma coisa.”</span><span class="tela">Fazer devagar, duas vezes.</span></div></div><div class="beat"><div class="t">3:30</div><div class="d"><em>As formações.</em> Passar por 4-4-2, 4-3-3, 3-3-4.<span class="fala">“O jogo tem as clássicas e tem o botão de escalar automático. O automático é honesto, mas ele não sabe o que você quer daquele jogo.”</span></div></div><div class="beat"><div class="t">5:00</div><div class="d"><em>Prova.</em> Escalar defensivo, jogar; escalar ofensivo, jogar o mesmo confronto.<span class="fala">“Mesma rodada, mesmo adversário, duas escalações. Vamos ver o que muda.”</span><span class="tela">Rosto grande na reação a cada resultado.</span></div></div><div class="beat"><div class="t">7:30</div><div class="d"><em>Rosto.</em> Fecho.<span class="fala">“Se você jogava isto na escola, escreve aqui em baixo qual era o seu esquema — eu leio todos. E a lista de espera continua com as cem vagas.”</span></div></div></div></div>
+</section>
+<section class="pag"><div class="roteiro"><div class="roteiro-h"><b>V3 · O leilão decide a liga</b><span>10–12 min · Trilha A · Semana 3</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> Um lance a ser coberto.<span class="fala">“Eu tinha este jogador. Tinha.”</span><span class="tela">Mostrar a tela do leilão com a oferta superada.</span></div></div><div class="beat"><div class="t">0:15</div><div class="d"><em>Divisão.</em> A ideia.<span class="fala">“No RetroFoot o mercado não é uma loja. Cada jogador tem vários clubes a disputar, e o leilão corre por semanas: se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.”</span></div></div><div class="beat"><div class="t">1:00</div><div class="d"><em>Demonstração.</em> Abrir o mercado, filtrar por posição, abrir uma ficha.<span class="fala">“Olha a ficha: atributos, contrato e o valor. E o contrato importa — jogador com contrato a acabar sai de graça.”</span></div></div><div class="beat"><div class="t">2:30</div><div class="d"><em>Proposta e contraproposta.</em><span class="fala">“Eu ofereço, o clube responde. Contraproposta não é um não — é o preço a que ele vende.”</span><span class="tela">Fazer uma oferta baixa de propósito e ler a resposta.</span></div></div><div class="beat"><div class="t">4:30</div><div class="d"><em>O leilão.</em> Entrar num leilão disputado.<span class="fala">“Aqui é a parte que decide a temporada. Repara no prazo: eu tenho estas semanas para cobrir.”</span><span class="tela">Jogo a 80%, zoom na coluna do prazo.</span></div></div><div class="beat"><div class="t">6:30</div><div class="d"><em>A conta.</em> Ir às Finanças e mostrar o que sobra em caixa.<span class="fala">“É por isto que o mercado dói: o dinheiro que eu ponho aqui é o mesmo que paga a folha no fim do mês.”</span></div></div><div class="beat"><div class="t">8:30</div><div class="d"><em>Resultado.</em> Avançar as semanas e ver quem levou.<span class="fala">“Se eu perder este, eu perco a temporada. Vamos ver.”</span><span class="tela">Reação inteira, sem corte.</span></div></div><div class="beat"><div class="t">10:00</div><div class="d"><em>Rosto.</em> Fecho.<span class="fala">“Conta aqui em baixo a maior burrada que você já fez num mercado. Lista de espera no primeiro comentário.”</span></div></div></div></div><div class="roteiro"><div class="roteiro-h"><b>V4 · A rodada ao vivo e o Modo Camarote</b><span>10–12 min · Trilha A · Semana 4</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> Placar a mexer.<span class="fala">“Quarenta jogos a acontecer ao mesmo tempo. E eu só posso ver um.”</span></div></div><div class="beat"><div class="t">0:15</div><div class="d"><em>Divisão.</em> O que é a rodada ao vivo.<span class="fala">“Quando a semana fecha, o jogo não te dá um resultado: ele joga a rodada. As quatro divisões, minuto a minuto.”</span><span class="tela">Jogo a 80%, a lista de partidas a atualizar.</span></div></div><div class="beat"><div class="t">1:30</div><div class="d"><em>Demonstração.</em> Trilho de competições, faixa, filtros.<span class="fala">“Aqui em cima eu troco de divisão sem sair da rodada.”</span></div></div><div class="beat"><div class="t">2:30</div><div class="d"><em>Camarote.</em> Entrar na sua partida.<span class="fala">“E este é o Camarote. A minha partida em tela cheia, com narração, a barra de pressão e a estatística a subir enquanto o jogo corre.”</span><span class="tela">Rosto pequeno, jogo grande. Deixar narrar sozinho 20 s.</span></div></div><div class="beat"><div class="t">4:30</div><div class="d"><em>A pressão.</em> Explicar a barra num momento de domínio.<span class="fala">“Esta barra não é enfeite: é a pressão a mudar de lado. Quando ela encosta, é gol a caminho.”</span></div></div><div class="beat"><div class="t">5:30</div><div class="d"><em>Intervalo.</em> Parar aos 45' e mexer no time.<span class="fala">“Aos 45 o jogo pára e devolve a decisão. Quem está cansado, quem entra.”</span></div></div><div class="beat"><div class="t">7:00</div><div class="d"><em>O acaso.</em> Lesão, cartão ou pênalti — o que vier.<span class="fala">“E às vezes acontece isto. O time joga com dez de verdade: o motor recalcula sem ele.”</span><span class="tela">Rosto grande. Não repetir a gravação — usar o que vier.</span></div></div><div class="beat"><div class="t">9:30</div><div class="d"><em>Pós-rodada.</em> Classificação das quatro divisões.<span class="fala">“Acabou a rodada, a tabela inteira mexe. E a próxima semana começa.”</span></div></div><div class="beat"><div class="t">10:30</div><div class="d"><em>Rosto.</em> Fecho.<span class="fala">“Na semana que vem eu abro uma sala e jogo isto com gente de verdade. Se quiser estar nela, a lista está aqui em baixo.”</span></div></div></div></div><div class="roteiro"><div class="roteiro-h"><b>V5 · Resenha: oito amigos, uma liga, um cronómetro</b><span>10–12 min · Trilha A · Semana 5</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> O lobby a encher de gente.<span class="fala">“Isto aqui é uma liga com oito treinadores de verdade. E ninguém joga sozinho.”</span></div></div><div class="beat"><div class="t">0:20</div><div class="d"><em>Divisão.</em> A ideia.<span class="fala">“No Modo Resenha, cada um pega um clube da mesma liga. A rodada é a mesma para todos, e ela só fecha quando toda a gente jogou.”</span></div></div><div class="beat"><div class="t">1:30</div><div class="d"><em>Demonstração.</em> Criar a sala, mostrar o link.<span class="fala">“Eu abro a sala e mando o link no grupo. Repara no cartão que aparece no WhatsApp — o convidado clica e cai direto aqui dentro.”</span><span class="tela">Mostrar o telemóvel real com a pré-visualização.</span></div></div><div class="beat"><div class="t">3:00</div><div class="d"><em>A sala.</em> Chat, quem chegou, sorteio dos clubes.<span class="fala">“Os clubes são sorteados aqui também. Ninguém escolhe o time rico.”</span><span class="tela">Reações dos outros dois no áudio.</span></div></div><div class="beat"><div class="t">4:30</div><div class="d"><em>A rodada.</em> Todos escalam, o cronómetro corre.<span class="fala">“Este cronómetro é o que mantém a liga viva: quem não escalar a tempo joga com o que estava.”</span></div></div><div class="beat"><div class="t">6:30</div><div class="d"><em>A partida.</em> Camarote com o adversário humano.<span class="fala">“E este jogo aqui não é contra a máquina.”</span><span class="tela">As três caras no quadro, se possível.</span></div></div><div class="beat"><div class="t">8:30</div><div class="d"><em>A conversa.</em> Chat depois do apito.<span class="fala">“É por isto que se chama Resenha.”</span></div></div><div class="beat"><div class="t">10:00</div><div class="d"><em>Rosto.</em> Fecho e chamada.<span class="fala">“Quer jogar numa liga destas? A lista de espera é como se entra — cem vagas, o link está aqui em baixo.”</span></div></div></div></div></section>
+<section class="pag"><div class="roteiro"><div class="roteiro-h"><b>V6 · As contas do clube: folha, bilheteria, sócios e estádio</b><span>9–11 min · Trilha A · Semana 6</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> O extrato no vermelho.<span class="fala">“Eu ganhei o jogo no sábado e perdi dinheiro na segunda.”</span></div></div><div class="beat"><div class="t">0:15</div><div class="d"><em>Divisão.</em> O que as finanças são.<span class="fala">“O clube tem caixa, folha, bilheteria, sócios e patrocínio. E tudo isso mexe todas as semanas, ganhe ou perca.”</span></div></div><div class="beat"><div class="t">1:00</div><div class="d"><em>Demonstração.</em> Extrato linha a linha.<span class="fala">“Aqui está tudo o que entrou e saiu. Sem letra pequena.”</span></div></div><div class="beat"><div class="t">2:30</div><div class="d"><em>Bilheteria.</em> Comparar um jogo cheio com um vazio.<span class="fala">“Encher o estádio é dinheiro. E encher depende de ganhar.”</span></div></div><div class="beat"><div class="t">4:00</div><div class="d"><em>O estádio.</em> Entrar na obra.<span class="fala">“Aumentar a capacidade custa agora e paga depois. É a decisão mais difícil da primeira temporada.”</span><span class="tela">Mostrar o custo e a projeção.</span></div></div><div class="beat"><div class="t">6:00</div><div class="d"><em>A folha.</em> Renovar um contrato caro.<span class="fala">“Renovar cedo é barato. Renovar em cima da hora é o que quebra clube pequeno.”</span></div></div><div class="beat"><div class="t">8:00</div><div class="d"><em>A escolha.</em> Vender o craque ou aguentar.<span class="fala">“Eu tenho que escolher. E não tem escolha certa.”</span><span class="tela">Rosto grande, decisão ao vivo.</span></div></div><div class="beat"><div class="t">9:30</div><div class="d"><em>Rosto.</em> Fecho.<span class="fala">“Diz aqui em baixo o que você faria. Lista de espera no primeiro comentário.”</span></div></div></div></div><div class="roteiro"><div class="roteiro-h"><b>V7 · A temporada inteira: copas, chaves, artilharia e a premiação</b><span>11–13 min · Trilha A · Semana 7</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> O troféu na tela de premiação.<span class="fala">“Nove meses de jogo cabem em onze minutos. Vem ver como acaba.”</span></div></div><div class="beat"><div class="t">0:20</div><div class="d"><em>Divisão.</em> O mapa da temporada.<span class="fala">“Liga, copa nacional e continental a correr ao mesmo tempo, cada uma com o seu calendário.”</span></div></div><div class="beat"><div class="t">1:30</div><div class="d"><em>Sorteio da copa.</em><span class="fala">“O sorteio é o mesmo para toda a gente — e aqui está a minha chave.”</span></div></div><div class="beat"><div class="t">3:00</div><div class="d"><em>Grupos e mata-mata.</em> Navegar a chave.<span class="fala">“Dá para ver a chave inteira e o meu caminho dentro dela.”</span></div></div><div class="beat"><div class="t">5:00</div><div class="d"><em>Artilharia.</em> Quem está a marcar.<span class="fala">“E o gol tem dois nomes: quem marcou e quem deu o passe.”</span></div></div><div class="beat"><div class="t">6:30</div><div class="d"><em>A reta final.</em> Três rodadas em sequência, sem cortar.<span class="fala">“Falta isto para acabar.”</span><span class="tela">Timelapse com o placar visível.</span></div></div><div class="beat"><div class="t">9:00</div><div class="d"><em>O fim.</em> Premiação, acessos e quedas.<span class="fala">“Acesso, rebaixamento e o troféu. E o arquivo guarda tudo isto para a temporada que vem.”</span><span class="tela">Reação ao resultado, seja qual for.</span></div></div><div class="beat"><div class="t">11:00</div><div class="d"><em>Rosto.</em> Fecho.<span class="fala">“Na semana que vem eu abro o código e o painel e mostro como isto é feito por dentro.”</span></div></div></div></div><div class="roteiro"><div class="roteiro-h"><b>V8 · Como este jogo é feito (e como entrar na lista)</b><span>10–12 min · Trilha A · Semana 8</span></div>
+      <div class="roteiro-c"><div class="beat"><div class="t">0:00</div><div class="d"><em>Gancho.</em> Um erro vermelho na consola.<span class="fala">“Esta linha aqui estragava um gol em cada três. Ficou meses no jogo, e ninguém tinha reparado.”</span></div></div><div class="beat"><div class="t">0:20</div><div class="d"><em>Divisão.</em> A promessa do vídeo.<span class="fala">“Hoje não tem gameplay. Hoje é como isto é feito — e por que é que três pessoas conseguem fazer um jogo destes em 2026.”</span></div></div><div class="beat"><div class="t">1:30</div><div class="d"><em>O motor.</em> Mostrar o código do motor de partida.<span class="fala">“O mesmo código corre no seu navegador e no nosso servidor. É isso que garante que o que você vê ao vivo é o que fica gravado — ninguém ganha no cliente.”</span></div></div><div class="beat"><div class="t">3:30</div><div class="d"><em>O bug.</em> Contar a história da assistência.<span class="fala">“O passe para gol chamava uma tabela que não existia naquele pedaço do código. O placar subia, mas o lance não aparecia na narração. Um erro de escopo — o tipo de coisa que só aparece quando alguém olha.”</span><span class="tela">Mostrar o antes e o depois, e a rodada a correr limpa.</span></div></div><div class="beat"><div class="t">5:30</div><div class="d"><em>O painel.</em> Inventário de publicidade, com dados de demonstração.<span class="fala">“Este é o painel onde a gente gere o jogo: os espaços de publicidade, os patrocinadores, as finanças.”</span><span class="tela">NUNCA com dados reais de anunciante.</span></div></div><div class="beat"><div class="t">7:00</div><div class="d"><em>Os números.</em> Abrir os números das oito semanas.<span class="fala">“Estes são os nossos números. Sem inventar nada.”</span></div></div><div class="beat"><div class="t">8:30</div><div class="d"><em>O pedido, sem rodeio.</em><span class="fala">“A lista de espera tem cem vagas. Quem entra recebe o jogo antes de abrir, e ajuda a decidir o que entra a seguir. Se você viu até aqui, é para você que a gente está a fazer isto.”</span><span class="tela">Barra de vagas real na tela, com o número do dia.</span></div></div><div class="beat"><div class="t">10:00</div><div class="d"><em>As três caras.</em> Fecho em conjunto.<span class="fala">“Até semana que vem.”</span></div></div></div></div></section>
+
+<!-- ===================== PARTE 6 — SHORTS ===================== -->
+<section class="pag">
+  <h2>6 · Os doze shorts</h2>
+  <p>Todos com a mesma anatomia: <b>gancho nos primeiros dois segundos</b> (antes de qualquer
+  contexto), três batidas no meio e uma chamada curta no fim. Rosto em cima, jogo em baixo.</p>
+  <div class="roteiro"><div class="roteiro-h"><b>S1 · O clube é sorteado</b><span>Semana 1 · C · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Neste jogo você NÃO escolhe o seu time.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Tela do sorteio a girar.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · Rosto em cima, sorteio a correr em baixo. A frase do gancho.</li><li>2–15 s · O sorteio pára. Reação inteira — decepção ou festa, o que vier.</li><li>15–30 s · “Série D, elenco fraco, caixa curta. É este que eu tenho que subir.” Passar pelo elenco.</li><li>30–35 s · “Qual clube o jogo te daria? Lista de espera no link.”</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S2 · O pênalti no último minuto</b><span>Semana 4 · C · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Último minuto. Pênalti. Quem bate?”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Tela de escolher o batedor.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · A tela do batedor, os nomes à vista.</li><li>2–10 s · Escolher em voz alta, dizendo porquê (o mais frio, não o melhor).</li><li>10–25 s · A tela de suspense. Silêncio absoluto. Deixar correr.</li><li>25–35 s · O resultado e a reação, sem corte. Cartão da lista no fim.</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S3 · O time joga com dez de verdade</b><span>Semana 4 · B · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Levou vermelho. E agora o time joga com dez — de verdade.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Cartão vermelho na tela.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · O cartão vermelho, grande.</li><li>2–12 s · “Em muito jogo isto é só um número que piora. Aqui o jogador sai de campo e o motor recalcula o time sem ele.”</li><li>12–28 s · Mostrar o campo com dez e a barra de pressão a virar.</li><li>28–35 s · “Dá para segurar? Vem ver no canal.”</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S4 · Perder o jogador na última semana</b><span>Semana 3 · C · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Eu tinha este jogador há três semanas.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Leilão com a oferta superada.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · A linha do leilão com o lance coberto.</li><li>2–15 s · Explicar o leilão em uma frase, com o prazo à vista.</li><li>15–28 s · Cobrir a oferta e ver o caixa cair. Reação.</li><li>28–35 s · “Você cobria ou deixava ir?”</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S5 · O gol tem dois nomes</b><span>Semana 7 · B · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Todo gol aqui tem dois nomes.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Lance do gol com a assistência.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · A narração do gol a aparecer.</li><li>2–14 s · “Quem marcou e quem deu o passe. E o passe não é sorteio: meia assiste mais do que zagueiro, como no futebol de verdade.”</li><li>14–28 s · Abrir a artilharia e mostrar a coluna de assistências.</li><li>28–35 s · “Detalhe pequeno? É o que faz o jogo parecer futebol.”</li></ul>
+      </div></div>
+</section>
+<section class="pag"><div class="roteiro"><div class="roteiro-h"><b>S6 · A barra de pressão</b><span>Semana 4 · B · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Esta barra diz quem vai marcar.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Camarote com a pressão a encostar.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · A barra quase toda de um lado.</li><li>2–14 s · “Não é enfeite. Ela mostra a pressão a mudar de lado enquanto o jogo corre.”</li><li>14–30 s · Deixar correr até sair o gol (ou não sair — serve igual).</li><li>30–35 s · Cartão da lista.</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S7 · O estádio paga depois</b><span>Semana 6 · B · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Esta obra custa tudo o que eu tenho.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Tela do estádio, obra e custo.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · O custo da obra na tela.</li><li>2–14 s · “Aumentar o estádio tira o caixa agora e devolve na bilheteria depois. Só que ‘depois’ é a temporada que vem.”</li><li>14–30 s · Mostrar a bilheteria antes e a projeção.</li><li>30–35 s · “Você construía ou reforçava o elenco?”</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S8 · A imprensa depois do título</b><span>Semana 7 · C · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Ganhei o campeonato e a imprensa quer falar comigo.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Caixa de e-mail com a manchete.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · O e-mail a abrir.</li><li>2–16 s · Ler a manchete em voz alta, reagindo.</li><li>16–30 s · Responder à imprensa e mostrar que a resposta muda o clima.</li><li>30–35 s · Cartão da lista.</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S9 · O cronómetro que segura a liga</b><span>Semana 5 · B · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Oito pessoas. Um cronómetro. Ninguém joga sozinho.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Sala de espera com o cronómetro.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · O cronómetro a correr, nomes na sala.</li><li>2–16 s · “No Modo Resenha a rodada é a mesma para todos, e ela só fecha quando toda a gente jogou.”</li><li>16–30 s · O último a escalar, com os outros a pressionar no chat.</li><li>30–35 s · “Quer entrar numa liga destas? Link na bio.”</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S10 · O convite que cai direto na sala</b><span>Semana 1 · C · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Mandei o link no grupo e olha o que aparece.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Telemóvel com o cartão do WhatsApp.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · O cartão do convite no WhatsApp, no telemóvel real.</li><li>2–14 s · Tocar no link e mostrar a pessoa a cair dentro da sala.</li><li>14–28 s · O clube dela a ser sorteado ao vivo.</li><li>28–35 s · “Chama a tua turma.”</li></ul>
+      </div></div></section>
+<section class="pag"><div class="roteiro"><div class="roteiro-h"><b>S11 · Um bug real, corrigido no mesmo dia</b><span>Semana 8 · B · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Este erro estragava um gol em cada três.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Erro vermelho na consola.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · A consola com o erro vermelho.</li><li>2–16 s · “O placar subia, mas o gol não aparecia na narração e ninguém levava o crédito. Meses assim.”</li><li>16–30 s · O antes e o depois, com a rodada a correr limpa.</li><li>30–35 s · “É isto que a gente mostra aqui: o jogo a ficar pronto.”</li></ul>
+      </div></div><div class="roteiro"><div class="roteiro-h"><b>S12 · Quantas vagas faltam</b><span>Semana 8 · C · 30–35 s · vertical 9:16</span></div>
+      <div class="roteiro-c">
+        <p style="margin-bottom:2mm"><b>Gancho (0–2 s):</b> <span class="fala" style="display:inline-block;margin-top:0">“Sobraram poucas.”</span></p>
+        <p style="font-size:8.5pt;color:#5a6a60;margin-bottom:2mm"><b>Tela:</b> Barra de vagas da landing.</p>
+        <ul style="font-size:9pt;margin-bottom:0"><li>0–2 s · A barra de vagas, com o número do dia.</li><li>2–14 s · “São cem vagas. Quem entra recebe antes de abrir e ajuda a decidir o que entra a seguir.”</li><li>14–28 s · Passar rápido por três telas do jogo (campo, leilão, Camarote).</li><li>28–35 s · “Link aqui em baixo.”</li></ul>
+      </div></div>
+
+  <h2 style="margin-top:8mm">7 · A chamada da lista de espera</h2>
+  <p>Uma só, repetida em todo o lado, sem variação criativa — chamada que muda de forma não é
+  lembrada. Vai no fim de cada peça, na descrição e no primeiro comentário fixado.</p>
+  <div class="nota">
+    <b>Falada:</b> “A lista de espera tem cem vagas. Quem entra recebe o jogo antes de abrir
+    para todo mundo — e ajuda a decidir o que entra a seguir.”<br><br>
+    <b>Escrita (descrição e comentário):</b> “Lista de espera do RetroFoot98 — 100 vagas:
+    retrofoot.com.br”
+  </div>
+  <p>Três coisas que fazem esta chamada funcionar melhor do que “se inscreve no canal”:
+  ela é <b>escassa</b> (cem vagas, com a contagem real na barra da página), é <b>concreta</b>
+  (recebe antes) e dá <b>poder</b> (ajuda a decidir). Nenhuma das três é invenção de marketing —
+  as três já são verdade no produto, e é por isso que se pode dizer sem receio.</p>
+</section>
+
+<!-- ===================== PARTE 8 — MEDIR ===================== -->
+<section class="pag">
+  <h2>8 · O que medir</h2>
+  <p>Quatro números por semana, sempre os mesmos, num sítio só. Mais do que isso ninguém olha.</p>
+  <table>
+    <tr><th>Número</th><th>Onde</th><th>O que ele diz</th></tr>
+    <tr><td>Inscrições na lista</td><td>Contagem da landing</td><td>O único que importa. Os outros três explicam-no.</td></tr>
+    <tr><td>Retenção aos 30 s (Shorts)</td><td>Estatísticas da plataforma</td><td>Se está abaixo de 60%, o gancho não é gancho.</td></tr>
+    <tr><td>Duração média (longo)</td><td>YouTube Studio</td><td>Abaixo de 40% do vídeo: uma tela por vídeo deixou de ser uma tela.</td></tr>
+    <tr><td>Cliques no link</td><td>Descrição / bio</td><td>Muitas vistas e poucos cliques = a chamada está a faltar, não a audiência.</td></tr>
+  </table>
+
+  <h3>A revisão de sexta, em quinze minutos</h3>
+  <ol>
+    <li>Os quatro números da semana, lado a lado com os da semana anterior.</li>
+    <li>A peça que mais rendeu: <b>por que é que rendeu</b>, em uma frase.</li>
+    <li>A peça que menos rendeu: fica, muda ou sai.</li>
+    <li>O tema da semana seguinte está gravado? Se não, o que falta.</li>
+  </ol>
+
+  <div class="nota">
+    <b>O erro mais provável nas primeiras semanas</b> é publicar muito e mostrar pouco: cinco telas
+    num vídeo, três assuntos num Short. O jogo tem material para meses — o que falta é paciência
+    para dedicar oito minutos a uma tela só. Se tiverem de cortar alguma coisa do plano, cortem
+    quantidade, nunca profundidade.
+  </div>
+
+  <div class="pe">
+    <span>RetroFoot98 · Plano de conteúdo e roteiros</span>
+    <span>Inventário levantado do jogo em produção</span>
+  </div>
+</section>
+</body>
+</html>

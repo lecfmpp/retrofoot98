@@ -246,7 +246,7 @@ function rfLiveHTML(RL){
       <div class="rf-lv-mid">
         ${rfLvFaixaHTML(RL)}
         ${rfTrilhoHTML(RL)}
-        ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'468×60'}):''}
+        ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'970×90'}):''}
         ${cards}
       </div>
       ${rfRail('right')}
@@ -322,7 +322,13 @@ function rfCamHTML(RL){
             <button type="button" class="rf-cam-x" onclick="camToggle()" title="Voltar à semana (Esc)">
               <b class="rf-so-desktop">✖ Voltar à semana</b><b class="rf-so-mobile">✖</b></button>
           </div>
-          ${rfTrilhoHTML(CL.live)}
+          <!-- O TRILHO DE COMPETICOES NAO ENTRA AQUI. Ele existe para escolher QUAL
+               competicao se esta a ver, e no Camarote nao ha essa escolha: a tela
+               inteira e uma partida so', a sua. As pastilhas prometiam uma troca
+               que este ecra nao faz -- levavam ao card de outra competicao, que
+               nem sequer esta visivel daqui dentro. Elas ficam na rodada ao vivo
+               (ver rfLiveHTML), que e onde se veem todos os jogos e a escolha
+               significa alguma coisa. -->
           <!-- A BANDA DE PATROCINIO SOBE PARA CIMA DO CONTEUDO. Estava entre o
                miolo dinamico e o rodape, ou seja, no fundo: quem entra no
                Camarote para VER O JOGO nunca rolava ate la, e o espaco vendido
@@ -463,10 +469,14 @@ function rfCamStatsHTML(m){
   const hc=clubOf(m.h)||{}, ac=clubOf(m.a)||{};
   const cores=camBarColors(hc,ac);
   const live=(m.sim&&m.sim.perf)||m.livePerf||null;
-  let possLbl='Domínio em campo', ph, pa;
-  if(live && ((live.H.poss+live.A.poss)>0)){ possLbl='Posse de bola';
-    const t=live.H.poss+live.A.poss; ph=Math.round(100*live.H.poss/t); pa=100-ph; }
-  else { const t=(m.domH+m.domA)||1; ph=Math.round(100*m.domH/t); pa=100-ph; }
+  /* O NUMERO E' O MESMO DA BARRA DE PRESSAO LA' EM CIMA (camEquilibrio, ui/main.js):
+     uma conta so', em vez de duas iguais que podem divergir na proxima mudanca. O
+     rotulo continua a dizer QUAL das duas fontes esta a ser usada. */
+  const possLbl=(live && ((live.H.poss+live.A.poss)>0)) ? 'Posse de bola' : 'Domínio em campo';
+  const ph=(typeof camEquilibrio==='function')?camEquilibrio(m)
+    :(live&&(live.H.poss+live.A.poss)>0?Math.round(100*live.H.poss/(live.H.poss+live.A.poss))
+      :Math.round(100*(m.domH||0)/((m.domH+m.domA)||1)));
+  const pa=100-ph;
   const H=m.camStats.H, A=m.camStats.A;
   // as duas barras são ESPELHADAS e normalizadas pelo maior dos dois, não pela
   // soma: 11×7 tem que ler como 11 contra 7, não como 61% contra 39%.
@@ -505,25 +515,79 @@ function rfCamStatsHTML(m){
   </div>`;
 }
 
-/* BANDA DE PATROCÍNIO — mesmo inventário AD_SPONSORS da pausa e da faixa de copa.
-   A marca em destaque gira com o relógio (camAdIdx) e camUpdate acompanha. */
+/* BANDA DE PATROCÍNIO — CINCO LUGARES, CADA UM COM O SEU BOTÃO
+   ---------------------------------------------------------------------
+   A banda tem cinco pastilhas de logo e UM botão, à direita. O destaque gira
+   com o relógio da partida (um lugar a cada 8 minutos, em camUpdate) e o botão
+   acompanha: ele é sempre o do patrocinador em destaque.
+
+   O QUE ESTÁ NO BOTÃO VEM DO PAINEL, não do código. Texto, cor de fundo e cor
+   do texto viajam com o criativo (ad_creatives.cta_texto/cta_bg/cta_fg) e a
+   URL é o mesmo link_destino do logo — o anunciante compra um destino, não
+   dois. Antes isto vinha de AD_SPONSORS, a lista de marcas de casa embutida no
+   jogo: para trocar a chamada de um patrocinador era preciso publicar o jogo.
+
+   SEM TEXTO NÃO HÁ BOTÃO. É assim que um patrocinador que só quer o logo fica
+   só com o logo, sem precisar de outra chave.
+
+   O 1º LUGAR TEM UM SUPLENTE. rf98.pausa.barra é o patrocínio de apresentação
+   e cobre as outras faixas de "apresentado por" do jogo; enquanto
+   rf98.camarote.logo1 estiver vazio, é ele que aparece ali — quem já comprou a
+   apresentação continua a ser entregue no Camarote.
+
+   AS CHAVES SÃO CONTRATO com elifoot_v3.ad_spaces (ver
+   scripts/sql/ad_botao_por_patrocinador.sql) — não renomear de um lado só. */
+const RF_CAM_LOGOS=['rf98.camarote.logo1','rf98.camarote.logo2','rf98.camarote.logo3',
+                    'rf98.camarote.logo4','rf98.camarote.logo5'];
+const RF_CAM_LOGO1_ALT='rf98.pausa.barra';
+/* cor do botão do patrocinador; sem cor publicada, a da marca do jogo */
+function rfCamCtaCores(c){
+  const cor=v=>(/^#[0-9a-f]{3,8}$/i.test(String(v||'').trim())?String(v).trim():null);
+  return { bg: cor(c&&c.cta_bg) || 'var(--brand-secondary,#F2B90C)',
+           fg: cor(c&&c.cta_fg) || 'var(--brand-primary,#17458F)' };
+}
+/* o criativo de um lugar da banda (com o suplente do 1º lugar) */
+function rfCamLogo(k){
+  const pega=c=>(typeof ADS!=='undefined'&&window.ADS)?ADS.get(c):null;
+  const c=pega(RF_CAM_LOGOS[k]);
+  if(c&&c.ficheiro_url) return { chave:RF_CAM_LOGOS[k], c };
+  if(k===0){ const alt=pega(RF_CAM_LOGO1_ALT); if(alt&&alt.ficheiro_url) return { chave:RF_CAM_LOGO1_ALT, c:alt }; }
+  return { chave:RF_CAM_LOGOS[k], c:null };
+}
+/* o botão do lugar em destaque — devolve '' quando aquele patrocinador não pediu botão */
+function rfCamCtaHTML(k){
+  const { chave, c } = rfCamLogo(k);
+  const txt=(c&&c.cta_texto||'').trim();
+  if(!c || !txt || !c.link_destino) return '';
+  const cor=rfCamCtaCores(c);
+  return `<button type="button" class="rf-cam-cta" id="rf-cam-cta" data-ad-cta="${escC(chave)}"
+    style="background:${escC(cor.bg)};color:${escC(cor.fg)}"
+    onclick="ADS.clique('${escC(chave)}')">${escC(txt)}</button>`;
+}
+/* lugar desligado no painel nao entra na banda; com os cinco desligados a banda
+   inteira sai, e o pe' do Camarote fecha sem faixa nenhuma em vez de mostrar uma
+   moldura vazia com um rotulo dentro */
+function rfCamLugarLigado(k){
+  if(!(window.ADS && ADS.ligado)) return true;
+  return ADS.ligado(RF_CAM_LOGOS[k]) || (k===0 && ADS.ligado(RF_CAM_LOGO1_ALT));
+}
+/* os lugares que de facto estao na banda, na ordem em que aparecem */
+function rfCamLugares(){ return RF_CAM_LOGOS.map((_,k)=>k).filter(rfCamLugarLigado); }
 function rfCamPatroHTML(){
-  /* mesma chave da barra da pausa: quem compra o patrocinio leva os dois lugares */
-  if(typeof ADS!=='undefined' && window.ADS){
-    const c=ADS.get('rf98.pausa.barra');
-    if(c && c.ficheiro_url) return `<div class="rf-cam-patro"
-      data-ad-chave="rf98.pausa.barra" data-ad-id="${escC(c.id)}">
-      <span class="rf-cam-patro-l">CAMAROTE APRESENTADO POR</span>
-      <div class="rf-cam-patro-marcas"><img class="rf-cam-ad on" src="${escC(c.ficheiro_url)}" alt="Patrocinador"></div>
-      ${c.link_destino?`<button type="button" class="rf-cam-cta" onclick="ADS.clique('rf98.pausa.barra')">Conhecer o patrocinador</button>`:''}
-    </div>`;
-  }
-  if(typeof AD_SPONSORS==='undefined' || !AD_SPONSORS.length) return '';
-  const i=camAdIdx(), s=AD_SPONSORS[i];
+  const lugares=rfCamLugares();
+  if(!lugares.length) return '';
+  /* o destaque inicial é o do primeiro lugar ligado; camUpdate assume a partir daí */
+  const pecas=lugares.map((k,i)=>{
+    const { chave, c } = rfCamLogo(k);
+    if(c) return `<img class="rf-cam-ad${i===0?' on':''}" src="${escC(c.ficheiro_url)}" alt="Patrocinador"
+      data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
+      ${c.link_destino?`style="cursor:pointer" onclick="ADS.clique('${escC(chave)}')"`:''}>`;
+    return `<span class="rf-cam-ad rf-cam-ad-vazio" data-ad-vazio="${escC(chave)}">240×80</span>`;
+  }).join('');
+  const temAlgum=lugares.some(k=>!!rfCamLogo(k).c);
   return `<div class="rf-cam-patro">
-    <span class="rf-cam-patro-l">CAMAROTE APRESENTADO POR</span>
-    <div class="rf-cam-patro-marcas">${AD_SPONSORS.map((x,k)=>
-      `<img class="rf-cam-ad ${k===i?'on':''}" src="${escC(x.src)}" alt="${escC(x.nome)}">`).join('')}</div>
-    <button type="button" class="rf-cam-cta" id="rf-cam-cta" style="${camCtaStyle(i)}" onclick="camAdClick()">${escC(s.cta)}</button>
+    <span class="rf-cam-patro-l">${temAlgum?'CAMAROTE APRESENTADO POR':'PATROCINADORES DO CAMAROTE'}</span>
+    <div class="rf-cam-patro-marcas">${pecas}</div>
+    ${rfCamCtaHTML(lugares[0])}
   </div>`;
 }

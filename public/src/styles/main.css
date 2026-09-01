@@ -1929,20 +1929,67 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    esta peça: a arte inteira, sem o cartão-casa por baixo. Mesma moldura rebaixada e mesmo
    rótulo "PUBLICIDADE" (herdados de .cl-ad) — o que muda é o conteúdo.
    TODOS estes blocos só existem no HTML quando há criativo: espaço vazio não é desenhado. */
-.rf-ad{position:relative;overflow:hidden;background:#0a0a0a;line-height:0}
+/* A ARTE E' A PECA INTEIRA, ATE' NO CANTO ARREDONDADO.
+   O espaco desenhava uma moldura clara por baixo do criativo — 1px de borda e o
+   fundo da superficie — e o recorte arredondado comia o canto QUADRADO da arte:
+   sobrava uma meia-lua clara em cada canto, que lia como falha de preenchimento
+   do anuncio. A moldura pertence ao LUGAR VAZIO, e o marcador (.rf-adph) ja'
+   traz a sua; aqui ela sai, e o que o raio recorta passa a ser a propria arte.
+   O fundo fica transparente: se um criativo vier fora de proporcao, o que sobra
+   e' a pagina, nao uma tarja preta. */
+.rf-ad{position:relative;overflow:hidden;background:transparent;line-height:0}
 .rf-ad .rf-ad-art{display:block;width:100%;height:auto;max-height:250px;object-fit:contain}
+/* A ARTE PREENCHE A CAIXA, ponta a ponta — a caixa ja' vem na proporcao do
+   formato que o painel vende, entao o criativo na medida certa nao sobra nem
+   falta em lado nenhum.
+
+   `cover` NOS TRILHOS, `contain` NAS FAIXAS, e a razao e' o painel: um espaco
+   guarda UM criativo so', e a validacao do upload aceita a medida de desktop OU
+   a de telemovel (ver modalUpload em public/admin/admin.js). O trilho tem uma
+   medida unica — 160×600 nas duas — e ai' `cover` fecha ate' a fresta de meio
+   pixel de um upload um pixel fora. As faixas tem duas medidas e uma arte so':
+   com `cover`, quem comprasse em 970×90 teria o anuncio decepado no telemovel,
+   onde a caixa e' 320×100. `contain` preenche igual quando a arte bate com a
+   caixa e, quando nao bate, mostra o anuncio INTEIRO, menor — cortar a mensagem
+   de quem pagou e' pior do que sobrar pagina em volta. */
+/* O <picture> TEM DE ESVAZIAR-SE ENTRE A CAIXA E A ARTE. Ele entra no lugar do
+   <img> quando o criativo tem arte de telemovel (ver html() em net/ads.js), e e'
+   `display:inline` — como filho de um flex ele blocifica e passa a medir o
+   TAMANHO NATURAL da imagem. Ai' o `width:100%` do <img> passa a ser 100% de 970
+   em vez de 100% da caixa, e a arte encolhia para o seu tamanho de ficheiro,
+   centrada, com a pagina em volta: o mesmo defeito das bordas, por outro caminho. */
+.rf-ad picture{display:block;width:100%;height:100%}
+.rf-ad-slot .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:cover}
+.rf-ad-top .rf-ad-art,.rf-ad-inline .rf-ad-art,.rf-ad-email .rf-ad-art{
+  width:100%;height:100%;max-height:none;object-fit:contain}
 .rf-ad.cl-ad{margin:12px 0 0;border:1px solid var(--line-1)}
 .rf-ad.cl-ad:before{content:"PUBLICIDADE";position:absolute;top:0;left:0;z-index:1;
   background:var(--chrome);color:#4a4a4a;font:700 9px/1 var(--sans);letter-spacing:1px;padding:2px 6px}
 /* retângulo da coluna direita do hub (300×250) */
 .rf-ad-rect{margin:8px 0 0;border:1px solid var(--line-1)}
 .rf-ad-rect .rf-ad-art{max-height:250px}
+/* TRILHOS 160×600 (rodada ao vivo e Camarote) — A ARTE OCUPA O TRILHO INTEIRO.
+   O `max-height:250px` da regra genérica acima é a medida do retângulo do hub, e
+   aplicava-se também ao skyscraper: com a largura presa em 160 e a altura cortada
+   em 250, o `object-fit:contain` encolhia um criativo de 160×600 para ~66×250 e
+   punha-o a boiar no meio de um espaço de 600 de altura — espaço vendido em
+   skyscraper, arte entregue do tamanho de um selo. A altura aqui é a do trilho, e
+   `contain` continua a mandar: arte fora da proporção fica com tarja, nunca
+   esticada. O TAMANHO do trilho continua a vir de `[data-ad-rail] .rf-ad-slot`
+   (rf26.css), que é quem manda nos dois estados do espaço — com e sem criativo.
+   COMO A ARTE PREENCHE, ver a regra de `cover` no topo deste bloco. */
 /* splash da tela de carregamento (16:9) e cartão do convite (1200×630) */
 .rf-ad-splash,.rf-ad-card{margin:14px auto;max-width:520px;border:1px solid var(--line-1)}
 .rf-ad-splash .rf-ad-art,.rf-ad-card .rf-ad-art{max-height:none}
-/* faixa entre divisões na partida ao vivo */
-.rf-ad-inline{margin:10px auto;max-width:468px}
-.rf-ad-inline .rf-ad-art{max-height:60px}
+/* FAIXA ENTRE DIVISÕES — DE PONTA A PONTA, na largura da faixa da competição.
+   Era um bloco de 468 centrado no meio de uma coluna de 1180: sobrava um terço
+   de vazio de cada lado e a peça não alinhava com nada — nem com a barra do nome
+   da competição, logo acima dela, nem com os cartões, logo abaixo. O formato
+   passa a ser o leaderboard de 970×90 (o mesmo do topo do jogo), desenhado na
+   LARGURA DA COLUNA: `aspect-ratio` em vez de altura fixa é o que deixa a faixa
+   acompanhar a coluna sem cortar o criativo — mesma receita de .rf-ad-entrada.
+   A medida também mudou em elifoot_v3.ad_spaces: as duas pontas do contrato. */
+.rf-ad-inline{margin:10px 0;width:100%;max-width:none;aspect-ratio:970/90}
 /* FAIXA ÂNCORA — o único espaço por cima do conteúdo. Fica presa ao rodapé, centrada, e
    reserva o seu próprio espaço com padding no fim da página (ver .cl-lp-page/.cl-wrap). */
 .rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
@@ -1957,7 +2004,8 @@ body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
      de a tapar (56px da barra + a área segura do aparelho) */
   .rf-anchor{bottom:calc(56px + env(safe-area-inset-bottom,0px));width:100%}
   .rf-anchor .rf-ad-art{max-height:50px}
-  .rf-ad-inline .rf-ad-art{max-height:50px}
+  /* no telefone a faixa vende 320×50, e é essa a proporção que ela reserva */
+  .rf-ad-inline{aspect-ratio:320/50}
   body.rf-tem-anchor .cl-lp-page,
   body.rf-tem-anchor .cl-wrap{padding-bottom:124px}
 }

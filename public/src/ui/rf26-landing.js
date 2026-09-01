@@ -68,14 +68,31 @@ function rfSavesTeto(){
   const t=st.savesMax;
   return (t===null||t===undefined) ? Infinity : Number(t);
 }
+/* ===== A COTA E' DE CRIACOES NO MES, NAO DE SAVES VIVOS =====
+   Contava-se quantos saves EXISTEM, e isso deixava a porta aberta ao vaivem:
+   criar, apagar, criar outro, sem fim — o teto de 3 era, na pratica, saves
+   infinitos desde que so' 3 vivessem ao mesmo tempo.
+
+   Agora conta-se quantos foram CRIADOS no mes, e o numero vem do banco (o livro
+   solo_save_criacoes, via my_plan), nao da lista local: apagar um save encolhe a
+   lista e NAO devolve a vaga, entao contar a lista daria a resposta errada
+   exactamente no caso que esta regra existe para cobrir. */
 function rfSavesUsados(){
-  return ((typeof CL!=='undefined'&&CL.soloSaves)||[]).length;
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return Number(st.savesNoMes||0);
 }
-/* Falta ainda espaco para mais uma carreira? Enquanto a lista nao carregou
-   (CL.soloSaves === null) responde que sim: o cartao nao pode nascer trancado
-   so' porque a rede esta lenta. */
+function rfSavesRenovaEm(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(!st.savesRenovaEm) return null;
+  try{ return new Date(st.savesRenovaEm).toLocaleDateString('pt-BR',{day:'2-digit',month:'long'}); }
+  catch(e){ return null; }
+}
+/* Ainda cabe uma carreira nova neste mes? Sem resposta do banco (savesNoMes
+   null) diz que sim — a recusa que vale e' a do servidor, e trancar por falta de
+   resposta e' trancar quem tem direito. */
 function rfPodeSalvarNovo(){
-  if(typeof CL==='undefined' || CL.soloSaves==null) return true;
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(st.savesNoMes==null) return true;
   return rfSavesUsados() < rfSavesTeto();
 }
 function rfPodeHospedar(){
@@ -100,6 +117,26 @@ function rfPodeAvatarIA(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return st.avatarIA !== false;
 }
+/* ===== OS 7 DIAS DE RESENHA DO PELADEIRO =====
+   Contam da criacao da conta, nao da primeira sala: quem so' quer provar o modo
+   nao precisa de o descobrir para o relogio comecar. Plano pago nao tem prazo.
+
+   Aqui, como nas outras, `false` explicito e' que tranca — `null` (o banco nao
+   respondeu, ou e' uma versao sem o campo) deixa passar. Trancar por falta de
+   resposta e' trancar quem tem direito. A recusa que vale acontece no servidor,
+   no claim_seat. */
+function rfPodeResenha(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.podeResenha !== false;
+}
+/* quantos dias ainda faltam, para a tela poder dizer "faltam 3 dias" em vez de
+   uma data seca. Devolve null para quem nao tem prazo nenhum. */
+function rfResenhaDiasRestantes(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(!st.resenhaAte) return null;
+  const ms=new Date(st.resenhaAte).getTime()-Date.now();
+  return ms<=0 ? 0 : Math.ceil(ms/86400000);
+}
 
 /* ===== O CADEADO EXPLICA-SE =====
    Uma trava que so' diz "nao" perde a pessoa. Cada uma delas abre esta janela:
@@ -112,15 +149,22 @@ function rfPodeAvatarIA(){
    trouxe a pessoa ate' aqui ("jogo · saves · Resenha"), que e' o que depois
    diz qual das travas de facto converte. */
 const RF_TRAVAS={
-  saves:{ tier:'resenha', titulo:'Os seus saves estão no limite',
-    texto:(n)=>`O plano Peladeiro guarda até <b>${n}</b> carreiras ao mesmo tempo. Para começar mais uma agora, apague uma que já acabou — ou suba de plano e leve todas.`,
-    saida:'Nenhuma carreira sua se perde: as que já existem continuam na nuvem, do jeito que estão.' },
-  savesResenha:{ tier:'embaixador', titulo:'Os seus saves estão no limite',
-    texto:(n)=>`O plano Resenha guarda até <b>${n}</b> carreiras ao mesmo tempo. Para começar mais uma agora, apague uma que já acabou — ou suba para o Embaixador e jogue sem conta.`,
-    saida:'Nenhuma carreira sua se perde: as que já existem continuam na nuvem, do jeito que estão.' },
+  /* NAO MANDA APAGAR. O texto antigo dizia "apague uma que ja' acabou" — e desde
+     que a cota passou a ser de CRIACOES no mes, apagar nao devolve vaga
+     nenhuma. Mandar alguem apagar uma carreira para destrancar o jogo, e o
+     jogo continuar trancado depois, e' o pior desfecho possivel desta janela. */
+  saves:{ tier:'resenha', titulo:'A sua cota de carreiras acabou',
+    texto:(n)=>`O plano Peladeiro começa ${n?`até <b>${n}</b> carreira${n>1?'s':''}`:'um número limitado de carreiras'} por mês, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga — a carreira já foi começada.`,
+    saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
+  savesResenha:{ tier:'embaixador', titulo:'A sua cota de carreiras acabou',
+    texto:(n)=>`O plano Resenha começa ${n?`até <b>${n}</b> carreiras`:'um número limitado de carreiras'} por mês, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga. No Embaixador não há cota.`,
+    saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
   hospedar:{ tier:'embaixador', titulo:'Abrir a sala é do Embaixador',
     texto:()=>'Entrar na resenha dos outros dá em qualquer plano, inclusive no grátis. <b>Abrir a sua</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é do plano Embaixador.',
     saida:'Já tem o código de alguém? Volte e entre na sala dele: isso não custa nada.' },
+  resenha:{ tier:'resenha', titulo:'Os seus 7 dias de Resenha acabaram',
+    texto:()=>'O Peladeiro joga o Modo Resenha por <b>7 dias</b>, para provar como é jogar a mesma semana com a turma. O seu prazo terminou — e com ele o seu lugar nas salas.',
+    saida:'O Modo Solo continua seu, sem prazo: as suas carreiras contra a máquina estão intactas.' },
   avatar:{ tier:'embaixador', titulo:'O retrato por IA é do Embaixador',
     texto:()=>'O Embaixador põe a sua cara dentro do jogo: retrato gerado a partir de uma foto sua, na beira do campo e na ficha de treinador.',
     saida:'As caras prontas continuam à sua disposição, de graça.' },
@@ -133,18 +177,26 @@ function rfTrava(chave){
   if(chave==='saves' && rfPlanoAtual()==='resenha') chave='savesResenha';
   const t=RF_TRAVAS[chave]; if(!t) return;
   const p=RF_PLANOS.find(x=>x.key===t.tier)||{};
+  /* O PRECO SAI DA MESMA FUNCAO DOS CARTOES. Ele era lido de `p.preco`, campo
+     que deixou de existir quando os precos viraram centavos para o seletor
+     mensal/anual — a janela passou a abrir com o lugar do preco em branco, que
+     e' o pior sitio possivel para faltar um numero. */
+  const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
   const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
   const corpo=`<div class="rf-trava ${p.destaque?'ouro':''}">
-    <p class="rf-trava-p">${t.texto(rfSavesTeto())}</p>
+    ${/* TETO INFINITO OU DESCONHECIDO NAO VIRA NUMERO NA FRASE. Sem esta guarda a
+          janela dizia "ate' Infinity carreiras por mes" — o que acontecia a quem
+          nao tem sessao, porque sem plano lido o teto e' Infinity. */''}
+    <p class="rf-trava-p">${t.texto(Number.isFinite(rfSavesTeto())?rfSavesTeto():null)}</p>
     <div class="rf-trava-plano ${p.destaque?'ouro':''}">
       <div class="rf-trava-hd">
         <span class="rf-trava-n">${p.destaque?'<i class="rf-trava-coroa">👑</i>':''}${escC(p.nome||'')}</span>
-        <span class="rf-trava-v">${escC(p.preco||'')}<i>${escC(p.ciclo||'')}</i></span>
+        <span class="rf-trava-v">${escC(q.v)}<i>${escC(q.c)}</i></span>
       </div>
       <ul class="rf-trava-l">${itens}</ul>
-      ${p.anual?`<span class="rf-trava-a">${escC(p.anual)}</span>`:''}
+      <span class="rf-trava-a">${escC(q.nota)}</span>
     </div>
-    <span class="rf-trava-saida">${escC(t.saida)}</span>
+    <span class="rf-trava-saida">${escC(typeof t.saida==='function'?t.saida():t.saida)}</span>
     <div class="rf-trava-bts">
       <button type="button" class="rf-trava-bt-2" onclick="clCloseOverlay()">Agora não</button>
       <button type="button" class="rf-trava-bt" onclick="clCloseOverlay();rfPlanoCta('${t.tier}','${chave}')">${escC(p.cta||'Quero assinar')}</button>
@@ -232,9 +284,11 @@ function rfLpMenu(){
    A CONTA VEM SEMPRE DEPOIS do extra — nunca é substituída por ele. */
 function rfLpNavHTML(extra){
   return `<nav class="rf-lp-nav">
-    <a class="rf-lp-marca" href="/" aria-label="RetroFoot98">
-      <img src="img/logo.webp" width="32" height="32" alt="">
-      <span>RetroFoot<span class="rf-wiz-marca-98">98</span></span>
+    <!-- A ASSINATURA E DESENHADA, nao montada. Era o simbolo mais a palavra escrita
+         em texto ao lado; a marca nova tem um lockup proprio, com o espacamento e o
+         peso da palavra definidos por quem a desenhou. Montar a mao nunca bate. -->
+    <a class="rf-lp-marca" href="/" aria-label="Retrofoot.com.br">
+      <img class="marca" src="img/marca.svg" alt="Retrofoot.com.br" height="26">
     </a>
     <div class="rf-lp-links">
       ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
@@ -435,70 +489,188 @@ function rfLpMomentosHTML(){
    exatamente o que o jogo entrega.
    ===================================================================== */
 const RF_PLANOS=[
-  { key:'peladeiro', nome:'Peladeiro', preco:'R$ 0', ciclo:'pra sempre',
+  { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
-    itens:['Até 3 saves no modo solo','Joga o Modo Resenha nas salas dos outros','Séries A, B, C e D com elencos reais'],
-    falta:['Não abre sala como anfitrião'],
+    itens:['Começa até 3 carreiras por mês','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
+    falta:['Apagar uma carreira não devolve a vaga do mês','Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
     cta:'Começar de graça' },
 
-  { key:'resenha', nome:'Resenha', preco:'R$ 19,90', ciclo:'por mês',
-    anual:'ou R$ 199 por ano — dá R$ 16,58/mês',
+  { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
     resumo:'Pra quem joga direto com a turma e quer o nome no ranking.',
-    itens:['Até 10 saves no modo solo','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
+    itens:['Começa até 10 carreiras por mês','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
     falta:['Não abre sala como anfitrião'],
     cta:'Assinar o Resenha' },
 
-  { key:'embaixador', nome:'Embaixador', preco:'R$ 49,90', ciclo:'por mês',
-    anual:'ou R$ 399 por ano — dá R$ 33,25/mês',
+  { key:'embaixador', nome:'Embaixador', mes:4990, ano:39900,
     destaque:true, selo:'O mais completo',
     resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
     itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
-           'Saves ilimitados no solo e no Resenha',
+           'Carreiras ilimitadas, sem cota mensal',
            'Seu jogador na base de dados oficial, com avatar na sua cara',
            'Seu nome no ranking oficial de treinadores',
            'Selo de Embaixador no seu perfil',
            'Código pra passar aos seus seguidores — e monetizar com ele'],
     cta:'Quero ser Embaixador' },
 ];
-/* Na fase de lista de espera nenhum plano tem checkout: o botão leva à
-   lista, com o plano escolhido carimbado na origem para saber DEPOIS quem
-   queria pagar o quê. Prometer "assinar" sem ter onde cobrar é botão morto. */
-function rfPlanoCta(key, trava){
+
+/* ===== O PRECO EM CENTAVOS, E O RESTO CALCULADO =====
+   Os valores eram frases ('R$ 19,90', 'ou R$ 199 por ano — dá R$ 16,58/mês').
+   Com o seletor mensal/anual isso deixou de servir: a economia tem de ser
+   CONTADA, senão nasce uma quarta e uma quinta frase para alguém esquecer de
+   atualizar no dia do reajuste. Agora só existem dois números por plano, e
+   mensalidade equivalente, desconto e economia saem deles.
+
+   Os centavos são os MESMOS do Stripe (metadata plano+ciclo) — 1990, 19900,
+   4990, 39900. Se um dia divergirem, o site mente sobre o que a cobrança faz. */
+function rfBRL(cent, comCentavos){
+  const v = cent/100;
+  return 'R$ ' + v.toLocaleString('pt-BR', {
+    minimumFractionDigits: (comCentavos===false && v%1===0) ? 0 : 2,
+    maximumFractionDigits: 2 });
+}
+function rfPlanoEconomia(p){
+  if(!p.mes || !p.ano) return null;
+  const cheio = p.mes*12, poupa = cheio - p.ano;
+  if(poupa <= 0) return null;
+  return { poupa, pct: Math.round(poupa*100/cheio), porMes: Math.round(p.ano/12) };
+}
+/* o maior desconto entre os planos pagos — é o número que a etiqueta do
+   seletor mostra, e ele também deixa de ser digitado à mão */
+function rfEconomiaMaxima(){
+  return RF_PLANOS.reduce((m,p)=>{ const e=rfPlanoEconomia(p); return e&&e.pct>m ? e.pct : m; }, 0);
+}
+let RF_LP_CICLO = 'mes';
+/* O que cada cartão mostra no ciclo escolhido: número grande, legenda e a linha
+   de baixo. Uma função só, usada no desenho inicial E na troca — desenhar de um
+   jeito e atualizar de outro é como as duas versões passam a discordar. */
+function rfPlanoPrecoPartes(p, ciclo){
+  /* A LINHA DE BAIXO DO GRATIS mudou com os 7 dias. "sem cartão, sem pegadinha"
+     era verdade quando o Peladeiro não tinha prazo nenhum; com o Resenha
+     limitado, essa frase passa a esconder justamente a pegadinha que ela nega.
+     O Solo é que é para sempre, e é isso que ela diz agora. */
+  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre',
+                      nota:'Solo pra sempre · Resenha por 7 dias · sem cartão' };
+  const e = rfPlanoEconomia(p);
+  if(ciclo === 'ano' && e){
+    return { v:rfBRL(e.porMes), c:'por mês',
+             nota:`${rfBRL(p.ano,false)} cobrados uma vez por ano · você economiza ${rfBRL(e.poupa)}` };
+  }
+  return { v:rfBRL(p.mes), c:'por mês',
+           nota: e ? `no anual sai ${rfBRL(e.porMes)}/mês — ${e.pct}% mais barato` : 'sem fidelidade' };
+}
+/* ===== O BOTÃO DE ASSINAR =====
+   Tem DOIS destinos, e o certo é escolhido na hora:
+
+   · com sessão aberta e Stripe ligado -> abre o checkout de verdade;
+   · sem uma coisa ou outra -> lista de espera, com o plano carimbado na origem.
+
+   A LISTA CONTINUA A SER O CHÃO, e não é provisório por preguiça: o Peladeiro
+   não tem o que comprar, quem não entrou ainda não tem conta para assinar, e
+   enquanto as chaves do Stripe não estiverem postas no projeto a função
+   responde `sem_chave`. Em qualquer um desses casos o botão tem de levar a
+   ALGUM lugar — botão que não faz nada é pior do que botão que pede o e-mail.
+
+   O ciclo entra como parâmetro (mês/ano) para o dia em que a landing ganhar o
+   seletor anual: a canalização já leva, só falta quem o mostre. */
+function rfPlanoCta(key, trava, ciclo){
   const nome=(RF_PLANOS.find(p=>p.key===key)||{}).nome||key;
   /* De onde veio o lead. Da landing e' o botao do cartao do plano; de dentro do
      jogo e' um cadeado, e ai o nome da trava vai junto — e' assim que se sabe
      qual delas de facto empurra alguem para a lista. */
   const origem = trava ? ('jogo · '+trava+' · plano '+nome) : ('landing · plano '+nome);
-  if(typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
-  rfLpIr('lista');
+  const paraLista = () => {
+    if(typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
+    rfLpIr('lista');
+  };
+
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
+  if(key==='peladeiro' || !st.loggedIn || !(typeof NET!=='undefined'&&NET.criarCheckout))
+    return paraLista();
+
+  if(typeof toastC==='function') toastC('Abrindo o pagamento…');
+  NET.criarCheckout(key, ciclo||'mes').then(r=>{
+    if(r && r.url){ location.href = r.url; return; }
+    /* sem_chave / sem_sessao / falhou: o caminho de sempre, sem alarde. O que
+       NÃO se faz aqui é mostrar erro técnico a quem só queria assinar. */
+    console.warn('checkout indisponível:', r && r.erro);
+    paraLista();
+  }).catch(e=>{ console.warn('checkout:', e); paraLista(); });
 }
 function rfLpPlanosHTML(){
   const cartoes=RF_PLANOS.map(p=>{
     const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
     const falta=(p.falta||[]).map(i=>`<li class="nao"><span class="rf-lp-tick">—</span>${escC(i)}</li>`).join('');
-    return `<div class="rf-lp-plano ${p.destaque?'ouro':''}">
+    const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
+    return `<div class="rf-lp-plano ${p.destaque?'ouro':''}" data-plano="${p.key}">
       ${p.selo?`<span class="rf-lp-plano-selo">👑 ${escC(p.selo)}</span>`:''}
       <span class="rf-lp-plano-n">${escC(p.nome)}</span>
       <span class="rf-lp-plano-r">${escC(p.resumo)}</span>
       <div class="rf-lp-plano-preco">
-        <span class="rf-lp-plano-v">${escC(p.preco)}</span>
-        <span class="rf-lp-plano-c">${escC(p.ciclo)}</span>
+        <span class="rf-lp-plano-v">${escC(q.v)}</span>
+        <span class="rf-lp-plano-c">${escC(q.c)}</span>
       </div>
-      <span class="rf-lp-plano-a">${p.anual?escC(p.anual):'sem cartão, sem pegadinha'}</span>
+      <span class="rf-lp-plano-a">${escC(q.nota)}</span>
       <ul class="rf-lp-plano-l">${itens}${falta}</ul>
-      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}')">${escC(p.cta)}</button>
+      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}',null,RF_LP_CICLO)">${escC(p.cta)}</button>
     </div>`;
   }).join('');
+  const pct=rfEconomiaMaxima();
+  /* ===== O SELETOR MENSAL / ANUAL =====
+     Dois botões de verdade num `role="radiogroup"`, não um checkbox estilizado:
+     quem chega pelo teclado troca com as setas e ouve "Anual, economize 33%",
+     que é a informação que faz a escolha — escondê-la num enfeite visual seria
+     esconder o desconto de quem mais precisa dele.
+
+     A pastilha que desliza é UM elemento, movido por transform. Animar
+     `left`/`width` obriga o browser a refazer o layout a cada quadro e engasga
+     no telemóvel; transform anda na composição e sai liso. */
   return `<section class="rf-lp-planos rf-lp-f-branco" id="rf-lp-planos">
     <div class="rf-lp-planos-in">
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
-      <p class="rf-lp-p">Dá pra jogar de graça pra sempre. Os planos pagos existem pra quem quer abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
+      <p class="rf-lp-p">O Modo Solo é de graça pra sempre. Os planos pagos existem pra quem quer manter o Modo Resenha depois dos 7 dias, abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
+      <div class="rf-lp-ciclo" role="radiogroup" aria-label="Como você quer pagar"
+           data-ciclo="${RF_LP_CICLO}">
+        <span class="rf-lp-ciclo-pilula" aria-hidden="true"></span>
+        <button type="button" class="rf-lp-ciclo-b" role="radio" data-c="mes"
+          aria-checked="${RF_LP_CICLO==='mes'}" onclick="rfCicloTrocar('mes')">Mensal</button>
+        <button type="button" class="rf-lp-ciclo-b" role="radio" data-c="ano"
+          aria-checked="${RF_LP_CICLO==='ano'}" onclick="rfCicloTrocar('ano')">Anual
+          <span class="rf-lp-ciclo-selo">economize ${pct}%</span></button>
+      </div>
       <div class="rf-lp-plano-grade">${cartoes}</div>
-      <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus.</span>
+      <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus — o Modo Solo não tem prazo em nenhum plano.</span>
     </div>
   </section>`;
 }
+
+/* TROCA SEM REDESENHAR A PÁGINA. Um cdraw() aqui refaria a landing inteira: a
+   secção saltaria sob o dedo de quem tocou e o vídeo dos Momentos recomeçaria.
+   Aqui só três nós por cartão mudam de texto, e a pastilha desliza sozinha pelo
+   atributo data-ciclo. */
+function rfCicloTrocar(c){
+  if(c!==RF_LP_CICLO) RF_LP_CICLO=c;
+  const cx=document.querySelector('.rf-lp-ciclo');
+  if(cx){
+    cx.setAttribute('data-ciclo', c);
+    cx.querySelectorAll('.rf-lp-ciclo-b').forEach(b=>
+      b.setAttribute('aria-checked', String(b.dataset.c===c)));
+  }
+  document.querySelectorAll('.rf-lp-plano[data-plano]').forEach(cartao=>{
+    const p=RF_PLANOS.find(x=>x.key===cartao.dataset.plano); if(!p) return;
+    const q=rfPlanoPrecoPartes(p, c);
+    const v=cartao.querySelector('.rf-lp-plano-v');
+    const l=cartao.querySelector('.rf-lp-plano-c');
+    const n=cartao.querySelector('.rf-lp-plano-a');
+    if(v){ v.textContent=q.v; v.classList.remove('troca'); void v.offsetWidth; v.classList.add('troca'); }
+    if(l) l.textContent=q.c;
+    if(n) n.textContent=q.nota;
+  });
+  /* o botão de ouro lá embaixo repete o preço do Embaixador */
+  const ouro=document.querySelector('.rf-lp-bt-ouro');
+  if(ouro) ouro.innerHTML='👑 Ser Embaixador — '+escC(rfPlanoPreco('embaixador'));
+}
+
 
 
 /* =====================================================================
@@ -547,7 +719,7 @@ function rfLpResenhaHTML(){
         </figure>
       </div>
 
-      <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — <b>abrir a sua</b> é do Embaixador.</span>
+      <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — no grátis, por 7 dias. <b>Abrir a sua</b> é do Embaixador.</span>
     </div>
   </section>`;
 }
@@ -664,7 +836,8 @@ const RF_LP_EMBAIXADOR=[
 /* o preço sai de RF_PLANOS — digitado outra vez aqui, um dia os dois discordam */
 function rfPlanoPreco(key){
   const p=RF_PLANOS.find(x=>x.key===key); if(!p) return '';
-  return p.preco+'/'+(p.ciclo||'').replace('por ','');
+  const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
+  return q.v+'/'+q.c.replace('por ','');
 }
 function rfLpLigasHTML(){
   const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d])=>`<div class="rf-lp-embc">
@@ -678,7 +851,7 @@ function rfLpLigasHTML(){
       <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
       <p class="rf-lp-p">Seis coisas que só existem no plano de cima — e nenhuma delas é enfeite.</p>
       <div class="rf-lp-embc-grade">${cartoes}</div>
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador')">
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador',null,RF_LP_CICLO)">
         👑 Ser Embaixador — ${escC(rfPlanoPreco('embaixador'))}</button>
     </div>
   </section>`;
@@ -699,7 +872,7 @@ function rfLandingHTML(){
           <button type="button" class="rf-wiz-cta" onclick="rfLpIr('planos')">👑 Ver os planos</button>
           <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar de graça</button>
         </div>
-        <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>. Sem instalar nada, sem cartão.</span>
+        <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>: Modo Solo pra sempre e 7 dias de Resenha. Sem instalar nada, sem cartão.</span>
       </div>
       <div class="rf-lp-hero-art">
         ${rfLpHeroVideoHTML()}
@@ -779,8 +952,9 @@ function rfLpRodapeHTML(){
   return `<footer class="rf-lp-rodape">
     <div class="rf-lp-fgrid">
       <div class="rf-lp-fmarca">
-        <a class="rf-lp-marca" href="/"><img src="img/logo.webp" width="32" height="32" alt="">
-          <span>RetroFoot<span class="rf-wiz-marca-98">98</span></span></a>
+        <!-- no rodape o fundo e escuro: a versao de palavra clara -->
+        <a class="rf-lp-marca" href="/" aria-label="Retrofoot.com.br">
+          <img class="marca" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="26"></a>
         <p class="rf-lp-fp">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</p>
       </div>
       ${col('O jogo',['Jogar agora','Modo Resenha','Ranking','Ligas Oficiais'])}

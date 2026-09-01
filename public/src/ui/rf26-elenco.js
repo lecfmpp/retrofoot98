@@ -51,7 +51,10 @@ function rfFotoDe(p, clubId){
      inteiro — quem nao veio da base cai na camisa vazia, como antes.
      `_youthSeason` e' o carimbo da promocao (confirmYouthPromotion, no motor):
      so' o jovem promovido tem, e ele sobrevive ao save e a' ida pelo servidor. */
-  if(p._youthSeason == null) return null;
+  const daBase = p._youthSeason != null   // ja' promovido (confirmYouthPromotion)
+              || p.ag === 'Base';          // ainda candidato: `ag` e' a agencia,
+                                           // e so' o garoto da base tem 'Base'
+  if(!daBase) return null;
   return (typeof rfFaceDaBase==='function') ? rfFaceDaBase(p) : null;
 }
 function rfElCamisa(num, tam, p, clubId){
@@ -138,17 +141,22 @@ function rfFxFotoComposta(p){
      entao qualquer aproximacao da foto as deixava para tras. Sem elas, o
      recorte sem bracos e' so' uma escala. */
   const foto = rfFxFoto(p);
-  return `<img src="${escC(foto)}" alt="${escC(p.n)}">`;
+  /* `rfFxFoto` pode devolver o retrato COMPOSTO, que ja' vem em HTML — meter
+     isso num `src` daria uma imagem quebrada. */
+  return (typeof foto==='string' && foto.charAt(0)==='<')
+    ? foto
+    : `<img src="${escC(foto)}" alt="${escC(p.n)}">`;
 }
 
-function rfFxFoto(p){
-  if(p && p.n){
-    const porClube = window.RF_FOTOS && window.RF_FOTOS[String(CL.clubId)+'|'+p.n];
-    if(porClube) return porClube;
-    const porNome = window.RF_FOTOS_NOME && window.RF_FOTOS_NOME[p.n];
-    if(porNome) return porNome;
-  }
-  return 'img/jogador-perfil.png';
+/* ERAM DOIS RESOLVEDORES. Esta funcao tinha uma copia encurtada da busca do
+   `rfFotoDe`: so' olhava RF_FOTOS/RF_FOTOS_NOME, sempre pelo MEU clube, e nao
+   conhecia nem o acervo da base nem o retrato composto. Consequencia: a lista
+   do Elenco ficava sem miniatura para quem subiu da base, e num clube visitado
+   procurava a foto no clube errado. Agora e' so' uma casca do `rfFotoDe` com o
+   avatar generico no fim, para os chamadores que precisam de algo sempre. */
+function rfFxFoto(p, clubId){
+  const f = rfFotoDe(p, clubId!=null ? clubId : rfElClubeAtivo());
+  return f || 'img/jogador-perfil.png';
 }
 function rfElnEnCor(v){ return v>=80?'#35b34a':v>=55?'#8dc63f':'#f2b90c'; }
 function rfElnFormaHTML(p){
@@ -182,7 +190,7 @@ function rfElElencoHTML(){
     const tit=false;
     return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')" title="Ver a ficha de ${escC(p.n)}">
       <span class="rf-eln-jog">
-        ${rfFotoNumHTML(rfFxFoto(p), nums[p.pid]||p.num||'', 'eln')}
+        ${rfFotoNumHTML(rfFxFoto(p, cid), nums[p.pid]||p.num||'', 'eln')}
         <b class="rf-eln-nome">${escC(p.n)}</b>
         ${emTreino?'<img class="rf-eln-cone" src="img/treino-especial-cone.webp" width="13" height="13" alt="Em treino especial" title="Em treino especial — chance extra de evolução a cada rodada">':''}
         ${(p.suspended>0)?' 🟥':''}${(p.injuredMatches>0)?' ✚':''}
@@ -516,14 +524,33 @@ function rfFxOrdem(cid){
   const lista = (squad(cid)||[]).slice();
   return (typeof bySquadOrder==='function') ? lista.sort(bySquadOrder) : lista;
 }
+/* A seta no clube visitado. Nao da' para reusar `clViewSelPlayer`: aquela
+   manda para a aba 'jogador' da pele antiga, e aqui ja' estamos na Ficha. */
+function rfFxIrVisita(pid){
+  CL.viewSelPlayer = pid;
+  if(typeof rfGo==='function' && typeof rfState==='function'){
+    rfState().tab.elenco='ficha'; rfGo('elenco'); return;
+  }
+  rfSetTab('elenco','ficha');
+}
+
 function rfFxNavHTML(p, cid){
+  const doMeu = String(cid)===String(CL.clubId);
   const lista = rfFxOrdem(cid);
   const i = lista.findIndex(x => x.pid === p.pid);
   if(i < 0 || lista.length < 2) return '';
   const ant = lista[i-1], prox = lista[i+1];
+  /* DUAS SELECOES, NAO UMA. O meu clube guarda o jogador aberto em
+     `CL.selPlayer`; o clube visitado guarda noutra variavel, `CL.viewSelPlayer`
+     (e' o que a Ficha le' na linha do `alvoPid`). As setas chamavam sempre
+     `rfSelPlayer`, que so' mexe na primeira — em visita, o clique trocava um
+     valor que aquela Ficha nao le', e nada acontecia na tela. */
+  const ir = alvo => doMeu
+    ? `rfSelPlayer('${escC(alvo.pid)}')`
+    : `rfFxIrVisita('${escC(alvo.pid)}')`;
   const bt = (alvo, ico, rot) => alvo
     ? `<button type="button" class="rf-fx-nav-b" title="${escC(rot)}: ${escC(alvo.n)}"
-         onclick="rfSelPlayer('${escC(alvo.pid)}')">${ico}</button>`
+         onclick="${ir(alvo)}">${ico}</button>`
     : `<button type="button" class="rf-fx-nav-b" disabled aria-hidden="true">${ico}</button>`;
   return `<div class="rf-fx-nav">
     ${bt(ant,'‹','Anterior')}
@@ -676,7 +703,10 @@ function rfElBaseHTML(){
     const primeiro=i===(CL.baseSel||0);
     const sal=(c.contract&&c.contract.salary)||y.salary||0;
     return `<div class="rf-el-row ${primeiro?'sel':''}" onclick="rfBaseSel(${i})">
-      <span class="rf-el-nome">${escC(y.n)}</span>
+      <span class="rf-el-jog">
+        ${rfFotoNumHTML(rfFxFoto(y), y.num||'', 'el')}
+        <b class="rf-el-nome">${escC(y.n)}</b>
+      </span>
       <span class="rf-el-c">${escC(rfPosInicial(y.s))}</span>
       <span class="rf-el-c">${y.age||'—'}</span>
       <span class="rf-el-forte">${y.f}</span>

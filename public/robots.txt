@@ -1,4 +1,4 @@
-# robots.txt — RetroFoot98 / Elifoot 2026
+# robots.txt — RetroFoot98
 # Site: https://retrofoot98.com.br
 # Política: jogo público e gratuito — queremos descoberta por buscadores E por IA.
 

@@ -119,8 +119,10 @@ function rfWiz(o){
     <div class="rf-wiz-in">
       ${o.semTrilha?'':`<div class="rf-wiz-fita">
         <div class="rf-wiz-fita-l">
-          <img src="img/logo.webp" width="28" height="28" alt="">
-          <span class="rf-wiz-fita-m">RetroFoot<span class="rf-wiz-fita-98">98</span></span>
+          <!-- A ASSINATURA E' DESENHADA, e por isso NAO tem "98". Aqui era o simbolo mais
+     a palavra escrita ao lado, com o 98 num <span> proprio; a marca nova tem um
+     lockup unico e nao leva numero. Ver img/marca.svg. -->
+          <img class="rf-marca-svg" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="20">
           <div class="rf-sp"></div>
           <span class="rf-wiz-fita-c">${passo} de ${total}</span>
         </div>
@@ -308,7 +310,11 @@ function rfOb2(){
       <!-- o ramo do "em breve" chamava rfObAvisar(), que nao existe: se alguem
            voltasse a ligar o RESENHA_EM_BREVE, o botao da lista de espera seria um
            clique morto. Aponta para clWaitlistOpen, que e quem abre a lista. -->
-      <div class="rf-modo resenha ${RESENHA_EM_BREVE?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+      ${/* O CARTAO NASCE TRANCADO PARA QUEM JA' GASTOU OS 7 DIAS. Antes ele
+            estava aceso e o "nao" so' chegava depois de escolher sala e clube.
+            Agora a tela ja' diz — e o clique continua a abrir a janela que
+            explica, em vez de nao fazer nada: cartao morto nao vende plano. */''}
+      <div class="rf-modo resenha ${(RESENHA_EM_BREVE||!rfPodeResenha())?'off':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
         <img class="rf-modo-bg" src="img/modos/modo-resenha.webp" alt="" aria-hidden="true" loading="lazy">
         <div class="rf-modo-veu"></div>
         <div class="rf-modo-txt">
@@ -317,8 +323,13 @@ function rfOb2(){
             <span class="rf-modo-tag">Multi-player</span>
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${RESENHA_EM_BREVE?rfIcone('coroa',16)+' Entrar na lista de espera':rfIcone('chat',16)+' Jogar com a galera'}</button>
+          <span class="rf-modo-d">${(!RESENHA_EM_BREVE&&!rfPodeResenha())
+            ? 'Os seus 7 dias de Resenha no plano Peladeiro terminaram. O Modo Solo continua seu, sem prazo — o Resenha volta com qualquer plano pago.'
+            : `Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.`}</span>
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${
+            RESENHA_EM_BREVE ? rfIcone('coroa',16)+' Entrar na lista de espera'
+            : (!rfPodeResenha() ? '🔒 Ver os planos'
+            : rfIcone('chat',16)+' Jogar com a galera')}</button>
         </div>
       </div>
     </div>
@@ -968,7 +979,16 @@ function rfOb7(){
           <b>${seg>=70?'alta':seg>=40?'média':'curta'}</b></div>
         <div class="rf-ob-esc-bar"><i style="width:${Math.max(0,Math.min(100,seg))}%"></i></div>
       </div>
-    </div>`;
+    </div>
+    ${/* A ENTRADA NO CLUBE É O MOMENTO MAIS VISTO DE TODO O FUNIL: toda carreira
+         nova passa por aqui, uma vez, com a atenção inteira na tela — e era o
+         único momento grande do jogo sem espaço de inventário. Fica DEPOIS dos
+         números e ANTES do botão de entrar: quem lê o elenco e o objetivo passa
+         por ele a caminho do clique, sem que nada seja empurrado para baixo da
+         dobra. Sem criativo publicado, rfAdEspaco desenha o lugar vazio com a
+         medida exata — publicar não mexe no layout. */''}
+    ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.entrada.sorteio',
+        {cls:'rf-ad-entrada',formato:'970×250'}):''}`;
   /* JOGAR é o passo 7, o último. Estava em 5 ("Convites"). */
   return rfWiz({passo:rfPasso('Jogar'), corpo,
     sobre:'Você é o novo treinador', titulo:'Bem-vindo ao '+(cl.short||'clube')+'.',

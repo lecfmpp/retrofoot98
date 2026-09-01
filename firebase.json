@@ -11,6 +11,11 @@
       ],
       "rewrites": [
         {
+          "//": "CONVITE DA RESENHA — página própria só por causa da pré-visualização do WhatsApp, que lê o HTML no servidor (ver public/convite.html). TEM de vir antes do catch-all: as rewrites são avaliadas por ordem.",
+          "source": "/convite/**",
+          "destination": "/convite.html"
+        },
+        {
           "source": "**",
           "destination": "/index.html"
         }

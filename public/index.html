@@ -18,37 +18,48 @@
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8683510933527854"
      crossorigin="anonymous"></script>
 <meta name="theme-color" content="#2f8f2f">
+<!-- O SVG vem primeiro: o simbolo e vetor, e um favicon vetorial fica nitido em
+     qualquer tamanho e em qualquer densidade de ecra. O webp fica como recurso
+     para quem nao aceita SVG, e o apple-touch-icon TEM de ser raster. -->
+<link rel="icon" type="image/svg+xml" href="img/logo.svg">
 <link rel="icon" type="image/webp" href="img/logo.webp">
-<link rel="apple-touch-icon" href="img/logo.webp">
-<title>RetroFoot98 — Futebol Manager Online Grátis (Elifoot 2026)</title>
+<link rel="apple-touch-icon" href="img/logo.png">
+<title>RetroFoot98 — Futebol Manager Online Grátis</title>
 <!-- ===== SEO / descoberta por IA ===== -->
-<meta name="description" content="RetroFoot98 (Elifoot 2026): jogo de futebol manager retrô, grátis e 100% online no navegador. Comande um clube do Brasil (Séries A/B/C/D) ou da Europa, escale o time, defina táticas, negocie jogadores e dispute ligas e copas — solo ou no multiplayer Resenha.">
+<meta name="description" content="RetroFoot98: jogo de futebol manager retrô, grátis e 100% online no navegador. Comande um clube do Brasil (Séries A/B/C/D) ou da Europa, escale o time, defina táticas, negocie jogadores e dispute ligas e copas — solo ou no multiplayer Resenha.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="author" content="RetroFoot98">
-<meta name="keywords" content="futebol manager, elifoot, jogo de futebol online, manager grátis, brasileirão, champions league, multiplayer, retrô, soccer manager">
+<meta name="keywords" content="futebol manager, jogo de futebol online, manager grátis, brasileirão, champions league, multiplayer, retrô, soccer manager">
 <link rel="canonical" href="https://retrofoot98.com.br/">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 <link rel="alternate" type="text/markdown" href="/llms.txt" title="Descrição para agentes de IA (llms.txt)">
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="RetroFoot98">
-<meta property="og:title" content="RetroFoot98 — Futebol Manager Online Grátis (Elifoot 2026)">
+<meta property="og:title" content="RetroFoot98 — Futebol Manager Online Grátis">
 <meta property="og:description" content="Comande um clube do Brasil ou da Europa, escale o time, negocie jogadores e dispute ligas e copas — solo ou no multiplayer Resenha. Grátis, no navegador.">
 <meta property="og:url" content="https://retrofoot98.com.br/">
-<meta property="og:image" content="https://retrofoot98.com.br/img/logo.webp">
+<!-- O CARTAO DO SITE E O DO CONVITE SAO A MESMA ARTE, publicada no painel em
+     rf98.resenha.invite e servida de uma morada fixa (atual.png, reescrita a cada
+     publicacao). Trocar a arte no painel troca os dois sem republicar o site.
+     ATENCAO AO EFEITO: e' o cartao de QUALQUER link deste dominio -- a home, uma
+     pagina de SEO, o convite. Publicar arte nova nessa chave muda todos eles. -->
+<meta property="og:image" content="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:locale" content="pt_BR">
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="RetroFoot98 — Futebol Manager Online Grátis (Elifoot 2026)">
+<meta name="twitter:title" content="RetroFoot98 — Futebol Manager Online Grátis">
 <meta name="twitter:description" content="Futebol manager retrô, grátis e online. Ligas e copas do Brasil e da Europa, solo ou multiplayer.">
-<meta name="twitter:image" content="https://retrofoot98.com.br/img/logo.webp">
+<meta name="twitter:image" content="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png">
 <!-- Dados estruturados (schema.org) — ajuda buscadores e IAs a entender o que é o site -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "VideoGame",
-  "name": "RetroFoot98 (Elifoot 2026)",
-  "alternateName": ["Elifoot 2026", "RetroFoot 98"],
+  "name": "RetroFoot98",
+  "alternateName": ["RetroFoot 98"],
   "url": "https://retrofoot98.com.br/",
   "description": "Jogo de futebol manager retrô, gratuito e 100% online no navegador. Comande um clube do Brasil (Séries A/B/C/D) ou da Europa (Premier League, La Liga, Serie A, Bundesliga, Primeira Liga), escale o time, defina táticas, negocie jogadores, cuide das finanças e dispute ligas e copas — solo ou no multiplayer Resenha em tempo real.",
   "inLanguage": "pt-BR",
@@ -77,7 +88,7 @@
 <div class="cl-lp-page">
   <header class="cl-lp-hdr">
     <div class="cl-lp-hdr-in">
-      <a class="cl-lp-logo" href="/"><img src="img/logo.webp" width="500" height="500" alt="RetroFoot98"><span>RetroFoot<i>98</i></span></a>
+      <a class="cl-lp-logo" href="/"><img class="rf-marca-svg" src="img/marca.svg" alt="Retrofoot.com.br" height="26"></a>
       <nav class="cl-lp-navlinks">
         <a class="cl-lp-nav" href="/guia/">Como jogar</a>
         <a class="cl-lp-nav" href="/ranking/">Ranking</a>
@@ -260,7 +271,14 @@ const SAL_RATE=0.00060;   // weekly wage as fraction of market value (tuned)
    com salário/valor/caixa — as quatro tabelas precisam ser calibradas UMA contra a outra, e
    ficarem separadas foi exatamente o que deixou a folha valer 10% da receita na Série D e 67%
    na Série A. Mantido aqui como wrapper porque ~dezenas de chamadas usam baseIncome(). */
-function baseIncome(ov){ return REBAL.income(ov); }
+function baseIncome(ov, div){
+  /* `div` é a divisão do clube DONO desta receita — não a do usuário. É o que decide a metade
+     fixa da cota de TV (25% pelo overall médio da divisão, ver REBAL.income). Omitir cai na
+     divisão do usuário, que é o certo para o clube dele e para todo chamador antigo; os laços
+     que percorrem clubes de OUTRAS divisões (finanças da CPU) passam a divisão de cada um. */
+  const med=(typeof divOverallAvgOf==='function')?divOverallAvgOf(div):undefined;
+  return REBAL.income(ov, med);
+}
 let SIM_SYNC=false;       // quando true, simulateMatch roda os acréscimos de forma síncrona (usado por simEvents)
 function defaultContract(p){
   const role = p.f>=50?'Jogador Chave' : p.f>=36?'Titular Regular' : (p.age<=20?'Jovem da Base':'Rotação');
@@ -332,7 +350,7 @@ const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab
    quando o código que decide partida muda; edição de tela não mexe nele.
    Serve para detectar dois humanos na mesma sala com motores diferentes (aba
    aberta antes do deploy). Ver netMotorDivergente(). */
-/* @motor-ver */ const RF_MOTOR_VER = '4dfa26ca76b9';
+/* @motor-ver */ const RF_MOTOR_VER = '77a63f2b8afa';
 
 /* ===== O QUE O MOTOR REALMENTE LÊ — FONTE ÚNICA DA VERDADE =====
    Dos 16 atributos, só estes entram no resultado hoje; os outros existem, evoluem

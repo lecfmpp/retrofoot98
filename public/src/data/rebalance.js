@@ -21,7 +21,7 @@
      Série A 38-49 · B 25-37 · C 13-24 · D 3-12
      Estrela 50-69 · Craque Nacional 70-89 · Craque Mundial 90-99 · Sem divisão 1-2
    ============================================================================ */
-(function(){
+(function(root){
   'use strict';
 
   /* interpolação linear em âncoras [[x,y],...] ordenadas por x; extrapola nas pontas */
@@ -110,7 +110,7 @@
   ];
   function valueBase(f){ return interp(V_ANCHORS, f); }
   function value(f, age){
-    const af=(typeof window!=='undefined' && window.MARKET)?window.MARKET.ageFactor(age):1;
+    const af=(root.MARKET)?root.MARKET.ageFactor(age):1;
     return Math.max(30000, Math.round(valueBase(f) * af));
   }
 
@@ -123,31 +123,92 @@
   /* SALÁRIO efetivo (folha) = a tabela EXATA na força do jogador (sem compressão). Um Craque
      Mundial f90 ganha os 800k/sem da tabela. A receita (core.js) é escalada pra sustentar essa
      folha — ver income() lá. */
-  function wage(f){
-    if(typeof f!=='number' || !isFinite(f)) return salary(40);
-    return salary(f);
+  function wage(f, uni){
+    const base=(typeof f!=='number' || !isFinite(f)) ? salary(40) : salary(f);
+    return Math.max(500, Math.round(base * modFator(uni)));
   }
 
-  /* ---- 3b. RECEITA-BASE por rodada (TV/patrocínio) por overall NOVO ----
-     Antes era uma fórmula solta do porte do clube: ov*36000 + kicker quadrático acima de ov42.
-     O termo linear valia o MESMO em qualquer divisão, mas a folha desaba muito mais rápido que
-     ele quando se desce de série — resultado medido nos dados reais: a folha consumia 67% da
-     receita na A, 50% na B, 19% na C e só 10% na D. Times da Série C lucravam MAIS que 14 dos 20
-     da Série A, e um clube da D multiplicava o caixa por 58 em cinco temporadas.
+  /* ---- 3b. RECEITA-BASE por rodada (TV + patrocínio) por overall NOVO ----
+     A tabela anterior tinha um DEGRAU: entre overall 21 e 25 a receita DOBRAVA de uma vez (240k
+     -> 480k), enquanto o salário subia suave no mesmo intervalo (15k -> 22k por jogador). Os 20
+     clubes da Série C vivem na faixa 19-22 — todos presos do lado ruim do degrau: pagavam salário
+     pela força real do elenco e recebiam a receita "antiga". Medido nos 80 clubes reais, a razão
+     folha/receita variava de 61% a 108% (Botafogo gastava 108,4% da própria receita-base só em
+     salário) sem nenhuma lógica ao longo da escala.
 
-     Agora a receita é uma TABELA ancorada no overall, calibrada de trás pra frente a partir da
-     folha real de cada um dos 80 clubes brasileiros, com uma meta de folha/receita que CRESCE com
-     o porte (60% na D → 79% na elite). Isso é o que acontece no futebol de verdade: clube grande
-     disputa talento e gasta proporcionalmente mais do que fatura; clube pequeno roda enxuto. O
-     efeito é que a margem some no topo sem sufocar quem está embaixo, e subir de divisão vale
-     muito (2,4x a 3,5x de receita por promoção). Ver harness de calibração. */
+     A tabela nova foi calculada de trás pra frente a partir da folha real dos 80 clubes, mirando
+     folha/receita ~58% em TODA a escala — o que deixa ~34% de sobra depois do OPEX de 8%, antes
+     de qualquer bônus de vitória. Os multiplicadores sobre a tabela velha são de PROPÓSITO
+     desiguais (1,20x a 1,56x): o 1,56x em ov21 é exatamente o que absorve o degrau, em vez de um
+     fator único que deixaria alguma faixa ainda desalinhada. Overall 70 não existe em nenhum
+     clube hoje (o teto real é 58, no Palmeiras) — está aqui para o dia em que um elenco chegar lá.
+
+     NOTA DE HISTÓRICO: a calibração anterior mirava uma folha/receita que CRESCIA com o porte
+     (60% na D -> 79% na elite), para que clube grande gastasse proporcionalmente mais do que
+     fatura. Essa meta foi revista pelo dono do jogo em favor da margem uniforme acima. */
   const INCOME_ANCHORS=[
-    [3,25e3],[8,60e3],[11,100e3],[15,150e3],[21,240e3],[25,480e3],[30,860e3],
-    [34,1.09e6],[40,1.25e6],[45,1.75e6],[48,2.05e6],[52,2.60e6],[58,3.90e6],[70,7.2e6]
+    [3,30e3],[8,75e3],[11,130e3],[15,200e3],[21,375e3],[25,600e3],[30,1.05e6],
+    [34,1.35e6],[40,2.45e6],[45,3.37e6],[48,4.10e6],[52,5.30e6],[58,7.5e6],[70,14e6]
   ];
-  function income(overall){
+  /* AS ÂNCORAS DE 40 PARA CIMA LEVARAM UM 1,32x A MAIS que a tabela do relatório, e o motivo é uma
+     premissa dele que não se confirma nos dados do jogo. O relatório calculou a Série A com o
+     overall DECLARADO de cada clube, remapeado (Palmeiras 58, Botafogo 48). O jogo não usa esse
+     número: recomputeClubOverall (core.js) sobrescreve club.overall pela MÉDIA DO ELENCO logo na
+     abertura do save, e aí Palmeiras é 51 e Botafogo é 44. Overall menor com a mesma folha =
+     receita real bem abaixo da que o relatório supôs.
+
+     Medido nos 80 clubes reais deste repositório: com a tabela do relatório sem retoque, B/C/D
+     chegavam aos ~57% pretendidos mas a Série A parava em 75,5% (Palmeiras em 104%). O 1,32x
+     cobre exatamente a faixa de overall 40-51, que é onde só a Série A vive (B vai até 35), e leva
+     a elite a 57,8% sem mexer em nenhuma das outras três: B 53,7% · C 58,5% · D 56,9%.
+     Os valores estão arredondados — é a calibração aferida, não um fator aplicado às cegas. */
+  /* a curva crua, por overall — sem split de TV e sem modalidade. É o tijolo das duas metades. */
+  function incomeTabela(overall){
     const ov=(typeof overall==='number' && isFinite(overall))?overall:30;
     return Math.max(20000, Math.round(interp(INCOME_ANCHORS, ov)));
+  }
+
+  /* COTA DE TV FIXA — a única parte da receita que NÃO depende de como o clube está jogando.
+     Antes a receita-base inteira saía do overall do próprio clube, então uma fase ruim derrubava
+     TUDO no exato momento em que o clube mais precisava de estabilidade: joga mal -> recebe menos
+     -> paga a folha com mais dificuldade -> joga pior ainda. Como no futebol de verdade, agora a
+     receita-base se divide em três:
+       · Patrocínio    50%  — pelo overall do PRÓPRIO clube ("prêmio por ser bom")
+       · TV por mérito 25%  — idem
+       · TV fixa       25%  — pelo overall MÉDIO DA DIVISÃO, travado no início da temporada
+     Ou seja 75% pelo clube + 25% pela divisão. Um clube em má fase ainda perde receita (a parte
+     por mérito cai), mas não perde tudo de uma vez — o quarto fixo segue garantido até a próxima
+     definição de quem está em cada divisão. É essa metade que quebra o ciclo vicioso.
+     Sem o overall médio (chamador antigo, save velho), cai em 100% pelo clube — idêntico ao de
+     antes, então nenhum chamador quebra. */
+  const TV_MERITO=0.75, TV_FIXA=0.25;
+
+  /* ---- 3c. O EIXO DE MODALIDADE (masculino / feminino) ----
+     O universo feminino (brasilFem) usa OS MESMOS clubes e o MESMO objeto de jogador do masculino
+     com o nome trocado — então a economia sai idêntica por construção, e não havia um só ponto da
+     camada financeira que soubesse qual modalidade estava rodando. Aqui está esse ponto, e é um
+     só: calibrar o feminino passa a ser mudar um número nesta tabela, não caçar código.
+
+     Lido em tempo de chamada, como bandKey lê WORLD_CONFIG: `RF_FEM` mora numa folha que só
+     existe onde o universo feminino existe. Sem ela, modalidade() nunca é consultada, o fallback
+     devolve 'masc' e nada muda — que é exatamente o comportamento desejado. */
+  const MOD_FATOR={ masc:1.00, fem:1.00 };
+  function modFator(uni){
+    const F=root.RF_FEM;
+    let k=uni;
+    if(k==null && typeof root.activeUniverseKey==='function'){ try{ k=root.activeUniverseKey(); }catch(e){} }
+    const mod=(F && typeof F.modalidade==='function') ? F.modalidade(k||'brasil') : 'masc';
+    return MOD_FATOR[mod]!=null ? MOD_FATOR[mod] : 1;
+  }
+
+  /* RECEITA-BASE final = (75% pelo clube + 25% pela divisão) x fator da modalidade.
+     `ovMedioDivisao` é o overall médio da divisão do clube, travado na temporada (ver
+     divOverallAvg em core.js). `uni` é opcional: sem ele, o universo ativo é resolvido sozinho. */
+  function income(overall, ovMedioDivisao, uni){
+    const proprio=incomeTabela(overall);
+    const medio=(typeof ovMedioDivisao==='number' && isFinite(ovMedioDivisao))
+      ? incomeTabela(ovMedioDivisao) : proprio;
+    return Math.max(20000, Math.round((TV_MERITO*proprio + TV_FIXA*medio) * modFator(uni)));
   }
   /* Bônus de vitória/empate como FRAÇÃO da receita-base, não valor fixo. O antigo R$500k fixo
      valia 9% da receita de um clube da Série A e 40% da de um da Série D — uma vitória na D
@@ -159,10 +220,10 @@
 
   /* ---- 4. CAIXA INICIAL por divisão ---- */
   const BUDGET={ A:[10e6,20e6], B:[6.5e6,9.5e6], C:[3e6,5e6], D:[1e6,2.5e6] };
-  function budget(division, rng){
+  function budget(division, rng, uni){
     const b=BUDGET[bandKey(division)]||BUDGET.C; // mapeia chaves intl (PL/CH/...) pras faixas A/B
     const r=(rng && typeof rng.rnd==='function')?rng.rnd(b[0],b[1]):(b[0]+b[1])/2;
-    return Math.round(r);
+    return Math.round(r * modFator(uni));
   }
 
   /* ---- 5. CAPACIDADE INICIAL DE ESTÁDIO por overall (escala NOVA) ----
@@ -178,6 +239,8 @@
   const DIV_CAP={ A:75000, B:50000, C:25000, D:10000 };
   function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
 
-  window.REBAL={ force, engForce, engForceGK, value, valueBase, salary, wage, budget, income, stadiumCap, stadiumCapForDivision,
-                 BUDGET, BANDS, WIN_BONUS, DRAW_BONUS, OPEX };
-})();
+  root.REBAL={ force, engForce, engForceGK, value, valueBase, salary, wage, budget,
+               income, incomeTabela, modFator, stadiumCap, stadiumCapForDivision,
+               BUDGET, BANDS, MOD_FATOR, TV_MERITO, TV_FIXA, WIN_BONUS, DRAW_BONUS, OPEX };
+  if(typeof module!=='undefined' && module.exports){ module.exports={ REBAL:root.REBAL }; }
+})(typeof globalThis!=='undefined'?globalThis:this);

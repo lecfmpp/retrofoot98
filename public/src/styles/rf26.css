@@ -555,14 +555,25 @@
    fixos com `margin:0 auto`, e num monitor de 1440 caía em x=235 enquanto a
    faixa do clube — a barra logo abaixo dele — começava em x=264. Duas peças
    empilhadas, dois alinhamentos diferentes. Agora divide a caixa da faixa. */
-.rf-ad-top{width:100%;height:90px;border-radius:var(--r-inner);
-  overflow:hidden;background:var(--surface-sunken);border:var(--border-hairline);
-  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+/* A CAIXA TEM A PROPORCAO DO FORMATO VENDIDO, e nao uma altura fixa. Com
+   `height:90px` numa coluna de 1324 a caixa ficava 14,7:1 enquanto o criativo
+   de 970×90 e' 10,8:1 — a arte entrava 123px de altura numa caixa de 90 e
+   perdia mais de um quarto, cortada em cima e em baixo. `aspect-ratio` deixa a
+   caixa acompanhar a coluna sem nunca sair da proporcao do anuncio.
+   SEM MOLDURA POR BAIXO DA ARTE: a borda clara e o fundo sao do LUGAR VAZIO
+   (.rf-adph traz os seus) — ver a nota em .rf-ad mais abaixo. */
+.rf-ad-top{width:100%;aspect-ratio:970/90;border-radius:var(--r-inner);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+/* A FAIXA DA RODADA AO VIVO USA A MOLDURA DA FAIXA DE TOPO. Ela pega a largura
+   da coluna (ver .rf-ad-inline em main.css) e o criativo entra `contain`: quem
+   publicar fora de 970×90 sobra espaço nas pontas, e esse espaço tem de ser a
+   superfície da página — sobre o preto do .rf-ad ele lia como duas abas pretas
+   coladas ao anúncio, defeito que parece do jogo e não da arte. */
+.rf-ad-inline{border-radius:var(--r-inner);overflow:hidden}
 [data-ad-rail]{width:160px;flex:0 0 auto;position:sticky;top:18px;display:flex;
   flex-direction:column;gap:12px}
 [data-ad-rail] .rf-ad-slot{width:160px;height:600px;border-radius:var(--r-inner);overflow:hidden;
-  background:var(--surface-sunken);border:var(--border-hairline);display:flex;
-  align-items:center;justify-content:center}
+  display:flex;align-items:center;justify-content:center}
 .rf-ad-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:320px;height:50px;
   z-index:40;background:var(--surface-card);border:var(--border-hairline);border-bottom:none;
   border-radius:var(--r-inner) var(--r-inner) 0 0;overflow:hidden;display:flex;
@@ -2100,7 +2111,6 @@
 .rf-wiz-marca img{width:32px;height:32px;object-fit:contain}
 .rf-wiz-marca-t{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);
   letter-spacing:var(--ls-tight);white-space:nowrap}
-.rf-wiz-marca-98{font-family:var(--font-mono);color:var(--club-primary)}
 /* o shell é a "mesa" — mesmo envelope de 24px do jogo */
 .rf-wiz-shell{background:var(--surface-desk);border:1px solid #d2e0d0;border-radius:var(--r-shell);
   padding:18px;box-shadow:var(--shadow-shell);display:flex;flex-direction:column;gap:16px}
@@ -2858,6 +2868,32 @@
   padding:14px 28px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
 .rf-lp-marca{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
 .rf-lp-marca img{width:32px;height:32px;object-fit:contain}
+/* A ASSINATURA TEM PROPORCAO PROPRIA: a altura manda e a largura segue. Uma classe
+   so' para todos os sitios onde ela entra -- o cabecalho e o rodape da landing, a
+   fita do onboarding e a cerimonia do sorteio -- porque a marca e' a mesma peca e
+   nao deve ganhar uma medida diferente por tela. A altura vem do atributo `height`
+   de cada <img>, que e' o que muda entre uma fita de 20px e um cabecalho de 26px. */
+.rf-lp-marca img.marca,.rf-marca-svg{width:auto;max-width:220px;object-fit:contain}
+.rf-lp-marca img.marca{height:26px;max-width:186px}
+/* AS CAIXAS QUADRADAS DOS CONTENTORES TEM DE PERDER PARA A ASSINATURA. Cada sitio
+   onde ela entra ja' tinha uma regra `img{width:32px;height:32px}` para o SIMBOLO,
+   e uma assinatura larga metida numa caixa de 32x32 com `object-fit:contain`
+   encolhe para ~6px de altura: a marca some. Estas regras sao mais especificas de
+   proposito, e a altura vive aqui e nao no atributo do <img>, que qualquer CSS
+   bate. */
+.rf-wiz-marca img.rf-marca-svg,
+.rf-wiz-fita-l img.rf-marca-svg,
+.cl-lp-logo img.rf-marca-svg,
+.cl-lp-foot-marca img.rf-marca-svg{width:auto;object-fit:contain}
+.rf-wiz-marca img.rf-marca-svg{height:24px}
+.rf-wiz-fita-l img.rf-marca-svg{height:20px}
+.cl-lp-logo img.rf-marca-svg{height:26px}
+.cl-lp-foot-marca img.rf-marca-svg{height:24px}
+@media (max-width:520px){
+  .rf-wiz-marca img.rf-marca-svg{height:20px}
+  .cl-lp-logo img.rf-marca-svg{height:22px}
+}
+@media (max-width:520px){ .rf-lp-marca img.marca{height:22px} }
 .rf-lp-marca>span{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:var(--ls-tight)}
 .rf-lp-links{display:flex;align-items:center;gap:2px;margin-left:14px;overflow-x:auto;scrollbar-width:none}
 .rf-lp-links::-webkit-scrollbar{display:none}
@@ -2942,6 +2978,16 @@
   border-radius:var(--r-shell);padding:32px;display:flex;flex-direction:column;gap:14px;
   align-items:center;text-align:center;box-shadow:var(--shadow-shell)}
 .rf-lp-lista-in .rf-lp-p{text-align:center}
+/* ===== O CARTAO E' BRANCO DENTRO DE UMA FAIXA ESCURA =====
+   A seccao leva `.rf-lp-f-navy`, e essa classe pinta de branco o titulo e o
+   paragrafo — o que esta' certo para quem escreve DIRECTAMENTE sobre a faixa.
+   So' que aqui o conteudo mora dentro de `.rf-lp-lista-in`, que tem fundo
+   proprio `--surface-card`: as regras de descendente continuavam a aplicar-se
+   e davam texto branco em cartao branco. As tres cores voltam ao que valem
+   sobre um fundo claro. */
+.rf-lp-f-navy .rf-lp-lista-in .rf-lp-h2{color:var(--text-1)}
+.rf-lp-f-navy .rf-lp-lista-in .rf-lp-p{color:var(--text-3)}
+.rf-lp-f-navy .rf-lp-lista-in .rf-lp-eyebrow{color:var(--brand-primary,#17458F)}
 .rf-lp-vagas{width:100%;display:flex;flex-direction:column;gap:6px}
 
 /* rodapé escuro */
@@ -3064,6 +3110,46 @@
 .rf-lp-planos-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
   gap:14px;align-items:center;text-align:center}
 .rf-lp-planos-in .rf-lp-p{text-align:center;max-width:68ch}
+/* ===== SELETOR MENSAL / ANUAL (rfLpPlanosHTML) =====
+   A pastilha é um elemento só, deslocado por transform — animar left/width
+   refaria o layout a cada quadro e engasgaria no telemóvel. Os dois botões têm
+   a MESMA largura (1fr cada) justamente para o deslocamento ser 100%: com
+   larguras diferentes o valor teria de ser medido em JS a cada troca.
+
+   `respiro`: o seletor fica a 22px do parágrafo e a 6px da grade — encostado
+   nos cartões ele parecia legenda deles, e não um controlo. */
+.rf-lp-ciclo{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:0;
+  margin:22px 0 6px;padding:4px;border:var(--border-hairline);border-radius:99px;
+  background:var(--surface-sunken)}
+.rf-lp-ciclo-pilula{position:absolute;top:4px;left:4px;width:calc(50% - 4px);
+  height:calc(100% - 8px);border-radius:99px;background:var(--surface-card);
+  box-shadow:0 2px 10px -4px rgba(0,0,0,.35);
+  transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.rf-lp-ciclo[data-ciclo="ano"] .rf-lp-ciclo-pilula{transform:translateX(100%)}
+.rf-lp-ciclo-b{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;
+  gap:8px;height:40px;padding:0 20px;border:none;background:none;cursor:pointer;
+  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  color:var(--text-3);white-space:nowrap;
+  transition:color var(--dur-fast) var(--ease)}
+.rf-lp-ciclo-b[aria-checked="true"]{color:var(--text-1)}
+.rf-lp-ciclo-selo{display:inline-block;padding:2px 8px;border-radius:99px;
+  background:#E7F6EC;color:#1B7A43;
+  font-size:var(--fs-caption);font-weight:var(--fw-bold);letter-spacing:.2px}
+/* o número trocando: sobe 4px e assenta. Curto de propósito — o preço é a
+   informação, a animação só diz "isto mudou", não pede a atenção toda. */
+@keyframes rfPrecoTroca{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.rf-lp-plano-v.troca{animation:rfPrecoTroca .28s cubic-bezier(.22,1,.36,1)}
+.rf-lp-plano-a{transition:color var(--dur-fast) var(--ease)}
+@media (max-width:560px){
+  .rf-lp-ciclo{width:100%}
+  .rf-lp-ciclo-b{padding:0 10px;font-size:var(--fs-caption)}
+}
+/* quem pediu menos movimento não leva nenhum: a pastilha salta, o preço troca
+   sem animar, e a informação continua toda lá */
+@media (prefers-reduced-motion:reduce){
+  .rf-lp-ciclo-pilula{transition:none}
+  .rf-lp-plano-v.troca{animation:none}
+}
 .rf-lp-plano-grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
   width:100%;margin-top:14px;align-items:stretch}
 .rf-lp-plano{display:flex;flex-direction:column;gap:8px;text-align:left;position:relative;
@@ -3515,6 +3601,41 @@
 .rf-cam-linha.k-gol,.rf-cam-linha.k-gol-contra{border-left:3px solid transparent;padding-left:7px}
 .rf-cam-linha.k-gol{background:var(--club-primary-soft);border-left-color:var(--club-primary)}
 .rf-cam-linha.k-gol .rf-cam-ltx{color:var(--text-1);font-weight:var(--fw-bold)}
+/* ===== A FESTA DO GOL DELE =====
+   Dura o mesmo que a câmera lenta do relógio (~4,2s, ver CAM_LENTO_MS): a
+   linha entra com um salto, pulsa três vezes na cor do clube e leva um brilho
+   a atravessá-la duas vezes. `celebra` é posta pelo camPatchFeed só na linha
+   que acabou de entrar — nunca no redesenho do feed. */
+@keyframes rf-cam-gol-entra{
+  0%{opacity:0;transform:translateY(-10px) scale(.94)}
+  60%{opacity:1;transform:translateY(0) scale(1.035)}
+  100%{transform:scale(1)}
+}
+@keyframes rf-cam-gol-pulso{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}
+  50%{box-shadow:0 0 0 3px var(--club-primary-soft),0 2px 14px -4px var(--club-primary)}
+}
+@keyframes rf-cam-gol-brilho{
+  0%{transform:translateX(-130%)}
+  100%{transform:translateX(130%)}
+}
+.rf-cam-linha.k-gol.celebra{
+  position:relative;overflow:hidden;
+  animation:rf-cam-gol-entra .5s var(--ease) both,
+            rf-cam-gol-pulso 1.4s var(--ease) 3;
+}
+.rf-cam-linha.k-gol.celebra .rf-cam-lic{display:inline-block;
+  animation:rf-cam-gol-entra .45s var(--ease) 3}
+.rf-cam-linha.k-gol.celebra::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 34%,rgba(255,255,255,.72) 50%,transparent 66%);
+  animation:rf-cam-gol-brilho 1.6s var(--ease) 2;
+}
+@media (prefers-reduced-motion:reduce){
+  .rf-cam-linha.k-gol.celebra,
+  .rf-cam-linha.k-gol.celebra .rf-cam-lic{animation:none}
+  .rf-cam-linha.k-gol.celebra::after{display:none}
+}
 .rf-cam-linha.k-gol-contra{background:#fdf0f0;border-left-color:var(--danger)}
 .rf-cam-linha.k-gol-contra .rf-cam-ltx{color:var(--text-1);font-weight:var(--fw-semibold)}
 .rf-cam-linha.k-n{background:var(--surface-sunken)}
@@ -3558,10 +3679,28 @@
 .rf-cam-patro-l{flex:0 0 auto;font-size:var(--fs-label);font-weight:var(--fw-bold);
   letter-spacing:var(--ls-label);color:var(--text-4);white-space:nowrap}
 .rf-cam-patro-marcas{flex:1;min-width:0;display:flex;align-items:center;gap:10px;overflow:hidden}
+/* A PASTILHA NAO TEM MARGEM INTERNA. Ela tinha `padding:3px 6px` sobre fundo
+   branco: uma logo com fundo transparente encostava nesse branco e ninguem via,
+   mas um criativo OPACO -- que preenche os 240×80 com a cor da marca -- ficava
+   com uma moldura branca de 6px nas laterais e 3px em cima e em baixo. Era o
+   mesmo defeito dos cantos arredondados dos outros espacos, na medida pequena:
+   a arte parava antes do fim do lugar. O fundo claro FICA (e' o que faz uma logo
+   escura e transparente ser legivel aqui), mas quem manda no recorte e' o raio,
+   e a arte vai de ponta a ponta. Logo com fundo transparente deve trazer a sua
+   margem desenhada -- e' o que a nota do espaco pede no painel. */
 .rf-cam-ad{flex:0 0 auto;max-height:30px;width:auto;border-radius:var(--r-tag);
-  background:var(--surface-card);padding:3px 6px;box-sizing:content-box;
+  background:var(--surface-card);box-sizing:border-box;overflow:hidden;
   opacity:.75;transition:opacity .3s var(--ease),max-height .3s var(--ease),box-shadow .3s var(--ease)}
 .rf-cam-ad.on{opacity:1;max-height:36px;box-shadow:0 2px 10px -4px rgba(20,33,26,.45)}
+/* LUGAR AINDA NÃO VENDIDO — a pastilha existe na banda com a medida que ela pede.
+   É a mesma regra dos outros espaços (ver rfAdEspaco): quem vende precisa de ver o
+   inventário no ecrã, e quem joga vê uma banda de cinco lugares em vez de um logo
+   solto a boiar. Sem tracejado a mais: a pastilha já é a moldura. */
+.rf-cam-ad-vazio{display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  height:30px;min-width:76px;padding:0 10px;box-sizing:border-box;border-radius:var(--r-tag);
+  background:var(--surface-card);border:1px dashed var(--line-2);
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--text-4)}
+.rf-cam-ad-vazio.on{height:36px}
 .rf-cam-cta{flex:0 0 auto;height:38px;padding:0 18px;border:none;border-radius:11px;
   background:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F);font-family:var(--font-sans);
   font-size:var(--fs-body-sm);font-weight:var(--fw-bold);white-space:nowrap;cursor:pointer}
@@ -4921,6 +5060,35 @@
   color:#fff;background:var(--ok)}
 .rf-wl-ok-d{display:flex;flex-direction:column;gap:3px;min-width:0}
 .rf-wl-ok-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+/* ===== AS DUAS PERGUNTAS DE PRECO =====
+   Sao a unica coisa no formulario que nao e' um campo de texto, e de proposito:
+   pede-se um SIM ou um NAO, e um par de botoes grandes responde-se com o
+   polegar. Ficam no fim, depois de a pessoa ja' ter dado nome e e-mail — o
+   lead nao se perde se ela decidir nao responder a estas. */
+.rf-wl-pergs{display:flex;flex-direction:column;gap:14px;padding-top:4px;
+  border-top:var(--border-hairline)}
+.rf-wl-perg{display:flex;flex-direction:column;gap:9px}
+.rf-wl-perg-t{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  line-height:1.45}
+.rf-wl-perg-t b{color:var(--brand-primary,#17458F)}
+.rf-wl-sn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rf-wl-sn button{appearance:none;cursor:pointer;min-height:52px;padding:12px 14px;
+  border-radius:var(--r-row);border:1.5px solid var(--border-strong,#d7dcd6);
+  background:var(--surface-card);color:var(--text-2);
+  font-family:inherit;font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-tight);display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),
+             color var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease)}
+.rf-wl-sn button:hover{border-color:var(--brand-primary,#17458F);background:var(--surface-sunken)}
+.rf-wl-sn button:active{transform:translateY(1px)}
+/* ESCOLHIDO nas cores da marca: o sim veste o azul, o nao fica sobrio — a
+   resposta tem de ler-se de relance quando a pessoa passa para a seguinte. */
+.rf-wl-sn button.on{background:var(--brand-primary,#17458F);border-color:var(--brand-primary,#17458F);
+  color:#fff}
+.rf-wl-sn button.on.nao{background:var(--text-2);border-color:var(--text-2)}
+.rf-wl-sn button:focus-visible{outline:2px solid var(--brand-secondary,#F2B90C);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){ .rf-wl-sn button{transition:none} }
+
 .rf-wl-amigos{display:flex;flex-direction:column;gap:8px}
 .rf-wl-amigo{display:flex;align-items:center;gap:8px}
 .rf-wl-amigo .rf-campo-c{flex:1 1 auto;min-width:0}
@@ -4949,7 +5117,6 @@
 .rf-wiz-fita-l{display:flex;align-items:center;gap:10px}
 .rf-wiz-fita-l img{width:28px;height:28px;object-fit:contain;flex:0 0 auto}
 .rf-wiz-fita-m{font-size:14px;font-weight:var(--fw-bold);color:#fff;white-space:nowrap}
-.rf-wiz-fita-98{font-family:var(--font-mono);color:var(--brand-secondary)}
 .rf-wiz-fita-c{font-family:var(--font-mono);font-size:var(--fs-label);color:#c3d3ec;white-space:nowrap}
 .rf-wiz-fita-b{display:flex;gap:4px}
 .rf-wiz-fita-b i{flex:1;height:4px;border-radius:var(--r-pill);background:rgba(255,255,255,.22)}
@@ -5558,6 +5725,9 @@
   transition:background var(--dur-fast) var(--ease)}
 .rf-el-row:hover{background:#f5f8f4}
 .rf-el-row.sel{background:var(--club-primary-soft);border-color:var(--club-primary)}
+/* A celula do nome na aba Base leva a miniatura ao lado. `min-width:0` e' o que
+   deixa o nome truncar em vez de esticar a coluna. */
+.rf-el-jog{display:flex;align-items:center;gap:10px;min-width:0}
 .rf-el-nome{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-el-c{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-3);
@@ -6092,6 +6262,37 @@
 .rf-ml-corpo{display:flex;flex-direction:column;gap:12px;
   font-size:var(--fs-body-sm);color:var(--text-2);line-height:1.7;text-wrap:pretty}
 .rf-ml-corpo p{margin:0}
+/* ===== O CORPO DO E-MAIL TEM COMPONENTES =====
+   Os e-mails eram um parágrafo atrás do outro, separados por <br><br>: um
+   jogador por linha, cada dado numa frase. Numa coluna larga isso desperdiça
+   metade da linha e obriga a rolar para ler o que cabia num relance.
+
+   Três peças, e cada uma tem o seu caso:
+   · .rf-ml-tab  — lista de jogadores com dados (aposentadoria, risco, elenco).
+     Uma linha por jogador, colunas alinhadas. É onde o ganho é maior: seis
+     jogadores passam de doze linhas de texto para seis linhas de tabela.
+   · .rf-ml-kv   — pares rótulo/valor lado a lado (caixa, prémio, contrato).
+     Duas colunas em ecrã largo, uma no telemóvel.
+   · .rf-ml-nota — o fecho, mais miúdo, para o que é contexto e não dado. */
+.rf-ml-tab{width:100%;border-collapse:collapse;font-size:var(--fs-caption);
+  border:1px solid var(--line-1);border-radius:var(--r-inner);overflow:hidden}
+.rf-ml-tab th{text-align:left;font-weight:var(--fw-bold);font-size:10.5px;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--text-4);background:var(--surface-sunken);
+  padding:7px 10px;white-space:nowrap}
+.rf-ml-tab td{padding:7px 10px;border-top:1px solid var(--line-1);color:var(--text-2);
+  vertical-align:middle}
+.rf-ml-tab td.n{font-weight:var(--fw-semibold);color:var(--text-1)}
+.rf-ml-tab td.m{font-family:var(--font-mono);font-size:11.5px;text-align:right;white-space:nowrap}
+.rf-ml-tab tr:nth-child(even) td{background:color-mix(in srgb,var(--surface-sunken) 45%,transparent)}
+.rf-ml-kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px 14px}
+.rf-ml-kv div{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:7px 10px;background:var(--surface-sunken);border-radius:var(--r-inner)}
+.rf-ml-kv span{font-size:var(--fs-caption);color:var(--text-4)}
+.rf-ml-kv b{font-family:var(--font-mono);font-size:12.5px;color:var(--text-1);white-space:nowrap}
+.rf-ml-nota{font-size:var(--fs-caption);color:var(--text-4);line-height:1.6}
+@media (max-width:640px){
+  .rf-ml-tab th:nth-child(n+4),.rf-ml-tab td:nth-child(n+4){display:none}
+}
 .rf-ml-acts{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line-1);padding-top:12px}
 
 /* =====================================================================
@@ -8329,11 +8530,29 @@
   color:var(--text-faint,#9aa79e);text-transform:uppercase;font-family:var(--font-mono,monospace)}
 .rf-adph-f{font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-4,#9aa79e);opacity:.75}
 /* cada espaço com a sua medida, para o marcador ocupar EXATAMENTE o que o anúncio vai ocupar */
-.rf-adph.rf-ad-top{width:100%;height:90px}
+.rf-adph.rf-ad-top{width:100%;aspect-ratio:970/90;height:auto}
 .rf-adph.rf-ad-slot{width:160px;height:600px}
 .rf-adph.rf-ad-rect{width:100%;max-width:300px;height:250px;margin:8px auto 0}
-.rf-adph.rf-ad-inline{width:100%;max-width:468px;height:60px;margin:10px auto}
+/* FAIXA DO TOPO DO E-MAIL — mesma receita das outras: a caixa carrega a proporcao
+   do formato vendido e a arte preenche-a. Ela abre a mensagem, entao leva margem
+   em baixo e nenhuma em cima: encosta no cabecalho do cartao. */
+.rf-ad-email,.rf-adph.rf-ad-email{width:100%;aspect-ratio:728/90;margin:0 0 14px;
+  border-radius:var(--r-inner);overflow:hidden}
+@media (max-width:760px){ .rf-ad-email,.rf-adph.rf-ad-email{aspect-ratio:320/50} }
+.rf-adph.rf-ad-inline{width:100%;aspect-ratio:970/90;margin:10px 0}
+@media (max-width:760px){ .rf-adph.rf-ad-inline{aspect-ratio:320/50} }
 .rf-adph.rf-ad-splash,.rf-adph.rf-ad-card{width:100%;max-width:520px;aspect-ratio:16/9;margin:14px auto}
+/* Boas-vindas ao clube (rf98.entrada.sorteio, rfOb7) — 970×250 no desktop e
+   320×100 no telemóvel, as duas medidas que o inventário vende. `aspect-ratio`
+   em vez de altura fixa: assim o lugar encolhe com a coluna sem cortar o
+   criativo, e reservar o espaço certo é o que impede a publicação de empurrar
+   o botão de entrar para baixo da dobra. */
+.rf-ad-entrada,.rf-adph.rf-ad-entrada{width:100%;max-width:970px;aspect-ratio:970/250;
+  margin:18px auto 4px;border-radius:var(--r-inner)}
+.rf-ad-entrada img,.rf-ad-entrada video{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:720px){
+  .rf-ad-entrada,.rf-adph.rf-ad-entrada{aspect-ratio:320/100}
+}
 .rf-adph.cl-ad{width:100%;max-width:728px;height:90px;margin:12px auto 0;background:var(--surface-sunken)}
 .rf-adph.rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
   width:min(970px,100vw);height:90px;border-radius:var(--r-inner,12px) var(--r-inner,12px) 0 0;
@@ -8344,7 +8563,23 @@
 body.rf-tem-anchor .rf-content{padding-bottom:106px}
 @media (max-width:760px){
   .rf-adph.rf-anchor{width:100vw;height:50px}   /* 320×50 é o formato de telefone */
-  .rf-adph.rf-ad-top{height:100px}
+  /* NO TELEFONE O FORMATO VENDIDO E' 320×100 — e' essa a medida que o LUGAR
+     VAZIO reserva. Mas o espaco guarda um criativo so', e o painel aceita a
+     medida de desktop OU a de telemovel (ver modalUpload em admin.js): nao da'
+     para saber, no CSS, qual das duas foi publicada. Entao, COM CRIATIVO, a
+     caixa toma a altura DA ARTE — quem publicou 320×100 enche a caixa toda, e
+     quem publicou 970×90 fica com uma faixa fina e inteira, em vez de um
+     anuncio pequeno a boiar no meio de uma caixa alta. */
+  .rf-ad-top,.rf-adph.rf-ad-top{aspect-ratio:320/100;height:auto}
+  .rf-ad.rf-ad-top,.rf-ad.rf-ad-inline{aspect-ratio:auto}
+  .rf-ad.rf-ad-top .rf-ad-art,.rf-ad.rf-ad-inline .rf-ad-art{height:auto}
+  /* COM ARTE DE TELEMOVEL PUBLICADA (`tem-mob`, posta por ADS.html) a caixa volta
+     a ter a medida movel: aqui ja' se sabe que a arte na tela e' a de 320×100 ou
+     320×50, e ela preenche o lugar inteiro. Sem arte movel a caixa segue a altura
+     da arte de desktop, que e' a unica que ha'. */
+  .rf-ad.rf-ad-top.tem-mob{aspect-ratio:320/100}
+  .rf-ad.rf-ad-inline.tem-mob{aspect-ratio:320/50}
+  .rf-ad.rf-ad-top.tem-mob .rf-ad-art,.rf-ad.rf-ad-inline.tem-mob .rf-ad-art{height:100%}
   /* No telefone a barra de navegacao ja mora no rodape: a ancora fica ACIMA dela. A conta e a
      altura real da nav — conteudo (47px) + o padding de baixo (12px) + a area segura do
      aparelho, que a propria nav ja soma. Medida no telefone: 67px sem area segura. */

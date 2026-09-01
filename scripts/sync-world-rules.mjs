@@ -26,6 +26,14 @@ const FOLHAS = [
   { nome: 'WORLD_RULES',  arquivo: 'public/src/engine/world-rules.js' },
   { nome: 'UNIVERSOS',    arquivo: 'public/src/data/universos.js' },
   { nome: 'WORLD_CONFIG', arquivo: 'public/src/engine/world-config.js' },
+  /* AS TABELAS DE ECONOMIA. Eram copiadas À MÃO para dentro do resolve-round — receita, salário,
+     capacidade, OPEX, bônus de resultado e premiação de liga — com um comentário lá avisando que
+     "qualquer mexida aqui precisa ser refletida no cliente". Bastava esquecer a cópia para o caixa
+     da CPU divergir do caixa do humano no meio da Resenha, sem erro nenhum aparecer. Agora são
+     folha, como as outras, e o --check reprova o build se divergirem.
+     DEPOIS de WORLD_CONFIG: REBAL.bandKey lê WORLD_CONFIG.bandaDaDivisaoSemPais. */
+  { nome: 'REBALANCE',    arquivo: 'public/src/data/rebalance.js' },
+  { nome: 'PRIZES',       arquivo: 'public/src/data/prizes.js' },
 ];
 
 const conferir = process.argv.includes('--check');

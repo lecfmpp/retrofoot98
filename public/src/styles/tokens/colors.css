@@ -2,11 +2,16 @@
   /* Marca — NUNCA trocam por clube. As telas de sistema (troca de aparelho no
      hotseat, por exemplo) mostram o clube de OUTRA pessoa no corpo; pintar o
      cabeçalho com a cor de quem está sentado seria dizer que o time é dele. */
-  --brand-primary:#17458F;
-  --brand-primary-deep:#0e2f66;
-  --brand-secondary:#F2B90C;
+  /* AS CORES SAO AS DO LOGOTIPO, e vem de la: azul #0A3C9F e amarelo #FFBF01 sao
+     medidos no ficheiro da marca (ver img/marca.svg). Se a marca mudar, mudam
+     aqui primeiro -- e' este bloco que pinta o jogo inteiro. */
+  --brand-primary:#0A3C9F;
+  --brand-primary-deep:#072a70;
+  --brand-secondary:#FFBF01;
   --brand-on-primary:#ffffff;
-  --brand-on-secondary:#17458F;
+  --brand-on-secondary:#0A3C9F;
+  /* o cinza da palavra, para quando ela e' escrita em texto em vez de desenhada */
+  --brand-tinta:#373435;
 
   /* Clube — trocáveis por time. Estes são os do XV Piracicaba. */
   --club-primary:#17458F;

@@ -23,10 +23,42 @@ const SB_KEY = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 const SCHEMA = 'admin_rf98';      // schema padrão do painel
 const SCHEMA_JOGO = 'elifoot_v3'; // inventário de anúncios e tempo de jogo
 const BUCKET = 'publicidade';
+const BUCKET_MOMENTOS = 'momentos';
+/* Chaves cujo criativo tambem e' servido de uma MORADA FIXA (<chave>/atual.png),
+   porque aparece fora do jogo, em meta tags de HTML estatico que nao sabem
+   consultar a base de dados. Hoje e' o cartao de partilha do WhatsApp: ele vale
+   para o convite da Resenha (public/convite.html) e para o site inteiro
+   (og:image do index.html). Acrescentar uma chave aqui so' faz sentido a par de
+   uma meta tag que aponte para ela. */
+const CHAVES_MORADA_FIXA = ['rf98.resenha.invite'];
 
 let sb = null;
 /* tabelas do jogo (ad_spaces, ad_creatives): mesmo client, outro schema */
 const jogo = (t) => sb.schema(SCHEMA_JOGO).from(t);
+
+/* ===== O SUPABASE PARA DE CONTAR EM 1000, E NAO AVISA =====
+   `.select()` sem `.range()` devolve no maximo 1000 linhas — sem erro, sem
+   aviso no corpo, so' um `content-range` que ninguem le. player_photos passou
+   disso e o Estudio comecou a mostrar contador de fotos MENOR do que a
+   realidade: clube com o elenco inteiro fotografado aparecia pela metade, e
+   quem operava o painel gerava de novo o que ja' existia — pagando IA duas
+   vezes pela mesma cara.
+
+   `ordem` nao e' enfeite: sem ela o banco devolve na ordem fisica, que muda a
+   cada gravacao, e cada leitura traz um recorte diferente. Foi isso que fez o
+   sintoma parecer aleatorio. */
+const PAGINA_SB = 1000;
+async function todasAsLinhas(tabela, packId, ordem){
+  const linhas = [];
+  for(let de = 0; ; de += PAGINA_SB){
+    let q = jogo(tabela).select('*').eq('pack_id', packId);
+    for(const col of ordem) q = q.order(col, { ascending:true });
+    const r = await q.range(de, de + PAGINA_SB - 1);
+    if(r.error) return { data:null, error:r.error };
+    linhas.push.apply(linhas, r.data||[]);
+    if(!r.data || r.data.length < PAGINA_SB) return { data:linhas, error:null };
+  }
+}
 let ME = null;                     // linha de adm_users
 const D  = {};                     // dados carregados por página
 const SEL = { salas:new Set(), saves:new Set(), contas:new Set(), convites:new Set() }; // seleções em massa
@@ -153,11 +185,15 @@ async function entrarNoPainel(silencioso){
 const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'Produto', leitura:'Leitura' };
 /* o que cada papel vê (o guia: socio=tudo, financeiro=Finanças+Publicidade,
    produto=Analytics/Usuários/Funcionalidades, leitura=tudo em modo leitura) */
+/* PAGINA NOVA TEM DE ENTRAR AQUI TAMBEM. O menu e' filtrado por podeVer(), e
+   uma aba ausente deste mapa nao aparece para NINGUEM — nem para o socio. Foi o
+   que aconteceu com 'videos': a pagina existia, a rota existia, e o item nunca
+   chegou ao menu. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','estudio','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa'],
   financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','parceiros','conteudo','features','editor','estudio'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','estudio']
+  produto:    ['visao','usuarios','jogos','analytics','videos','parceiros','conteudo','features','editor','estudio'],
+  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -319,6 +355,7 @@ const NAV = [
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
+  { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos dos momentos', sub:'Quando cada modal aparece e com que vídeo' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
   { id:'parceiros',   ic:'★', label:'Parceiros',      tit:'Parceiros influenciadores', sub:'Canais, link de indicação e o que ele trouxe' },
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
@@ -346,10 +383,211 @@ function irPara(tab, forcar){
   el('mob-tit').textContent = n.tit;
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
-               financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
+               financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo,
                editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
   fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
+}
+
+/* ============================ VÍDEOS DOS MOMENTOS ============================
+   Os nove modais de celebração do jogo — campeão, artilheiro, acesso, queda,
+   crise — viviam só em dois mapas dentro de ui/main.js. Trocar um vídeo obrigava
+   a publicar o site, e não havia onde ler QUANDO cada um aparece.
+
+   Aqui o painel manda e o jogo lê, igual à publicidade. O que é editável: o
+   vídeo, o ligado/desligado e a nota. O GATILHO não é — "foi campeão da liga" é
+   regra de jogo, não configuração —, mas fica escrito em cada cartão, para quem
+   opera saber o que dispara cada um sem abrir o código. */
+/* CAMINHO RELATIVO E' DO JOGO, NAO DO PAINEL. Os videos que vieram no bundle
+   estao guardados como 'video/momento-campeao.mp4' — relativo, porque e' assim
+   que o jogo os pede. Aberto no painel, que vive noutro dominio, isso resolvia
+   para retrofoot98-admin.web.app/video/... e o player ficava preto.
+   O que o painel sobe fica com URL absoluta do storage e passa direto. */
+function urlVideo(v){
+  if(!v) return '';
+  return /^https?:\/\//i.test(v) ? v : (JOGO_URL + '/' + String(v).replace(/^\/+/,''));
+}
+const TOM_MOMENTO = {
+  yellow:{ n:'Comemoração', tag:'t-warn' },
+  green: { n:'Boa notícia',  tag:'t-ok'   },
+  gray:  { n:'Notícia ruim', tag:'t-dim'  },
+};
+async function pgVideos(){
+  const editar = podeEditar('dados');
+  const r = await jogo('momentos').select('*').order('ord');
+  if(r.error) throw r.error;
+  const ms = r.data||[];
+  D.momentos = ms;
+  const comVideo = ms.filter(m=>m.video_url).length;
+  const semGatilho = ms.filter(m=>/SEM GATILHO/i.test(m.quando||'')).length;
+  const desligados = ms.filter(m=>!m.ativo).length;
+
+  const cartao = (m) => {
+    const tom = TOM_MOMENTO[m.tom]||TOM_MOMENTO.gray;
+    const orfao = /SEM GATILHO/i.test(m.quando||'');
+    const prev = m.video_url
+      ? `<div class="prev tem video"><video src="${h(urlVideo(m.video_url))}" controls preload="metadata"
+           loop playsinline controlsList="nodownload"></video></div>`
+      : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Sem vídeo</span>
+          <span class="mono" style="font-size:11px;color:var(--dim3)">o modal abre igual</span></div>`;
+    return `<div class="slot ${m.ativo?(m.video_url?'no-ar':'livre'):'desligado'}"${m.ativo?'':' style="opacity:.55"'}>
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <b style="display:block;font-size:13.5px;font-weight:700">${h(m.nome)}</b>
+          <small style="display:block;font-size:11.5px;color:var(--dim2)">${h(m.kicker||'')}</small>
+          <code>${h(m.id)}</code>
+        </div>
+        <span class="tag ${tom.tag}">${h(tom.n)}</span>
+      </div>
+      ${prev}
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:12px;line-height:1.5">
+          <span style="color:var(--dim2)">Quando:</span> ${orfao
+            ? `<b style="color:var(--ambar)">${h(m.quando)}</b>`
+            : h(m.quando||'—')}</div>
+        <div style="font-size:12px"><span style="color:var(--dim2)">Regra do jogo:</span> <b>${h(m.frequencia||'—')}</b></div>
+        <div style="font-size:12px;display:flex;gap:14px;flex-wrap:wrap">
+          <span><span style="color:var(--dim2)">Aparece em</span>
+            <b class="mono" style="color:${(m.chance??100)<100?'var(--ambar)':'var(--verde2)'}">${m.chance??100}%</b>
+            <span style="color:var(--dim3)">das vezes</span></span>
+          ${m.max_por_temporada?`<span><span style="color:var(--dim2)">Máx.</span>
+            <b class="mono">${m.max_por_temporada}</b><span style="color:var(--dim3)">/temporada</span></span>`:''}
+        </div>
+        <div style="font-size:12px;line-height:1.5;color:var(--dim)">${h(m.conteudo||'')}</div>
+      </div>
+      ${editar?`<div class="acoes" style="margin-top:11px">
+        <button class="btn btn-sm" data-mom="${h(m.id)}">${m.video_url?'Ver e trocar':'Subir vídeo'}</button>
+        <button class="btn btn-sm btn-ghost" data-mom-onoff="${h(m.id)}">${m.ativo?'Desligar':'Ligar'}</button>
+      </div>`:''}
+    </div>`;
+  };
+
+  el('page').innerHTML = `
+    <div class="g4" style="margin-bottom:16px">
+      ${kpiHTML({l:'Momentos no jogo', v:num(ms.length), d:'modais de celebração'})}
+      ${kpiHTML({l:'Com vídeo', v:`${comVideo}/${ms.length}`, d:`${ms.length-comVideo} ainda sem`})}
+      ${kpiHTML({l:'Desligados', v:num(desligados), d: desligados? 'não aparecem no jogo':'todos no ar'})}
+      ${kpiHTML({l:'Sem gatilho', v:num(semGatilho), d: semGatilho? 'definidos e nunca disparados':'todos disparam'})}
+    </div>
+    ${semGatilho?`<div class="card card-p" style="margin-bottom:16px">
+      <div class="tt">Dois momentos nunca aparecem</div>
+      <div class="st">Estão definidos no jogo — têm modal, texto e botões — mas nenhuma parte do
+        código os dispara. Subir vídeo para eles não os faz aparecer: falta o gatilho, que é
+        trabalho de código. Estão marcados em âmbar abaixo.</div>
+    </div>`:''}
+    <div class="g3">${ms.map(cartao).join('')}</div>`;
+
+  document.querySelectorAll('[data-mom]').forEach(b =>
+    b.onclick = () => abrirVideoMomento(ms.find(x=>x.id===b.dataset.mom)));
+  document.querySelectorAll('[data-mom-onoff]').forEach(b => b.onclick = async () => {
+    const m = ms.find(x=>x.id===b.dataset.momOnoff);
+    const { error } = await jogo('momentos')
+      .update({ ativo: !m.ativo, atualizado_em: new Date().toISOString() }).eq('id', m.id);
+    if(error) return toast(erroMsg(error), true);
+    toast(m.ativo ? 'Momento desligado.' : 'Momento ligado.'); pgVideos();
+  });
+}
+
+/* ATÉ 15 MB e sem áudio obrigatório: o modal toca o vídeo em laço, mudo, atrás
+   do texto — é ambiente, não peça com som. O limite é o do bucket `momentos`. */
+function abrirVideoMomento(m){
+  if(!m) return;
+  let arquivo = null;
+  abrirModal(`
+    <h3>${h(m.nome)}</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 18px">${h(m.quando||'')}</div>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(m.id)}</code>
+        <span style="color:var(--dim2);text-align:right">${h((TOM_MOMENTO[m.tom]||{}).n||'')}</span></div>
+      <div><span style="color:var(--dim2)">Frequência</span><b>${h(m.frequencia||'—')}</b></div>
+      <div><span style="color:var(--dim2)">Peso máx.</span><b>15 MB</b></div>
+      <div class="full" style="color:var(--dim2);line-height:1.5">${h(m.conteudo||'')}</div>
+    </div>
+    ${m.video_url?`<div class="mv-player">
+      <video src="${h(urlVideo(m.video_url))}" controls preload="metadata" loop playsinline
+             controlsList="nodownload"></video></div>`:''}
+    <div class="erro hide" id="mv-erro"></div>
+    <div class="col">
+      <div class="drop" id="mv-drop">
+        <div class="t">Arraste o vídeo ou clique</div>
+        <div class="s" id="mv-sub">MP4 ou WEBM até 15 MB · 16:9 · sem som, em laço</div>
+        <input type="file" id="mv-file" accept="video/mp4,video/webm" style="display:none">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <label class="f">Aparece em <b id="mv-ch-v" class="mono">${m.chance??100}%</b> das vezes
+          <input type="range" id="mv-chance" min="0" max="100" step="5" value="${m.chance??100}"
+                 style="width:100%;margin-top:6px">
+          <span style="display:block;font-size:11px;color:var(--dim3);line-height:1.5;margin-top:4px">
+            De cada vez que o gatilho dispara. Em 100% aparece sempre — o que
+            para a crise soa a aviso de sistema; abaixo disso vira acontecimento.</span></label>
+        <label class="f">Máximo por temporada
+          <input class="f" id="mv-max" type="number" min="1" placeholder="sem teto"
+                 value="${m.max_por_temporada??''}" style="margin-top:6px">
+          <span style="display:block;font-size:11px;color:var(--dim3);line-height:1.5;margin-top:4px">
+            Vazio = sem teto. Só morde no que pode repetir; o que a regra já
+            limita a uma vez ignora isto.</span></label>
+      </div>
+      <label class="f" style="margin-top:10px">Nota interna
+        <input class="f" id="mv-nota" placeholder="ex.: refazer com a taça nova"
+               value="${m.nota?h(m.nota):''}"></label>
+      <div class="acoes" style="margin-top:12px">
+        ${m.video_url?'<button class="btn btn-sm btn-ghost" id="mv-tirar">Tirar o vídeo</button>':''}
+        <button class="btn btn-ghost" data-fechar>Fechar</button>
+        <button class="btn" id="mv-ok">Salvar</button>
+      </div>
+    </div>`, 'lg');
+
+  const erro = el('mv-erro');
+  const falhar = m2 => { erro.textContent = m2; erro.classList.remove('hide'); };
+  const drop = el('mv-drop'), input = el('mv-file');
+  function validar(f){
+    erro.classList.add('hide');
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    if(!['mp4','webm'].includes(ext)) return falhar('Só MP4 ou WEBM.');
+    if(f.size > 15*1024*1024) return falhar(`O ficheiro tem ${Math.round(f.size/1048576)} MB; o limite é 15 MB.`);
+    arquivo = f; drop.classList.add('ok');
+    el('mv-sub').textContent = `${f.name} · ${Math.round(f.size/1048576*10)/10} MB`;
+  }
+  const sl=el('mv-chance'), slv=el('mv-ch-v');
+  if(sl) sl.oninput = () => { slv.textContent = sl.value+'%'; };
+
+  drop.onclick = () => input.click();
+  input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('sobre'); };
+  drop.ondragleave = () => drop.classList.remove('sobre');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('sobre');
+    if(e.dataTransfer.files[0]) validar(e.dataTransfer.files[0]); };
+
+  if(el('mv-tirar')) el('mv-tirar').onclick = async () => {
+    const { error } = await jogo('momentos')
+      .update({ video_url:null, atualizado_em:new Date().toISOString() }).eq('id', m.id);
+    if(error) return falhar(erroMsg(error));
+    fecharModal(); toast('Vídeo retirado — o modal continua a abrir, sem ele.'); pgVideos();
+  };
+
+  el('mv-ok').onclick = async () => {
+    const bt = el('mv-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
+    try{
+      const teto = parseInt(el('mv-max').value,10);
+      const campos = { nota: el('mv-nota').value.trim() || null,
+                       chance: parseInt(el('mv-chance').value,10),
+                       max_por_temporada: (Number.isFinite(teto) && teto>0) ? teto : null,
+                       atualizado_em: new Date().toISOString() };
+      if(arquivo){
+        const ext = (arquivo.name.split('.').pop()||'mp4').toLowerCase();
+        /* o nome leva a hora: o browser guarda vídeo em cache com unhas e
+           dentes, e um caminho fixo mostraria o vídeo antigo depois de trocar */
+        const caminho = `${m.id}-${Date.now()}.${ext}`;
+        const up = await sb.storage.from(BUCKET_MOMENTOS)
+          .upload(caminho, arquivo, { contentType: arquivo.type, upsert:false });
+        if(up.error) throw up.error;
+        campos.video_url = sb.storage.from(BUCKET_MOMENTOS).getPublicUrl(caminho).data.publicUrl;
+      }
+      const { error } = await jogo('momentos').update(campos).eq('id', m.id);
+      if(error) throw error;
+      fecharModal(); toast('Momento atualizado.'); pgVideos();
+    }catch(e){ falhar(erroMsg(e)); bt.disabled=false; bt.textContent='Salvar'; }
+  };
 }
 
 /* ============================ VISÃO GERAL ============================ */
@@ -486,12 +724,26 @@ function duplaHTML(a, b, rotuloA, rotuloB, troféu){
     <small style="display:block;font-size:9.5px;color:var(--dim3);letter-spacing:.3px">solo/res</small>
   </span>`;
 }
+/* ===== OS TRES PLANOS, COM O NOME QUE O JOGADOR VE' =====
+   O painel dizia so' "gratis" ou "pago" enquanto a landing vendia tres planos e
+   o jogo ja' os distinguia: quem operava aqui nao tinha como saber se a conta
+   era Resenha ou Embaixador — que e' justamente a diferenca entre poder abrir
+   sala e nao poder. As chaves sao as do banco (elifoot_v3.user_plans). */
+const PLANOS_ADM = {
+  free:       { nome:'Peladeiro',  tag:'t-dim',  preco:0 },
+  resenha:    { nome:'Resenha',    tag:'t-azul', preco:1990 },
+  embaixador: { nome:'Embaixador', tag:'t-warn', preco:4990 },
+};
+const planoAdm = (k) => PLANOS_ADM[k] || PLANOS_ADM.free;
+const ehPago   = (u) => !!u.plano && u.plano !== 'free';
+
 async function pgUsuarios(){
   const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
   if(error) throw error;
   D.usuarios = data || [];
   const us = D.usuarios;
-  const pagos = us.filter(u=>u.plano==='pago');
+  const pagos = us.filter(ehPago);
+  const porPlano = (k) => us.filter(u => (u.plano||'free') === k).length;
   const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
   const minutos = us.reduce((a,u)=>a+ +u.minutos, 0);
   const podeApagar = ME.papel==='socio';
@@ -505,8 +757,9 @@ async function pgUsuarios(){
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Contas totais', v:num(us.length), d:`${num(us.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
-      ${kpiHTML({l:'Plano grátis',  v:num(us.length-pagos.length), d:'sem cobrança ligada'})}
-      ${kpiHTML({l:'Plano pago',    v:num(pagos.length), d:`${brl(mrr)} de MRR`})}
+      ${kpiHTML({l:'Peladeiro', v:num(porPlano('free')), d:'plano grátis'})}
+      ${kpiHTML({l:'Assinantes', v:num(pagos.length),
+                 d:`${num(porPlano('resenha'))} Resenha · ${num(porPlano('embaixador'))} Embaixador${mrr?' · '+brl(mrr)+' de MRR':''}`})}
       ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:'somado de todas as contas'})}
     </div>
     <div class="card" style="overflow:hidden">
@@ -536,7 +789,9 @@ async function pgUsuarios(){
             <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(u.nome)}</b>
             <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(u.email)}</small></span>
           </span>
-          <span class="tag ${u.plano==='pago'?'t-ok':'t-dim'}" style="justify-self:start">${u.plano==='pago'?'pago':'grátis'}</span>
+          <span class="tag ${planoAdm(u.plano).tag}" style="justify-self:start"
+                title="${h(u.plano_ate ? 'até '+dmy(u.plano_ate) : 'sem prazo')}${u.plano_origem?' · '+h(u.plano_origem):''}">${
+            h(planoAdm(u.plano).nome)}</span>
           <span style="min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis">${u.referral
             ? `<b style="font-weight:600;color:var(--fg2)">${h(u.parceiro||u.referral)}</b>
                <small class="mono" style="display:block;font-size:10.5px;color:var(--verde2)">${h(u.referral)}</small>`
@@ -1030,7 +1285,8 @@ async function pgAnalytics(){
     ga4 && ga4.visitas ? {n:'Visitas ao site', v:+ga4.visitas, nota:'GA4'} : null,
     { n:'Contas criadas', v:+f.contas, nota:'base do jogo' },
     { n:'Primeiro jogo concluído', v:+f.jogaram, nota:'tem save solo ou assento numa sala' },
-    { n:'Plano pago', v:+f.pagos, nota:'marcado em Usuários' }
+    { n:'Assinantes', v:+f.pagos,
+      nota:`${+f.resenha||0} Resenha · ${+f.embaixador||0} Embaixador` }
   ].filter(Boolean);
 
   el('page').innerHTML = `
@@ -1038,7 +1294,7 @@ async function pgAnalytics(){
       ${kpiHTML({l:'Sessões (período)', v:num(totalSes), d:'contas com tempo de jogo registrado'})}
       ${kpiHTML({l:'Contas criadas', v:num(totalContas), d:`${num(f.contas)} no total`})}
       ${kpiHTML({l:'Chegaram a jogar', v:num(f.jogaram), d:`${pct(f.jogaram,f.contas)}% das contas`})}
-      ${kpiHTML({l:'Plano pago', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
+      ${kpiHTML({l:'Assinantes', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
     </div>
     <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
       <div class="card card-p">
@@ -1397,13 +1653,27 @@ async function pgPublicidade(){
   if(editar){
     el('p-novo').onclick = modalPatrocinador;
     document.querySelectorAll('[data-del-patro]').forEach(b => b.onclick = async () => {
-      if(!confirm('Apagar este patrocinador? Os criativos dele ficam no ar sem marca associada.')) return;
+      if(!confirm('Apagar este patrocinador?\n\nA receita mensal dele sai junto das Finanças. Os criativos ficam no ar, sem marca associada.')) return;
       const { error } = await sb.from('adm_patrocinadores').delete().eq('id', b.dataset.delPatro);
       if(error) return toast(erroMsg(error), true);
       registrar('patrocinador.apagar', b.dataset.delPatro);
       toast('Patrocinador apagado.'); pgPublicidade();
     });
     document.querySelectorAll('[data-upload]').forEach(b => b.onclick = () => modalUpload(b.dataset.upload));
+    document.querySelectorAll('[data-placas]').forEach(b => b.onclick = () => modalPlacas(b.dataset.placas));
+    /* LIGAR/DESLIGAR O ESPACO. Desligar NAO mexe no criativo: ele fica publicado,
+       so' deixa de ser desenhado. Voltar a ligar devolve exatamente o que la' estava
+       -- e' por isso que isto e' um interruptor e nao um "tirar do ar". */
+    document.querySelectorAll('[data-ligar]').forEach(b => b.onclick = async () => {
+      const ligar = b.dataset.ligado === '0';
+      if(!ligar && !confirm('Desligar este espaço? O jogo deixa de o desenhar — o criativo continua publicado e volta assim que ligares outra vez.')) return;
+      b.disabled = true;
+      const { error } = await jogo('ad_spaces').update({ ligado: ligar }).eq('chave', b.dataset.ligar);
+      if(error){ b.disabled = false; return toast(erroMsg(error), true); }
+      registrar(ligar?'espaco.ligar':'espaco.desligar', b.dataset.ligar);
+      toast(ligar ? 'Espaço ligado — volta a aparecer no jogo.' : 'Espaço desligado — sai da tela do jogo.');
+      pgPublicidade();
+    });
     document.querySelectorAll('[data-tirar]').forEach(b => b.onclick = async () => {
       if(!confirm('Tirar este criativo do ar? O espaço deixa de ser desenhado no jogo.')) return;
       const { error } = await jogo('ad_creatives').update({ ativo:false }).eq('id', b.dataset.tirar);
@@ -1417,20 +1687,35 @@ async function pgPublicidade(){
 function slotHTML(e, editar){
   const c = e.criativo;
   const video = c && /video|mp4/i.test(c.mime||'');
-  const prev = c
+  /* ESPACO DE PLACAS: a previa mostra as TRES, na ordem em que aparecem no campo, com o
+     lugar vazio a' vista. Uma miniatura so' escondia que duas das tres estao por vender. */
+  const placas = e.placas ? (()=>{
+    const porPos = {}; (e.criativos||[]).forEach(x=>{ porPos[x.posicao]=x; });
+    const cel = [];
+    for(let i=1;i<=e.placas;i++){ const x=porPos[i];
+      cel.push(x ? `<img src="${h(x.ficheiro_url)}" alt="Placa ${i}" style="width:100%;height:100%;object-fit:cover;border-radius:4px">`
+                 : `<span class="mono" style="font-size:10px;color:var(--dim3)">${i}</span>`); }
+    return `<div class="prev tem" style="display:flex;${e.w<e.h?'flex-direction:row':'flex-direction:column'};
+      gap:6px;align-items:stretch;justify-content:center;padding:10px">
+      ${cel.map(x=>`<div style="flex:1;display:flex;align-items:center;justify-content:center;
+        background:#0d1a12;border:1px dashed var(--linha,#243028);border-radius:4px;overflow:hidden;min-height:22px">${x}</div>`).join('')}
+    </div>`;
+  })() : null;
+  const prev = placas ? placas : (c
     ? `<div class="prev tem">${video
         ? `<video src="${h(c.ficheiro_url)}" muted autoplay loop playsinline></video>`
         : `<img src="${h(c.ficheiro_url)}" alt="">`}</div>`
     : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Espaço livre</span>
-        <span class="mono" style="font-size:11px;color:var(--dim3)">${e.w}×${e.h}</span></div>`;
-  return `<div class="slot ${c?'no-ar':'livre'}">
+        <span class="mono" style="font-size:11px;color:var(--dim3)">${e.w}×${e.h}</span></div>`);
+  const off = e.ligado === false;
+  return `<div class="slot ${off?'desligado':(c?'no-ar':'livre')}"${off?' style="opacity:.55"':''}>
     <div style="display:flex;align-items:flex-start;gap:8px">
       <div style="flex:1;min-width:0">
         <b style="display:block;font-size:13.5px;font-weight:700">${h(e.nome)}</b>
         <small style="display:block;font-size:11.5px;color:var(--dim2)">${h(e.local)}</small>
         <code>${h(e.chave)}</code>
       </div>
-      <span class="tag ${e.tipo==='modal'?'t-roxo':'t-azul'}">${e.tipo==='modal'?'Modal':'Página'}</span>
+      ${off?'<span class="tag t-dim">Desligado</span>':`<span class="tag ${e.tipo==='modal'?'t-roxo':'t-azul'}">${e.tipo==='modal'?'Modal':'Página'}</span>`}
     </div>
     ${prev}
     <div class="meta-l">
@@ -1441,13 +1726,30 @@ function slotHTML(e, editar){
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
+      ${e.placas ? `<div><span>Placas</span><b>${(e.criativos||[]).length} de ${e.placas} vendidas</b></div>` : ''}
+      ${(e.mw!==e.w||e.mh!==e.h) ? `<div><span>Arte de celular</span><b style="color:${
+        c ? (c.ficheiro_url_mob?'var(--verde2)':'var(--dim3)') : 'var(--dim3)'}">${
+        c ? (c.ficheiro_url_mob?'publicada':'usa a de desktop') : '—'}</b></div>` : ''}
+      ${e.tem_botao ? `<div><span>Botão</span>${c&&c.cta_texto
+        ? `<b><span style="display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;
+             background:${h(c.cta_bg||'#F2B90C')};color:${h(c.cta_fg||'#17458F')};font-size:11px">${h(c.cta_texto)}</span></b>`
+        : '<b style="color:var(--dim3)">sem botão</b>'}</div>` : ''}
     </div>
     <div class="foot">
-      <span style="flex:1;font-size:12px;color:${c?'var(--verde2)':'var(--dim2)'}">
-        ${c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '') : 'Sem criativo'}
+      <span style="flex:1;font-size:12px;color:${(e.placas?(e.criativos||[]).length:c)?'var(--verde2)':'var(--dim2)'}">
+        ${e.placas
+          ? ((e.criativos||[]).length ? (e.criativos||[]).map(x=>h(x.patrocinador||('Placa '+x.posicao))).join(' · ') : 'Nenhuma placa vendida')
+          : (c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '') : 'Sem criativo')}
       </span>
-      ${editar ? (c?`<button class="btn btn-sm btn-ghost" data-tirar="${c.id}">Tirar</button>`:'') +
-        `<button class="btn btn-sm" data-upload="${h(e.chave)}">${c?'Trocar':'Enviar'}</button>` : ''}
+      ${editar ? `<button class="btn btn-sm btn-ghost" data-ligar="${h(e.chave)}"
+        data-ligado="${off?'0':'1'}" title="${off
+          ? 'O jogo não desenha este espaço. Ligar faz o lugar voltar à tela.'
+          : 'Desligar tira o lugar da tela do jogo, sem deixar buraco no layout.'}"
+        >${off?'Ligar':'Desligar'}</button>` : ''}
+      ${editar && !off ? (e.placas
+        ? `<button class="btn btn-sm" data-placas="${h(e.chave)}">Gerir placas</button>`
+        : (c?`<button class="btn btn-sm btn-ghost" data-tirar="${c.id}">Tirar</button>`:'') +
+          `<button class="btn btn-sm" data-upload="${h(e.chave)}">${c?'Trocar':'Enviar'}</button>`) : ''}
     </div>
   </div>`;
 }
@@ -1488,7 +1790,14 @@ function modalPatrocinador(){
       await sb.from('adm_lancamentos').insert({
         tipo:'receita', data: new Date().toISOString().slice(0,10),
         descricao: 'Patrocínio — '+nome, categoria:'publicidade',
-        valor_centavos: valor, recorrencia:'mensal'
+        valor_centavos: valor, recorrencia:'mensal',
+        /* A RECEITA FICA AMARRADA AO PATROCINADOR. Sem esta ligacao o lancamento
+           era orfao: apagar a marca aqui tirava-a da lista de patrocinadores e a
+           receita CONTINUAVA a somar em Financas, mes apos mes, porque e'
+           recorrente. A coluna tem ON DELETE CASCADE -- quem apaga a receita e' o
+           banco, junto com o patrocinador, e nao uma segunda chamada daqui que
+           pode falhar sozinha ou ser esquecida no proximo caminho de apagar. */
+        patrocinador_id: data.id
       });
     }
     registrar('patrocinador.criar', nome, {valor_mes_centavos:valor});
@@ -1499,6 +1808,150 @@ function modalPatrocinador(){
 /* ---------- upload de criativo ---------- */
 const MIME_EXT = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp',
                    mp4:'video/mp4', webm:'video/webm', gif:'image/gif' };
+/* ============================================================================
+   MODAL DAS PLACAS DO CAMPO — uma arte e um link POR PLACA
+   ----------------------------------------------------------------------------
+   Os outros espacos guardam UM criativo. Estes guardam um por PLACA
+   (ad_creatives.posicao = 1..ad_spaces.placas): o trio de deitadas aparece
+   acima e abaixo do campo, o de em pe' de cada lado. Antes uma arte so'
+   preenchia as seis do mesmo feitio -- quem comprava levava o anel inteiro, e
+   nao havia como vender a placa do meio a outra marca.
+
+   TUDO NUM MODAL SO', e nao tres espacos separados na lista: elas sao um
+   produto -- "as placas do campo" -- e ve-las lado a lado e' o que mostra
+   quantas ainda estao por vender.
+
+   Cada placa publica sozinha: enviar a arte da placa 2 nao toca na 1 nem na 3.
+   ============================================================================ */
+async function modalPlacas(chave){
+  const e = (D.pub.espacos||[]).find(x=>x.chave===chave);
+  if(!e || !e.placas) return;
+  const exts = (e.formatos||[]).map(f=>f.toLowerCase());
+  const accept = exts.map(x=>'.'+x).join(',');
+  const porPos = {}; (e.criativos||[]).forEach(x=>{ porPos[x.posicao]=x; });
+  const arquivos = {};        // posicao -> File escolhido nesta sessao do modal
+
+  const bloco = i => {
+    const x = porPos[i];
+    return `<div style="border:1px solid var(--linha,#243028);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <b style="font-size:13px;flex:1">Placa ${i}</b>
+        <span style="font-size:11.5px;color:${x?'var(--verde2)':'var(--dim3)'}">${x?'no ar':'livre'}</span>
+        ${x?`<button class="btn btn-sm btn-ghost" data-tirar-placa="${x.id}">Tirar</button>`:''}
+      </div>
+      ${x?`<img src="${h(x.ficheiro_url)}" alt="" style="width:100%;max-height:70px;object-fit:contain;
+        background:#0d1a12;border-radius:6px;margin-bottom:10px;display:block">`:''}
+      <div class="drop" id="pl-drop-${i}">
+        <div class="ic">⬆</div>
+        <div class="t" id="pl-tit-${i}">${x?'Trocar a arte':'Escolher arquivo'}</div>
+        <div class="s" id="pl-sub-${i}">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.w}×${e.h}</div>
+        <input type="file" id="pl-file-${i}" accept="${h(accept)}" style="display:none">
+      </div>
+      <label class="f" style="margin-top:10px">Link desta placa<input class="f" id="pl-link-${i}"
+        placeholder="https://" value="${x&&x.link_destino?h(x.link_destino):''}"></label>
+      <div class="acoes" style="margin-top:10px">
+        <button class="btn btn-sm" id="pl-ok-${i}">${x?'Republicar placa '+i:'Publicar placa '+i}</button>
+      </div>
+    </div>`;
+  };
+
+  const cel = [];
+  for(let i=1;i<=e.placas;i++) cel.push(bloco(i));
+  abrirModal(`
+    <h3>${h(e.nome)}</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 18px">${h(e.local)}</div>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(e.chave)}</code>
+        <span style="color:var(--dim2);text-align:right">${h(e.iab||'')}</span></div>
+      <div><span style="color:var(--dim2)">Cada placa</span><b>${e.w}×${e.h}</b></div>
+      <div><span style="color:var(--dim2)">Peso máx.</span><b>${e.peso_kb} KB</b></div>
+      ${e.nota ? `<div class="full" style="color:var(--dim2);line-height:1.5">${h(e.nota)}</div>` : ''}
+    </div>
+    <div class="erro hide" id="pl-erro"></div>
+    <div class="col">${cel.join('')}
+      <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>
+    </div>`, 'lg');
+
+  const erro = el('pl-erro');
+  const mostrarErro = m => { erro.textContent = m; erro.classList.remove('hide'); };
+
+  for(let i=1;i<=e.placas;i++){
+    (function(pos){
+      const drop = el('pl-drop-'+pos), input = el('pl-file-'+pos);
+      const falhar = m => { mostrarErro(m); drop.classList.remove('ok'); delete arquivos[pos]; };
+      /* MESMA VALIDACAO DO ENVIO NORMAL -- extensao, peso e medida exata. A medida de uma
+         placa e' a do espaco: as tres sao do mesmo feitio, e uma fora da medida entortava
+         o anel inteiro. */
+      async function validar(f){
+        erro.classList.add('hide');
+        const ext = (f.name.split('.').pop()||'').toLowerCase();
+        if(!exts.includes(ext)) return falhar(`Formato .${ext} não é aceito aqui (só ${exts.join(', ')}).`);
+        if(f.size > e.peso_kb*1024) return falhar(`O arquivo tem ${Math.round(f.size/1024)} KB e o máximo é ${e.peso_kb} KB.`);
+        let dim=null;
+        try{ dim = await new Promise((res,rej)=>{ const url=URL.createObjectURL(f); const im=new Image();
+          im.onload=()=>{ URL.revokeObjectURL(url); res({w:im.naturalWidth,h:im.naturalHeight}); };
+          im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('imagem inválida')); }; im.src=url; }); }
+        catch(err){ return falhar('Não foi possível ler o arquivo.'); }
+        if(dim && !(dim.w===e.w && dim.h===e.h))
+          return falhar(`A arte tem ${dim.w}×${dim.h}. Cada placa deste espaço é ${e.w}×${e.h}.`);
+        arquivos[pos]=f; drop.classList.add('ok');
+        el('pl-tit-'+pos).textContent = f.name;
+        el('pl-sub-'+pos).textContent = `${Math.round(f.size/1024)} KB · ${dim.w}×${dim.h} — pronto para publicar`;
+      }
+      drop.onclick = () => input.click();
+      drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
+      drop.ondragleave = () => drop.classList.remove('ok');
+      drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
+      input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+
+      el('pl-ok-'+pos).onclick = async () => {
+        const f = arquivos[pos];
+        const link = el('pl-link-'+pos).value.trim();
+        if(link && !/^https?:\/\//i.test(link)) return mostrarErro('O link precisa começar com http:// ou https://');
+        const jaTem = porPos[pos];
+        if(!f && !jaTem) return mostrarErro('Escolha a arte da placa '+pos+' primeiro.');
+        const btn = el('pl-ok-'+pos); btn.disabled = true; btn.textContent = 'Publicando…';
+        try{
+          let url = jaTem ? jaTem.ficheiro_url : null, caminho = null, mime = jaTem ? jaTem.mime : null, bytes = jaTem ? jaTem.bytes : null;
+          if(f){
+            const ext = (f.name.split('.').pop()||'').toLowerCase();
+            caminho = `${e.chave}/p${pos}-${Date.now()}.${ext}`;
+            const up = await sb.storage.from(BUCKET).upload(caminho, f, {
+              contentType: MIME_EXT[ext] || f.type, upsert:false, cacheControl:'300' });
+            if(up.error) throw up.error;
+            url = sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
+            mime = MIME_EXT[ext] || f.type; bytes = f.size;
+          }
+          /* substitui SO' ESTA PLACA: o filtro leva a posicao, senao publicar a 2
+             tirava do ar a 1 e a 3 -- que e' exatamente o que este modal existe para
+             deixar de acontecer */
+          await jogo('ad_creatives').update({ ativo:false })
+            .eq('chave_espaco', e.chave).eq('posicao', pos).eq('ativo', true);
+          const ins = await jogo('ad_creatives').insert({
+            chave_espaco: e.chave, posicao: pos,
+            ficheiro_url: url, ficheiro_path: caminho,
+            mime, bytes, link_destino: link || null
+          });
+          if(ins.error) throw ins.error;
+          registrar('criativo.publicar', e.chave, {placa:pos, arquivo:caminho, link:link||null});
+          fecharModal(); toast('Placa '+pos+' no ar.'); pgPublicidade();
+        }catch(err){
+          btn.disabled = false; btn.textContent = 'Publicar placa '+pos;
+          mostrarErro(erroMsg(err));
+        }
+      };
+    })(i);
+  }
+
+  document.querySelectorAll('[data-tirar-placa]').forEach(b => b.onclick = async () => {
+    if(!confirm('Tirar esta placa do ar? Ela volta ao rótulo de casa no campo.')) return;
+    const { error } = await jogo('ad_creatives').update({ ativo:false }).eq('id', b.dataset.tirarPlaca);
+    if(error) return mostrarErro(erroMsg(error));
+    registrar('criativo.tirar', b.dataset.tirarPlaca);
+    fecharModal(); toast('Placa fora do ar.'); pgPublicidade();
+  });
+}
+
 function modalUpload(chave){
   const e = (D.pub.espacos||[]).find(x=>x.chave===chave);
   if(!e) return;
@@ -1508,7 +1961,11 @@ function modalUpload(chave){
   const razao = (e.w/e.h).toFixed(2);
   /* vídeo: o espaço só o aceita se tiver duração máxima definida E um formato de vídeo na lista */
   const aceitaVideo = e.dur_max_s != null && exts.some(x=>x==='mp4'||x==='webm');
-  let arquivo = null;
+  /* so' pedimos a arte de celular quando ela e' DIFERENTE da de desktop: os trilhos e as
+     pastilhas do Camarote repetem a medida nas duas pontas, e ali uma segunda zona de
+     envio so' faria o socio subir o mesmo ficheiro duas vezes */
+  const temMob = (e.mw !== e.w || e.mh !== e.h);
+  let arquivo = null, arquivoM = null;
 
   abrirModal(`
     <h3>Enviar criativo</h3>
@@ -1526,12 +1983,34 @@ function modalUpload(chave){
       ${e.nota ? `<div class="full" style="color:var(--dim2);line-height:1.5">${h(e.nota)}</div>` : ''}
     </div>
     <div class="col">
-      <div class="drop" id="up-drop">
-        <div class="ic">⬆</div>
-        <div class="t" id="up-tit">Escolher arquivo</div>
-        <div class="s" id="up-sub">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.w}×${e.h} ou ${e.mw}×${e.mh}</div>
-        <input type="file" id="up-file" accept="${h(accept)}" style="display:none">
+      <!-- DUAS ARTES, UM CRIATIVO. O espaco vende duas medidas e o jogo troca de arte
+           no ponto de corte do telemovel (ver html() em public/src/net/ads.js). Antes so'
+           a de desktop podia ser enviada: a medida movel aparecia na ficha, era cobrada,
+           e nao havia como entregar a arte dela. -->
+      <div class="${temMob?'g2':''}" style="gap:12px">
+        <div>
+          ${temMob?`<b style="display:block;font-size:12px;margin-bottom:6px">Desktop · ${e.w}×${e.h}</b>`:''}
+          <div class="drop" id="up-drop">
+            <div class="ic">⬆</div>
+            <div class="t" id="up-tit">Escolher arquivo</div>
+            <div class="s" id="up-sub">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.w}×${e.h}</div>
+            <input type="file" id="up-file" accept="${h(accept)}" style="display:none">
+          </div>
+        </div>
+        ${temMob?`
+        <div>
+          <b style="display:block;font-size:12px;margin-bottom:6px">Celular · ${e.mw}×${e.mh}
+            <span style="font-weight:400;color:var(--dim3)">(opcional)</span></b>
+          <div class="drop" id="up-drop-m">
+            <div class="ic">⬆</div>
+            <div class="t" id="up-tit-m">Escolher arquivo</div>
+            <div class="s" id="up-sub-m">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.mw}×${e.mh}</div>
+            <input type="file" id="up-file-m" accept="${h(accept)}" style="display:none">
+          </div>
+        </div>`:''}
       </div>
+      ${temMob?`<small style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin-top:-4px">
+        Sem a arte de celular, o telemóvel mostra a de desktop inteira, só que menor.</small>`:''}
       <div class="erro hide" id="up-erro"></div>
       <label class="f">Patrocinador<select class="f" id="up-patro">
         <option value="">— sem marca associada —</option>
@@ -1541,38 +2020,92 @@ function modalUpload(chave){
         <label class="f">Link de destino<input class="f" id="up-link" placeholder="https://"></label>
         <label class="f">No ar até<input class="f" id="up-ate" type="date"></label>
       </div>
+      ${e.tem_botao ? `
+      <!-- BOTAO DO PATROCINADOR: so' aparece nos espacos que desenham um (ad_spaces.tem_botao).
+           Sem texto nao ha' botao -- e' assim que um patrocinador que so' quer o logo fica so'
+           com o logo. O botao leva ao MESMO link de destino do logo, acima. -->
+      <div style="border-top:1px solid var(--linha,#243028);margin:4px 0 0;padding-top:14px">
+        <b style="display:block;font-size:13px;margin-bottom:2px">Botão do patrocinador</b>
+        <small style="display:block;font-size:11.5px;color:var(--dim2);line-height:1.5;margin-bottom:12px">
+          Fica à direita da banda, e aparece quando é a vez desta marca no destaque.
+          Deixe o texto vazio para publicar só o logo. O botão leva ao link de destino acima.</small>
+        <label class="f">Texto do botão<input class="f" id="up-cta" maxlength="48"
+          placeholder="ex.: Conhecer a loja"></label>
+        <div class="g2" style="gap:12px;margin-top:12px">
+          <label class="f">Cor do botão<input class="f" id="up-cta-bg" type="color" value="#F2B90C"
+            style="height:38px;padding:4px"></label>
+          <label class="f">Cor do texto<input class="f" id="up-cta-fg" type="color" value="#17458F"
+            style="height:38px;padding:4px"></label>
+        </div>
+        <div id="up-cta-prev" style="margin-top:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:11.5px;color:var(--dim2)">Prévia</span>
+          <span id="up-cta-bolha" style="display:none;height:34px;padding:0 16px;border-radius:11px;
+            align-items:center;font-size:13px;font-weight:700"></span>
+          <span id="up-cta-sem" style="font-size:12px;color:var(--dim3)">sem botão</span>
+        </div>
+      </div>` : ''}
       <div class="acoes">
         <button class="btn" id="up-ok">Publicar criativo</button>
         <button class="btn btn-ghost" data-fechar>Cancelar</button>
       </div>
     </div>`, 'lg');
 
-  const drop = el('up-drop'), input = el('up-file'), erro = el('up-erro');
-  const falhar = m => { erro.textContent = m; erro.classList.remove('hide'); drop.classList.remove('ok'); arquivo=null; };
-  drop.onclick = () => input.click();
-  drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
-  drop.ondragleave = () => drop.classList.remove('ok');
-  drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
-  input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
-
-  /* Validação no cliente: extensão, peso e DIMENSÃO exata (desktop ou celular).
-     A dimensão é lida do próprio arquivo antes de subir — é o que impede um
-     970×250 entrar num espaço de 300×250 e rebentar o layout do jogo. */
-  async function validar(f){
-    erro.classList.add('hide');
-    const ext = (f.name.split('.').pop()||'').toLowerCase();
-    if(!exts.includes(ext)) return falhar(`Formato .${ext} não é aceito aqui (só ${exts.join(', ')}).`);
-    if(f.size > e.peso_kb*1024) return falhar(`O arquivo tem ${Math.round(f.size/1024)} KB e o máximo é ${e.peso_kb} KB.`);
-    let dim = null;
-    try{ dim = await medir(f, ext); }catch(err){ return falhar('Não foi possível ler o arquivo.'); }
-    if(dim){
-      const bate = (dim.w===e.w && dim.h===e.h) || (dim.w===e.mw && dim.h===e.mh);
-      if(!bate) return falhar(`O criativo tem ${dim.w}×${dim.h}. Este espaço aceita ${e.w}×${e.h} (desktop) ou ${e.mw}×${e.mh} (celular).`);
-    }
-    arquivo = f; drop.classList.add('ok');
-    el('up-tit').textContent = f.name;
-    el('up-sub').textContent = `${Math.round(f.size/1024)} KB${dim?` · ${dim.w}×${dim.h}`:''} — pronto para publicar`;
+  /* previa do botao: o socio ve' a peca antes de publicar -- cor de fundo e cor de
+     texto sao escolhidas separadas, e o par errado da' um botao ilegivel */
+  if(e.tem_botao){
+    const pintar = () => {
+      const t = el('up-cta').value.trim();
+      const bolha = el('up-cta-bolha'), sem = el('up-cta-sem');
+      bolha.style.display = t ? 'inline-flex' : 'none';
+      sem.style.display   = t ? 'none' : 'inline';
+      bolha.textContent = t;
+      bolha.style.background = el('up-cta-bg').value;
+      bolha.style.color      = el('up-cta-fg').value;
+    };
+    ['up-cta','up-cta-bg','up-cta-fg'].forEach(id => el(id).oninput = pintar);
+    pintar();
   }
+
+  const erro = el('up-erro');
+  const limparErro = () => erro.classList.add('hide');
+  const mostrarErro = m => { erro.textContent = m; erro.classList.remove('hide'); };
+
+  /* UMA ZONA DE ENVIO, DUAS INSTANCIAS. Desktop e celular partilham arrastar-e-largar,
+     validacao e mensagens; o que muda entre elas e' a MEDIDA aceite e onde o ficheiro
+     fica guardado. Duplicar isto era a forma segura de a validacao do celular ficar
+     para tras da do desktop na proxima mudanca. */
+  function ligarZona({ idDrop, idInput, idTit, idSub, w, h: alt, qual, guardar }){
+    const drop = el(idDrop); if(!drop) return;
+    const input = el(idInput);
+    const falharAqui = m => { mostrarErro(m); drop.classList.remove('ok'); guardar(null); };
+    drop.onclick = () => input.click();
+    drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
+    drop.ondragleave = () => drop.classList.remove('ok');
+    drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
+    input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+
+    /* Validação no cliente: extensão, peso e DIMENSÃO exata da medida DESTA zona.
+       A dimensão é lida do próprio arquivo antes de subir — é o que impede um
+       970×250 entrar num espaço de 300×250 e rebentar o layout do jogo. */
+    async function validar(f){
+      limparErro();
+      const ext = (f.name.split('.').pop()||'').toLowerCase();
+      if(!exts.includes(ext)) return falharAqui(`Formato .${ext} não é aceito aqui (só ${exts.join(', ')}).`);
+      if(f.size > e.peso_kb*1024) return falharAqui(`O arquivo tem ${Math.round(f.size/1024)} KB e o máximo é ${e.peso_kb} KB.`);
+      let dim = null;
+      try{ dim = await medir(f, ext); }catch(err){ return falharAqui('Não foi possível ler o arquivo.'); }
+      if(dim && !(dim.w===w && dim.h===alt))
+        return falharAqui(`O criativo tem ${dim.w}×${dim.h}. A arte de ${qual} deste espaço é ${w}×${alt}.`);
+      guardar(f); drop.classList.add('ok');
+      el(idTit).textContent = f.name;
+      el(idSub).textContent = `${Math.round(f.size/1024)} KB${dim?` · ${dim.w}×${dim.h}`:''} — pronto para publicar`;
+    }
+  }
+  ligarZona({ idDrop:'up-drop', idInput:'up-file', idTit:'up-tit', idSub:'up-sub',
+              w:e.w, h:e.h, qual:'desktop', guardar:f => { arquivo=f; } });
+  if(temMob) ligarZona({ idDrop:'up-drop-m', idInput:'up-file-m', idTit:'up-tit-m', idSub:'up-sub-m',
+              w:e.mw, h:e.mh, qual:'celular', guardar:f => { arquivoM=f; } });
+  const falhar = m => { mostrarErro(m); };
   function medir(f, ext){
     return new Promise((res, rej) => {
       const url = URL.createObjectURL(f);
@@ -1599,15 +2132,59 @@ function modalUpload(chave){
     if(!arquivo) return falhar('Escolha um arquivo primeiro.');
     const link = el('up-link').value.trim();
     if(link && !/^https?:\/\//i.test(link)) return falhar('O link de destino precisa começar com http:// ou https://');
+    const cta = e.tem_botao ? el('up-cta').value.trim() : '';
+    /* botao sem destino nao leva a lado nenhum: o jogo nao o desenha, e publicar assim
+       seria vender uma peca que nunca aparece */
+    if(cta && !link) return falhar('O botão precisa de um link de destino — preencha o link acima ou apague o texto do botão.');
     const btn = el('up-ok'); btn.disabled = true; btn.textContent = 'Publicando…';
     try{
-      const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
-      const caminho = `${e.chave}/${Date.now()}.${ext}`;
-      const up = await sb.storage.from(BUCKET).upload(caminho, arquivo, {
-        contentType: MIME_EXT[ext] || arquivo.type, upsert:false, cacheControl:'300'
-      });
-      if(up.error) throw up.error;
-      const url = sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
+      /* sobe UM ficheiro e devolve o caminho publico — as duas artes do criativo
+         passam por aqui, e a de celular leva o sufixo `-m` no nome para as duas
+         serem distinguiveis no bucket sem abrir a tabela */
+      const subir = async (f, sufixo) => {
+        const ext = (f.name.split('.').pop()||'').toLowerCase();
+        const caminho = `${e.chave}/${Date.now()}${sufixo}.${ext}`;
+        const up = await sb.storage.from(BUCKET).upload(caminho, f, {
+          contentType: MIME_EXT[ext] || f.type, upsert:false, cacheControl:'300'
+        });
+        if(up.error) throw up.error;
+        return { caminho, ext, url: sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl };
+      };
+      const d = await subir(arquivo, '');
+      const m = arquivoM ? await subir(arquivoM, '-m') : null;
+      /* MORADA FIXA — para as chaves cujo criativo aparece FORA do jogo, em meta
+         tags de HTML estático (o cartão do WhatsApp, ver public/convite.html e o
+         og:image do index.html). Um robô de pré-visualização lê a meta tag no
+         servidor: ela tem de ser um endereço que não muda, senão trocar a arte
+         aqui exigia republicar o site a cada vez. `upsert` reescreve sempre o
+         mesmo ficheiro, e o cache curto do Storage (5 min) faz o resto.
+         A extensão é sempre .png por ser um rótulo estável — quem manda para os
+         robôs é o Content-Type, que vai o do ficheiro real. */
+      if(CHAVES_MORADA_FIXA.includes(e.chave)){
+        try{
+          const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
+          const fixo = `${e.chave}/atual.png`;
+          const opts = { contentType: MIME_EXT[ext] || arquivo.type, cacheControl:'300' };
+          let r = await sb.storage.from(BUCKET).upload(fixo, arquivo, { ...opts, upsert:true });
+          /* APAGAR E SUBIR, QUANDO O UPSERT NAO PASSA. `upsert` reescreve o objeto, e
+             reescrever pede permissao de UPDATE em storage.objects -- o bucket nasceu so'
+             com INSERT e DELETE (ver as politicas pub_ads_*). A permissao que faltava foi
+             acrescentada, mas o caminho de recurso fica: ele usa as duas permissoes que o
+             painel sempre teve, e assim a morada fixa nao depende de uma politica para
+             existir. Sem isto, a falha era silenciosa no sitio errado -- o criativo ia
+             para o ar no jogo e so' o cartao de partilha ficava por publicar. */
+          if(r.error){
+            await sb.storage.from(BUCKET).remove([fixo]);
+            r = await sb.storage.from(BUCKET).upload(fixo, arquivo, { ...opts, upsert:false });
+          }
+          if(r.error) throw r.error;
+        }catch(err){
+          /* não derruba a publicação: o criativo já está no ar no jogo. O que falha
+             aqui é só o cartão de partilha, e o aviso diz exatamente isso. */
+          toast('Criativo publicado, mas a morada fixa do cartão de partilha falhou: '+erroMsg(err), true);
+        }
+      }
+      const ext = d.ext, caminho = d.caminho, url = d.url;
       // publicar SUBSTITUI: o espaço só tem um criativo no ar de cada vez
       await jogo('ad_creatives').update({ ativo:false }).eq('chave_espaco', e.chave).eq('ativo', true);
       const ins = await jogo('ad_creatives').insert({
@@ -1616,10 +2193,19 @@ function modalUpload(chave){
         ficheiro_url: url, ficheiro_path: caminho,
         mime: MIME_EXT[ext] || arquivo.type, bytes: arquivo.size,
         link_destino: link || null,
+        // o botao viaja com o criativo (ver rfCamCtaHTML em public/src/ui/rf26-live.js)
+        cta_texto: cta || null,
+        cta_bg: cta ? el('up-cta-bg').value : null,
+        cta_fg: cta ? el('up-cta-fg').value : null,
+        ficheiro_url_mob:  m ? m.url : null,
+        ficheiro_path_mob: m ? m.caminho : null,
+        mime_mob:  m ? (MIME_EXT[m.ext] || arquivoM.type) : null,
+        bytes_mob: m ? arquivoM.size : null,
         no_ar_ate: el('up-ate').value ? new Date(el('up-ate').value+'T23:59:59').toISOString() : null
       });
       if(ins.error) throw ins.error;
-      registrar('criativo.publicar', e.chave, {arquivo:caminho, bytes:arquivo.size, link:link||null});
+      registrar('criativo.publicar', e.chave, {arquivo:caminho, bytes:arquivo.size, link:link||null,
+        celular: m ? m.caminho : null});
       fecharModal(); toast('Criativo no ar em '+e.chave); pgPublicidade();
     }catch(err){
       btn.disabled = false; btn.textContent = 'Publicar criativo';
@@ -2279,7 +2865,7 @@ async function pgEditor(){
   const pack = D.packs.find(p=>p.id===ST.packId);
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
-  const eds = await jogo('pack_edits').select('*').eq('pack_id', pack.id);
+  const eds = await todasAsLinhas('pack_edits', pack.id, ['club_id']);
   if(eds.error) throw eds.error;
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
@@ -3074,6 +3660,11 @@ function montarPatch(item){
   const c = item.c;
   const patch = {};
   const inicial = D.formInicial || {};
+  /* O FORMULARIO PRECISA ESTAR NA TELA. Sem ele, `valor()` devolve null em
+     todo o campo e o diff sai vazio — e patch vazio, gravado por cima, APAGA
+     o clube inteiro. Quem chama tem de saber a diferenca entre "nada mudou" e
+     "nao havia formulario para ler". */
+  const temForm = !!el('c-name');
   const valor = id => { const n = el(id); return n ? n.value : null; };
   for(const k of CAMPOS_CLUBE){
     const v = valor('c-'+k);
@@ -3111,17 +3702,37 @@ function montarPatch(item){
   if(Object.keys(squad).length) patch.squad = squad;
   if(novos.length) patch.squad_novos = novos;
   if(remover.length) patch.squad_remover = remover;
-  return { patch, squad, novos, remover };
+  return { patch, squad, novos, remover, temForm };
 }
 
+/* ===== GRAVAR UM CAMPO NAO PODE APAGAR OS OUTROS =====
+   `patch` e' uma coluna inteira: o upsert grava o objeto TODO. Isto escrevia
+   apenas o diff desta passagem, entao qualquer gravacao parcial levava o resto
+   embora. Medido no Palmeiras (auditoria de 28/08, 21:31:44 e 21:45:04): o
+   escudo era gravado pelo Estudio e, um segundo depois, um "Salvar" no editor
+   — onde o campo do escudo e' so' leitura e o nome nao tinha sido tocado —
+   gravava `{}` por cima e levava nome, curto e escudo de uma vez.
+   Sao duas causas, e as duas ficam fechadas aqui:
+     · o diff so' contem o que MUDOU AGORA (campo intocado nao entra), logo ele
+       nunca foi um retrato completo do patch e nao pode ser gravado como se
+       fosse — passa a ser mesclado sobre o que ja' estava la';
+     · o escudo nem sequer e' deste formulario (mora na aba Escudos), entao
+       nada aqui pode decidir apaga-lo.
+   O ELENCO e' a excecao: dele o formulario E' dono, e apagar uma edicao de
+   jogador tem de valer. Por isso as tres chaves de elenco saem da base antes
+   da mesclagem — mas so' quando o formulario esteve mesmo na tela. */
+const CHAVES_DO_ELENCO = ['squad','squad_novos','squad_remover'];
 async function salvarClube(item){
   const c = item.c, ed = D.edits[c.id];
-  const { patch, squad, novos, remover } = montarPatch(item);
+  const { patch, squad, novos, remover, temForm } = montarPatch(item);
+  if(!temForm){ toast('O formulário do clube não está aberto — nada foi gravado.', true); return; }
   if(!Object.keys(patch).length && !ed){ toast('Nada mudou.'); return; }
 
+  const base = Object.assign({}, (ed && ed.patch) || {});
+  CHAVES_DO_ELENCO.forEach(k => delete base[k]);
   const linha = {
     pack_id: ST.packId, club_id: String(c.id), divisao: item.div, novo: !!(ed && ed.novo),
-    patch: (ed && ed.novo) ? Object.assign({}, ed.patch, patch) : patch
+    patch: Object.assign(base, patch)
   };
   const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
   if(error) return toast(erroMsg(error), true);
@@ -7656,8 +8267,8 @@ async function pgEstudio(){
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const [eds, fotos] = await Promise.all([
-    jogo('pack_edits').select('*').eq('pack_id', pack.id),
-    jogo('player_photos').select('*').eq('pack_id', pack.id)
+    todasAsLinhas('pack_edits', pack.id, ['club_id']),
+    todasAsLinhas('player_photos', pack.id, ['club_id','jogador'])
   ]);
   if(eds.error) throw eds.error;
   if(fotos.error) throw fotos.error;

@@ -618,6 +618,37 @@ function rfWaitlistDraw(){
   if(!CL.waitlistOpen) return;
   overlayC(rfWaitlistHTML());
 }
+/* ===== AS DUAS PERGUNTAS DE PRECO =====
+   Elas nao sao um questionario a' parte: entram no proprio formulario da lista,
+   depois do nome e do e-mail, e sao OPCIONAIS. A ordem importa — quem desiste a
+   meio ja' deixou o lead, que e' o que a lista existe para recolher.
+   O par de botoes substitui um seletor porque a resposta e' binaria e o dedo
+   acerta num alvo de 52px sem pensar; um `select` pediria dois toques e uma
+   leitura. Clicar de novo na mesma resposta desmarca — enganar-se e nao ter
+   como voltar atras e' pior do que nao perguntar. */
+function rfWlPerguntasHTML(w){
+  /* `data-p`/`data-v` existem para o clique NAO redesenhar o modal: e' por eles
+     que clWaitlistPreco acha os dois botoes desta pergunta e troca so' a
+     classe. Ver o comentario la'. */
+  const par = (chave, valor) => `<div class="rf-wl-sn" data-p="${chave}">
+    <button type="button" data-v="1" class="${valor===true?'on':''}" aria-pressed="${valor===true}"
+      onclick="clWaitlistPreco('${chave}',true)">Sim, pagaria</button>
+    <button type="button" data-v="0" class="nao ${valor===false?'on':''}" aria-pressed="${valor===false}"
+      onclick="clWaitlistPreco('${chave}',false)">Não pagaria</button>
+  </div>`;
+  return `<div class="rf-wl-pergs">
+    <div class="rf-wl-perg">
+      <span class="rf-wl-perg-t">Você pagaria <b>R$ 19,90</b> para jogar com mais de 2 amigos online?</span>
+      ${par('paga1990', w.paga1990)}
+    </div>
+    <div class="rf-wl-perg">
+      <span class="rf-wl-perg-t">E <b>R$ 39,90</b> para criar a sua própria sala, convidar os amigos
+        e ainda ter o seu nome como jogador de verdade dentro do jogo?</span>
+      ${par('paga3990', w.paga3990)}
+    </div>
+  </div>`;
+}
+
 function rfWaitlistHTML(){
   const w=CL.waitlist||{};
   const vagas=(typeof WAITLIST_VAGAS!=='undefined')?WAITLIST_VAGAS:500;
@@ -693,6 +724,7 @@ function rfWaitlistHTML(){
              value="${escC(w.resposta||'')}" oninput="clWaitlistSet('resposta',this.value)"
              onkeydown="if(event.key==='Enter')clWaitlistSubmit()">`)}
       </div>
+      ${rfWlPerguntasHTML(w)}
     </div>`, {
     w:560, glyph:rfIcone('copiar',16)+'',
     footer:`<span class="rf-im-auto">A gente só usa os seus dados pra avisar da vaga.</span>

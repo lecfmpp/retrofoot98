@@ -174,12 +174,44 @@ function aplicar(edits){
   return n;
 }
 
+/* ===== O SUPABASE PARA DE CONTAR EM 1000, E NAO AVISA NO CORPO =====
+   A API corta a resposta em 1000 linhas por omissao. Nao e' erro: vem HTTP 200
+   com mil linhas e um cabecalho `content-range: 0-999/1090` que ninguem le. Foi
+   assim que 90 fotos de jogador desapareceram do jogo com a tabela intacta —
+   clube inteiro sem retrato, e regerar nao adiantava, porque o problema estava
+   em quem PERGUNTA, nao em quem guarda.
+
+   Duas regras aqui, e as duas sao necessarias:
+
+   · PAGINA ate a resposta vir menor que a pagina. Sem isto o teto volta assim
+     que a tabela crescer de novo — e ela cresce a cada clube que o Estudio
+     povoa.
+   · ORDENA por chave estavel. Sem `order`, o banco devolve na ordem fisica, que
+     muda a cada gravacao: duas perguntas iguais trazem recortes diferentes, e o
+     clube que sumiu hoje volta amanha no lugar de outro. Foi o que fez isto
+     parecer aleatorio durante dias. */
+const PAGINA = 1000;
+function buscarPaginado(tabela, select, filtro, ordem){
+  const cab = { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' };
+  const tudo = [];
+  const passo = (de) => fetch(
+      REST + tabela + '?select=' + select + '&' + filtro +
+      '&order=' + ordem + '&limit=' + PAGINA + '&offset=' + de, { headers:cab })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)))
+    .then(linhas => {
+      tudo.push.apply(tudo, linhas||[]);
+      /* pagina cheia = pode haver mais. Pagina curta = acabou. Empatar em
+         exatamente PAGINA gasta uma busca vazia a mais, e tudo bem: e' mais
+         barato do que adivinhar. */
+      return (linhas && linhas.length === PAGINA) ? passo(de + PAGINA) : tudo;
+    });
+  return passo(0);
+}
+
 function buscarEdits(packId){
   const q = packId ? 'pack_id=eq.'+encodeURIComponent(packId)
                    : 'pack_id=eq.'+encodeURIComponent(PACOTE_OFICIAL||'');
-  return fetch(REST + 'pack_edits?select=club_id,divisao,novo,patch&' + q,
-    { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
-    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP '+r.status)));
+  return buscarPaginado('pack_edits', 'club_id,divisao,novo,patch', q, 'club_id.asc');
 }
 
 /* FOTOS E UNIFORMES DO PACOTE (Estúdio IA do painel dos sócios):
@@ -228,11 +260,42 @@ window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 window.RF_TREINADORES = window.RF_TREINADORES || {};
 window.RF_TREINADOR_MARCA = window.RF_TREINADOR_MARCA || {};   // {escudoUrl, marcaUrl, escudo, marca}
 window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto por face
-function buscarFotos(packId){
-  if(!packId) return;
-  fetch(REST + 'player_photos?select=club_id,jogador,url,atributos&pack_id=eq.'+encodeURIComponent(packId),
+/* ===== OS MOMENTOS (modais de celebração) VÊM DO PAINEL =====
+   O vídeo de cada momento estava num mapa dentro de ui/main.js: trocar um
+   obrigava a publicar o site. Agora a tabela elifoot_v3.momentos manda, e este
+   ficheiro traz o que ela diz — mesma ideia da publicidade.
+
+   O mapa do código continua a existir e vale como PADRÃO: se a tabela não
+   responder, o jogo mostra os vídeos que já vieram no bundle, em vez de abrir
+   os modais pelados. Quem publica um vídeo novo sobrepõe; quem desliga um
+   momento tira-o da lista, e abrirMomento devolve sem desenhar nada. */
+window.RF_MOMENTOS = window.RF_MOMENTOS || {};       // id -> {video_url, ativo}
+function buscarMomentos(){
+  fetch(REST + 'momentos?select=id,video_url,ativo,chance,max_por_temporada',
     { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
     .then(r => r.ok ? r.json() : [])
+    .then(linhas => {
+      const novo = {};
+      for(const m of linhas||[]) if(m && m.id) novo[m.id] = {
+        video: m.video_url||null, ativo: m.ativo !== false,
+        chance: (m.chance==null?100:Number(m.chance)),
+        maxTemporada: (m.max_por_temporada==null?null:Number(m.max_por_temporada)) };
+      window.RF_MOMENTOS = novo;
+      /* o mapa do jogo é atualizado no lugar: main.js lê VIDEOS_MOMENTO na hora
+         de abrir, então basta o objeto estar em dia quando o momento acontecer */
+      if(window.VIDEOS_MOMENTO) for(const id of Object.keys(novo))
+        if(novo[id].video) window.VIDEOS_MOMENTO[id] = novo[id].video;
+    })
+    .catch(()=>{});
+}
+buscarMomentos();
+
+function buscarFotos(packId){
+  if(!packId) return;
+  /* A tabela das fotos e' a que ja' passou dos 1000 — ver buscarPaginado. */
+  buscarPaginado('player_photos', 'club_id,jogador,url,atributos',
+                 'pack_id=eq.'+encodeURIComponent(packId), 'club_id.asc,jogador.asc')
+    .catch(() => [])
     .then(rows => {
       for(const f of rows||[]){
         if(!f || f.club_id === '__molde__') continue;

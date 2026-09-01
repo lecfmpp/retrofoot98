@@ -172,7 +172,8 @@ function netWarnDeadSession(){
    de graca, mas com os limites em null — ver rfLimites(), que nesse caso NAO
    tranca nada. Trancar por falta de resposta seria trancar quem pagou. */
 const PLANO_PADRAO = { plan:'free', pro:false, until:null,
-  savesMax:null, podeHospedar:null, salaMax:null, avatarIA:null };
+  savesMax:null, podeHospedar:null, salaMax:null, avatarIA:null,
+  podeResenha:null, resenhaAte:null, savesNoMes:null, savesRenovaEm:null };
 let SB_PLANO = { ...PLANO_PADRAO };
 async function netCarregarPlano(){
   SB_PLANO = { ...PLANO_PADRAO };
@@ -191,7 +192,11 @@ async function netCarregarPlano(){
       savesMax: ('saves_max' in r) ? r.saves_max : null,
       podeHospedar: ('pode_hospedar' in r) ? !!r.pode_hospedar : null,
       salaMax: ('sala_max' in r) ? (r.sala_max||0) : null,
-      avatarIA: ('avatar_ia' in r) ? !!r.avatar_ia : null };
+      avatarIA: ('avatar_ia' in r) ? !!r.avatar_ia : null,
+      podeResenha: ('pode_resenha' in r) ? !!r.pode_resenha : null,
+      resenhaAte: ('resenha_ate' in r) ? (r.resenha_ate||null) : null,
+      savesNoMes: ('saves_no_mes' in r) ? Number(r.saves_no_mes||0) : null,
+      savesRenovaEm: ('saves_renova_em' in r) ? (r.saves_renova_em||null) : null };
   }catch(e){ console.warn('plano do treinador:', e && e.message); }
   return SB_PLANO;
 }
@@ -201,7 +206,9 @@ function netAuthStatus(){
     name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0],
     plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until,
     savesMax: SB_PLANO.savesMax, podeHospedar: SB_PLANO.podeHospedar,
-    salaMax: SB_PLANO.salaMax, avatarIA: SB_PLANO.avatarIA };
+    salaMax: SB_PLANO.salaMax, avatarIA: SB_PLANO.avatarIA,
+    podeResenha: SB_PLANO.podeResenha, resenhaAte: SB_PLANO.resenhaAte,
+    savesNoMes: SB_PLANO.savesNoMes, savesRenovaEm: SB_PLANO.savesRenovaEm };
 }
 
 /* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.
@@ -1384,6 +1391,33 @@ async function netLoadGame(){
   } catch(e) { console.error('loadGame erro:', e); return null; }
 }
 
+/* ---- PAGAMENTO: abre o checkout do plano escolhido ----
+   Só pede a URL e devolve. Quem CONCEDE o plano é o webhook, quando o Stripe
+   confirma a cobrança — abrir o checkout não é ter pago, e por isso nada aqui
+   escreve em user_plans.
+
+   `sem_chave` é resposta esperada, não erro: enquanto o Stripe não estiver
+   ligado no projeto, a função responde 503 com esse motivo e quem chamou volta
+   para a lista de espera, que é o comportamento de hoje. Botão nenhum morre no
+   meio do caminho. */
+async function netCriarCheckout(plano, ciclo){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
+  const res = await netInvokeFn('criar-checkout', {
+    plano, ciclo: ciclo||'mes',
+    origem: (typeof location!=='undefined' ? location.origin : '')
+  });
+  if(res.error){
+    /* o corpo do erro vem no context do invoke(); sem ele, trata como
+       indisponível — quem chamou cai na lista de espera de qualquer forma */
+    let motivo='falhou';
+    try{ const c = await res.error.context?.json?.(); if(c && c.motivo) motivo=c.motivo; }catch(e){}
+    return { erro: motivo };
+  }
+  const url = res.data && res.data.url;
+  return url ? { url } : { erro:'sem_url' };
+}
+
 /* ---- SAVES DO MODO SOLO (só nuvem, por usuário) ---- */
 async function netListSoloSaves(){
   if(!sb) await netInitSupabase();
@@ -1837,6 +1871,7 @@ NET.motorDivergente = netMotorDivergente;   // a UI pode travar o "resolver roda
 NET.isOnlineUser = netIsOnline;
 NET.authStatus = netAuthStatus;
 NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
+NET.criarCheckout = netCriarCheckout;   // devolve {url} ou {erro}
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;

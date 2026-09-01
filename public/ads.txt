@@ -1,4 +1,4 @@
-# ads.txt — RetroFoot98 / Elifoot 2026
+# ads.txt — RetroFoot98
 # Declara quem está autorizado a vender o inventário de anúncios deste domínio (IAB Tech Lab).
 # O AdSense procura este arquivo na RAIZ do site; sem ele a conta fica com o aviso
 # "Earnings at risk — you need to fix ads.txt file issues" e a verificação pode não concluir.

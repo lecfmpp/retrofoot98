@@ -229,8 +229,13 @@ function standCost(){ const st=myStadium(); return standCostFor((st&&st.capacity
    PRIZES.tierOf já mapeia QUALQUER divisão (Brasil A-D, ligas estrangeiras PL/CH/ES/ES2/etc.)
    pra uma dessas 4 faixas — mesmo mapa que os prêmios de liga já usam, sem inventar outro.
    Substitui levelTicketPrice(overall), que dava um número contínuo (6-16) por força do elenco. */
+/* A TABELA MUDOU DE CASA (para prizes.js) e esta função virou o atalho de sempre para a UI. O
+   motivo é o servidor: a bilheteria dos clubes da CPU na Resenha é calculada lá, e enquanto o
+   preço morava aqui — num arquivo de UI que o resolve-round não carrega — não havia como os dois
+   lados cobrarem o mesmo ingresso. O fallback mantém a tela de pé se prizes.js faltar. */
 const TICKET_PRICE_BY_TIER={A:25, B:20, C:15, D:10};
 function ticketPriceForDivision(div){
+  if(typeof PRIZES!=='undefined' && PRIZES.ticketPrice) return PRIZES.ticketPrice(div);
   const tier=(typeof PRIZES!=='undefined' && PRIZES.tierOf) ? PRIZES.tierOf(div) : 'A';
   return TICKET_PRICE_BY_TIER[tier] || TICKET_PRICE_BY_TIER.D;
 }
@@ -383,6 +388,8 @@ function menuSairHTML(){
    o que preenche o espaço enquanto ninguém comprou aquela chave. */
 function adSlotHTML(slot, opts){
   opts = typeof opts==='string' ? {cls:opts} : (opts||{});
+  // espaco desligado no painel: a janela fecha sem a faixa, e sem sobra de margem
+  if(window.ADS && ADS.ligado && !ADS.ligado(slot)) return '';
   if(window.ADS){ const real=ADS.html(slot, {cls:'cl-ad '+(opts.cls||'')}); if(real) return real; }
   /* espaco de venda (chave rf98.*) sem criativo: mostra o LUGAR, nao o anuncio-casa — e o
      inventario que o painel vende, e ele tem de ser visivel para se poder conferir */
@@ -1105,8 +1112,10 @@ function scAbertura(){
     <header class="cl-lp-hdr">
       <div class="cl-lp-hdr-in">
         <button class="cl-lp-logo" onclick="clLandingGo('home')">
-          <img src="img/logo.webp" width="500" height="500" alt="">
-          <span>RetroFoot<i>98</i></span>
+          <!-- A ASSINATURA E' DESENHADA, e por isso NAO tem "98". Aqui era o simbolo mais
+     a palavra escrita ao lado, com o 98 num <span> proprio; a marca nova tem um
+     lockup unico e nao leva numero. Ver img/marca.svg. -->
+          <img class="rf-marca-svg" src="img/marca.svg" alt="Retrofoot.com.br" height="26">
         </button>
         <nav class="cl-lp-navlinks ${CL.navMenuOpen?'open':''}">${menu}</nav>
         <div class="cl-lp-hdr-r">
@@ -1132,7 +1141,7 @@ function landingRodapeHTML(){
     <div class="cl-lp-wrap">
       <div class="cl-lp-foot-cols">
         <div>
-          <div class="cl-lp-foot-marca"><img src="img/logo.webp" width="500" height="500" alt=""><span>RetroFoot<i>98</i></span></div>
+          <div class="cl-lp-foot-marca"><img class="rf-marca-svg" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="24"></div>
           <p class="cl-lp-foot-sobre">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</p>
         </div>
         ${col('O JOGO', bt('Recursos',"clLpIr('recursos')")+bt('Telas do jogo',"clLpIr('telas')")
@@ -1163,6 +1172,8 @@ function clWaitlistOpen(origem){
   // de onde veio o lead: a lista é chamada da landing E do cartão do Modo
   // Resenha no onboarding, e sem isto os dois chegavam ao banco iguais
   CL.waitlistOrigem=origem||'landing';
+  /* `paga1990`/`paga3990` nascem UNDEFINED, nao false: a diferenca entre "disse
+     que nao" e "nao respondeu" e' o que faz a pergunta valer alguma coisa. */
   CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',clube:'',amigos:[''],zap:''};
   CL.waitlistClubeOpen=false;
   // o formulário é um modal do desenho novo (ver rfWaitlistHTML), desenhado no
@@ -1196,6 +1207,27 @@ async function clWaitlistCount(){
     }
   }catch(e){ /* sem número é melhor que número errado: a barra fica com "—" */ }
 }
+/* ===== RESPONDER NAO PODE REDESENHAR O FORMULARIO =====
+   `rfWaitlistDraw()` reconstroi o modal inteiro: os campos sao recriados, o
+   foco perde-se, a rolagem volta ao topo e a tela pisca — num formulario a
+   meio de ser preenchido isso e' o pior momento possivel para acontecer. E' o
+   mesmo cuidado que a busca do time de coracao ja' tinha (ver RF_CLUBES_BR).
+   Aqui muda UMA classe em dois botoes, entao e' isso que se faz: acha o par
+   pelo `data-p` e troca a marca. O redesenho fica so' como rede, para o caso
+   improvavel de o par nao estar na tela.
+   Clicar na mesma resposta desmarca — ver rfWlPerguntasHTML. */
+function clWaitlistPreco(chave, valor){
+  CL.waitlist=CL.waitlist||{};
+  const novo = (CL.waitlist[chave]===valor) ? undefined : valor;
+  CL.waitlist[chave]=novo;
+  const par=document.querySelector('.rf-wl-sn[data-p="'+chave+'"]');
+  if(!par){ rfWaitlistDraw(); return; }
+  par.querySelectorAll('button').forEach(b=>{
+    const on = novo===(b.dataset.v==='1');
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on?'true':'false');
+  });
+}
 async function clWaitlistSubmit(){
   const w=CL.waitlist||{};
   const nome=(w.nome||'').trim(), email=(w.email||'').trim();
@@ -1211,6 +1243,10 @@ async function clWaitlistSubmit(){
       // elifoot_v3; a public.profiles é do Investbola) e quem preenche isto nem
       // está logado — a linha da waitlist É o registro da pessoa
       time_coracao:(w.clube||'').trim()||null,
+      /* `?? null` e nao `||null`: com `||`, um "nao pagaria" (false) viraria
+         null e ficaria indistinguivel de quem nao respondeu. */
+      paga_1990: w.paga1990 ?? null,
+      paga_3990: w.paga3990 ?? null,
       origem:(CL.waitlistOrigem||'landing')+' · '+((location&&location.pathname)||'/'),
       user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
     });
@@ -2142,12 +2178,13 @@ function scModoChoice(){
           <div class="cl-mc-t">Modo Solo</div>
           <div class="cl-mc-d">Pega um clube da Série D e sobe até a elite no seu ritmo. Mercado, finanças e o calendário completo de copas — sem depender de ninguém entrar na sala.</div>
         </div>
-        <div class="cl-mc-card ${RESENHA_EM_BREVE?'embreve':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
+        <div class="cl-mc-card ${(RESENHA_EM_BREVE||!rfPodeResenha())?'embreve':''}" ${RESENHA_EM_BREVE?'':'onclick="clPickResenha()"'}>
           <span class="${RESENHA_EM_BREVE?'rf-tag-soon':'rf-tag-rec'}">${RESENHA_EM_BREVE?'Em breve':'Online'}</span>
           <div class="cl-mc-ic">🍺</div>
           <div class="cl-mc-t">Modo Resenha</div>
           <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</div>
-          ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`:''}
+          ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`
+            :(!rfPodeResenha()?`<div class="rf-mc-lock">🔒 Os seus 7 dias de Resenha acabaram — toque para ver os planos.</div>`:'')}
         </div>
       </div>`
   });
@@ -2157,6 +2194,14 @@ function clPickSolo(){ CL.screen='modosolo'; CL.soloStep='choice'; CL.soloSaves=
 function clPickResenha(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){ clOnlineStart(); return; } // fallback: o gate da abertura normalmente já garante login
+  /* OS 7 DIAS DO PELADEIRO. Explica antes de deixar entrar no fluxo: quem já
+     passou do prazo ia escolher sala, escolher clube e só levar o "não" do
+     servidor no claim_seat, depois de investir a escolha. A recusa que vale
+     continua a ser a do banco — esta aqui é para não desperdiçar o caminho. */
+  if(typeof rfPodeResenha==='function' && !rfPodeResenha()){
+    if(typeof rfTrava==='function') rfTrava('resenha');
+    return;
+  }
   // Resenha é sempre Brasil Série A — limpa qualquer resíduo de um solo anterior (universo intl,
   // divisão baixa) pra que a sala criada use os clubes certos e newGame não quebre depois.
   if(typeof setUniverse==='function') setUniverse('brasil');
@@ -2474,16 +2519,39 @@ function scLoading(){
   return rfCarregandoHTML();
 }
 
-function runLoading(){ let p=0; const t=setInterval(()=>{ p+=Math.floor(8+Math.random()*14); if(p>=100)p=100;
-  // a barra E a lista de etapas: sem CL._loadPct, os quatro itens da tela portada
-  // ficariam parados em "na fila" enquanto a barra corre (ver rfCarregandoHTML)
-  CL._loadPct=p;
-  const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
-  if(typeof rfCarregandoEtapas==='function') rfCarregandoEtapas(p);
-  if(p>=100){ clearInterval(t); setTimeout(()=>{
-    if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
-    else { CL.screen='jogadores'; cdraw(); }
-  },350); } }, 180); }
+/* A ESPERA DA ENTRADA E' DE 10 SEGUNDOS, DE PROPOSITO.
+   A barra era um sorteio (8 a 21 por tique de 180ms): chegava a 100% em pouco
+   mais de um segundo e meio, e o splash do patrocinador (rf98.loading.splash)
+   passava rapido demais para ser visto -- um espaco de tela cheia entregue em
+   piscar de olhos. Agora ela e' cronometrada: a barra anda pelo RELOGIO, do
+   inicio ao fim de RF_LOAD_MS, e as quatro etapas acompanham.
+
+   ISTO NAO ESTA A ESPERAR TRABALHO NENHUM: a montagem do save acontece dentro
+   de CL._pendingLaunch, que so' corre no fim. A espera e' o produto -- e' o voo
+   que o espaco vende. Para mudar a duracao, e' este numero e mais nada. */
+const RF_LOAD_MS=10000;
+function runLoading(){
+  /* cdraw() chama isto A CADA DESENHO enquanto a tela e' a de carregamento: sem
+     esta trava, dois relogios corriam ao mesmo tempo e a barra saltava ao dobro
+     da velocidade -- que era exactamente a forma de a espera encolher sozinha. */
+  if(CL._loadT) return;
+  const inicio=Date.now();
+  CL._loadPct=0;
+  CL._loadT=setInterval(()=>{
+    // saiu da tela de carregamento (ou outro fluxo assumiu): o relogio morre com ela
+    if(CL.screen!=='loading'){ clearInterval(CL._loadT); CL._loadT=null; return; }
+    const p=Math.min(100, Math.round((Date.now()-inicio)/RF_LOAD_MS*100));
+    // a barra E a lista de etapas: sem CL._loadPct, os quatro itens da tela portada
+    // ficariam parados em "na fila" enquanto a barra corre (ver rfCarregandoHTML)
+    CL._loadPct=p;
+    const f=$c('#cl-load-fill'), pc=$c('#cl-load-pct'); if(f)f.style.width=p+'%'; if(pc)pc.textContent=p+'%';
+    if(typeof rfCarregandoEtapas==='function') rfCarregandoEtapas(p);
+    if(p>=100){ clearInterval(CL._loadT); CL._loadT=null; setTimeout(()=>{
+      if(CL._pendingLaunch){ const fn=CL._pendingLaunch; CL._pendingLaunch=null; fn(); } // clubes -> loading -> lança o jogo
+      else { CL.screen='jogadores'; cdraw(); }
+    },350); }
+  }, 180);
+}
 
 /* ---- 2/4 · JOGADORES (nomes) ---- */
 /* Multiplayer local (hotseat — vários treinadores humanos passando o mesmo aparelho, um save só)
@@ -3911,10 +3979,42 @@ function clTabJogar(){ clTab('seleccao'); }
    assim sobrevive aos adopts do servidor no online. Cada e-mail tem uma chave única; syncInbox
    só ADICIONA os novos (não duplica) e preserva o lido/não-lido. Mensagens curtas, sempre
    assinadas por alguém coerente, e com um botão de ação quando há algo a fazer. */
+/* O DIRETOR E O PRESIDENTE TEM O NOME DO PAIS DO SAVE, e nao um nome brasileiro
+   fixo. Esta funcao chamava BR_FIRST/BR_LAST, duas listas que sairam do motor em
+   18/08/2026 (commit b358785, "O regen deixa de nascer brasileiro em qualquer
+   pais") quando os nomes passaram a vir por pais de WORLD_CONFIG.nomesDoPais.
+   Ninguem reparou que a caixa de entrada tambem as usava: desde esse dia
+   syncInbox() rebentava com `ReferenceError: BR_FIRST is not defined` LOGO NA
+   PRIMEIRA proposta a assinar, e como o erro sobe, a caixa inteira deixava de ser
+   construida -- sem propostas, sem convites de outros clubes, sem avisos da
+   diretoria, sem premiacao. O treinador ficou quinze dias sem receber nada.
+   `_poolNomes` e' a mesma fonte que o motor usa, com o mesmo fallback. */
 function inboxSigner(role, clubId){ // nome determinístico por clube+cargo (dá cara de pessoa)
   const R=makeRng(hashSeed('signer', String(clubId||'x'), role||''));
-  return BR_FIRST[Math.floor(R.random()*BR_FIRST.length)]+' '+BR_LAST[Math.floor(R.random()*BR_LAST.length)];
+  const P=(typeof _poolNomes==='function')
+    ? _poolNomes(typeof activeUniverseKey==='function'?activeUniverseKey():'brasil')
+    : { first:['Gabriel','Lucas','Matheus'], last:['Silva','Santos','Oliveira'] };
+  return P.first[Math.floor(R.random()*P.first.length)]+' '+P.last[Math.floor(R.random()*P.last.length)];
 }
+/* ===== COMPONENTES DO CORPO DO E-MAIL =====
+   Ver .rf-ml-tab / .rf-ml-kv no CSS para o porquê. A regra de uso é simples:
+   dado de jogador vai em TABELA, número solto vai em par rótulo/valor, e texto
+   corrido continua texto — tabela de uma linha só é enfeite, não organização. */
+function mailTab(colunas, linhas){
+  if(!linhas || !linhas.length) return '';
+  const th = colunas.map(c=>`<th${c.m?' style="text-align:right"':''}>${escC(c.t)}</th>`).join('');
+  const tr = linhas.map(l=>'<tr>'+l.map((v,i)=>
+      `<td class="${colunas[i]&&colunas[i].m?'m':(i===0?'n':'')}">${v}</td>`).join('')+'</tr>').join('');
+  return `<table class="rf-ml-tab"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+}
+function mailKV(pares){
+  const p=(pares||[]).filter(x=>x&&x[0]);
+  if(!p.length) return '';
+  return `<div class="rf-ml-kv">${p.map(([k,v])=>
+    `<div><span>${escC(k)}</span><b>${v}</b></div>`).join('')}</div>`;
+}
+function mailNota(txt){ return txt?`<span class="rf-ml-nota">${txt}</span>`:''; }
+
 function addInboxEmail(e){
   CL.inbox=CL.inbox||[]; CL.inboxDeleted=CL.inboxDeleted||{};
   if(CL.inboxDeleted[e.key]) return;                    // usuário apagou -> não ressuscita
@@ -4098,8 +4198,12 @@ function syncInbox(){
     if(meus.length){
       addInboxEmail({ key:'retire-'+(pvR.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:meus.length===1?('Fim de carreira: '+meus[0].name):(meus.length+' jogadores penduraram as chuteiras'),
-        body:meus.map(r=>`<b>${escC(r.name)}</b> (${r.age} anos, ${posLetter(r.pos)}) ${escC(r.reason||'encerrou a carreira')}.`
-          +(r.replacement?` No lugar dele subiu <b>${escC(r.replacement)}</b>${r.replacementAge?' ('+r.replacementAge+' anos)':''}.`:'')).join('<br><br>'),
+        body:`<p>${meus.length===1?'Um jogador pendurou as chuteiras':'Estes jogadores penduraram as chuteiras'} no fim da temporada. Quem subiu da base no lugar já está no elenco:</p>`
+          +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Motivo'},{t:'Substituto'}],
+            meus.map(r=>[ escC(r.name), r.age, posLetter(r.pos),
+                          escC(r.reason||'encerrou a carreira'),
+                          r.replacement ? escC(r.replacement)+(r.replacementAge?' <span style="opacity:.6">('+r.replacementAge+')</span>':'') : '—' ]))
+          +mailNota('Cada saída abre uma vaga na folha — e a base só entrega um por temporada.'),
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4110,9 +4214,12 @@ function syncInbox(){
     if(risco.length){
       addInboxEmail({ key:'risco-'+(S.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:'Elenco envelhecendo — '+risco.length+' jogador'+(risco.length>1?'es':'')+' perto da aposentadoria',
-        body:`Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:<br><br>`
-          +risco.slice(0,6).map(x=>`<b>${escC(x.p.n)}</b> — ${x.p.age} anos, ${posLetter(x.p.s)}, força ${x.p.f} · risco <b>${Math.round(x.chance*100)}%</b> · vale ${fmt(x.p.mv||0)}`).join('<br>')
-          +(risco.length>6?`<br><span style="opacity:.7">e mais ${risco.length-6}.</span>`:''),
+        body:`<p>Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:</p>`
+          +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Força',m:1},{t:'Risco',m:1},{t:'Vale',m:1}],
+            risco.slice(0,8).map(x=>[ escC(x.p.n), x.p.age, posLetter(x.p.s), x.p.f,
+                                      Math.round(x.chance*100)+'%', fmt(x.p.mv||0) ]))
+          +mailNota(risco.length>8 ? `E mais ${risco.length-8} na mesma faixa de idade.` 
+                                   : 'A janela ainda está aberta — depois da virada, não vale mais nada.'),
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4131,7 +4238,7 @@ function syncInbox(){
       if(!linha) return;
       addInboxEmail({ key:'mov-'+(f.round||0)+'-'+i+'-'+hashC(linha), kind:'money', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:(compra&&venda)?'Movimentação no elenco':(compra?'Contratação concluída':'Venda concluída'),
-        body:escC(linha)+`<br><br>Caixa depois do negócio: <b>${fmt(S.budget||0)}</b>.`,
+        body:`<p>${escC(linha)}</p>`+mailKV([['Caixa depois do negócio', fmt(S.budget||0)]]),
         action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
     });
   });
@@ -4147,7 +4254,9 @@ function syncInbox(){
     if(sum && sum.total>0){
       addInboxEmail({ key:'prize-'+pv.season, kind:'prize', from:'CBF', role:'Confederação Brasileira de Futebol',
         subject:'Premiação da temporada '+pv.season,
-        body:`Parabéns! O ${escC(myShort)} recebeu ${fmt(sum.total)} em prêmios da temporada ${pv.season}.`,
+        body:`<p>Parabéns! O ${escC(myShort)} recebeu a premiação da temporada ${pv.season}.</p>`
+          +mailKV([['Total recebido', fmt(sum.total)], ['Temporada', pv.season]])
+          +mailNota('O valor já entrou no caixa do clube.'),
         action:null });
     }
   }
@@ -4867,7 +4976,10 @@ function clAuctionBidGo(sellerId,player){
    Está null (e não com o caminho) de propósito: um caminho apontando pra arquivo inexistente faz
    o navegador pedir e falhar, sujando o console com 404 a cada abertura. Com null, o <video> nem
    é inserido: a área fica preta, que é exatamente o estado "sem vídeo ainda" pedido. */
-const VIDEOS_MOMENTO = {
+/* `var` e não `const`, e no window: o painel publica vídeo novo e net/dados.js
+   escreve neste mapa ao carregar (ver buscarMomentos). Com `const` de módulo o
+   objeto ficava fora do alcance e a publicação não chegava ao jogo. */
+window.VIDEOS_MOMENTO = {
   // MESMO vídeo de taça pros dois títulos, e de propósito: a cerimônia de campeão é a mesma
   // seja Série A, Série D ou uma copa continental de outro país. Os modais já se adaptam sozinhos
   // ao contexto — o troféu vem da divisão ou da competição, e o título/manchete do estado do jogo.
@@ -4921,6 +5033,34 @@ function momentoAcao(acao){
    simplesmente não é desenhado, em vez de aparecer vazio. */
 function abrirMomento(id, dados, aoFechar){
   const def=MOMENTO_DEFS[id]; if(!def) return;
+  /* ===== O QUE O PAINEL DECIDE SOBRE ESTE MOMENTO =====
+     Três perguntas, nesta ordem, e todas com a mesma regra de segurança: só
+     um valor EXPLÍCITO tranca. Tabela que não respondeu deixa passar, como em
+     todo o resto do jogo — celebração que some por causa de rede é pior do que
+     celebração a mais.
+
+     · ligado?            tira do ar um vídeo que saiu errado, sem publicar nada
+     · passou na chance?  o botão que tira o ar de roteiro (ver a coluna chance)
+     · cabe na temporada? teto de aparições, para o que pode repetir
+
+     A CONTAGEM É LOCAL (CL), não vai para S: em sala de Resenha o S é estado
+     partilhado, e um contador de modal do MEU clube não tem que viajar para os
+     outros — nem a sorteada da chance pode divergir entre clientes e mexer no
+     que é partilhado. É o mesmo sítio onde CL._momCopaVista já vive. */
+  const cfg=(window.RF_MOMENTOS||{})[id];
+  if(cfg){
+    if(cfg.ativo === false){ if(typeof aoFechar==='function') aoFechar(); return; }
+    const ch=(cfg.chance==null?100:cfg.chance);
+    if(ch<100 && Math.random()*100 >= ch){ if(typeof aoFechar==='function') aoFechar(); return; }
+    const teto=cfg.maxTemporada;
+    if(teto!=null && teto>0){
+      CL._momConta=CL._momConta||{};
+      const marca=id+':'+(S.season||1);
+      const n=CL._momConta[marca]||0;
+      if(n>=teto){ if(typeof aoFechar==='function') aoFechar(); return; }
+      CL._momConta[marca]=n+1;
+    }
+  }
   dados=dados||{};
   /* ===== O TITULO TEM TELA PROPRIA (pacote "modal celebracao copas/ligas") =====
      Copa e liga passam pelo modal de campeao, que monta o resultado da final, a premiacao e a
@@ -5487,24 +5627,42 @@ const PITCH_ADS=[
   {t:'SUA MARCA',    c:'azul'},
   {t:'PATROCÍNIO',   c:'verde'},
 ];
-/* ===== AS PLACAS PASSARAM A SER INVENTARIO =====
-   Eram texto fixo da lista acima -- nao havia como um anunciante entrar nelas. Agora ha duas
-   chaves: rf98.campo.deitada (as seis de cima e de baixo) e rf98.campo.empe (as seis dos lados).
-   Publicada a arte, ela aparece nas seis placas daquele feitio, como a mesma marca se repete em
-   volta de um campo de verdade. Sem criativo, ficam os rotulos de casa -- o jogo nao muda. */
-function pitchAdArte(lado){
+/* ===== CADA PLACA E' UM ANUNCIANTE =====
+   Eram texto fixo da lista acima -- nao havia como um anunciante entrar nelas. Depois
+   passaram a inventario, mas com UMA arte por feitio: quem comprasse as deitadas via a
+   sua marca repetida nas seis, e nao havia como vender a placa do meio a outra pessoa.
+
+   Agora cada FEITIO tem TRES placas independentes (ad_spaces.placas), cada uma com arte
+   e link proprios: rf98.campo.deitada posicoes 1..3 e rf98.campo.empe 1..3. O trio de
+   deitadas aparece em cima E em baixo, e o de em pe' de cada lado -- o mesmo anel de
+   placas a dar a volta ao campo, como num estadio de verdade.
+
+   O `off` de cada lado DEIXOU DE RODAR AS PLACAS VENDIDAS. Ele existia para os rotulos
+   de casa nao ficarem iguais nos quatro lados; aplicado a inventario vendido, punha a
+   placa 1 de um anunciante no lugar da 3 de outro consoante o lado. Ele continua a valer
+   para os rotulos de casa, e nao toca em quem pagou.
+
+   Placa sem criativo cai no rotulo de casa daquela posicao -- as vendidas e as livres
+   convivem no mesmo anel. */
+function pitchAdArte(chave, pos){
   if(typeof ADS==='undefined' || !window.ADS) return '';
-  const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
-  const c = ADS.get(chave);
+  const c = ADS.get(chave, pos);
   if(!c || !c.ficheiro_url) return '';
   return `<div class="cl-pitch-ad arte" data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
-    onclick="ADS.clique('${escC(chave)}')" style="cursor:${c.link_destino?'pointer':'default'}"
+    onclick="ADS.clique('${escC(chave)}',${pos})" style="cursor:${c.link_destino?'pointer':'default'}"
     ><img src="${escC(c.ficheiro_url)}" alt="Publicidade"></div>`;
 }
 function pitchAdsHTML(lado, n, off){
-  const arte=pitchAdArte(lado);
+  const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
+  /* AS PLACAS DESLIGADAS VOLTAM AO ROTULO DE CASA, e nao desaparecem. Aqui elas
+     nao sao um bloco solto na pagina: sao a moldura do campo, tres de cada lado.
+     Tirar as seis colapsaria o desenho do estadio -- desligar o ESPACO significa
+     "nao vendo isto agora", nao "apaga a placa". Quem desliga ve' o campo como ele
+     era antes de as placas entrarem no inventario. */
+  const vendavel = !(window.ADS && ADS.ligado && !ADS.ligado(chave));
   let out='';
   for(let i=0;i<n;i++){
+    const arte=vendavel ? pitchAdArte(chave, i+1) : '';   // posicoes 1..3, como o painel as mostra
     if(arte){ out+=arte; continue; }
     const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
     out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }
@@ -6891,7 +7049,13 @@ function liveTetoMin(RL){
   if(algumSemApito || !mx) return piso;
   return mx;
 }
-function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused) return;
+function liveTick(){ const RL=CL.live; if(!RL) return;
+  /* carimbo ANTES das saidas: e' o sinal de vida que o cao de guarda le'. Fica
+     aqui em cima de proposito — se ficasse depois das saidas por pausa, o cao
+     acharia a cadeia morta a cada intervalo. */
+  RL._tickAt=nowMs();
+  if(!CL._liveWD) liveWatchdog();
+  if(RL.done||RL.paused||RL.userPaused) return;
   // BARREIRA: seguro o minuto 0 até o adversário humano entrar em campo (ou o cronômetro zerar).
   {
     const esperando=kickoffWaitingMatch(RL);
@@ -6909,6 +7073,27 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
     } else if(RL.minute===0 && typeof NET!=='undefined' && NET.broadcastKickoff){
       // não estou segurando nada, mas anuncio que entrei — é o que destrava o outro lado.
       const m0=(RL.matches||[])[0]; if(m0 && m0.streamKey) NET.broadcastKickoff(m0.streamKey);
+    }
+  }
+  /* ===== A BOLA ROLA DEPOIS DO APITO, NAO ANTES =====
+     O apito inicial vivia num marco da narracao (camMinuteTick), que so' e'
+     avaliado quando ja' ha' minuto para mostrar — ou seja, com o jogo a
+     andar. Soava depois do pontape de saida, que e' o contrario do que
+     acontece em campo.
+     Agora ele e' a PRIMEIRA coisa da rodada: soa, o estadio abre, e so' a
+     seguir o relogio comeca a contar. E' o unico tique em que a rodada nao
+     avanca nenhum minuto — e vem depois da barreira de pontape acima, para
+     nao apitar enquanto ainda se espera pelo adversario humano. */
+  if(!RL._apitoIni){
+    RL._apitoIni = 1;
+    if(typeof rfVitoriaParar==='function') rfVitoriaParar();   // a festa da rodada passada nao entra nesta
+    if(typeof rfSomPreCarregar==='function') rfSomPreCarregar();
+    if(typeof rfSomLigado==='function' && rfSomLigado()){
+      if(typeof rfTorcidaLigar==='function') rfTorcidaLigar();   // o estadio ja' esta' la'
+      if(typeof rfApito==='function') rfApito(1);
+      cdraw();
+      CL._liveTimer=setTimeout(liveTick, LIVE_APITO_INI_MS);
+      return;
     }
   }
   /* ===== O RELOGIO SEGUE A PARTIDA, NAO O RELOGIO DE PAREDE =====
@@ -7066,6 +7251,9 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
   if(pendingInjury){ openInjuryModal(pendingInjury.m, pendingInjury.e); return; }
   if(pendingRed){ openRedCardModal(pendingRed.m, pendingRed.e); return; }
   if(RL.minute>=45 && !RL.halftimeDone){ RL.halftimeDone=true;
+    /* APITO DO INTERVALO, antes de tudo o resto: e' este o instante em que o
+       primeiro tempo acaba, e daqui ele nunca sai atrasado (ver camMinuteTick). */
+    if(typeof rfApito==='function') rfApito(2);   // sem `camOn()`: quem só assiste também ouve os três apitos
     const ui=RL.matches.findIndex(m=>m.user);
     if(ui>=0 && clOpcoes().subsIntervalo!=='Não'){ RL.paused=true; RL.sel=ui;
       if(CL.online) startHalftimeCountdown(); // Resenha: intervalo dura no máximo 10s (mantém todos sincronizados)
@@ -7087,14 +7275,173 @@ function liveTick(){ const RL=CL.live; if(!RL||RL.done||RL.paused||RL.userPaused
       }
     }
     { const um=RL.matches.find(m=>m.user); if(um) camFinal(um); } // apito final na narração do Camarote
+    /* sem `camOn()` de proposito: quem so' assiste nao tem Camarote, e era
+       exactamente esse o caso que ficava sem apito nenhum. */
+    liveApitoFinal(RL);
+    /* A TELA SEGURA, O RELOGIO NAO. Um tique de espera para o apito soar com
+       o jogo ainda a' vista — sem isto ele era cortado pela troca de ecra. */
+    if(!RL._fimEspera){ RL._fimEspera=1; cdraw(); CL._liveTimer=setTimeout(liveTick, LIVE_FIM_ESPERA_MS); return; }
     if(typeof liveAgendarReenvioFinal==='function') liveAgendarReenvioFinal(RL);   // o apito final continua no ar por ~7s
     RL.done=true; if(RL.cup&&RL.cup.spectate) finishCupSpectate(); else if(RL.cup) finishCupLiveMatch(); else if(RL.humanSeat) finishHotseatMatch(); else finishLiveRound(); return;
   }
   // Online: o ritmo é o do ANFITRIÃO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // não a preferência local de cada convidado. Solo: cada um usa a própria opção "Tempo de jogo".
+  CL._liveTimer=setTimeout(liveTick, liveRitmoMs(RL));
+}
+/* Quanto dura UM minuto de jogo, em milissegundos de relogio de parede. Era
+   uma conta solta no fim do tique; virou funcao porque o apito final precisa
+   da mesma resposta para saber quanto tempo REAL falta ate' ao fim. */
+function liveRitmoMs(RL){
+  // Online o ritmo e' o do ANFITRIAO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
+  // nao a preferencia local de cada convidado. Solo: cada um usa a propria opcao "Tempo de jogo".
   const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT]);
-  const actualSpd=Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
-  CL._liveTimer=setTimeout(liveTick, actualSpd);
+  let ms = Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
+  if(camLentoAtivo()) ms *= CAM_LENTO_MULT;   // camera lenta na festa do gol dele
+  return ms;
+}
+/* ===== O APITO FINAL E' DA RODADA, NAO DA PARTIDA DELE =====
+   Ele so' existia dentro do `camFinal`, que corre para a partida com `m.user`.
+   Quem esta' a ver a rodada sem jogar — "vendo todos os jogos", ou um dia em
+   que ele nao entra em campo — nunca tinha `m.user`, e a rodada acabava em
+   silencio. Agora quem apita e' a rodada, e a partida dele so' chega primeiro
+   quando acaba antes (91' num teto de 94').
+
+   E NAO SE ANTECIPA. A primeira tentativa disparava quando faltavam ~2,5
+   SEGUNDOS de relogio de parede, para o apito nao ser cortado pela troca de
+   ecra. So' que segundos de parede sao minutos de JOGO a uma taxa que muda
+   com o ritmo: no Ultrassonico (110ms por minuto) 2,5s sao vinte e tres
+   minutos, e a rodada apitava aos 71'. Nao ha' antecipacao que sirva para os
+   dois extremos.
+   A resposta certa e' a outra ponta: o apito soa NO fim, no minuto certo, e
+   quem espera e' o ENCERRAMENTO — a tela segura-se um instante antes de
+   fechar a rodada, o que da' ao apito o mesmo espaco sem mentir no relogio. */
+const LIVE_FIM_ESPERA_MS = 1600;   // a tela segura, o relogio nao
+const LIVE_APITO_INI_MS = 1200;    // o sopro inteiro cabe aqui antes do 1' entrar
+/* ===== A COMEMORACAO DA VITORIA =====
+   Entra a seguir ao apito, nao por cima dele: os tres sopros longos ocupam
+   ~1,6s. E' torcida, nao narracao — nao espera pelo ritmo lento, como o gol e
+   os apitos. */
+const RF_VITORIA_SRC = 'audio/torcida-vitoria.mp3';
+/* NAO DA' PARA TIRAR OS QUATRO SEGUNDOS PEDIDOS: depois do corte a metade e
+   dos tres segundos seguintes, o aplauso tinha 4,7s de ponta a ponta, e menos
+   quatro deixava 0,7s — que nao chega para uma rampa de entrada, quanto mais
+   para se ouvir aplauso nenhum. Foi ao MINIMO que ainda e' um aplauso com as
+   duas rampas: 1,9s. Somando a espera do apito, sao 3,6s desde o fim do jogo,
+   contra os 6,4s de antes. */
+/* Repartido dentro dos mesmos 1,9s: com 500 de entrada e 400 de patamar o
+   aplauso comecava a sair antes de ter chegado la' em cima — medido, so'
+   alcancava 0,365 de um alvo de 0,57. A entrada encurta e o patamar cresce. */
+/* ===== O CORTE FOI FEITO NO FICHEIRO, NAO EM CODIGO =====
+   Medida a gravacao original meio segundo a meio segundo: ela ABRIA FRACA
+   (RMS 8) e so' chegava ao pico aos 3,0s (RMS 19), assentando depois em 11-12
+   pelos restantes dezassete segundos. Tocar os primeiros dois segundos era
+   usar justamente a subida — que nunca chegava a lado nenhum, e por isso
+   parecia longa por muito curta que fosse.
+   A primeira tentativa foi saltar para o pico em tempo de execucao com
+   `currentTime`, e isso trouxe uma fila de problemas que nao valiam o preco:
+   a procura precisa de metadados, os metadados de um pedido, o pedido de
+   esperar por `canplay` — e com tres caminhos a poder arrancar o som (canplay,
+   seeked, rede de seguranca) o arranque acontecia duas vezes, com o relogio de
+   saida orfao da primeira a matar a rampa da segunda. Sintoma medido: o
+   aplauso a tocar com volume 0,023 do principio ao fim.
+   O ficheiro passou a ser o pedaco que interessa — 1,9s a partir dos 2,4s, com
+   as rampas ja' gravadas nele (ffmpeg, afade). Sem procura, sem espera, sem
+   caminhos a competir: cria, toca, acabou. De 400 KB para 39 KB, ainda por
+   cima. */
+const RF_VITORIA_ESPERA = 1000;   // deixa passar o apito, que dura ~1,6s
+let RF_VITORIA = null;
+function rfVitoriaSom(){
+  if(!rfSomLigado()) return;
+  if(rfSomVolume() <= 0) return;
+  setTimeout(() => {
+    if(!rfSomLigado()) return;
+    try{
+      rfVitoriaParar();
+      const a = new Audio(RF_VITORIA_SRC);
+      a.volume = Math.min(1, 0.95*rfSomVolume());
+      const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+      RF_VITORIA = a;
+    }catch(err){}
+  }, RF_VITORIA_ESPERA);
+}
+
+/* ---- rampa de volume num <audio> ----
+   `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
+   e' feita a mao. Passo de 50ms: abaixo disto o navegador engasga, acima ouve-se
+   a escada. A curva e' quadratica de proposito — o ouvido le' volume em escala
+   logaritmica, e uma rampa linear soa a saltar no fim.
+   As duas rampas do fundo (esta e a do gol) escrevem no mesmo volume: quem
+   comeca cancela a outra, senao brigam de 50 em 60ms. */
+function rfFade(a, de, para, ms, aoFim){
+  if(!a) return;
+  clearInterval(a._rfFade); clearInterval(a._rfRampa);
+  const passo = 50, n = Math.max(1, Math.round(ms/passo));
+  let i = 0;
+  try{ a.volume = Math.max(0, Math.min(1, de)); }catch(e){ return; }
+  a._rfFade = setInterval(() => {
+    i++;
+    const k = i/n, curva = de < para ? k*k : 1-(1-k)*(1-k);
+    try{ a.volume = Math.max(0, Math.min(1, de + (para-de)*curva)); }catch(e){ clearInterval(a._rfFade); return; }
+    if(i >= n){ clearInterval(a._rfFade); if(aoFim) aoFim(); }
+  }, passo);
+}
+/* ===== A DISPUTA DE PENALTIS TEM SOM COBRANCA A COBRANCA =====
+   Ela decide classificacao e titulo e corria muda: so' o `sfx` de interface,
+   dois bips iguais para converter e para perder. Cada batida passa a ter o
+   som do que aconteceu — a rede quando entra, o "perdeu" quando nao entra.
+   O INTERVALO e' obrigatorio aqui: a revelacao tem ritmo proprio (1,2s de
+   suspense, 1,8s de resultado) mas o modo "⏩ Simular o resto" corta isso para
+   200ms, e sem trava as cinco cobrancas sairiam praticamente juntas. */
+const RF_PEN_INTERVALO = 900;
+let RF_PEN_EM = 0;
+function rfPenaltiSom(scored){
+  if(!rfSomLigado()) return;
+  if(Date.now() - RF_PEN_EM < RF_PEN_INTERVALO) return;
+  RF_PEN_EM = Date.now();
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(scored ? RF_GOL_REDE : RF_SONS.penaltiPerdido);
+    a.volume = Math.min(1, 0.9*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+}
+/* Qual dos dois lados e' "o utilizador" para efeito de comemoracao.
+   Fora do hotseat e' simples: o clube dele. No HOTSEAT sao dois humanos no
+   mesmo ecra, e a pergunta nao tem resposta unica — a regra combinada e' que
+   o DONO DA CASA prevalece. */
+function rfLadoDoUtilizador(m){
+  const RL = CL.live;
+  if(RL && RL.humanSeat) return 'H';
+  return (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+}
+
+/* ===== O PRIMEIRO DE CADA SESSAO CHEGA ATRASADO =====
+   Medido: a primeira vitoria de uma sessao so' comecava a soar 2,9s depois do
+   pedido — o tempo de ir buscar o ficheiro — contra 1,05s nas seguintes. Pior
+   ainda no aplauso, que agora salta para o pico do clipe e por isso PRECISA de
+   metadados antes de arrancar.
+   Um pedido no inicio da rodada resolve: o navegador guarda a resposta e todos
+   os momentos do jogo passam a sair no instante certo. Sao ficheiros pequenos
+   e ja' vao no mesmo deploy. */
+let RF_SOM_PRE = false;
+function rfSomPreCarregar(){
+  if(RF_SOM_PRE) return;
+  RF_SOM_PRE = true;
+  [RF_GOL_REDE, RF_GOL_FESTA, RF_CHUTE_SRC, RF_QUASE_SRC, RF_VITORIA_SRC,
+   RF_SONS.penaltiPerdido, RF_SONS.cartaoVermelho].forEach(src => {
+    try{ const a = new Audio(); a.preload = 'auto'; a.src = src; a.load(); }catch(err){}
+  });
+}
+function rfVitoriaParar(){
+  const a = RF_VITORIA; if(!a) return;
+  RF_VITORIA = null;
+  try{ a.pause(); }catch(e){}
+}
+function liveApitoFinal(RL){
+  if(!RL || RL._apitoFim) return;
+  RL._apitoFim = 1;
+  if(typeof rfApito==='function') rfApito(3, true);
+  if(typeof rfTorcidaDesligar==='function') rfTorcidaDesligar();
 }
 /* ---- multiplicador de ritmo VÁLIDO agora ----
    Online a fonte da verdade é a SALA (NET.room.speedMult, escolhido pelo anfitrião). CL.speedMult
@@ -7292,7 +7639,9 @@ function shootoutRevelar(side, takerName, scored){
   cdraw();
   const rapido=!!CL.penAuto;               // "⏩ Simular o resto" continua a valer
   CL._penRevealTimer=setTimeout(()=>{
-    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido'); cdraw();
+    CL.penPhase='result'; sfx(scored?'penaltiGol':'penaltiPerdido');
+    rfPenaltiSom(scored);
+    cdraw();
     CL._penCloseTimer=setTimeout(()=>{
       CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
       recordShootoutKick(side, takerName, scored);
@@ -7378,6 +7727,18 @@ function finishPenaltyShootout(){
   // se bateu o teto de segurança (20 cobranças cada) ainda empatado — praticamente
   // impossível na prática — desempata pro lado de casa, só pra sempre ter um vencedor.
   if(P.finalH===P.finalA) P.finalH++;
+  /* GANHOU NOS PENALTIS E' VITORIA COMO OUTRA QUALQUER. O `camFinal` nao serve
+     aqui: para ele a partida acabou empatada no tempo normal, e quem decide
+     e' esta contagem. */
+  {
+    const m = RL.matches[0];
+    const lado = m ? rfLadoDoUtilizador(m) : null;
+    if(lado){
+      const meus = lado==='H' ? P.finalH : P.finalA;
+      const deles = lado==='H' ? P.finalA : P.finalH;
+      if(meus > deles && typeof rfVitoriaSom==='function') rfVitoriaSom();
+    }
+  }
   RL.paused=false; RL.done=true;
   finishCupLiveMatch();
 }
@@ -7438,6 +7799,13 @@ function resolvePenalty(takerName){
 function penaltyReveal(scored,scorer){
   CL.penPhase='result';
   sfx(scored?'penaltiGol':'penaltiPerdido');
+  /* COLADO AO LANCE, nao ao evento. O gol e a perda de penalti so' chegariam
+     ao som quando o laco de eventos consumisse o evento, ja' depois do modal
+     fechar — o estadio rugia com atraso. Aqui e' no instante da revelacao. */
+  if(typeof camOn==='function' && camOn()){
+    if(scored){ rfGolSom(true); camCelebrar(); }   // penalti do utilizador: e' sempre gol dele
+    else if(typeof rfSomTocar==='function') rfSomTocar('penaltiPerdido');
+  }
   cdraw();
   CL._penCloseTimer=setTimeout(closePenaltyModal, 2200);
 }
@@ -7614,6 +7982,16 @@ function openRedCardModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.redMatch=m; RL.redEvent=e; RL.sel=RL.matches.indexOf(m);
   CL.redIn=null; CL.redOut=null;
   CL.redDeadline=Date.now()+12000;
+  /* O "PODE ISSO ARNALDO" ENTRA COM O MODAL, nao depois dele. A expulsao DELE
+     nao e' consumida pelo laco de eventos enquanto a reorganizacao nao for
+     decidida (ver `pendingRed`), e o som vivia nesse consumo — chegava com o
+     modal ja' fechado, comentando um lance que a tela tinha deixado para tras.
+     `_camSons` e' marcado aqui para o laco nao o repetir quando enfim passar
+     por ele. A do adversario nao tem modal, e continua a sair por la'. */
+  if(typeof rfSomTocar==='function'){
+    m._camSons = m._camSons || {};
+    if(!m._camSons.cartaoVermelho){ m._camSons.cartaoVermelho = 1; rfSomTocar('cartaoVermelho'); }
+  }
   sfx('lesao'); cdraw();
   if(CL._redTimer) clearInterval(CL._redTimer);
   CL._redTimer=setInterval(redCardTick,200);
@@ -7826,7 +8204,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
-    ${rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'468×60'})}
+    ${rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'970×90'})}
     ${camAberto?camaroteHTML(userMatch):''}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;
@@ -7884,6 +8262,29 @@ function liveRetomaRelogio(){
   if(!RL || RL.done || RL.paused || RL.userPaused) return;
   clearTimeout(CL._liveTimer);
   CL._liveTimer=setTimeout(liveTick,200);
+}
+/* ---- O CAO DE GUARDA DO RELOGIO ----
+   `liveRetomaRelogio` ja' existia, mas so' era chamado por UM botao: o de
+   entrar e sair do Camarote. E a cadeia do tique nao se reagenda quando
+   `liveTick` sai cedo — basta ela morrer uma vez para o cronometro parar de
+   vez. Era por isso que o relogio "voltava a andar quando eu clicava para sair
+   do Camarote": aquele clique era o unico caminho de volta em toda a tela.
+   As saidas por PAUSA de proposito (intervalo, modal de penalti, lesao,
+   expulsao, penaltis) tem cada uma o seu retomar; o que nao tinha dono era o
+   caso em que a pausa e' levantada e ninguem reagenda. Este relogio de parede
+   bate a cada segundo e devolve a cadeia se ela estiver morta ha' mais de
+   1,5s sem que ninguem tenha pedido pausa. Nunca acorda partida pausada nem
+   terminada, entao nao atropela modal nenhum. */
+function liveWatchdog(){
+  clearInterval(CL._liveWD);
+  CL._liveWD=setInterval(()=>{
+    const RL=CL.live;
+    if(!RL || RL.done){ clearInterval(CL._liveWD); CL._liveWD=null; return; }
+    if(RL.paused || RL.userPaused) return;            // pausa pedida: e' para ficar parado
+    if(nowMs()-(RL._tickAt||0) < 1500) return;        // cadeia viva
+    console.warn('relógio da rodada parado sem pausa — cadeia devolvida pelo cão de guarda');
+    liveRetomaRelogio();
+  }, 1000);
 }
 function camSpeedHint(){
   return CL.online
@@ -7943,8 +8344,33 @@ function camMinuteNow(m,RL){
 }
 /* quanto do jogo é do MANDANTE agora, em % (0..100) — é o que a barra de pressão desenha.
    Sai da pressão acumulada (eventos recentes, com decaimento) + o viés permanente de expulsão. */
-function camShare(m){ const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias||0)));
-  return Math.max(5,Math.min(95,Math.round(50+p/2))); }
+/* O EQUILIBRIO DA PARTIDA — a MESMA conta que a barrinha de posse da ficha de
+   estatisticas faz. Vive aqui, e nao nos dois sitios, porque as duas barras tem de
+   dizer o mesmo: uma em cima a marcar 50/50 enquanto a de baixo marca 25/75 le-se
+   como defeito, e era. Posse de bola quando o motor a da', dominio em campo
+   enquanto ela nao existe, meio a meio antes de haver jogo. */
+function camEquilibrio(m){
+  const live=(m && ((m.sim&&m.sim.perf)||m.livePerf))||null;
+  if(live && (live.H.poss+live.A.poss)>0){
+    const t=live.H.poss+live.A.poss; return Math.round(100*live.H.poss/t);
+  }
+  const d=((m&&m.domH)||0)+((m&&m.domA)||0);
+  if(d>0) return Math.round(100*(m.domH||0)/d);
+  return 50;
+}
+/* A BARRA DE PRESSAO PARTE DO EQUILIBRIO, e nao do meio.
+   Ela era `50 + pres/2`, e `pres` decai 13% por minuto e e' zerado abaixo de 0,5.
+   Como os lances sao esparsos, ela passava a partida quase toda EXATAMENTE em
+   50/50 -- um pico curto num lance e, tres ou quatro minutos depois, morta no
+   meio outra vez. Medido numa partida: 50/50 aos 8', 40' e do 45' em diante,
+   enquanto a posse dizia 25/75, 43/57 e 49/51.
+
+   Agora o meio da barra e' o equilibrio da partida (a mesma conta da ficha) e a
+   pressao do momento e' o DESVIO em cima disso: ela segue a barra pequena e
+   continua a reagir ao lance, que era o que ela existia para mostrar. */
+function camShare(m){
+  const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias||0)));
+  return Math.max(5,Math.min(95,Math.round(camEquilibrio(m)+p/2))); }
 /* um evento do motor vira: linha de narração + estatística + empurrão na barra de pressão */
 /* =====================================================================
    SONS DO CAMAROTE
@@ -7962,18 +8388,40 @@ function camShare(m){ const p=Math.max(-100,Math.min(100,(m.pres||0)+(m.presBias
    Um audio por vez: dois eventos no mesmo minuto sobrepostos viram ruido, e o
    segundo interrompe o primeiro em vez de somar. */
 const RF_SONS = {
-  cartaoAmarelo: 'audio/falta-cartao-amarelo-pode-isso-arnaldo.mp3',
+  /* O "pode isso arnaldo" era do AMARELO, o lance mais comum do jogo — ouvia-se
+     a toda a hora e nunca sobrava espaco para o resto. Passa a ser so' da
+     EXPULSAO, que e' o lance que merece uma fala. Amarelo agora e' mudo. */
+  cartaoVermelho:'audio/falta-cartao-amarelo-pode-isso-arnaldo.mp3',
   golContra:     'audio/olha-o-que-ele-fez-gol-contra.mp3',
   penaltiDefendido:'audio/penalti-defendido-sai-que-e-sua-tafarel.mp3',
   goleada:       'audio/acima-de-5-gols-virou-passeio-gol-da-alemanha.mp3',
   campeao:       'audio/campeao-acabou-acabou-acabou-galvao-bueno.mp3',
   dobradinha:    'audio/jogador-marcou-mais-de-1-gol-no-jogo.mp3',
   fimVitoria:    'audio/variacao-time-ganhou-encerrado.mp3',
-  fimDerrota:    'audio/perdeu_partida.mp3',
+  /* `perdeu_partida.mp3` era o apito final de uma derrota — e, como toda
+     derrota o disparava, aparecia sem ligacao nenhuma com o que se via na
+     tela. E' um "perdeu" seco, que so' faz sentido colado ao lance: passa a
+     ser o PENALTI DESPERDICADO do utilizador, dentro do modal, no momento em
+     que a bola nao entra. A derrota fica com o apito neutro. */
+  penaltiPerdido:'audio/perdeu_partida.mp3',
   fimDecisivo:   'audio/final-do-jogo-decisivo-haja-coracao.mp3',
   fimNeutro:     'audio/final-do-jogo-bem-amigos-terminou.mp3'
 };
-let RF_SOM_ATUAL = null;
+let RF_SOM_ATUAL = null, RF_SOM_FILA = null, RF_SOM_FIM = 0, RF_SOM_AGENDA = null;
+/* O RESPIRO. Dois momentos colados soavam como uma frase so'; e um clipe que
+   comeca no instante em que o outro acaba atropela o facto que a tela ainda
+   esta' a mostrar. Um segundo e meio entre falas e' o que separa "dois lances"
+   de "um borrao". */
+const RF_SOM_RESPIRO = 1500;
+/* quanto tempo o gol fica sozinho no ar (cobre a rede + a entrada da festa) */
+const RF_SOM_GOL_ESPACO = 3000;
+/* Quanto vale cada momento. So' um som MAIS importante interrompe o que esta'
+   a tocar; igual ou menor espera a vez. */
+/* A ORDEM DE QUEM MANDA. So' um peso MAIOR interrompe o que esta' no ar; igual
+   ou menor espera a vez. A escala segue a prioridade pedida: a expulsao e o
+   gol vem primeiro, o apito final ganha de tudo o que e' de dentro do jogo. */
+const RF_SOM_PESO = { dobradinha:2, golContra:2, cartaoVermelho:3, penaltiDefendido:3,
+  penaltiPerdido:3, goleada:3, fimNeutro:4, fimVitoria:4, fimDecisivo:4, campeao:5 };
 function rfSomVolume(){
   const v = (S && S.config && S.config.somVol != null) ? Number(S.config.somVol) : 0.7;
   return Math.max(0, Math.min(1, isNaN(v) ? 0.7 : v));
@@ -7981,18 +8429,349 @@ function rfSomVolume(){
 function rfSomLigado(){ return !!(S && S.config && S.config.sound); }
 /* `forcar` e' o teste do controle de volume: toca mesmo fora do Camarote,
    porque ali o utilizador esta' justamente a regular o volume. */
+/* ===== O SOM NAO CORTA MAIS O SOM =====
+   Isto pausava o audio anterior e comecava o novo. Num ritmo rapido — e o jogo
+   corre em minutos por segundo — dois momentos caem quase juntos, e o segundo
+   decapitava o primeiro: na pratica ouvia-se so' um pedaco do primeiro clip de
+   cada partida, quase sempre o cartao amarelo, que e' o momento mais comum.
+   Era isso o "so' ouco o pode isso arnaldo".
+   Agora o ritmo do jogo e' respeitado: quem esta' a tocar TERMINA, e o momento
+   seguinte fica UM lugar na fila (so' um — guardar mais faria a narracao
+   chegar atrasada, comentando um lance que ja' passou). So' um momento mais
+   importante corta o que esta' no ar: o apito final nao espera por um cartao. */
+/* ===== A PORTA DE VELOCIDADE SAIU =====
+   Ela existiu por uma razao boa: os clipes duram de 2 a 10s e no ritmo padrao
+   a partida inteira dura ~10s, entao as falas caiam umas por cima das outras.
+   So' que a solucao certa para isso ja' foi construida entretanto — a fila com
+   prioridade, o respiro de 1,5s entre falas e a janela de tres segundos em que
+   o gol tem a palavra. Com essas tres, o que a porta fazia era so' emudecer o
+   jogo no ritmo que toda a gente usa: no Ultrassonico nao se ouvia narracao
+   nenhuma, e foi o relatado ("as narracoes nao aparecem mais").
+   Agora nao ha' porta: o que regula e' a fila, que ATRASA em vez de apagar. */
 function rfSomTocar(chave, forcar){
   const src = RF_SONS[chave]; if(!src) return;
   if(!forcar && !rfSomLigado()) return;
   const vol = rfSomVolume(); if(vol <= 0) return;
+  const peso = RF_SOM_PESO[chave] || 1;
+  if(RF_SOM_ATUAL && !RF_SOM_ATUAL.ended && !forcar){
+    if(peso <= (RF_SOM_ATUAL._rfPeso || 1)){
+      /* a fila guarda o mais importante que chegou enquanto o outro tocava */
+      if(!RF_SOM_FILA || peso > (RF_SOM_FILA.peso || 1)) RF_SOM_FILA = { chave, peso };
+      return;
+    }
+  }
+  /* ===== O GOL TEM A PALAVRA POR TRES SEGUNDOS =====
+     A bola na rede, a festa e a linha do gol sao o momento; uma fala que
+     comeca por cima deles rouba os tres o mesmo espaco. Qualquer narracao que
+     chegue nesta janela espera o fim dela — menos o apito final, que nunca
+     espera por nada (peso 4). */
+  const esperaGol = forcar ? 0 : RF_SOM_GOL_ESPACO - (Date.now() - RF_TORCIDA_GOL);
+  /* acabou de tocar agora mesmo: espera o respiro em vez de emendar */
+  const respiro = forcar ? 0 : RF_SOM_RESPIRO - (Date.now() - RF_SOM_FIM);
+  const falta = (peso >= 4) ? respiro : Math.max(respiro, esperaGol);
+  if(falta > 0){
+    if(!RF_SOM_FILA || peso > (RF_SOM_FILA.peso || 1)) RF_SOM_FILA = { chave, peso };
+    if(!RF_SOM_AGENDA) RF_SOM_AGENDA = setTimeout(rfSomDaFila, falta);
+    return;
+  }
+  rfSomTocarJa(chave, src, vol, peso);
+}
+function rfSomDaFila(){
+  RF_SOM_AGENDA = null;
+  const q = RF_SOM_FILA; RF_SOM_FILA = null;
+  if(!q || (RF_SOM_ATUAL && !RF_SOM_ATUAL.ended)) return;
+  rfSomTocarJa(q.chave, RF_SONS[q.chave], rfSomVolume(), q.peso);
+}
+/* TETO DE DURACAO — NENHUM CLIPE PASSA DO APITO FINAL.
+   `final-do-jogo-bem-amigos-terminou` tinha 9,2 s enquanto os irmaos dele -- os
+   outros fins de partida -- tem entre 1,9 e 2,9 s. A narracao seguia a falar muito
+   depois de a tela ja' ter mudado. O ficheiro foi cortado para 3,4 s, na pausa
+   natural da fala, mas o CORTE DO FICHEIRO nao e' regra: o proximo clipe que
+   alguem pousar na pasta pode voltar a ser comprido. Este teto e' a regra --
+   4 segundos, com meio segundo de esvanecimento para nao ser um corte seco.
+   Vale para todos: nenhum momento do jogo merece mais tempo do que o apito. */
+const RF_SOM_TETO_MS = 4000, RF_SOM_FADE_MS = 500;
+function rfSomTocarJa(chave, src, vol, peso){
   try{
-    if(RF_SOM_ATUAL){ RF_SOM_ATUAL.pause(); RF_SOM_ATUAL = null; }
-    const a = new Audio(src); a.volume = vol;
+    if(RF_SOM_ATUAL){ RF_SOM_ATUAL.onended=null; RF_SOM_ATUAL.pause();
+      if(RF_SOM_ATUAL._rfCorte) clearTimeout(RF_SOM_ATUAL._rfCorte);
+      RF_SOM_ATUAL = null; }
+    const a = new Audio(src); a.volume = vol; a._rfPeso = peso;
+    /* o corte comeca antes do teto: primeiro baixa, depois pausa -- e so' age se o
+       clipe de facto passar do tempo, entao um clipe curto nunca e' tocado nisto */
+    a._rfCorte = setTimeout(() => {
+      if(a.ended || a.paused) return;
+      const passo = 50, quedas = Math.max(1, Math.round(RF_SOM_FADE_MS/passo));
+      let n = 0;
+      const baixar = setInterval(() => {
+        n++; try{ a.volume = Math.max(0, vol*(1 - n/quedas)); }catch(e){}
+        if(n >= quedas){ clearInterval(baixar);
+          try{ a.pause(); }catch(e){}
+          if(a.onended) a.onended();
+        }
+      }, passo);
+    }, Math.max(0, RF_SOM_TETO_MS - RF_SOM_FADE_MS));
+    a.onended = () => {
+      if(a._rfCorte){ clearTimeout(a._rfCorte); a._rfCorte = null; }
+      if(RF_SOM_ATUAL === a) RF_SOM_ATUAL = null;
+      RF_SOM_FIM = Date.now();
+      if(RF_SOM_FILA && !RF_SOM_AGENDA) RF_SOM_AGENDA = setTimeout(rfSomDaFila, RF_SOM_RESPIRO);
+    };
     /* navegador recusa audio sem gesto do utilizador; a promessa rejeitada nao
        pode subir e derrubar o tique da partida */
-    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{ a.onended=null; if(RF_SOM_ATUAL===a) RF_SOM_ATUAL=null; });
     RF_SOM_ATUAL = a;
   }catch(err){}
+}
+
+/* =====================================================================
+   AMBIENTE DO CAMAROTE — TORCIDA E APITO
+   ---------------------------------------------------------------------
+   Nao ha' ficheiro para isto: a pasta audio/ tem os dez clipes de narracao e
+   mais nada. Em vez de pedir dois MP3 novos (e mais peso em cada carregamento)
+   os dois sao SINTETIZADOS com a Web Audio API:
+     · torcida = ruido filtrado num passa-banda grave, com a intensidade a
+       oscilar devagar — e' o que o ouvido le' como multidao ao longe;
+     · apito   = duas ondas quase afinadas perto dos 2,8 kHz com um trinado
+       rapido por cima, que e' a assinatura do apito de arbitro.
+   Ao contrario da narracao, estes NAO dependem do ritmo do jogo: sao curtos e
+   nao ha' nada para acompanhar neles.
+   Se um dia entrarem gravacoes de verdade, e' so' trocar o corpo destas duas
+   funcoes — o resto do jogo chama por nome. */
+let RF_AC = null;
+function rfAudioCtx(){
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return null;
+    if(!RF_AC) RF_AC = new AC();
+    if(RF_AC.state === 'suspended') RF_AC.resume().catch(()=>{});
+    return RF_AC;
+  }catch(err){ return null; }
+}
+/* o apito: 1 sopro no inicio, 2 no intervalo, 3 longos no fim */
+function rfApito(vezes, longo){
+  if(!rfSomLigado()) return;
+  const ac = rfAudioCtx(); if(!ac) return;
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  const dur = longo ? 0.42 : 0.20, gap = dur + 0.12;
+  for(let i = 0; i < (vezes||1); i++){
+    const t0 = ac.currentTime + i*gap;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.22*vol, t0+0.02);
+    g.gain.setValueAtTime(0.22*vol, t0+dur-0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    g.connect(ac.destination);
+    /* o TRINADO e' o que distingue um apito de um bip: uma oscilacao rapida
+       na frequencia das duas ondas. */
+    const lfo = ac.createOscillator(), lfoG = ac.createGain();
+    lfo.frequency.value = 26; lfoG.gain.value = 90; lfo.connect(lfoG);
+    [2760, 2810].forEach(f => {
+      const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+      lfoG.connect(o.frequency); o.connect(g); o.start(t0); o.stop(t0+dur+0.02);
+    });
+    lfo.start(t0); lfo.stop(t0+dur+0.02);
+  }
+}
+/* ===== CAMERA LENTA NO GOL DELE =====
+   O relogio NAO para — parar seria mentir sobre o que esta' a acontecer em
+   campo, e a rodada tem outras partidas a correr. O que muda e' o ritmo do
+   tique: durante a festa cada minuto de jogo passa a demorar tres vezes mais,
+   e depois volta sozinho ao ritmo escolhido. E' o tempo de a linha da
+   narracao ser lida e de a torcida chegar ao pico.
+   Mora em `CL` e nao na rodada porque e' uma coisa da TELA, nao do jogo: o
+   resultado e a sincronia nao mudam por causa disto (ver o piso de ritmo em
+   onlineTickFloorMs, que continua a mandar na transmissao). */
+const CAM_LENTO_MS = 4200, CAM_LENTO_MULT = 3;
+function camCelebrar(){
+  if(typeof camOn!=='function' || !camOn()) return;
+  CL._golLentoAte = nowMs() + CAM_LENTO_MS;
+}
+function camLentoAtivo(){ return !!(CL._golLentoAte && nowMs() < CL._golLentoAte); }
+
+/* ===== A TORCIDA PRECISA DE GRAVACAO, NAO DE SINTESE =====
+   A versao sintetizada (ruido rosa num passa-banda grave) soava a MAR, nao a
+   estadio — e faz sentido: uma multidao nao e' ruido continuo, e' milhares de
+   vozes com ataque, palmas e cantos, coisa que ruido filtrado nao imita. Em
+   vez de insistir na sintese, o codigo passa a esperar um ficheiro.
+
+   Basta pousar `public/audio/torcida-estadio.mp3` (qualquer coisa entre 30s e
+   2min, que entra em ciclo) e o estadio volta sozinho — sem tocar em codigo.
+   Enquanto o ficheiro nao existir, tudo isto e' silencio: o `onerror` desarma
+   e nada mais tenta. E' por isso que o GOL esta' mudo por agora — o rugido era
+   feito do mesmo ruido. */
+const RF_TORCIDA_SRC = 'audio/torcida-estadio.mp3';
+const RF_TORCIDA_BASE = 0.34;   // fracao do volume do save, com o jogo a correr
+let RF_TORCIDA = null, RF_TORCIDA_SEM = false, RF_TORCIDA_GOL = 0;
+function rfTorcidaLigar(){
+  if(RF_TORCIDA || RF_TORCIDA_SEM || !rfSomLigado()) return;
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(RF_TORCIDA_SRC);
+    /* ENTRA A SUBIR. O estadio a aparecer do nada, ja' no volume final, soa a
+       um botao ligado — e o apito inicial toca justamente por cima disto. */
+    a.loop = true; a.volume = 0;
+    a.onerror = () => { RF_TORCIDA_SEM = true; RF_TORCIDA = null; };
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    RF_TORCIDA = a;
+    rfFade(a, 0, RF_TORCIDA_BASE * vol, 1400);
+  }catch(err){ RF_TORCIDA_SEM = true; }
+}
+/* ===== O GOL SAO DOIS SONS EMENDADOS =====
+   Primeiro a bola na rede — seco, imediato, e' o instante do gol —, e dois
+   segundos depois a torcida sobe. Essa ordem e' o que o ouvido espera: no
+   estadio o barulho vem DEPOIS do lance, nunca junto.
+   A trava de 2,5s vive aqui, na entrada, e nao em cada metade: o gol de
+   penalti chega por dois caminhos (a revelacao do modal e o laco que consome
+   o evento) e sem ela sairiam duas bolas na rede e dois rugidos. */
+const RF_GOL_REDE = 'audio/gol-bola-na-rede.mp3';
+/* A FESTA E' UMA GRAVACAO PROPRIA, nao o fundo levantado. Levantar o volume do
+   ciclo de fundo dava um estadio mais ALTO, nao um estadio a FESTEJAR — e a
+   diferenca entre as duas coisas e' exactamente o gol. Entra emendada na bola
+   na rede, e so' no gol DELE: o estadio nao explode quando se sofre. */
+const RF_GOL_FESTA = 'audio/torcida-gol-festa.mp3';
+/* O CHUTE E' O QUE VEM ANTES. Ele nao e' um momento por si: e' o instante que
+   antecede o desfecho — a bola para fora, a defesa, ou a rede. Por isso entra
+   como entrada de outra coisa, nunca sozinho, e SO' AS VEZES: sair em toda a
+   finalizacao daria um metronomo, e o que se quer e' variacao. */
+const RF_CHUTE_SRC = 'audio/chute-forte.mp3';
+const RF_CHUTE_CHANCE = 0.5;    // metade das finalizacoes ganha a entrada
+const RF_CHUTE_ANTES = 620;     // quanto o desfecho espera pelo chute
+const RF_GOL_ATRASO = 2000;   // da rede ate' a torcida subir
+function rfChute(){
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(RF_CHUTE_SRC); a.volume = Math.min(1, 0.9*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+}
+/* O GOL DELE E O GOL DO ADVERSARIO NAO SAO O MESMO ACONTECIMENTO. Sair os dois
+   com o mesmo rugido e a mesma duracao achatava justamente o momento que a
+   pessoa veio ver. O gol do utilizador tem festa mais alta e mais longa; o do
+   adversario e' curto, so' o suficiente para se perceber que a bola entrou. */
+function rfGolSom(meu){
+  if(!rfSomLigado()) return;
+  if(Date.now() - RF_TORCIDA_GOL < 2500) return;
+  RF_TORCIDA_GOL = Date.now();
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  const rede = () => {
+    try{
+      const a = new Audio(RF_GOL_REDE); a.volume = Math.min(1, 0.9*vol);
+      const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    }catch(err){}
+    /* a torcida entra por cima, sem esperar que a rede acabe — sao camadas do
+       mesmo momento, nao uma fila */
+    setTimeout(() => {
+      if(meu) rfGolFesta();
+      else rfTorcidaGol(false);   // gol sofrido: so' um levantar breve do fundo
+    }, RF_GOL_ATRASO);
+  };
+  /* SEM CHUTE POSTICO AQUI. `gol-bola-na-rede.mp3` nao e' so' a rede: medido, o
+     ficheiro tem DOIS impactos — um pico a 0,1s (a bola a ser batida) e outro
+     a 0,9s (a rede). Ou seja, ele ja' e' a sequencia chute→gol inteira.
+     Pôr o `chute-forte` a' frente dava tres impactos: o meu, o dele, e a rede —
+     e era o "chute a mais depois da bola bater na rede" que se ouvia.
+     O `chute-forte` continua a existir para a finalizacao QUE NAO E' GOL, onde
+     o "uuuh" da arquibancada nao traz impacto nenhum consigo. */
+  rede();
+}
+/* a festa, com o fundo a dar-lhe espaco: sem isto o ciclo de 39s continua no
+   mesmo nivel por baixo e as duas multidoes brigam pelo mesmo lugar.
+   A gravacao tem 5s, mas nao se usa inteira: entra a subir, fica no alto o
+   tempo da animacao da linha, e sai a descer. Cortar a seco no fim de um
+   coro de multidao e' o que mais se ouve como defeito. */
+/* Menos dois segundos: eram 3,4s de ponta a ponta, ficam 1,4s. O que sobra e'
+   quase so' rampa — e' de proposito, porque o que faz o gol nesta altura ja'
+   nao e' o comprimento do coro, e' a linha a piscar e o relogio em camera
+   lenta por tras dele. */
+const RF_FESTA_ENTRA = 400, RF_FESTA_DURA = 400, RF_FESTA_SAI = 600;
+let RF_FESTA = null;
+function rfGolFesta(){
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    if(RF_FESTA){ clearTimeout(RF_FESTA._rfFim); clearInterval(RF_FESTA._rfFade);
+                  try{ RF_FESTA.pause(); }catch(e){} }
+    const a = new Audio(RF_GOL_FESTA); a.volume = 0;
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+    RF_FESTA = a;
+    rfFade(a, 0, Math.min(1, vol), RF_FESTA_ENTRA);
+    a._rfFim = setTimeout(() => {
+      if(RF_FESTA !== a) return;
+      rfFade(a, a.volume, 0, RF_FESTA_SAI, () => { try{ a.pause(); }catch(e){} });
+    }, RF_FESTA_ENTRA + RF_FESTA_DURA);
+  }catch(err){}
+  /* o fundo volta quando a festa ja' saiu, nao antes */
+  rfTorcidaAbafar(0.55, RF_FESTA_ENTRA + RF_FESTA_DURA + RF_FESTA_SAI);
+}
+/* baixa o fundo por um tempo e devolve-o sozinho */
+function rfTorcidaAbafar(k, ms){
+  const a = RF_TORCIDA; if(!a) return;
+  clearInterval(a._rfRampa);
+  clearTimeout(a._rfVolta);
+  const base = RF_TORCIDA_BASE * rfSomVolume();
+  rfFade(a, a.volume, base*k, 400);
+  a._rfVolta = setTimeout(() => {
+    if(RF_TORCIDA !== a) return;
+    rfFade(a, a.volume, RF_TORCIDA_BASE * rfSomVolume(), 1200);
+  }, ms);
+}
+/* o rugido do gol: sobe depressa e desce devagar. Sem `AudioParam` aqui — e'
+   um elemento <audio>, entao a rampa e' feita a mao, de 60 em 60ms.
+   Sem trava propria: quem controla a repeticao e' o `rfGolSom`, a entrada. */
+function rfTorcidaGol(meu){
+  if(!RF_TORCIDA) return;
+  const a = RF_TORCIDA, vol = rfSomVolume();
+  const base = RF_TORCIDA_BASE * vol;
+  const alto = Math.min(1, (meu ? 1.0 : 0.72) * vol);
+  const segura = meu ? 4.5 : 1.6;   // quanto tempo a festa fica no alto
+  const desce  = meu ? 8   : 3.5;   // e quanto demora a assentar
+  clearInterval(a._rfRampa); clearInterval(a._rfFade);
+  let t = 0;
+  a._rfRampa = setInterval(() => {
+    t += 0.06;
+    if(RF_TORCIDA !== a){ clearInterval(a._rfRampa); return; }
+    const k = t < 0.4 ? (t/0.4)                             // sobe em 0,4s
+            : t < segura ? 1                                // segura
+            : Math.max(0, 1 - (t-segura)/desce);            // e assenta
+    a.volume = Math.min(1, base + (alto-base)*k);
+    if(t > segura+desce+0.2){ clearInterval(a._rfRampa); a.volume = base; }
+  }, 60);
+}
+/* ===== O "UUUH" DA ARQUIBANCADA =====
+   Defesa do goleiro, bola na trave, chute para fora — os tres desfechos de uma
+   finalizacao que nao virou gol (ver chanceOutcome, no motor). E' reacao de
+   torcida, nao narracao: entra por cima do que estiver a tocar e nao espera
+   pelo ritmo lento, como o gol.
+   O que ele PRECISA e' de intervalo proprio. Finalizacao e' o evento mais
+   comum depois do passe, e no ritmo rapido sairiam varios por segundo — seis
+   segundos entre um e outro e' o que separa "o estadio reagiu" de metralhadora. */
+const RF_QUASE_SRC = 'audio/torcida-quase-gol.mp3';
+const RF_QUASE_INTERVALO = 6000;
+let RF_QUASE_EM = 0;
+function rfQuaseGol(){
+  if(!rfSomLigado()) return;
+  if(Date.now() - RF_QUASE_EM < RF_QUASE_INTERVALO) return;
+  /* nao se sobrepoe a' festa do gol: la' o estadio ja' esta' de pe' */
+  if(Date.now() - RF_TORCIDA_GOL < 6000) return;
+  /* a TRAVA E' DA FINALIZACAO INTEIRA, nao do "uuuh": marcada aqui, antes de
+     decidir a entrada, para o chute nao sair mais vezes do que o desfecho */
+  RF_QUASE_EM = Date.now();
+  if(Math.random() < RF_CHUTE_CHANCE){ rfChute(); setTimeout(rfUuuh, RF_CHUTE_ANTES); }
+  else rfUuuh();
+}
+function rfUuuh(){
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(RF_QUASE_SRC); a.volume = Math.min(1, 0.85*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+}
+function rfTorcidaDesligar(){
+  const a = RF_TORCIDA; if(!a) return;
+  RF_TORCIDA = null;
+  clearInterval(a._rfRampa); clearTimeout(a._rfVolta);
+  /* desvanece em vez de cortar: um loop que para a seco assusta. Mais longo do
+     que a entrada — o estadio esvazia devagar, e o apito final esta' por cima. */
+  rfFade(a, a.volume, 0, 2200, () => { try{ a.pause(); }catch(e){} });
 }
 
 function camOnEvent(m,e){
@@ -8020,13 +8799,22 @@ function camOnEvent(m,e){
 function rfSomDoEvento(m,e,out){
   if(!camOn()) return;
   m._camSons = m._camSons || {};
-  /* `trava` separa "ja' tocou isto" de "qual audio tocar": o vermelho usa o
-     MESMO som do amarelo, mas com trava propria — senao um amarelo aos 12'
-     calaria a expulsao aos 70', que e' o lance maior dos dois. */
-  const soar = (trava, chave) => { if(m._camSons[trava]) return; m._camSons[trava]=1; rfSomTocar(chave||trava); };
-  if(e.type==='cartao') soar(e.cardType==='vermelho' ? 'cartaoVermelho' : 'cartaoAmarelo', 'cartaoAmarelo');
-  else if(e.type==='penalti' && !e.scored && out==='defesa') soar('penaltiDefendido');
+  const soar = chave => { if(m._camSons[chave]) return; m._camSons[chave]=1; rfSomTocar(chave); };
+  if(e.type==='cartao' && e.cardType==='vermelho') soar('cartaoVermelho');
+  /* O TAFAREL E' DO MEU GOLEIRO. Isto tocava em qualquer penalti defendido,
+     inclusive num que o MEU time desperdicava — festejar a defesa contra mim.
+     So' vale quando quem bateu foi o adversario. */
+  /* finalizacao que nao virou gol: defesa, trave ou para fora */
+  if(e.type==='chance' && (out==='defesa'||out==='trave'||out==='fora')) rfQuaseGol();
+  else if(e.type==='penalti' && !e.scored && out==='defesa'){
+    const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+    if(meuLado && e.side!==meuLado) soar('penaltiDefendido');
+  }
   if(e.type==='gol' || (e.type==='penalti' && e.scored)){
+    const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+    const meu = !!meuLado && e.side===meuLado;
+    rfGolSom(meu);   // bola na rede + estadio: barulho, nao fala — vale em qualquer ritmo
+    if(meu) camCelebrar();
     if(((m.hg||0)+(m.ag||0)) >= 5) soar('goleada');
     /* dobradinha: o mesmo nome marcando pela segunda vez nesta partida */
     const meus=(m.goals||[]).filter(g=>g.scorer && g.scorer===e.scorer);
@@ -8083,7 +8871,20 @@ function camMinuteTick(m,RL){
   // O JOGO COMEÇA NO MINUTO ZERO. O apito inicial saía carimbado com o minuto em que o relógio
   // já estava (1' ou 2', dependendo de quando a tela apareceu) — a primeira linha da narração
   // nascia atrasada em relação ao lance que ela anuncia, que é a bola rolando. Bola rolando é 0'.
+  /* so' a LINHA. O apito e a torcida passaram para o inicio da rodada (ver
+     liveTick), porque aqui eles ja' chegavam com a bola a rolar. */
   if(mn>=0)  mark('ini',()=>camPush(m,'inicio',null,0));
+  /* A TORCIDA NAO SE CALA NO INTERVALO. Ela baixava aos 45 e voltava aos 46,
+     e esse vale era ouvido como uma falha do som — o estadio nao esvazia entre
+     os tempos. Fica no mesmo nivel do apito inicial ao final. */
+  /* O APITO DO INTERVALO NAO MORA AQUI. Este marco anda pelo relogio da
+     PARTIDA (`m.sim.dispMin()`), e a pausa do intervalo anda pelo relogio da
+     RODADA (`RL.minute`) — quando a sessao fica um tique atras, a pausa abre
+     primeiro, o utilizador faz as substituicoes, carrega em Continuar, e so'
+     entao o marco chegava aos 45 e apitava: o apito do intervalo caia com o
+     segundo tempo ja' a rolar. Era exactamente o relatado. O apito passou
+     para o mesmo sitio que decide o intervalo (ver liveTick), onde nao ha'
+     dois relogios para discordarem. */
   if(mn>=45) mark('ht', ()=>camPush(m,'intervalo',null,mn));
   if(mn>=46) mark('h2', ()=>camPush(m,'recomeco',null,mn));
   if(mn>=91 && RL.extraStartMinute==null) mark('acr',()=>camPush(m,'acrescimos',null,mn));
@@ -8091,7 +8892,10 @@ function camMinuteTick(m,RL){
   // fase morna: nenhuma linha há 7 minutos -> comenta o momento do jogo (pressão/placar).
   // `avoid` é a ÚLTIMA fala de ambiente (não a última linha qualquer): com um lance no meio,
   // comparar só com a linha anterior deixava a mesma frase de ambiente voltar logo em seguida.
-  if(mn-(m._camLastLine||0)>=7){
+  /* A FASE MORNA NAO INTERROMPE A FESTA. Ela existe para preencher silencio —
+     e nos segundos a seguir ao gol nao ha' silencio nenhum para preencher: ha'
+     a linha do gol no topo do feed, a piscar, e o estadio de pe'. */
+  if(mn-(m._camLastLine||0)>=7 && Date.now()-RF_TORCIDA_GOL >= RF_SOM_GOL_ESPACO){
     camPush(m,'momento',{share:camShare(m), avoid:m._camLastMomento||null},mn);
     m._camLastMomento=m.narr.length?m.narr[m.narr.length-1].text:null;
   }
@@ -8116,6 +8920,18 @@ function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.f
   /* O APITO FINAL tem quatro vozes, e a ordem importa: decisivo ganha de
      tudo (e' o jogo que vale titulo ou acesso), depois o resultado, e o
      neutro fica para o empate. */
+  liveApitoFinal(CL.live);   // se a rodada ja' apitou, isto nao repete
+  {
+    /* A COMEMORACAO NAO DEPENDE DO CAMAROTE, como os apitos: ela marca o fim
+       da partida DELE, esteja em que tela estiver. A mesma regra da disputa de
+       penaltis decide quem e' "ele" quando ha' dois humanos no ecra. */
+    const lado = rfLadoDoUtilizador(m);
+    if(lado){
+      const meus = lado==='H' ? (m.hg||0) : (m.ag||0);
+      const deles = lado==='H' ? (m.ag||0) : (m.hg||0);
+      if(meus > deles) rfVitoriaSom();
+    }
+  }
   if(camOn()){
     const meuLado = (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
     const meus = meuLado==='H' ? (m.hg||0) : (m.ag||0);
@@ -8127,7 +8943,7 @@ function camFinal(m,mn){ camEnsure(m); if(m._camMarks.fim) return; m._camMarks.f
        resultado. */
     if(rfSomFinalDeCopa(m)) rfSomTocar('fimDecisivo');
     else if(meuLado==null || meus===deles) rfSomTocar('fimNeutro');
-    else rfSomTocar(meus>deles ? 'fimVitoria' : 'fimDerrota');
+    else rfSomTocar(meus>deles ? 'fimVitoria' : 'fimNeutro');
   } }
 
 /* ---- interruptor 🎥 MODO CAMAROTE (topo direito, igual ao design) ---- */
@@ -8199,6 +9015,10 @@ function camStatsHTML(m){ return rfCamStatsHTML(m); }
    pra troca de aba, que é o único caso em que a estrutura muda de verdade. */
 function camUpdate(){
   if(!camOn()) return; const m=camMatch(); if(!m) return;
+  /* O apito inicial liga a torcida, mas ele so' toca UMA vez: quem entra no
+     Camarote com o jogo a decorrer perdia o estadio para o resto da partida.
+     `rfTorcidaLigar` nao faz nada se ja' estiver a tocar. */
+  if(!camMatchOver(m)) rfTorcidaLigar();
   const host=document.querySelector('#rf-cam-dyn'); if(!host) return;
   const tab=CL.camTab||'panorama';
   if(host.dataset.tab!==tab || !host.querySelector('#rf-cam-lines')){
@@ -8210,11 +9030,33 @@ function camUpdate(){
     const st=host.querySelector('.rf-cam-stats'); // sem animação: redesenho aqui não pisca
     if(st) st.outerHTML=camStatsHTML(m);
   }
-  const ads=document.querySelectorAll('.rf-cam-ad'); const i=camAdIdx();
+  /* O RODÍZIO CONTA OS LUGARES QUE ESTÃO NA TELA, não os logos de casa: a banda
+     do Camarote passou a ter cinco lugares vendáveis (ver RF_CAM_LOGOS em
+     rf26-live.js) e AD_SPONSORS tem três — com o índice preso ao tamanho da
+     lista de casa, os dois últimos lugares nunca ganhavam o destaque. */
+  const ads=document.querySelectorAll('.rf-cam-ad');
+  const i=ads.length?Math.floor((((CL.live&&CL.live.minute)||0))/8)%ads.length:0;
   ads.forEach((el,k)=>el.classList.toggle('on',k===i));
-  // o botão do patrocinador gira junto com o logo em destaque (texto + cores da marca)
-  const cta=document.querySelector('#rf-cam-cta');
-  if(cta && AD_SPONSORS[i]){ cta.textContent=AD_SPONSORS[i].cta; cta.setAttribute('style',camCtaStyle(i)); }
+  /* O BOTÃO É DO PATROCINADOR EM DESTAQUE — texto, cores e destino saem do
+     criativo daquele lugar (ver rfCamCtaHTML). Ele é trocado por inteiro, e não
+     campo a campo, porque o lugar em destaque pode simplesmente NÃO TER botão:
+     nesse caso o HTML vem vazio e o botão sai da banda até o próximo. */
+  const banda=document.querySelector('.rf-cam-patro');
+  if(banda && typeof rfCamCtaHTML==='function'){
+    /* `i` conta as pastilhas QUE ESTAO NA TELA; o botao pertence a um LUGAR do
+       inventario. Com um lugar desligado no painel os dois deixam de coincidir, e
+       sem esta traducao o botao passava a ser o do patrocinador errado. */
+    const lug=(typeof rfCamLugares==='function')?rfCamLugares():null;
+    const k=(lug && lug.length)?(lug[i%lug.length]):i;
+    const novo=rfCamCtaHTML(k), atual=banda.querySelector('.rf-cam-cta');
+    const chaveAtual=atual?atual.getAttribute('data-ad-cta'):'';
+    // só mexe no DOM quando muda de patrocinador: trocar a cada minuto mataria o :hover
+    if(!novo && atual) atual.remove();
+    else if(novo && (!atual || novo.indexOf('data-ad-cta="'+chaveAtual+'"')<0)){
+      if(atual) atual.remove();
+      banda.insertAdjacentHTML('beforeend', novo);
+    }
+  }
   // o selo "AO VIVO" mora na barra de título (fora do bloco redesenhado): apaga na mão
   // quando a partida DELE acaba — a rodada pode seguir rolando bem depois disso.
   const onair=document.querySelector('#rf-cam-onair'); if(onair) onair.hidden=camMatchOver(m);
@@ -8249,7 +9091,16 @@ function camPatchFeed(m){
   if(agora<antes){ box.innerHTML=m.narr.slice().reverse().map(camLineHTML).join(''); box.dataset.n=String(agora); return; }
   const vazio=box.querySelector('.rf-cam-vazio'); if(vazio) vazio.remove();
   // insere de trás pra frente pra manter a ordem (mais recente sempre no topo)
-  m.narr.slice(antes).forEach(l=>box.insertAdjacentHTML('afterbegin', camLineHTML(l)));
+  m.narr.slice(antes).forEach(l=>{
+    box.insertAdjacentHTML('afterbegin', camLineHTML(l));
+    /* A FESTA E' SO' DA LINHA NOVA. `k-gol` ja' significa "gol dele" (ver
+       rfCamLinhaHTML), mas a classe fica na linha para sempre — animar por ela
+       faria o feed inteiro re-festejar a cada troca de aba, que e' quando o
+       bloco e' redesenhado. `celebra` so' e' posta aqui, no instante em que a
+       linha entra, e por isso anima uma vez so'. */
+    const nova = box.firstElementChild;
+    if(nova && nova.classList.contains('k-gol')) nova.classList.add('celebra');
+  });
   box.dataset.n=String(agora);
 }
 
@@ -8343,7 +9194,18 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
     ${actionsHTML}
     ${showSubs?subPanelHTML(m):''}
     ${penalty?penaltyPickerHTML():''}${injury?injurySubHTML(m,RL.injEvent):''}${red?redCardHTML(m,RL.redEvent):''}${shooting?shootoutPickerHTML():''}
-    ${m.user?adSlotHTML(injury?'modal-machucado-728x90':red?'modal-expulsao-728x90':(penalty||shooting)?'modal-penalti-escolha-728x90':halftime?'rf98.match.halftime':'modal-partida-728x90','cl-ad-live'):''}`;
+    ${/* TODOS OS MODAIS DA PARTIDA USAM O MESMO ESPAÇO DO INVENTÁRIO.
+          Eram cinco chaves diferentes conforme o momento — machucado, expulsão,
+          pênalti, intervalo, partida — e QUATRO delas não existem em
+          elifoot_v3.ad_spaces: o painel nunca as listou, ninguém podia vendê-las
+          e o lugar ficava eternamente vazio. Só a do intervalo era real.
+
+          É a mesma faixa 728×90, no mesmo sítio da tela, em momentos diferentes
+          do mesmo jogo — um espaço, não cinco. Quem compra a faixa do modal
+          aparece em todos eles. Se um dia valer separar por momento, o caminho
+          é criar as chaves no inventário PRIMEIRO; a divisão não pode nascer no
+          cliente, que é como estas quatro nasceram órfãs. */''}
+    ${m.user?adSlotHTML('rf98.match.halftime','cl-ad-live'):''}`;
 }
 /* ---- modal clássico de pênalti: escolhe o batedor, com contagem regressiva de 10s ---- */
 function penaltyRating(p){ return Math.max(1,Math.min(9,Math.round((p.f-40)/7))); }

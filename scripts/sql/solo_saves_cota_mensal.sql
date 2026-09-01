@@ -1,0 +1,55 @@
+-- ============================================================
+-- O TETO DE SAVES PASSA A SER DE CRIACOES POR MES — RetroFoot98
+-- Aplicado em 2026-09-01. Copia versionada.
+--
+-- Antes contava-se quantos saves EXISTEM, e isso deixava a porta aberta ao
+-- vaivem: criar, apagar, criar outro, sem fim. O teto de 3 do Peladeiro era, na
+-- pratica, saves infinitos desde que so' 3 vivessem ao mesmo tempo.
+--
+-- Agora conta-se quantos foram CRIADOS no mes. Apagar NAO devolve a vaga: a
+-- criacao ja' aconteceu e fica registada. A cota renova no dia 1.
+--
+-- POR QUE UM LIVRO A' PARTE (solo_save_criacoes) e nao um contador na conta: um
+-- contador nao sabe responder "quando renova" nem "o que gastei", e reiniciar
+-- contador e' uma operacao que se esquece de fazer. Uma linha por criacao
+-- responde as tres perguntas e nunca precisa de ser reiniciada — a janela e' que
+-- anda por cima dela.
+--
+-- O MES VIRA NO FUSO DE QUEM JOGA (inicio_do_mes_br), nao em UTC. date_trunc em
+-- UTC corta a meia-noite de Londres, que no Brasil e' 21h do dia anterior: a
+-- tela dizia "a cota vira no dia 30 de setembro" quando o corte era 1 de
+-- outubro. Fim de mes e' exactamente quando alguem tenta criar o save, e errar
+-- o dia ali e' errar no unico momento em que a frase e' lida.
+--
+-- A SEMENTE faz `join auth.users` de proposito: ha' save orfao de conta
+-- apagada, e ele nao pode entrar num livro cuja chave aponta para a conta.
+-- ============================================================
+-- (DDL completo nas migracoes solo_saves_cota_mensal, plano_limites_cota_do_mes
+--  e cota_mensal_no_fuso_do_jogador, ja' no banco)
+
+-- ============================================================
+-- A COTA VIRA NO DIA DA PESSOA, NAO NO DIA 1 (01/09)
+-- migracoes: cota_saves_ancorada_na_cobranca, cota_ancora_na_data_nao_na_hora
+--
+-- Mes de calendario tinha um efeito injusto que so' aparece na ponta: quem
+-- assinava no dia 28 ganhava a cota inteira e via-a renovar tres dias depois.
+-- Ancorado na assinatura, cada um tem o seu proprio mes.
+--
+-- QUAL E' A ANCORA (elifoot_v3.inicio_da_cota):
+--   assinante -> user_plans.since, o dia em que o plano comecou. Quando o Stripe
+--                entrar, e' a data da cobranca que carimba esse campo.
+--   Peladeiro -> auth.users.created_at. Nao ha' cobranca para ancorar, e e' a
+--                mesma ancora dos 7 dias de Resenha: duas regras, um so'
+--                aniversario para explicar a quem pergunta.
+--
+-- ANUAL TAMBEM RENOVA TODO MES: quem paga por ano e' cobrado uma vez, mas a cota
+-- de carreiras e' mensal. A ancora da' o DIA, nao a periodicidade.
+--
+-- A ANCORA E' A DATA, NAO O INSTANTE. Com a hora, o ciclo virava a's 14h30 de
+-- quem assinou a's 14h30: a tela dizia "vira no dia 20" e a's 00:00 do dia 20
+-- ainda nao tinha virado. date_trunc('day') no fuso do Brasil faz o ciclo virar
+-- a' meia-noite do dia que a tela promete.
+--
+-- DIA 31 NAO SE PERDE EM FEVEREIRO: `ancora + n meses` encosta no ultimo dia do
+-- mes curto (31/01 + 1 mes = 28/02) e volta ao 31 quando o mes tem. Medido.
+-- ============================================================

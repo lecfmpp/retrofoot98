@@ -1012,6 +1012,15 @@ function rfIrEscolherTatica(){
    ===================================================================== */
 function rfAdEspaco(chave, opts){
   opts=opts||{};
+  /* ESPACO DESLIGADO NAO DESENHA NADA -- nem criativo, nem marcador, nem o criativo
+     de casa. E' a diferenca entre "ainda nao vendi" (o lugar aparece, reservado, e
+     e' isso que deixa conferir o inventario) e "este lugar nao existe nesta tela".
+     Quem desliga e' o painel (ad_spaces.ligado). Devolver '' aqui chega para os
+     espacos que sao filhos diretos de uma coluna ou de um flex: sem elemento, sem
+     `gap`, e o resto da pagina fecha sozinha. Os poucos que vivem dentro de um
+     contentor proprio -- os trilhos, a banda do Camarote -- tratam disso no seu
+     proprio ponto de desenho, senao ficava o contentor vazio a ocupar lugar. */
+  if(window.ADS && ADS.ligado && !ADS.ligado(chave)) return '';
   const real=window.ADS?ADS.html(chave,{cls:opts.cls||''}):'';
   if(real) return real;
   /* CRIATIVO DE CASA: um patrocinador fixo pode ocupar o espaco enquanto o painel nao publica
@@ -1026,8 +1035,25 @@ function rfAdEspaco(chave, opts){
   </div>`;
 }
 /* trilhos de publicidade — ficam FORA da coluna de conteúdo e somem antes dela */
+/* O LADO TEM DOIS NOMES, E ISSO NÃO É DESCUIDO QUE SE APAGUE RENOMEANDO UM.
+   O layout fala inglês: o CSS esconde `[data-ad-rail="right"]` primeiro, em
+   quatro regras (rf26.css, telas ao vivo e Camarote). O inventário fala
+   português: as chaves vendidas são `rf98.rail.esq` e `.dir`, e é por elas que
+   o painel publica.
+
+   Faltava a tradução entre os dois. O jogo pedia `rf98.rail.left`, chave que
+   não existe no inventário, e o skyscraper publicado em `rf98.rail.esq` nunca
+   aparecia — espaço vendido, criativo no ar e tela vazia. Renomear o atributo
+   teria arrastado o CSS junto; renomear a chave teria quebrado o que o painel
+   já publicou. O mapa fica aqui, no ponto onde os dois mundos se encontram. */
+const RF_RAIL_CHAVE = { left:'esq', right:'dir' };
 function rfRail(lado){
-  return `<div data-ad-rail="${lado}">${rfAdEspaco('rf98.rail.'+lado,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
+  const chave = 'rf98.rail.' + (RF_RAIL_CHAVE[lado] || lado);
+  /* O CONTENTOR SAI JUNTO. `[data-ad-rail]` tem largura fixa de 160px e entra no
+     `gap` da fila: devolver so' o interior vazio deixaria uma coluna de 160px de
+     nada ao lado do conteudo, que e' exatamente o buraco que desligar devia evitar. */
+  if(window.ADS && ADS.ligado && !ADS.ligado(chave)) return '';
+  return `<div data-ad-rail="${lado}">${rfAdEspaco(chave,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
 }
 /* =====================================================================
    IDENTIDADE DA COMPETIÇÃO — troféu, nome e paleta

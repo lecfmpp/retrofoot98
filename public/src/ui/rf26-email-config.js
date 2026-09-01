@@ -58,6 +58,11 @@ function rfEmLeituraHTML(){
     <div class="rf-label"><span class="rf-label-t">MENSAGEM ABERTA</span>
       <span class="rf-label-r">${escC(String(e.from||'').split('·')[0].trim()||'—')} · ${escC(rfQuandoHTML(e))}</span></div>
     <div class="rf-ml">
+      <!-- FAIXA DO TOPO DO E-MAIL (rf98.email.topo). Fica DENTRO da mensagem, acima
+           do assunto: quem chega aqui esta a LER, e nao a passar os olhos por uma
+           lista. Toda proposta por jogador, convite de clube, aviso da diretoria e
+           premiacao passa por este ecra. Desligavel pelo painel como os outros. -->
+      ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.email.topo',{cls:'rf-ad-email',formato:'728×90'}):''}
       <span class="rf-ml-subj">${escC(e.subject||'')}</span>
       <div class="rf-ml-de">
         ${rfCrest(cl,30)}
