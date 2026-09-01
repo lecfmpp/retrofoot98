@@ -2746,7 +2746,12 @@ function carregarCatalogo(){
                     '/src/data/leagues-intl.js', '/src/data/leagues-conmebol.js',
                     '/src/data/universos.js', '/src/data/competicoes.js',
                     '/src/engine/world-rules.js', '/src/engine/calendars.js',
-                    '/src/engine/world-config.js'];
+                    '/src/engine/world-config.js',
+                    /* O MAPA DAS JOGADORAS. É o que deixa o Estúdio gerar foto para o universo
+                       feminino: sem ele o painel não sabe que o jm000001 do Palmeiras se chama
+                       Maria Souza no mundo feminino, e gravaria a foto na chave do nome masculino
+                       — que é outra pessoa. Publicado em 01/09; a regra do aviso acima vale. */
+                    '/src/data/jogadoras-brasil.js'];
   /* NÃO acrescente uma folha aqui antes de o site estar PUBLICADO com ela: os arquivos vêm de
      JOGO_URL (produção, não do localhost) e um único 404 rejeita o Promise.all abaixo, deixando
      a página do Editor inteira sem catálogo. As quatro acima já estão no ar. */
@@ -2777,6 +2782,58 @@ function clubesDeFabrica(){
 function chaveNome(s){
   return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+
+/* ============================================================================
+   A MODALIDADE NO ESTUDIO — quem entra em campo, para efeito de FOTO.
+
+   O universo feminino usa OS MESMOS clubes e OS MESMOS objetos de jogador do
+   masculino: o que muda e' o campo `n`. E player_photos e' chaveada por
+   (pack_id, club_id, JOGADOR) — pelo NOME. Entao a foto de uma jogadora e' uma
+   linha com o nome DELA, e nao ha' coluna de modalidade a criar: as duas
+   modalidades convivem na mesma tabela porque nunca colidem de chave.
+
+   O QUE NAO PODE ACONTECER e' o Estudio gravar a foto de uma mulher sob o nome
+   do homem. Por isso a troca de nome acontece UMA VEZ, aqui, sobre o catalogo
+   inteiro — do mesmo jeito que o jogo faz em femSquad (core.js). Dali para
+   baixo, todo o Estudio continua lendo `p.n` e acerta a chave sozinho: a
+   miniatura, o contador, o caminho no bucket e o upsert.
+
+   PORQUE SO' QUEM ESTA' NO MAPA. femSquad da' um nome PROCEDURAL a quem nao
+   tem entrada — e esse nome depende de S.seed, ou seja, muda de save para
+   save. Uma foto presa a ele nunca mais seria encontrada. Quem nao esta' no
+   mapa some da lista do Estudio, em vez de aparecer com uma chave instavel.
+
+   Clona clube e elenco pela mesma razao que aplicarPacoteNoCatalogo clona:
+   `base` aponta para os objetos de window.GAME_DATA, e remendar no lugar
+   deixaria nomes femininos grudados na sessao inteira do painel. */
+function mapaJogadoras(){ return (typeof window!=='undefined' && window.JOGADORAS_BR) || {}; }
+function femDisponivelAdm(){ return Object.keys(mapaJogadoras()).length > 0; }
+function modalidadeEstudio(){ return (ST.modEstudio === 'fem' && femDisponivelAdm()) ? 'fem' : 'masc'; }
+/* o nome que ESTE jogador tem na modalidade escolhida — null quando ele nao
+   existe nela (sem entrada no mapa). Espelha femSquad (core.js). */
+function nomeNaModalidade(p, mod){
+  if(mod !== 'fem') return (p && p.n) || null;
+  const mapa = mapaJogadoras();
+  return (p && p.id != null && mapa[p.id]) || null;
+}
+function aplicarModalidadeNoCatalogo(base, mod){
+  if(mod !== 'fem') return base;
+  const mapa = mapaJogadoras();
+  for(const x of base){
+    const sq = Array.isArray(x.c.squad) ? x.c.squad : [];
+    const nova = [];
+    for(const p of sq){
+      const nome = (p && p.id != null) ? mapa[p.id] : null;
+      if(!nome) continue;                       // sem nome estavel -> fora da oficina
+      nova.push(Object.assign({}, p, { n: nome, _nMasc: p.n }));
+    }
+    x.c = Object.assign({}, x.c, { squad: nova });
+  }
+  /* clube sem uma jogadora sequer nao tem o que fotografar. Hoje isso e' todo
+     clube de fora do Brasil: o mapa cobre os 1.900 jogadores dos 80 clubes
+     brasileiros e mais ninguem. */
+  return base.filter(x => (x.c.squad || []).length > 0);
 }
 
 /* UMA FUNCAO SO', chamada pelo Editor de dados E pelo Estudio IA. Estava
@@ -2869,7 +2926,7 @@ async function pgEditor(){
   if(eds.error) throw eds.error;
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
-  const base = clubesDeFabrica();
+  let base = clubesDeFabrica();
   (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
@@ -5826,17 +5883,54 @@ const FOTO_POOL = {
   brinco:  ['no earrings','no earrings','no earrings','a small stud earring in one ear','small diamond earrings in both ears'],
   tattoo:  ['no visible tattoos','no visible tattoos','no visible tattoos','a small tattoo visible on the neck','tattoos partially visible on the arm']
 };
-function sortearAtributos(p){
+/* O MESMO SORTEIO, PARA ELAS. Reaproveitar FOTO_POOL no feminino daria jogadoras de barba
+   cheia e corte mullet — o pool masculino carrega barba, e cabelo e brinco com estatistica de
+   homem. As chaves sao as MESMAS de proposito: assim os prompts, o resumo em portugues e o
+   registro em `atributos` continuam um so' caminho, sem um ramo paralelo para cada sexo.
+   `barba` fica vazia e some da descricao (ver descricaoPessoa), em vez de virar "sem barba" —
+   dizer isso ao modelo so' gasta token e chama atencao para o que nao interessa. */
+const FOTO_POOL_FEM = {
+  pele:    FOTO_POOL.pele,
+  cabelo:  ['long straight hair','long wavy hair','hair pulled back in a high ponytail','hair in a tight bun',
+            'box braids','shoulder-length curly hair','afro hair','short bob haircut','cornrow braids',
+            'hair in two braids','curly hair in a ponytail'],
+  corCab:  ['black','black','dark brown','brown','auburn','bleached blond'],
+  barba:   [''],
+  sorriso: FOTO_POOL.sorriso,
+  brinco:  ['no earrings','no earrings','small hoop earrings','small stud earrings','small gold earrings'],
+  tattoo:  FOTO_POOL.tattoo
+};
+function sortearAtributos(p, mod){
+  const fem = mod === 'fem';
+  const POOL = fem ? FOTO_POOL_FEM : FOTO_POOL;
   const pick = a => a[Math.floor(Math.random()*a.length)];
   const at = {
     idade: (p && p.age) || (18+Math.floor(Math.random()*17)),
-    pele: pick(FOTO_POOL.pele), cabelo: pick(FOTO_POOL.cabelo), corCab: pick(FOTO_POOL.corCab),
-    barba: pick(FOTO_POOL.barba), sorriso: pick(FOTO_POOL.sorriso),
-    brinco: pick(FOTO_POOL.brinco), tattoo: pick(FOTO_POOL.tattoo)
+    pele: pick(POOL.pele), cabelo: pick(POOL.cabelo), corCab: pick(POOL.corCab),
+    barba: pick(POOL.barba), sorriso: pick(POOL.sorriso),
+    brinco: pick(POOL.brinco), tattoo: pick(POOL.tattoo),
+    /* FICA GRAVADO NA LINHA DA FOTO. `atributos` viaja para player_photos, entao a propria foto
+       diz para que universo ela nasceu — sem isso, so' daria para adivinhar pelo nome. */
+    sexo: fem ? 'fem' : 'masc'
   };
-  if(at.idade < 21){ at.barba = Math.random()<0.7 ? 'clean-shaven' : 'light stubble'; }
+  if(!fem && at.idade < 21){ at.barba = Math.random()<0.7 ? 'clean-shaven' : 'light stubble'; }
   if(/bald/.test(at.cabelo)) at.corCab = '';
   return at;
+}
+/* A PESSOA, EM UMA FRASE — usada pelos quatro prompts de rosto. Estava copiada em cada um deles,
+   com a mesma interpolacao de cabelo repetida quatro vezes; no feminino a copia teria de virar
+   oito. O `.filter(Boolean)` e' o que faz a barba vazia desaparecer sem deixar virgula solta. */
+function descricaoPessoa(at){
+  const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
+  return [at.idade+' years old', at.pele, cab, at.barba, at.sorriso, at.brinco, at.tattoo]
+    .filter(Boolean).join(', ') + '.';
+}
+/* como o modelo deve chamar a pessoa. "female ... player" sozinho sai ambiguo em ingles com
+   frequencia alta demais para um lote; o "(a woman)" resolve e custa duas palavras. */
+function sujeitoDoPrompt(at){
+  return (at && at.sexo === 'fem')
+    ? 'female professional football player (a woman)'
+    : 'male professional football player';
 }
 function resumoAtributos(at){
   const t = {
@@ -5846,14 +5940,22 @@ function resumoAtributos(at){
     'afro hair':'black power','short dreadlocks':'dreads','slicked back hair':'penteado pra trás','messy short hair':'despenteado',
     'mullet haircut':'mullet','completely bald head':'careca',
     'clean-shaven':'sem barba','light stubble':'barba rala','full short beard':'barba cheia','goatee':'cavanhaque','thin mustache':'bigode',
+    'long straight hair':'liso longo','long wavy hair':'ondulado longo','hair pulled back in a high ponytail':'rabo de cavalo',
+    'hair in a tight bun':'coque','box braids':'tranças box','shoulder-length curly hair':'cacheado médio',
+    'short bob haircut':'chanel','cornrow braids':'tranças rente','hair in two braids':'duas tranças',
+    'curly hair in a ponytail':'cacheado preso','auburn':'ruivo',
+    'small hoop earrings':'argolas','small stud earrings':'brincos pequenos','small gold earrings':'brincos de ouro',
     'neutral serious expression':'sério','confident slight smile':'meio sorriso','big friendly smile':'sorridente',
     'no earrings':'sem brinco','a small stud earring in one ear':'brinco','small diamond earrings in both ears':'2 brincos',
     'no visible tattoos':'sem tattoo','a small tattoo visible on the neck':'tattoo no pescoço','tattoos partially visible on the arm':'tattoo no braço',
     'black':'preto','dark brown':'castanho escuro','brown':'castanho','bleached blond':'loiro descolorido','dyed platinum blond':'platinado'
   };
   const tr = s => t[s]||s;
+  /* filtra vazio: no feminino a barba nao existe, e um ' · ' solto no meio do resumo parece
+     defeito de renderizacao. */
   return [at.idade+' anos', tr(at.pele), tr(at.cabelo)+(at.corCab?' '+tr(at.corCab):''),
-          tr(at.barba), tr(at.sorriso), tr(at.brinco), tr(at.tattoo)].join(' · ');
+          at.barba?tr(at.barba):'', tr(at.sorriso), tr(at.brinco), tr(at.tattoo)]
+         .filter(Boolean).join(' · ');
 }
 /* A FOTO É EM DUAS CAMADAS, de propósito:
    · ROSTO (cabeça+pescoço, recortado em fundo transparente) — um por jogador;
@@ -5910,10 +6012,9 @@ const NAO_REAL = 'CRITICAL: invent a completely new, ordinary face that does NOT
 
 function promptRosto(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
-  const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
   return [
-    `Hyper-realistic studio photograph cutout: ONLY the head and neck of a fictional professional football player from ${pais}, isolated on a fully transparent background.`,
-    `${at.idade} years old, ${at.pele}, ${cab}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    `Hyper-realistic studio photograph cutout: ONLY the head and neck of a fictional ${sujeitoDoPrompt(at)} from ${pais}, isolated on a fully transparent background.`,
+    descricaoPessoa(at),
     'Facing the camera directly, official club media day photo style, soft professional studio lighting, sharp focus, DSLR quality.',
     'The cutout ends in a clean straight cut at the base of the neck — NO shoulders, NO clothing, NO jersey, NO collar, NO background, nothing besides the head and neck.',
     'Head centered horizontally, sized so head plus neck fill about 75% of the frame height, positioned in the upper part of the frame.',
@@ -5961,12 +6062,15 @@ function promptCamisaLimpa(estiloChave, corA, corB){
   ].join(' ');
 }
 
-function promptTorso(item, estiloChave, corA, corB){
+function promptTorso(item, estiloChave, corA, corB, mod){
   const c = item.c;
   const est = ESTILOS_CAMISA.find(e=>e[0]===estiloChave) || ESTILOS_CAMISA[0];
   const camisa = est[2](corA||c.color||'#1b7a3d', corB||c.color2||'#ffffff');
+  /* o torso e' o corpo de quem veste a camisa, entao ele tambem muda de modalidade. Sem `mod`
+     cai no masculino, que e' o que todo chamador antigo espera. */
+  const quem = mod==='fem' ? sujeitoDoPrompt({sexo:'fem'}) : 'male professional football player';
   return [
-    'Hyper-realistic studio photograph of the torso of a male professional football player, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.',
+    `Hyper-realistic studio photograph of the torso of a ${quem}, WITHOUT the head — the frame is cropped just below the chin, no face, no head visible at all.`,
     `Wearing ${camisa}.`,
     'The jersey is COMPLETELY CLEAN: no club crest, no badge, no sponsor, no text, no logos anywhere — plain fabric only, because the club crest and the sponsor logo will be overlaid later as separate layers.',
     'Shoulders and chest framing, facing the camera directly, official club media day photo style.',
@@ -6056,10 +6160,10 @@ const UNIFORMES_RETRATO = {
 };
 function promptCartaoJogador(item, p, at, uniforme){
   return [
-    `Hyper-realistic studio photograph of a fictional professional football player from ${item.pais==='Brasil' ? 'Brazil' : item.pais}, head and chest only, front view, facing the camera.`,
+    `Hyper-realistic studio photograph of a fictional ${sujeitoDoPrompt(at)} from ${item.pais==='Brasil' ? 'Brazil' : item.pais}, head and chest only, front view, facing the camera.`,
     /* os mesmos atributos sorteados do retrato antigo — sem eles os jogadores
        novos sairiam todos parecidos, que era o motivo de existir o sorteio */
-    `${at.idade} years old, ${at.pele}, ${/bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    descricaoPessoa(at),
     `Wearing ${UNIFORMES_RETRATO[uniforme] || UNIFORMES_RETRATO.neutro}.`,
     'The jersey is COMPLETELY CLEAN: no crest, no badge, no sponsor, no manufacturer mark, no text, no numbers, no logos anywhere.',
     'Framing: the top of the head near the top edge, the face in the UPPER THIRD, cropped at mid-chest, shoulders fully visible and centered.',
@@ -6071,10 +6175,9 @@ function promptCartaoJogador(item, p, at, uniforme){
 
 function promptRostoMolde(item, p, at){
   const pais = item.pais==='Brasil' ? 'Brazil' : item.pais;
-  const cab = /bald/.test(at.cabelo) ? at.cabelo : `${at.cabelo}, ${at.corCab} hair`;
   return [
-    `Hyper-realistic studio photograph cutout: ONLY the head and neck of a fictional professional football player from ${pais}, isolated on a fully transparent background.`,
-    `${at.idade} years old, ${at.pele}, ${cab}, ${at.barba}, ${at.sorriso}, ${at.brinco}, ${at.tattoo}.`,
+    `Hyper-realistic studio photograph cutout: ONLY the head and neck of a fictional ${sujeitoDoPrompt(at)} from ${pais}, isolated on a fully transparent background.`,
+    descricaoPessoa(at),
     'Facing the camera directly, official club media day photo style, soft professional studio lighting, sharp focus, DSLR quality.',
     'The cutout ends in a clean straight horizontal cut at the base of the neck — NO shoulders, NO clothing, NO jersey, NO collar, NO background, nothing besides the head and neck.',
     'EXACT FRAMING, mandatory and identical for every player, because the head is composited onto a jersey at fixed coordinates:',
@@ -6724,6 +6827,12 @@ async function montarFotoJogador(rostoUrl, manequimUrl, medida, ajuste){
 }
 
 const TORSO_KEY = '__torso__';   // linha especial de player_photos: a camisa do clube
+/* ...E A CAMISA TEM SEXO. O torso e' UM por clube, gravado numa chave fixa — entao gerar o
+   uniforme com a oficina no feminino sobrescreveria o masculino do mesmo clube, e a perda so'
+   apareceria na proxima foto montada. Duas chaves, nenhuma colisao. */
+const TORSO_KEY_FEM = '__torso_fem__';
+function torsoKey(mod){ return (mod || modalidadeEstudio()) === 'fem' ? TORSO_KEY_FEM : TORSO_KEY; }
+function eTorso(nome){ return nome === TORSO_KEY || nome === TORSO_KEY_FEM; }
 
 /* =====================================================================
    AS 10 FACES PADRAO DE TREINADOR
@@ -7316,7 +7425,7 @@ async function recortarFundosTodos(btn){
   for(const k of Object.keys(D.fotos||{})){
     const i = k.indexOf('|'); if(i < 0) continue;
     const clube = k.slice(0, i), nome = k.slice(i+1);
-    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    if(eTorso(nome) || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
     const f = D.fotos[k];
     if(!f || !f.url) continue;
     if((f.atributos||{}).recorte === 'cartao') continue;   // ja' vazada
@@ -7349,7 +7458,7 @@ async function medirFotos(btn){
   for(const k of Object.keys(D.fotos||{})){
     const i = k.indexOf('|'); if(i < 0) continue;
     const clube = k.slice(0, i), nome = k.slice(i+1);
-    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    if(eTorso(nome) || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
     const f = D.fotos[k];
     if(!f || !f.url) continue;
     const mf = f.atributos && f.atributos.medidaFoto;
@@ -7396,7 +7505,7 @@ async function medirFotos(btn){
 async function repintarTodosUniformes(btn){
   const alvos = [];
   for(const x of (D.catalogo||[])){
-    const t = D.fotos[x.c.id+'|'+TORSO_KEY];
+    const t = D.fotos[x.c.id+'|'+torsoKey()];
     if(t && t.atributos && t.atributos.molde && t.atributos.estilo && t.atributos.cores) alvos.push({ x, t });
   }
   if(!alvos.length) return toast('Nenhum uniforme de molde para repintar.', true);
@@ -7455,7 +7564,7 @@ async function repintarUniforme(x, t){
           atributos: Object.assign({}, t.atributos, { miniatura: miniUrl }) });
         const r = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(r.error) throw new Error(r.error.message);
-        D.fotos[x.c.id+'|'+TORSO_KEY] = reg;
+        D.fotos[x.c.id+'|'+torsoKey()] = reg;
         return reg;
     }
   }
@@ -7677,14 +7786,14 @@ function compostoHTML(torsoUrl, rostoUrl, px, raio, camadas, emFoto){
    ancorado embaixo, no quadro 2:3 das fotos de IA. As guias mostram onde ele
    esta' — topo do uniforme e linha da gola — para o ajuste ter referencia. */
 async function compararMetodos(item, p){
-  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  const t = D.fotos[item.c.id+'|'+torsoKey()];
   if(!t) return toast('Este clube precisa de uniforme antes: ele é a base do encaixe.', true);
   if(!await rfConfirm({ titulo:'Gerar a cabeça e encaixar',
     texto:`Vou gerar <b>só o rosto</b> de <b>${h(p.n)}</b>. Depois você arrasta e redimensiona até encaixar.`,
     detalhe:'Custo: <b>US$ 0,044</b> — uma imagem. O uniforme não é gerado nem alterado. Nada é salvo no elenco.',
     nao:'Agora não', sim:'Gerar a cabeça (~US$ 0,04)' })) return;
 
-  const at = sortearAtributos(p);
+  const at = sortearAtributos(p, modalidadeEstudio());
   const caminho = caminhoClube(item)+'/comparacao/'+(chaveNome(p.n)||'jogador');
   let rosto = null, medida = null, erro = null;
   try{
@@ -7706,7 +7815,7 @@ async function compararMetodos(item, p){
   const vistos = new Set([estilo]);
   const amostras = [{ estilo, nome: item.c.name || item.c.id, url: t.url, centro: centroMolde, reg: t }];
   for(const x of (D.catalogo || [])){
-    const tt = D.fotos[x.c.id+'|'+TORSO_KEY];
+    const tt = D.fotos[x.c.id+'|'+torsoKey()];
     const e = tt && (tt.atributos||{}).estilo;
     if(!e || !tt.url || vistos.has(e)) continue;
     vistos.add(e);
@@ -8282,6 +8391,12 @@ async function pgEstudio(){
                   c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
   });
   aplicarPacoteNoCatalogo(base, eds.data);
+  /* A MODALIDADE VEM DEPOIS DO PACOTE, e a ordem importa: o pacote troca o nome real pelo
+     ficticio, e o mapa das jogadoras e' indexado por ID, nao por nome — entao ele sobrescreve o
+     que o pacote escreveu, sem depender dele. O inverso (modalidade antes) faria o pacote tentar
+     achar "Vitor Roque" num elenco que ja' diz "Maria Souza". */
+  const modEst = modalidadeEstudio();
+  base = aplicarModalidadeNoCatalogo(base, modEst);
   D.catalogo = base;
 
   const aba = ST.abaEstudio || 'escudos';
@@ -8313,10 +8428,10 @@ async function pgEstudio(){
             || String(x.c.id).toLowerCase().includes(busca)));
 
   const fotosDoClube = (x) => (x.c.squad||[]).filter(p => D.fotos[x.c.id+'|'+p.n]).length;
-  const uniformeDoClube = (x) => D.fotos[x.c.id+'|'+TORSO_KEY];
+  const uniformeDoClube = (x) => D.fotos[x.c.id+'|'+torsoKey(modEst)];
   const escudoIA = (x) => { const e=D.edits[x.c.id];
     return !!(e && e.patch && e.patch.crest && /\/escudos\/(ia\/|ia-|.*\/escudo-\d)/.test(e.patch.crest)); };
-  const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY) && !k.startsWith(MOLDE_KEY+'|')).length;
+  const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY) && !k.endsWith('|'+TORSO_KEY_FEM) && !k.startsWith(MOLDE_KEY+'|')).length;
   const totalEscudosIA = base.filter(escudoIA).length;
 
   el('page').innerHTML = `
@@ -8326,8 +8441,15 @@ async function pgEstudio(){
           <div class="tt">Estúdio de imagens</div>
           <div class="st">Escudos fictícios (substituem os reais no jogo, via patch) e fotos realistas de jogador.
             Cada imagem custa ~US$ 0,04 na qualidade média. Salvando no patch:
-            <b>${h(nomePatch(pack))}</b></div>
+            <b>${h(nomePatch(pack))}</b>${modEst==='fem' ? ` · <b style="color:var(--ok,#3fb950)">universo feminino</b>
+            — os mesmos clubes, as jogadoras no lugar dos jogadores. As fotos ficam numa chave própria
+            (o nome delas), então não substituem nem apagam as masculinas.` : ''}</div>
         </div>
+        ${femDisponivelAdm() ? `
+        <select class="busca" id="est-modalidade" style="width:170px" title="Para qual universo estas fotos são">
+          <option value="masc" ${modEst==='masc'?'selected':''}>⚽ Masculino</option>
+          <option value="fem"  ${modEst==='fem' ?'selected':''}>⚽ Feminino</option>
+        </select>` : ''}
         <select class="busca" id="est-pack" style="width:230px">
           ${D.packs.map(p=>`<option value="${p.id}" ${p.id===pack.id?'selected':''}>${h(nomePatch(p))}</option>`).join('')}
         </select>
@@ -8397,6 +8519,11 @@ async function pgEstudio(){
     </div>`}`;
 
   el('est-pack').onchange = () => { ST.packId = el('est-pack').value; pgEstudio(); };
+  /* trocar de modalidade redesenha a oficina inteira: o catalogo e' outro (outros nomes, e no
+     feminino so' os clubes que tem jogadoras mapeadas) e o contador de fotos tambem. */
+  if(el('est-modalidade')) el('est-modalidade').onchange = () => {
+    ST.modEstudio = el('est-modalidade').value; pgEstudio();
+  };
   document.querySelectorAll('[data-est-aba]').forEach(x => x.onclick = () => { ST.abaEstudio=x.dataset.estAba; pgEstudio(); });
   /* O FILTRO E A BUSCA SO' EXISTEM NAS ABAS DE CLUBE. Sem estes guards a aba
      Treinadores achava null aqui, o TypeError estourava e MATAVA o resto do
@@ -8442,7 +8569,7 @@ async function pgEstudio(){
   document.querySelectorAll('[data-repintar1]').forEach(bt => bt.onclick = async (ev) => {
     ev.stopPropagation();
     const x = (D.catalogo||[]).find(c => String(c.c.id)===String(bt.dataset.repintar1));
-    const t0 = x && D.fotos[x.c.id+'|'+TORSO_KEY];
+    const t0 = x && D.fotos[x.c.id+'|'+torsoKey()];
     if(!x || !t0) return;
     if(!await rfConfirm({ titulo:`Repintar o uniforme do ${x.c.short||x.c.name}`,
       texto:'Repinta <b>só este clube</b> com o molde atual, já sem fundo cinza e sem pescoço.',
@@ -8628,7 +8755,7 @@ function fotosOrfas(){
   for(const k of Object.keys(D.fotos||{})){
     const i = k.indexOf('|'); if(i < 0) continue;
     const clube = k.slice(0, i), nome = k.slice(i+1);
-    if(nome === TORSO_KEY || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
+    if(eTorso(nome) || clube === MOLDE_KEY || clube === TREINADOR_KEY) continue;
     const elenco = donos.get(clube);
     if(!elenco || elenco.has(nome)) continue;   // sem catalogo nao da' para julgar: nao e' orfa
     out.push({ clube, nome, f: D.fotos[k],
@@ -8652,7 +8779,7 @@ async function reaproveitarFoto(orfa, clubeDestino, nome){
   /* A CABECA E' A MESMA; A CAMISA E' A DO DESTINO. Reaproveitar nao pode
      copiar a montagem antiga — ela tem a camisa do clube de origem. Refaz o
      encaixe com o manequim de quem recebe, em canvas, sem IA. */
-  const t = D.fotos[String(clubeDestino)+'|'+TORSO_KEY];
+  const t = D.fotos[String(clubeDestino)+'|'+torsoKey()];
   const manequim = t && t.atributos && t.atributos.miniatura;
   if(manequim){
     at.medida = at.medida || await medirMolde(orfa.f.url);
@@ -8682,7 +8809,7 @@ async function reaproveitarFoto(orfa, clubeDestino, nome){
 function modalAcervo(item, p){
   const orfas = fotosOrfas();
   if(!orfas.length) return toast('O acervo está vazio: nenhuma cabeça sem dono.', true);
-  const t = D.fotos[item.c.id+'|'+TORSO_KEY];
+  const t = D.fotos[item.c.id+'|'+torsoKey()];
   const manequim = (t && t.atributos && t.atributos.miniatura) || null;
   /* SO' A CABECA. Eu vinha mostrando `atributos.montagem` — a foto ja'
      costurada com a camisa do clube de ORIGEM — e ainda punha a camisa do
@@ -8750,9 +8877,13 @@ function modalFotosIA(item){
   const c = item.c, editar = podeEditar('dados');
   const sq = (c.squad||[]).slice().sort((a,b)=>(b.f||0)-(a.f||0));
   const sorteios = {};   // nome -> atributos sorteados nesta sessão do modal
-  sq.forEach(p => { sorteios[p.n] = sortearAtributos(p); });
+  /* a modalidade e' a da oficina, e ela ja' esta' embutida no catalogo (o elenco chegou aqui com
+     os nomes trocados). O sorteio precisa dela por outro motivo: cabelo, barba e brinco saem de
+     pools diferentes, e e' `at.sexo` que diz ao prompt quem desenhar. */
+  const modFoto = modalidadeEstudio();
+  sq.forEach(p => { sorteios[p.n] = sortearAtributos(p, modFoto); });
   const faltantes = () => sq.filter(p => !D.fotos[c.id+'|'+p.n]);
-  const torso = () => D.fotos[c.id+'|'+TORSO_KEY];
+  const torso = () => D.fotos[c.id+'|'+torsoKey()];
   /* o escudo do clube entra como camada por cima do uniforme — o do patch em
      edição vale primeiro (é o fictício gerado aqui), senão o de fábrica */
   const escudoClube = () => {
@@ -9187,7 +9318,7 @@ function modalLoteEscudos(){
    um encaixe seu. A exceção não apaga o padrão do clube — só ganha dele. */
 function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
   const c = item.c;
-  const t = D.fotos[c.id+'|'+TORSO_KEY];
+  const t = D.fotos[c.id+'|'+torsoKey()];
   /* sem uniforme salvo, as posições vivem PENDENTES no wizard (D.wiz.posPend)
      e são gravadas junto quando o uniforme for gerado/salvo */
   const pend = (!t && D.wiz && D.wiz.clube===c.id) ? D.wiz : null;
@@ -9372,7 +9503,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
     }
     const at = Object.assign({}, t.atributos, novas);
     const { error } = await jogo('player_photos').update({ atributos: at })
-      .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
+      .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', torsoKey());
     if(error) return toast(erroMsg(error), true);
     t.atributos = at;
     registrar('estudio.camadas.pos', String(c.id), at);
@@ -9390,7 +9521,7 @@ function modalAjustePatrocinio(item, onSalvo, baseUrl, ehFoto, jogador){
    (grava o uniforme e, se houver escudo novo, o crest no patch). */
 function modalUniformeIA(item){
   const c = item.c, editar = podeEditar('dados');
-  const t = () => D.fotos[c.id+'|'+TORSO_KEY];
+  const t = () => D.fotos[c.id+'|'+torsoKey()];
   const escudoAtual = () => { const e = D.edits[c.id]; return (e && e.patch && e.patch.crest) || c.crest || null; };
   const at = (t() && t().atributos) || {};
 
@@ -9855,14 +9986,14 @@ function modalUniformeIA(item){
             if(!um.error) miniUrl = sb.storage.from('jogadores').getPublicUrl(cm).data.publicUrl;
           }catch(err){ console.warn('miniatura falhou:', err.message); }
         }
-        const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: TORSO_KEY, url,
+        const reg = { pack_id: ST.packId, club_id: String(c.id), jogador: torsoKey(), url,
           atributos: Object.assign({}, at, wiz.posPend || {}, { recorte:'torso', estilo: wiz.estilo, cores:[wiz.corA, wiz.corB],
             molde:true, patroUrl: wiz.patroUrl||null, patroNome: (wiz.patroNome||'').trim()||null,
             fabricanteUrl: wiz.fabUrl||null,
             miniatura: miniUrl, rascunho: !aplicar }) };
         const { error } = await jogo('player_photos').upsert(reg, { onConflict:'pack_id,club_id,jogador' });
         if(error) throw new Error(erroMsg(error));
-        D.fotos[c.id+'|'+TORSO_KEY] = reg;
+        D.fotos[c.id+'|'+torsoKey()] = reg;
         ST.patroTeste = wiz.patroUrl || ST.patroTeste;
         registrar(aplicar?'estudio.uniforme.aplicar':'estudio.uniforme.rascunho', String(c.id), { pacote: ST.packId, estilo: wiz.estilo });
 
@@ -9925,9 +10056,9 @@ function modalUniformeIA(item){
         detalhe:'As fotos já costuradas do elenco continuam com a camisa antiga até serem refeitas.',
         nao:'Cancelar', sim:'Remover uniforme', perigo:true })) return;
       const { error } = await jogo('player_photos').delete()
-        .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', TORSO_KEY);
+        .eq('pack_id', ST.packId).eq('club_id', String(c.id)).eq('jogador', torsoKey());
       if(error) return toast(erroMsg(error), true);
-      delete D.fotos[c.id+'|'+TORSO_KEY];
+      delete D.fotos[c.id+'|'+torsoKey()];
       if(wiz.pv && wiz.pv.startsWith('blob:')) URL.revokeObjectURL(wiz.pv);
       D.wiz = null;
       registrar('estudio.uniforme.remover', String(c.id), { pacote: ST.packId });
