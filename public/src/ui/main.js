@@ -1162,6 +1162,8 @@ function clWaitlistOpen(origem){
   // de onde veio o lead: a lista é chamada da landing E do cartão do Modo
   // Resenha no onboarding, e sem isto os dois chegavam ao banco iguais
   CL.waitlistOrigem=origem||'landing';
+  /* `paga1990`/`paga3990` nascem UNDEFINED, nao false: a diferenca entre "disse
+     que nao" e "nao respondeu" e' o que faz a pergunta valer alguma coisa. */
   CL.waitlist=CL.waitlist||{nome:'',email:'',tel:'',resposta:'',clube:'',amigos:[''],zap:''};
   CL.waitlistClubeOpen=false;
   // o formulário é um modal do desenho novo (ver rfWaitlistHTML), desenhado no
@@ -1195,6 +1197,12 @@ async function clWaitlistCount(){
     }
   }catch(e){ /* sem número é melhor que número errado: a barra fica com "—" */ }
 }
+/* clicar na mesma resposta desmarca — ver rfWlPerguntasHTML */
+function clWaitlistPreco(chave, valor){
+  CL.waitlist=CL.waitlist||{};
+  CL.waitlist[chave] = (CL.waitlist[chave]===valor) ? undefined : valor;
+  rfWaitlistDraw();
+}
 async function clWaitlistSubmit(){
   const w=CL.waitlist||{};
   const nome=(w.nome||'').trim(), email=(w.email||'').trim();
@@ -1210,6 +1218,10 @@ async function clWaitlistSubmit(){
       // elifoot_v3; a public.profiles é do Investbola) e quem preenche isto nem
       // está logado — a linha da waitlist É o registro da pessoa
       time_coracao:(w.clube||'').trim()||null,
+      /* `?? null` e nao `||null`: com `||`, um "nao pagaria" (false) viraria
+         null e ficaria indistinguivel de quem nao respondeu. */
+      paga_1990: w.paga1990 ?? null,
+      paga_3990: w.paga3990 ?? null,
       origem:(CL.waitlistOrigem||'landing')+' · '+((location&&location.pathname)||'/'),
       user_agent:(navigator&&navigator.userAgent||'').slice(0,400)
     });

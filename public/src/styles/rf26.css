@@ -2953,6 +2953,16 @@
   border-radius:var(--r-shell);padding:32px;display:flex;flex-direction:column;gap:14px;
   align-items:center;text-align:center;box-shadow:var(--shadow-shell)}
 .rf-lp-lista-in .rf-lp-p{text-align:center}
+/* ===== O CARTAO E' BRANCO DENTRO DE UMA FAIXA ESCURA =====
+   A seccao leva `.rf-lp-f-navy`, e essa classe pinta de branco o titulo e o
+   paragrafo — o que esta' certo para quem escreve DIRECTAMENTE sobre a faixa.
+   So' que aqui o conteudo mora dentro de `.rf-lp-lista-in`, que tem fundo
+   proprio `--surface-card`: as regras de descendente continuavam a aplicar-se
+   e davam texto branco em cartao branco. As tres cores voltam ao que valem
+   sobre um fundo claro. */
+.rf-lp-f-navy .rf-lp-lista-in .rf-lp-h2{color:var(--text-1)}
+.rf-lp-f-navy .rf-lp-lista-in .rf-lp-p{color:var(--text-3)}
+.rf-lp-f-navy .rf-lp-lista-in .rf-lp-eyebrow{color:var(--brand-primary,#17458F)}
 .rf-lp-vagas{width:100%;display:flex;flex-direction:column;gap:6px}
 
 /* rodapé escuro */
@@ -5025,6 +5035,35 @@
   color:#fff;background:var(--ok)}
 .rf-wl-ok-d{display:flex;flex-direction:column;gap:3px;min-width:0}
 .rf-wl-ok-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
+/* ===== AS DUAS PERGUNTAS DE PRECO =====
+   Sao a unica coisa no formulario que nao e' um campo de texto, e de proposito:
+   pede-se um SIM ou um NAO, e um par de botoes grandes responde-se com o
+   polegar. Ficam no fim, depois de a pessoa ja' ter dado nome e e-mail — o
+   lead nao se perde se ela decidir nao responder a estas. */
+.rf-wl-pergs{display:flex;flex-direction:column;gap:14px;padding-top:4px;
+  border-top:var(--border-hairline)}
+.rf-wl-perg{display:flex;flex-direction:column;gap:9px}
+.rf-wl-perg-t{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
+  line-height:1.45}
+.rf-wl-perg-t b{color:var(--brand-primary,#17458F)}
+.rf-wl-sn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rf-wl-sn button{appearance:none;cursor:pointer;min-height:52px;padding:12px 14px;
+  border-radius:var(--r-row);border:1.5px solid var(--border-strong,#d7dcd6);
+  background:var(--surface-card);color:var(--text-2);
+  font-family:inherit;font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-tight);display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),
+             color var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease)}
+.rf-wl-sn button:hover{border-color:var(--brand-primary,#17458F);background:var(--surface-sunken)}
+.rf-wl-sn button:active{transform:translateY(1px)}
+/* ESCOLHIDO nas cores da marca: o sim veste o azul, o nao fica sobrio — a
+   resposta tem de ler-se de relance quando a pessoa passa para a seguinte. */
+.rf-wl-sn button.on{background:var(--brand-primary,#17458F);border-color:var(--brand-primary,#17458F);
+  color:#fff}
+.rf-wl-sn button.on.nao{background:var(--text-2);border-color:var(--text-2)}
+.rf-wl-sn button:focus-visible{outline:2px solid var(--brand-secondary,#F2B90C);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){ .rf-wl-sn button{transition:none} }
+
 .rf-wl-amigos{display:flex;flex-direction:column;gap:8px}
 .rf-wl-amigo{display:flex;align-items:center;gap:8px}
 .rf-wl-amigo .rf-campo-c{flex:1 1 auto;min-width:0}
