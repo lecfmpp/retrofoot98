@@ -1197,11 +1197,26 @@ async function clWaitlistCount(){
     }
   }catch(e){ /* sem número é melhor que número errado: a barra fica com "—" */ }
 }
-/* clicar na mesma resposta desmarca — ver rfWlPerguntasHTML */
+/* ===== RESPONDER NAO PODE REDESENHAR O FORMULARIO =====
+   `rfWaitlistDraw()` reconstroi o modal inteiro: os campos sao recriados, o
+   foco perde-se, a rolagem volta ao topo e a tela pisca — num formulario a
+   meio de ser preenchido isso e' o pior momento possivel para acontecer. E' o
+   mesmo cuidado que a busca do time de coracao ja' tinha (ver RF_CLUBES_BR).
+   Aqui muda UMA classe em dois botoes, entao e' isso que se faz: acha o par
+   pelo `data-p` e troca a marca. O redesenho fica so' como rede, para o caso
+   improvavel de o par nao estar na tela.
+   Clicar na mesma resposta desmarca — ver rfWlPerguntasHTML. */
 function clWaitlistPreco(chave, valor){
   CL.waitlist=CL.waitlist||{};
-  CL.waitlist[chave] = (CL.waitlist[chave]===valor) ? undefined : valor;
-  rfWaitlistDraw();
+  const novo = (CL.waitlist[chave]===valor) ? undefined : valor;
+  CL.waitlist[chave]=novo;
+  const par=document.querySelector('.rf-wl-sn[data-p="'+chave+'"]');
+  if(!par){ rfWaitlistDraw(); return; }
+  par.querySelectorAll('button').forEach(b=>{
+    const on = novo===(b.dataset.v==='1');
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-pressed', on?'true':'false');
+  });
 }
 async function clWaitlistSubmit(){
   const w=CL.waitlist||{};

@@ -627,10 +627,13 @@ function rfWaitlistDraw(){
    leitura. Clicar de novo na mesma resposta desmarca — enganar-se e nao ter
    como voltar atras e' pior do que nao perguntar. */
 function rfWlPerguntasHTML(w){
-  const par = (chave, valor) => `<div class="rf-wl-sn">
-    <button type="button" class="${valor===true?'on':''}" aria-pressed="${valor===true}"
+  /* `data-p`/`data-v` existem para o clique NAO redesenhar o modal: e' por eles
+     que clWaitlistPreco acha os dois botoes desta pergunta e troca so' a
+     classe. Ver o comentario la'. */
+  const par = (chave, valor) => `<div class="rf-wl-sn" data-p="${chave}">
+    <button type="button" data-v="1" class="${valor===true?'on':''}" aria-pressed="${valor===true}"
       onclick="clWaitlistPreco('${chave}',true)">Sim, pagaria</button>
-    <button type="button" class="nao ${valor===false?'on':''}" aria-pressed="${valor===false}"
+    <button type="button" data-v="0" class="nao ${valor===false?'on':''}" aria-pressed="${valor===false}"
       onclick="clWaitlistPreco('${chave}',false)">Não pagaria</button>
   </div>`;
   return `<div class="rf-wl-pergs">
