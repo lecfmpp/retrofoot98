@@ -584,6 +584,8 @@ function newGame(clubId, division, compToggle, seedOverride){
   division = division || 'A';
   compToggle = compToggle || {libertadores:true, copaBrasil:true, sulamericana:true};
   PROC_USED_NAMES=new Set(); // novo save -> zera o controle de nomes procedurais únicos
+  if(typeof FEM_SQUADS!=='undefined') FEM_SQUADS={};  // idem para o elenco feminino memoizado
+  if(typeof FEM_NOMES_SEMEADOS!=='undefined') FEM_NOMES_SEMEADOS=false;
   /* REDE DE SEGURANCA: os clubes TEM de ser os da divisao que se vai comecar.
      newGame monta tudo (tabela, elencos, calendario) a partir de DATA.clubs, e
      quem enche DATA.clubs e o CHAMADOR (clubsForDivision, no assistente). Um

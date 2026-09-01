@@ -2040,7 +2040,7 @@ const SEASON_EPOCH_INTL=[2026,7,15]; // Europa: ~15 de agosto de 2026 — abertu
    (assistente/sorteio, S ainda null) vale o universo ativo, que ali é o único dado que existe. */
 function seasonEpoch(){
   const uni = (typeof S!=='undefined' && S && S.intlUniverse!==undefined)
-    ? (S.intlUniverse && S.intlUniverse!=='brasil')
+    ? (S.intlUniverse && baseUni(S.intlUniverse)!=='brasil')
     : (typeof isIntlUniverse==='function' && isIntlUniverse());
   return uni ? SEASON_EPOCH_INTL : SEASON_EPOCH_2026;
 }
@@ -3342,7 +3342,14 @@ function uniLeagueClubs(cfg){
   const src=(cfg.src==='conmebol') ? (typeof window!=='undefined'&&window.CONMEBOL_LEAGUES) : (typeof window!=='undefined'&&window.INTL_LEAGUES);
   return (src && src[cfg.country]) || [];
 }
-function isConmebolUniverse(){ const cfg=UNI_CONFIGS[ACTIVE_UNI]; return !!(cfg && cfg.src==='conmebol'); }
+/* "CONMEBOL" AQUI QUER DIZER "SUL-AMERICANO QUE NAO E' O BRASIL". O Brasil tem tratamento
+   proprio — e' o unico com copa nacional modelada —, e por isso nunca declarou src:'conmebol'.
+   `brasilFem` DECLARA, porque e' assim que confederacaoDe() lhe da' Libertadores e as 6 vagas
+   sem que world-config.js precise ser tocado. Sem a guarda de base, ele caia no ramo
+   sul-americano de initSeasonCups, que devolve antes de criar a copa nacional: medido, o mundo
+   feminino nascia SEM Copa do Brasil enquanto o masculino nascia com ela.
+   Para os 15 universos de hoje nada muda — nenhum tem `base`. */
+function isConmebolUniverse(){ const cfg=UNI_CONFIGS[ACTIVE_UNI]; return !!(cfg && cfg.src==='conmebol') && baseUni(ACTIVE_UNI)!=='brasil'; }
 /* mapa reverso código-de-liga -> {universo, divisão}. Ex.: 'GER-1' -> {uni:'Alemanha',div:'DE'};
    'ENG-2' -> {uni:'Inglaterra',div:'CH'}. Construído sob demanda (memoizado) a partir de UNI_CONFIGS.lg. */
 let _LG_TO_UNIDIV=null;
@@ -3441,7 +3448,16 @@ function setUniverse(key){
   return ACTIVE_UNI;
 }
 function activeUniCfg(){ return UNI_CONFIGS[ACTIVE_UNI]||UNI_CONFIGS.brasil; }
-function isIntlUniverse(){ return ACTIVE_UNI!=='brasil'; }
+/* ===== A PIRAMIDE DE QUE ESTE UNIVERSO E' GEMEO =====
+   `brasilFem` usa a piramide, os clubes e o calendario do Brasil — so' quem joga muda. Para
+   todo universo que existe hoje `baseUni(k)` devolve o proprio k, entao trocar um literal
+   'brasil' por baseUni(x)==='brasil' e' IDENTICO POR CONSTRUCAO: nao ha' o que regredir. E se
+   world-config-fem.js nao tiver carregado, cai no proprio k e o jogo segue como sempre foi. */
+function baseUni(k){ return (typeof RF_FEM!=='undefined' && RF_FEM.base) ? RF_FEM.base(k) : k; }
+/* "Internacional" aqui quer dizer "nao usa o catalogo brasileiro". Sem baseUni, brasilFem cairia
+   no ramo internacional, INTL_LEAGUES nao teria entrada para ele, clubsForDivision devolveria
+   lista vazia e o mundo feminino nasceria SEM CLUBE NENHUM — o modo de falha numero um. */
+function isIntlUniverse(){ return baseUni(ACTIVE_UNI)!=='brasil'; }
 /* nomes/cidades pra gerar clubes de fallback OFFLINE quando não há Supabase/cache real
    nem entrada correspondente em REAL_LOWER_DIVISION_CLUBS ---- */
 const PROC_CITY=['Norte','Sul','Vale','Serra','Litoral','Central','Oeste','Leste','União','Palmares','Bela Vista','Rio Claro','Boa Esperança','Alto Paraná','Campo Verde','Porto Novo','Santa Fé','Monte Azul','Vitória','Progresso'];
@@ -3624,8 +3640,61 @@ function ensureClubPositions(club){
     while(n<MIN_POS[pos]){ sq.push(makeRawPlayer(div, pos, club.id||club.short, idx++)); n++; }
   });
 }
+/* ===== O ELENCO DE UM CLUBE NO MUNDO FEMININO =====
+   O universo feminino usa OS MESMOS CLUBES — mesmo id, escudo, cores e estádio. O que muda é
+   quem joga: cada jogador vira a jogadora que ocupa o lugar dele, e SÓ o nome muda. Força,
+   idade, posição, valor e o objeto inteiro vêm do masculino, o que mantém a economia idêntica
+   por construção, sem uma tabela paralela para calibrar.
+
+   NUNCA MUTA `club.squad`. O catálogo é um objeto só, compartilhado: mutar aqui contaminaria o
+   mundo masculino do próximo save criado sem recarregar a página. Devolve array novo, memoizado
+   por clube, e o memo é zerado em newGame junto de PROC_USED_NAMES.
+
+   QUEM NÃO ESTÁ NO MAPA GANHA NOME PROCEDURAL FEMININO. O mapa cobre o catálogo brasileiro; um
+   jogador criado em tempo de execução (o terceiro goleiro que ensureClubPositions inventa, um
+   regen, um clube de outro país na Libertadores) não tem id de catálogo e não estaria lá.
+   `pickProcPlayerName` já resolve o pool pelo universo ativo, então num mundo feminino ele
+   sorteia de NAME_POOLS.brasilFem sem precisar saber disso. A semente é estável por (clube,
+   índice) para que dois clientes da mesma sala cheguem ao mesmo nome. */
+let FEM_SQUADS={};
+/* ===== OS NOMES DO MAPA TAMBEM OCUPAM LUGAR =====
+   `pickProcPlayerName` evita repetir consultando PROC_USED_NAMES — mas so' conhece o que ele
+   proprio sorteou. Num mundo feminino, 1.900 nomes ja' estao em uso ANTES de qualquer sorteio,
+   vindos do mapa, e ele os re-sorteava: medido, 152 jogadoras homonimas num mundo de 3.501.
+   Nenhuma no mesmo elenco (a escalacao aguentava), mas nome repetido soma artilharia de duas
+   pessoas numa linha so' e faz o indice de fotos por nome servir a foto de outra.
+
+   Semear e' barato e roda uma vez por save. Tem de acontecer ANTES de ensureClubPositions, que
+   e' quem inventa o terceiro goleiro de um elenco de 20 — se ele sortear primeiro, ja' colidiu. */
+let FEM_NOMES_SEMEADOS=false;
+function femSemearNomes(){
+  if(FEM_NOMES_SEMEADOS) return;
+  FEM_NOMES_SEMEADOS=true;
+  const mapa=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
+  for(const k in mapa) PROC_USED_NAMES.add(mapa[k]);
+}
+function femSquad(club){
+  if(FEM_SQUADS[club.id]) return FEM_SQUADS[club.id];
+  const mapa=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
+  const out=(club.squad||[]).map((p,i)=>{
+    const nome = (p && p.id!=null) ? mapa[p.id] : null;
+    if(nome) return {...p, n:nome};
+    const R=makeRng(hashSeed('fem', (typeof S!=='undefined'&&S&&S.seed)||1, club.id, i));
+    return {...p, n:pickProcPlayerName(R)};
+  });
+  return (FEM_SQUADS[club.id]=out);
+}
+function modalidadeAtiva(){
+  return (typeof RF_FEM!=='undefined' && RF_FEM.modalidade) ? RF_FEM.modalidade(activeUniverseKey()) : 'masc';
+}
 /* usado no lugar de `club.squad` nos pontos de materialização — garante os mínimos por posição antes de mapear */
-function gkSquad(club){ ensureClubPositions(club); return club.squad; }
+function gkSquad(club){
+  const fem = modalidadeAtiva()==='fem';
+  if(fem) femSemearNomes();                          // antes de ensureClubPositions: ver femSemearNomes
+  ensureClubPositions(club);
+  if(!fem) return club.squad;                        // caminho de hoje, intocado
+  return femSquad(club);
+}
 function proceduralDivisionClubs(division, n){
   const range=DIVISION_FORCE_RANGE[division]||[55,75];
   const R=makeRng(hashSeed('procdiv',division,(S&&S.seed)||1));
