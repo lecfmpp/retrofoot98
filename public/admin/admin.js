@@ -23,6 +23,13 @@ const SB_KEY = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 const SCHEMA = 'admin_rf98';      // schema padrão do painel
 const SCHEMA_JOGO = 'elifoot_v3'; // inventário de anúncios e tempo de jogo
 const BUCKET = 'publicidade';
+/* Chaves cujo criativo tambem e' servido de uma MORADA FIXA (<chave>/atual.png),
+   porque aparece fora do jogo, em meta tags de HTML estatico que nao sabem
+   consultar a base de dados. Hoje e' o cartao de partilha do WhatsApp: ele vale
+   para o convite da Resenha (public/convite.html) e para o site inteiro
+   (og:image do index.html). Acrescentar uma chave aqui so' faz sentido a par de
+   uma meta tag que aponte para ela. */
+const CHAVES_MORADA_FIXA = ['rf98.resenha.invite'];
 
 let sb = null;
 /* tabelas do jogo (ad_spaces, ad_creatives): mesmo client, outro schema */
@@ -1748,6 +1755,27 @@ function modalUpload(chave){
       };
       const d = await subir(arquivo, '');
       const m = arquivoM ? await subir(arquivoM, '-m') : null;
+      /* MORADA FIXA — para as chaves cujo criativo aparece FORA do jogo, em meta
+         tags de HTML estático (o cartão do WhatsApp, ver public/convite.html e o
+         og:image do index.html). Um robô de pré-visualização lê a meta tag no
+         servidor: ela tem de ser um endereço que não muda, senão trocar a arte
+         aqui exigia republicar o site a cada vez. `upsert` reescreve sempre o
+         mesmo ficheiro, e o cache curto do Storage (5 min) faz o resto.
+         A extensão é sempre .png por ser um rótulo estável — quem manda para os
+         robôs é o Content-Type, que vai o do ficheiro real. */
+      if(CHAVES_MORADA_FIXA.includes(e.chave)){
+        try{
+          const ext = (arquivo.name.split('.').pop()||'').toLowerCase();
+          const r = await sb.storage.from(BUCKET).upload(`${e.chave}/atual.png`, arquivo, {
+            contentType: MIME_EXT[ext] || arquivo.type, upsert:true, cacheControl:'300'
+          });
+          if(r.error) throw r.error;
+        }catch(err){
+          /* não derruba a publicação: o criativo já está no ar no jogo. O que falha
+             aqui é só o cartão de partilha, e o aviso diz exatamente isso. */
+          toast('Criativo publicado, mas a morada fixa do cartão de partilha falhou: '+erroMsg(err), true);
+        }
+      }
       const ext = d.ext, caminho = d.caminho, url = d.url;
       // publicar SUBSTITUI: o espaço só tem um criativo no ar de cada vez
       await jogo('ad_creatives').update({ ativo:false }).eq('chave_espaco', e.chave).eq('ativo', true);

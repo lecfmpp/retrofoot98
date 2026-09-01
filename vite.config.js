@@ -37,7 +37,10 @@ export default defineConfig({
         cpSync(resolve(__dirname, 'public/video'), resolve(__dirname, 'dist/video'), { recursive: true });
         cpSync(resolve(__dirname, 'public/src'), resolve(__dirname, 'dist/src'), { recursive: true });
         // SEO / descoberta por IA: arquivos estáticos servidos na raiz (publicDir=false não os copia sozinho)
-        for(const f of ['robots.txt', 'sitemap.xml', 'llms.txt', 'ads.txt']){
+        // `convite.html` entra aqui e NÃO como entrada do Vite de propósito: ela é HTML
+        // puro, sem nada para empacotar, e o que importa nela são as meta tags do cartão
+        // do WhatsApp — passar pelo bundler só arriscava reescrevê-las (ver o ficheiro).
+        for(const f of ['robots.txt', 'sitemap.xml', 'llms.txt', 'ads.txt', 'convite.html']){
           cpSync(resolve(__dirname, 'public/'+f), resolve(__dirname, 'dist/'+f));
         }
       },

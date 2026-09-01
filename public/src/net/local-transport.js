@@ -65,7 +65,18 @@ const NET = {
     if(this.isHost){ this.room.chat=(this.room.chat||[]).concat(msg).slice(-120); this._push(); }
     else { this.room && (this.room.chat=(this.room.chat||[]).concat(msg).slice(-120)); try{ this.bc.postMessage({t:'chat',msg}); }catch(e){} if(this.onState) this.onState(this.room); } },
   gameURL(){ try{ return location.origin+location.pathname; }catch(e){ return ''; } },
-  inviteLink(){ return this.gameURL()+'?sala='+this.code; },
+  /* O CONVITE APONTA PARA /convite/CODIGO, e nao para ?sala=CODIGO, POR CAUSA DO
+     CARTAO. Quem le' o link no WhatsApp e' um robo que pede o HTML ao servidor:
+     ele nunca corre o jogo, so' le' as meta tags da pagina que recebe. Em
+     `?sala=` a pagina e' o index.html, e o cartao era a logo do site. A pagina
+     /convite/ existe so' para levar o criativo publicado no painel (chave
+     rf98.resenha.invite) ate' a' pre-visualizacao, e reencaminha para
+     `?sala=CODIGO` no primeiro quadro -- ver public/convite.html.
+     `?sala=` CONTINUA A VALER: e' por ele que o jogo entra na sala, e' o que fica
+     na barra de endereco durante a Resenha, e os links ja' partilhados no
+     formato antigo continuam a funcionar. */
+  inviteLink(){ try{ return location.origin+'/convite/'+this.code; }
+                catch(e){ return this.gameURL()+'?sala='+this.code; } },
   waLink(phoneDigits){ const num='55'+String(phoneDigits||'').replace(/\D/g,''); const txt=encodeURIComponent('Bora jogar RetroFoot98 comigo! 🟢 Entra na minha sala "'+((this.room&&this.room.name)||'')+'": '+this.inviteLink()); return 'https://wa.me/'+num+'?text='+txt; },
 };
 

@@ -35,13 +35,20 @@
 <meta property="og:title" content="RetroFoot98 — Futebol Manager Online Grátis (Elifoot 2026)">
 <meta property="og:description" content="Comande um clube do Brasil ou da Europa, escale o time, negocie jogadores e dispute ligas e copas — solo ou no multiplayer Resenha. Grátis, no navegador.">
 <meta property="og:url" content="https://retrofoot98.com.br/">
-<meta property="og:image" content="https://retrofoot98.com.br/img/logo.webp">
+<!-- O CARTAO DO SITE E O DO CONVITE SAO A MESMA ARTE, publicada no painel em
+     rf98.resenha.invite e servida de uma morada fixa (atual.png, reescrita a cada
+     publicacao). Trocar a arte no painel troca os dois sem republicar o site.
+     ATENCAO AO EFEITO: e' o cartao de QUALQUER link deste dominio -- a home, uma
+     pagina de SEO, o convite. Publicar arte nova nessa chave muda todos eles. -->
+<meta property="og:image" content="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:locale" content="pt_BR">
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="RetroFoot98 — Futebol Manager Online Grátis (Elifoot 2026)">
 <meta name="twitter:description" content="Futebol manager retrô, grátis e online. Ligas e copas do Brasil e da Europa, solo ou multiplayer.">
-<meta name="twitter:image" content="https://retrofoot98.com.br/img/logo.webp">
+<meta name="twitter:image" content="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/publicidade/rf98.resenha.invite/atual.png">
 <!-- Dados estruturados (schema.org) — ajuda buscadores e IAs a entender o que é o site -->
 <script type="application/ld+json">
 {
@@ -320,7 +327,7 @@ const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab
    quando o código que decide partida muda; edição de tela não mexe nele.
    Serve para detectar dois humanos na mesma sala com motores diferentes (aba
    aberta antes do deploy). Ver netMotorDivergente(). */
-/* @motor-ver */ const RF_MOTOR_VER = '4dfa26ca76b9';
+/* @motor-ver */ const RF_MOTOR_VER = '77a63f2b8afa';
 
 /* ===== O QUE O MOTOR REALMENTE LÊ — FONTE ÚNICA DA VERDADE =====
    Dos 16 atributos, só estes entram no resultado hoje; os outros existem, evoluem
