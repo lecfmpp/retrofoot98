@@ -2178,6 +2178,14 @@ function clPickSolo(){ CL.screen='modosolo'; CL.soloStep='choice'; CL.soloSaves=
 function clPickResenha(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){ clOnlineStart(); return; } // fallback: o gate da abertura normalmente já garante login
+  /* OS 7 DIAS DO PELADEIRO. Explica antes de deixar entrar no fluxo: quem já
+     passou do prazo ia escolher sala, escolher clube e só levar o "não" do
+     servidor no claim_seat, depois de investir a escolha. A recusa que vale
+     continua a ser a do banco — esta aqui é para não desperdiçar o caminho. */
+  if(typeof rfPodeResenha==='function' && !rfPodeResenha()){
+    if(typeof rfTrava==='function') rfTrava('resenha');
+    return;
+  }
   // Resenha é sempre Brasil Série A — limpa qualquer resíduo de um solo anterior (universo intl,
   // divisão baixa) pra que a sala criada use os clubes certos e newGame não quebre depois.
   if(typeof setUniverse==='function') setUniverse('brasil');

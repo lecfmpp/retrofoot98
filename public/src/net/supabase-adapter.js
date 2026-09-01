@@ -172,7 +172,8 @@ function netWarnDeadSession(){
    de graca, mas com os limites em null — ver rfLimites(), que nesse caso NAO
    tranca nada. Trancar por falta de resposta seria trancar quem pagou. */
 const PLANO_PADRAO = { plan:'free', pro:false, until:null,
-  savesMax:null, podeHospedar:null, salaMax:null, avatarIA:null };
+  savesMax:null, podeHospedar:null, salaMax:null, avatarIA:null,
+  podeResenha:null, resenhaAte:null };
 let SB_PLANO = { ...PLANO_PADRAO };
 async function netCarregarPlano(){
   SB_PLANO = { ...PLANO_PADRAO };
@@ -191,7 +192,9 @@ async function netCarregarPlano(){
       savesMax: ('saves_max' in r) ? r.saves_max : null,
       podeHospedar: ('pode_hospedar' in r) ? !!r.pode_hospedar : null,
       salaMax: ('sala_max' in r) ? (r.sala_max||0) : null,
-      avatarIA: ('avatar_ia' in r) ? !!r.avatar_ia : null };
+      avatarIA: ('avatar_ia' in r) ? !!r.avatar_ia : null,
+      podeResenha: ('pode_resenha' in r) ? !!r.pode_resenha : null,
+      resenhaAte: ('resenha_ate' in r) ? (r.resenha_ate||null) : null };
   }catch(e){ console.warn('plano do treinador:', e && e.message); }
   return SB_PLANO;
 }
@@ -201,7 +204,8 @@ function netAuthStatus(){
     name: SB_AUTH_USER.user_metadata?.name || (SB_AUTH_USER.email||'').split('@')[0],
     plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until,
     savesMax: SB_PLANO.savesMax, podeHospedar: SB_PLANO.podeHospedar,
-    salaMax: SB_PLANO.salaMax, avatarIA: SB_PLANO.avatarIA };
+    salaMax: SB_PLANO.salaMax, avatarIA: SB_PLANO.avatarIA,
+    podeResenha: SB_PLANO.podeResenha, resenhaAte: SB_PLANO.resenhaAte };
 }
 
 /* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.

@@ -100,6 +100,26 @@ function rfPodeAvatarIA(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return st.avatarIA !== false;
 }
+/* ===== OS 7 DIAS DE RESENHA DO PELADEIRO =====
+   Contam da criacao da conta, nao da primeira sala: quem so' quer provar o modo
+   nao precisa de o descobrir para o relogio comecar. Plano pago nao tem prazo.
+
+   Aqui, como nas outras, `false` explicito e' que tranca — `null` (o banco nao
+   respondeu, ou e' uma versao sem o campo) deixa passar. Trancar por falta de
+   resposta e' trancar quem tem direito. A recusa que vale acontece no servidor,
+   no claim_seat. */
+function rfPodeResenha(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.podeResenha !== false;
+}
+/* quantos dias ainda faltam, para a tela poder dizer "faltam 3 dias" em vez de
+   uma data seca. Devolve null para quem nao tem prazo nenhum. */
+function rfResenhaDiasRestantes(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(!st.resenhaAte) return null;
+  const ms=new Date(st.resenhaAte).getTime()-Date.now();
+  return ms<=0 ? 0 : Math.ceil(ms/86400000);
+}
 
 /* ===== O CADEADO EXPLICA-SE =====
    Uma trava que so' diz "nao" perde a pessoa. Cada uma delas abre esta janela:
@@ -121,6 +141,9 @@ const RF_TRAVAS={
   hospedar:{ tier:'embaixador', titulo:'Abrir a sala é do Embaixador',
     texto:()=>'Entrar na resenha dos outros dá em qualquer plano, inclusive no grátis. <b>Abrir a sua</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é do plano Embaixador.',
     saida:'Já tem o código de alguém? Volte e entre na sala dele: isso não custa nada.' },
+  resenha:{ tier:'resenha', titulo:'Os seus 7 dias de Resenha acabaram',
+    texto:()=>'O Peladeiro joga o Modo Resenha por <b>7 dias</b>, para provar como é jogar a mesma semana com a turma. O seu prazo terminou — e com ele o seu lugar nas salas.',
+    saida:'O Modo Solo continua seu, sem prazo: as suas carreiras contra a máquina estão intactas.' },
   avatar:{ tier:'embaixador', titulo:'O retrato por IA é do Embaixador',
     texto:()=>'O Embaixador põe a sua cara dentro do jogo: retrato gerado a partir de uma foto sua, na beira do campo e na ficha de treinador.',
     saida:'As caras prontas continuam à sua disposição, de graça.' },
@@ -133,16 +156,21 @@ function rfTrava(chave){
   if(chave==='saves' && rfPlanoAtual()==='resenha') chave='savesResenha';
   const t=RF_TRAVAS[chave]; if(!t) return;
   const p=RF_PLANOS.find(x=>x.key===t.tier)||{};
+  /* O PRECO SAI DA MESMA FUNCAO DOS CARTOES. Ele era lido de `p.preco`, campo
+     que deixou de existir quando os precos viraram centavos para o seletor
+     mensal/anual — a janela passou a abrir com o lugar do preco em branco, que
+     e' o pior sitio possivel para faltar um numero. */
+  const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
   const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
   const corpo=`<div class="rf-trava ${p.destaque?'ouro':''}">
     <p class="rf-trava-p">${t.texto(rfSavesTeto())}</p>
     <div class="rf-trava-plano ${p.destaque?'ouro':''}">
       <div class="rf-trava-hd">
         <span class="rf-trava-n">${p.destaque?'<i class="rf-trava-coroa">👑</i>':''}${escC(p.nome||'')}</span>
-        <span class="rf-trava-v">${escC(p.preco||'')}<i>${escC(p.ciclo||'')}</i></span>
+        <span class="rf-trava-v">${escC(q.v)}<i>${escC(q.c)}</i></span>
       </div>
       <ul class="rf-trava-l">${itens}</ul>
-      ${p.anual?`<span class="rf-trava-a">${escC(p.anual)}</span>`:''}
+      <span class="rf-trava-a">${escC(q.nota)}</span>
     </div>
     <span class="rf-trava-saida">${escC(t.saida)}</span>
     <div class="rf-trava-bts">
@@ -439,8 +467,8 @@ function rfLpMomentosHTML(){
 const RF_PLANOS=[
   { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
-    itens:['Até 3 saves no modo solo','Joga o Modo Resenha nas salas dos outros','Séries A, B, C e D com elencos reais'],
-    falta:['Não abre sala como anfitrião'],
+    itens:['Até 3 saves no modo solo','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
+    falta:['Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
     cta:'Começar de graça' },
 
   { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
@@ -571,7 +599,7 @@ function rfLpPlanosHTML(){
     <div class="rf-lp-planos-in">
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
-      <p class="rf-lp-p">Dá pra jogar de graça pra sempre. Os planos pagos existem pra quem quer abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
+      <p class="rf-lp-p">O Modo Solo é de graça pra sempre. Os planos pagos existem pra quem quer manter o Modo Resenha depois dos 7 dias, abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
       <div class="rf-lp-ciclo" role="radiogroup" aria-label="Como você quer pagar"
            data-ciclo="${RF_LP_CICLO}">
         <span class="rf-lp-ciclo-pilula" aria-hidden="true"></span>
@@ -662,7 +690,7 @@ function rfLpResenhaHTML(){
         </figure>
       </div>
 
-      <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — <b>abrir a sua</b> é do Embaixador.</span>
+      <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — no grátis, por 7 dias. <b>Abrir a sua</b> é do Embaixador.</span>
     </div>
   </section>`;
 }
