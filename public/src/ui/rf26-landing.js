@@ -232,9 +232,11 @@ function rfLpMenu(){
    A CONTA VEM SEMPRE DEPOIS do extra — nunca é substituída por ele. */
 function rfLpNavHTML(extra){
   return `<nav class="rf-lp-nav">
-    <a class="rf-lp-marca" href="/" aria-label="RetroFoot98">
-      <img src="img/logo.webp" width="32" height="32" alt="">
-      <span>RetroFoot<span class="rf-wiz-marca-98">98</span></span>
+    <!-- A ASSINATURA E DESENHADA, nao montada. Era o simbolo mais a palavra escrita
+         em texto ao lado; a marca nova tem um lockup proprio, com o espacamento e o
+         peso da palavra definidos por quem a desenhou. Montar a mao nunca bate. -->
+    <a class="rf-lp-marca" href="/" aria-label="Retrofoot.com.br">
+      <img class="marca" src="img/marca.svg" alt="Retrofoot.com.br" height="26">
     </a>
     <div class="rf-lp-links">
       ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
@@ -893,8 +895,9 @@ function rfLpRodapeHTML(){
   return `<footer class="rf-lp-rodape">
     <div class="rf-lp-fgrid">
       <div class="rf-lp-fmarca">
-        <a class="rf-lp-marca" href="/"><img src="img/logo.webp" width="32" height="32" alt="">
-          <span>RetroFoot<span class="rf-wiz-marca-98">98</span></span></a>
+        <!-- no rodape o fundo e escuro: a versao de palavra clara -->
+        <a class="rf-lp-marca" href="/" aria-label="Retrofoot.com.br">
+          <img class="marca" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="26"></a>
         <p class="rf-lp-fp">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</p>
       </div>
       ${col('O jogo',['Jogar agora','Modo Resenha','Ranking','Ligas Oficiais'])}

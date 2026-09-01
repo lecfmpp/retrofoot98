@@ -2869,6 +2869,9 @@
   padding:14px 28px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
 .rf-lp-marca{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
 .rf-lp-marca img{width:32px;height:32px;object-fit:contain}
+/* a assinatura completa tem proporcao propria: a altura manda e a largura segue */
+.rf-lp-marca img.marca{width:auto;height:26px;max-width:186px}
+@media (max-width:520px){ .rf-lp-marca img.marca{height:22px} }
 .rf-lp-marca>span{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:var(--ls-tight)}
 .rf-lp-links{display:flex;align-items:center;gap:2px;margin-left:14px;overflow-x:auto;scrollbar-width:none}
 .rf-lp-links::-webkit-scrollbar{display:none}
