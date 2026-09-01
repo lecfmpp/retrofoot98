@@ -339,9 +339,11 @@ function rfElChanceRenovar(p, novo){
    comportamento, lesões, a carreira (p.transferHistory + p.mv0) e o ritmo
    de evolução (growthProfileOf — o MESMO cálculo do motor).
    O que o motor não guarda entra estável e sinalizado nos comentários:
-   minutos = jogos×90; assistências = derivada determinística de gols/jogos;
-   gols sofridos do goleiro = GA do TIME na temporada (o motor não separa
-   por goleiro); ano de fundação = determinístico por clube.
+   minutos = jogos×90; gols sofridos do goleiro = GA do TIME na temporada (o
+   motor não separa por goleiro); ano de fundação = determinístico por clube.
+   ASSISTÊNCIA JÁ NÃO ESTÁ NESSA LISTA: desde 26/08 o motor sorteia quem deu o
+   passe do gol e grava em p.stats.assists — o card lê o número real. Esta linha
+   dizia "derivada determinística de gols/jogos" muito depois de deixar de ser.
    ===================================================================== */
 /* ===== O GRÁFICO DO MOTOR (26/08) =====
    Antes isto era um hexágono de 6 eixos que MISTURAVA atributos lidos pelo motor

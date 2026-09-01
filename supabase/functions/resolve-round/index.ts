@@ -15,7 +15,7 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = '77a63f2b8afa';
+/* @motor-ver */ const MOTOR_VER = 'a5ad6f149b86';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -187,7 +187,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
           const pConv=penaltyConvChance(taker,gk);
           const scored=R.random()<pConv;
           perf[hSide].big++;
-          if(scored){ if(home2){hg++;} else {ag++;} perf[hSide].goals++; scorers.push({id:atkId,name:taker.n,min:minute}); pos=home2?-0.15:0.15; }
+          if(scored){ if(home2){hg++;} else {ag++;} perf[hSide].goals++; scorers.push({id:atkId,name:taker.n,pid:taker.pid,min:minute}); pos=home2?-0.15:0.15; }
           ev={type:'penalti',side:hSide,min:minute,team:atkId,scorer:taker?taker.n:null,gk:gk?gk.n:null,scored:scored,stoppage:stoppage};
         } else {
           const sc=scorerFrom(atkId, atkPool);
@@ -267,10 +267,23 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     const scorers=input.scorers||[];
     return players.map(function(p){
       const share=clamp((p.mins||0)/total, 0, 1);
-      const goals=scorers.filter(function(s){ return s.id===input.clubId && s.name===p.n; }).length;
+      /* ===== QUEM FEZ O GOL E' O pid, NAO O NOME =====
+         Isto contava por nome, e nome nao identifica jogador: dois homonimos no mesmo elenco
+         recebiam AMBOS o mesmo gol e a mesma assistencia. Nao e' hipotetico -- o Catalao FC tem
+         hoje, em producao, dois "Nathan Teixeira" (um lateral vindo do bundle, renomeado pelo
+         pacote, e um goleiro que o proprio pacote acrescentou). E os regens agravam com o tempo:
+         pickProcPlayerName desiste depois de 400 tentativas e devolve nome repetido.
+
+         A REGRA: se o LANCE carrega pid, so' esse pid conta -- assim um jogador sem pid nunca
+         reivindica um lance carimbado que nao e' dele. Sem pid no lance (save antigo), cai no
+         nome, que e' o comportamento de sempre e a unica informacao que existe ali. */
+      const bate=function(evPid, evNome){
+        return (evPid!=null) ? (p.pid!=null && p.pid===evPid) : (evNome===p.n);
+      };
+      const goals=scorers.filter(function(s){ return s.id===input.clubId && bate(s.pid, s.name); }).length;
       /* assistência vale menos que gol na nota (1.3), mas não é zero: quem deu o
          passe participou do lance tanto quanto quem finalizou. */
-      const assists=scorers.filter(function(s){ return s.id===input.clubId && s.assist===p.n; }).length;
+      const assists=scorers.filter(function(s){ return s.id===input.clubId && bate(s.assistPid, s.assist); }).length;
       const back=(p.s==='GK'||p.s==='DEF');
       let r=6.0+((p.f||65)-65)*0.045+R.gauss(0,0.75);
       if(won) r+=0.5*share; else if(lost) r-=0.5*share;
