@@ -201,6 +201,14 @@
 <!-- países jogáveis e suas divisões: saiu do core.js porque o painel de admin também
      precisa da lista (editor de clubes) e copiar seria manter duas versões da mesma regra -->
 <script src="src/data/universos.js"></script>
+<!-- UNIVERSO FEMININO. Tre^s arquivos que so' ACRESCENTAM: registram brasilFem em UNIVERSOS,
+     a copa nacional e os pools de nome em WORLD_CONFIG, e o elenco de 1.900 jogadoras indexado
+     pelo id do jogador cujo lugar elas ocupam. Vem DEPOIS de universos.js e world-config.js,
+     que eles estendem -- e nenhum dos dois e' editado, por isso ficam com diff zero.
+     Apagar estas tre^s linhas devolve o jogo ao que era, sem git. -->
+<script src="src/data/universos-fem.js"></script>
+<script src="src/engine/world-config-fem.js"></script>
+<script src="src/data/jogadoras-brasil.js"></script>
 <script src="src/data/competicoes.js"></script>
 <!-- correções do painel dos sócios por cima do catálogo de fábrica (força, idade, escudo,
      clubes novos). DEPOIS dos dados, porque mexe neles; ANTES do bloco inline abaixo, que
