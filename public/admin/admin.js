@@ -1453,6 +1453,7 @@ async function pgPublicidade(){
       toast('Patrocinador apagado.'); pgPublicidade();
     });
     document.querySelectorAll('[data-upload]').forEach(b => b.onclick = () => modalUpload(b.dataset.upload));
+    document.querySelectorAll('[data-placas]').forEach(b => b.onclick = () => modalPlacas(b.dataset.placas));
     document.querySelectorAll('[data-tirar]').forEach(b => b.onclick = async () => {
       if(!confirm('Tirar este criativo do ar? O espaço deixa de ser desenhado no jogo.')) return;
       const { error } = await jogo('ad_creatives').update({ ativo:false }).eq('id', b.dataset.tirar);
@@ -1466,12 +1467,26 @@ async function pgPublicidade(){
 function slotHTML(e, editar){
   const c = e.criativo;
   const video = c && /video|mp4/i.test(c.mime||'');
-  const prev = c
+  /* ESPACO DE PLACAS: a previa mostra as TRES, na ordem em que aparecem no campo, com o
+     lugar vazio a' vista. Uma miniatura so' escondia que duas das tres estao por vender. */
+  const placas = e.placas ? (()=>{
+    const porPos = {}; (e.criativos||[]).forEach(x=>{ porPos[x.posicao]=x; });
+    const cel = [];
+    for(let i=1;i<=e.placas;i++){ const x=porPos[i];
+      cel.push(x ? `<img src="${h(x.ficheiro_url)}" alt="Placa ${i}" style="width:100%;height:100%;object-fit:cover;border-radius:4px">`
+                 : `<span class="mono" style="font-size:10px;color:var(--dim3)">${i}</span>`); }
+    return `<div class="prev tem" style="display:flex;${e.w<e.h?'flex-direction:row':'flex-direction:column'};
+      gap:6px;align-items:stretch;justify-content:center;padding:10px">
+      ${cel.map(x=>`<div style="flex:1;display:flex;align-items:center;justify-content:center;
+        background:#0d1a12;border:1px dashed var(--linha,#243028);border-radius:4px;overflow:hidden;min-height:22px">${x}</div>`).join('')}
+    </div>`;
+  })() : null;
+  const prev = placas ? placas : (c
     ? `<div class="prev tem">${video
         ? `<video src="${h(c.ficheiro_url)}" muted autoplay loop playsinline></video>`
         : `<img src="${h(c.ficheiro_url)}" alt="">`}</div>`
     : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Espaço livre</span>
-        <span class="mono" style="font-size:11px;color:var(--dim3)">${e.w}×${e.h}</span></div>`;
+        <span class="mono" style="font-size:11px;color:var(--dim3)">${e.w}×${e.h}</span></div>`);
   return `<div class="slot ${c?'no-ar':'livre'}">
     <div style="display:flex;align-items:flex-start;gap:8px">
       <div style="flex:1;min-width:0">
@@ -1490,6 +1505,7 @@ function slotHTML(e, editar){
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
       <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
+      ${e.placas ? `<div><span>Placas</span><b>${(e.criativos||[]).length} de ${e.placas} vendidas</b></div>` : ''}
       ${(e.mw!==e.w||e.mh!==e.h) ? `<div><span>Arte de celular</span><b style="color:${
         c ? (c.ficheiro_url_mob?'var(--verde2)':'var(--dim3)') : 'var(--dim3)'}">${
         c ? (c.ficheiro_url_mob?'publicada':'usa a de desktop') : '—'}</b></div>` : ''}
@@ -1499,11 +1515,15 @@ function slotHTML(e, editar){
         : '<b style="color:var(--dim3)">sem botão</b>'}</div>` : ''}
     </div>
     <div class="foot">
-      <span style="flex:1;font-size:12px;color:${c?'var(--verde2)':'var(--dim2)'}">
-        ${c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '') : 'Sem criativo'}
+      <span style="flex:1;font-size:12px;color:${(e.placas?(e.criativos||[]).length:c)?'var(--verde2)':'var(--dim2)'}">
+        ${e.placas
+          ? ((e.criativos||[]).length ? (e.criativos||[]).map(x=>h(x.patrocinador||('Placa '+x.posicao))).join(' · ') : 'Nenhuma placa vendida')
+          : (c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '') : 'Sem criativo')}
       </span>
-      ${editar ? (c?`<button class="btn btn-sm btn-ghost" data-tirar="${c.id}">Tirar</button>`:'') +
-        `<button class="btn btn-sm" data-upload="${h(e.chave)}">${c?'Trocar':'Enviar'}</button>` : ''}
+      ${editar ? (e.placas
+        ? `<button class="btn btn-sm" data-placas="${h(e.chave)}">Gerir placas</button>`
+        : (c?`<button class="btn btn-sm btn-ghost" data-tirar="${c.id}">Tirar</button>`:'') +
+          `<button class="btn btn-sm" data-upload="${h(e.chave)}">${c?'Trocar':'Enviar'}</button>`) : ''}
     </div>
   </div>`;
 }
@@ -1555,6 +1575,150 @@ function modalPatrocinador(){
 /* ---------- upload de criativo ---------- */
 const MIME_EXT = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', webp:'image/webp',
                    mp4:'video/mp4', webm:'video/webm', gif:'image/gif' };
+/* ============================================================================
+   MODAL DAS PLACAS DO CAMPO — uma arte e um link POR PLACA
+   ----------------------------------------------------------------------------
+   Os outros espacos guardam UM criativo. Estes guardam um por PLACA
+   (ad_creatives.posicao = 1..ad_spaces.placas): o trio de deitadas aparece
+   acima e abaixo do campo, o de em pe' de cada lado. Antes uma arte so'
+   preenchia as seis do mesmo feitio -- quem comprava levava o anel inteiro, e
+   nao havia como vender a placa do meio a outra marca.
+
+   TUDO NUM MODAL SO', e nao tres espacos separados na lista: elas sao um
+   produto -- "as placas do campo" -- e ve-las lado a lado e' o que mostra
+   quantas ainda estao por vender.
+
+   Cada placa publica sozinha: enviar a arte da placa 2 nao toca na 1 nem na 3.
+   ============================================================================ */
+async function modalPlacas(chave){
+  const e = (D.pub.espacos||[]).find(x=>x.chave===chave);
+  if(!e || !e.placas) return;
+  const exts = (e.formatos||[]).map(f=>f.toLowerCase());
+  const accept = exts.map(x=>'.'+x).join(',');
+  const porPos = {}; (e.criativos||[]).forEach(x=>{ porPos[x.posicao]=x; });
+  const arquivos = {};        // posicao -> File escolhido nesta sessao do modal
+
+  const bloco = i => {
+    const x = porPos[i];
+    return `<div style="border:1px solid var(--linha,#243028);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <b style="font-size:13px;flex:1">Placa ${i}</b>
+        <span style="font-size:11.5px;color:${x?'var(--verde2)':'var(--dim3)'}">${x?'no ar':'livre'}</span>
+        ${x?`<button class="btn btn-sm btn-ghost" data-tirar-placa="${x.id}">Tirar</button>`:''}
+      </div>
+      ${x?`<img src="${h(x.ficheiro_url)}" alt="" style="width:100%;max-height:70px;object-fit:contain;
+        background:#0d1a12;border-radius:6px;margin-bottom:10px;display:block">`:''}
+      <div class="drop" id="pl-drop-${i}">
+        <div class="ic">⬆</div>
+        <div class="t" id="pl-tit-${i}">${x?'Trocar a arte':'Escolher arquivo'}</div>
+        <div class="s" id="pl-sub-${i}">${h((e.formatos||[]).join(', '))} até ${e.peso_kb} KB · ${e.w}×${e.h}</div>
+        <input type="file" id="pl-file-${i}" accept="${h(accept)}" style="display:none">
+      </div>
+      <label class="f" style="margin-top:10px">Link desta placa<input class="f" id="pl-link-${i}"
+        placeholder="https://" value="${x&&x.link_destino?h(x.link_destino):''}"></label>
+      <div class="acoes" style="margin-top:10px">
+        <button class="btn btn-sm" id="pl-ok-${i}">${x?'Republicar placa '+i:'Publicar placa '+i}</button>
+      </div>
+    </div>`;
+  };
+
+  const cel = [];
+  for(let i=1;i<=e.placas;i++) cel.push(bloco(i));
+  abrirModal(`
+    <h3>${h(e.nome)}</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 18px">${h(e.local)}</div>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(e.chave)}</code>
+        <span style="color:var(--dim2);text-align:right">${h(e.iab||'')}</span></div>
+      <div><span style="color:var(--dim2)">Cada placa</span><b>${e.w}×${e.h}</b></div>
+      <div><span style="color:var(--dim2)">Peso máx.</span><b>${e.peso_kb} KB</b></div>
+      ${e.nota ? `<div class="full" style="color:var(--dim2);line-height:1.5">${h(e.nota)}</div>` : ''}
+    </div>
+    <div class="erro hide" id="pl-erro"></div>
+    <div class="col">${cel.join('')}
+      <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>
+    </div>`, 'lg');
+
+  const erro = el('pl-erro');
+  const mostrarErro = m => { erro.textContent = m; erro.classList.remove('hide'); };
+
+  for(let i=1;i<=e.placas;i++){
+    (function(pos){
+      const drop = el('pl-drop-'+pos), input = el('pl-file-'+pos);
+      const falhar = m => { mostrarErro(m); drop.classList.remove('ok'); delete arquivos[pos]; };
+      /* MESMA VALIDACAO DO ENVIO NORMAL -- extensao, peso e medida exata. A medida de uma
+         placa e' a do espaco: as tres sao do mesmo feitio, e uma fora da medida entortava
+         o anel inteiro. */
+      async function validar(f){
+        erro.classList.add('hide');
+        const ext = (f.name.split('.').pop()||'').toLowerCase();
+        if(!exts.includes(ext)) return falhar(`Formato .${ext} não é aceito aqui (só ${exts.join(', ')}).`);
+        if(f.size > e.peso_kb*1024) return falhar(`O arquivo tem ${Math.round(f.size/1024)} KB e o máximo é ${e.peso_kb} KB.`);
+        let dim=null;
+        try{ dim = await new Promise((res,rej)=>{ const url=URL.createObjectURL(f); const im=new Image();
+          im.onload=()=>{ URL.revokeObjectURL(url); res({w:im.naturalWidth,h:im.naturalHeight}); };
+          im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('imagem inválida')); }; im.src=url; }); }
+        catch(err){ return falhar('Não foi possível ler o arquivo.'); }
+        if(dim && !(dim.w===e.w && dim.h===e.h))
+          return falhar(`A arte tem ${dim.w}×${dim.h}. Cada placa deste espaço é ${e.w}×${e.h}.`);
+        arquivos[pos]=f; drop.classList.add('ok');
+        el('pl-tit-'+pos).textContent = f.name;
+        el('pl-sub-'+pos).textContent = `${Math.round(f.size/1024)} KB · ${dim.w}×${dim.h} — pronto para publicar`;
+      }
+      drop.onclick = () => input.click();
+      drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('ok'); };
+      drop.ondragleave = () => drop.classList.remove('ok');
+      drop.ondrop = ev => { ev.preventDefault(); if(ev.dataTransfer.files[0]) validar(ev.dataTransfer.files[0]); };
+      input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+
+      el('pl-ok-'+pos).onclick = async () => {
+        const f = arquivos[pos];
+        const link = el('pl-link-'+pos).value.trim();
+        if(link && !/^https?:\/\//i.test(link)) return mostrarErro('O link precisa começar com http:// ou https://');
+        const jaTem = porPos[pos];
+        if(!f && !jaTem) return mostrarErro('Escolha a arte da placa '+pos+' primeiro.');
+        const btn = el('pl-ok-'+pos); btn.disabled = true; btn.textContent = 'Publicando…';
+        try{
+          let url = jaTem ? jaTem.ficheiro_url : null, caminho = null, mime = jaTem ? jaTem.mime : null, bytes = jaTem ? jaTem.bytes : null;
+          if(f){
+            const ext = (f.name.split('.').pop()||'').toLowerCase();
+            caminho = `${e.chave}/p${pos}-${Date.now()}.${ext}`;
+            const up = await sb.storage.from(BUCKET).upload(caminho, f, {
+              contentType: MIME_EXT[ext] || f.type, upsert:false, cacheControl:'300' });
+            if(up.error) throw up.error;
+            url = sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;
+            mime = MIME_EXT[ext] || f.type; bytes = f.size;
+          }
+          /* substitui SO' ESTA PLACA: o filtro leva a posicao, senao publicar a 2
+             tirava do ar a 1 e a 3 -- que e' exatamente o que este modal existe para
+             deixar de acontecer */
+          await jogo('ad_creatives').update({ ativo:false })
+            .eq('chave_espaco', e.chave).eq('posicao', pos).eq('ativo', true);
+          const ins = await jogo('ad_creatives').insert({
+            chave_espaco: e.chave, posicao: pos,
+            ficheiro_url: url, ficheiro_path: caminho,
+            mime, bytes, link_destino: link || null
+          });
+          if(ins.error) throw ins.error;
+          registrar('criativo.publicar', e.chave, {placa:pos, arquivo:caminho, link:link||null});
+          fecharModal(); toast('Placa '+pos+' no ar.'); pgPublicidade();
+        }catch(err){
+          btn.disabled = false; btn.textContent = 'Publicar placa '+pos;
+          mostrarErro(erroMsg(err));
+        }
+      };
+    })(i);
+  }
+
+  document.querySelectorAll('[data-tirar-placa]').forEach(b => b.onclick = async () => {
+    if(!confirm('Tirar esta placa do ar? Ela volta ao rótulo de casa no campo.')) return;
+    const { error } = await jogo('ad_creatives').update({ ativo:false }).eq('id', b.dataset.tirarPlaca);
+    if(error) return mostrarErro(erroMsg(error));
+    registrar('criativo.tirar', b.dataset.tirarPlaca);
+    fecharModal(); toast('Placa fora do ar.'); pgPublicidade();
+  });
+}
+
 function modalUpload(chave){
   const e = (D.pub.espacos||[]).find(x=>x.chave===chave);
   if(!e) return;

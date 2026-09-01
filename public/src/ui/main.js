@@ -5468,24 +5468,36 @@ const PITCH_ADS=[
   {t:'SUA MARCA',    c:'azul'},
   {t:'PATROCÍNIO',   c:'verde'},
 ];
-/* ===== AS PLACAS PASSARAM A SER INVENTARIO =====
-   Eram texto fixo da lista acima -- nao havia como um anunciante entrar nelas. Agora ha duas
-   chaves: rf98.campo.deitada (as seis de cima e de baixo) e rf98.campo.empe (as seis dos lados).
-   Publicada a arte, ela aparece nas seis placas daquele feitio, como a mesma marca se repete em
-   volta de um campo de verdade. Sem criativo, ficam os rotulos de casa -- o jogo nao muda. */
-function pitchAdArte(lado){
+/* ===== CADA PLACA E' UM ANUNCIANTE =====
+   Eram texto fixo da lista acima -- nao havia como um anunciante entrar nelas. Depois
+   passaram a inventario, mas com UMA arte por feitio: quem comprasse as deitadas via a
+   sua marca repetida nas seis, e nao havia como vender a placa do meio a outra pessoa.
+
+   Agora cada FEITIO tem TRES placas independentes (ad_spaces.placas), cada uma com arte
+   e link proprios: rf98.campo.deitada posicoes 1..3 e rf98.campo.empe 1..3. O trio de
+   deitadas aparece em cima E em baixo, e o de em pe' de cada lado -- o mesmo anel de
+   placas a dar a volta ao campo, como num estadio de verdade.
+
+   O `off` de cada lado DEIXOU DE RODAR AS PLACAS VENDIDAS. Ele existia para os rotulos
+   de casa nao ficarem iguais nos quatro lados; aplicado a inventario vendido, punha a
+   placa 1 de um anunciante no lugar da 3 de outro consoante o lado. Ele continua a valer
+   para os rotulos de casa, e nao toca em quem pagou.
+
+   Placa sem criativo cai no rotulo de casa daquela posicao -- as vendidas e as livres
+   convivem no mesmo anel. */
+function pitchAdArte(chave, pos){
   if(typeof ADS==='undefined' || !window.ADS) return '';
-  const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
-  const c = ADS.get(chave);
+  const c = ADS.get(chave, pos);
   if(!c || !c.ficheiro_url) return '';
   return `<div class="cl-pitch-ad arte" data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
-    onclick="ADS.clique('${escC(chave)}')" style="cursor:${c.link_destino?'pointer':'default'}"
+    onclick="ADS.clique('${escC(chave)}',${pos})" style="cursor:${c.link_destino?'pointer':'default'}"
     ><img src="${escC(c.ficheiro_url)}" alt="Publicidade"></div>`;
 }
 function pitchAdsHTML(lado, n, off){
-  const arte=pitchAdArte(lado);
+  const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
   let out='';
   for(let i=0;i<n;i++){
+    const arte=pitchAdArte(chave, i+1);     // as posicoes sao 1..3, como o painel as mostra
     if(arte){ out+=arte; continue; }
     const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
     out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }

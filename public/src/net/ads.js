@@ -70,6 +70,9 @@ async function carregar(){
               /* a arte do telemovel do MESMO criativo: um espaco com duas medidas tem
                  dois ficheiros, e quem escolhe entre eles e' o browser (ver html()) */
               + ',ficheiro_url_mob,mime_mob'
+              /* posicao: qual PLACA do espaco o criativo ocupa. Nulo em todos os espacos
+                 normais -- so' as placas do campo a usam (ver get() e ads.js abaixo) */
+              + ',posicao'
               + '&ativo=eq.true&order=criado_em.desc';
     const r = await fetch(url, { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY,
       'Accept-Profile':'elifoot_v3' } });
@@ -80,7 +83,13 @@ async function carregar(){
     linhas.forEach(c => {
       if(c.no_ar_de  && new Date(c.no_ar_de ).getTime() > agora) return;   // ainda não começou
       if(c.no_ar_ate && new Date(c.no_ar_ate).getTime() < agora) return;   // já terminou
-      if(!novo[c.chave_espaco]) novo[c.chave_espaco] = c;   // o mais recente vence (order desc)
+      /* UM ESPACO PODE TER VARIAS PLACAS. A chave sozinha deixou de bastar: as placas
+         do campo guardam um criativo POR POSICAO, cada uma com o seu link. A posicao
+         entra na chave do mapa (`chave#2`) em vez de um segundo mapa -- assim o cache
+         local, o `order by` e o "o mais recente vence" continuam a valer tal e qual
+         para os dois casos. Espaco normal continua a ser `chave` e mais nada. */
+      const k = (c.posicao==null) ? c.chave_espaco : (c.chave_espaco+'#'+c.posicao);
+      if(!novo[k]) novo[k] = c;   // o mais recente vence (order desc)
     });
     porChave = novo; carregado = true;
     try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ t:Date.now(), v:novo })); }catch(e){}
@@ -94,7 +103,11 @@ async function carregar(){
 carregar();
 setInterval(carregar, REFRESH_MS);
 
-function get(chave){ return porChave[chave] || null; }
+/* `pos` so' e' passada pelos espacos de placas; sem ela, o comportamento de sempre */
+function get(chave, pos){ return porChave[pos==null?chave:(chave+'#'+pos)] || null; }
+/* quantas placas daquele espaco tem arte publicada — o jogo usa para saber se
+   desenha as placas de casa ou as vendidas */
+function temPlaca(chave, pos){ return !!get(chave, pos); }
 
 function evento(chave, criativoId, tipo){
   try{
@@ -137,8 +150,12 @@ function scan(){
   });
 }
 
-function clique(chave){
-  const c = get(chave); if(!c) return;
+function clique(chave, pos){
+  const c = get(chave, pos); if(!c) return;
+  /* O EVENTO VAI NA CHAVE DO ESPACO, sem a posicao: e' por chave que o painel soma
+     impressoes e cliques, e partir a soma em tres linhas novas mudaria o historico
+     do espaco a meio. Quem quiser o numero de UMA placa tem o id do criativo, que
+     vai gravado no mesmo evento. */
   evento(chave, c.id, 'clique');
   try{ if(typeof gtag==='function') gtag('event','ad_click',{ slot:chave }); }catch(e){}
   if(!c.link_destino) return;
@@ -224,5 +241,5 @@ function refGuardado(){
   try{ const g = JSON.parse(localStorage.getItem(REF_KEY)||'null'); return (g && g.cod) || null; }catch(e){ return null; }
 }
 
-window.ADS = { get, html, clique, scan, evento, refGuardado, get carregado(){ return carregado; } };
+window.ADS = { get, temPlaca, html, clique, scan, evento, refGuardado, get carregado(){ return carregado; } };
 })();
