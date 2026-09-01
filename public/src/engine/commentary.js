@@ -28,7 +28,18 @@
     let v=list[h32(key)%list.length];
     for(let i=1;avoid && v===avoid && i<list.length;i++) v=list[h32(key,'#',i)%list.length];
     return v; }
-  function last(n){ const p=String(n||'').trim().split(/\s+/); return p.length>1?p[p.length-1]:(p[0]||'o jogador'); }
+  /* ===== AS QUATRO PALAVRAS QUE MUDAM COM QUEM JOGA =====
+     O modulo e' puro de proposito -- nao le^ S nem CL -- entao quem chama passa `ctx.fem`. Sao
+     poucas palavras, e estao aqui em vez de virem do RF_GENERO para que essa pureza continue
+     valendo: commentary.js roda igual no cliente e em teste, sem globais montados. */
+  const TERMO={
+    goleiro:  ['goleiro','goleira'],
+    atacante: ['atacante','atacante'],
+    batedor:  ['batedor','batedora'],
+    jogador:  ['jogador','jogadora'],
+  };
+  function G_(chave,fem){ const par=TERMO[chave]; return par ? par[fem?1:0] : chave; }
+  function last(n,fem){ const p=String(n||'').trim().split(/\s+/); return p.length>1?p[p.length-1]:(p[0]||('o '+G_('jogador',fem))); }
 
   /* ---- desfecho de uma FINALIZAÇÃO que não virou gol ----
      O motor emite 'chance' (chutou, não fez) sem dizer se foi defesa, trave
@@ -51,7 +62,7 @@
   const GOL=[
     'GOL! {P} acha o canto e balança a rede.',
     'GOL DE {P}! Apareceu na hora certa e empurrou pra dentro.',
-    'É GOL! {P} solta a bomba e não deu chance pro goleiro.',
+    'É GOL! {P} solta a bomba e não deu chance pro {K}.',
     'GOL! {P} cabeceia firme e a rede balança.',
     'GOL DE {P}! Recebeu livre na área e mandou pra dentro.',
     'GOL! {P} tabela, entra na área e finaliza no cantinho.'
@@ -84,7 +95,7 @@
   const CH_DEFESA=[
     'Que defesa! {G} espalma o chute de {P}.',
     '{G} salva! Chute forte de {P} no canto.',
-    'Defendeu {G}! {P} chutou colocado e o goleiro voou.',
+    'Defendeu {G}! {P} chutou colocado e o {K} voou.',
     '{P} finaliza de primeira e {G} manda pra escanteio.'
   ];
   const CH_TRAVE=[
@@ -187,37 +198,40 @@
   function narrate(ev,ctx){
     if(!ev) return null;
     const mine=ev.side==='H', T=mine?ctx.hShort:ctx.aShort, O=mine?ctx.aShort:ctx.hShort;
-    const G=(ev.gk)||(mine?ctx.gk.A:ctx.gk.H)||'o goleiro';
+    const fem=!!(ctx&&ctx.fem);
+    const G=(ev.gk)||(mine?ctx.gk.A:ctx.gk.H)||('o '+G_('goleiro',fem));
     const key=[ctx.seed,ev.type,ev.min,ev.side].join('|');
-    const v={T:T,O:O,G:last(G)};
+    /* {K} e' a palavra 'goleiro' DENTRO das frases -- as duas que a citam ('nao deu chance pro
+       {K}', 'o {K} voou') nao podiam ser resolvidas so' nos fallbacks. */
+    const v={T:T,O:O,G:last(G,fem),K:G_('goleiro',fem)};
     if(ev.type==='gol'){
-      v.P=ev.scorer||'o atacante';
+      v.P=ev.scorer||('o '+G_('atacante',fem));
       const hg=ctx.hg, ag=ctx.ag;
       const bank = (hg===ag) ? GOL_EMPATE : ((mine&&hg===ag+1&&ag>0)||(!mine&&ag===hg+1&&hg>0)) ? GOL_VIRADA : GOL;
       return {icon:'⚽', kind:'gol', text:fill(pick(bank,key),v)+' '+ctx.hShort+' '+hg+' × '+ag+' '+ctx.aShort+'.'};
     }
     if(ev.type==='penalti'){
-      v.P=ev.scorer||'o batedor';
+      v.P=ev.scorer||('o '+G_('batedor',fem));
       if(ev.scored) return {icon:'⚽', kind:'gol', text:fill(pick(PEN_GOL,key),v)+' '+ctx.hShort+' '+ctx.hg+' × '+ctx.ag+' '+ctx.aShort+'.'};
       const o=ctx.out||'defesa';
       const bank = o==='trave'?PEN_TRAVE : o==='fora'?PEN_FORA : PEN_DEF;
       return {icon:o==='defesa'?'✋':'❌', kind:o==='defesa'?'defesa':'chance', text:fill(pick(bank,key),v)};
     }
     if(ev.type==='chance'){
-      v.P=ev.scorer||'o atacante';
+      v.P=ev.scorer||('o '+G_('atacante',fem));
       const o=ctx.out||'fora';
       if(o==='defesa') return {icon:'✋', kind:'defesa', text:fill(pick(CH_DEFESA,key),v)};
       if(o==='trave')  return {icon:'◎', kind:'chance', text:fill(pick(CH_TRAVE,key),v)};
       return {icon:'◎', kind:'chance', text:fill(pick(CH_FORA,key),v)};
     }
     if(ev.type==='cartao'){
-      v.P=ev.player||'o jogador';
+      v.P=ev.player||('o '+G_('jogador',fem));
       if(ev.cardType==='vermelho')
         return {icon:'🟥', kind:'cartao', text:fill(pick(ev.reason==='segundo amarelo'?VERMELHO_2A:VERMELHO_DIR,key),v)};
       return {icon:'🟨', kind:'cartao', text:fill(pick(AMARELO,key),v)};
     }
     if(ev.type==='lesao'){
-      v.P=ev.player||'o jogador';
+      v.P=ev.player||('o '+G_('jogador',fem));
       return {icon:'✚', kind:'lesao', text:fill(pick(ev.severity==='grave'?LESAO_GRAVE:LESAO_LEVE,key),v)};
     }
     if(ev.type==='sub'){

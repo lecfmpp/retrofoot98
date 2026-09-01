@@ -191,13 +191,16 @@ function isTradeLocked(p){ return !!(p && p._tradeLockSeason===S.season); }
    Aposentadoria não passa por aqui de propósito: ela substitui o jogador na mesma posição
    (makeRegen(p.s) no resolve-round / endSeason), então nunca some um goleiro por ali. */
 const SQUAD_FLOOR={ GK:2 };
-const POS_NOME={GK:'goleiro', DEF:'zagueiro', MID:'meia', ATT:'atacante'};
+/* Os rotulos deixam de ser tabela e passam a ser pergunta: no mundo feminino sao goleira,
+   zagueira, meia, atacante. RF_GENERO devolve o indice 0 (o texto de sempre) fora dele. */
+function posNomeDe(s){ return (typeof RF_GENERO!=='undefined') ? RF_GENERO.pos(s).toLowerCase()
+                            : ({GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'})[s]; }
 function countPos(clubId, pos){ return ((S.squads&&S.squads[clubId])||[]).filter(x=>x&&x.s===pos).length; }
 /* trava única: pode tirar este jogador deste clube? Usada por TODOS os caminhos de saída. */
 function canReleaseFromSquad(clubId, p){
   const min=SQUAD_FLOOR[(p&&p.s)||'']; if(!min) return {ok:true};
   if(countPos(clubId, p.s) > min) return {ok:true};
-  const nome=POS_NOME[p.s]||'jogador';
+  const nome=posNomeDe(p.s)||((typeof RF_GENERO!=='undefined')?RF_GENERO.t('jogador'):'jogador');
   return {ok:false, msg:`O elenco precisa de pelo menos ${min} ${nome}${min>1?'s':''}. Contrate outro ${nome} antes de liberar ${p.n||'este jogador'}.`};
 }
 /* ================= TREINO ESPECIAL =================
@@ -589,7 +592,8 @@ function generateYouthCandidate(usedPositionsThisBatch){
   // que defaultContract() daria pra um jogador comum com essa força (piso de 1000, igual defaultContract).
   const contract=defaultContract(youth);
   contract.salary=Math.max(1000, Math.round(contract.salary*0.4));
-  const posNome={GK:'Goleiro',DEF:'Defensor',MID:'Meia',ATT:'Atacante'}[pos]||pos;
+  const posNome=(typeof RF_GENERO!=='undefined') ? (RF_GENERO.pos(pos)||pos)
+                : ({GK:'Goleiro',DEF:'Defensor',MID:'Meia',ATT:'Atacante'}[pos]||pos);
   return {youth, posNome, contract};
 }
 /* efetiva a promoção do candidato ESCOLHIDO (ver generateYouthCandidate) — só aqui o jogador

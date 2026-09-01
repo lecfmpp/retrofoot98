@@ -5108,7 +5108,8 @@ function dadosArtilheiro(comp){
   if(!mapa) return null;
   const ord=Object.entries(mapa).sort((a,b)=>b[1]-a[1]).slice(0,3);
   if(!ord.length) return null;
-  const POS={GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'};
+  const POS={GK:RF_GENERO.pos('GK').toLowerCase(),DEF:RF_GENERO.pos('DEF').toLowerCase(),
+             MID:RF_GENERO.pos('MID').toLowerCase(),ATT:RF_GENERO.pos('ATT').toLowerCase()};
   const doNome=n=>{
     const cid=(typeof findPlayerClub==='function')?findPlayerClub(n):null;
     const p=cid?((S.squads&&S.squads[cid])||[]).find(x=>x.n===n):null;
@@ -7532,7 +7533,7 @@ function injurySubHTML(m,e){
   return rfLesaoHTML(m,e);
 }
 function injurySubHTMLLegado(m,e){
-  const posName={GK:'Goleiro',DEF:'Zagueiro',MID:'Meia',ATT:'Atacante'}[e.pos]||'Jogador';
+  const posName=RF_GENERO.pos(e.pos)||RF_GENERO.t('Jogador');
   const secsLeft=Math.max(0, Math.ceil(((CL.injDeadline||0)-Date.now())/1000)); // auto-avanço (ver injuryTick)
   const opts=injurySubOptions(e);
   const noOpts = !opts.length;
@@ -8008,7 +8009,8 @@ function camOnEvent(m,e){
   else if(e.type==='cartao'){ if(e.cardType==='vermelho'){ A.red++; m.presBias+=(e.side==='H'?-8:8); } else A.yellow++; }
   else if(e.type==='sub'){ A.subs++; }
   rfSomDoEvento(m,e,out);
-  const l=RF_NARRA.narrate(e,{...ctx,out});
+  /* commentary.js e' puro e nao le^ S: quem sabe a modalidade e' daqui. */
+  const l=RF_NARRA.narrate(e,{...ctx,out,fem:(typeof RF_GENERO!=='undefined')&&RF_GENERO.ehFem()});
   if(l){ m.narr.push({min:e.min,icon:l.icon,text:l.text,kind:l.kind,side:e.side}); m._camLastLine=e.min; }
   m.pres=Math.max(-100,Math.min(100,(m.pres||0)+RF_NARRA.pressureOf(e,out)));
 }

@@ -67,7 +67,7 @@ function rfAcFotoDoJogador(p){
 function rfAcFichaHTML(p, rotulo, valor, num){
   const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{};
   const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
-  const setor=({GK:'Goleiro',DEF:'Defesa',MID:'Meio-campo',ATT:'Atacante'})[p&&p.s]||'—';
+  const setor=RF_GENERO.pos(p&&p.s,'setor')||'—';
   const foto=rfAcFotoDoJogador(p);
   const retrato = foto
     ? rfFotoNumHTML(foto, num, 'g')
@@ -329,7 +329,7 @@ const RF_ACOES = {
   const v=d.venda||{};
   const comprador=anyClubOf(v.comprador)||{short:'—'};
   const vendedor=anyClubOf(v.vendedor)||{short:'—'};
-  const setor=({GK:'Goleiro',DEF:'Defesa',MID:'Meio-campo',ATT:'Atacante'})[v.pos]||'—';
+  const setor=RF_GENERO.pos(v.pos,'setor')||'—';
   const linha=(r,val)=>rfAcLinhaHTML(r,String(val==null?'—':val),'');
   return rfAcao({ kicker:'MERCADO · LEILÃO DE OUTRO CLUBE',
     titulo:'Venda de jogador por leilão', w:520,

@@ -209,6 +209,10 @@
 <script src="src/data/universos-fem.js"></script>
 <script src="src/engine/world-config-fem.js"></script>
 <script src="src/data/jogadoras-brasil.js"></script>
+<!-- As palavras que mudam com quem joga. Modulo puro, sem dependencia: os rotulos leem dele
+     preguicosamente (dentro das funcoes), entao a ordem aqui nao e' critica -- mas vem antes do
+     motor de propósito, para que ninguem precise descobrir isso mais tarde. -->
+<script src="src/engine/genero.js"></script>
 <script src="src/data/competicoes.js"></script>
 <!-- correções do painel dos sócios por cima do catálogo de fábrica (força, idade, escudo,
      clubes novos). DEPOIS dos dados, porque mexe neles; ANTES do bloco inline abaixo, que

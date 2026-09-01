@@ -378,8 +378,12 @@ function rfLesaoHTML(m,e){
       <button type="button" class="rf-ov-cta" ${alvo?'':'disabled'} onclick="rfInjConfirmar()">Colocar ${escC(alvo?alvo.n.split(' ')[0]:'')}</button>`
   });
 }
-const RF_SETOR_LONGO={GK:'Goleiro',DEF:'Defesa',MID:'Meio',ATT:'Ataque'};
-function rfSetorLongo(s){ return RF_SETOR_LONGO[s]||'Meio'; }
+/* 'Defesa', 'Meio' e 'Ataque' sao setores do CAMPO e nao mudam com quem joga; so' o goleiro e'
+   pessoa, e so' ele vira goleira. */
+function rfSetorLongo(s){
+  const t=(typeof RF_GENERO!=='undefined') ? RF_GENERO.t('Goleiro') : 'Goleiro';
+  return ({GK:t,DEF:'Defesa',MID:'Meio',ATT:'Ataque'})[s]||'Meio';
+}
 /* a penalidade de jogar fora de posição, dita por extenso — é o que a
    referência mostra ("meio · fora de posição −4") */
 function rfForaDePosicao(p, ferido){
