@@ -1,4 +1,4 @@
-# RetroFoot98 (Elifoot 2026)
+# RetroFoot98
 
 > Jogo de futebol manager retrô, gratuito e 100% online, jogável direto no navegador. Assuma um clube do Brasil (Séries A, B, C e D) ou da Europa (Inglaterra, Espanha, Itália, Alemanha, Portugal), escale o time, defina táticas, negocie jogadores, cuide das finanças e do estádio, e dispute ligas e copas — sozinho ou com amigos no modo multiplayer "Resenha" em tempo real.
 
