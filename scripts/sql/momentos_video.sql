@@ -1,0 +1,20 @@
+-- ============================================================
+-- OS MOMENTOS DO JOGO (modais com video) — RetroFoot98
+-- Aplicado em 2026-09-01 (migracao momentos_video_inventario, ja no banco).
+--
+-- Os nove momentos viviam so' no codigo, em dois mapas de ui/main.js
+-- (MOMENTO_DEFS e VIDEOS_MOMENTO): trocar um video obrigava a publicar o site,
+-- e nao havia onde ler quando cada um aparece nem com que frequencia.
+--
+-- O QUE E' EDITAVEL E O QUE NAO E'. video_url, ativo e nota sao do painel. O
+-- GATILHO continua no codigo, de proposito: "foi campeao da liga" e' regra de
+-- jogo, nao configuracao. Mas fica aqui ESCRITO, para quem opera saber o que
+-- dispara cada um sem ler main.js — e `frequencia` descreve o que o codigo ja'
+-- garante (uma vez por temporada, por copa, por clube).
+--
+-- DOIS ESTAO ORFAOS: abertura-copa e final-copa tem modal, texto e botoes, e
+-- nenhuma parte do codigo os dispara. Ficam na tabela marcados como SEM GATILHO
+-- porque escondê-los seria fingir que o inventario esta' completo — subir video
+-- para eles nao os faz aparecer.
+-- ============================================================
+-- (ver a migracao no banco para o DDL completo e o seed dos nove)

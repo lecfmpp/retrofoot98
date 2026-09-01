@@ -255,6 +255,33 @@ window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 window.RF_TREINADORES = window.RF_TREINADORES || {};
 window.RF_TREINADOR_MARCA = window.RF_TREINADOR_MARCA || {};   // {escudoUrl, marcaUrl, escudo, marca}
 window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto por face
+/* ===== OS MOMENTOS (modais de celebração) VÊM DO PAINEL =====
+   O vídeo de cada momento estava num mapa dentro de ui/main.js: trocar um
+   obrigava a publicar o site. Agora a tabela elifoot_v3.momentos manda, e este
+   ficheiro traz o que ela diz — mesma ideia da publicidade.
+
+   O mapa do código continua a existir e vale como PADRÃO: se a tabela não
+   responder, o jogo mostra os vídeos que já vieram no bundle, em vez de abrir
+   os modais pelados. Quem publica um vídeo novo sobrepõe; quem desliga um
+   momento tira-o da lista, e abrirMomento devolve sem desenhar nada. */
+window.RF_MOMENTOS = window.RF_MOMENTOS || {};       // id -> {video_url, ativo}
+function buscarMomentos(){
+  fetch(REST + 'momentos?select=id,video_url,ativo',
+    { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
+    .then(r => r.ok ? r.json() : [])
+    .then(linhas => {
+      const novo = {};
+      for(const m of linhas||[]) if(m && m.id) novo[m.id] = { video: m.video_url||null, ativo: m.ativo !== false };
+      window.RF_MOMENTOS = novo;
+      /* o mapa do jogo é atualizado no lugar: main.js lê VIDEOS_MOMENTO na hora
+         de abrir, então basta o objeto estar em dia quando o momento acontecer */
+      if(window.VIDEOS_MOMENTO) for(const id of Object.keys(novo))
+        if(novo[id].video) window.VIDEOS_MOMENTO[id] = novo[id].video;
+    })
+    .catch(()=>{});
+}
+buscarMomentos();
+
 function buscarFotos(packId){
   if(!packId) return;
   /* A tabela das fotos e' a que ja' passou dos 1000 — ver buscarPaginado. */

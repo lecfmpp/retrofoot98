@@ -4902,7 +4902,10 @@ function clAuctionBidGo(sellerId,player){
    Está null (e não com o caminho) de propósito: um caminho apontando pra arquivo inexistente faz
    o navegador pedir e falhar, sujando o console com 404 a cada abertura. Com null, o <video> nem
    é inserido: a área fica preta, que é exatamente o estado "sem vídeo ainda" pedido. */
-const VIDEOS_MOMENTO = {
+/* `var` e não `const`, e no window: o painel publica vídeo novo e net/dados.js
+   escreve neste mapa ao carregar (ver buscarMomentos). Com `const` de módulo o
+   objeto ficava fora do alcance e a publicação não chegava ao jogo. */
+window.VIDEOS_MOMENTO = {
   // MESMO vídeo de taça pros dois títulos, e de propósito: a cerimônia de campeão é a mesma
   // seja Série A, Série D ou uma copa continental de outro país. Os modais já se adaptam sozinhos
   // ao contexto — o troféu vem da divisão ou da competição, e o título/manchete do estado do jogo.
@@ -4956,6 +4959,11 @@ function momentoAcao(acao){
    simplesmente não é desenhado, em vez de aparecer vazio. */
 function abrirMomento(id, dados, aoFechar){
   const def=MOMENTO_DEFS[id]; if(!def) return;
+  /* MOMENTO DESLIGADO NO PAINEL NÃO ABRE. Serve para tirar do ar uma celebração
+     cujo vídeo saiu errado sem ter de publicar o jogo — e o `!== false` é
+     deliberado: tabela que não respondeu deixa passar, como em todo o resto. */
+  const cfg=(window.RF_MOMENTOS||{})[id];
+  if(cfg && cfg.ativo === false){ if(typeof aoFechar==='function') aoFechar(); return; }
   dados=dados||{};
   /* ===== O TITULO TEM TELA PROPRIA (pacote "modal celebracao copas/ligas") =====
      Copa e liga passam pelo modal de campeao, que monta o resultado da final, a premiacao e a

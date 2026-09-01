@@ -23,6 +23,7 @@ const SB_KEY = 'sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k';
 const SCHEMA = 'admin_rf98';      // schema padrão do painel
 const SCHEMA_JOGO = 'elifoot_v3'; // inventário de anúncios e tempo de jogo
 const BUCKET = 'publicidade';
+const BUCKET_MOMENTOS = 'momentos';
 /* Chaves cujo criativo tambem e' servido de uma MORADA FIXA (<chave>/atual.png),
    porque aparece fora do jogo, em meta tags de HTML estatico que nao sabem
    consultar a base de dados. Hoje e' o cartao de partilha do WhatsApp: ele vale
@@ -350,6 +351,7 @@ const NAV = [
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
+  { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos dos momentos', sub:'Quando cada modal aparece e com que vídeo' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
   { id:'parceiros',   ic:'★', label:'Parceiros',      tit:'Parceiros influenciadores', sub:'Canais, link de indicação e o que ele trouxe' },
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
@@ -377,10 +379,171 @@ function irPara(tab, forcar){
   el('mob-tit').textContent = n.tit;
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
-               financas:pgFinancas, publicidade:pgPublicidade, features:pgFeatures,
+               financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo,
                editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
   fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
+}
+
+/* ============================ VÍDEOS DOS MOMENTOS ============================
+   Os nove modais de celebração do jogo — campeão, artilheiro, acesso, queda,
+   crise — viviam só em dois mapas dentro de ui/main.js. Trocar um vídeo obrigava
+   a publicar o site, e não havia onde ler QUANDO cada um aparece.
+
+   Aqui o painel manda e o jogo lê, igual à publicidade. O que é editável: o
+   vídeo, o ligado/desligado e a nota. O GATILHO não é — "foi campeão da liga" é
+   regra de jogo, não configuração —, mas fica escrito em cada cartão, para quem
+   opera saber o que dispara cada um sem abrir o código. */
+const TOM_MOMENTO = {
+  yellow:{ n:'Comemoração', tag:'t-warn' },
+  green: { n:'Boa notícia',  tag:'t-ok'   },
+  gray:  { n:'Notícia ruim', tag:'t-dim'  },
+};
+async function pgVideos(){
+  const editar = podeEditar('dados');
+  const r = await jogo('momentos').select('*').order('ord');
+  if(r.error) throw r.error;
+  const ms = r.data||[];
+  D.momentos = ms;
+  const comVideo = ms.filter(m=>m.video_url).length;
+  const semGatilho = ms.filter(m=>/SEM GATILHO/i.test(m.quando||'')).length;
+  const desligados = ms.filter(m=>!m.ativo).length;
+
+  const cartao = (m) => {
+    const tom = TOM_MOMENTO[m.tom]||TOM_MOMENTO.gray;
+    const orfao = /SEM GATILHO/i.test(m.quando||'');
+    const prev = m.video_url
+      ? `<div class="prev tem"><video src="${h(m.video_url)}" muted autoplay loop playsinline></video></div>`
+      : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Sem vídeo</span>
+          <span class="mono" style="font-size:11px;color:var(--dim3)">o modal abre igual</span></div>`;
+    return `<div class="slot ${m.ativo?(m.video_url?'no-ar':'livre'):'desligado'}"${m.ativo?'':' style="opacity:.55"'}>
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <b style="display:block;font-size:13.5px;font-weight:700">${h(m.nome)}</b>
+          <small style="display:block;font-size:11.5px;color:var(--dim2)">${h(m.kicker||'')}</small>
+          <code>${h(m.id)}</code>
+        </div>
+        <span class="tag ${tom.tag}">${h(tom.n)}</span>
+      </div>
+      ${prev}
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:7px">
+        <div style="font-size:12px;line-height:1.5">
+          <span style="color:var(--dim2)">Quando:</span> ${orfao
+            ? `<b style="color:var(--ambar)">${h(m.quando)}</b>`
+            : h(m.quando||'—')}</div>
+        <div style="font-size:12px"><span style="color:var(--dim2)">Frequência:</span> <b>${h(m.frequencia||'—')}</b></div>
+        <div style="font-size:12px;line-height:1.5;color:var(--dim)">${h(m.conteudo||'')}</div>
+      </div>
+      ${editar?`<div class="acoes" style="margin-top:11px">
+        <button class="btn btn-sm" data-mom="${h(m.id)}">${m.video_url?'Trocar vídeo':'Subir vídeo'}</button>
+        <button class="btn btn-sm btn-ghost" data-mom-onoff="${h(m.id)}">${m.ativo?'Desligar':'Ligar'}</button>
+      </div>`:''}
+    </div>`;
+  };
+
+  el('page').innerHTML = `
+    <div class="g4" style="margin-bottom:16px">
+      ${kpiHTML({l:'Momentos no jogo', v:num(ms.length), d:'modais de celebração'})}
+      ${kpiHTML({l:'Com vídeo', v:`${comVideo}/${ms.length}`, d:`${ms.length-comVideo} ainda sem`})}
+      ${kpiHTML({l:'Desligados', v:num(desligados), d: desligados? 'não aparecem no jogo':'todos no ar'})}
+      ${kpiHTML({l:'Sem gatilho', v:num(semGatilho), d: semGatilho? 'definidos e nunca disparados':'todos disparam'})}
+    </div>
+    ${semGatilho?`<div class="card card-p" style="margin-bottom:16px">
+      <div class="tt">Dois momentos nunca aparecem</div>
+      <div class="st">Estão definidos no jogo — têm modal, texto e botões — mas nenhuma parte do
+        código os dispara. Subir vídeo para eles não os faz aparecer: falta o gatilho, que é
+        trabalho de código. Estão marcados em âmbar abaixo.</div>
+    </div>`:''}
+    <div class="g3">${ms.map(cartao).join('')}</div>`;
+
+  document.querySelectorAll('[data-mom]').forEach(b =>
+    b.onclick = () => abrirVideoMomento(ms.find(x=>x.id===b.dataset.mom)));
+  document.querySelectorAll('[data-mom-onoff]').forEach(b => b.onclick = async () => {
+    const m = ms.find(x=>x.id===b.dataset.momOnoff);
+    const { error } = await jogo('momentos')
+      .update({ ativo: !m.ativo, atualizado_em: new Date().toISOString() }).eq('id', m.id);
+    if(error) return toast(erroMsg(error), true);
+    toast(m.ativo ? 'Momento desligado.' : 'Momento ligado.'); pgVideos();
+  });
+}
+
+/* ATÉ 15 MB e sem áudio obrigatório: o modal toca o vídeo em laço, mudo, atrás
+   do texto — é ambiente, não peça com som. O limite é o do bucket `momentos`. */
+function abrirVideoMomento(m){
+  if(!m) return;
+  let arquivo = null;
+  abrirModal(`
+    <h3>${h(m.nome)}</h3>
+    <div style="font-size:12.5px;color:var(--dim2);margin:-12px 0 18px">${h(m.quando||'')}</div>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(m.id)}</code>
+        <span style="color:var(--dim2);text-align:right">${h((TOM_MOMENTO[m.tom]||{}).n||'')}</span></div>
+      <div><span style="color:var(--dim2)">Frequência</span><b>${h(m.frequencia||'—')}</b></div>
+      <div><span style="color:var(--dim2)">Peso máx.</span><b>15 MB</b></div>
+      <div class="full" style="color:var(--dim2);line-height:1.5">${h(m.conteudo||'')}</div>
+    </div>
+    <div class="erro hide" id="mv-erro"></div>
+    <div class="col">
+      <div class="drop" id="mv-drop">
+        <div class="t">Arraste o vídeo ou clique</div>
+        <div class="s" id="mv-sub">MP4 ou WEBM até 15 MB · 16:9 · sem som, em laço</div>
+        <input type="file" id="mv-file" accept="video/mp4,video/webm" style="display:none">
+      </div>
+      <label class="f" style="margin-top:10px">Nota interna
+        <input class="f" id="mv-nota" placeholder="ex.: refazer com a taça nova"
+               value="${m.nota?h(m.nota):''}"></label>
+      <div class="acoes" style="margin-top:12px">
+        ${m.video_url?'<button class="btn btn-sm btn-ghost" id="mv-tirar">Tirar o vídeo</button>':''}
+        <button class="btn btn-ghost" data-fechar>Fechar</button>
+        <button class="btn" id="mv-ok">Salvar</button>
+      </div>
+    </div>`, 'lg');
+
+  const erro = el('mv-erro');
+  const falhar = m2 => { erro.textContent = m2; erro.classList.remove('hide'); };
+  const drop = el('mv-drop'), input = el('mv-file');
+  function validar(f){
+    erro.classList.add('hide');
+    const ext = (f.name.split('.').pop()||'').toLowerCase();
+    if(!['mp4','webm'].includes(ext)) return falhar('Só MP4 ou WEBM.');
+    if(f.size > 15*1024*1024) return falhar(`O ficheiro tem ${Math.round(f.size/1048576)} MB; o limite é 15 MB.`);
+    arquivo = f; drop.classList.add('ok');
+    el('mv-sub').textContent = `${f.name} · ${Math.round(f.size/1048576*10)/10} MB`;
+  }
+  drop.onclick = () => input.click();
+  input.onchange = () => { if(input.files[0]) validar(input.files[0]); };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('sobre'); };
+  drop.ondragleave = () => drop.classList.remove('sobre');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('sobre');
+    if(e.dataTransfer.files[0]) validar(e.dataTransfer.files[0]); };
+
+  if(el('mv-tirar')) el('mv-tirar').onclick = async () => {
+    const { error } = await jogo('momentos')
+      .update({ video_url:null, atualizado_em:new Date().toISOString() }).eq('id', m.id);
+    if(error) return falhar(erroMsg(error));
+    fecharModal(); toast('Vídeo retirado — o modal continua a abrir, sem ele.'); pgVideos();
+  };
+
+  el('mv-ok').onclick = async () => {
+    const bt = el('mv-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
+    try{
+      const campos = { nota: el('mv-nota').value.trim() || null,
+                       atualizado_em: new Date().toISOString() };
+      if(arquivo){
+        const ext = (arquivo.name.split('.').pop()||'mp4').toLowerCase();
+        /* o nome leva a hora: o browser guarda vídeo em cache com unhas e
+           dentes, e um caminho fixo mostraria o vídeo antigo depois de trocar */
+        const caminho = `${m.id}-${Date.now()}.${ext}`;
+        const up = await sb.storage.from(BUCKET_MOMENTOS)
+          .upload(caminho, arquivo, { contentType: arquivo.type, upsert:false });
+        if(up.error) throw up.error;
+        campos.video_url = sb.storage.from(BUCKET_MOMENTOS).getPublicUrl(caminho).data.publicUrl;
+      }
+      const { error } = await jogo('momentos').update(campos).eq('id', m.id);
+      if(error) throw error;
+      fecharModal(); toast('Momento atualizado.'); pgVideos();
+    }catch(e){ falhar(erroMsg(e)); bt.disabled=false; bt.textContent='Salvar'; }
+  };
 }
 
 /* ============================ VISÃO GERAL ============================ */
