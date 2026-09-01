@@ -398,6 +398,15 @@ function irPara(tab, forcar){
    vídeo, o ligado/desligado e a nota. O GATILHO não é — "foi campeão da liga" é
    regra de jogo, não configuração —, mas fica escrito em cada cartão, para quem
    opera saber o que dispara cada um sem abrir o código. */
+/* CAMINHO RELATIVO E' DO JOGO, NAO DO PAINEL. Os videos que vieram no bundle
+   estao guardados como 'video/momento-campeao.mp4' — relativo, porque e' assim
+   que o jogo os pede. Aberto no painel, que vive noutro dominio, isso resolvia
+   para retrofoot98-admin.web.app/video/... e o player ficava preto.
+   O que o painel sobe fica com URL absoluta do storage e passa direto. */
+function urlVideo(v){
+  if(!v) return '';
+  return /^https?:\/\//i.test(v) ? v : (JOGO_URL + '/' + String(v).replace(/^\/+/,''));
+}
 const TOM_MOMENTO = {
   yellow:{ n:'Comemoração', tag:'t-warn' },
   green: { n:'Boa notícia',  tag:'t-ok'   },
@@ -417,7 +426,7 @@ async function pgVideos(){
     const tom = TOM_MOMENTO[m.tom]||TOM_MOMENTO.gray;
     const orfao = /SEM GATILHO/i.test(m.quando||'');
     const prev = m.video_url
-      ? `<div class="prev tem video"><video src="${h(m.video_url)}" controls preload="metadata"
+      ? `<div class="prev tem video"><video src="${h(urlVideo(m.video_url))}" controls preload="metadata"
            loop playsinline controlsList="nodownload"></video></div>`
       : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Sem vídeo</span>
           <span class="mono" style="font-size:11px;color:var(--dim3)">o modal abre igual</span></div>`;
@@ -488,7 +497,7 @@ function abrirVideoMomento(m){
       <div class="full" style="color:var(--dim2);line-height:1.5">${h(m.conteudo||'')}</div>
     </div>
     ${m.video_url?`<div class="mv-player">
-      <video src="${h(m.video_url)}" controls preload="metadata" loop playsinline
+      <video src="${h(urlVideo(m.video_url))}" controls preload="metadata" loop playsinline
              controlsList="nodownload"></video></div>`:''}
     <div class="erro hide" id="mv-erro"></div>
     <div class="col">
