@@ -56,6 +56,34 @@
     contratado: ['contratado','contratada'],
     lesionado:  ['lesionado','lesionada'],
     suspenso:   ['suspenso','suspensa'],
+    /* CORPO E PE' — sao adjetivos, e e' onde a ficha mais denunciava o masculino: "destro",
+       "canhoto" e "nato" apareciam ao lado do nome de uma jogadora. */
+    canhoto:    ['canhoto','canhota'],
+    destro:     ['destro','destra'],
+    nato:       ['nato','nata'],
+    /* rotulos de PERFIL, em caixa alta como a ficha os escreve */
+    PERFIL_GK:  ['PERFIL DE GOLEIRO','PERFIL DE GOLEIRA'],
+    PERFIL_DEF: ['PERFIL DE DEFENSOR','PERFIL DE DEFENSORA'],
+    PERFIL_MID: ['PERFIL DE MEIO-CAMPISTA','PERFIL DE MEIO-CAMPISTA'],
+    PERFIL_ATT: ['PERFIL DE ATACANTE','PERFIL DE ATACANTE'],
+    PERFIL_GEN: ['PERFIL DO JOGADOR','PERFIL DA JOGADORA'],
+    /* estados que aparecem em lista e em aviso */
+    Contratado: ['Contratado','Contratada'],
+    Lesionado:  ['Lesionado','Lesionada'],
+    Suspenso:   ['Suspenso','Suspensa'],
+    Titular:    ['Titular','Titular'],
+    Reserva:    ['Reserva','Reserva'],
+    autor:      ['autor','autora'],
+    /* concordancia de frase */
+    deste:      ['deste','desta'],
+    neste:      ['neste','nesta'],
+    Deste:      ['Deste','Desta'],
+    nenhum:     ['nenhum','nenhuma'],
+    Nenhum:     ['Nenhum','Nenhuma'],
+    outro:      ['outro','outra'],
+    Outro:      ['Outro','Outra'],
+    esse:       ['esse','essa'],
+    Esse:       ['Esse','Essa'],
     /* quem comanda — usados por tec(), no outro eixo */
     treinador:  ['treinador','treinadora'],
     Treinador:  ['Treinador','Treinadora'],
@@ -112,6 +140,11 @@
     t: function(chave){ return pega(chave, modo()==='fem'); },
     /* termo do TECNICO */
     tec: function(chave){ return pega(chave, modoTec()==='fem'); },
+    /* o cabecalho "PERFIL DE ..." da ficha, pelo setor */
+    perfil: function(setor){
+      var fem = modo()==='fem';
+      return pega(({GK:'PERFIL_GK',DEF:'PERFIL_DEF',MID:'PERFIL_MID',ATT:'PERFIL_ATT'})[setor] || 'PERFIL_GEN', fem);
+    },
     /* rotulo de posicao a partir do SETOR (GK/DEF/MID/ATT), nos tre^s tamanhos que o jogo usa */
     pos: function(setor, tamanho){
       var fem = modo()==='fem';

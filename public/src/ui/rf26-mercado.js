@@ -155,7 +155,7 @@ const RF_MKT_FILTROS=[
      A lista é lida direto do bundle; o clube só entra no mundo quando se abre negociação
      (ensureForeignClub). O filtro de clube carrega conforme o país escolhido. */
   { k:'pais',  l:'País',    op:()=>rfMktPaisesOp() },
-  { k:'pos',   l:'Posição', op:[['all','Todas'],['GK','Goleiros'],['DEF','Defesa'],['MID','Meio'],['ATT','Ataque']] },
+  { k:'pos',   l:'Posição', op:[['all','Todas'],['GK',(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Goleiros')],['DEF','Defesa'],['MID','Meio'],['ATT','Ataque']] },
   /* ===== A ESCALA DO FILTRO NAO ERA A ESCALA DO JOGO =====
      As opcoes eram 70+/80+/90+, herdadas de um jogo em que a forca vai a 99 na media. Aqui a
      forca REAL do plantel vive noutra faixa: medido nos 5175 jogadores de um save, a mediana e

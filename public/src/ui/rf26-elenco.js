@@ -29,6 +29,11 @@ function rfElBarra(rot, valor, pct, cor){
 /* `tam`: '' (28px, listas densas), 'm' (34px) ou 'g' (54px). É a ÚNICA camisa do
    jogo — o Mercado tinha um desenho próprio, sem gola e com o número em 11px,
    e as duas peças nunca coincidiam lado a lado. */
+/* A CAMADA DE LINGUAGEM, com rede. RF_GENERO mora em engine/genero.js, que so' existe onde o
+   universo feminino existe; sem ele o objeto nulo devolve a palavra como veio, que e' o texto
+   masculino de sempre. Nenhuma tela quebra por causa de um arquivo ausente. */
+const RF_GEN_NULO={ t:x=>x, ehFem:()=>false, perfil:()=>'PERFIL DO JOGADOR' };
+function ehFemEl(){ return (typeof RF_GENERO!=='undefined') && RF_GENERO.ehFem(); }
 /* foto do Estúdio para QUALQUER jogador: pelo clube dele (quando informado),
    pelo clube do usuário, ou pelo nome (cobre mercado/leilão de outros clubes) */
 function rfFotoDe(p, clubId){
@@ -205,13 +210,13 @@ function rfElElencoHTML(){
       <span class="rf-eln-c dim dir">${escC(rfMkFimContrato(p))}</span>
     </div>`;
   }).join('');
-  const setores=[['GK','GOLEIROS'],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']];
+  const setores=[['GK',(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Goleiros').toUpperCase()],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']];
   const resumo=setores.map(([k,l])=>{
     const g=sq.filter(p=>p.s===k);
     const media=g.length?Math.round(g.reduce((t,p)=>t+(p.f||0),0)/g.length):0;
     return `<div class="rf-eln-setor"><span class="rf-fx-microt">${escC(l)}</span>
       <b class="rf-eln-setor-n">${g.length}</b>
-      <span class="rf-eln-setor-s">${media?('força média '+media):'sem jogadores'}</span></div>`;
+      <span class="rf-eln-setor-s">${media?('força média '+media):('sem '+(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('jogadores'))}</span></div>`;
   }).join('');
   const seletor=[20,50,100].map(n=>`<span class="rf-eln-rows ${mostrar===n?'on':''}" onclick="rfElnRows(${n})">${n}</span>`).join('');
   return `
@@ -285,7 +290,7 @@ function rfSelPlayer(pid){
    ===================================================================== */
 function rfElRenovarGo(pid){
   const p=squad(CL.clubId).find(x=>String(x.pid)===String(pid));
-  if(!p){ toastC('Esse jogador não está mais no elenco.'); CL.acao=null; cdraw(); return; }
+  if(!p){ toastC(`${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('Esse')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('jogador')} não está mais no elenco.`); CL.acao=null; cdraw(); return; }
   const salAtual=(p.contract&&p.contract.salary)||p.salary||0;
   const novo=(typeof rfMkVal==='function')?rfMkVal('rf-ac-novo'):0;
   const anosEl=document.querySelector('#rf-ac-anos');
@@ -498,7 +503,7 @@ function rfFxEvolucaoHTML(p){
   const fontes=g.fontes.slice(0,3).map(f=>
     `<span class="rf-fx-linha"><span class="rf-sp2">${f.sinal>0?'▲':'▼'} ${escC(f.label)}</span><b style="color:${f.sinal>0?'#2f8f2f':'#c0453f'}">${(typeof ritmoPct==='function')?ritmoPct(f.chance):''}/rodada</b></span>`).join('');
   const vazio=`<div class="rf-fx-aviso"><img src="img/treino-especial-cone.webp" width="14" height="14" alt="" style="opacity:.45">
-    <span>${p.age>=31?'Fora da faixa de crescimento pela idade. Treino especial não rende mais neste jogador.':'Precisa jogar bem (nota ≥ 6,8) ou entrar em treino especial para evoluir.'}</span></div>`;
+    <span>${p.age>=31?`Fora da faixa de crescimento pela idade. Treino especial não rende mais ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('neste')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('jogador')}.`:'Precisa jogar bem (nota ≥ 6,8) ou entrar em treino especial para evoluir.'}</span></div>`;
   const salto=Math.round((g.porPonto||0)*10)/10;
   return `<div class="rf-card rf-fx-card rf-fx-evolucao">
     <span class="rf-fx-microt">COMO A FORÇA EVOLUI</span>
@@ -565,7 +570,7 @@ function rfElFichaHTML(clubIdArg, pidArg){
   const sq=squad(cid);
   const alvoPid = pidArg || (doMeu?CL.selPlayer:CL.viewSelPlayer);
   const p=sq.find(x=>x.pid===alvoPid)||sq[0];
-  if(!p) return rfCol(rfCard('Ficha do jogador','<div class="rf-empty">Selecciona um jogador no Elenco.</div>'));
+  if(!p) return rfCol(rfCard(`Ficha ${ehFemEl()?'da':'do'} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('jogador')}`,`<div class="rf-empty">Selecciona ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('um')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('jogador')} no Elenco.</div>`));
   const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(cid):{};
   const num=nums[p.pid]||p.num||'';
   const en=Math.round(p.energy!=null?p.energy:100);
@@ -576,18 +581,18 @@ function rfElFichaHTML(clubIdArg, pidArg){
   const pais=(typeof universeCountryInfo==='function')?((universeCountryInfo()||{}).name||''):'';
   const ff=rfFxForteFraco(p);
   const ehGK=p.s==='GK';
-  const perfil={GK:'PERFIL DE GOLEIRO',DEF:'PERFIL DE DEFENSOR',MID:'PERFIL DE MEIO-CAMPISTA',ATT:'PERFIL DE ATACANTE'}[p.s]||'PERFIL DO JOGADOR';
+  const perfil=(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).perfil(p.s);
   const carreira=rfFxCarreira(p);
   const tot=(typeof careerHistTotals==='function')?careerHistTotals(p):{injuries:0};
   const sal=(typeof playerSalary==='function')?playerSalary(p):0;
-  const notaGK=`Reflexos e mãos pesam 64% da força de um goleiro e entram direto no rating dele na partida.`;
-  const notaLinha=`Finalização decide quem marca o gol e quem bate pênalti — um artilheiro nato finaliza melhor que um "faz-tudo" da mesma força.`;
+  const notaGK=`Reflexos e mãos pesam 64% da força de ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('um')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('goleiro')} e entram direto no rating ${ehFemEl()?'dela':'dele'} na partida.`;
+  const notaLinha=`Finalização decide quem marca o gol e quem bate pênalti — ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('um')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('artilheiro')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('nato')} finaliza melhor que ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('um')} "faz-tudo" da mesma força.`;
   return `
     <div class="rf-card rf-fx-ident">
       ${crest?`<img class="rf-fx-ident-crest" src="${escC(crest)}" alt="Escudo">`:(typeof clubCrestHTML==='function'?clubCrestHTML(clube):'')}
       <div class="rf-fx-ident-id">
         <div class="rf-fx-ident-l1"><span class="rf-fx-num">${escC(String(num))}</span><b>${escC(p.n)}</b></div>
-        <span class="rf-fx-ident-sub">${escC(rfPosInicial(p.s))} · ${p.age||'?'} anos · ${p.ft==='L'?'canhoto':'destro'}${p.nat?' · '+((typeof rfNacHTML==='function')?rfNacHTML(p)+' ':'')+escC(p.nat):''} · ${escC(clube.short||'')}</span>
+        <span class="rf-fx-ident-sub">${escC(rfPosInicial(p.s))} · ${p.age||'?'} anos · ${escC((typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t(p.ft==='L'?'canhoto':'destro'))}${p.nat?' · '+((typeof rfNacHTML==='function')?rfNacHTML(p)+' ':'')+escC(p.nat):''} · ${escC(clube.short||'')}</span>
       </div>
       ${rfFxNavHTML(p, cid)}
       <div class="rf-fx-ident-acts">
@@ -625,7 +630,7 @@ function rfElFichaHTML(clubIdArg, pidArg){
               `<span class="rf-fx-nota caixa">${escC(ehGK?notaGK:notaLinha)}</span>`)}
           </div>
         </div>
-        <span class="rf-fx-rodape">Os 16 atributos vão de 1 a 20 e evoluem rodada a rodada. Eles alimentam a força do jogador pelo perfil da posição — e finalização, reflexos e mãos ainda entram direto na partida, decidindo gol, pênalti e defesa.</span>
+        <span class="rf-fx-rodape">Os 16 atributos vão de 1 a 20 e evoluem rodada a rodada. Eles alimentam a força ${ehFemEl()?'da':'do'} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:RF_GEN_NULO).t('jogador')} pelo perfil da posição — e finalização, reflexos e mãos ainda entram direto na partida, decidindo gol, pênalti e defesa.</span>
       </div>
       <div class="rf-fx-lateral">
         <div class="rf-card rf-fx-card">

@@ -45,16 +45,16 @@ function rfNotasHTML(){
   const assist=(artilheiro&&artilheiro.stats&&artilheiro.stats.assists)||0;
   return `<div class="rf-card rf-notas">
     ${gols
-      ? linha('Artilheiro do clube', artilheiro.n,
+      ? linha((typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Artilheiro')+' do clube', artilheiro.n,
           'gols em '+jogos+(jogos===1?' jogo':' jogos')+(assist?' · '+assist+' assistências':''), gols, artilheiro)
-      : linha('Artilheiro do clube','—','ninguém marcou ainda','0')}
+      : linha((typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Artilheiro')+' do clube','—','ninguém marcou ainda','0')}
     ${destaque
       ? linha('Destaque da semana', destaque.n, 'nota do último jogo',
           String(notaDe(destaque)).replace('.',','), destaque)
       : linha('Destaque da semana','—','a primeira semana ainda não foi jogada','—')}
     ${baixa
       ? linha('Em baixa', baixa.n,
-          (baixa.injuredMatches>0?'lesionado':baixa.suspended>0?'suspenso':'energia baixa'),
+          (baixa.injuredMatches>0?(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('lesionado'):baixa.suspended>0?(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('suspenso'):'energia baixa'),
           Math.round(baixa.energy!=null?baixa.energy:100)+'%', baixa)
       : ''}
   </div>`;
@@ -155,7 +155,10 @@ function rfPitchMetaHTML(p){
    camisa 30x28 com colete | nome + barra de energia | força.
    O colete (o retangulo da cor secundaria por cima do corpo) é o que
    diferencia, de relance, quem esta no banco de quem esta em campo. */
-const RF_BANCO_GRUPOS = [['GK','GOLEIROS'],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']];
+/* o rotulo do grupo de goleiros muda com a modalidade; DEFESA/MEIO/ATAQUE sao setores do campo,
+   nao pessoas, e por isso nao mudam. Funcao, e nao constante, porque a modalidade so' se conhece
+   depois de o save existir. */
+function rfBancoGrupos(){ return [['GK',(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Goleiros').toUpperCase()],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']]; }
 function rfBancoJerseyHTML(th, num){
   const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
   // O COLETE NÃO É COR DE CLUBE. Colete de verdade é uma peça avulsa, viva,
@@ -172,7 +175,7 @@ function rfBancoJerseyHTML(th, num){
 function rfBancoHTML(th, nums){
   const xiSet=new Set(S.xi||[]);
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid));
-  const grupos = RF_BANCO_GRUPOS.map(([sec,rot])=>{
+  const grupos = rfBancoGrupos().map(([sec,rot])=>{
     const list=banco.filter(p=>p.s===sec).slice().sort((a,b)=>b.f-a.f);
     if(!list.length) return '';
     const linhas=list.map(p=>{
