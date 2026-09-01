@@ -555,21 +555,25 @@
    fixos com `margin:0 auto`, e num monitor de 1440 caía em x=235 enquanto a
    faixa do clube — a barra logo abaixo dele — começava em x=264. Duas peças
    empilhadas, dois alinhamentos diferentes. Agora divide a caixa da faixa. */
-.rf-ad-top{width:100%;height:90px;border-radius:var(--r-inner);
-  overflow:hidden;background:var(--surface-sunken);border:var(--border-hairline);
-  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+/* A CAIXA TEM A PROPORCAO DO FORMATO VENDIDO, e nao uma altura fixa. Com
+   `height:90px` numa coluna de 1324 a caixa ficava 14,7:1 enquanto o criativo
+   de 970×90 e' 10,8:1 — a arte entrava 123px de altura numa caixa de 90 e
+   perdia mais de um quarto, cortada em cima e em baixo. `aspect-ratio` deixa a
+   caixa acompanhar a coluna sem nunca sair da proporcao do anuncio.
+   SEM MOLDURA POR BAIXO DA ARTE: a borda clara e o fundo sao do LUGAR VAZIO
+   (.rf-adph traz os seus) — ver a nota em .rf-ad mais abaixo. */
+.rf-ad-top{width:100%;aspect-ratio:970/90;border-radius:var(--r-inner);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 /* A FAIXA DA RODADA AO VIVO USA A MOLDURA DA FAIXA DE TOPO. Ela pega a largura
    da coluna (ver .rf-ad-inline em main.css) e o criativo entra `contain`: quem
    publicar fora de 970×90 sobra espaço nas pontas, e esse espaço tem de ser a
    superfície da página — sobre o preto do .rf-ad ele lia como duas abas pretas
    coladas ao anúncio, defeito que parece do jogo e não da arte. */
-.rf-ad-inline{background:var(--surface-sunken);border:var(--border-hairline);
-  border-radius:var(--r-inner);overflow:hidden}
+.rf-ad-inline{border-radius:var(--r-inner);overflow:hidden}
 [data-ad-rail]{width:160px;flex:0 0 auto;position:sticky;top:18px;display:flex;
   flex-direction:column;gap:12px}
 [data-ad-rail] .rf-ad-slot{width:160px;height:600px;border-radius:var(--r-inner);overflow:hidden;
-  background:var(--surface-sunken);border:var(--border-hairline);display:flex;
-  align-items:center;justify-content:center}
+  display:flex;align-items:center;justify-content:center}
 .rf-ad-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:320px;height:50px;
   z-index:40;background:var(--surface-card);border:var(--border-hairline);border-bottom:none;
   border-radius:var(--r-inner) var(--r-inner) 0 0;overflow:hidden;display:flex;
@@ -8423,7 +8427,7 @@
   color:var(--text-faint,#9aa79e);text-transform:uppercase;font-family:var(--font-mono,monospace)}
 .rf-adph-f{font-family:var(--font-mono,monospace);font-size:10px;color:var(--text-4,#9aa79e);opacity:.75}
 /* cada espaço com a sua medida, para o marcador ocupar EXATAMENTE o que o anúncio vai ocupar */
-.rf-adph.rf-ad-top{width:100%;height:90px}
+.rf-adph.rf-ad-top{width:100%;aspect-ratio:970/90;height:auto}
 .rf-adph.rf-ad-slot{width:160px;height:600px}
 .rf-adph.rf-ad-rect{width:100%;max-width:300px;height:250px;margin:8px auto 0}
 .rf-adph.rf-ad-inline{width:100%;aspect-ratio:970/90;margin:10px 0}
@@ -8450,7 +8454,16 @@
 body.rf-tem-anchor .rf-content{padding-bottom:106px}
 @media (max-width:760px){
   .rf-adph.rf-anchor{width:100vw;height:50px}   /* 320×50 é o formato de telefone */
-  .rf-adph.rf-ad-top{height:100px}
+  /* NO TELEFONE O FORMATO VENDIDO E' 320×100 — e' essa a medida que o LUGAR
+     VAZIO reserva. Mas o espaco guarda um criativo so', e o painel aceita a
+     medida de desktop OU a de telemovel (ver modalUpload em admin.js): nao da'
+     para saber, no CSS, qual das duas foi publicada. Entao, COM CRIATIVO, a
+     caixa toma a altura DA ARTE — quem publicou 320×100 enche a caixa toda, e
+     quem publicou 970×90 fica com uma faixa fina e inteira, em vez de um
+     anuncio pequeno a boiar no meio de uma caixa alta. */
+  .rf-ad-top,.rf-adph.rf-ad-top{aspect-ratio:320/100;height:auto}
+  .rf-ad.rf-ad-top,.rf-ad.rf-ad-inline{aspect-ratio:auto}
+  .rf-ad.rf-ad-top .rf-ad-art,.rf-ad.rf-ad-inline .rf-ad-art{height:auto}
   /* No telefone a barra de navegacao ja mora no rodape: a ancora fica ACIMA dela. A conta e a
      altura real da nav — conteudo (47px) + o padding de baixo (12px) + a area segura do
      aparelho, que a propria nav ja soma. Medida no telefone: 67px sem area segura. */

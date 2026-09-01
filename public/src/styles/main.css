@@ -1929,8 +1929,32 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    esta peça: a arte inteira, sem o cartão-casa por baixo. Mesma moldura rebaixada e mesmo
    rótulo "PUBLICIDADE" (herdados de .cl-ad) — o que muda é o conteúdo.
    TODOS estes blocos só existem no HTML quando há criativo: espaço vazio não é desenhado. */
-.rf-ad{position:relative;overflow:hidden;background:#0a0a0a;line-height:0}
+/* A ARTE E' A PECA INTEIRA, ATE' NO CANTO ARREDONDADO.
+   O espaco desenhava uma moldura clara por baixo do criativo — 1px de borda e o
+   fundo da superficie — e o recorte arredondado comia o canto QUADRADO da arte:
+   sobrava uma meia-lua clara em cada canto, que lia como falha de preenchimento
+   do anuncio. A moldura pertence ao LUGAR VAZIO, e o marcador (.rf-adph) ja'
+   traz a sua; aqui ela sai, e o que o raio recorta passa a ser a propria arte.
+   O fundo fica transparente: se um criativo vier fora de proporcao, o que sobra
+   e' a pagina, nao uma tarja preta. */
+.rf-ad{position:relative;overflow:hidden;background:transparent;line-height:0}
 .rf-ad .rf-ad-art{display:block;width:100%;height:auto;max-height:250px;object-fit:contain}
+/* A ARTE PREENCHE A CAIXA, ponta a ponta — a caixa ja' vem na proporcao do
+   formato que o painel vende, entao o criativo na medida certa nao sobra nem
+   falta em lado nenhum.
+
+   `cover` NOS TRILHOS, `contain` NAS FAIXAS, e a razao e' o painel: um espaco
+   guarda UM criativo so', e a validacao do upload aceita a medida de desktop OU
+   a de telemovel (ver modalUpload em public/admin/admin.js). O trilho tem uma
+   medida unica — 160×600 nas duas — e ai' `cover` fecha ate' a fresta de meio
+   pixel de um upload um pixel fora. As faixas tem duas medidas e uma arte so':
+   com `cover`, quem comprasse em 970×90 teria o anuncio decepado no telemovel,
+   onde a caixa e' 320×100. `contain` preenche igual quando a arte bate com a
+   caixa e, quando nao bate, mostra o anuncio INTEIRO, menor — cortar a mensagem
+   de quem pagou e' pior do que sobrar pagina em volta. */
+.rf-ad-slot .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:cover}
+.rf-ad-top .rf-ad-art,.rf-ad-inline .rf-ad-art{
+  width:100%;height:100%;max-height:none;object-fit:contain}
 .rf-ad.cl-ad{margin:12px 0 0;border:1px solid var(--line-1)}
 .rf-ad.cl-ad:before{content:"PUBLICIDADE";position:absolute;top:0;left:0;z-index:1;
   background:var(--chrome);color:#4a4a4a;font:700 9px/1 var(--sans);letter-spacing:1px;padding:2px 6px}
@@ -1945,8 +1969,8 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    skyscraper, arte entregue do tamanho de um selo. A altura aqui é a do trilho, e
    `contain` continua a mandar: arte fora da proporção fica com tarja, nunca
    esticada. O TAMANHO do trilho continua a vir de `[data-ad-rail] .rf-ad-slot`
-   (rf26.css), que é quem manda nos dois estados do espaço — com e sem criativo. */
-.rf-ad-slot .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:contain}
+   (rf26.css), que é quem manda nos dois estados do espaço — com e sem criativo.
+   COMO A ARTE PREENCHE, ver a regra de `cover` no topo deste bloco. */
 /* splash da tela de carregamento (16:9) e cartão do convite (1200×630) */
 .rf-ad-splash,.rf-ad-card{margin:14px auto;max-width:520px;border:1px solid var(--line-1)}
 .rf-ad-splash .rf-ad-art,.rf-ad-card .rf-ad-art{max-height:none}
@@ -1959,7 +1983,6 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    acompanhar a coluna sem cortar o criativo — mesma receita de .rf-ad-entrada.
    A medida também mudou em elifoot_v3.ad_spaces: as duas pontas do contrato. */
 .rf-ad-inline{margin:10px 0;width:100%;max-width:none;aspect-ratio:970/90}
-.rf-ad-inline .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:contain}
 /* FAIXA ÂNCORA — o único espaço por cima do conteúdo. Fica presa ao rodapé, centrada, e
    reserva o seu próprio espaço com padding no fim da página (ver .cl-lp-page/.cl-wrap). */
 .rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
