@@ -185,11 +185,15 @@ async function entrarNoPainel(silencioso){
 const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'Produto', leitura:'Leitura' };
 /* o que cada papel vê (o guia: socio=tudo, financeiro=Finanças+Publicidade,
    produto=Analytics/Usuários/Funcionalidades, leitura=tudo em modo leitura) */
+/* PAGINA NOVA TEM DE ENTRAR AQUI TAMBEM. O menu e' filtrado por podeVer(), e
+   uma aba ausente deste mapa nao aparece para NINGUEM — nem para o socio. Foi o
+   que aconteceu com 'videos': a pagina existia, a rota existia, e o item nunca
+   chegou ao menu. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','estudio','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa'],
   financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','parceiros','conteudo','features','editor','estudio'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','parceiros','conteudo','features','editor','estudio']
+  produto:    ['visao','usuarios','jogos','analytics','videos','parceiros','conteudo','features','editor','estudio'],
+  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
