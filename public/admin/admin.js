@@ -1454,6 +1454,19 @@ async function pgPublicidade(){
     });
     document.querySelectorAll('[data-upload]').forEach(b => b.onclick = () => modalUpload(b.dataset.upload));
     document.querySelectorAll('[data-placas]').forEach(b => b.onclick = () => modalPlacas(b.dataset.placas));
+    /* LIGAR/DESLIGAR O ESPACO. Desligar NAO mexe no criativo: ele fica publicado,
+       so' deixa de ser desenhado. Voltar a ligar devolve exatamente o que la' estava
+       -- e' por isso que isto e' um interruptor e nao um "tirar do ar". */
+    document.querySelectorAll('[data-ligar]').forEach(b => b.onclick = async () => {
+      const ligar = b.dataset.ligado === '0';
+      if(!ligar && !confirm('Desligar este espaço? O jogo deixa de o desenhar — o criativo continua publicado e volta assim que ligares outra vez.')) return;
+      b.disabled = true;
+      const { error } = await jogo('ad_spaces').update({ ligado: ligar }).eq('chave', b.dataset.ligar);
+      if(error){ b.disabled = false; return toast(erroMsg(error), true); }
+      registrar(ligar?'espaco.ligar':'espaco.desligar', b.dataset.ligar);
+      toast(ligar ? 'Espaço ligado — volta a aparecer no jogo.' : 'Espaço desligado — sai da tela do jogo.');
+      pgPublicidade();
+    });
     document.querySelectorAll('[data-tirar]').forEach(b => b.onclick = async () => {
       if(!confirm('Tirar este criativo do ar? O espaço deixa de ser desenhado no jogo.')) return;
       const { error } = await jogo('ad_creatives').update({ ativo:false }).eq('id', b.dataset.tirar);
@@ -1487,14 +1500,15 @@ function slotHTML(e, editar){
         : `<img src="${h(c.ficheiro_url)}" alt="">`}</div>`
     : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Espaço livre</span>
         <span class="mono" style="font-size:11px;color:var(--dim3)">${e.w}×${e.h}</span></div>`);
-  return `<div class="slot ${c?'no-ar':'livre'}">
+  const off = e.ligado === false;
+  return `<div class="slot ${off?'desligado':(c?'no-ar':'livre')}"${off?' style="opacity:.55"':''}>
     <div style="display:flex;align-items:flex-start;gap:8px">
       <div style="flex:1;min-width:0">
         <b style="display:block;font-size:13.5px;font-weight:700">${h(e.nome)}</b>
         <small style="display:block;font-size:11.5px;color:var(--dim2)">${h(e.local)}</small>
         <code>${h(e.chave)}</code>
       </div>
-      <span class="tag ${e.tipo==='modal'?'t-roxo':'t-azul'}">${e.tipo==='modal'?'Modal':'Página'}</span>
+      ${off?'<span class="tag t-dim">Desligado</span>':`<span class="tag ${e.tipo==='modal'?'t-roxo':'t-azul'}">${e.tipo==='modal'?'Modal':'Página'}</span>`}
     </div>
     ${prev}
     <div class="meta-l">
@@ -1520,7 +1534,12 @@ function slotHTML(e, editar){
           ? ((e.criativos||[]).length ? (e.criativos||[]).map(x=>h(x.patrocinador||('Placa '+x.posicao))).join(' · ') : 'Nenhuma placa vendida')
           : (c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '') : 'Sem criativo')}
       </span>
-      ${editar ? (e.placas
+      ${editar ? `<button class="btn btn-sm btn-ghost" data-ligar="${h(e.chave)}"
+        data-ligado="${off?'0':'1'}" title="${off
+          ? 'O jogo não desenha este espaço. Ligar faz o lugar voltar à tela.'
+          : 'Desligar tira o lugar da tela do jogo, sem deixar buraco no layout.'}"
+        >${off?'Ligar':'Desligar'}</button>` : ''}
+      ${editar && !off ? (e.placas
         ? `<button class="btn btn-sm" data-placas="${h(e.chave)}">Gerir placas</button>`
         : (c?`<button class="btn btn-sm btn-ghost" data-tirar="${c.id}">Tirar</button>`:'') +
           `<button class="btn btn-sm" data-upload="${h(e.chave)}">${c?'Trocar':'Enviar'}</button>`) : ''}

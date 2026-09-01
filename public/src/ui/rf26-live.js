@@ -554,19 +554,30 @@ function rfCamCtaHTML(k){
     style="background:${escC(cor.bg)};color:${escC(cor.fg)}"
     onclick="ADS.clique('${escC(chave)}')">${escC(txt)}</button>`;
 }
+/* lugar desligado no painel nao entra na banda; com os cinco desligados a banda
+   inteira sai, e o pe' do Camarote fecha sem faixa nenhuma em vez de mostrar uma
+   moldura vazia com um rotulo dentro */
+function rfCamLugarLigado(k){
+  if(!(window.ADS && ADS.ligado)) return true;
+  return ADS.ligado(RF_CAM_LOGOS[k]) || (k===0 && ADS.ligado(RF_CAM_LOGO1_ALT));
+}
+/* os lugares que de facto estao na banda, na ordem em que aparecem */
+function rfCamLugares(){ return RF_CAM_LOGOS.map((_,k)=>k).filter(rfCamLugarLigado); }
 function rfCamPatroHTML(){
-  /* o destaque inicial é o do lugar 1; camUpdate assume a partir daí */
-  const pecas=RF_CAM_LOGOS.map((_,k)=>{
+  const lugares=rfCamLugares();
+  if(!lugares.length) return '';
+  /* o destaque inicial é o do primeiro lugar ligado; camUpdate assume a partir daí */
+  const pecas=lugares.map((k,i)=>{
     const { chave, c } = rfCamLogo(k);
-    if(c) return `<img class="rf-cam-ad${k===0?' on':''}" src="${escC(c.ficheiro_url)}" alt="Patrocinador"
+    if(c) return `<img class="rf-cam-ad${i===0?' on':''}" src="${escC(c.ficheiro_url)}" alt="Patrocinador"
       data-ad-chave="${escC(chave)}" data-ad-id="${escC(c.id)}"
       ${c.link_destino?`style="cursor:pointer" onclick="ADS.clique('${escC(chave)}')"`:''}>`;
     return `<span class="rf-cam-ad rf-cam-ad-vazio" data-ad-vazio="${escC(chave)}">240×80</span>`;
   }).join('');
-  const temAlgum=RF_CAM_LOGOS.some((_,k)=>!!rfCamLogo(k).c);
+  const temAlgum=lugares.some(k=>!!rfCamLogo(k).c);
   return `<div class="rf-cam-patro">
     <span class="rf-cam-patro-l">${temAlgum?'CAMAROTE APRESENTADO POR':'PATROCINADORES DO CAMAROTE'}</span>
     <div class="rf-cam-patro-marcas">${pecas}</div>
-    ${rfCamCtaHTML(0)}
+    ${rfCamCtaHTML(lugares[0])}
   </div>`;
 }

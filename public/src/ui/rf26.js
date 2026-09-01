@@ -1012,6 +1012,15 @@ function rfIrEscolherTatica(){
    ===================================================================== */
 function rfAdEspaco(chave, opts){
   opts=opts||{};
+  /* ESPACO DESLIGADO NAO DESENHA NADA -- nem criativo, nem marcador, nem o criativo
+     de casa. E' a diferenca entre "ainda nao vendi" (o lugar aparece, reservado, e
+     e' isso que deixa conferir o inventario) e "este lugar nao existe nesta tela".
+     Quem desliga e' o painel (ad_spaces.ligado). Devolver '' aqui chega para os
+     espacos que sao filhos diretos de uma coluna ou de um flex: sem elemento, sem
+     `gap`, e o resto da pagina fecha sozinha. Os poucos que vivem dentro de um
+     contentor proprio -- os trilhos, a banda do Camarote -- tratam disso no seu
+     proprio ponto de desenho, senao ficava o contentor vazio a ocupar lugar. */
+  if(window.ADS && ADS.ligado && !ADS.ligado(chave)) return '';
   const real=window.ADS?ADS.html(chave,{cls:opts.cls||''}):'';
   if(real) return real;
   /* CRIATIVO DE CASA: um patrocinador fixo pode ocupar o espaco enquanto o painel nao publica
@@ -1040,6 +1049,10 @@ function rfAdEspaco(chave, opts){
 const RF_RAIL_CHAVE = { left:'esq', right:'dir' };
 function rfRail(lado){
   const chave = 'rf98.rail.' + (RF_RAIL_CHAVE[lado] || lado);
+  /* O CONTENTOR SAI JUNTO. `[data-ad-rail]` tem largura fixa de 160px e entra no
+     `gap` da fila: devolver so' o interior vazio deixaria uma coluna de 160px de
+     nada ao lado do conteudo, que e' exatamente o buraco que desligar devia evitar. */
+  if(window.ADS && ADS.ligado && !ADS.ligado(chave)) return '';
   return `<div data-ad-rail="${lado}">${rfAdEspaco(chave,{cls:'rf-ad-slot',formato:'160×600'})}</div>`;
 }
 /* =====================================================================

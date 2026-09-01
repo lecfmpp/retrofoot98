@@ -383,6 +383,8 @@ function menuSairHTML(){
    o que preenche o espaço enquanto ninguém comprou aquela chave. */
 function adSlotHTML(slot, opts){
   opts = typeof opts==='string' ? {cls:opts} : (opts||{});
+  // espaco desligado no painel: a janela fecha sem a faixa, e sem sobra de margem
+  if(window.ADS && ADS.ligado && !ADS.ligado(slot)) return '';
   if(window.ADS){ const real=ADS.html(slot, {cls:'cl-ad '+(opts.cls||'')}); if(real) return real; }
   /* espaco de venda (chave rf98.*) sem criativo: mostra o LUGAR, nao o anuncio-casa — e o
      inventario que o painel vende, e ele tem de ser visivel para se poder conferir */
@@ -5522,9 +5524,15 @@ function pitchAdArte(chave, pos){
 }
 function pitchAdsHTML(lado, n, off){
   const chave = (lado==='left'||lado==='right') ? 'rf98.campo.empe' : 'rf98.campo.deitada';
+  /* AS PLACAS DESLIGADAS VOLTAM AO ROTULO DE CASA, e nao desaparecem. Aqui elas
+     nao sao um bloco solto na pagina: sao a moldura do campo, tres de cada lado.
+     Tirar as seis colapsaria o desenho do estadio -- desligar o ESPACO significa
+     "nao vendo isto agora", nao "apaga a placa". Quem desliga ve' o campo como ele
+     era antes de as placas entrarem no inventario. */
+  const vendavel = !(window.ADS && ADS.ligado && !ADS.ligado(chave));
   let out='';
   for(let i=0;i<n;i++){
-    const arte=pitchAdArte(chave, i+1);     // as posicoes sao 1..3, como o painel as mostra
+    const arte=vendavel ? pitchAdArte(chave, i+1) : '';   // posicoes 1..3, como o painel as mostra
     if(arte){ out+=arte; continue; }
     const a=PITCH_ADS[(i+(off||0))%PITCH_ADS.length];
     out+=`<div class="cl-pitch-ad ${a.c}"><span>${escC(a.t)}</span></div>`; }
@@ -8853,7 +8861,12 @@ function camUpdate(){
      nesse caso o HTML vem vazio e o botão sai da banda até o próximo. */
   const banda=document.querySelector('.rf-cam-patro');
   if(banda && typeof rfCamCtaHTML==='function'){
-    const novo=rfCamCtaHTML(i), atual=banda.querySelector('.rf-cam-cta');
+    /* `i` conta as pastilhas QUE ESTAO NA TELA; o botao pertence a um LUGAR do
+       inventario. Com um lugar desligado no painel os dois deixam de coincidir, e
+       sem esta traducao o botao passava a ser o do patrocinador errado. */
+    const lug=(typeof rfCamLugares==='function')?rfCamLugares():null;
+    const k=(lug && lug.length)?(lug[i%lug.length]):i;
+    const novo=rfCamCtaHTML(k), atual=banda.querySelector('.rf-cam-cta');
     const chaveAtual=atual?atual.getAttribute('data-ad-cta'):'';
     // só mexe no DOM quando muda de patrocinador: trocar a cada minuto mataria o :hover
     if(!novo && atual) atual.remove();

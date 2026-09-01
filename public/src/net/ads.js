@@ -46,13 +46,14 @@ const CACHE_KEY = 'rf98:ads:v1';
 const REFRESH_MS = 5*60*1000;   // o painel publica a qualquer hora; 5 min é o atraso máximo
 
 let porChave = {};              // chave -> criativo no ar
+let desligados = {};            // chave -> true, para os espacos que o painel desligou
 let carregado = false;
 
 /* cache local: a primeira pintura da sessão não espera a rede (e uma queda de
    rede não apaga o anúncio de quem já o tinha visto) */
 try{
   const c = JSON.parse(localStorage.getItem(CACHE_KEY)||'null');
-  if(c && c.t && (Date.now()-c.t) < 24*3600*1000) porChave = c.v||{};
+  if(c && c.t && (Date.now()-c.t) < 24*3600*1000){ porChave = c.v||{}; desligados = c.off||{}; }
 }catch(e){}
 
 async function carregar(){
@@ -91,8 +92,22 @@ async function carregar(){
       const k = (c.posicao==null) ? c.chave_espaco : (c.chave_espaco+'#'+c.posicao);
       if(!novo[k]) novo[k] = c;   // o mais recente vence (order desc)
     });
-    porChave = novo; carregado = true;
-    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ t:Date.now(), v:novo })); }catch(e){}
+    porChave = novo;
+
+    /* OS ESPACOS DESLIGADOS VEM NUMA SEGUNDA LEITURA, e so' eles: `ligado=eq.false`
+       devolve tipicamente ZERO linhas, que e' o custo certo para o caso normal. O
+       espaco desligado nao e' "sem criativo" -- e' um lugar que o jogo nao desenha
+       de todo, nem com o marcador, nem com o criativo de casa. Quem trata disso e'
+       rfAdEspaco (ui/rf26.js) e os poucos sitios que embrulham o espaco num
+       contentor proprio, que tem de sair junto para nao ficar buraco. */
+    try{
+      const ro = await fetch(REST + 'ad_spaces?select=chave&ligado=eq.false',
+        { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } });
+      if(ro.ok){ const off = {}; (await ro.json()).forEach(e => { off[e.chave] = true; }); desligados = off; }
+    }catch(e){}
+
+    carregado = true;
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify({ t:Date.now(), v:novo, off:desligados })); }catch(e){}
     // redesenha só se já havia tela montada (a primeira carga acontece antes disso)
     if(typeof cdraw==='function' && typeof CL!=='undefined' && CL && CL.screen) cdraw();
   }catch(e){
@@ -103,8 +118,18 @@ async function carregar(){
 carregar();
 setInterval(carregar, REFRESH_MS);
 
-/* `pos` so' e' passada pelos espacos de placas; sem ela, o comportamento de sempre */
-function get(chave, pos){ return porChave[pos==null?chave:(chave+'#'+pos)] || null; }
+/* O ESPACO ESTA LIGADO? Desconhecido conta como ligado, de proposito: uma chave
+   que ainda nao esta no inventario (ou uma leitura que falhou) tem de continuar a
+   desenhar como sempre. So' o "nao" explicito do painel apaga um lugar. */
+function ligado(chave){ return !desligados[chave]; }
+/* `pos` so' e' passada pelos espacos de placas; sem ela, o comportamento de sempre.
+   Espaco desligado nao devolve criativo nenhum -- assim nem os pontos de desenho
+   que nao passam por rfAdEspaco (as placas do campo, a banda do Camarote) precisam
+   de perguntar duas vezes. */
+function get(chave, pos){
+  if(desligados[chave]) return null;
+  return porChave[pos==null?chave:(chave+'#'+pos)] || null;
+}
 /* quantas placas daquele espaco tem arte publicada — o jogo usa para saber se
    desenha as placas de casa ou as vendidas */
 function temPlaca(chave, pos){ return !!get(chave, pos); }
@@ -241,5 +266,5 @@ function refGuardado(){
   try{ const g = JSON.parse(localStorage.getItem(REF_KEY)||'null'); return (g && g.cod) || null; }catch(e){ return null; }
 }
 
-window.ADS = { get, temPlaca, html, clique, scan, evento, refGuardado, get carregado(){ return carregado; } };
+window.ADS = { get, ligado, temPlaca, html, clique, scan, evento, refGuardado, get carregado(){ return carregado; } };
 })();
