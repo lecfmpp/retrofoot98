@@ -259,7 +259,14 @@ const SAL_RATE=0.00060;   // weekly wage as fraction of market value (tuned)
    com salário/valor/caixa — as quatro tabelas precisam ser calibradas UMA contra a outra, e
    ficarem separadas foi exatamente o que deixou a folha valer 10% da receita na Série D e 67%
    na Série A. Mantido aqui como wrapper porque ~dezenas de chamadas usam baseIncome(). */
-function baseIncome(ov){ return REBAL.income(ov); }
+function baseIncome(ov, div){
+  /* `div` é a divisão do clube DONO desta receita — não a do usuário. É o que decide a metade
+     fixa da cota de TV (25% pelo overall médio da divisão, ver REBAL.income). Omitir cai na
+     divisão do usuário, que é o certo para o clube dele e para todo chamador antigo; os laços
+     que percorrem clubes de OUTRAS divisões (finanças da CPU) passam a divisão de cada um. */
+  const med=(typeof divOverallAvgOf==='function')?divOverallAvgOf(div):undefined;
+  return REBAL.income(ov, med);
+}
 let SIM_SYNC=false;       // quando true, simulateMatch roda os acréscimos de forma síncrona (usado por simEvents)
 function defaultContract(p){
   const role = p.f>=50?'Jogador Chave' : p.f>=36?'Titular Regular' : (p.age<=20?'Jovem da Base':'Rotação');

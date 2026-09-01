@@ -229,8 +229,13 @@ function standCost(){ const st=myStadium(); return standCostFor((st&&st.capacity
    PRIZES.tierOf já mapeia QUALQUER divisão (Brasil A-D, ligas estrangeiras PL/CH/ES/ES2/etc.)
    pra uma dessas 4 faixas — mesmo mapa que os prêmios de liga já usam, sem inventar outro.
    Substitui levelTicketPrice(overall), que dava um número contínuo (6-16) por força do elenco. */
+/* A TABELA MUDOU DE CASA (para prizes.js) e esta função virou o atalho de sempre para a UI. O
+   motivo é o servidor: a bilheteria dos clubes da CPU na Resenha é calculada lá, e enquanto o
+   preço morava aqui — num arquivo de UI que o resolve-round não carrega — não havia como os dois
+   lados cobrarem o mesmo ingresso. O fallback mantém a tela de pé se prizes.js faltar. */
 const TICKET_PRICE_BY_TIER={A:25, B:20, C:15, D:10};
 function ticketPriceForDivision(div){
+  if(typeof PRIZES!=='undefined' && PRIZES.ticketPrice) return PRIZES.ticketPrice(div);
   const tier=(typeof PRIZES!=='undefined' && PRIZES.tierOf) ? PRIZES.tierOf(div) : 'A';
   return TICKET_PRICE_BY_TIER[tier] || TICKET_PRICE_BY_TIER.D;
 }

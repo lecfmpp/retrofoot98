@@ -561,13 +561,25 @@
     const renda=opts.renda, folha=opts.folha, capacidade=opts.capacidade, overall=opts.overall;
     if(!S || !S.budgets || !renda || !folha || !capacidade || !overall) return;
     const OPEX=opts.OPEX!=null?opts.OPEX:0.08;
+    /* A DIVISÃO DE CADA CLUBE entra por opts porque quem sabe respondê-la é o dono do estado (o
+       cliente tem clubDivisionOf, o servidor tem o registro dele). Ela decide DUAS coisas: a
+       metade fixa da cota de TV, dentro de renda(), e o preço do ingresso, logo abaixo. */
+    const divisao=opts.divisao||function(){ return null; };
+    /* PREÇO DO INGRESSO — a tabela por divisão (A25/B20/C15/D10) que o usuário já usa desde que
+       ticketPriceForDivision substituiu o preço contínuo por overall. Esta função ficou para trás
+       naquela troca e continuou na fórmula velha (R$6 a R$16 por overall): o clube da CPU
+       arrecadava MENOS que o humano com o mesmo estádio e a mesma divisão, silenciosamente, e
+       isso enviesa qualquer aferição de equilíbrio financeiro entre os dois. O fallback antigo
+       fica como rede para um chamador que não passe `preco`. */
+    const precoDe=opts.preco||function(div, ov){ return Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32))); };
     Object.keys(S.budgets).forEach(function(id){
       if(humanos.has(id)) return;                       // humano paga/recebe pelo próprio caminho
       const ov=overall(id); if(ov==null) return;
-      const base=renda(ov);
+      const div=divisao(id);
+      const base=renda(ov, div);
       let salarios=0;
       (S.squads[id]||[]).forEach(function(p){ salarios+=folha(p); });
-      const preco=Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32)));
+      const preco=precoDe(div, ov);
       // CAPACIDADE CONSTRUÍDA MANDA. Sem isto a bilheteria saía sempre da capacidade sintética do
       // overall e a bancada nova não rendia UM centavo a mais — o clube gastava pra construir e o
       // estádio virava enfeite. É este ponto que liga o crescimento (cpuCrescerEstadio) ao caixa.

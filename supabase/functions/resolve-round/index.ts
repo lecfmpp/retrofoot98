@@ -1198,13 +1198,25 @@ const ME = (globalThis as any).MATCH_ENGINE;
     const renda=opts.renda, folha=opts.folha, capacidade=opts.capacidade, overall=opts.overall;
     if(!S || !S.budgets || !renda || !folha || !capacidade || !overall) return;
     const OPEX=opts.OPEX!=null?opts.OPEX:0.08;
+    /* A DIVISÃO DE CADA CLUBE entra por opts porque quem sabe respondê-la é o dono do estado (o
+       cliente tem clubDivisionOf, o servidor tem o registro dele). Ela decide DUAS coisas: a
+       metade fixa da cota de TV, dentro de renda(), e o preço do ingresso, logo abaixo. */
+    const divisao=opts.divisao||function(){ return null; };
+    /* PREÇO DO INGRESSO — a tabela por divisão (A25/B20/C15/D10) que o usuário já usa desde que
+       ticketPriceForDivision substituiu o preço contínuo por overall. Esta função ficou para trás
+       naquela troca e continuou na fórmula velha (R$6 a R$16 por overall): o clube da CPU
+       arrecadava MENOS que o humano com o mesmo estádio e a mesma divisão, silenciosamente, e
+       isso enviesa qualquer aferição de equilíbrio financeiro entre os dois. O fallback antigo
+       fica como rede para um chamador que não passe `preco`. */
+    const precoDe=opts.preco||function(div, ov){ return Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32))); };
     Object.keys(S.budgets).forEach(function(id){
       if(humanos.has(id)) return;                       // humano paga/recebe pelo próprio caminho
       const ov=overall(id); if(ov==null) return;
-      const base=renda(ov);
+      const div=divisao(id);
+      const base=renda(ov, div);
       let salarios=0;
       (S.squads[id]||[]).forEach(function(p){ salarios+=folha(p); });
-      const preco=Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32)));
+      const preco=precoDe(div, ov);
       // CAPACIDADE CONSTRUÍDA MANDA. Sem isto a bilheteria saía sempre da capacidade sintética do
       // overall e a bancada nova não rendia UM centavo a mais — o clube gastava pra construir e o
       // estádio virava enfeite. É este ponto que liga o crescimento (cpuCrescerEstadio) ao caixa.
@@ -1680,7 +1692,408 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
 /* <<< WORLD_CONFIG:FIM >>> */
+/* <<< REBALANCE:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ============================================================================
+   REBALANCE (item 4) — reestrutura força, valor, salário, caixa e estádio pra
+   "nivelar mais as divisões e deixar as competições mais reais".
+
+   IDEIA CENTRAL — dupla representação de força:
+     • p.rawF  (escala ANTIGA ~40-95): dirige a GERAÇÃO DE ATRIBUTOS (genAttrs) e o
+       recálculo por crescimento (levelToForce/forceToLevel). Fica intocada — o
+       sistema de atributos é provado e calibrado nessa escala.
+     • p.f     (escala NOVA 1-99): dirige o MOTOR de partida (ratings), a exibição,
+       o valor de mercado e o salário. É REBAL.force(p.rawF).
+
+   As divisões já têm distribuições de força reais SEPARADAS (Série A ~72-79,
+   B ~64-70, C ~56-63, D ~45-55; ligas europeias mais altas), então UMA única
+   função monotônica remapeia todas as faixas de uma vez, preservando a ordem
+   relativa (jogador melhor continua melhor) e mapeando por QUALIDADE — um craque
+   numa divisão baixa sobe de faixa, como na vida real. O motor é baseado em
+   RAZÕES (atk/def, diferença de meio), então comprimir a escala apenas NIVELA
+   mais as partidas, sem quebrar o equilíbrio.
+
+   Categorias de força (referência do usuário):
+     Série A 38-49 · B 25-37 · C 13-24 · D 3-12
+     Estrela 50-69 · Craque Nacional 70-89 · Craque Mundial 90-99 · Sem divisão 1-2
+   ============================================================================ */
+(function(root){
+  'use strict';
+
+  /* interpolação linear em âncoras [[x,y],...] ordenadas por x; extrapola nas pontas */
+  function interp(anchors, x){
+    const n=anchors.length;
+    if(x<=anchors[0][0]){
+      const [x0,y0]=anchors[0],[x1,y1]=anchors[1];
+      return y0 + (x-x0)/(x1-x0)*(y1-y0);
+    }
+    if(x>=anchors[n-1][0]){
+      const [x0,y0]=anchors[n-2],[x1,y1]=anchors[n-1];
+      return y0 + (x-x0)/(x1-x0)*(y1-y0);
+    }
+    for(let i=0;i<n-1;i++){
+      const [x0,y0]=anchors[i],[x1,y1]=anchors[i+1];
+      if(x>=x0 && x<=x1){ const t=(x1===x0)?0:(x-x0)/(x1-x0); return y0+t*(y1-y0); }
+    }
+    return anchors[n-1][1];
+  }
+
+  /* ---- 1. REMAP DE FORÇA POR DIVISÃO: raw (40-95) -> escala NOVA (1-99) ----
+     Curva POR PARTES (âncoras raw->nova), por divisão. Duas metas ao mesmo tempo:
+       (a) o jogador REGULAR de cada divisão cai na faixa da categoria (A 38-49, B 25-37,
+           C 13-24, D 3-12) — o que "nivela" as partidas dentro da divisão; e
+       (b) os jogadores excepcionais SOBEM para as faixas de craque (Estrela 50-69, Craque
+           Nacional 70-89, Craque Mundial 90-99), que na versão linear anterior ficavam
+           inalcançáveis (o topo bruto ~90 mapeava só pra ~54).
+     Calibrado pela distribuição real dos dados (raw 64-79 = regulares; 80-84 = Estrela;
+     85-89 = Craque Nacional; 90-91 = Craque Mundial, raríssimo — 1-3 por liga). Só as
+     divisões de topo (A / 1ª intl) têm força bruta alta o bastante pra chegar nos craques;
+     divisões inferiores raramente passam de Estrela — como na vida real. */
+  const BANDS={
+    // Série A / 1ª divisão intl — regular 38-49; topo estica pras faixas de craque (Estrela
+    // 50-69, Craque Nacional 70-89, Craque Mundial 90-99). Estas são as forças EXIBIDAS /
+    // de valor / salário. O MOTOR de partida usa engForce() (comprime o topo) pra não virar
+    // goleada — ver engForce abaixo e ratings().
+    A:[[48,28],[64,38],[79,49],[82,58],[85,70],[88,81],[90,90],[94,98]],
+    // Série B / 2ª divisão intl
+    B:[[46,18],[58,26],[74,37],[77,46],[81,60],[85,74],[90,90]],
+    // Série C
+    C:[[42,8],[52,14],[66,24],[70,32],[76,48],[82,66]],
+    // Série D
+    D:[[38,2],[44,4],[58,12],[63,23],[70,40]],
+  };
+  /* A BANDA DE UMA DIVISÃO SAI DO NÍVEL DELA NA PIRÂMIDE (engine/world-config.js), não de um
+     mapa de letras escrito à mão. O mapa antigo — {A:'A',...,PL:'A',CH:'B',ES2:'B',...} — cobria
+     seis países, e um país novo (inclusive um criado no painel admin) cairia calado na banda 'A'.
+     Para as letras que ele cobria o resultado é o mesmo: PL é 1ª divisão, logo nível 0, logo 'A'.
+     Lido em tempo de chamada porque este arquivo carrega antes das folhas; o fallback mantém o
+     rebalanceamento de pé se a folha faltar. */
+  const BAND_FALLBACK={ A:'A',B:'B',C:'C',D:'D',
+    PL:'A',ES:'A',IT:'A',DE:'A',PT:'A', CH:'B',ES2:'B',IT2:'B',DE2:'B',PT2:'B' };
+  function bandKey(div){
+    const W=(typeof globalThis!=='undefined') && globalThis.WORLD_CONFIG;
+    if(W && W.bandaDaDivisaoSemPais) return W.bandaDaDivisaoSemPais(div);
+    return BAND_FALLBACK[div] || 'A';
+  }
+  function force(rawF, division){
+    const rf=(typeof rawF==='number' && isFinite(rawF))?rawF:60;
+    const b=BANDS[bandKey(division)]||BANDS.A;
+    return Math.max(1, Math.min(99, Math.round(interp(b, rf)))); // curva por partes (interp extrapola nas pontas)
+  }
+
+  /* FORÇA PARA O MOTOR: a força EXIBIDA (com Estrela/Craque/Craque Mundial) infla demais o
+     top-11 e viraria goleada, porque o motor mede o time pela MÉDIA dos titulares — um clube
+     recheado de craques ficaria imbatível. Aqui comprimimos a parte acima do jogador regular
+     (>49): o craque continua o MELHOR do elenco (ordem preservada) e ganha vantagem REAL, mas
+     moderada — mantém as partidas competitivas (calibração das Fases 1-4) enquanto a UI, o
+     valor e o salário mostram as faixas cheias. Usado só em ratings() (motor). */
+  function engForce(f){
+    if(typeof f!=='number' || !isFinite(f)) return 40;
+    return f<=49 ? f : 49 + (f-49)*0.33; // f60->52.6, f70->55.9, f82->59.9, f90->62.5, f99->65.5
+  }
+  /* GOLEIRO: compressão mais leve — só 1 em campo, então o motivo de comprimir (evitar time
+     empilhado de craques imbatível) não se aplica; um goleiro Craque Mundial deve pesar de
+     verdade no DS. f60->55.6, f70->61.5, f82->68.5, f90->73.2, f99->78.5 (era 52.6/55.9/59.9/62.5/65.5). */
+  function engForceGK(f){
+    if(typeof f!=='number' || !isFinite(f)) return 40;
+    return f<=49 ? f : 49 + (f-49)*0.59;
+  }
+
+  /* ---- 2. VALOR DE MERCADO por força NOVA (R$), × fator idade ---- */
+  const V_ANCHORS=[
+    [5,80e3],[10,200e3],[15,450e3],[20,700e3],[25,1e6],[30,1.6e6],[35,2.5e6],
+    [40,4e6],[45,6e6],[50,9e6],[60,18e6],[70,35e6],[80,70e6],[90,150e6],[99,260e6]
+  ];
+  function valueBase(f){ return interp(V_ANCHORS, f); }
+  function value(f, age){
+    const af=(root.MARKET)?root.MARKET.ageFactor(age):1;
+    return Math.max(30000, Math.round(valueBase(f) * af));
+  }
+
+  /* ---- 3. SALÁRIO semanal por força NOVA (R$) ---- */
+  const S_ANCHORS=[
+    [5,1e3],[10,3e3],[15,6e3],[20,10e3],[25,15e3],[30,22e3],[35,31e3],
+    [40,43e3],[45,58e3],[50,78e3],[60,130e3],[70,220e3],[80,420e3],[90,800e3],[99,1.3e6]
+  ];
+  function salary(f){ return Math.max(500, Math.round(interp(S_ANCHORS, f))); }
+  /* SALÁRIO efetivo (folha) = a tabela EXATA na força do jogador (sem compressão). Um Craque
+     Mundial f90 ganha os 800k/sem da tabela. A receita (core.js) é escalada pra sustentar essa
+     folha — ver income() lá. */
+  function wage(f, uni){
+    const base=(typeof f!=='number' || !isFinite(f)) ? salary(40) : salary(f);
+    return Math.max(500, Math.round(base * modFator(uni)));
+  }
+
+  /* ---- 3b. RECEITA-BASE por rodada (TV + patrocínio) por overall NOVO ----
+     A tabela anterior tinha um DEGRAU: entre overall 21 e 25 a receita DOBRAVA de uma vez (240k
+     -> 480k), enquanto o salário subia suave no mesmo intervalo (15k -> 22k por jogador). Os 20
+     clubes da Série C vivem na faixa 19-22 — todos presos do lado ruim do degrau: pagavam salário
+     pela força real do elenco e recebiam a receita "antiga". Medido nos 80 clubes reais, a razão
+     folha/receita variava de 61% a 108% (Botafogo gastava 108,4% da própria receita-base só em
+     salário) sem nenhuma lógica ao longo da escala.
+
+     A tabela nova foi calculada de trás pra frente a partir da folha real dos 80 clubes, mirando
+     folha/receita ~58% em TODA a escala — o que deixa ~34% de sobra depois do OPEX de 8%, antes
+     de qualquer bônus de vitória. Os multiplicadores sobre a tabela velha são de PROPÓSITO
+     desiguais (1,20x a 1,56x): o 1,56x em ov21 é exatamente o que absorve o degrau, em vez de um
+     fator único que deixaria alguma faixa ainda desalinhada. Overall 70 não existe em nenhum
+     clube hoje (o teto real é 58, no Palmeiras) — está aqui para o dia em que um elenco chegar lá.
+
+     NOTA DE HISTÓRICO: a calibração anterior mirava uma folha/receita que CRESCIA com o porte
+     (60% na D -> 79% na elite), para que clube grande gastasse proporcionalmente mais do que
+     fatura. Essa meta foi revista pelo dono do jogo em favor da margem uniforme acima. */
+  const INCOME_ANCHORS=[
+    [3,30e3],[8,75e3],[11,130e3],[15,200e3],[21,375e3],[25,600e3],[30,1.05e6],
+    [34,1.35e6],[40,2.45e6],[45,3.37e6],[48,4.10e6],[52,5.30e6],[58,7.5e6],[70,14e6]
+  ];
+  /* AS ÂNCORAS DE 40 PARA CIMA LEVARAM UM 1,32x A MAIS que a tabela do relatório, e o motivo é uma
+     premissa dele que não se confirma nos dados do jogo. O relatório calculou a Série A com o
+     overall DECLARADO de cada clube, remapeado (Palmeiras 58, Botafogo 48). O jogo não usa esse
+     número: recomputeClubOverall (core.js) sobrescreve club.overall pela MÉDIA DO ELENCO logo na
+     abertura do save, e aí Palmeiras é 51 e Botafogo é 44. Overall menor com a mesma folha =
+     receita real bem abaixo da que o relatório supôs.
+
+     Medido nos 80 clubes reais deste repositório: com a tabela do relatório sem retoque, B/C/D
+     chegavam aos ~57% pretendidos mas a Série A parava em 75,5% (Palmeiras em 104%). O 1,32x
+     cobre exatamente a faixa de overall 40-51, que é onde só a Série A vive (B vai até 35), e leva
+     a elite a 57,8% sem mexer em nenhuma das outras três: B 53,7% · C 58,5% · D 56,9%.
+     Os valores estão arredondados — é a calibração aferida, não um fator aplicado às cegas. */
+  /* a curva crua, por overall — sem split de TV e sem modalidade. É o tijolo das duas metades. */
+  function incomeTabela(overall){
+    const ov=(typeof overall==='number' && isFinite(overall))?overall:30;
+    return Math.max(20000, Math.round(interp(INCOME_ANCHORS, ov)));
+  }
+
+  /* COTA DE TV FIXA — a única parte da receita que NÃO depende de como o clube está jogando.
+     Antes a receita-base inteira saía do overall do próprio clube, então uma fase ruim derrubava
+     TUDO no exato momento em que o clube mais precisava de estabilidade: joga mal -> recebe menos
+     -> paga a folha com mais dificuldade -> joga pior ainda. Como no futebol de verdade, agora a
+     receita-base se divide em três:
+       · Patrocínio    50%  — pelo overall do PRÓPRIO clube ("prêmio por ser bom")
+       · TV por mérito 25%  — idem
+       · TV fixa       25%  — pelo overall MÉDIO DA DIVISÃO, travado no início da temporada
+     Ou seja 75% pelo clube + 25% pela divisão. Um clube em má fase ainda perde receita (a parte
+     por mérito cai), mas não perde tudo de uma vez — o quarto fixo segue garantido até a próxima
+     definição de quem está em cada divisão. É essa metade que quebra o ciclo vicioso.
+     Sem o overall médio (chamador antigo, save velho), cai em 100% pelo clube — idêntico ao de
+     antes, então nenhum chamador quebra. */
+  const TV_MERITO=0.75, TV_FIXA=0.25;
+
+  /* ---- 3c. O EIXO DE MODALIDADE (masculino / feminino) ----
+     O universo feminino (brasilFem) usa OS MESMOS clubes e o MESMO objeto de jogador do masculino
+     com o nome trocado — então a economia sai idêntica por construção, e não havia um só ponto da
+     camada financeira que soubesse qual modalidade estava rodando. Aqui está esse ponto, e é um
+     só: calibrar o feminino passa a ser mudar um número nesta tabela, não caçar código.
+
+     Lido em tempo de chamada, como bandKey lê WORLD_CONFIG: `RF_FEM` mora numa folha que só
+     existe onde o universo feminino existe. Sem ela, modalidade() nunca é consultada, o fallback
+     devolve 'masc' e nada muda — que é exatamente o comportamento desejado. */
+  const MOD_FATOR={ masc:1.00, fem:1.00 };
+  function modFator(uni){
+    const F=root.RF_FEM;
+    let k=uni;
+    if(k==null && typeof root.activeUniverseKey==='function'){ try{ k=root.activeUniverseKey(); }catch(e){} }
+    const mod=(F && typeof F.modalidade==='function') ? F.modalidade(k||'brasil') : 'masc';
+    return MOD_FATOR[mod]!=null ? MOD_FATOR[mod] : 1;
+  }
+
+  /* RECEITA-BASE final = (75% pelo clube + 25% pela divisão) x fator da modalidade.
+     `ovMedioDivisao` é o overall médio da divisão do clube, travado na temporada (ver
+     divOverallAvg em core.js). `uni` é opcional: sem ele, o universo ativo é resolvido sozinho. */
+  function income(overall, ovMedioDivisao, uni){
+    const proprio=incomeTabela(overall);
+    const medio=(typeof ovMedioDivisao==='number' && isFinite(ovMedioDivisao))
+      ? incomeTabela(ovMedioDivisao) : proprio;
+    return Math.max(20000, Math.round((TV_MERITO*proprio + TV_FIXA*medio) * modFator(uni)));
+  }
+  /* Bônus de vitória/empate como FRAÇÃO da receita-base, não valor fixo. O antigo R$500k fixo
+     valia 9% da receita de um clube da Série A e 40% da de um da Série D — uma vitória na D
+     pagava 8x a folha semanal inteira. */
+  const WIN_BONUS=0.12, DRAW_BONUS=0.04;
+  /* Custo operacional por rodada (estrutura, logística, manutenção) — o jogo só tinha salário
+     como despesa, então tudo que entrava virava caixa. */
+  const OPEX=0.08;
+
+  /* ---- 4. CAIXA INICIAL por divisão ---- */
+  const BUDGET={ A:[10e6,20e6], B:[6.5e6,9.5e6], C:[3e6,5e6], D:[1e6,2.5e6] };
+  function budget(division, rng, uni){
+    const b=BUDGET[bandKey(division)]||BUDGET.C; // mapeia chaves intl (PL/CH/...) pras faixas A/B
+    const r=(rng && typeof rng.rnd==='function')?rng.rnd(b[0],b[1]):(b[0]+b[1])/2;
+    return Math.round(r * modFator(uni));
+  }
+
+  /* ---- 5. CAPACIDADE INICIAL DE ESTÁDIO por overall (escala NOVA) ----
+     Alvos por divisão: A 75k · B 50k · C 25k · D 10k. Overall típico por divisão
+     na escala nova ~ A 44 · B 31 · C 19 · D 8. Clubes-estrela vão um pouco além. */
+  const CAP_ANCHORS=[[3,10000],[8,10000],[19,25000],[31,50000],[44,75000],[55,82000],[70,88000]];
+  function stadiumCap(overall){
+    const ov=(typeof overall==='number' && isFinite(overall))?overall:30;
+    return Math.round(Math.max(10000, Math.min(90000, interp(CAP_ANCHORS, ov)))/1000)*1000;
+  }
+  /* Capacidade INICIAL por DIVISÃO (spec do usuário, exato): A 75k · B 50k · C 25k · D 10k.
+     Mapeia chaves intl (PL/ES/CH/...) pras faixas A/B via bandKey. */
+  const DIV_CAP={ A:75000, B:50000, C:25000, D:10000 };
+  function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
+
+  root.REBAL={ force, engForce, engForceGK, value, valueBase, salary, wage, budget,
+               income, incomeTabela, modFator, stadiumCap, stadiumCapForDivision,
+               BUDGET, BANDS, MOD_FATOR, TV_MERITO, TV_FIXA, WIN_BONUS, DRAW_BONUS, OPEX };
+  if(typeof module!=='undefined' && module.exports){ module.exports={ REBAL:root.REBAL }; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< REBALANCE:FIM >>> */
+/* <<< PRIZES:INICIO — gerado por scripts/sync-world-rules.mjs, NÃO editar aqui >>> */
+/* ============================================================================
+   PREMIAÇÕES (item novo) — dinheiro por título/posição/copa/artilharia, em TODOS os
+   países. Escalado à economia do jogo (caixa A 10-20M, faturamento ~100M/temporada),
+   NÃO aos valores reais: um título continental real paga ~R$120M (dobraria o caixa de
+   um grande e desequilibraria tudo). Aqui a ORDEM é realista (continental > copa nacional
+   > liga; ligas de topo pagam mais), mas os valores são MODESTOS — um título rende ~1
+   contratação, ajuda sem virar bola de neve. Clubes rebaixados ganham um piso (colchão)
+   que suaviza a queda e reduz o desequilíbrio entre divisões.
+
+   Prêmios são creditados ao clube do USUÁRIO em endSeason() (ver core.js), e um modal de
+   celebração mostra o detalhamento (ver seasonEndDialog em main.js).
+   ============================================================================ */
+(function(root){
+  'use strict';
+
+  /* divisão -> faixa (mesma lógica de bandKey do REBAL: intl PL/ES/... = topo A) */
+  const DIV_TIER={ A:'A',B:'B',C:'C',D:'D',
+    PL:'A',ES:'A',IT:'A',DE:'A',PT:'A', CH:'B',ES2:'B',IT2:'B',DE2:'B',PT2:'B' };
+  function tierOf(div){ return DIV_TIER[div] || 'A'; }
+
+  /* ---- LIGA: prêmio por posição final, por faixa. Todo mundo leva algo (piso de
+     participação); cai suave do campeão pro rebaixado. n = nº de clubes na divisão. ---- */
+  /* REAJUSTE DE 1,3x (2026-09) — os valores abaixo são os antigos multiplicados por 1,3, já
+     baked no literal porque a UI lê estas tabelas direto (ver rfCupPrizeTopo em main.js). A
+     receita-base por rodada subiu ~1,2-1,5x no rebalanceamento de REBAL.income; sem este
+     reajuste os prêmios encolheriam em relação à renda semanal e um título passaria a pesar
+     menos do que pesa hoje. O fator mantém o peso relativo que eles sempre tiveram. */
+  const LEAGUE={
+    A:{champ:26e6,  vice:18.2e6, top4:13e6,  upper:7.8e6,  mid:4.55e6, lower:2.6e6 },
+    B:{champ:11.7e6,vice:7.8e6,  top4:5.2e6, upper:3.25e6, mid:1.95e6, lower:1.17e6},
+    C:{champ:5.2e6, vice:3.51e6, top4:2.34e6,upper:1.43e6, mid:0.91e6, lower:0.52e6},
+    D:{champ:2.6e6, vice:1.69e6, top4:1.17e6,upper:0.715e6,mid:0.455e6,lower:0.26e6},
+  };
+  function leaguePrize(div, pos, n){
+    const t=LEAGUE[tierOf(div)]||LEAGUE.A;
+    n=n||20;
+    if(pos===1) return t.champ;
+    if(pos===2) return t.vice;
+    if(pos<=4) return t.top4;
+    if(pos<=Math.ceil(n*0.35)) return t.upper;
+    if(pos<=Math.ceil(n*0.70)) return t.mid;
+    return t.lower;
+  }
+
+  /* ---- INGRESSO: preço fixo por divisão (valores reais informados) — A 25 · B 20 · C 15 · D 10.
+     Mora aqui, e não em main.js, porque o SERVIDOR também precisa dele: a bilheteria dos clubes da
+     CPU na Resenha é calculada lá (cpuCaixaRodada), e uma segunda tabela do outro lado seria a
+     mesma armadilha que as tabelas de economia acabaram de sair. `tierOf` já mapeia qualquer
+     divisão (Brasil A-D, ligas estrangeiras PL/CH/ES/ES2/...) numa das quatro faixas. ---- */
+  const TICKET={ A:25, B:20, C:15, D:10 };
+  function ticketPrice(div){ return TICKET[tierOf(div)] || TICKET.D; }
+
+  /* ---- ACESSO: bônus pago UMA VEZ ao subir de divisão. ----
+     Não existia: um clube promovido enfrentava de uma hora para outra os custos da divisão nova
+     (salários mais caros para não cair de novo, manutenção, elenco a repor) sem nenhuma almofada
+     — exatamente quando a receita-base dele ainda reflete o overall da divisão anterior. Sem
+     nada nesse buraco, subir podia ser um castigo financeiro.
+
+     Calibrado em ~2 a 3 semanas da receita-base média da divisão de DESTINO, que é o que dá
+     fôlego real sem competir com o prêmio de campeão. A chave é o tier de DESTINO: entrar na C
+     paga 750k, na B 2M, na A 4M. Não há bônus para "entrar na D" — ninguém sobe para lá.
+
+     OS TRÊS FICAM ABAIXO DO PRÊMIO DE CAMPEÃO DA DIVISÃO DE ORIGEM (D 2,6M · C 5,2M · B 11,7M),
+     então subir continua valendo menos que ser campeão — só que agora com uma rede de segurança
+     para não quebrar no primeiro mês na série nova. */
+  const ACCESS={ C:750e3, B:2e6, A:4e6 };
+  /* `divDestino` é a divisão em que o clube VAI JOGAR na temporada nova. Devolve 0 para quem
+     ficou, para quem caiu e para a divisão de base — então o chamador não precisa saber se houve
+     acesso: basta comparar a divisão de antes com a de agora e passar a de agora. */
+  function accessPrize(divDestino, divOrigem){
+    if(!divDestino || !divOrigem) return 0;
+    const dest=tierOf(divDestino), orig=tierOf(divOrigem);
+    if(dest===orig) return 0;
+    const ORDEM=['A','B','C','D'];
+    if(ORDEM.indexOf(dest) >= ORDEM.indexOf(orig)) return 0;   // ficou igual ou caiu
+    return ACCESS[dest]||0;
+  }
+
+  /* ---- COPAS: prêmio por fase alcançada. Libertadores e Sul-Americana têm tabela PRÓPRIA
+     (valores oficiais informados pelo dono do jogo — ver histórico do commit); Champions/Europa
+     continuam nas tabelas genéricas cont1/cont2 de antes, sem mudança. Copa do Brasil paga por
+     fase durante a temporada (ver copaBrasilPhaseCash), não aqui. */
+  const CUP_CAT={ copaBrasil:'nat', libertadores:'libertadores', sulamericana:'sulamericana',
+                  championsLeague:'cont1', europaLeague:'cont2' };
+  const CUP={   /* mesmo reajuste de 1,3x da LEAGUE acima */
+    nat:  {campeao:19.5e6, vice:10.4e6, semi:5.2e6,  quartas:3.25e6, oitavas:1.95e6, part:1.04e6},
+    cont1:{campeao:28.6e6, vice:16.9e6, semi:10.4e6, quartas:6.5e6,  oitavas:3.9e6,  part:2.6e6},
+    cont2:{campeao:15.6e6, vice:9.1e6,  semi:5.2e6,  quartas:3.25e6, oitavas:1.95e6, part:1.3e6},
+    libertadores:{campeao:31.2e6, vice:15.6e6, semi:9.1e6,  quartas:6.5e6,  oitavas:3.9e6,  part:1.95e6},
+    sulamericana:{campeao:15.6e6, vice:7.8e6,  semi:4.55e6, quartas:3.25e6, oitavas:1.95e6, part:0.91e6},
+  };
+  function cupCategory(cupKey){ return CUP_CAT[cupKey] || 'nat'; }
+  /* mapeia a STRING que cupResultForClub() devolve pra uma chave de prêmio */
+  function cupResultOutcome(resultStr){
+    if(!resultStr) return null;
+    const s=String(resultStr).toLowerCase();
+    if(s.indexOf('campeão')>=0 && s.indexOf('vice')<0) return 'campeao';
+    if(s.indexOf('vice')>=0) return 'vice';
+    if(s.indexOf('semi')>=0) return 'semi';
+    if(s.indexOf('quartas')>=0) return 'quartas';
+    if(s.indexOf('oitavas')>=0) return 'oitavas';
+    return 'part'; // fase de grupos / 16 avos / Nª fase / 1ª fase
+  }
+  function cupPrize(cupKey, outcome){
+    if(!outcome) return 0;
+    // Copa do Brasil paga POR FASE, durante a temporada (ver copaBrasilPhaseCash) — pagar de
+    // novo aqui, no fechamento, seria dobrar a mesma premiação.
+    if(cupKey==='copaBrasil') return 0;
+    const t=CUP[cupCategory(cupKey)]||CUP.nat;
+    return t[outcome]||0;
+  }
+
+  /* ---- ARTILHEIRO da divisão: prêmio em caixa (ao clube dele) + valorização do jogador.
+     Ganhar a artilharia sobe o valor de mercado ~20% (permanente, acumulável até +60%),
+     como na vida real — reputação de goleador. ---- */
+  const ART_CASH={ A:3.9e6, B:1.95e6, C:0.91e6, D:0.52e6 };   /* mesmo reajuste de 1,3x */
+  function artilheiroCash(div){ return ART_CASH[tierOf(div)] || 1e6; }
+  const ART_VALUE_MULT=1.20, ART_VALUE_CAP=1.60;
+
+  /* ---- COPA DO BRASIL: cota POR FASE VENCIDA, paga na hora (não no fim da temporada).
+     Diferente de cupPrize() acima, que paga uma vez só, no fechamento, pela fase ALCANÇADA:
+     aqui cada vitória de fase pinga o dinheiro no caixa do clube durante a temporada, como
+     acontece de verdade — e vale pra TODOS os clubes, não só o do usuário. Valores definidos
+     pelo dono do jogo (ver copaBrasilPhaseCash). Quem perde a final leva a cota de vice.
+     Como esta cota substitui a premiação de fim de temporada da Copa do Brasil, cupPrize()
+     devolve 0 pra ela (senão o clube receberia duas vezes pelo mesmo caminho). ---- */
+  /* mesmo reajuste de 1,3x. FICA O REGISTRO, sem mudança: a final da Copa do Brasil (36,4M) paga
+     mais que o título da Série A (26M). Pode ser proposital ("a Copa vale mais que o Brasileirão"
+     é escolha de design válida) — a proporção entre as duas é a mesma de antes do reajuste. */
+  const CB_PHASE={ final:36.4e6, vice:18.2e6, semi:11.7e6, quartas:5.2e6, oitavas:2.6e6, dezesseis:1.95e6, f2:1.04e6, f1:0.52e6 };
+  /* mesma conta de cupPhaseLabel (core.js): dist = rodadas até a final. round é 1-based. */
+  function copaBrasilPhaseCash(round, roundsTotal, isChampion){
+    const dist=(roundsTotal||0)-(round||0);
+    if(dist<=0) return isChampion===false ? CB_PHASE.vice : CB_PHASE.final;
+    if(dist===1) return CB_PHASE.semi;
+    if(dist===2) return CB_PHASE.quartas;
+    if(dist===3) return CB_PHASE.oitavas;
+    if(dist===4) return CB_PHASE.dezesseis;
+    return round<=1 ? CB_PHASE.f1 : CB_PHASE.f2;   // fases iniciais de chaveamento grande
+  }
+  root.PRIZES={ tierOf, leaguePrize, cupCategory, cupResultOutcome, cupPrize,
+                copaBrasilPhaseCash, CB_PHASE, accessPrize, ACCESS, ticketPrice, TICKET,
+                artilheiroCash, ART_VALUE_MULT, ART_VALUE_CAP, LEAGUE, CUP };
+  if(typeof module!=='undefined' && module.exports){ module.exports={ PRIZES:root.PRIZES }; }
+})(typeof globalThis!=='undefined'?globalThis:this);
+/* <<< PRIZES:FIM >>> */
 const WR = (globalThis as any).WORLD_RULES;
+/* AS TABELAS DE ECONOMIA, agora vindas da MESMA folha do cliente (rebalance.js / prizes.js,
+   injetadas acima). Antes eram uma cópia à mão logo abaixo de evolvePlayer, com um aviso pedindo
+   para lembrar de refletir toda mudança — e era só esquecer para o caixa da CPU no servidor
+   deixar de bater com o do humano no cliente, silenciosamente. */
+const REBAL = (globalThis as any).REBAL;
+const PRIZES = (globalThis as any).PRIZES;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -1856,30 +2269,47 @@ function rbForce(rawF: number, division: string) { const rf = (typeof rawF === '
 const V_ANCHORS = [[5,80e3],[10,200e3],[15,450e3],[20,700e3],[25,1e6],[30,1.6e6],[35,2.5e6],[40,4e6],[45,6e6],[50,9e6],[60,18e6],[70,35e6],[80,70e6],[90,150e6],[99,260e6]];
 function ageFactor(age: number) { const a = age || 26; if (a <= 21) return 1.35; if (a <= 27) return 1.00; if (a <= 31) return 0.80; if (a <= 35) return 0.50; return 0.25; }
 function rbValue(f: number, age: number) { return Math.max(30000, Math.round(interp(V_ANCHORS as any, f) * ageFactor(age))); }
-/* ===== ECONOMIA (porte fiel de REBAL.income/wage/stadiumCap + PRIZES.leaguePrize do cliente) =====
-   Usado só pelas finanças de fim de temporada dos clubes da CPU (ver cpuSeasonFinances). Estas
-   quatro tabelas são calibradas UMA contra a outra no cliente (rebalance.js) — qualquer mexida
-   lá precisa ser refletida aqui, senão o caixa da CPU diverge do do humano. */
-const S_ANCHORS = [[5,1e3],[10,3e3],[15,6e3],[20,10e3],[25,15e3],[30,22e3],[35,31e3],[40,43e3],[45,58e3],[50,78e3],[60,130e3],[70,220e3],[80,420e3],[90,800e3],[99,1.3e6]];
-const INCOME_ANCHORS = [[3,25e3],[8,60e3],[11,100e3],[15,150e3],[21,240e3],[25,480e3],[30,860e3],[34,1.09e6],[40,1.25e6],[45,1.75e6],[48,2.05e6],[52,2.60e6],[58,3.90e6],[70,7.2e6]];
-const CAP_ANCHORS = [[3,10000],[8,10000],[19,25000],[31,50000],[44,75000],[55,82000],[70,88000]];
-const WIN_BONUS = 0.12, DRAW_BONUS = 0.04, OPEX = 0.08;
-function rbWage(f: number) { return Math.max(500, Math.round(interp(S_ANCHORS as any, (typeof f === 'number' && isFinite(f)) ? f : 40))); }
-function rbIncome(ov: number) { return Math.max(20000, Math.round(interp(INCOME_ANCHORS as any, (typeof ov === 'number' && isFinite(ov)) ? ov : 30))); }
-function rbStadiumCap(ov: number) { return Math.round(Math.max(10000, Math.min(90000, interp(CAP_ANCHORS as any, (typeof ov === 'number' && isFinite(ov)) ? ov : 30))) / 1000) * 1000; }
-const LEAGUE_PRIZE: any = {
-  A:{champ:20e6,vice:14e6,top4:10e6,upper:6e6,mid:3.5e6,lower:2e6},
-  B:{champ:9e6,vice:6e6,top4:4e6,upper:2.5e6,mid:1.5e6,lower:0.9e6},
-  C:{champ:4e6,vice:2.7e6,top4:1.8e6,upper:1.1e6,mid:0.7e6,lower:0.4e6},
-  D:{champ:2e6,vice:1.3e6,top4:0.9e6,upper:0.55e6,mid:0.35e6,lower:0.2e6},
-};
+/* ===== ECONOMIA — DA FOLHA, NÃO DE UMA CÓPIA =====
+   Estas quatro tabelas (receita, salário, capacidade, premiação de liga) são calibradas UMA contra
+   a outra no cliente. Viviam aqui como cópia à mão, com um aviso pedindo para lembrar de refletir
+   toda mudança — e bastava esquecer para o caixa da CPU divergir do caixa do humano no meio da
+   temporada, sem erro nenhum aparecer. Agora rebalance.js e prizes.js são folha injetada (ver
+   marcadores REBALANCE/PRIZES no topo) e o --check do sync reprova o build se divergirem.
+
+   O TIER CONTINUA SAINDO DE bandKeyDiv, NÃO DE PRIZES.tierOf. bandKeyDiv pergunta ao WORLD_CONFIG
+   o nível da divisão DENTRO DO UNIVERSO ATIVO; PRIZES.tierOf tem um mapa de letras escrito à mão
+   que cobre seis países e joga qualquer outro em 'A'. Aqui, onde o universo é conhecido, o mapa
+   pior seria um retrocesso — então lemos os VALORES da folha e o tier de quem sabe. */
+function rbWage(f: number) { return REBAL.wage(f); }
+function rbIncome(ov: number, ovMedioDiv?: number) { return REBAL.income(ov, ovMedioDiv); }
+function rbStadiumCap(ov: number) { return REBAL.stadiumCap(ov); }
+const WIN_BONUS = REBAL.WIN_BONUS, DRAW_BONUS = REBAL.DRAW_BONUS, OPEX = REBAL.OPEX;
 function leaguePrizeT(div: string, pos: number, n: number) {
-  const t = LEAGUE_PRIZE[bandKeyDiv(div)] || LEAGUE_PRIZE.A; n = n || 20;
+  const t = REBAL_LEAGUE()[bandKeyDiv(div)] || REBAL_LEAGUE().A; n = n || 20;
   if (pos === 1) return t.champ; if (pos === 2) return t.vice; if (pos <= 4) return t.top4;
   if (pos <= Math.ceil(n * 0.35)) return t.upper;
   if (pos <= Math.ceil(n * 0.70)) return t.mid;
   return t.lower;
 }
+function REBAL_LEAGUE(): any { return PRIZES.LEAGUE; }
+/* OVERALL MÉDIO DE CADA DIVISÃO — a metade FIXA da cota de TV (ver REBAL.income). Travada por
+   rodada a partir de S.clubOverall, que o servidor já mantém; é a mesma conta que o cliente faz
+   em divOverallAvg (core.js), sobre os mesmos clubes, então os dois lados chegam ao mesmo número. */
+function divOverallAvgT(S: any): any {
+  const soma: any = {}, qtd: any = {};
+  const reg = (div: string, tbl: any) => {
+    Object.keys(tbl || {}).forEach((id) => {
+      const ov = (S.clubOverall && S.clubOverall[id]); if (ov == null) return;
+      const b = bandKeyDiv(div); soma[b] = (soma[b] || 0) + ov; qtd[b] = (qtd[b] || 0) + 1;
+    });
+  };
+  reg(S.division, S.table);
+  DIV_ORDER.forEach((d) => { const od = S.otherDivs && S.otherDivs[d]; if (od && od.table) reg(d, od.table); });
+  const out: any = {};
+  Object.keys(soma).forEach((b) => { out[b] = soma[b] / qtd[b]; });
+  return out;
+}
+function ovMedioDe(avg: any, div: string) { const v = avg && avg[bandKeyDiv(div)]; return (typeof v === 'number' && isFinite(v)) ? v : undefined; }
 /* FINANÇAS DE FIM DE TEMPORADA DOS CLUBES DA CPU — espelho de applyCpuSeasonFinances (core.js).
    O servidor é o único produtor do shared_state, então S.budgets dos clubes NÃO-humanos só pode
    crescer aqui: qualquer atualização que um cliente fizesse seria desfeita no próximo adopt.
@@ -1893,13 +2323,14 @@ function cpuSeasonFinances(S: any, humans: Set<string>) {
   };
   reg(S.division, S.table);
   DIV_ORDER.forEach((d) => { const od = S.otherDivs && S.otherDivs[d]; if (od && od.table) reg(d, od.table); });
+  const avg = divOverallAvgT(S);
   Object.keys(S.budgets).forEach((id) => {
     if (humans.has(id)) return;
     const ov = (S.clubOverall && S.clubOverall[id]) || 30;
-    const base = rbIncome(ov);
+    const m = meta[id];
+    const base = rbIncome(ov, ovMedioDe(avg, (m && m.div) || S.division));
     let payroll = 0;
     (S.squads[id] || []).forEach((p: any) => { payroll += (p.contract && p.contract.salary) || rbWage(p.f); });
-    const m = meta[id];
     const rounds = (m && m.row && m.row.P) ? m.row.P : 38;
     const w = (m && m.row) ? m.row.W : Math.round(rounds * 0.35), d = (m && m.row) ? m.row.D : Math.round(rounds * 0.27);
     const bonus = Math.round(base * (w * WIN_BONUS + d * DRAW_BONUS));
@@ -2121,15 +2552,8 @@ function resolveDrawnKnockoutTie(S: any, homeId: string, awayId: string, seed: n
    dono do caixa dos clubes NÃO-humanos (S.budgets), enquanto o caixa de um humano vive no assento
    (game_seats.budget) e é o cliente dele quem credita — por isso aqui só pagamos a quem não é
    humano, e o carimbo t.prize (que viaja no shared_state) evita pagamento duplo dos dois lados. */
-const CB_PHASE: any = { final: 28e6, vice: 14e6, semi: 9e6, quartas: 4e6, oitavas: 2e6, dezesseis: 1.5e6, f2: 0.8e6, f1: 0.4e6 };
 function copaBrasilPhaseCash(round: number, roundsTotal: number, isChampion?: boolean) {
-  const dist = (roundsTotal || 0) - (round || 0);
-  if (dist <= 0) return isChampion === false ? CB_PHASE.vice : CB_PHASE.final;
-  if (dist === 1) return CB_PHASE.semi;
-  if (dist === 2) return CB_PHASE.quartas;
-  if (dist === 3) return CB_PHASE.oitavas;
-  if (dist === 4) return CB_PHASE.dezesseis;
-  return round <= 1 ? CB_PHASE.f1 : CB_PHASE.f2;
+  return PRIZES.copaBrasilPhaseCash(round, roundsTotal, isChampion);   // da folha (prizes.js)
 }
 function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<string>) {
   if (key !== COPA_NACIONAL_KEY() || !t || !t.winner || t.prize) return;   // cota de fase e da copa nacional
@@ -2786,8 +3210,24 @@ function resolveSeasonTurnover(S: any, humans?: Set<string>) {
   // 0) caixa dos clubes da CPU — ANTES do swap de divisões, com as tabelas/elencos do ano que fechou
   cpuSeasonFinances(S, humans || new Set<string>());
   cpuStadiumGrowth(S, humans || new Set<string>());   // 0b) obra do estádio, com o caixa já atualizado acima
+  const divAntes = divDeCadaClubeT(S);                             // quem estava onde ANTES do swap
   const newDiv = computeDivisionSwap(S);                          // 1) promoção/rebaixamento (provado)
   const divOfClub: any = {}; DIV_ORDER.forEach((d) => newDiv[d].forEach((id: string) => divOfClub[id] = d));
+  /* BÔNUS DE ACESSO DOS CLUBES DA CPU — espelho do trecho de newSeasonReset (core.js). Aqui, e não
+     em cpuSeasonFinances, porque só depois do swap se sabe quem subiu. Humano fica de fora: o caixa
+     dele vive no assento (game_seats.budget) e quem credita é o cliente dele, em
+     computeMyPrevSeasonPrizes — creditar dos dois lados pagaria duas vezes. */
+  if (S.budgets && PRIZES && PRIZES.accessPrize) {
+    Object.keys(divOfClub).forEach((id) => {
+      if ((humans || new Set<string>()).has(id)) return;
+      if (S.budgets[id] == null) return;
+      const cash = PRIZES.accessPrize(divOfClub[id], divAntes[id]) || 0;
+      if (cash > 0) S.budgets[id] = Math.round(S.budgets[id] + cash);
+    });
+  }
+  /* o overall médio por divisão é da temporada que acabou e quem está em cada divisão muda agora
+     — o carimbo cai aqui, como no cliente (ver divOverallAvgOf / newSeasonReset). */
+  S.divOverallAvg = null;
   // RESUMO DA TEMPORADA QUE ACABOU (pré-reset): tabelas finais por divisão + artilharia + copa.
   // O servidor NÃO credita caixa/prêmio (igual finanças) — cada humano monta a SUA premiação no
   // cliente a partir daqui (acha a própria divisão/posição por clubId). Ver computeMyPrevSeasonPrizes.
@@ -3216,13 +3656,30 @@ function cpuStadiumGrowth(S: any, humans: Set<string>) {
   S.roundNews = S.roundNews || [];
   feitas.forEach((o: any) => { S.roundNews.push(`🏟️ ${o.club} ampliou o estádio: ${o.de} → ${o.para} lugares.`); });
 }
+/* DIVISÃO DE CADA CLUBE — mapa id -> divisão, da mesma varredura que cpuSeasonFinances já faz
+   (minha tabela + as outras três). É o que permite cobrar o ingresso da divisão certa e ancorar a
+   metade fixa da cota de TV na divisão certa, em vez de assumir a divisão do jogador âncora. */
+function divDeCadaClubeT(S: any): any {
+  const out: any = {};
+  const reg = (div: string, tbl: any) => { Object.keys(tbl || {}).forEach((id) => { out[id] = div; }); };
+  reg(S.division, S.table);
+  DIV_ORDER.forEach((d) => { const od = S.otherDivs && S.otherDivs[d]; if (od && od.table) reg(d, od.table); });
+  return out;
+}
 function cpuRoundCash(S: any, humans: Set<string>) {
+  const avg = divOverallAvgT(S);
+  const divDe = divDeCadaClubeT(S);
   WR.cpuCaixaRodada(S, {
     humanos: humans,
-    renda: rbIncome,
+    renda: (ov: number, div: string) => rbIncome(ov, ovMedioDe(avg, div || S.division)),
     folha: (p: any) => (p.contract && p.contract.salary) || rbWage(p.f),
     capacidade: rbStadiumCap,
     overall: (id: string) => (S.clubOverall && S.clubOverall[id] != null) ? S.clubOverall[id] : null,
+    divisao: (id: string) => divDe[id] || S.division,
+    /* MESMA tabela do cliente (A25/B20/C15/D10), agora da folha prizes.js. Enquanto o preço morava
+       em main.js — arquivo de UI que esta função não carrega — o rival na Resenha arrecadava pela
+       fórmula velha por overall e o humano pela tabela: dois preços para o mesmo estádio. */
+    preco: (div: string) => PRIZES.ticketPrice(div || S.division),
     OPEX,
   });
 }
