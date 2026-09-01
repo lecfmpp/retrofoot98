@@ -48,6 +48,8 @@
     batedor:    ['batedor','batedora'],
     artilheiro: ['artilheiro','artilheira'],
     Artilheiro: ['Artilheiro','Artilheira'],
+    artilheiros:['artilheiros','artilheiras'],
+    Artilheiros:['Artilheiros','Artilheiras'],
     titular:    ['titular','titular'],
     reserva:    ['reserva','reserva'],
     craque:     ['craque','craque'],

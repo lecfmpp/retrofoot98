@@ -64,6 +64,9 @@ function rfAcFotoDoJogador(p){
   return (window.RF_FOTOS||{})[String(CL.clubId)+'|'+p.n]
       || (window.RF_FOTOS_NOME||{})[p.n] || null;
 }
+/* A CAMADA DE LINGUAGEM, com rede: genero.js so' existe onde o universo feminino existe, e o
+   objeto nulo devolve a palavra como veio (o texto masculino de sempre). */
+function RF_G(){ return (typeof RF_GENERO!=='undefined') ? RF_GENERO : { t:x=>x, ehFem:()=>false }; }
 function rfAcFichaHTML(p, rotulo, valor, num){
   const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{};
   const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
@@ -244,13 +247,13 @@ const RF_ACOES = {
       titulo:'Salário de '+escC((p&&p.n)||'—'), w:520,
       corpo:
         rfAcFichaHTML(p,'TAXA ACERTADA',rfDin(n.offerFee),d.num)
-        + rfAcAvisoHTML(`O ${escC(c.short)} <b>aceitou a taxa</b> de ${escC(rfDin(n.offerFee))}. Falta acertar o salário com o jogador.`,'ok')
+        + rfAcAvisoHTML(`O ${escC(c.short)} <b>aceitou a taxa</b> de ${escC(rfDin(n.offerFee))}. Falta acertar o salário com ${RF_G().t('o')} ${RF_G().t('jogador')}.`,'ok')
         + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(salAtual),
             pedeAgente?`O empresário pede ${escC(rfDin(pedeAgente))}/mês.`
-                      :`O jogador pede no mínimo ${escC(rfDin(Math.round(salAtual*0.9)))}.`,
+                      :`${RF_G().t('O')} ${RF_G().t('jogador')} pede no mínimo ${escC(rfDin(Math.round(salAtual*0.9)))}.`,
             {sufixo:'/mês', foco:true})
         + rfAcLinhaHTML('Folha depois da contratação', rfDin(folhaDepois)+'/mês', 'aviso', true)
-        + rfAcNotaHTML('A taxa já está fechada — daqui em diante você negocia só com o jogador.'),
+        + rfAcNotaHTML(`A taxa já está fechada — daqui em diante você negocia só com ${RF_G().t('o')} ${RF_G().t('jogador')}.`),
       acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar termos',on:'rfMkTermos()'}] });
   }
 
@@ -274,7 +277,7 @@ const RF_ACOES = {
             : rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/mês', '', true))
         + rfAcLinhaHTML('Caixa depois', rfDin((S.budget||0)-n.offerFee), ((S.budget||0)-n.offerFee)<0?'ruim':'ok')
         + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/mês', 'aviso')
-        + rfAcNotaHTML('Clube e jogador já concordaram. Confirmar transfere o jogador para o seu elenco.'),
+        + rfAcNotaHTML(`Clube e ${RF_G().t('jogador')} já concordaram. Confirmar transfere ${RF_G().t('o')} ${RF_G().t('jogador')} para o seu elenco.`),
       acoes:[{l:'Cancelar',tom:'fantasma'},
              {l:emAberto?'Aceitar e fechar':'Fechar contratação',on:'rfMkFinalizar()'}] });
   }
@@ -297,7 +300,7 @@ const RF_ACOES = {
       titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,
       corpo:
         rfAcFichaHTML(p,'VALOR DE MERCADO',rfDin(ask),d.num)
-        + rfAcAvisoHTML(`${escC(p&&p.n||'O jogador')} é do <b>${escC(c.short)}</b>, que tem treinador de verdade — <b>${escC(quem)}</b>. Aqui não há regateio: a proposta vai para o e-mail dele, que aceita, recusa ou pede outro valor.`,'aviso')
+        + rfAcAvisoHTML(`${escC(p&&p.n|| (RF_G().t('O')+' '+RF_G().t('jogador')))} é ${RF_G().ehFem()?'da':'do'} <b>${escC(c.short)}</b>, que tem treinador de verdade — <b>${escC(quem)}</b>. Aqui não há regateio: a proposta vai para o e-mail dele, que aceita, recusa ou pede outro valor.`,'aviso')
         + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
             `O valor de mercado dele é ${escC(rfDin(ask))} — quem decide é o outro treinador.`, {foco:true})
         + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
@@ -316,7 +319,7 @@ const RF_ACOES = {
           `Abaixo de ${escC(rfDin(minimo))} o ${escC(c.short)} recusa direto.`, {foco:true})
       + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
       + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
-      + rfAcNotaHTML(`Primeiro acerta-se a TAXA com o ${escC(c.short)}. O salário do jogador vem na etapa seguinte.`),
+      + rfAcNotaHTML(`Primeiro acerta-se a TAXA com o ${escC(c.short)}. O salário ${RF_G().ehFem()?'da':'do'} ${RF_G().t('jogador')} vem na etapa seguinte.`),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
 },
 
@@ -332,18 +335,18 @@ const RF_ACOES = {
   const setor=RF_GENERO.pos(v.pos,'setor')||'—';
   const linha=(r,val)=>rfAcLinhaHTML(r,String(val==null?'—':val),'');
   return rfAcao({ kicker:'MERCADO · LEILÃO DE OUTRO CLUBE',
-    titulo:'Venda de jogador por leilão', w:520,
+    titulo:`Venda ${RF_G().ehFem()?'de':'de'} ${RF_G().t('jogador')} por leilão`, w:520,
     corpo:
       linha('Equipa', escC(vendedor.short||'—'))
-      + linha('Jogador', escC(v.nome||'—'))
+      + linha(RF_G().t('Jogador'), escC(v.nome||'—'))
       + linha('Posição', setor)
       + linha('Força', v.forca)
       + linha('Salário pretendido', rfDin(v.salario||0))
       + linha('Preço base', v.base?rfDin(v.base):'zero')
       + linha('Gols nesta temporada', v.gols||0)
-      + rfAcSeloHTML(rfIcone('leilao',18), 'Vendido ao '+escC((comprador.short||'—').toUpperCase()),
+      + rfAcSeloHTML(rfIcone('leilao',18), (RF_G().ehFem()?'Vendida ao ':'Vendido ao ')+escC((comprador.short||'—').toUpperCase()),
           'por '+escC(rfDin(v.preco||0)))
-      + rfAcNotaHTML('O jogador deixou o mercado — não é mais possível dar lance neste lote.'),
+      + rfAcNotaHTML(`${RF_G().t('O')} ${RF_G().t('jogador')} deixou o mercado — não é mais possível dar lance neste lote.`),
     acoes:[{l:rfIcone('ok',16)+' OK'}] });
 },
 
@@ -411,7 +414,7 @@ const RF_ACOES = {
       + rfAcLinhaHTML('Quem herda a vaga', sub?sub.n+' (força '+sub.f+')':'ninguém no setor', sub?'':'ruim')
       + rfAcNotaHTML(sub
           ? 'A venda é definitiva e vale já nesta semana.'
-          : '<b>Sem reserva no setor.</b> Vender agora abre um buraco no onze que o banco não cobre.'),
+          : `<b>Sem ${RF_G().t('reserva')} no setor.</b> Vender agora abre um buraco no onze que o banco não cobre.`),
     acoes:[{l:'Voltar',tom:'fantasma'},{l:'Confirmar a venda',on:`rfMkAceitar(${d.id})`}] });
 },
 
@@ -522,7 +525,7 @@ const RF_ACOES = {
          (isCpuMarketProtected devolve true para S.clubId). Vender aqui é uma
          venda IMEDIATA ao mercado da CPU — é isso que a nota abaixo diz agora,
          em vez de prometer uma vitrine que não existe. */
-      + (titular?rfAcAvisoHTML('É <b>titular</b>. Sair dele agora abre buraco no onze até você repor.','aviso'):'')
+      + (titular?rfAcAvisoHTML(`É <b>${RF_G().t('titular')}</b>. Sair ${RF_G().ehFem()?'dela':'dele'} agora abre buraco no onze até você repor.`,'aviso'):'')
       + rfAcNotaHTML('A venda é imediata: um clube interessado fecha na hora pelo preço pedido.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('destaque',16)+' Listar',on:'rfMkListarGo()'}] });
 },
@@ -547,7 +550,7 @@ const RF_ACOES = {
    que o motor nao calcula nao entra: ficou o que e verdade.
    O jogador JA SAIU do elenco quando isto abre, entao os dados vem no `d` (ver clSellConfirm),
    nao de squad(). */
-'mkt-vendido': d=>rfAcao({ kicker:'MERCADO · VENDA CONCLUÍDA', titulo:'Vendido!', w:480,
+'mkt-vendido': d=>rfAcao({ kicker:'MERCADO · VENDA CONCLUÍDA', titulo:(RF_G().ehFem()?'Vendida!':'Vendido!'), w:480,
   fechar:'rfMkVendidoFechar()',
   corpo:
     rfAcSeloHTML(rfIcone('moedas',18), d.player||'—', 'sai para o '+(d.buyer||'comprador'))
@@ -556,7 +559,7 @@ const RF_ACOES = {
     + (d.salario?rfAcLinhaHTML('Sai da folha', '−'+rfDin(d.salario)+'/mês', 'ok'):'')
     + (d.vm?rfAcLinhaHTML('Valor de mercado dele', rfDin(d.vm), (d.fee||0)>=d.vm?'ok':'ruim'):'')
     + rfAcLinhaHTML('Quem herda a vaga', d.sub||'ninguém no setor', d.sub?'':'ruim')
-    + (d.sub?'':rfAcAvisoHTML('<b>Sem reserva no setor.</b> O onze fica com um buraco até você repor.','aviso'))
+    + (d.sub?'':rfAcAvisoHTML(`<b>Sem ${RF_G().t('reserva')} no setor.</b> O onze fica com um buraco até você repor.`,'aviso'))
     + rfAcNotaHTML('A venda é definitiva e já está no extrato desta semana.'),
   acoes:[{l:'Ver o elenco',tom:'fantasma',on:"rfMkVendidoFechar();rfGo('elenco')"},
          {l:'Ir ao mercado',tom:'fantasma',on:"rfMkVendidoFechar();rfGo('mercado')"},
@@ -567,8 +570,8 @@ const RF_ACOES = {
     rfAcAvisoHTML(`A proposta é de <b>${escC(rfDin(d.pedido||0))}</b> e o caixa tem <b>${escC(rfDin(S.budget||0))}</b>.`,'perigo')
     + `<span class="rf-ac-l">De onde tirar</span>`
     + rfAcOpcoesHTML('donde',[
-        {t:'Vender um jogador', s:'a aba Vender mostra quem sai sem abrir buraco'},
-        {t:'Baixar a oferta', s:'o clube pode aceitar menos se o jogador for reserva lá'},
+        {t:`Vender ${RF_G().t('um')} ${RF_G().t('jogador')}`, s:'a aba Vender mostra quem sai sem abrir buraco'},
+        {t:'Baixar a oferta', s:`o clube pode aceitar menos se ${RF_G().t('o')} ${RF_G().t('jogador')} for ${RF_G().t('reserva')} lá`},
         {t:'Esperar a próxima semana', s:'bilheteria e patrocínio entram no fecho da semana'}], d.donde)
     + rfAcNotaHTML('O jogo não deixa o caixa ficar negativo — nenhuma compra passa acima do que existe.'),
   acoes:[{l:'Reduzir a oferta',tom:'fantasma'},{l:'Ir ao mercado',on:"rfAcFechar();rfSetTab('mercado','vender')"}] }),
@@ -630,7 +633,7 @@ const RF_ACOES = {
       rfAcFichaHTML(p,'SALÁRIO',sal?rfDin(sal):'—',d.num)
       + rfAcCampoHTML('rf-ac-novo','Novo salário', moneyDisp(novo),
           `Hoje ele ganha ${escC(rfDin(sal))}. Abaixo disso ele nem escuta.`, {foco:true,sufixo:'/mês'})
-      + rfAcPassoHTML('rf-ac-anos','Anos de contrato', 3, 'Mais anos seguram o jogador, mas travam a folha.')
+      + rfAcPassoHTML('rf-ac-anos','Anos de contrato', 3, `Mais anos seguram ${RF_G().t('o')} ${RF_G().t('jogador')}, mas travam a folha.`)
       + rfAcChanceHTML('Chance de aceitar', chance)
       + rfAcNotaHTML('Contrato vencendo derruba o valor do passe: renovar cedo é o que segura o preço.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Oferecer renovação',on:`rfElRenovarGo('${escC(String(d.pid))}')`}] });
@@ -642,8 +645,8 @@ const RF_ACOES = {
    Nada de atributos detalhados, evolução ou contrato — isso é do dono. */
 'jogador-perfil': d=>{
   const cid=d.clubId, p=((typeof squad==='function')?squad(cid):[]).find(x=>x.pid===d.pid || x.n===d.nome);
-  if(!p) return rfAcao({ kicker:'JOGADOR', titulo:'Jogador não encontrado', w:420,
-    corpo:rfAcNotaHTML('Não consegui carregar este jogador.'), acoes:[{l:'Fechar'}] });
+  if(!p) return rfAcao({ kicker:RF_G().t('Jogador').toUpperCase(), titulo:`${RF_G().t('Jogador')} não ${RF_G().ehFem()?'encontrada':'encontrado'}`, w:420,
+    corpo:rfAcNotaHTML(`Não consegui carregar ${RF_G().ehFem()?'esta':'este'} ${RF_G().t('jogador')}.`), acoes:[{l:'Fechar'}] });
   const c=(typeof anyClubOf==='function'?anyClubOf(cid):null)||{};
   const meu=String(cid)===String(CL.clubId);
   const hist=(typeof careerHistTotals==='function')?careerHistTotals(p):null;

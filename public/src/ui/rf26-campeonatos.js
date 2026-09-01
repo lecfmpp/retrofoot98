@@ -383,7 +383,7 @@ function rfCpArtilhariaHTML(){
         ? 'ARTILHARIA DA TEMPORADA'
         : ('ARTILHARIA · '+escC(String(((typeof rfCompInfo==='function')?rfCompInfo(selArt).curto:selArt)).toUpperCase()))}</span>
         <!-- "todos os grupos" nao queria dizer nada numa liga de pontos corridos -->
-        <span class="rf-label-r">${arr.length?(arr.length+(arr.length===1?' artilheiro':' artilheiros')):''}</span></div>
+        <span class="rf-label-r">${arr.length?(arr.length+' '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t(arr.length===1?'artilheiro':'artilheiros')):''}</span></div>
       ${cab}
       ${rfLista('artilharia', linhas, 'Sem gols marcados ainda nesta temporada.')}
     </div>
@@ -746,7 +746,7 @@ function rfMdClassifHTML(){ return rfMdFiltroHTML()+rfMdClassificacaoHTML(); }
    aberta) cai na tela do clube, que é o passo anterior, em vez de não fazer nada. */
 function rfMdVerJogador(nome){
   const cid=(typeof findPlayerClub==='function')?findPlayerClub(nome):null;
-  if(!cid){ toastC('Não achei em que clube esse jogador está.'); return; }
+  if(!cid){ toastC(`Não achei em que clube ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('esse')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} está.`); return; }
   if(cid===CL.clubId && typeof clGoSquad==='function'){ clGoSquad(); return; }
   if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
   const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);

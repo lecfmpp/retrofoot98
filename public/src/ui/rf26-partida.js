@@ -413,7 +413,7 @@ function rfInjSeguir(){
    ===================================================================== */
 const RF_REORG=[
   {f:'3-2-4', d:'Perde o meio, mantém o ataque', efeito:'−6 no meio'},
-  {f:'3-3-3', d:'Equilibra, tira um atacante',   efeito:'−4 no ataque', rec:true},
+  {f:'3-3-3', d:`Equilibra, tira ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('um')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('atacante')}`,   efeito:'−4 no ataque', rec:true},
   {f:'4-3-2', d:'Fecha atrás e segura o empate', efeito:'−8 no ataque'},
 ];
 function rfExpulsaoHTML(m,e){
@@ -782,7 +782,7 @@ function rfBatedorNota(p){
   const en=p.energy!=null?p.energy:100;
   if(en<45) return 'entrou agora, frio';
   if(gols>0) return gols+' gol'+(gols>1?'s':'')+' na temporada';
-  return 'cobrador reserva';
+  return `${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('batedor')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('reserva')}`;
 }
 
 /* ---- 1 · PÊNALTI: escolher batedor ---- */
@@ -840,9 +840,9 @@ function rfPenaltiResultadoHTML(extra){
     titulo:gol?'Gol!':'Perdeu!',
     hdDir:`<span class="rf-ov-bola" aria-hidden="true">${gol?rfIcone('jogar',16):'🧤'}</span>`,
     corpo:`${extra||''}
-      ${rfGolHTML(CL.penCanto,{txt:gol?'no fundo da rede':'o goleiro pegou'})}
+      ${rfGolHTML(CL.penCanto,{txt:gol?'no fundo da rede':`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('o')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('goleiro')} pegou`})}
       <div class="rf-pen-res ${gol?'gol':'perdeu'}">
-        <span class="rf-pen-res-t">${gol?rfIcone('jogar',16)+' Gol de '+escC(CL.penSel||''):'🧤 '+escC(CL.penSel||'')+' parou no goleiro'}</span>
+        <span class="rf-pen-res-t">${gol?rfIcone('jogar',16)+' Gol de '+escC(CL.penSel||''):'🧤 '+escC(CL.penSel||'')+` parou n${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('o')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('goleiro')}`}</span>
         <span class="rf-pen-res-s">${gol?'A torcida foi ao delírio.':'Ainda dá tempo de virar.'}</span>
       </div>`,
     acoes:`<div class="rf-sp"></div>
@@ -940,7 +940,7 @@ function rfDisputaHTML(RL){
        passar `canto` para penaltyConvChance. O canto só se mostra quando a cobrança é MINHA —
        na do adversário eu não escolhi canto nenhum, e marcar um seria mentir sobre o lance. */
     corpo=`${placar}
-      ${rfGolHTML(minhaVez?cantoDaVez:null, {txt: minhaVez?(gol?'no fundo da rede':'o goleiro pegou'):(gol?'no fundo da nossa rede':'nosso goleiro pegou')})}
+      ${rfGolHTML(minhaVez?cantoDaVez:null, {txt: minhaVez?(gol?'no fundo da rede':`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('o')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('goleiro')} pegou`):(gol?'no fundo da nossa rede':`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).ehFem()?'nossa':'nosso'} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('goleiro')} pegou`)})}
       <div class="rf-pen-res ${gol?'gol':'perdeu'}">
         <span class="rf-pen-res-t">${gol
           ? rfIcone('jogar',16)+' Gol de '+escC(nomeNaMarca)
@@ -1024,7 +1024,7 @@ function rfDisputaHTML(RL){
 /* frase curta logo depois do chute -- muda conforme foi meu ou deles */
 function rfSoDepoisDoChute(gh,ga,eu,gol,minhaVez){
   if(minhaVez) return gol?'A torcida foi ao delírio.':'Ainda dá tempo de virar.';
-  return gol?'Agora a pressão volta pro seu lado.':'O goleiro salvou — a série vira a seu favor.';
+  return gol?'Agora a pressão volta pro seu lado.':`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('O')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('goleiro')} salvou — a série vira a seu favor.`;
 }
 function rfSoVantagem(gh,ga,hc,ac){
   if(gh>ga) return 'Vantagem '+hc.short;

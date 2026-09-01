@@ -97,7 +97,7 @@ const STORY_EVENTS=[
     ]};}},
   {id:'europa',t:'Especulação',w:2,gen:()=>{const p=youngGem(S.clubId);return {
     title:'🌍 Mercado Europeu',
-    text:`Clube europeu prepara proposta de ${fmt(liveMV(p)*1.4)} por ${p.n}. O jogador está com a cabeça na Europa.`,
+    text:`Clube europeu prepara proposta de ${fmt(liveMV(p)*1.4)} por ${p.n}. ${RFG().t('O')} ${RFG().t('jogador')} está com a cabeça na Europa.`,
     player:p.n,
     options:[
       {label:'Conversar e acalmar',eff:()=>{adjMoral(p.n,+8);toast(`${p.n} focado no clube.`);}},
@@ -193,6 +193,8 @@ function isTradeLocked(p){ return !!(p && p._tradeLockSeason===S.season); }
 const SQUAD_FLOOR={ GK:2 };
 /* Os rotulos deixam de ser tabela e passam a ser pergunta: no mundo feminino sao goleira,
    zagueira, meia, atacante. RF_GENERO devolve o indice 0 (o texto de sempre) fora dele. */
+/* atalho da camada de linguagem, com rede — genero.js so' existe onde o feminino existe */
+function RFG(){ return (typeof RF_GENERO!=='undefined') ? RF_GENERO : { t:x=>x, ehFem:()=>false }; }
 function posNomeDe(s){ return (typeof RF_GENERO!=='undefined') ? RF_GENERO.pos(s).toLowerCase()
                             : ({GK:'goleiro',DEF:'zagueiro',MID:'meia',ATT:'atacante'})[s]; }
 function countPos(clubId, pos){ return ((S.squads&&S.squads[clubId])||[]).filter(x=>x&&x.s===pos).length; }
@@ -201,7 +203,7 @@ function canReleaseFromSquad(clubId, p){
   const min=SQUAD_FLOOR[(p&&p.s)||'']; if(!min) return {ok:true};
   if(countPos(clubId, p.s) > min) return {ok:true};
   const nome=posNomeDe(p.s)||((typeof RF_GENERO!=='undefined')?RF_GENERO.t('jogador'):'jogador');
-  return {ok:false, msg:`O elenco precisa de pelo menos ${min} ${nome}${min>1?'s':''}. Contrate outro ${nome} antes de liberar ${p.n||'este jogador'}.`};
+  return {ok:false, msg:`O elenco precisa de pelo menos ${min} ${nome}${min>1?'s':''}. Contrate ${RFG().t('outro')} ${nome} antes de liberar ${p.n||(RFG().ehFem()?'esta jogadora':'este jogador')}.`};
 }
 /* ================= TREINO ESPECIAL =================
    Feature nova (não existia nenhum rastro no código: "treino"/"treinar" só apareciam em textos
@@ -217,9 +219,9 @@ function myTrainingList(){ return (S.trainingByClub && S.trainingByClub[S.clubId
 function startTraining(pid){
   S.trainingByClub=S.trainingByClub||{};
   const mine=S.trainingByClub[S.clubId]=S.trainingByClub[S.clubId]||[];
-  if(mine.includes(pid)) return {ok:false,msg:'Esse jogador já está em treino.'};
-  if(mine.length>=TRAINING_MAX_SLOTS) return {ok:false,msg:`Máximo de ${TRAINING_MAX_SLOTS} jogadores em treino ao mesmo tempo.`};
-  const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  if(mine.includes(pid)) return {ok:false,msg:`${RFG().t('Esse')} ${RFG().t('jogador')} já está em treino.`};
+  if(mine.length>=TRAINING_MAX_SLOTS) return {ok:false,msg:`Máximo de ${TRAINING_MAX_SLOTS} ${RFG().t('jogadores')} em treino ao mesmo tempo.`};
+  const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não ${RFG().ehFem()?'encontrada':'encontrado'}.`};
   mine.push(pid); p._training=true; save();
   return {ok:true,msg:`${p.n} entrou em treino especial.`};
 }
@@ -471,7 +473,7 @@ function executePendingTransfers(){
       recordNetTransfer(sellerId, t.buyerCountry?null:t.buyerId, t.playerName, null, t.fee, p&&p.pid); // online: avisa o servidor (venda)
       if(sellerId===S.clubId){
         S.roundNews.push(`💰 ${t.playerName} deixou o clube rumo ao ${t.buyerName} por ${fmt(t.fee)} (transferência acordada).`);
-        pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} vendido ao ${t.buyerName} por ${fmt(t.fee)}.`]});
+        pushFinanceEntry({playerSales:t.fee, log:[`💰 ${t.playerName} ${RFG().ehFem()?'vendida':'vendido'} ao ${t.buyerName} por ${fmt(t.fee)}.`]});
       }
     }
   });
@@ -552,9 +554,9 @@ function youthAvailable(){
 function youthUnavailableMsg(){
   const cheio=(squad(S.clubId)||[]).length>=40;
   const limite=youthWindowOpen() && youthCountThisWindow()>=1;
-  return cheio?'Elenco cheio (40 jogadores).'
-    : limite?('Você já subiu um jogador da base nesta janela. Espere a próxima janela de transferências.')
-    : 'A base só sobe jogador com a janela de transferências aberta.';
+  return cheio?`Elenco cheio (40 ${RFG().t('jogadores')}).`
+    : limite?(`Você já subiu ${RFG().t('um')} ${RFG().t('jogador')} da base nesta janela. Espere a próxima janela de transferências.`)
+    : `A base só sobe ${RFG().t('jogador')} com a janela de transferências aberta.`;
 }
 /* sorteia um NOVO lote de 3 candidatos e guarda em S._youthCandidates/_youthCandidatesRound —
    como as 3 opções já aparecem juntas no modal, não existe "escolher outro" (seria redundante);
@@ -711,7 +713,7 @@ function finalizeTransfer(negoIdx){
   const preOpen=inPreWindow();
   if(!inTransferWindow() && !preOpen) return {ok:false,msg:'A janela de transferências está fechada.'};
   const n=S.negos[negoIdx]; if(!n || n.stage!=='verdict' || n.status!=='aberta') return {ok:false,msg:'Negociação inválida.'};
-  const p=findP(n.player,n.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  const p=findP(n.player,n.sellerId); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não ${RFG().ehFem()?'encontrada':'encontrado'}.`};
   const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg}; // cota de estrangeiros da liga
   /* O SALARIO PEDIDO PELO EMPRESARIO NAO ERA VERIFICADO EM LADO NENHUM.
      Quando o interesse passa de 45, agentRespond() poe n.agentCounter E manda a
@@ -738,8 +740,8 @@ function finalizeTransfer(negoIdx){
     MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division)); // gatilho de vitrine
     S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
     recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost, p.pid); // online: avisa o servidor (senão a contratação é desfeita)
-    S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
-    pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
+    S.roundNews.push(`✍️ ${p.n} ${RFG().t('contratado')} do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
+    pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} ${RFG().t('contratado')} do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
     save();
     return {ok:true,msg:`${p.n} agora joga pelo ${clubOf(S.clubId).short}!`};
   }
@@ -751,8 +753,8 @@ function finalizeTransfer(negoIdx){
     MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
     S.squads[S.clubId]=S.squads[S.clubId]||[]; S.squads[S.clubId].push(p);
     recordNetTransfer(n.sellerId, S.clubId, p.n, contract, totalCost, p.pid);
-    S.roundNews.push(`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
-    pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} contratado do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
+    S.roundNews.push(`✍️ ${p.n} ${RFG().t('contratado')} do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`);
+    pushFinanceEntry({playerPurchases:totalCost, log:[`✍️ ${p.n} ${RFG().t('contratado')} do ${clubOf(n.sellerId).short} por ${fmt(totalCost)}.`]});
     save();
     return {ok:true,msg:`${p.n} agora joga pelo ${clubOf(S.clubId).short}!`};
   }
@@ -949,7 +951,7 @@ function generateIncomingOffers(R){
 }
 function acceptIncomingOffer(id){
   const o=myIncomingOffers().find(x=>x.id===id); if(!o) return {ok:false,msg:'Proposta não existe mais.'};
-  const p=(S.squads[S.clubId]||[]).find(x=>x.n===o.playerName); if(!p) return {ok:false,msg:'Jogador não está mais no elenco.'};
+  const p=(S.squads[S.clubId]||[]).find(x=>x.n===o.playerName); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não está mais no elenco.`};
   if((S.squads[S.clubId]||[]).length<=15) return {ok:false,msg:'Elenco pequeno demais pra vender.'};
   const floor=canReleaseFromSquad(S.clubId,p); if(!floor.ok) return {ok:false,msg:floor.msg};
   if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi comprado nesta temporada e ainda não pode ser negociado de novo.`};
@@ -986,10 +988,10 @@ function acceptIncomingOffer(id){
   // comprador estrangeiro não existe no mundo do servidor -> saída do mundo (to:null), senão o
   // jogador era rejeitado e voltava pro vendedor (revenda infinita). Ver acceptIncomingOffer/#1.
   recordNetTransfer(S.clubId, o.buyerCountry?null:o.buyerId, o.playerName, null, o.fee, p&&p.pid); // online: avisa o servidor (venda)
-  S.roundNews.push(`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`);
-  pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} vendido ao ${o.buyerName} por ${fmt(o.fee)}.`]});
+  S.roundNews.push(`💰 ${o.playerName} ${RFG().ehFem()?'vendida':'vendido'} ao ${o.buyerName} por ${fmt(o.fee)}.`);
+  pushFinanceEntry({playerSales:o.fee, log:[`💰 ${o.playerName} ${RFG().ehFem()?'vendida':'vendido'} ao ${o.buyerName} por ${fmt(o.fee)}.`]});
   save();
-  return {ok:true, msg:`${o.playerName} vendido por ${fmt(o.fee)}!`};
+  return {ok:true, msg:`${o.playerName} ${RFG().ehFem()?'vendida':'vendido'} por ${fmt(o.fee)}!`};
 }
 /* dá BAIXA numa proposta da fila de um clube. Em Resenha isto TEM que viajar: aceitar, recusar
    ou contrapropor só apagava a proposta no S local, e o estado autoritativo (do servidor) seguia
@@ -1023,9 +1025,9 @@ function rejectIncomingOffer(id){ dropIncomingOffer(S.clubId, id); save(); retur
    dando contrato e travando o jogador — ver ali), recusar, ou negociar (counterHumanOffer). */
 function sendHumanOffer(targetSellerId, playerName, fee){
   if(!CL.online || !CL.humans || !CL.humans[targetSellerId]) return {ok:false,msg:'Esse clube não é de um treinador humano.'};
-  if(String(targetSellerId)===String(S.clubId)) return {ok:false,msg:'Você não pode propor pelo seu próprio jogador.'};
+  if(String(targetSellerId)===String(S.clubId)) return {ok:false,msg:`Você não pode propor ${RFG().ehFem()?'pela sua própria':'pelo seu próprio'} ${RFG().t('jogador')}.`};
   if(!canNegotiate()) return {ok:false,msg:'A janela de transferências está fechada.'};
-  const p=findP(playerName,targetSellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  const p=findP(playerName,targetSellerId); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não ${RFG().ehFem()?'encontrada':'encontrado'}.`};
   if(isTradeLocked(p)) return {ok:false,msg:`${p.n} foi negociado recentemente e ainda não pode ser negociado de novo.`};
   /* A COTA DE ESTRANGEIROS VALE TAMBÉM ENTRE HUMANOS. Os três caminhos de compra da CPU
      (negociação, lance, resolução de leilão) já checavam; a proposta a clube de OUTRO
@@ -1037,7 +1039,7 @@ function sendHumanOffer(targetSellerId, playerName, fee){
   if(fee>S.budget) return {ok:false,msg:'Caixa insuficiente pra essa proposta.'};
   S.incomingOffersByClub=S.incomingOffersByClub||{};
   const sellerOffers=S.incomingOffersByClub[targetSellerId]=S.incomingOffersByClub[targetSellerId]||[];
-  if(sellerOffers.some(o=>o.playerName===p.n && String(o.buyerId)===String(S.clubId))) return {ok:false,msg:'Você já tem uma proposta pendente por esse jogador.'};
+  if(sellerOffers.some(o=>o.playerName===p.n && String(o.buyerId)===String(S.clubId))) return {ok:false,msg:`Você já tem uma proposta pendente por ${RFG().t('esse')} ${RFG().t('jogador')}.`};
   const myHumanName=(CL.humans&&CL.humans[S.clubId])||'Um treinador';
   const id=(hashSeed(S.seed,S.round,p.n,S.clubId,targetSellerId,nowMs())>>>0);
   sellerOffers.push({ id, buyerId:S.clubId, buyerName:(clubOf(S.clubId)||{}).short||S.clubId, buyerHumanName:myHumanName,
@@ -1395,7 +1397,7 @@ function placeAuctionBid(lotId, amount){
   amount=Math.round(amount||0);
   if(amount<=lot.bid) return {ok:false,msg:`O lance precisa ser maior que ${fmt(lot.bid)}.`};
   if(amount>S.budget) return {ok:false,msg:'Caixa insuficiente pra esse lance.'};
-  const p=findP(lot.player, lot.sellerId); if(!p) return {ok:false,msg:'Jogador não encontrado.'};
+  const p=findP(lot.player, lot.sellerId); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não ${RFG().ehFem()?'encontrada':'encontrado'}.`};
   const fq=checkForeignQuota(p); if(!fq.ok) return {ok:false,msg:fq.msg};
   const ts=(typeof nowMs==='function')?nowMs():0;
   lot.bids=lot.bids||{}; lot.bids[S.clubId]={amount, ts};

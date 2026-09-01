@@ -377,8 +377,8 @@ function rfMktComprarTabelaHTML(){
     <span class="dir">NAC</span><span class="dir">IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   const vazio=(rfMktF().q||'').trim()
-    ? 'Nenhum jogador com esse nome — e os filtros de posicao, forca e preco tambem contam.'
-    : 'Nenhum jogador com esses filtros.';
+    ? `${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Nenhum')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} com esse nome — e os filtros de posicao, forca e preco tambem contam.`
+    : `${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Nenhum')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} com esses filtros.`;
   /* GRADE LITERAL DO PACOTE (Mercado - Abas): duas colunas flexiveis (1.3fr e
      1fr) repartem nome e clube. */
   return rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 34px minmax(0,1fr) 96px 84px 74px',
@@ -390,7 +390,7 @@ function rfMktConta(){
 }
 function rfMktComprarHTML(){
   if(typeof canNegotiate==='function' && !canNegotiate())
-    return rfCol(rfCard('Jogadores no mercado',
+    return rfCol(rfCard(`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Jogadores')} no mercado`,
       `<div class="rf-empty">${escC(typeof windowClosedMsg==='function'?windowClosedMsg():'A janela de transferências está fechada.')}</div>`));
   const teto=S.budget||0;
   const folha=rfFolha();
@@ -404,7 +404,7 @@ function rfMktComprarHTML(){
     cotaAtual>=cotaMax?'cota cheia — só nacionais':'vagas na cota da liga',
     cotaAtual>=cotaMax?'ruim':''):'';
   return rfMktGavetaHTML(['oferta']) + rfCol(
-    rfCard('Jogadores no mercado',
+    rfCard(`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Jogadores')} no mercado`,
       rfMktFiltrosHTML() + rfMktComprarTabelaHTML(),
       {right: `<span data-mkt-conta>${escC(rfMktConta())}</span>`})
     + rfCard('O que o caixa permite', `

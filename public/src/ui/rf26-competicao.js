@@ -166,7 +166,7 @@ function rfFimTemporadaHTML(sum){
           const art=rfArtilheirosDaTemporada();
           if(!art.length) return '';
           return `<div class="rf-card">
-            <div class="rf-label"><span class="rf-label-t">Artilheiros por competição</span></div>
+            <div class="rf-label"><span class="rf-label-t">${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Artilheiros')} por competição</span></div>
             ${art.map(a=>`<div class="rf-ft-lin">
               <span class="rf-ft-comp">${escC(a.nome)}</span>
               <div class="rf-sp"></div>
@@ -187,7 +187,7 @@ function rfFimTemporadaHTML(sum){
               <span class="rf-pr-ms">no ano</span></div>
             <!-- O artilheiro da competicao subiu para o cartao proprio (um por competicao);
                  aqui fica o do MEU elenco, que e outra informacao e nao repete a de cima. -->
-            <div class="rf-ft-b"><span class="rf-ov-res-t">Artilheiro do elenco</span>
+            <div class="rf-ft-b"><span class="rf-ov-res-t">${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Artilheiro')} do elenco</span>
               <span class="rf-ft-bv sm">${escC(artCasa?artCasa.n:'—')}</span>
               <span class="rf-pr-ms">${artCasa?(artCasa.g+' gol'+(artCasa.g===1?'':'s')):''}</span></div>
             <div class="rf-ft-b"><span class="rf-ov-res-t">Melhor nota</span>
@@ -1008,7 +1008,7 @@ function rfImManchetesHTML(b){
   if(b.copa) out.push(rfImNoticia('Copa','Lance Regional · hoje',
     'Copa do Brasil: '+escC(b.copa), 'Levantou a taça nacional.'));
   if(b.art) out.push(rfImNoticia('Artilharia','Rádio Esportiva · ontem',
-    'Artilheiro: '+escC(b.art.nome), b.art.gols+' gols na temporada.'));
+    (typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Artilheiro')+': '+escC(b.art.nome), b.art.gols+' gols na temporada.'));
   (b.divs||[]).forEach(d=>{
     if(!d.promovidos.length && !d.rebaixados.length) return;
     const sobe=d.promovidos.length?('<b>Sobem:</b> '+d.promovidos.map(escC).join(', ')):'';
@@ -1799,7 +1799,7 @@ function rfArqPaisesHTML(season){
     return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">${escC(co.toUpperCase())} — ${escC(String(season))}</span>
         <span class="rf-label-r">campeão: ${escC(rfArqCurto(p.champ))}</span></div>
-      ${p.artilheiro?`<div class="rf-ft-lin"><span class="rf-ft-comp">Artilheiro</span>
+      ${p.artilheiro?`<div class="rf-ft-lin"><span class="rf-ft-comp">${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Artilheiro')}</span>
         <div class="rf-sp"></div><span class="rf-ft-n">${escC(p.artilheiro.nome)}</span>
         <span class="rf-ft-gols">${p.artilheiro.gols} ${p.artilheiro.gols===1?'gol':'gols'}</span></div>`:''}
       <div class="rf-arq-tb">
@@ -1896,7 +1896,7 @@ function rfTemporadaArquivoHTML(page, season){
    mesma caixa ancorada em baixo, com os cantos de cima arredondados e as
    medidas mais apertadas. Isso é uma media query, não um segundo modelo.
    ===================================================================== */
-function rfArtSetorCurto(s){ return s||'jogador'; }
+function rfArtSetorCurto(s){ return s||(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador'); }
 function rfArtilheiroHTML(d){
   /* O VIDEO VEM DO MAPA DE SEMPRE (VIDEOS_MOMENTO, em ui/main.js): e la que o caminho de cada
      momento vive, e e la que se troca sem tocar nesta tela. Ausente ou partido, o marcador do

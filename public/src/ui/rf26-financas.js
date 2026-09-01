@@ -55,14 +55,14 @@ function rfFiResumoHTML(){
   const rodadas=Math.max(1,S.round||1);
   const porRodada=Math.round((receita-despesa)/rodadas);
   const projecao=(S.budget||0)+porRodada*faltam;
-  const entra=[['Receita da rodada', t.income||0],['Venda de jogadores', t.playerSales||0]];
+  const entra=[['Receita da rodada', t.income||0],[('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerSales||0]];
   /* A FOLHA NAO NASCE A ZERO. `t.salaries` e o ACUMULADO da temporada, e antes
      da primeira rodada nao acumulou nada — a tela dizia "Folha salarial 0" com
      o elenco todo contratado, e so na 2a rodada aparecia. O compromisso ja e
      calculavel no minuto um: e a soma dos salarios do elenco (`folha`, acima).
      Enquanto nada foi pago, mostra-se o que VAI ser pago. */
   const sai=[['Folha salarial', (t.salaries||0) || folha],['Bônus', t.bonuses||0],
-             ['Custo operacional', t.opex||0],['Compra de jogadores', t.playerPurchases||0],
+             ['Custo operacional', t.opex||0],[('Compra de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerPurchases||0],
              ['Obras no estádio', t.stadium||0]];
   const maiE=Math.max.apply(null,entra.map(x=>x[1]).concat([1]));
   const maiS=Math.max.apply(null,sai.map(x=>x[1]).concat([1]));
@@ -127,10 +127,10 @@ function rfFiExtratoHTML(){
   fin.forEach(f=>{
     const itens=[
       ['Receita da rodada', f.income||0, 1],
-      ['Venda de jogadores', f.playerSales||0, 1],
+      [('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), f.playerSales||0, 1],
       ['Folha salarial', -(f.salaries||0), -1],
       ['Custo operacional', -(f.opex||0), -1],
-      ['Compra de jogadores', -(f.playerPurchases||0), -1],
+      [('Compra de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), -(f.playerPurchases||0), -1],
       ['Obras no estádio', -(f.stadium||0), -1],
     ].filter(x=>x[1]);
     itens.forEach(([rot,valor])=>{

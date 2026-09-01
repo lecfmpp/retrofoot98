@@ -37,9 +37,16 @@
     atacante: ['atacante','atacante'],
     batedor:  ['batedor','batedora'],
     jogador:  ['jogador','jogadora'],
+    reserva:  ['reserva','reserva'],
+    titular:  ['titular','titular'],
   };
   function G_(chave,fem){ const par=TERMO[chave]; return par ? par[fem?1:0] : chave; }
-  function last(n,fem){ const p=String(n||'').trim().split(/\s+/); return p.length>1?p[p.length-1]:(p[0]||('o '+G_('jogador',fem))); }
+  /* ARTIGO E TERMINACAO. Trocar so' o substantivo produzia "o goleira" e "{P} esta' expulso"
+     no feminino -- o artigo e o adjetivo ficavam para tras. Em vez de escrever as frases duas
+     vezes, elas ganham dois marcadores: {a} vira o artigo e {e}/{E} viram a terminacao. Assim
+     'EXPULS{E}!' cobre expulso e expulsa, e a lista de frases continua sendo uma so'. */
+  function art(fem){ return fem ? 'a' : 'o'; }
+  function last(n,fem){ const p=String(n||'').trim().split(/\s+/); return p.length>1?p[p.length-1]:(p[0]||(art(fem)+' '+G_('jogador',fem))); }
 
   /* ---- desfecho de uma FINALIZAÇÃO que não virou gol ----
      O motor emite 'chance' (chutou, não fez) sem dizer se foi defesa, trave
@@ -110,18 +117,18 @@
     '{P} tenta o chute de canhota e joga pra fora.'
   ];
   const AMARELO=[
-    'Amarelo pra {P} — chegou atrasado na dividida.',
+    'Amarelo pra {P} — chegou atrasad{e} na dividida.',
     'Cartão amarelo pra {P}, falta dura no meio-campo.',
     '{P} leva o amarelo por reclamação com o árbitro.',
     'Amarelo pra {P}: segurou o contra-ataque na falta.'
   ];
   const VERMELHO_DIR=[
-    'EXPULSO! {P} vai direto pro vermelho — {T} fica com 10.',
+    'EXPULS{E}! {P} vai direto pro vermelho — {T} fica com 10.',
     'VERMELHO DIRETO pra {P}! {T} joga com um a menos.'
   ];
   const VERMELHO_2A=[
-    'SEGUNDO AMARELO e rua! {P} está expulso, {T} fica com 10.',
-    '{P} leva o segundo amarelo e é expulso. Complicou o jogo de {T}.'
+    'SEGUNDO AMARELO e rua! {P} está expuls{e}, {T} fica com 10.',
+    '{P} leva o segundo amarelo e é expuls{e}. Complicou o jogo de {T}.'
   ];
   const LESAO_GRAVE=[
     '{P} cai sentindo e pede substituição — não tem condições de seguir.',
@@ -199,43 +206,43 @@
     if(!ev) return null;
     const mine=ev.side==='H', T=mine?ctx.hShort:ctx.aShort, O=mine?ctx.aShort:ctx.hShort;
     const fem=!!(ctx&&ctx.fem);
-    const G=(ev.gk)||(mine?ctx.gk.A:ctx.gk.H)||('o '+G_('goleiro',fem));
+    const G=(ev.gk)||(mine?ctx.gk.A:ctx.gk.H)||(art(fem)+' '+G_('goleiro',fem));
     const key=[ctx.seed,ev.type,ev.min,ev.side].join('|');
     /* {K} e' a palavra 'goleiro' DENTRO das frases -- as duas que a citam ('nao deu chance pro
        {K}', 'o {K} voou') nao podiam ser resolvidas so' nos fallbacks. */
-    const v={T:T,O:O,G:last(G,fem),K:G_('goleiro',fem)};
+    const v={T:T,O:O,G:last(G,fem),K:G_('goleiro',fem),a:art(fem),e:art(fem),E:art(fem).toUpperCase()};
     if(ev.type==='gol'){
-      v.P=ev.scorer||('o '+G_('atacante',fem));
+      v.P=ev.scorer||(art(fem)+' '+G_('atacante',fem));
       const hg=ctx.hg, ag=ctx.ag;
       const bank = (hg===ag) ? GOL_EMPATE : ((mine&&hg===ag+1&&ag>0)||(!mine&&ag===hg+1&&hg>0)) ? GOL_VIRADA : GOL;
       return {icon:'⚽', kind:'gol', text:fill(pick(bank,key),v)+' '+ctx.hShort+' '+hg+' × '+ag+' '+ctx.aShort+'.'};
     }
     if(ev.type==='penalti'){
-      v.P=ev.scorer||('o '+G_('batedor',fem));
+      v.P=ev.scorer||(art(fem)+' '+G_('batedor',fem));
       if(ev.scored) return {icon:'⚽', kind:'gol', text:fill(pick(PEN_GOL,key),v)+' '+ctx.hShort+' '+ctx.hg+' × '+ctx.ag+' '+ctx.aShort+'.'};
       const o=ctx.out||'defesa';
       const bank = o==='trave'?PEN_TRAVE : o==='fora'?PEN_FORA : PEN_DEF;
       return {icon:o==='defesa'?'✋':'❌', kind:o==='defesa'?'defesa':'chance', text:fill(pick(bank,key),v)};
     }
     if(ev.type==='chance'){
-      v.P=ev.scorer||('o '+G_('atacante',fem));
+      v.P=ev.scorer||(art(fem)+' '+G_('atacante',fem));
       const o=ctx.out||'fora';
       if(o==='defesa') return {icon:'✋', kind:'defesa', text:fill(pick(CH_DEFESA,key),v)};
       if(o==='trave')  return {icon:'◎', kind:'chance', text:fill(pick(CH_TRAVE,key),v)};
       return {icon:'◎', kind:'chance', text:fill(pick(CH_FORA,key),v)};
     }
     if(ev.type==='cartao'){
-      v.P=ev.player||('o '+G_('jogador',fem));
+      v.P=ev.player||(art(fem)+' '+G_('jogador',fem));
       if(ev.cardType==='vermelho')
         return {icon:'🟥', kind:'cartao', text:fill(pick(ev.reason==='segundo amarelo'?VERMELHO_2A:VERMELHO_DIR,key),v)};
       return {icon:'🟨', kind:'cartao', text:fill(pick(AMARELO,key),v)};
     }
     if(ev.type==='lesao'){
-      v.P=ev.player||('o '+G_('jogador',fem));
+      v.P=ev.player||(art(fem)+' '+G_('jogador',fem));
       return {icon:'✚', kind:'lesao', text:fill(pick(ev.severity==='grave'?LESAO_GRAVE:LESAO_LEVE,key),v)};
     }
     if(ev.type==='sub'){
-      v.P=ev.player||'o reserva'; v.S=ev.out||'o titular';
+      v.P=ev.player||(art(fem)+' '+G_('reserva',fem)); v.S=ev.out||(art(fem)+' '+G_('titular',fem));
       return {icon:'🔄', kind:'sub', text:fill(pick(SUB,key),v)};
     }
     return null;

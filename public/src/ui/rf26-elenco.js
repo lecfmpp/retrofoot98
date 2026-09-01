@@ -939,7 +939,7 @@ function rfElSubHTML(){
     /* VISITA: nada de financeiro do outro clube — só o retrato do elenco */
     const media=sq.length?Math.round(sq.reduce((t,p)=>t+(p.f||0),0)/sq.length):0;
     const c=anyClubOf(vis)||{};
-    return `${sq.length} jogadores · força média ${media}${c.short?' · '+escC(c.short):''} · visualização`;
+    return `${sq.length} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogadores')} · força média ${media}${c.short?' · '+escC(c.short):''} · visualização`;
   }
   const base=(S._youthCandidates&&S._youthCandidatesRound===S.round)?S._youthCandidates.length:0;
   const folha=sq.reduce((t,p)=>t+(typeof playerSalary==='function'?playerSalary(p):0),0);
