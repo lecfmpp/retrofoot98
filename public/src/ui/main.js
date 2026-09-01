@@ -7954,7 +7954,7 @@ function scLive(){ const RL=CL.live; if(!RL) return '';
     ${RL.pens ? '' : `<div class="cl-live-clock" id="cl-liveclock" style="--pct:${liveClockPct(RL)}">${RL.extraStartMinute!=null?'<span class="cl-live-clock-lbl">PRORR.</span>':''}</div>`}
     ${shootoutBoard}
     ${groups}
-    ${rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'468×60'})}
+    ${rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'970×90'})}
     ${camAberto?camaroteHTML(userMatch):''}
     ${RL.sel!=null?`<div class="cl-live-overlay"><div class="cl-live-modal" id="cl-livemodal">${liveModalHTML(RL.matches[RL.sel])}</div></div>`:''}
   </div>`;

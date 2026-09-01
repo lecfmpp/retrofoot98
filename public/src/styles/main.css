@@ -1950,9 +1950,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* splash da tela de carregamento (16:9) e cartão do convite (1200×630) */
 .rf-ad-splash,.rf-ad-card{margin:14px auto;max-width:520px;border:1px solid var(--line-1)}
 .rf-ad-splash .rf-ad-art,.rf-ad-card .rf-ad-art{max-height:none}
-/* faixa entre divisões na partida ao vivo */
-.rf-ad-inline{margin:10px auto;max-width:468px}
-.rf-ad-inline .rf-ad-art{max-height:60px}
+/* FAIXA ENTRE DIVISÕES — DE PONTA A PONTA, na largura da faixa da competição.
+   Era um bloco de 468 centrado no meio de uma coluna de 1180: sobrava um terço
+   de vazio de cada lado e a peça não alinhava com nada — nem com a barra do nome
+   da competição, logo acima dela, nem com os cartões, logo abaixo. O formato
+   passa a ser o leaderboard de 970×90 (o mesmo do topo do jogo), desenhado na
+   LARGURA DA COLUNA: `aspect-ratio` em vez de altura fixa é o que deixa a faixa
+   acompanhar a coluna sem cortar o criativo — mesma receita de .rf-ad-entrada.
+   A medida também mudou em elifoot_v3.ad_spaces: as duas pontas do contrato. */
+.rf-ad-inline{margin:10px 0;width:100%;max-width:none;aspect-ratio:970/90}
+.rf-ad-inline .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:contain}
 /* FAIXA ÂNCORA — o único espaço por cima do conteúdo. Fica presa ao rodapé, centrada, e
    reserva o seu próprio espaço com padding no fim da página (ver .cl-lp-page/.cl-wrap). */
 .rf-anchor{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:44;
@@ -1967,7 +1974,8 @@ body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
      de a tapar (56px da barra + a área segura do aparelho) */
   .rf-anchor{bottom:calc(56px + env(safe-area-inset-bottom,0px));width:100%}
   .rf-anchor .rf-ad-art{max-height:50px}
-  .rf-ad-inline .rf-ad-art{max-height:50px}
+  /* no telefone a faixa vende 320×50, e é essa a proporção que ela reserva */
+  .rf-ad-inline{aspect-ratio:320/50}
   body.rf-tem-anchor .cl-lp-page,
   body.rf-tem-anchor .cl-wrap{padding-bottom:124px}
 }

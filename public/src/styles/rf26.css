@@ -558,6 +558,13 @@
 .rf-ad-top{width:100%;height:90px;border-radius:var(--r-inner);
   overflow:hidden;background:var(--surface-sunken);border:var(--border-hairline);
   display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+/* A FAIXA DA RODADA AO VIVO USA A MOLDURA DA FAIXA DE TOPO. Ela pega a largura
+   da coluna (ver .rf-ad-inline em main.css) e o criativo entra `contain`: quem
+   publicar fora de 970×90 sobra espaço nas pontas, e esse espaço tem de ser a
+   superfície da página — sobre o preto do .rf-ad ele lia como duas abas pretas
+   coladas ao anúncio, defeito que parece do jogo e não da arte. */
+.rf-ad-inline{background:var(--surface-sunken);border:var(--border-hairline);
+  border-radius:var(--r-inner);overflow:hidden}
 [data-ad-rail]{width:160px;flex:0 0 auto;position:sticky;top:18px;display:flex;
   flex-direction:column;gap:12px}
 [data-ad-rail] .rf-ad-slot{width:160px;height:600px;border-radius:var(--r-inner);overflow:hidden;
@@ -8419,7 +8426,8 @@
 .rf-adph.rf-ad-top{width:100%;height:90px}
 .rf-adph.rf-ad-slot{width:160px;height:600px}
 .rf-adph.rf-ad-rect{width:100%;max-width:300px;height:250px;margin:8px auto 0}
-.rf-adph.rf-ad-inline{width:100%;max-width:468px;height:60px;margin:10px auto}
+.rf-adph.rf-ad-inline{width:100%;aspect-ratio:970/90;margin:10px 0}
+@media (max-width:760px){ .rf-adph.rf-ad-inline{aspect-ratio:320/50} }
 .rf-adph.rf-ad-splash,.rf-adph.rf-ad-card{width:100%;max-width:520px;aspect-ratio:16/9;margin:14px auto}
 /* Boas-vindas ao clube (rf98.entrada.sorteio, rfOb7) — 970×250 no desktop e
    320×100 no telemóvel, as duas medidas que o inventário vende. `aspect-ratio`

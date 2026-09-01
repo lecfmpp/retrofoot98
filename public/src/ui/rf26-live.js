@@ -246,7 +246,7 @@ function rfLiveHTML(RL){
       <div class="rf-lv-mid">
         ${rfLvFaixaHTML(RL)}
         ${rfTrilhoHTML(RL)}
-        ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'468×60'}):''}
+        ${(typeof rfAdEspaco==='function')?rfAdEspaco('rf98.live.inline',{cls:'rf-ad-inline',formato:'970×90'}):''}
         ${cards}
       </div>
       ${rfRail('right')}
