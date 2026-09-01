@@ -86,19 +86,36 @@ function retrato() {
                    'public/src/data/prizes.js'])
     runInNewContext(readFileSync(resolve(RAIZ, f), 'utf8'), ctx);
 
-  const M = ctx.window.MARKET || {};
+  /* AS FOLHAS MUDAM DE VITRINE. `REBAL` e `PRIZES` moravam em `window` e passaram para
+     `globalThis` quando a economia virou folha unica (a23a548) -- lendo so' `window`, este teste
+     via `undefined` e acusava "mudou" sem nada ter mudado de verdade. Procurar nos dois lugares
+     e' o que separa "a calibracao mudou" de "o arquivo se expoe de outro jeito". */
+  const de = (nome) => ctx.window[nome] || ctx[nome] || {};
+  const M = de('MARKET');
   const mercado = {
     ligas: hash(M.LEAGUES || {}),
     divisionToLeague: ['A','B','C','D'].map(d => M.divisionToLeague ? M.divisionToLeague(d) : null),
-    premios: hash(ctx.window.PRIZES || {}),
+    premios: hash(de('PRIZES')),
   };
 
   /* REBAL é função, não tabela: a calibração só se compara aplicando-a. Uma grade fixa de
-     entradas cobre as quatro faixas de divisão de ponta a ponta. */
-  const R = ctx.window.REBAL || {};
+     entradas cobre as quatro faixas de divisão de ponta a ponta.
+
+     A GRADE COBRE O DINHEIRO, E NAO SO' A FORCA. Antes só `force` entrava, e por isso o
+     trabalho de folha/receita (a23a548) passou por aqui sem ser visto: ele mexeu em salário,
+     orçamento e receita, que é onde o jogo dói. Um teste que cobre a metade barata da
+     calibração dá a impressão de proteger a outra. */
+  const R = de('REBAL');
+  const ap = (fn, ...a) => (typeof R[fn] === 'function' ? R[fn](...a) : null);
   const grade = [];
-  for (const div of ['A','B','C','D']) for (let raw = 40; raw <= 95; raw += 5)
-    grade.push([div, raw, R.force ? R.force(raw, div) : null]);
+  for (const div of ['A','B','C','D']) for (let raw = 40; raw <= 95; raw += 5) {
+    const f = ap('force', raw, div);
+    grade.push([div, raw, f, ap('value', f, 27), ap('salary', f, 27), ap('wage', f, 27)]);
+  }
+  /* orçamento, receita e capacidade saem do OVERALL do clube, não da força de um jogador */
+  for (const div of ['A','B','C','D']) for (const ovr of [15, 20, 25, 35, 50, 65, 80])
+    grade.push(['clube', div, ovr, ap('budget', ovr, div), ap('income', ovr, div),
+                ap('stadiumCapForDivision', ovr, div)]);
   const rebalance = hash(grade);
 
   const totais = Object.values(catalogo).reduce((a, g) => ({ clubes: a.clubes + g.clubes, jogadores: a.jogadores + g.jogadores }), { clubes: 0, jogadores: 0 });
