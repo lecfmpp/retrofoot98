@@ -1395,7 +1395,7 @@ async function netListSoloSaves(){
        está (temporada, divisão, rodada). Save antigo não tem short/crest — o cliente
        resolve pelo clubId (ver rfClubeDoSave em rf26-fluxo). */
     const { data, error } = await sb.from('solo_saves')
-      .select('save_name,updated_at,clubId:state->>clubId,clubShort:state->>clubShort,clubCrest:state->>clubCrest,season:state->S->>season,division:state->S->>division,round:state->S->>round')
+      .select('save_name,updated_at,clubId:state->>clubId,clubShort:state->>clubShort,clubCrest:state->>clubCrest,modalidade:state->>modalidade,season:state->S->>season,division:state->S->>division,round:state->S->>round')
       .order('updated_at',{ascending:false});
     if(error){ console.error('listSoloSaves erro:', error); return []; }
     return (data||[]).map(r=>({ name:r.save_name, updated_at:r.updated_at,

@@ -416,7 +416,11 @@ function rfObSaveJornada(sv){
    ===================================================================== */
 function rfOb3(){
   const lista=(typeof COUNTRY_LIST==='function')?COUNTRY_LIST():[];
-  const jogaveis=lista.filter(c=>c.on);
+  /* O UNIVERSO FEMININO SO' TEM O BRASIL. Mostrar os outros 14 daria uma escolha que a tela
+     seguinte nao consegue honrar: nao ha' elenco feminino para eles, e o pote de clubes sairia
+     vazio. Some tambem o bloco de ligas de fundo, que e' a mesma escolha por outro nome. */
+  const soBrasil=(typeof rfFemLigado==='function' && rfFemLigado()) && CL.modalidade==='fem';
+  const jogaveis=lista.filter(c=>c.on && (!soBrasil || c.n==='Brasil'));
   const principal=CL.playCountry||'Brasil';
   const fundo=CL.countries||(CL.countries=new Set([principal]));
   const uk=(typeof countryUniverseKey==='function')?countryUniverseKey(principal):null;
@@ -450,12 +454,17 @@ function rfOb3(){
           </button>`;}).join('')}</div>
         ${livre?'':'<span class="rf-note">No clássico todo mundo começa embaixo e sobe jogando.</span>'}
       </div>
+      ${soBrasil ? `
+      <div class="rf-ob3-bloco">
+        <span class="rf-label-t">Outros países</span>
+        <span class="rf-note">O futebol feminino começa pelo Brasil, com as quatro divisões, a Copa do Brasil e a Libertadores. Os outros países chegam depois.</span>
+      </div>` : `
       <div class="rf-ob3-bloco">
         <span class="rf-label-t">Ligas de fundo <i class="rf-ob3-leve">— aparecem em Campeonatos e no mercado</i></span>
         <div class="rf-ob3-pills">${jogaveis.filter(c=>c.n!==principal).map(c=>`
           <button type="button" class="rf-chip ${fundo.has(c.n)?'on':''}"
             onclick="clToggleCountry('${escC(c.n)}')">${c.f} ${escC(c.n)}</button>`).join('')}</div>
-      </div>
+      </div>`}
     </div>`;
   const qtdEntrada=(cfg&&cfg.size&&cfg.size[entrada])||0;
   const lblEntrada=(cfg&&cfg.label&&cfg.label[entrada])||('Série '+entrada);
@@ -463,7 +472,9 @@ function rfOb3(){
     sobre:'Onde você vai treinar', titulo:'Escolha o país. O clube é sempre sorteado.',
     sub:'Você escolhe o país e a divisão em que quer começar; o clube sai no sorteio — é assim para todo mundo, inclusive na resenha.',
     nota:`Clube sorteado: ${lblEntrada} · ${principal}${qtdEntrada?' · '+qtdEntrada+' clubes no pote':''}`,
-    voltar:'clGoModo()', voltarLabel:'‹ Modo', cta:'Sortear meu clube', ctaOn:'clPaisesOk()'});
+    voltar:soBrasil||((typeof rfFemLigado==='function')&&rfFemLigado())?'clPaisesBack()':'clGoModo()',
+    voltarLabel:((typeof rfFemLigado==='function')&&rfFemLigado())?'‹ Modalidade':'‹ Modo',
+    cta:'Sortear meu clube', ctaOn:'clPaisesOk()'});
 }
 function rfObPais(n){
   CL.playCountry=n;

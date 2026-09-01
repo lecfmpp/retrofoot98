@@ -9327,3 +9327,9 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-jp-cols .rf-jp-grid{align-self:center}
 .rf-jp-cols .rf-jp-l:first-child{border-top:0}
 @media (max-width:560px){ .rf-jp-cols{grid-template-columns:1fr} }
+
+/* SELO DA MODALIDADE NA LISTA DE SAVES. Dois saves do mesmo clube, um de cada modalidade, sao a
+   mesma linha sem ele. Discreto de proposito: e' uma etiqueta, nao um titulo. */
+.rf-sv2-fem{ display:inline-block; margin-left:6px; padding:0 5px; border-radius:999px;
+  font-size:11px; line-height:16px; font-weight:700; vertical-align:middle;
+  background:var(--rf-fem-selo-bg, #f3e8ff); color:var(--rf-fem-selo-fg, #7e22ce); }

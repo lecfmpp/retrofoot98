@@ -892,6 +892,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
        Antes isto caía em scSoloNovo() — o "EX: SAVE01" da pele antiga, desenhado
        com o assistente velho por dentro do assistente novo. */
     case 'modosolo':  html=rfObSoloHTML(); break;
+    case 'modalidade':html=rfObModalidade(); break;
     case 'paises':    html=rfOb3(); break;
     case 'paisJogavel': html=scPaisJogavel(); break;
     case 'moeda':     html=scMoeda(); break;
@@ -2077,7 +2078,16 @@ const RF_TRILHAS={
 };
 /* o modo ativo, quando quem desenha a tela não o diz */
 function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
-function rfTrilhaDe(modo){ return RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo; }
+/* A REGUA GANHA UM PASSO SO' QUANDO O FEMININO EXISTE. Inserir 'Modalidade' aqui, e nao na
+   constante, e' o que faz a trava desligar o passo INTEIRO: com RF_MODALIDADES.fem em false a
+   regua volta a ter os seis itens de sempre e nenhuma tela precisa saber disso. Os numeros de
+   passo saem de rfPasso(nome), entao nada mais se desloca a mao. */
+function rfTrilhaDe(modo){
+  const base = RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo;
+  if(typeof rfFemLigado!=='function' || !rfFemLigado()) return base;
+  const i = base.indexOf('País e liga');
+  return i<0 ? base : base.slice(0,i).concat('Modalidade', base.slice(i));
+}
 /* O PASSO PELO NOME. Devolve a posição 1-based do passo na régua do modo, ou 0
    quando aquele modo não tem esse passo (Solo não tem 'Convites') — 0 apaga a
    régua em vez de acender o item errado. */
@@ -2266,7 +2276,10 @@ function clModoOk(){
   if(typeof aplicarPatchEscolhido==='function') aplicarPatchEscolhido();
   if((CL.save||'').trim().length>0){ CL.mode='novo'; CL.compToggle={libertadores:true,copaBrasil:true,sulamericana:true};
     if(!CL.countries.size) CL.countries.add('Brasil'); // Brasil pré-selecionado (default)
-    CL.screen='paises'; cdraw(); }
+    /* A modalidade vem ANTES do país porque decide quais países existem: o feminino só tem o
+       Brasil. Perguntar depois obrigaria a voltar atrás em quem escolhesse a Inglaterra. */
+    CL.screen = (typeof rfFemLigado==='function' && rfFemLigado()) ? 'modalidade' : 'paises';
+    cdraw(); }
 }
 
 /* ================= 03 · SELECÇÃO DE PAÍSES ================= */
@@ -2274,7 +2287,7 @@ function clModoOk(){
    2ª criada), pra a tela mostrar o tamanho de verdade e o botão de iniciar liberar (mín. 20).
    País europeu só conta se os dados reais da 1ª divisão estiverem carregados (INTL_LEAGUES). */
 function intlTeams(country){
-  const uniKey = country==='Brasil' ? 'brasil' : country;
+  const uniKey = (typeof countryUniverseKey==='function' ? countryUniverseKey(country) : null) || (country==='Brasil' ? 'brasil' : country);
   const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
   const total = (cfg&&cfg.size&&cfg.order) ? cfg.order.reduce((s,d)=>s+(cfg.size[d]||0),0) : 0;
   if(country==='Brasil') return total||80;
@@ -2334,13 +2347,16 @@ function scPaises(){
       </div>`
   });
 }
-function clPaisesBack(){ CL.screen='modosolo'; CL.soloStep='novo'; cdraw(); }
+function clPaisesBack(){
+  if(typeof rfFemLigado==='function' && rfFemLigado() && CL.screen==='paises'){ CL.screen='modalidade'; cdraw(); return; }
+  CL.screen='modosolo'; CL.soloStep='novo'; cdraw();
+}
 /* competições de UM país selecionado (divisões + copas), no mesmo visual do Brasil.
    Brasil: Séries A–D + Copa do Brasil/Libertadores/Sul-Americana (ligáveis por CL.compToggle).
    Países europeus: 1ª/2ª divisão + Champions League/Europa League (inclusas com o país).
    'início' vai na divisão de baixo (onde a rodada começa se você jogar esse país). */
 function countryCompSection(country){
-  const uniKey = country==='Brasil' ? 'brasil' : country;
+  const uniKey = (typeof countryUniverseKey==='function' ? countryUniverseKey(country) : null) || (country==='Brasil' ? 'brasil' : country);
   const cfg = (typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uniKey];
   if(!cfg || !cfg.order) return '';
   const isBr = country==='Brasil';
@@ -2405,7 +2421,16 @@ function clToggleComp(key){ CL.compToggle[key]=!CL.compToggle[key]; cdraw(); }
 function clToggleCountry(n){ if(CL.countries.has(n))CL.countries.delete(n); else CL.countries.add(n); cdraw(); }
 function clAllCountries(){ COUNTRY_LIST().forEach(c=>{ if(c.on)CL.countries.add(c.n); }); cdraw(); }
 /* chave de universo de um país selecionável (Brasil = pirâmide A/B/C/D; europeus = UNI_CONFIGS) */
-function countryUniverseKey(country){ if(country==='Brasil') return 'brasil'; return (typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[country])?country:null; }
+/* O Brasil tem dois universos — o de sempre e o gemeo feminino — e e' a modalidade escolhida no
+   assistente que decide qual. Sem o feminino ligado, a expressao e' a de sempre. */
+function countryUniverseKey(country){
+  if(country==='Brasil'){
+    const fem = (typeof rfFemLigado==='function' && rfFemLigado()) && (CL.modalidade==='fem')
+             && (typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS.brasilFem);
+    return fem ? 'brasilFem' : 'brasil';
+  }
+  return (typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[country])?country:null;
+}
 /* países selecionados que têm liga jogável de verdade (têm clubes carregados) */
 function selectedPlayableCountries(){ return [...CL.countries].filter(c=>countryUniverseKey(c) && (c==='Brasil'||intlTeams(c)>0)); }
 function clPaisesOk(){
@@ -2503,7 +2528,10 @@ function clSortear(){
   const uni = CL.playCountry || (selectedPlayableCountries()[0]) || 'Brasil';
   (async ()=>{
     if(uni==='Brasil'){
-      setUniverse('brasil'); CL.intlUniverse=false;
+      /* O Brasil tem dois universos, e e' countryUniverseKey quem sabe qual — CL.intlUniverse
+         segue false so' no masculino, que e' como todo save ate' hoje foi gravado. */
+      const ukBR = countryUniverseKey('Brasil') || 'brasil';
+      setUniverse(ukBR); CL.intlUniverse = (ukBR==='brasil') ? false : ukBR;
       const startDivision=computeStartDivision();
       if(startDivision!=='A'){
         if(typeof NET!=='undefined' && NET.getDivisionClubs && NET.authStatus && NET.authStatus().loggedIn){
@@ -2576,7 +2604,11 @@ function clEntrar(){
   CL.clubId=CL.draw[0].clubId; CL.mgr=CL.draw[0].name;
   // universo: país europeu = liga própria (começa na ÚLTIMA divisão, ex.: Championship);
   // false = Brasil. Copas brasileiras só no universo Brasil.
-  const isIntl = !!CL.intlUniverse;
+  /* "INTERNACIONAL" QUER DIZER "NAO E' A PIRAMIDE BRASILEIRA", e nao "tem universo gravado".
+     `CL.intlUniverse` e' false so' no Brasil masculino; no feminino ele carrega 'brasilFem', que
+     e' truthy — e sem baseUni um save feminino comecaria na ultima divisao COM TODAS AS COPAS
+     DESLIGADAS (as tres linhas abaixo dependem desta). */
+  const isIntl = !!CL.intlUniverse && ((typeof baseUni==='function') ? baseUni(CL.intlUniverse)!=='brasil' : true);
   const startDiv = isIntl ? DIV_ORDER[DIV_ORDER.length-1] : computeStartDivision();
   const comps = isIntl ? {libertadores:false,copaBrasil:false,sulamericana:false} : CL.compToggle;
   newGame(CL.clubId, startDiv, comps); S.xi=autoXI(CL.clubId);
@@ -3058,7 +3090,7 @@ function clJobProposalAccept(){
    ao vivo (universo primário) hoje; os demais ficam registrados como humanos nas suas
    ligas. A Fase 2 torna cada um jogável de verdade a cada rodada sincronizada. */
 function startClubsForCountry(country){
-  const uniKey = country==='Brasil' ? 'brasil' : country;
+  const uniKey = (typeof countryUniverseKey==='function' ? countryUniverseKey(country) : null) || (country==='Brasil' ? 'brasil' : country);
   setUniverse(uniKey);
   const div = country==='Brasil' ? computeStartDivision() : DIV_ORDER[DIV_ORDER.length-1];
   return clubsForDivision(div).slice();
@@ -3074,7 +3106,7 @@ function buildPickPool(){
      iniciais. O clube da Serie D vinha do Supabase COM escudo — perdia-se aqui, a um passo
      de ser desenhado. */
   selectedPlayableCountries().forEach(c=>{ pool[c]=startClubsForCountry(c).map(x=>({id:x.id,short:x.short,name:x.name,color:x.color,color2:x.color2,crest:x.crest})); });
-  setUniverse('brasil'); // reset — clConfirmarClubes/clEntrar seta o universo certo depois
+  setUniverse(countryUniverseKey('Brasil')||'brasil'); // reset — clConfirmarClubes/clEntrar seta o universo certo depois
   return pool;
 }
 function clEscolherClubes(){
@@ -3190,7 +3222,8 @@ function clConfirmarClubes(){
   if(bi>0){ const [b]=CL.draw.splice(bi,1); CL.draw.unshift(b); }
   const uni=CL.draw[0].country;
   CL.playCountry=uni;
-  if(uni==='Brasil'){ setUniverse('brasil'); CL.intlUniverse=false; DATA.clubs=clubsForDivision(computeStartDivision()); }
+  if(uni==='Brasil'){ const ukBR=countryUniverseKey('Brasil')||'brasil';
+    setUniverse(ukBR); CL.intlUniverse=(ukBR==='brasil')?false:ukBR; DATA.clubs=clubsForDivision(computeStartDivision()); }
   else { setUniverse(uni); CL.intlUniverse=uni; DATA.clubs=clubsForDivision(DIV_ORDER[DIV_ORDER.length-1]).slice(); }
   CL.bgCountries=selectedPlayableCountries().filter(c=>c!==uni);
   clEntrar();
@@ -3467,9 +3500,17 @@ async function saveV3(explicit){
   // identidade do clube junto do save: é o que a lista de saves mostra sem baixar o estado
   // inteiro (clubShort/clubCrest via state->>, ver netListSoloSaves)
   const _c=(typeof clubOf==='function'&&clubOf(CL.clubId))||{};
+  /* A MODALIDADE VAI NO PAYLOAD, NAO EM S. Ela ja' esta' dentro do estado (S.intlUniverse), mas
+     a lista de saves le^ por projecao jsonb sem baixar o estado inteiro — e sem um campo de
+     primeiro nivel nao teria como distinguir dois saves do mesmo clube. Mesmo padrao de
+     clubShort/clubCrest. Save antigo nao tem o campo e volta null, que a lista le^ como
+     masculino: nenhuma migracao, nenhuma escrita em save de ninguem. */
+  const _uni = (typeof S!=='undefined' && S && S.intlUniverse) || 'brasil';
+  const _modalidade = (typeof RF_FEM!=='undefined' && RF_FEM.modalidade) ? RF_FEM.modalidade(_uni) : 'masc';
   const payload = { ts:Date.now(), mgr:CL.mgr, clubId:CL.clubId,
     clubShort:_c.short||_c.name||null,
     clubCrest:(typeof clubCrestUrl==='function'?clubCrestUrl(_c):null)||null,
+    modalidade:_modalidade,
     currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
   if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
   let finishSavingOverlay=null;

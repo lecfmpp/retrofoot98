@@ -839,13 +839,17 @@ function rfObSoloHTML(){
     const ano=s.season||st.season||'';
     const onde=(s.round!=null&&s.round!=='')?`${Number(s.round)+1}ª semana`
       : (st.roundLabel||(st.round?`${st.round}ª semana`:'')||s.round_label||'');
+    /* O SELO DA MODALIDADE. Dois saves do mesmo clube — um masculino, um feminino — sao a
+       mesma linha sem ele. `modalidade` vem projetada do jsonb (netListSoloSaves); save antigo
+       nao tem o campo e volta null, que aqui le^ como masculino e nao mostra selo nenhum. */
+    const fem=(s.modalidade||st.modalidade)==='fem';
     const sub=[serie,ano].filter(Boolean).join(' · ');
     return `<div class="rf-sv2 ${i===0?'me':''}" role="button" tabindex="0"
       onclick="clLoadSave('${escC(nome).replace(/'/g,"\\'")}')"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();clLoadSave('${escC(nome).replace(/'/g,"\\'")}')}">
       <span class="rf-sv2-cr">${rfSaveEscudoHTML({...st, clubId:s.clubId||st.clubId, crest:s.clubCrest||st.crest, clubName:clube})}</span>
       <span class="rf-sv2-id">
-        <span class="rf-sv2-n">${escC(clube||nome||'—')}</span>
+        <span class="rf-sv2-n">${escC(clube||nome||'—')}${fem?' <span class="rf-sv2-fem" title="Futebol feminino">♀</span>':''}</span>
         <span class="rf-sv2-s">${escC(clube ? [sub,nome].filter(Boolean).join(' · ') : sub)}</span>
       </span>
       <span class="rf-sv2-onde">${escC(onde)}</span>
