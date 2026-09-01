@@ -15,7 +15,7 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = 'a5ad6f149b86';
+/* @motor-ver */ const MOTOR_VER = '69feddfb4cac';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -132,17 +132,44 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
      não assiste, e nem todo gol é assistido — 68%, que é a faixa do futebol real.
      O peso é passe+visão, SEM desconto de viés de propósito: o perfil já eleva
      esses dois no meio-campista, e é exatamente ele quem deve assistir mais. */
-    /* PESO DO PAPEL. Só o atributo não basta: com atributos iguais o sorteio vira
-       proporcional à quantidade de gente, e zagueiro (são 4) assistia mais que meia.
-       Quem cria a jogada é o meio e quem tabela na frente é o ataque; zagueiro
-       assiste, mas é a exceção. Referência do futebol real: meio ~45-50%,
-       ataque ~30-35%, defesa ~15-20%. */
-      const PAPEL={MID:1.00, ATT:0.85, DEF:0.32, GK:0};
+    /* ===== A COTA DO SETOR E' O ALVO, NAO UM PESO POR JOGADOR =====
+       PAPEL era um multiplicador por jogador ({MID:1.00, ATT:0.85, DEF:0.32}) somado sobre o
+       elenco inteiro -- entao a fatia de cada setor dependia de QUANTA GENTE ele tinha em campo,
+       e a referencia do futebol real so' se cumpria por acaso, perto do 4-3-3. Medido no motor,
+       4.000 partidas por formacao, com os pesos antigos:
+         4-4-2  MID 55,0  ATT 23,9  DEF 21,1
+         4-3-3  MID 41,7  ATT 37,4  DEF 20,9
+         3-5-2  MID 63,0  ATT 22,9  DEF 14,1
+         5-3-2  MID 44,6  ATT 26,3  DEF 29,1
+       Num 3-5-2 o meio ficava com 63% das assistencias; num 5-3-2 a defesa chegava a 29%.
+
+       AGORA A COTA E' DO SETOR. ALVO fixa a fatia de cada um -- meio 47,5%, ataque 32,5%, defesa
+       20%, os pontos medios da referencia real -- e o peso de cada jogador e' a cota do setor
+       dele REPARTIDA entre os companheiros de setor, na proporcao de forca e passe/visao. A soma
+       dos pesos de um setor da' exatamente a cota dele, seja com tre^s jogadores ou com cinco.
+
+       O CRAQUE CONTINUA ASSISTINDO MAIS, mas agora dentro do setor dele: e' ali que forca e
+       atributo decidem. Entre setores quem decide e' a funcao em campo, que e' o que a
+       referencia do futebol real descreve.
+
+       SETOR VAZIO NAO PERDE A COTA: se nao ha' ninguem elegivel num setor (o proprio marcador do
+       gol e' o unico atacante, por exemplo), a cota dele simplesmente nao entra na soma e os
+       outros dividem o total -- que e' o comportamento certo, e nao uma assistencia perdida.
+
+       O NUMERO DE SORTEIOS NAO MUDOU: continuam dois R.random() por gol (o 0,68 e o da escolha).
+       Mexer nisso deslocaria o fluxo do gerador e mudaria TODAS as partidas ja' seedadas. */
+      const ALVO={MID:0.475, ATT:0.325, DEF:0.20, GK:0};
     function assistFrom(players, sc){ if(R.random()>=0.68) return null;
       const pool=players.filter(function(p){ return p.s!=='GK' && p!==sc && p.pid!==sc.pid; });
       if(!pool.length) return null;
-      const w=function(p){return p.f*(PAPEL[p.s]||0.5)*attrFactor(p,['pas','vis'],0.80,1.30);};
-      let tot=pool.reduce(function(s,p){return s+w(p);},0), r=R.random()*tot;
+      /* nota individual: e' ela que separa o craque do resto DENTRO do setor */
+      const nota=function(p){ return p.f*attrFactor(p,['pas','vis'],0.80,1.30); };
+      const soma={};
+      for(const p of pool){ soma[p.s]=(soma[p.s]||0)+nota(p); }
+      const w=function(p){ const t=soma[p.s]; return t>0 ? (ALVO[p.s]||0)*nota(p)/t : 0; };
+      let tot=pool.reduce(function(s,p){return s+w(p);},0);
+      if(!(tot>0)) return pool[0];
+      let r=R.random()*tot;
       for(const p of pool){r-=w(p);if(r<=0)return p;} return pool[0]; }
     function pickFoulPlayer(side){ const pool=activePool(side).filter(function(p){return p.s!=='GK';});
       const list=pool.length?pool:activePool(side); if(!list.length) return null;
