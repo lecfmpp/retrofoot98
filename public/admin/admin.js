@@ -2781,6 +2781,9 @@ function carregarCatalogo(){
   const arquivos = ['/src/data/game-data.js', '/src/data/leagues-brasil-lower.js',
                     '/src/data/leagues-intl.js', '/src/data/leagues-conmebol.js',
                     '/src/data/universos.js', '/src/data/competicoes.js',
+                    /* A SALA DE TROFÉUS: é dela que sai a arte de fábrica de cada taça e a lista
+                       de prateleiras da aba Troféus & nomes. No ar desde a Sala. */
+                    '/src/data/trophy-room.js',
                     '/src/engine/world-rules.js', '/src/engine/calendars.js',
                     '/src/engine/world-config.js',
                     /* O MAPA DAS JOGADORAS. É o que deixa o Estúdio gerar foto para o universo
@@ -2963,7 +2966,10 @@ async function pgEditor(){
   D.edits = {}; (eds.data||[]).forEach(e => { D.edits[e.club_id] = e; });
 
   const base = clubesDeFabrica();
-  (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
+  /* `__competicoes__`, `__calendario__:<pais>`, `__comp__:<pais>`... — as linhas de SERVIÇO do
+     patch usam o campo do clube para guardar outra coisa. Uma delas com `novo` ligado viraria
+     um clube fantasma na lista do editor; o prefixo `__` é o que as separa das de clube. */
+  (eds.data||[]).filter(e => e.novo && String(e.club_id).indexOf('__') !== 0).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
                   c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
@@ -2975,7 +2981,7 @@ async function pgEditor(){
   el('page').innerHTML = `
     ${cabecalhoPatches(pack, editar)}
     <div class="per" style="gap:6px;margin-top:2px">
-      ${[['clubes','Clubes'],['jogadores','Jogadores'],['competicoes','Competições'],['economia','Economia']]
+      ${[['clubes','Clubes'],['jogadores','Jogadores'],['competicoes','Competições'],['trofeus','Troféus & nomes'],['economia','Economia']]
         .map(([id,l])=>`<span class="${aba===id?'on':''}" data-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
     </div>
     <div id="ed-aba"></div>`;
@@ -2988,6 +2994,7 @@ async function pgEditor(){
   else if(aba==='economia')  abaEconomia();
   /* explícito de propósito: com um `else` aberto, uma aba nova cairia em
      Competições por descuido — foi o que já aconteceu no Estúdio. */
+  else if(aba==='trofeus')     abaTrofeus(editar);
   else if(aba==='competicoes') abaCompeticoes(pack, editar);
 }
 
@@ -8421,7 +8428,10 @@ async function pgEstudio(){
   D.fotos = {}; (fotos.data||[]).forEach(f => { D.fotos[f.club_id+'|'+f.jogador] = f; });
 
   let base = clubesDeFabrica();
-  (eds.data||[]).filter(e => e.novo && e.club_id !== COMPETICOES_CHAVE).forEach(e => {
+  /* `__competicoes__`, `__calendario__:<pais>`, `__comp__:<pais>`... — as linhas de SERVIÇO do
+     patch usam o campo do clube para guardar outra coisa. Uma delas com `novo` ligado viraria
+     um clube fantasma na lista do editor; o prefixo `__` é o que as separa das de clube. */
+  (eds.data||[]).filter(e => e.novo && String(e.club_id).indexOf('__') !== 0).forEach(e => {
     if(!base.some(x => String(x.c.id)===String(e.club_id)))
       base.push({ div:e.divisao||'D', pais:(e.patch||{}).pais||'Brasil',
                   c:Object.assign({id:e.club_id}, e.patch||{}), criado:true });
@@ -10102,4 +10112,305 @@ function modalUniformeIA(item){
       modalUniformeIA(item);
     };
   }
+}
+
+/* ============================================================================
+   ABA TROFÉUS & NOMES
+   ----------------------------------------------------------------------------
+   Um lugar só para a IDENTIDADE de cada competição de cada país: como ela se
+   chama, como se chama abreviada e que taça aparece no jogo. Vale para o que já
+   está rodando — nome de competição não é gravado dentro do save, o jogo lê o
+   catálogo a cada boot — e para todo save novo.
+
+   ONDE ISTO É GRAVADO: numa linha de `pack_edits` por país, com o país no lugar
+   do id do clube (`__comp__:<pais>`), exatamente como a folha de calendário faz.
+   Sem tabela nova, e um patch pode redesenhar quantos países quiser.
+   Quem aplica é src/net/dados.js (aplicarCompeticoes), que escreve nas fontes
+   que o jogo já lê — COMPETICOES, o `label` do universo, TROPHIES e a Sala de
+   Troféus — em vez de criar um mapa novo que cada tela teria de aprender a ler.
+
+   A ARTE vai para o bucket `trofeus` (supabase/sql/bucket-trofeus.sql). Uma
+   imagem só por competição, com fundo transparente: o jogo usa a MESMA para o
+   ícone de 28px e para a taça grande da estante — pedir duas artes por troféu
+   era garantir que uma das duas ficaria desatualizada.
+   ============================================================================ */
+const PREFIXO_COMP_ADM = '__comp__:';
+const COMP_PAIS_MUNDO  = '__mundo__';
+/* competições que não são de país nenhum — moram na linha '__mundo__' */
+const COMP_CONTINENTAIS = ['libertadores','sulamericana','championsLeague','europaLeague'];
+const REGIOES_PADRAO = ['BRASIL','AMÉRICA DO SUL','EUROPA','MUNDO'];
+
+/* A REGRA MORA NO JOGO (src/data/competicoes.js, COMP_CHAVE_DIVISAO) — é ela que
+   diz em que chave o nome e a taça se penduram, e é o motor quem grava o título
+   nessa chave. O corpo de reserva existe por UM dia: o painel carrega as folhas do
+   SITE, e no dia da publicação um navegador pode ainda ter a versão anterior de
+   competicoes.js em cache. Some sozinho na visita seguinte. */
+function chaveDivisaoAdm(uni, div){
+  if(typeof window.COMP_CHAVE_DIVISAO === 'function') return window.COMP_CHAVE_DIVISAO(uni, div);
+  const base = ((window.UNIVERSOS||{})[uni]||{}).base || uni;
+  if(base === 'brasil') return ({A:'serieA',B:'serieB',C:'serieC',D:'serieD'})[div] || ('liga:brasil:'+div);
+  if(uni === 'Inglaterra' && div === 'PL') return 'premier';
+  return 'liga:'+uni+':'+div;
+}
+/* o que ESTE patch já redefiniu para um país */
+function arteDoPatch(pais){
+  const linha = (D.edits||{})[PREFIXO_COMP_ADM+pais];
+  return (linha && linha.patch && linha.patch.comps) || {};
+}
+function cardDaSala(chave){
+  const sala = (window.TROPHY_ROOM && window.TROPHY_ROOM.comps) || [];
+  return sala.find(c => c.id === chave) || null;
+}
+function regioesDisponiveis(){
+  const r = (window.TROPHY_ROOM && window.TROPHY_ROOM.regions) || [];
+  return REGIOES_PADRAO.concat(r.filter(x => REGIOES_PADRAO.indexOf(x) < 0));
+}
+/* arte de fábrica: as 10 que viajam no repositório são nome de ficheiro dentro de
+   public/img/trofeus/ — no painel elas só existem no SITE, então o endereço é absoluto */
+function arteDeFabrica(chave){
+  const card = cardDaSala(chave);
+  if(!card || !card.img) return null;
+  return /^(https?:|data:)/i.test(card.img) ? card.img : (JOGO_URL + '/img/trofeus/' + card.img);
+}
+function regiaoDeFabrica(pais){
+  if(pais === COMP_PAIS_MUNDO) return 'MUNDO';
+  if(pais === 'brasil') return 'BRASIL';
+  const uni = (window.UNIVERSOS||{})[pais] || {};
+  return uni.src === 'conmebol' ? 'AMÉRICA DO SUL' : 'EUROPA';
+}
+/* TODA competição que o jogo conhece, agrupada por país. Monta-se sozinha a partir
+   de UNIVERSOS + COMPETICOES: país novo no jogo aparece aqui sem tocar nesta aba. */
+function competicoesPorPais(){
+  const U = window.UNIVERSOS || {}, defs = window.COMPETICOES || {};
+  const grupos = [];
+  paisesDisponiveis().forEach(p => {
+    const uni = U[p.chave] || {};
+    /* gêmeo (brasilFem) usa as chaves do país-base: mostrá-lo seria oferecer duas
+       fichas para a mesma taça, e a segunda a sobrescrever a primeira. */
+    if(uni.base) return;
+    const itens = (p.divisoes||[]).map(d => {
+      const chave = chaveDivisaoAdm(p.chave, d.codigo);
+      /* o nome POR EXTENSO e o ABREVIADO vêm de sítios diferentes no jogo: o extenso de
+         COMPETICOES/da Sala ("Brasileirão Série B"), o abreviado do rótulo da divisão
+         ("Série B"), que é o que a tabela e o assento da Resenha mostram. */
+      const card = cardDaSala(chave), def = (window.COMPETICOES||{})[chave];
+      return { chave, div:d.codigo, tipo:'liga',
+               fabricaNome: (def && def.name) || (card && card.nome) || d.nome,
+               fabricaCurto: d.nome };
+    });
+    /* copas nacionais: hoje só o Brasil tem uma no motor */
+    if(p.chave === 'brasil') Object.keys(defs).forEach(k => {
+      if(defs[k].type === 'liga' || COMP_CONTINENTAIS.indexOf(k) >= 0) return;
+      itens.push({ chave:k, div:null, tipo:defs[k].type||'mata-mata',
+                   fabricaNome: defs[k].name, fabricaCurto: defs[k].short });
+    });
+    if(itens.length) grupos.push({ pais:p.chave, nome:p.nome, itens });
+  });
+  const mundo = COMP_CONTINENTAIS.filter(k => defs[k]).map(k => ({
+    chave:k, div:null, tipo:defs[k].type||'mata-mata',
+    fabricaNome: defs[k].name, fabricaCurto: defs[k].short }));
+  if(mundo.length) grupos.push({ pais:COMP_PAIS_MUNDO, nome:'Continentais e mundiais', itens:mundo });
+  return grupos;
+}
+/* o que o JOGO vai mostrar: o patch por cima da fábrica */
+function compEfetiva(pais, item){
+  const p = arteDoPatch(pais)[item.chave] || {};
+  const card = cardDaSala(item.chave);
+  return {
+    nome:  p.nome  || item.fabricaNome,
+    curto: p.curto || (card && card.curto) || item.fabricaCurto,
+    arte:  p.trofeu || arteDeFabrica(item.chave),
+    propria: !!p.trofeu,
+    renomeada: !!(p.nome || p.curto),
+    regiao: p.regiao || (card && card.regiao) || regiaoDeFabrica(pais),
+    escala: p.escala || (card && card.escala) || 1,
+    dica:   p.dica || (card && card.dica) || ''
+  };
+}
+
+function abaTrofeus(editar){
+  const grupos = competicoesPorPais();
+  const todas = grupos.flatMap(g => g.itens.map(i => compEfetiva(g.pais, i)));
+  const comArte = todas.filter(c => c.arte).length;
+  const proprias = todas.filter(c => c.propria).length;
+  const renomeadas = todas.filter(c => c.renomeada).length;
+
+  el('ed-aba').innerHTML = `
+    <div class="g4" style="margin-bottom:16px">
+      ${kpiHTML({l:'Competições', v:num(todas.length), d:'em '+num(grupos.length)+' países'})}
+      ${kpiHTML({l:'Com taça', v:num(comArte), d:'as outras aparecem com 🏆',
+                 c: comArte===todas.length ? 'var(--verde2)' : undefined})}
+      ${kpiHTML({l:'Arte enviada aqui', v:num(proprias), d:'no lugar da que veio no jogo'})}
+      ${kpiHTML({l:'Renomeadas', v:num(renomeadas), d:'valem já, inclusive em save começado'})}
+    </div>
+
+    <div class="card card-p" style="border-color:#1c455c;background:#0f1a20;margin-bottom:16px">
+      <div class="tt" style="margin-bottom:6px;color:var(--azul)">Como isto entra no jogo</div>
+      <div class="st" style="line-height:1.7">
+        O nome da competição não é gravado dentro do save — o jogo lê o catálogo a cada abertura.
+        Então o que você trocar aqui vale para <b>todo mundo, inclusive em partida já começada</b>,
+        na abertura seguinte. Só o texto dos títulos já conquistados fica como estava, porque é
+        registro do que aconteceu; a taça e o nome do card da Sala seguem esta ficha.
+        <br>A arte é <b>uma só por taça</b>: PNG ou WebP de fundo transparente, ~512px, até 1 MB.
+        O jogo usa a mesma imagem no ícone pequeno e na estante.
+      </div>
+    </div>
+
+    ${grupos.map(g => `
+      <div class="card" style="overflow:hidden;margin-bottom:16px">
+        <div class="card-h"><b>${h(g.nome)}</b>
+          <span class="st mono" style="font-size:11px">${h(g.pais)}</span></div>
+        <div class="rowh" style="grid-template-columns:60px 1.6fr 1fr 1.4fr ${editar?'96px':''}">
+          <span style="text-align:center">Taça</span><span>Nome</span><span>Abreviado</span>
+          <span>Chave no jogo</span>${editar?'<span></span>':''}
+        </div>
+        ${g.itens.map(i => {
+          const e = compEfetiva(g.pais, i);
+          return `<div class="row" style="grid-template-columns:60px 1.6fr 1fr 1.4fr ${editar?'96px':''};align-items:center">
+            <span style="text-align:center">${e.arte
+              ? `<img src="${h(e.arte)}" alt="" style="width:34px;height:34px;object-fit:contain">`
+              : `<span style="font-size:20px;opacity:.45">🏆</span>`}</span>
+            <span style="min-width:0"><b style="display:block;font-size:13px">${h(e.nome)}</b>
+              <small style="font-size:11px;color:var(--dim3)">
+                ${i.div ? 'Divisão '+h(i.div) : (i.tipo==='liga'?'Liga':'Mata-mata')}
+                ${e.renomeada?' · <span style="color:var(--ambar)">renomeada neste patch</span>':''}
+                ${e.propria?' · <span style="color:var(--verde2)">arte deste patch</span>':''}</small></span>
+            <span style="font-size:12.5px;color:var(--dim)">${h(e.curto)}</span>
+            <span class="mono" style="font-size:11.5px;color:var(--dim3);overflow:hidden;text-overflow:ellipsis">${h(i.chave)}</span>
+            ${editar?`<span style="text-align:right"><button class="btn btn-sm btn-ghost"
+               data-arte="${h(g.pais)}|${h(i.chave)}">Editar</button></span>`:''}
+          </div>`;
+        }).join('')}
+      </div>`).join('')}`;
+
+  if(!editar) return;
+  document.querySelectorAll('[data-arte]').forEach(b => b.onclick = () => {
+    const [pais, chave] = b.dataset.arte.split('|');
+    modalArteComp(pais, chave);
+  });
+}
+
+function modalArteComp(pais, chave){
+  const grupo = competicoesPorPais().find(g => g.pais === pais);
+  const item  = grupo && grupo.itens.find(i => i.chave === chave);
+  if(!item) return toast('Competição não encontrada.', true);
+  const e = compEfetiva(pais, item);
+  const noPatch = arteDoPatch(pais)[chave] || null;
+  let arte = e.arte, enviada = noPatch ? noPatch.trofeu : null;
+
+  const previa = () => `${arte
+    ? `<img src="${h(arte)}" alt="" style="width:96px;height:96px;object-fit:contain;background:#0006;border-radius:10px;padding:6px">`
+    : `<span style="font-size:56px;opacity:.4">🏆</span>`}`;
+
+  abrirModal(`
+    <h3>${h(e.nome)}</h3>
+    <div class="g2" style="gap:12px">
+      <label class="f">Nome<input class="f" id="t-nome" value="${h(e.nome)}" placeholder="Ex.: Brasileirão Série A"></label>
+      <label class="f">Nome abreviado<input class="f" id="t-curto" value="${h(e.curto)}" placeholder="Ex.: Série A"></label>
+    </div>
+    <div class="st" style="margin:-4px 0 14px;line-height:1.6">
+      O abreviado é o que aparece na tabela, no calendário e no assento da Resenha — é o rótulo
+      que o jogador mais vê. A chave <span class="mono">${h(chave)}</span> não muda: é ela que
+      liga esta ficha aos títulos já conquistados, então renomear não apaga estante de ninguém.
+    </div>
+
+    <div class="card card-p" style="margin-bottom:14px">
+      <div class="tt" style="margin-bottom:10px">Taça</div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <span id="t-prev">${previa()}</span>
+        <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-sm" id="t-enviar-btn">Enviar arte (PNG/WebP, até 1 MB)</button>
+          <input type="file" id="t-enviar" accept=".png,.webp,.jpg,.jpeg" style="display:none">
+          <button class="btn btn-sm btn-ghost" id="t-tirar">Voltar à taça original</button>
+          <small class="st">Fundo transparente. A mesma imagem serve o ícone pequeno e a estante.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2" style="gap:12px">
+      <label class="f">Prateleira da Sala
+        <select class="f" id="t-regiao">
+          ${regioesDisponiveis().map(r=>`<option value="${h(r)}" ${r===e.regiao?'selected':''}>${h(r)}</option>`).join('')}
+        </select></label>
+      <label class="f">Tamanho na estante
+        <input class="f" id="t-escala" type="number" step="0.05" min="0.5" max="2.5" value="${h(e.escala)}"></label>
+    </div>
+    <label class="f">Dica na Sala de Troféus
+      <input class="f" id="t-dica" value="${h(e.dica)}" placeholder="Como se ganha esta taça"></label>
+    <div class="st" style="margin-top:-4px;line-height:1.6">
+      Arte com muita margem transparente fica pequena ao lado das outras — o tamanho corrige isso
+      sem mexer no ficheiro (a Libertadores usa 1.625).
+    </div>
+
+    <div class="acoes">
+      ${noPatch?`<button class="btn btn-ghost" id="t-reset" style="margin-right:auto">Voltar ao padrão do jogo</button>`:''}
+      <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      <button class="btn" id="t-ok">Salvar</button>
+    </div>`);
+
+  el('t-enviar-btn').onclick = () => el('t-enviar').click();
+  el('t-enviar').onchange = async () => {
+    const f = el('t-enviar').files[0]; if(!f) return;
+    if(f.size > 1024*1024) return toast('Arte acima de 1 MB.', true);
+    const bt = el('t-enviar-btn'); bt.disabled = true; bt.textContent = 'Enviando…';
+    try{
+      const ext = (f.name.split('.').pop()||'png').toLowerCase();
+      /* caminho NOVO a cada envio: o bucket não tem UPDATE (ver bucket-trofeus.sql),
+         e assim quem está com o jogo aberto continua a ver a arte anterior até recarregar */
+      const caminho = `${pais.replace(/[^a-zA-Z0-9_-]/g,'_')}/${chave.replace(/[^a-zA-Z0-9_-]/g,'_')}-${Date.now()}.${ext}`;
+      const up = await sb.storage.from('trofeus').upload(caminho, f, { upsert:false, cacheControl:'3600' });
+      if(up.error) throw up.error;
+      enviada = arte = sb.storage.from('trofeus').getPublicUrl(caminho).data.publicUrl;
+      el('t-prev').innerHTML = previa();
+      toast('Arte enviada — falta salvar a ficha.');
+    }catch(err){ toast(erroMsg(err), true); }
+    bt.disabled = false; bt.textContent = 'Enviar arte (PNG/WebP, até 1 MB)';
+  };
+  el('t-tirar').onclick = () => {
+    enviada = null; arte = arteDeFabrica(chave);
+    el('t-prev').innerHTML = previa();
+  };
+
+  const reset = el('t-reset');
+  if(reset) reset.onclick = async () => {
+    if(!await rfConfirm({ titulo:'Voltar ao padrão do jogo',
+      texto:'O nome e a taça desta competição voltam ao que vem no jogo.',
+      detalhe:'A imagem enviada continua no bucket, mas deixa de ser usada.',
+      nao:'Cancelar', sim:'Voltar ao padrão', perigo:true })) return;
+    await gravarArteComp(pais, chave, null);
+  };
+
+  el('t-ok').onclick = async () => {
+    const nome = el('t-nome').value.trim(), curto = el('t-curto').value.trim();
+    if(!nome || !curto) return toast('Nome e abreviado são obrigatórios.', true);
+    const dados = { div: item.div || undefined, tipo: item.tipo };
+    /* só grava o que DIFERE da fábrica: assim uma correção no jogo continua a
+       chegar a quem não mexeu naquele campo, em vez de ficar congelada no patch */
+    const card = cardDaSala(chave);
+    if(nome  !== item.fabricaNome)  dados.nome  = nome;
+    if(curto !== ((card && card.curto) || item.fabricaCurto)) dados.curto = curto;
+    if(enviada) dados.trofeu = enviada;
+    const regiao = el('t-regiao').value, escala = Number(el('t-escala').value) || 1;
+    const dica = el('t-dica').value.trim();
+    if(regiao !== ((card && card.regiao) || regiaoDeFabrica(pais))) dados.regiao = regiao;
+    if(Math.abs(escala - ((card && card.escala) || 1)) > 0.001) dados.escala = escala;
+    if(dica !== ((card && card.dica) || '')) dados.dica = dica;
+    const mexeu = ['nome','curto','trofeu','regiao','escala','dica'].some(k => dados[k] !== undefined);
+    await gravarArteComp(pais, chave, mexeu ? dados : null);
+  };
+}
+
+async function gravarArteComp(pais, chave, dados){
+  const comps = Object.assign({}, arteDoPatch(pais));
+  if(dados) comps[chave] = dados; else delete comps[chave];
+  const linha = { pack_id: ST.packId, club_id: PREFIXO_COMP_ADM + pais, divisao: null,
+                  /* `novo` fica FALSO: esta é uma linha de serviço, não um clube que nasce.
+                     Com ele ligado, o editor listaria um clube fantasma chamado __comp__:brasil. */
+                  novo: false, patch: { comps } };
+  const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
+  if(error) return toast(erroMsg(error), true);
+  registrar('competicoes.arte', ST.packId, { pais, comp: chave, removida: !dados });
+  fecharModal();
+  toast(dados ? 'Competição salva no patch.' : 'Competição voltou ao padrão do jogo.');
+  pgEditor();
 }

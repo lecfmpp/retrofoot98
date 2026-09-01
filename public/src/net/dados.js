@@ -104,6 +104,67 @@ function renomear(p, dados){
    (pack_id, club_id), então o país entra no lugar do id do clube. É o que permite um pacote
    trazer vários países sem tabela nova. */
 const PREFIXO_CALENDARIO = '__calendario__:';
+/* IDENTIDADE DAS COMPETIÇÕES — nome, nome curto e taça, por país. Mesma ideia da folha de
+   calendário e pelo mesmo motivo: `pack_edits` é indexado por (pack_id, club_id), então o país
+   entra no lugar do id do clube e um pacote traz quantos países quiser sem tabela nova.
+   '__mundo__' guarda as competições que não são de país nenhum (Libertadores, Champions...).
+   Formato: patch = { comps: { '<chave>': {div, nome, curto, trofeu, escala, regiao, dica, tipo} } }
+   — `div` só nas ligas, e é ele que diz qual rótulo de divisão do universo renomear. */
+const PREFIXO_COMPETICAO = '__comp__:';
+
+/* Escreve na FONTE que o jogo já lê, em vez de criar um mapa novo: `COMPETICOES` (de onde sai
+   COMP_DEFS[k].short em todo o motor), o `label` do universo (de onde saem os rótulos de
+   divisão na UI), `TROPHIES` (os ícones de 20-28px) e o catálogo da Sala de Troféus. Assim o
+   nome novo aparece nos ~13 pontos que já existem sem tocar em nenhum deles — e vale para
+   TODO save, novo ou em curso, porque nada disso é gravado dentro do save.
+   ATRIBUIÇÃO, NUNCA ACÚMULO: o pacote é aplicado duas vezes por visita (cache e rede), então
+   o card da Sala é procurado pelo id e remendado, jamais empilhado. */
+function aplicarCompeticoes(pais, patch){
+  const comps = (patch && patch.comps) || null;
+  if(!comps || typeof comps !== 'object') return 0;
+  const uni  = (window.UNIVERSOS || {})[pais] || null;
+  const defs = window.COMPETICOES || (window.COMPETICOES = {});
+  const icon = window.TROPHIES    || (window.TROPHIES = {});
+  const sala = (window.TROPHY_ROOM && Array.isArray(window.TROPHY_ROOM.comps)) ? window.TROPHY_ROOM : null;
+  let n = 0;
+  for(const id of Object.keys(comps)){
+    const d = comps[id] || {};
+    const nome  = d.nome  || null;
+    const curto = d.curto || d.nome || null;
+
+    if(nome || curto){
+      const alvo = defs[id] || (defs[id] = { id, name:nome||id, short:curto||id, type:d.tipo||'liga' });
+      if(nome)  alvo.name  = nome;
+      if(curto) alvo.short = curto;
+      /* o rótulo da divisão é OUTRO lugar: quem mostra "Série B" na tabela e no
+         assento da Resenha lê UNIVERSOS[pais].label[div], não COMPETICOES. */
+      if(uni && d.div && uni.label) uni.label[d.div] = curto || nome;
+    }
+    if(d.trofeu) icon[id] = d.trofeu;
+
+    if(sala && (d.trofeu || nome || curto)){
+      let card = sala.comps.find(c => c.id === id);
+      if(!card){
+        card = { id, nome:nome||id, curto:curto||nome||id, img:null,
+                 regiao:d.regiao || 'BRASIL', tipo:d.tipo || 'liga', dica:'' };
+        sala.comps.push(card);
+      }
+      if(nome)   card.nome  = nome;
+      if(curto)  card.curto = curto;
+      if(d.trofeu) card.img = d.trofeu;
+      if(d.escala) card.escala = Number(d.escala) || 1;
+      if(d.dica)   card.dica = d.dica;
+      if(d.regiao){
+        card.regiao = d.regiao;
+        /* prateleira que não está em `regions` não é desenhada — a taça existiria
+           no catálogo e sumiria da estante. Abre a prateleira nova em vez disso. */
+        if(Array.isArray(sala.regions) && sala.regions.indexOf(d.regiao) < 0) sala.regions.push(d.regiao);
+      }
+    }
+    n++;
+  }
+  return n;
+}
 
 function aplicar(edits){
   if(!Array.isArray(edits) || !edits.length) return 0;
@@ -124,6 +185,11 @@ function aplicar(edits){
           else console.warn('pacote: calendário de '+pais+' recusado — '+r.motivo,
                             r.problemas.filter(x=>x.nivel==='erro').map(x=>x.texto));
         }
+        continue;
+      }
+      /* IDENTIDADE DAS COMPETIÇÕES daquele país — ver aplicarCompeticoes. */
+      if(typeof e.club_id === 'string' && e.club_id.indexOf(PREFIXO_COMPETICAO) === 0){
+        if(aplicarCompeticoes(e.club_id.slice(PREFIXO_COMPETICAO.length), e.patch)) n++;
         continue;
       }
       if(e.novo){
