@@ -1279,25 +1279,64 @@ function advanceAuctions(R){
   if(!inTransferWindow() || !auctionEligible()){ S.auctions={round:S.round, lots:[]}; return; }
   S.auctions=S.auctions||{round:S.round, lots:[]};
   mergeAuctionBidsFromSeats(); // traz os lances de TODOS os humanos da sala antes de decidir a cobertura
-  const still=[];
-  S.auctions.lots.forEach(l=>{
-    if(l.status!=='open') return;
-    if(l.leader && l.leader!=='cpu'){
-      const leadAmt=(l.bids&&l.bids[l.leader]&&l.bids[l.leader].amount)||l.bid;
-      if(leadAmt < l.ceiling){ // humano líder mas abaixo do teto -> CPU cobre
-        const incr=Math.max(50000, Math.round(l.ceiling*0.06));
-        l.bid=Math.min(l.ceiling, leadAmt+incr); l.leader='cpu';
-      } // senão: bateu acima do teto -> segue firme na frente
-    } else { // CPU liderando -> sobe rumo ao teto
-      const incr=Math.max(50000, Math.round(l.ceiling*0.08));
-      l.bid=Math.min(l.ceiling, l.bid+incr);
+  /* A REGRA VIVE EM world-rules.js (WORLD_RULES.leilaoRodada) e o servidor roda a
+     MESMA — é o que faz o leilão existir na Resenha, onde o cliente já não comita
+     rodada. Aqui ficam só as decisões que são do cliente: o meu caixa, a minha
+     cota de estrangeiros, a minha notícia e a minha entrada de finanças. */
+  const resolvidos=(typeof WORLD_RULES!=='undefined' && WORLD_RULES.leilaoRodada)
+    ? WORLD_RULES.leilaoRodada(S, R, {
+        ehHumano:(cid)=>String(cid)===String(S.clubId),
+        achar:(nome,dono)=>findP(nome,dono),
+        salario:(p)=>REBAL.wage(p.f),
+        /* SÓ O DONO DO ASSENTO RECUSA. Caixa e cota são autoridade de quem joga
+           aquele clube: para outro humano da sala, deixa passar — o cliente dele
+           é que decide, e o mundo reconcilia. */
+        podeComprar:(cid,p,preco)=>{
+          if(String(cid)!==String(S.clubId)) return {ok:true};
+          if(preco>S.budget) return {ok:false, msg:'caixa insuficiente pra pagar o lance vencedor no leilão'};
+          const fq=checkForeignQuota(p); return fq.ok?{ok:true}:{ok:false, msg:fq.msg};
+        },
+        /* reposição: os dados do solo. `aceita` é a preferência do Perfil — no
+           servidor ela não entra, porque o pool de uma sala é de todos. */
+        alvo: AUCTION_TARGET_LOTS,
+        clubes: DATA.clubs.filter(c=>!isCpuMarketProtected(c.id)),
+        valor: (p)=>liveMV(p),
+        podeSair: (cid,p)=>canReleaseFromSquad(cid,p).ok,
+        aceita: (p)=>{
+          const mode=(S.config&&S.config.profile&&S.config.profile.auctionMode)||'todos';
+          if(mode!=='sem_fracos') return true;
+          const sq=S.squads[S.clubId]||[];
+          const media=sq.length? sq.reduce((s,x)=>s+x.f,0)/sq.length : 65;
+          return p.f >= media*0.85;
+        },
+        rodadasPorLote: AUCTION_ROUNDS,
+      })
+    : [];
+  S.roundNews=S.roundNews||[];
+  resolvidos.forEach(r=>{
+    const l=r.lote;
+    if(!r.vencedor){ if(r.veto) S.roundNews.push(`❌ ${l.player}: ${r.veto}.`); return; }
+    const p=r.jogador, preco=r.preco, meu=String(r.vencedor)===String(S.clubId);
+    applyTradeLock(p); recordTransferHistory(p, l.sellerId, r.vencedor, preco);
+    if(typeof MARKET!=='undefined' && MARKET.revalueOnTransfer) MARKET.revalueOnTransfer(p, MARKET.divisionToLeague(S.division));
+    recordNetTransfer(l.sellerId, r.vencedor, p.n, p.contract, preco, p.pid); // online: sem isto o arremate é desfeito
+    if(meu){
+      S.budget-=preco; commitBudget();                    // publica: senão o débito do leilão é revertido
+      S.roundNews.push(`🔨 ${p.n} arrematado no leilão por ${fmt(preco)} — você cobriu a concorrência!`);
+      pushFinanceEntry({playerPurchases:preco, log:[`🔨 ${p.n} arrematado no leilão por ${fmt(preco)}.`]});
+    } else {
+      /* LEILÃO GANHO POR OUTRO CLUBE — guarda a FOTOGRAFIA do jogador (o objeto
+         muda de clube logo a seguir) para o diálogo `mkt-leilao-outro`. */
+      S.auctionSales=S.auctionSales||[];
+      S.auctionSales.push({ nome:p.n, pos:p.s, forca:p.f, idade:p.age||null,
+        salario:(p.contract&&p.contract.salary)||0, base:l.base||0,
+        gols:(S.scorers&&S.scorers[p.n])||0,
+        vendedor:l.sellerId, comprador:r.vencedor, preco:preco, round:S.round });
+      if(S.auctionSales.length>12) S.auctionSales=S.auctionSales.slice(-12);
+      S.roundNews.push(`🔨 ${p.n} foi arrematado por ${fmt(preco)}.`);
     }
-    l.roundsLeft--;
-    if(l.roundsLeft<=0) resolveAuctionLot(l); else still.push(l);
   });
-  S.auctions.lots=still;
-  openAuctionLots(R, AUCTION_TARGET_LOTS - S.auctions.lots.length);
-  S.auctions.round=S.round;
+  S.auctions.round=S.round;   // a reposição já aconteceu dentro da regra (opts.repor)
 }
 function resolveAuctionLot(l){
   if(!l.leader || l.leader==='cpu'){ l.status='lost'; return; } // um clube da CPU levou

@@ -613,6 +613,128 @@
     });
     return feitas;
   }
+  /* ---------- LEILÃO: a rodada do lote ----------
+     POR QUE ESTÁ AQUI, e não só no cliente. Mesma história do cpuMarket: o leilão
+     avançava dentro do playRound(), e como o cliente deixou de comitar rodada na
+     Resenha (o servidor é autoridade única desde o F3.5), o leilão simplesmente
+     NÃO ACONTECIA no multiplayer. Medido numa sala real: jogo na 20ª rodada, os
+     oito lotes ainda com `roundsLeft:3` — o valor inicial — e nenhum lance humano
+     jamais registado. O jogador dava lance e nada acontecia, para sempre.
+
+     ESCRITO AQUI, os dois lados rodam o MESMO código e não há duas versões da
+     regra para divergirem. É o que o portão do sync-world-rules garante.
+
+     O QUE ESTA FUNÇÃO FAZ: cobre/sobe os lances da CPU, desconta a rodada de cada
+     lote, decide o vencedor e MOVE o jogador entre elencos (estado do mundo, igual
+     dos dois lados). O que ela NÃO faz é mexer em caixa, notícia ou finanças —
+     isso é de cada lado: no cliente o caixa do próprio clube, no servidor só o
+     lado da CPU. Devolve as resoluções para quem chamou decidir o resto.
+
+     `opts` traz tudo o que depende do jogo: quem é humano, como achar o jogador,
+     o salário do contrato, e o que fazer com o lote resolvido. */
+  function leilaoRodada(S, R, opts){
+    opts=opts||{};
+    const ehHumano=opts.ehHumano||function(){ return false; };
+    const achar=opts.achar||function(){ return null; };
+    const salario=opts.salario||function(){ return 0; };
+    const podeComprar=opts.podeComprar||function(){ return {ok:true}; };
+    const aoResolver=opts.aoResolver||function(){};
+    if(!S || !S.auctions || !Array.isArray(S.auctions.lots)) return [];
+
+    const resolvidos=[];
+    const seguem=[];
+    S.auctions.lots.forEach(function(l){
+      if(!l || l.status!=='open') return;
+      /* A COBERTURA DA CPU. Humano na frente mas abaixo do teto -> a CPU cobre.
+         Acima do teto -> segue firme, que é a única forma de garantir a compra. */
+      if(l.leader && l.leader!=='cpu'){
+        const lead=(l.bids&&l.bids[l.leader]&&l.bids[l.leader].amount)||l.bid;
+        if(lead < l.ceiling){
+          const inc=Math.max(50000, Math.round(l.ceiling*0.06));
+          l.bid=Math.min(l.ceiling, lead+inc); l.leader='cpu';
+        }
+      } else {
+        const inc=Math.max(50000, Math.round(l.ceiling*0.08));
+        l.bid=Math.min(l.ceiling, l.bid+inc);
+      }
+      l.roundsLeft--;
+      if(l.roundsLeft>0){ seguem.push(l); return; }
+
+      /* ---- resolução ---- */
+      if(!l.leader || l.leader==='cpu'){ l.status='lost'; resolvidos.push({lote:l, vencedor:null}); return; }
+      const vencedor=l.leader;
+      const p=achar(l.player, l.sellerId);
+      if(!p){ l.status='lost'; resolvidos.push({lote:l, vencedor:null}); return; }
+      const preco=(l.bids&&l.bids[vencedor]&&l.bids[vencedor].amount)||l.bid;
+      /* A RECUSA É DE QUEM CHAMA. Caixa e cota de estrangeiros só o dono do
+         assento sabe ao certo; o servidor deixa passar e o cliente do vencedor
+         recusa se não puder pagar — do lado errado, um lote ficava por resolver
+         para sempre à espera de uma informação que aquele lado não tem. */
+      const veto=podeComprar(vencedor, p, preco);
+      if(veto && veto.ok===false){ l.status='lost'; resolvidos.push({lote:l, vencedor:null, veto:veto.msg}); return; }
+
+      (S.squads[l.sellerId]||[]).some(function(x,i){
+        if(x.n!==p.n) return false; S.squads[l.sellerId].splice(i,1); return true;
+      });
+      p.contract={ salary:salario(p), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
+      p.moral=75;
+      S.squads[vencedor]=S.squads[vencedor]||[];
+      S.squads[vencedor].push(p);
+      l.status='won';
+      const r={lote:l, vencedor:vencedor, preco:preco, jogador:p, humano:!!ehHumano(vencedor)};
+      resolvidos.push(r); aoResolver(r);
+    });
+    S.auctions.lots=seguem;
+
+    /* ---- REPOSIÇÃO DO POOL ----
+       Vinha de openAuctionLots, no cliente, e dependia de duas coisas que só
+       existem do lado de quem joga: o modo escolhido no Perfil e a força média
+       do MEU elenco. Numa sala isso não pode decidir o pool — ele é partilhado,
+       e um lote que só existe para um treinador é um lote que não existe.
+
+       Então a regra gera com critério NEUTRO e quem filtra por gosto é a tela.
+       `aceita` entra por opts: no solo é a preferência do Perfil, no servidor
+       deixa passar tudo.
+
+       `alvo` É O TAMANHO DO POOL, NÃO QUANTOS FALTAM. Quem chama não tem como
+       saber quantos faltam: os lotes resolvem AQUI DENTRO, e uma diferença
+       calculada antes fica errada exactamente no momento em que mais importa —
+       na rodada em que os oito expiram de uma vez, `faltam` valia 0 e o pool
+       ficava vazio até à rodada seguinte. Medido: 8, 8, 0, 8, 8, 0. */
+    const querem=Math.max(0, (opts.alvo|0) - S.auctions.lots.length);
+    if(querem>0){
+      const clubes=opts.clubes||[];
+      const valor=opts.valor||function(p){ return (p&&p.mv)||1e6; };
+      const podeSair=opts.podeSair||function(){ return true; };
+      const aceita=opts.aceita||function(){ return true; };
+      const rodadas=opts.rodadasPorLote||3;
+      const tem={}; S.auctions.lots.forEach(function(l){ tem[l.id]=1; });
+      let postos=0, voltas=0;
+      while(postos<querem && voltas<querem*8 && clubes.length){
+        voltas++;
+        const c=clubes[Math.floor(R.random()*clubes.length)];
+        const sq=c&&S.squads[c.id]; if(!sq || sq.length<=16) continue;
+        const p=sq[Math.floor(R.random()*sq.length)];
+        const id=c.id+'|'+p.n; if(tem[id]) continue;
+        if(!podeSair(c.id,p)) continue;             // piso de elenco / último goleiro
+        if(!aceita(p)) continue;
+        const vm=valor(p);
+        /* interesse e teto: mais cobiçado = mais clubes na disputa = teto maior.
+           Os números são os do cliente, palavra por palavra. */
+        const f=p.f||60;
+        const desejo=Math.max(0, Math.min(1,
+          Math.max(0,Math.min(1,(f-45)/45))*0.75 + (p.age?Math.max(0,Math.min(1,(32-p.age)/16)):0.5)*0.25));
+        const interesse=Math.max(2, Math.min(20, Math.round(2 + desejo*18 + (R.random()-0.5)*3)));
+        S.auctions.lots.push({ id:id, sellerId:c.id, player:p.n, base:vm,
+          interest:interesse, ceiling:Math.round(vm*(1 + (interesse/20)*1.4 + R.random()*0.25)),
+          bid:Math.round(vm*(0.6+R.random()*0.15)), leader:'cpu', myBid:0,
+          roundsLeft:rodadas, status:'open' });
+        tem[id]=1; postos++;
+      }
+    }
+    return resolvidos;
+  }
+
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
@@ -621,7 +743,7 @@
     buildDayPlan, buildDayPlanMulti, diasDoPais, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
-    cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };
+    cpuMarket, cpuCaixaRodada, cpuCrescerEstadio, leilaoRodada };
   root.WORLD_RULES=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -15,7 +15,7 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = '4dfa26ca76b9';
+/* @motor-ver */ const MOTOR_VER = '77a63f2b8afa';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -1250,6 +1250,128 @@ const ME = (globalThis as any).MATCH_ENGINE;
     });
     return feitas;
   }
+  /* ---------- LEILÃO: a rodada do lote ----------
+     POR QUE ESTÁ AQUI, e não só no cliente. Mesma história do cpuMarket: o leilão
+     avançava dentro do playRound(), e como o cliente deixou de comitar rodada na
+     Resenha (o servidor é autoridade única desde o F3.5), o leilão simplesmente
+     NÃO ACONTECIA no multiplayer. Medido numa sala real: jogo na 20ª rodada, os
+     oito lotes ainda com `roundsLeft:3` — o valor inicial — e nenhum lance humano
+     jamais registado. O jogador dava lance e nada acontecia, para sempre.
+
+     ESCRITO AQUI, os dois lados rodam o MESMO código e não há duas versões da
+     regra para divergirem. É o que o portão do sync-world-rules garante.
+
+     O QUE ESTA FUNÇÃO FAZ: cobre/sobe os lances da CPU, desconta a rodada de cada
+     lote, decide o vencedor e MOVE o jogador entre elencos (estado do mundo, igual
+     dos dois lados). O que ela NÃO faz é mexer em caixa, notícia ou finanças —
+     isso é de cada lado: no cliente o caixa do próprio clube, no servidor só o
+     lado da CPU. Devolve as resoluções para quem chamou decidir o resto.
+
+     `opts` traz tudo o que depende do jogo: quem é humano, como achar o jogador,
+     o salário do contrato, e o que fazer com o lote resolvido. */
+  function leilaoRodada(S, R, opts){
+    opts=opts||{};
+    const ehHumano=opts.ehHumano||function(){ return false; };
+    const achar=opts.achar||function(){ return null; };
+    const salario=opts.salario||function(){ return 0; };
+    const podeComprar=opts.podeComprar||function(){ return {ok:true}; };
+    const aoResolver=opts.aoResolver||function(){};
+    if(!S || !S.auctions || !Array.isArray(S.auctions.lots)) return [];
+
+    const resolvidos=[];
+    const seguem=[];
+    S.auctions.lots.forEach(function(l){
+      if(!l || l.status!=='open') return;
+      /* A COBERTURA DA CPU. Humano na frente mas abaixo do teto -> a CPU cobre.
+         Acima do teto -> segue firme, que é a única forma de garantir a compra. */
+      if(l.leader && l.leader!=='cpu'){
+        const lead=(l.bids&&l.bids[l.leader]&&l.bids[l.leader].amount)||l.bid;
+        if(lead < l.ceiling){
+          const inc=Math.max(50000, Math.round(l.ceiling*0.06));
+          l.bid=Math.min(l.ceiling, lead+inc); l.leader='cpu';
+        }
+      } else {
+        const inc=Math.max(50000, Math.round(l.ceiling*0.08));
+        l.bid=Math.min(l.ceiling, l.bid+inc);
+      }
+      l.roundsLeft--;
+      if(l.roundsLeft>0){ seguem.push(l); return; }
+
+      /* ---- resolução ---- */
+      if(!l.leader || l.leader==='cpu'){ l.status='lost'; resolvidos.push({lote:l, vencedor:null}); return; }
+      const vencedor=l.leader;
+      const p=achar(l.player, l.sellerId);
+      if(!p){ l.status='lost'; resolvidos.push({lote:l, vencedor:null}); return; }
+      const preco=(l.bids&&l.bids[vencedor]&&l.bids[vencedor].amount)||l.bid;
+      /* A RECUSA É DE QUEM CHAMA. Caixa e cota de estrangeiros só o dono do
+         assento sabe ao certo; o servidor deixa passar e o cliente do vencedor
+         recusa se não puder pagar — do lado errado, um lote ficava por resolver
+         para sempre à espera de uma informação que aquele lado não tem. */
+      const veto=podeComprar(vencedor, p, preco);
+      if(veto && veto.ok===false){ l.status='lost'; resolvidos.push({lote:l, vencedor:null, veto:veto.msg}); return; }
+
+      (S.squads[l.sellerId]||[]).some(function(x,i){
+        if(x.n!==p.n) return false; S.squads[l.sellerId].splice(i,1); return true;
+      });
+      p.contract={ salary:salario(p), role:'Rotação', gotMatchesBonus:false, benchStreak:0, releaseClause:null };
+      p.moral=75;
+      S.squads[vencedor]=S.squads[vencedor]||[];
+      S.squads[vencedor].push(p);
+      l.status='won';
+      const r={lote:l, vencedor:vencedor, preco:preco, jogador:p, humano:!!ehHumano(vencedor)};
+      resolvidos.push(r); aoResolver(r);
+    });
+    S.auctions.lots=seguem;
+
+    /* ---- REPOSIÇÃO DO POOL ----
+       Vinha de openAuctionLots, no cliente, e dependia de duas coisas que só
+       existem do lado de quem joga: o modo escolhido no Perfil e a força média
+       do MEU elenco. Numa sala isso não pode decidir o pool — ele é partilhado,
+       e um lote que só existe para um treinador é um lote que não existe.
+
+       Então a regra gera com critério NEUTRO e quem filtra por gosto é a tela.
+       `aceita` entra por opts: no solo é a preferência do Perfil, no servidor
+       deixa passar tudo.
+
+       `alvo` É O TAMANHO DO POOL, NÃO QUANTOS FALTAM. Quem chama não tem como
+       saber quantos faltam: os lotes resolvem AQUI DENTRO, e uma diferença
+       calculada antes fica errada exactamente no momento em que mais importa —
+       na rodada em que os oito expiram de uma vez, `faltam` valia 0 e o pool
+       ficava vazio até à rodada seguinte. Medido: 8, 8, 0, 8, 8, 0. */
+    const querem=Math.max(0, (opts.alvo|0) - S.auctions.lots.length);
+    if(querem>0){
+      const clubes=opts.clubes||[];
+      const valor=opts.valor||function(p){ return (p&&p.mv)||1e6; };
+      const podeSair=opts.podeSair||function(){ return true; };
+      const aceita=opts.aceita||function(){ return true; };
+      const rodadas=opts.rodadasPorLote||3;
+      const tem={}; S.auctions.lots.forEach(function(l){ tem[l.id]=1; });
+      let postos=0, voltas=0;
+      while(postos<querem && voltas<querem*8 && clubes.length){
+        voltas++;
+        const c=clubes[Math.floor(R.random()*clubes.length)];
+        const sq=c&&S.squads[c.id]; if(!sq || sq.length<=16) continue;
+        const p=sq[Math.floor(R.random()*sq.length)];
+        const id=c.id+'|'+p.n; if(tem[id]) continue;
+        if(!podeSair(c.id,p)) continue;             // piso de elenco / último goleiro
+        if(!aceita(p)) continue;
+        const vm=valor(p);
+        /* interesse e teto: mais cobiçado = mais clubes na disputa = teto maior.
+           Os números são os do cliente, palavra por palavra. */
+        const f=p.f||60;
+        const desejo=Math.max(0, Math.min(1,
+          Math.max(0,Math.min(1,(f-45)/45))*0.75 + (p.age?Math.max(0,Math.min(1,(32-p.age)/16)):0.5)*0.25));
+        const interesse=Math.max(2, Math.min(20, Math.round(2 + desejo*18 + (R.random()-0.5)*3)));
+        S.auctions.lots.push({ id:id, sellerId:c.id, player:p.n, base:vm,
+          interest:interesse, ceiling:Math.round(vm*(1 + (interesse/20)*1.4 + R.random()*0.25)),
+          bid:Math.round(vm*(0.6+R.random()*0.15)), leader:'cpu', myBid:0,
+          roundsLeft:rodadas, status:'open' });
+        tem[id]=1; postos++;
+      }
+    }
+    return resolvidos;
+  }
+
   /* os três momentos de cada dia, na ordem em que o jogador os vive */
   const DAY_MOMENTS=['escalando','jogando','classificacao'];
 
@@ -1258,7 +1380,7 @@ const ME = (globalThis as any).MATCH_ENGINE;
     buildDayPlan, buildDayPlanMulti, diasDoPais, DAY_MOMENTS, prorrogarPorCopasPendentes,
     cupDrawDay, buildCupSchedule, cupTickMatchesRound, cupRoundIndexAt,
     cupAlreadyResolved, markCupResolved, CUP_FIRST_ROUND,
-    cpuMarket, cpuCaixaRodada, cpuCrescerEstadio };
+    cpuMarket, cpuCaixaRodada, cpuCrescerEstadio, leilaoRodada };
   root.WORLD_RULES=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -2996,6 +3118,79 @@ function cpuMarketRound(S: any, humans: Set<string>) {
     S.roundNews.push(`🔄 ${t.player} foi negociado do ${t.from} pro ${t.to} por ${t.fee}.`);
   });
 }
+/* ===== LEILÃO NO SERVIDOR =====
+   A REGRA está em world-rules.js (WR.leilaoRodada, injetada acima) — aqui só entram os DADOS.
+   Antes isto não existia e o efeito era total: o leilão avançava dentro do playRound(), e como o
+   cliente não comita mais rodada na Resenha, os lotes ficavam CONGELADOS no instante em que a sala
+   nasceu. Medido numa sala real antes do conserto: jogo na 20ª rodada, os oito lotes ainda com
+   roundsLeft:3 e nenhum lance humano jamais registado. O jogador dava lance e nada acontecia.
+
+   O CAIXA DO VENCEDOR HUMANO NÃO É DEBITADO AQUI, pela mesma regra de applyHumanTransfers: o
+   caixa de um humano é autoritativo em game_seats.budget e quem debita é o cliente dele. O que o
+   servidor faz é o que só ele pode fazer — mover o jogador no mundo e dizer quem ganhou. Debitar
+   dos dois lados contaria a compra duas vezes.
+
+   E A RECUSA (caixa curto, cota de estrangeiros) fica com o cliente do vencedor: é ele que sabe o
+   próprio caixa. Aqui deixa passar. */
+function auctionRound(S: any, humans: Set<string>, bidsBySeat: any[]) {
+  if (!S.auctions || !Array.isArray(S.auctions.lots)) S.auctions = { round: S.round, lots: [] };
+  if (!canNegotiateR(S.round)) { S.auctions = { round: S.round, lots: [] }; return; }
+
+  /* lances publicados por cada assento (game_seats.last_bids) -> lot.bids, o mais recente por
+     clube. É o equivalente servidor do mergeAuctionBidsFromSeats do cliente. */
+  const porId: Record<string, any> = {};
+  S.auctions.lots.forEach((l: any) => { porId[l.id] = l; });
+  (bidsBySeat || []).forEach((sb: any) => {
+    if (!sb || !sb.club_id || !sb.last_bids) return;
+    Object.keys(sb.last_bids).forEach((lotId: string) => {
+      const lot = porId[lotId], b = sb.last_bids[lotId];
+      if (!lot || lot.status !== "open" || !b || b.amount == null) return;
+      lot.bids = lot.bids || {};
+      const prev = lot.bids[sb.club_id];
+      if (!prev || (b.ts || 0) >= (prev.ts || 0)) lot.bids[sb.club_id] = { amount: b.amount, ts: b.ts || 0 };
+    });
+  });
+  // o maior lance manda; empate exato desempata por quem lançou primeiro
+  S.auctions.lots.forEach((l: any) => {
+    if (l.status !== "open") return;
+    const bids = l.bids || {};
+    let melhorClube: string | null = null, melhorVal = l.bid, melhorTs = Infinity;
+    Object.keys(bids).forEach((cid) => {
+      const b = bids[cid]; if (!b || b.amount == null) return;
+      if (b.amount > melhorVal || (b.amount === melhorVal && (b.ts || 0) < melhorTs)) {
+        melhorClube = cid; melhorVal = b.amount; melhorTs = (b.ts || 0);
+      }
+    });
+    if (melhorClube != null) { l.bid = melhorVal; l.leader = melhorClube; }
+  });
+
+  const R = ME.makeRng(ME.hashSeed(S.seed, S.round, "auction"));
+  const cpuIds = cpuClubIdsForMarket(S, humans);
+  const resolvidos = WR.leilaoRodada(S, R, {
+    ehHumano: (cid: string) => humans.has(cid),
+    achar: (nome: string, dono: string) => (S.squads[dono] || []).find((x: any) => x.n === nome),
+    salario: (p: any) => rbWage(p.f),
+    podeComprar: () => ({ ok: true }),
+    alvo: 8,
+    clubes: cpuIds.map((id: string) => ({ id })),
+    valor: (p: any) => p.mv || 1e6,
+    /* mesmo piso do mercado da CPU: nunca deixar um clube sem goleiro */
+    podeSair: (clubId: string, p: any) => {
+      if (p.s !== "GK") return true;
+      return ((S.squads[clubId] || []).filter((x: any) => x.s === "GK").length) > 1;
+    },
+    aceita: () => true,     // o pool da sala é de todos; o gosto de cada um filtra na tela
+    rodadasPorLote: 3,
+  });
+  S.auctions.round = S.round;
+  if (!resolvidos.length) return;
+  S.roundNews = S.roundNews || [];
+  resolvidos.forEach((r: any) => {
+    if (!r.vencedor) return;
+    const cl = (id: string) => (S.clubShort && S.clubShort[id]) || id;
+    S.roundNews.push(`🔨 ${r.jogador.n} foi arrematado por ${cl(r.vencedor)}.`);
+  });
+}
 /* CRESCIMENTO DO ESTÁDIO DA CPU NO SERVIDOR — regra em world-rules (WR.cpuCrescerEstadio); aqui
    só os três limites, que são os MESMOS números do cliente (main.js): bancada de 5.000 lugares,
    cota de 10.000 por temporada, custo escalando com o tamanho atual e teto por porte do clube.
@@ -3097,7 +3292,7 @@ function resolverPiramideDoPais(S: any, M: any, ctx: any) {
   advanceOtherDivs(S, humanResultByFx, humanClubs, humanXI, humanTactic, preMatches, M);
 }
 
-function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any) {
+function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string>, humanXI: any, humanTactic: any, cupResultByFx: any, humanTransfers?: any[], moraleByClub?: any, humanOffers?: any[], humanCounters?: any[], humanOfferDrops?: any[], preMatches?: any, seatBids?: any[]) {
   const seed = S.seed, round = S.round;
   applyHumanTransfers(S, humanTransfers || [], humanClubs);       // 0) contratações/vendas do humano ANTES de escalar/jogar
   applyHumanOffers(S, humanOffers || []);                         // 0c) propostas humano->humano publicadas nos assentos
@@ -3163,6 +3358,7 @@ function resolveLeagueRound(S: any, humanResultByFx: any, humanClubs: Set<string
   S.round++; S.week = (S.week || 1) + 1; S.day = (S.day || 1) + 7; // 5) avança a rodada
   cpuRoundCash(S, humanClubs);                                    // 6) caixa dos rivais anda TODA rodada (ver WR.cpuCaixaRodada)
   cpuMarketRound(S, humanClubs);                                  // 6a) mercado entre clubes da CPU (ver WR.cpuMarket)
+  auctionRound(S, humanClubs, seatBids || []);                          // 6b) leilão (ver WR.leilaoRodada) — sem isto ele ficava congelado na Resenha
   pruneIncomingOffers(S); pruneCounterOffers(S);                  // 6b) limpa proposta/contraproposta vencida ou por jogador que já saiu
   generateIncomingOffers(S, humanClubs);                          // 6c) CPU faz propostas pelos jogadores dos humanos (chega como e-mail no cliente)
   S._roundIncidents = {};
@@ -3261,13 +3457,16 @@ Deno.serve(async (req: Request) => {
     }
 
     const round = S.round;
-    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget, stadium").eq("game_id", gameId);
-    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = []; const humanOfferDrops: any[] = []; const trainingByClub: any = {};
+    const { data: seats } = await admin.from("game_seats").select("user_id, club_id, last_xi, last_tactic, last_result, last_result_round, last_cup_result, last_cup_round, budget, stadium, last_bids").eq("game_id", gameId);
+    const humanClubs = new Set<string>(); const humanXI: any = {}; const humanTactic: any = {}; const humanResultByFx: any = {}; const cupResultByFx: any = {}; const humanTransfers: any[] = []; const moraleByClub: any = {}; const humanOffers: any[] = []; const humanCounters: any[] = []; const humanOfferDrops: any[] = []; const trainingByClub: any = {}; const seatBids: any[] = [];
     (seats || []).forEach((s: any) => {
       if (!s.user_id || !s.club_id) return; humanClubs.add(s.club_id);
       if (s.last_xi) humanXI[s.club_id] = s.last_xi; if (s.last_tactic) humanTactic[s.club_id] = s.last_tactic;
       if (s.budget != null) { S.budgets = S.budgets || {}; S.budgets[s.club_id] = Number(s.budget); } // F3.3: caixa por-humano no mundo
       if (s.stadium) { S.clubStadiumCap = S.clubStadiumCap || {}; S.clubStadiumCap[s.club_id] = s.stadium; } // estádio por-humano no mundo (mesmo mecanismo do caixa acima)
+      // LANCES DO LEILÃO publicados por este assento (ver NET.publishBids). O servidor é quem
+      // resolve o leilão desde 01/09 — sem estes, o lote nunca sabe que um humano cobriu.
+      if (s.last_bids && typeof s.last_bids === 'object') seatBids.push({ club_id: s.club_id, last_bids: s.last_bids });
       const r = s.last_result;
       if (r && s.last_result_round === round && r.h && r.a) { const k = r.h + "-" + r.a; if (!humanResultByFx[k] || s.club_id === r.h) humanResultByFx[k] = { hg: r.hg, ag: r.ag, scorers: r.scorers || [], events: r.events || [], perf: r.perf || null }; }
       // SEMENTE DAS LIGAS DE FUNDO (item 4): sala de antes do pacote existir — o cliente manda o
@@ -3335,7 +3534,7 @@ Deno.serve(async (req: Request) => {
       advancePendingCups(S, cupResultByFx || {}, humanClubs);
       S.roundStage = 'league';
     } else {
-      resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops, preMatches);
+      resolveLeagueRound(S, humanResultByFx, humanClubs, humanXI, humanTactic, cupResultByFx, humanTransfers, moraleByClub, humanOffers, humanCounters, humanOfferDrops, preMatches, seatBids);
       S.roundStage = nextRoundStage(S);   // a semana nova começa na quarta se tiver copa; senão, direto no sábado
     }
     stateObj.round = S.round;
