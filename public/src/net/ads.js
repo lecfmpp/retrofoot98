@@ -17,6 +17,8 @@
      rf98.live.inline    · faixa 468×60 na rodada ao vivo
      rf98.resenha.invite · cartão do convite da Resenha
      rf98.rail.esq/dir   · trilhos 160×600 da rodada ao vivo e do Camarote
+     rf98.pausa.barra    · patrocínio de apresentação — 1º lugar da banda do Camarote
+     rf98.camarote.logo2..5 · os outros quatro lugares da banda do Camarote
 
    POR QUE FETCH CRU E NÃO O SDK: este arquivo é um <script> clássico que roda
    ANTES do SDK do Supabase estar pronto (ele carrega com async). Uma leitura

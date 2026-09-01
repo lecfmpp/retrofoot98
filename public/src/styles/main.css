@@ -1937,6 +1937,16 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* retângulo da coluna direita do hub (300×250) */
 .rf-ad-rect{margin:8px 0 0;border:1px solid var(--line-1)}
 .rf-ad-rect .rf-ad-art{max-height:250px}
+/* TRILHOS 160×600 (rodada ao vivo e Camarote) — A ARTE OCUPA O TRILHO INTEIRO.
+   O `max-height:250px` da regra genérica acima é a medida do retângulo do hub, e
+   aplicava-se também ao skyscraper: com a largura presa em 160 e a altura cortada
+   em 250, o `object-fit:contain` encolhia um criativo de 160×600 para ~66×250 e
+   punha-o a boiar no meio de um espaço de 600 de altura — espaço vendido em
+   skyscraper, arte entregue do tamanho de um selo. A altura aqui é a do trilho, e
+   `contain` continua a mandar: arte fora da proporção fica com tarja, nunca
+   esticada. O TAMANHO do trilho continua a vir de `[data-ad-rail] .rf-ad-slot`
+   (rf26.css), que é quem manda nos dois estados do espaço — com e sem criativo. */
+.rf-ad-slot .rf-ad-art{width:100%;height:100%;max-height:none;object-fit:contain}
 /* splash da tela de carregamento (16:9) e cartão do convite (1200×630) */
 .rf-ad-splash,.rf-ad-card{margin:14px auto;max-width:520px;border:1px solid var(--line-1)}
 .rf-ad-splash .rf-ad-art,.rf-ad-card .rf-ad-art{max-height:none}

@@ -8742,7 +8742,12 @@ function camUpdate(){
     const st=host.querySelector('.rf-cam-stats'); // sem animação: redesenho aqui não pisca
     if(st) st.outerHTML=camStatsHTML(m);
   }
-  const ads=document.querySelectorAll('.rf-cam-ad'); const i=camAdIdx();
+  /* O RODÍZIO CONTA OS LUGARES QUE ESTÃO NA TELA, não os logos de casa: a banda
+     do Camarote passou a ter cinco lugares vendáveis (ver RF_CAM_LOGOS em
+     rf26-live.js) e AD_SPONSORS tem três — com o índice preso ao tamanho da
+     lista de casa, os dois últimos lugares nunca ganhavam o destaque. */
+  const ads=document.querySelectorAll('.rf-cam-ad');
+  const i=ads.length?Math.floor((((CL.live&&CL.live.minute)||0))/8)%ads.length:0;
   ads.forEach((el,k)=>el.classList.toggle('on',k===i));
   // o botão do patrocinador gira junto com o logo em destaque (texto + cores da marca)
   const cta=document.querySelector('#rf-cam-cta');

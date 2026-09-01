@@ -3637,6 +3637,15 @@
   background:var(--surface-card);padding:3px 6px;box-sizing:content-box;
   opacity:.75;transition:opacity .3s var(--ease),max-height .3s var(--ease),box-shadow .3s var(--ease)}
 .rf-cam-ad.on{opacity:1;max-height:36px;box-shadow:0 2px 10px -4px rgba(20,33,26,.45)}
+/* LUGAR AINDA NÃO VENDIDO — a pastilha existe na banda com a medida que ela pede.
+   É a mesma regra dos outros espaços (ver rfAdEspaco): quem vende precisa de ver o
+   inventário no ecrã, e quem joga vê uma banda de cinco lugares em vez de um logo
+   solto a boiar. Sem tracejado a mais: a pastilha já é a moldura. */
+.rf-cam-ad-vazio{display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  height:30px;min-width:76px;padding:0 10px;box-sizing:border-box;border-radius:var(--r-tag);
+  background:var(--surface-card);border:1px dashed var(--line-2);
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;color:var(--text-4)}
+.rf-cam-ad-vazio.on{height:36px}
 .rf-cam-cta{flex:0 0 auto;height:38px;padding:0 18px;border:none;border-radius:11px;
   background:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F);font-family:var(--font-sans);
   font-size:var(--fs-body-sm);font-weight:var(--fw-bold);white-space:nowrap;cursor:pointer}
