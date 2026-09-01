@@ -3732,10 +3732,38 @@ function femSquad(club){
 function modalidadeAtiva(){
   return (typeof RF_FEM!=='undefined' && RF_FEM.modalidade) ? RF_FEM.modalidade(activeUniverseKey()) : 'masc';
 }
+/* ===== O MESMO BURACO DO LADO MASCULINO =====
+   femSemearNomes existe porque `pickProcPlayerName` so' conhece o que ELE proprio sorteou. O
+   mundo masculino tem exatamente o mesmo problema, e ele passou despercebido porque os nomes
+   nao vem de um mapa: vem do bundle e, sobretudo, do PACOTE OFICIAL, que renomeia os 1.900
+   jogadores brasileiros depois de o arquivo carregar.
+
+   MEDIDO, EM PRODUCAO: o Catalao FC tem 20 jogadores no bundle e apenas 2 goleiros, entao
+   ensureClubPositions inventa o terceiro. O pacote havia renomeado "Luan Sales" para "Nathan
+   Teixeira" naquele mesmo elenco, o sorteio nao sabia disso e devolveu "Nathan Teixeira" outra
+   vez -- dois jogadores com o mesmo nome no mesmo clube. Nao ha' o que renomear no painel: o
+   duplicado nasce a cada save, do sorteio, e nao esta' gravado em lado nenhum.
+
+   Semeia o que ESTA' NA MEMORIA no momento da chamada, que e' o catalogo ja' remendado pelo
+   pacote (dados.js remenda os bundles no lugar). Roda uma vez por save, como a feminina. */
+let MASC_NOMES_SEMEADOS=false;
+function mascSemearNomes(){
+  if(MASC_NOMES_SEMEADOS) return;
+  MASC_NOMES_SEMEADOS=true;
+  const listas=[];
+  const W=(typeof window!=='undefined')?window:globalThis;
+  if(W.GAME_DATA && Array.isArray(W.GAME_DATA.clubs)) listas.push(W.GAME_DATA.clubs);
+  if(W.BRASIL_LOWER) for(const d of ['B','C','D']) if(Array.isArray(W.BRASIL_LOWER[d])) listas.push(W.BRASIL_LOWER[d]);
+  for(const f of ['INTL_LEAGUES','CONMEBOL_LEAGUES'])
+    if(W[f]) for(const k in W[f]) if(Array.isArray(W[f][k])) listas.push(W[f][k]);
+  for(const l of listas) for(const c of l) for(const p of (c&&c.squad)||[])
+    if(p && p.n) PROC_USED_NAMES.add(p.n);
+}
 /* usado no lugar de `club.squad` nos pontos de materialização — garante os mínimos por posição antes de mapear */
 function gkSquad(club){
   const fem = modalidadeAtiva()==='fem';
   if(fem) femSemearNomes();                          // antes de ensureClubPositions: ver femSemearNomes
+  else mascSemearNomes();                            // idem, pelo mesmo motivo — ver mascSemearNomes
   ensureClubPositions(club);
   if(!fem) return club.squad;                        // caminho de hoje, intocado
   return femSquad(club);
