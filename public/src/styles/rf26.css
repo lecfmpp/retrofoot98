@@ -9592,9 +9592,21 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-mod-card:focus-visible{ outline:3px solid #17458F; outline-offset:2px; }
 
 .rf-mod-frame{ position:relative; width:100%; aspect-ratio:4/5; border-radius:14px;
-  overflow:hidden; background:#17458F; display:flex; align-items:flex-end; }
+  overflow:hidden; background:#0A3C9F; display:flex; align-items:flex-end; }
+/* AS CORES SAO AS DA MARCA, e agora as de verdade: #0A3C9F e #FFBF01, os valores declarados no
+   proprio img/logo.svg. Estavam #17458F e #F2B90C — o azul e o amarelo da PELE do jogo, parecidos
+   o bastante para ninguem reparar lado a lado, mas o simbolo da marca fica por cima deles. */
+/* QUINZE FAIXAS, E O NUMERO IMPAR E' O QUE AS DEIXA SIMETRICAS: com 100/15 por faixa a primeira e a
+   ultima sao ambas azuis, e o desenho fica igual visto de qualquer lado. Com um numero PAR o
+   padrao acaba a meio e uma borda fica azul e a outra amarela.
+
+   Eram 7 — a mesma conta de `.pc-fundo`, o card do jogador na ficha. So' que aquele card tem
+   200px de largura e este passa dos 350: as MESMAS 7 faixas saiam com o dobro da espessura, e o
+   que na ficha e' listra aqui virava bloco de cor. Quinze devolve a espessura ao valor da
+   referencia: o assistente tem 980px de largura util, o que da' ~429px de moldura, e 429/15
+   sao os mesmos ~29px por faixa que o card da ficha mostra nos seus 200px. */
 .rf-mod-listras{ position:absolute; inset:0; pointer-events:none;
-  background:repeating-linear-gradient(90deg,#17458F 0 14.28%,#F2B90C 14.28% 28.56%); }
+  background:repeating-linear-gradient(90deg,#0A3C9F 0 6.6667%,#FFBF01 6.6667% 13.3333%); }
 /* O MESMO ENQUADRAMENTO DO RETRATO DO ELENCO, e por um motivo medido: estas fotos sao VAZADAS
    (fundo transparente, e' o que deixa as listras aparecerem atras), 2:3, com a pessoa ocupando
    quase todo o quadro. `50% 12%` poe o rosto no terco superior, que e' o que a ficha pede. */
