@@ -1496,6 +1496,26 @@ root.UNIVERSOS = {
 };
 
 /* código ISO da bandeira de cada universo (UNIVERSOS só guarda o nome do país) */
+/* ===== SO' O BRASIL, POR ENQUANTO =====
+   Os 1.900 jogadores brasileiros ja' jogam com nome ficticio (o pacote oficial renomeia no boot).
+   Os 9.832 estrangeiros ainda nao: Arsenal, River Plate e companhia chegam ao jogo com os nomes
+   REAIS que vieram do bundle. Enquanto for assim, os outros paises ficam fora de alcance.
+
+   E' UM INTERRUPTOR SO', E ELE PRECISA DE DUAS FECHADURAS. Esconder os paises no assistente NAO
+   basta: o mercado le a lista dele direto dos bundles (foreignMarketCountries, core.js), sem
+   consultar o que foi escolhido -- medido, com CL.countries=['Brasil'] o filtro continuava a
+   oferecer os 15 paises e o Arsenal vinha com "Declan Rice". Por isso a trava e' lida nos dois
+   sitios: COUNTRY_LIST (quem se pode escolher) e foreignMarketCountries (de quem se pode
+   contratar).
+
+   O BRASIL CONTINUA NO MERCADO. `foreignClubsOf('Brasil')` devolve a Serie A, que e' a prateleira
+   de quem joga nas divisoes de baixo -- e esses nomes JA' sao ficticios. Travar isso nao protegia
+   nada e tirava uma funcionalidade boa.
+
+   PARA RELIGAR: `false`. Nada mais. Os bundles nunca foram tocados, entao os paises voltam
+   inteiros -- e devem voltar no dia em que os nomes ficticios dos estrangeiros existirem. */
+root.RF_SO_BRASIL = true;
+
 root.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
   Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
 

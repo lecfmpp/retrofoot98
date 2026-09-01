@@ -2342,13 +2342,17 @@ function intlTeams(country){
 }
 /* lista de países da tela — Brasil sempre jogável; europeus ficam clicáveis quando têm
    clubes reais carregados. Função (não const) pra refletir os dados carregados. */
-function COUNTRY_LIST(){ const row=n=>({f:flagImg(n),n,teams:intlTeams(n),on:intlTeams(n)>0}); return [
+/* `on` decide se o pais e' clicavel. RF_SO_BRASIL (universos.js) desliga todos menos o Brasil
+   enquanto os estrangeiros nao tiverem nome ficticio — ver o comentario longo la'. */
+function soBrasilLigado(){ return (typeof globalThis!=='undefined') && globalThis.RF_SO_BRASIL===true; }
+function COUNTRY_LIST(){ const trava=soBrasilLigado();
+  const row=n=>({f:flagImg(n),n,teams:intlTeams(n),on:!trava && intlTeams(n)>0}); return [
   {f:flagImg('Brasil'),n:'Brasil',teams:intlTeams('Brasil'),on:true},
   // CONMEBOL (América do Sul) — ligas reais jogáveis
   row('Argentina'), row('Uruguai'), row('Colômbia'), row('Chile'), row('Peru'),
   row('Equador'), row('Paraguai'), row('Venezuela'), row('Bolívia'),
   // Europa
-  row('Alemanha'), row('Espanha'), {f:flagImg('França'),n:'França',teams:intlTeams('França'),on:intlTeams('França')>0},
+  row('Alemanha'), row('Espanha'), {f:flagImg('França'),n:'França',teams:intlTeams('França'),on:!trava && intlTeams('França')>0},
   row('Itália'), row('Portugal'), row('Inglaterra'),
 ]; }
 function scPaises(){
@@ -11649,7 +11653,12 @@ function salaStripe(t){
   const st = c ? clubStripe(c) : 'background:var(--navy);color:#fff';
   return `<span class="cl-sala-stripe" style="${st}">${escC((c&&c.short)||t.clubShort||'—')}</span>`;
 }
-function salaImgSrc(comp){ return comp.img ? ('img/trofeus/'+comp.img) : null; }
+/* a arte vem de dois sítios: as 10 que viajam no repositório são nome de ficheiro em
+   public/img/trofeus/, e as enviadas pelo painel são URL inteira do bucket `trofeus` */
+function salaImgSrc(comp){
+  if(!comp || !comp.img) return null;
+  return /^(https?:|data:|\/)/i.test(comp.img) ? comp.img : ('img/trofeus/'+comp.img);
+}
 function clTrophyRoom(){ CL.menu=null;
   if(CL.salaTab==null) CL.salaTab='sala';
   if(CL.salaSeason==null) CL.salaSeason='Todos';

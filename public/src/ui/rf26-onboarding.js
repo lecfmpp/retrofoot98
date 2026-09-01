@@ -430,7 +430,14 @@ function rfOb3(){
   /* O UNIVERSO FEMININO SO' TEM O BRASIL. Mostrar os outros 14 daria uma escolha que a tela
      seguinte nao consegue honrar: nao ha' elenco feminino para eles, e o pote de clubes sairia
      vazio. Some tambem o bloco de ligas de fundo, que e' a mesma escolha por outro nome. */
-  const soBrasil=(typeof rfFemLigado==='function' && rfFemLigado()) && CL.modalidade==='fem';
+  /* DUAS RAZOES PARA MOSTRAR SO' O BRASIL, e elas nao sao a mesma coisa:
+       · no FEMININO, porque nao ha' elenco feminino para os outros paises — o pote sairia vazio;
+       · com RF_SO_BRASIL ligado, porque os 9.832 estrangeiros ainda tem NOME REAL (ver
+         universos.js). Esta vale para as duas modalidades.
+     A tela e' a mesma nos dois casos; so' a frase de baixo muda, porque o motivo e' outro. */
+  const soFem=(typeof rfFemLigado==='function' && rfFemLigado()) && CL.modalidade==='fem';
+  const soTrava=(typeof globalThis!=='undefined') && globalThis.RF_SO_BRASIL===true;
+  const soBrasil=soFem||soTrava;
   const jogaveis=lista.filter(c=>c.on && (!soBrasil || c.n==='Brasil'));
   const principal=CL.playCountry||'Brasil';
   const fundo=CL.countries||(CL.countries=new Set([principal]));
@@ -468,7 +475,9 @@ function rfOb3(){
       ${soBrasil ? `
       <div class="rf-ob3-bloco">
         <span class="rf-label-t">Outros países</span>
-        <span class="rf-note">O futebol feminino começa pelo Brasil, com as quatro divisões, a Copa do Brasil e a Libertadores. Os outros países chegam depois.</span>
+        <span class="rf-note">${soFem
+          ? 'O futebol feminino começa pelo Brasil, com as quatro divisões, a Copa do Brasil e a Libertadores. Os outros países chegam depois.'
+          : 'Por agora o jogo é só no Brasil — as quatro divisões, a Copa do Brasil, a Libertadores e a Sul-Americana. As ligas de fora voltam quando os elencos delas estiverem prontos.'}</span>
       </div>` : `
       <div class="rf-ob3-bloco">
         <span class="rf-label-t">Ligas de fundo <i class="rf-ob3-leve">— aparecem em Campeonatos e no mercado</i></span>

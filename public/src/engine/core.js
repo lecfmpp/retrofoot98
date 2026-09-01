@@ -2884,6 +2884,11 @@ function foreignMarketCountries(){
   const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
   const INT=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
   const out=['Brasil'];
+  /* A OUTRA FECHADURA DA MESMA TRAVA. Esta lista sai dos BUNDLES, nao do que o jogador escolheu
+     no assistente — e e' por isso que esconder os paises la' nao bastava: o mercado continuava a
+     oferecer os 15. Com RF_SO_BRASIL ligado a prateleira fica so' com a Serie A, cujos nomes ja'
+     sao ficticios. Ver universos.js. */
+  if(globalThis.RF_SO_BRASIL===true) return out;
   Object.keys(CLG).forEach(n=>{ if(out.indexOf(n)<0) out.push(n); });
   Object.keys(INT).forEach(n=>{ if(out.indexOf(n)<0) out.push(n); });
   return out;
@@ -6082,7 +6087,11 @@ function registerPrevSeasonTitles(){
    public/img/trofeus/. Qualquer outra liga (La Liga, Bundesliga, os países da CONMEBOL...) vira
    'liga:<universo>:<divisão>': a Sala de Troféus monta um card avulso com o nome da liga e o 🏆
    genérico, em vez de sumir com o título só porque não desenhamos aquela taça. */
+/* A REGRA MORA EM src/data/competicoes.js (COMP_CHAVE_DIVISAO), compartilhada com o painel:
+   e' ela que diz em que chave o painel pendura o nome e a arte de cada divisao. O corpo antigo
+   fica de reserva para o caso de a folha nao ter carregado — sem ele, um titulo se perderia. */
 function divisionCompKeyFor(div){
+  if(typeof COMP_CHAVE_DIVISAO==='function') return COMP_CHAVE_DIVISAO(ACTIVE_UNI, div);
   if(!isIntlUniverse()) return ({A:'serieA',B:'serieB',C:'serieC',D:'serieD'})[div] || ('liga:brasil:'+div);
   if(ACTIVE_UNI==='Inglaterra' && div==='PL') return 'premier';
   return 'liga:'+ACTIVE_UNI+':'+div;
