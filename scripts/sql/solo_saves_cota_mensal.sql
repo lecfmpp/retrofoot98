@@ -1,0 +1,28 @@
+-- ============================================================
+-- O TETO DE SAVES PASSA A SER DE CRIACOES POR MES — RetroFoot98
+-- Aplicado em 2026-09-01. Copia versionada.
+--
+-- Antes contava-se quantos saves EXISTEM, e isso deixava a porta aberta ao
+-- vaivem: criar, apagar, criar outro, sem fim. O teto de 3 do Peladeiro era, na
+-- pratica, saves infinitos desde que so' 3 vivessem ao mesmo tempo.
+--
+-- Agora conta-se quantos foram CRIADOS no mes. Apagar NAO devolve a vaga: a
+-- criacao ja' aconteceu e fica registada. A cota renova no dia 1.
+--
+-- POR QUE UM LIVRO A' PARTE (solo_save_criacoes) e nao um contador na conta: um
+-- contador nao sabe responder "quando renova" nem "o que gastei", e reiniciar
+-- contador e' uma operacao que se esquece de fazer. Uma linha por criacao
+-- responde as tres perguntas e nunca precisa de ser reiniciada — a janela e' que
+-- anda por cima dela.
+--
+-- O MES VIRA NO FUSO DE QUEM JOGA (inicio_do_mes_br), nao em UTC. date_trunc em
+-- UTC corta a meia-noite de Londres, que no Brasil e' 21h do dia anterior: a
+-- tela dizia "a cota vira no dia 30 de setembro" quando o corte era 1 de
+-- outubro. Fim de mes e' exactamente quando alguem tenta criar o save, e errar
+-- o dia ali e' errar no unico momento em que a frase e' lida.
+--
+-- A SEMENTE faz `join auth.users` de proposito: ha' save orfao de conta
+-- apagada, e ele nao pode entrar num livro cuja chave aponta para a conta.
+-- ============================================================
+-- (DDL completo nas migracoes solo_saves_cota_mensal, plano_limites_cota_do_mes
+--  e cota_mensal_no_fuso_do_jogador, ja' no banco)

@@ -68,14 +68,31 @@ function rfSavesTeto(){
   const t=st.savesMax;
   return (t===null||t===undefined) ? Infinity : Number(t);
 }
+/* ===== A COTA E' DE CRIACOES NO MES, NAO DE SAVES VIVOS =====
+   Contava-se quantos saves EXISTEM, e isso deixava a porta aberta ao vaivem:
+   criar, apagar, criar outro, sem fim — o teto de 3 era, na pratica, saves
+   infinitos desde que so' 3 vivessem ao mesmo tempo.
+
+   Agora conta-se quantos foram CRIADOS no mes, e o numero vem do banco (o livro
+   solo_save_criacoes, via my_plan), nao da lista local: apagar um save encolhe a
+   lista e NAO devolve a vaga, entao contar a lista daria a resposta errada
+   exactamente no caso que esta regra existe para cobrir. */
 function rfSavesUsados(){
-  return ((typeof CL!=='undefined'&&CL.soloSaves)||[]).length;
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return Number(st.savesNoMes||0);
 }
-/* Falta ainda espaco para mais uma carreira? Enquanto a lista nao carregou
-   (CL.soloSaves === null) responde que sim: o cartao nao pode nascer trancado
-   so' porque a rede esta lenta. */
+function rfSavesRenovaEm(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(!st.savesRenovaEm) return null;
+  try{ return new Date(st.savesRenovaEm).toLocaleDateString('pt-BR',{day:'2-digit',month:'long'}); }
+  catch(e){ return null; }
+}
+/* Ainda cabe uma carreira nova neste mes? Sem resposta do banco (savesNoMes
+   null) diz que sim — a recusa que vale e' a do servidor, e trancar por falta de
+   resposta e' trancar quem tem direito. */
 function rfPodeSalvarNovo(){
-  if(typeof CL==='undefined' || CL.soloSaves==null) return true;
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(st.savesNoMes==null) return true;
   return rfSavesUsados() < rfSavesTeto();
 }
 function rfPodeHospedar(){
@@ -132,12 +149,16 @@ function rfResenhaDiasRestantes(){
    trouxe a pessoa ate' aqui ("jogo · saves · Resenha"), que e' o que depois
    diz qual das travas de facto converte. */
 const RF_TRAVAS={
-  saves:{ tier:'resenha', titulo:'Os seus saves estão no limite',
-    texto:(n)=>`O plano Peladeiro guarda até <b>${n}</b> carreiras ao mesmo tempo. Para começar mais uma agora, apague uma que já acabou — ou suba de plano e leve todas.`,
-    saida:'Nenhuma carreira sua se perde: as que já existem continuam na nuvem, do jeito que estão.' },
-  savesResenha:{ tier:'embaixador', titulo:'Os seus saves estão no limite',
-    texto:(n)=>`O plano Resenha guarda até <b>${n}</b> carreiras ao mesmo tempo. Para começar mais uma agora, apague uma que já acabou — ou suba para o Embaixador e jogue sem conta.`,
-    saida:'Nenhuma carreira sua se perde: as que já existem continuam na nuvem, do jeito que estão.' },
+  /* NAO MANDA APAGAR. O texto antigo dizia "apague uma que ja' acabou" — e desde
+     que a cota passou a ser de CRIACOES no mes, apagar nao devolve vaga
+     nenhuma. Mandar alguem apagar uma carreira para destrancar o jogo, e o
+     jogo continuar trancado depois, e' o pior desfecho possivel desta janela. */
+  saves:{ tier:'resenha', titulo:'A sua cota de carreiras acabou',
+    texto:(n)=>`O plano Peladeiro começa ${n?`até <b>${n}</b> carreira${n>1?'s':''}`:'um número limitado de carreiras'} por mês, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga — a carreira já foi começada.`,
+    saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
+  savesResenha:{ tier:'embaixador', titulo:'A sua cota de carreiras acabou',
+    texto:(n)=>`O plano Resenha começa ${n?`até <b>${n}</b> carreiras`:'um número limitado de carreiras'} por mês, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga. No Embaixador não há cota.`,
+    saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
   hospedar:{ tier:'embaixador', titulo:'Abrir a sala é do Embaixador',
     texto:()=>'Entrar na resenha dos outros dá em qualquer plano, inclusive no grátis. <b>Abrir a sua</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é do plano Embaixador.',
     saida:'Já tem o código de alguém? Volte e entre na sala dele: isso não custa nada.' },
@@ -163,7 +184,10 @@ function rfTrava(chave){
   const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
   const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
   const corpo=`<div class="rf-trava ${p.destaque?'ouro':''}">
-    <p class="rf-trava-p">${t.texto(rfSavesTeto())}</p>
+    ${/* TETO INFINITO OU DESCONHECIDO NAO VIRA NUMERO NA FRASE. Sem esta guarda a
+          janela dizia "ate' Infinity carreiras por mes" — o que acontecia a quem
+          nao tem sessao, porque sem plano lido o teto e' Infinity. */''}
+    <p class="rf-trava-p">${t.texto(Number.isFinite(rfSavesTeto())?rfSavesTeto():null)}</p>
     <div class="rf-trava-plano ${p.destaque?'ouro':''}">
       <div class="rf-trava-hd">
         <span class="rf-trava-n">${p.destaque?'<i class="rf-trava-coroa">👑</i>':''}${escC(p.nome||'')}</span>
@@ -172,7 +196,7 @@ function rfTrava(chave){
       <ul class="rf-trava-l">${itens}</ul>
       <span class="rf-trava-a">${escC(q.nota)}</span>
     </div>
-    <span class="rf-trava-saida">${escC(t.saida)}</span>
+    <span class="rf-trava-saida">${escC(typeof t.saida==='function'?t.saida():t.saida)}</span>
     <div class="rf-trava-bts">
       <button type="button" class="rf-trava-bt-2" onclick="clCloseOverlay()">Agora não</button>
       <button type="button" class="rf-trava-bt" onclick="clCloseOverlay();rfPlanoCta('${t.tier}','${chave}')">${escC(p.cta||'Quero assinar')}</button>
@@ -467,13 +491,13 @@ function rfLpMomentosHTML(){
 const RF_PLANOS=[
   { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
-    itens:['Até 3 saves no modo solo','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
-    falta:['Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
+    itens:['Começa até 3 carreiras por mês','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
+    falta:['Apagar uma carreira não devolve a vaga do mês','Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
     cta:'Começar de graça' },
 
   { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
     resumo:'Pra quem joga direto com a turma e quer o nome no ranking.',
-    itens:['Até 10 saves no modo solo','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
+    itens:['Começa até 10 carreiras por mês','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
     falta:['Não abre sala como anfitrião'],
     cta:'Assinar o Resenha' },
 
@@ -481,7 +505,7 @@ const RF_PLANOS=[
     destaque:true, selo:'O mais completo',
     resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
     itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
-           'Saves ilimitados no solo e no Resenha',
+           'Carreiras ilimitadas, sem cota mensal',
            'Seu jogador na base de dados oficial, com avatar na sua cara',
            'Seu nome no ranking oficial de treinadores',
            'Selo de Embaixador no seu perfil',

@@ -173,7 +173,7 @@ function netWarnDeadSession(){
    tranca nada. Trancar por falta de resposta seria trancar quem pagou. */
 const PLANO_PADRAO = { plan:'free', pro:false, until:null,
   savesMax:null, podeHospedar:null, salaMax:null, avatarIA:null,
-  podeResenha:null, resenhaAte:null };
+  podeResenha:null, resenhaAte:null, savesNoMes:null, savesRenovaEm:null };
 let SB_PLANO = { ...PLANO_PADRAO };
 async function netCarregarPlano(){
   SB_PLANO = { ...PLANO_PADRAO };
@@ -194,7 +194,9 @@ async function netCarregarPlano(){
       salaMax: ('sala_max' in r) ? (r.sala_max||0) : null,
       avatarIA: ('avatar_ia' in r) ? !!r.avatar_ia : null,
       podeResenha: ('pode_resenha' in r) ? !!r.pode_resenha : null,
-      resenhaAte: ('resenha_ate' in r) ? (r.resenha_ate||null) : null };
+      resenhaAte: ('resenha_ate' in r) ? (r.resenha_ate||null) : null,
+      savesNoMes: ('saves_no_mes' in r) ? Number(r.saves_no_mes||0) : null,
+      savesRenovaEm: ('saves_renova_em' in r) ? (r.saves_renova_em||null) : null };
   }catch(e){ console.warn('plano do treinador:', e && e.message); }
   return SB_PLANO;
 }
@@ -205,7 +207,8 @@ function netAuthStatus(){
     plan: SB_PLANO.plan, pro: SB_PLANO.pro, proAte: SB_PLANO.until,
     savesMax: SB_PLANO.savesMax, podeHospedar: SB_PLANO.podeHospedar,
     salaMax: SB_PLANO.salaMax, avatarIA: SB_PLANO.avatarIA,
-    podeResenha: SB_PLANO.podeResenha, resenhaAte: SB_PLANO.resenhaAte };
+    podeResenha: SB_PLANO.podeResenha, resenhaAte: SB_PLANO.resenhaAte,
+    savesNoMes: SB_PLANO.savesNoMes, savesRenovaEm: SB_PLANO.savesRenovaEm };
 }
 
 /* ---- Traduz os erros crus do GoTrue (vêm em inglês) pra mensagens claras em PT.
