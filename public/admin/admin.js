@@ -417,7 +417,8 @@ async function pgVideos(){
     const tom = TOM_MOMENTO[m.tom]||TOM_MOMENTO.gray;
     const orfao = /SEM GATILHO/i.test(m.quando||'');
     const prev = m.video_url
-      ? `<div class="prev tem"><video src="${h(m.video_url)}" muted autoplay loop playsinline></video></div>`
+      ? `<div class="prev tem video"><video src="${h(m.video_url)}" controls preload="metadata"
+           loop playsinline controlsList="nodownload"></video></div>`
       : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Sem vídeo</span>
           <span class="mono" style="font-size:11px;color:var(--dim3)">o modal abre igual</span></div>`;
     return `<div class="slot ${m.ativo?(m.video_url?'no-ar':'livre'):'desligado'}"${m.ativo?'':' style="opacity:.55"'}>
@@ -439,7 +440,7 @@ async function pgVideos(){
         <div style="font-size:12px;line-height:1.5;color:var(--dim)">${h(m.conteudo||'')}</div>
       </div>
       ${editar?`<div class="acoes" style="margin-top:11px">
-        <button class="btn btn-sm" data-mom="${h(m.id)}">${m.video_url?'Trocar vídeo':'Subir vídeo'}</button>
+        <button class="btn btn-sm" data-mom="${h(m.id)}">${m.video_url?'Ver e trocar':'Subir vídeo'}</button>
         <button class="btn btn-sm btn-ghost" data-mom-onoff="${h(m.id)}">${m.ativo?'Desligar':'Ligar'}</button>
       </div>`:''}
     </div>`;
@@ -486,6 +487,9 @@ function abrirVideoMomento(m){
       <div><span style="color:var(--dim2)">Peso máx.</span><b>15 MB</b></div>
       <div class="full" style="color:var(--dim2);line-height:1.5">${h(m.conteudo||'')}</div>
     </div>
+    ${m.video_url?`<div class="mv-player">
+      <video src="${h(m.video_url)}" controls preload="metadata" loop playsinline
+             controlsList="nodownload"></video></div>`:''}
     <div class="erro hide" id="mv-erro"></div>
     <div class="col">
       <div class="drop" id="mv-drop">

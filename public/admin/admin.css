@@ -164,6 +164,19 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden}
 .slot .prev.tem{border-style:solid;border-color:var(--verde-bd);padding:6px}
 .slot .prev img,.slot .prev video{max-width:100%;max-height:96px;object-fit:contain;display:block}
+/* ===== O VIDEO DO MOMENTO E' PARA SE VER, NAO PARA SE ADIVINHAR =====
+   A miniatura de 110px serve a publicidade, onde o criativo e' uma imagem e o
+   que importa e' reconhece-la. Um video de celebracao precisa de ser VISTO
+   antes de ir para o jogo: 16:9 na largura do cartao, com controlos.
+   Sem autoplay de proposito — nove cartoes a tocar ao mesmo tempo transformam
+   a pagina num mural de ruido, e o preload dos metadados ja' mostra o primeiro
+   quadro. */
+.slot .prev.video{height:auto;aspect-ratio:16/9;padding:0;border-style:solid;border-color:var(--verde-bd)}
+.slot .prev.video video{max-height:none;width:100%;height:100%;object-fit:cover;border-radius:9px}
+/* no modal o player e' maior: e' onde se decide se o video entra ou nao */
+.mv-player{width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;
+  border:1px solid var(--bd2);margin-bottom:12px}
+.mv-player video{width:100%;height:100%;object-fit:contain;display:block}
 .slot .meta-l{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--dim2)}
 .slot .meta-l div{display:flex;justify-content:space-between;gap:8px}
 .slot .meta-l b{font-family:var(--mono);color:var(--dim);font-weight:500;text-align:right}
