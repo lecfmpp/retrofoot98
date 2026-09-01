@@ -7188,6 +7188,56 @@ function rfVitoriaSom(){
   }, RF_VITORIA_ESPERA);
 }
 
+/* ---- rampa de volume num <audio> ----
+   `HTMLMediaElement.volume` nao tem rampa propria (isso e' da Web Audio), entao
+   e' feita a mao. Passo de 50ms: abaixo disto o navegador engasga, acima ouve-se
+   a escada. A curva e' quadratica de proposito — o ouvido le' volume em escala
+   logaritmica, e uma rampa linear soa a saltar no fim.
+   As duas rampas do fundo (esta e a do gol) escrevem no mesmo volume: quem
+   comeca cancela a outra, senao brigam de 50 em 60ms. */
+function rfFade(a, de, para, ms, aoFim){
+  if(!a) return;
+  clearInterval(a._rfFade); clearInterval(a._rfRampa);
+  const passo = 50, n = Math.max(1, Math.round(ms/passo));
+  let i = 0;
+  try{ a.volume = Math.max(0, Math.min(1, de)); }catch(e){ return; }
+  a._rfFade = setInterval(() => {
+    i++;
+    const k = i/n, curva = de < para ? k*k : 1-(1-k)*(1-k);
+    try{ a.volume = Math.max(0, Math.min(1, de + (para-de)*curva)); }catch(e){ clearInterval(a._rfFade); return; }
+    if(i >= n){ clearInterval(a._rfFade); if(aoFim) aoFim(); }
+  }, passo);
+}
+/* ===== A DISPUTA DE PENALTIS TEM SOM COBRANCA A COBRANCA =====
+   Ela decide classificacao e titulo e corria muda: so' o `sfx` de interface,
+   dois bips iguais para converter e para perder. Cada batida passa a ter o
+   som do que aconteceu — a rede quando entra, o "perdeu" quando nao entra.
+   O INTERVALO e' obrigatorio aqui: a revelacao tem ritmo proprio (1,2s de
+   suspense, 1,8s de resultado) mas o modo "⏩ Simular o resto" corta isso para
+   200ms, e sem trava as cinco cobrancas sairiam praticamente juntas. */
+const RF_PEN_INTERVALO = 900;
+let RF_PEN_EM = 0;
+function rfPenaltiSom(scored){
+  if(!rfSomLigado()) return;
+  if(Date.now() - RF_PEN_EM < RF_PEN_INTERVALO) return;
+  RF_PEN_EM = Date.now();
+  const vol = rfSomVolume(); if(vol <= 0) return;
+  try{
+    const a = new Audio(scored ? RF_GOL_REDE : RF_SONS.penaltiPerdido);
+    a.volume = Math.min(1, 0.9*vol);
+    const pr = a.play(); if(pr && pr.catch) pr.catch(()=>{});
+  }catch(err){}
+}
+/* Qual dos dois lados e' "o utilizador" para efeito de comemoracao.
+   Fora do hotseat e' simples: o clube dele. No HOTSEAT sao dois humanos no
+   mesmo ecra, e a pergunta nao tem resposta unica — a regra combinada e' que
+   o DONO DA CASA prevalece. */
+function rfLadoDoUtilizador(m){
+  const RL = CL.live;
+  if(RL && RL.humanSeat) return 'H';
+  return (m.h===CL.clubId) ? 'H' : (m.a===CL.clubId ? 'A' : null);
+}
+
 /* ===== O PRIMEIRO DE CADA SESSAO CHEGA ATRASADO =====
    Medido: a primeira vitoria de uma sessao so' comecava a soar 2,9s depois do
    pedido — o tempo de ir buscar o ficheiro — contra 1,05s nas seguintes. Pior
@@ -8187,32 +8237,18 @@ function rfSomLigado(){ return !!(S && S.config && S.config.sound); }
    seguinte fica UM lugar na fila (so' um — guardar mais faria a narracao
    chegar atrasada, comentando um lance que ja' passou). So' um momento mais
    importante corta o que esta' no ar: o apito final nao espera por um cartao. */
-/* ===== A NARRACAO PRECISA DE TEMPO PARA CABER =====
-   Os clipes tem de 2 a 10 segundos. No ritmo padrao (Ultrassonico, 110ms por
-   minuto) a partida INTEIRA dura ~10 segundos: os momentos caem uns por cima
-   dos outros e nem o mais curto acaba antes do proximo. Nao ha' fila que
-   resolva isso — o que falta e' tempo de relogio.
-   Entao a narracao so' toca a partir de 'Curto' (360ms/min, ~32s de partida),
-   que e' onde uma fala ainda faz sentido no lance que ela comenta. Acima
-   disso o Camarote continua com o apito e a torcida, que sao curtos e nao
-   dependem de ser acompanhados. */
-const RF_SOM_MS_MIN = 360;   // = TEMPO_MS['Curto']
-/* A EXCECAO DA REGRA. A porta acima existe porque uma fala que comenta um
-   lance precisa de caber no tempo em que o lance esta' na tela. O cartao
-   VERMELHO passa nos dois testes que importam: dura 1,4s (o clipe mais curto
-   dos dez) e acontece no maximo uma vez por partida. Manda-lo esperar pelo
-   ritmo lento so' fazia com que a expulsao — o maior lance do jogo depois do
-   gol — nao se ouvisse nunca no ritmo padrao. */
-const RF_SOM_SEMPRE = { cartaoVermelho:1 };
-function rfSomNarracaoOk(chave){
-  if(RF_SOM_SEMPRE[chave]) return true;
-  const ms = (typeof camTempoMs==='function') ? camTempoMs() : RF_SOM_MS_MIN;
-  return ms >= RF_SOM_MS_MIN - 1;
-}
+/* ===== A PORTA DE VELOCIDADE SAIU =====
+   Ela existiu por uma razao boa: os clipes duram de 2 a 10s e no ritmo padrao
+   a partida inteira dura ~10s, entao as falas caiam umas por cima das outras.
+   So' que a solucao certa para isso ja' foi construida entretanto — a fila com
+   prioridade, o respiro de 1,5s entre falas e a janela de tres segundos em que
+   o gol tem a palavra. Com essas tres, o que a porta fazia era so' emudecer o
+   jogo no ritmo que toda a gente usa: no Ultrassonico nao se ouvia narracao
+   nenhuma, e foi o relatado ("as narracoes nao aparecem mais").
+   Agora nao ha' porta: o que regula e' a fila, que ATRASA em vez de apagar. */
 function rfSomTocar(chave, forcar){
   const src = RF_SONS[chave]; if(!src) return;
   if(!forcar && !rfSomLigado()) return;
-  if(!forcar && !rfSomNarracaoOk(chave)) return;
   const vol = rfSomVolume(); if(vol <= 0) return;
   const peso = RF_SOM_PESO[chave] || 1;
   if(RF_SOM_ATUAL && !RF_SOM_ATUAL.ended && !forcar){
