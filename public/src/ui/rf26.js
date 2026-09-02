@@ -1073,8 +1073,8 @@ const RF_COMP_TEMA={copaBrasil:'copa',libertadores:'liberta',sulamericana:'sula'
    data/trophies.js é achatada — fundo preto na Série A e na Libertadores,
    branco na Série D — e por cima do degradê do cabeçalho ela aparecia como
    um quadrado. Os .webp de public/img/trofeus/ têm alfa e recortam. */
-const RF_COMP_TROFEU={A:'serie-a',B:'serie-b',C:'serie-c',D:'serie-d',
-  copaBrasil:'copa-do-brasil',libertadores:'libertadores',sulamericana:'sul-americana',
+const RF_COMP_TROFEU={A:'liga-soberana',B:'liga-acesso',C:'liga-impulso',D:'liga-raiz',
+  copaBrasil:'copa-federacao',libertadores:'liberta-cup',sulamericana:'clubes-america',
   championsLeague:'champions',europaLeague:'europa-league'};
 
 function rfCompInfo(d){

@@ -1067,7 +1067,7 @@ const LANDING_SECOES=[
   { id:'copas', kicker:'CAMPEONATOS', dir:'dir',
     h:'Quatro divisões e todas as taças.',
     p:'Série A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana. Tabela, sorteio das chaves, mata-mata e a taça esperando no fim da linha.',
-    trofeus:['img/trofeus/serie-a.webp','img/trofeus/libertadores.webp','img/trofeus/copa-do-brasil.webp'],
+    trofeus:['img/trofeus/liga-soberana.webp','img/trofeus/liberta-cup.webp','img/trofeus/copa-federacao.webp'],
     chip:'7 competições', chipCls:'navy',
     janela:'Fase de grupos — Libertadores', img:'copa' },
   { id:'elencos', kicker:'JOGADORES REAIS NO MUNDO TODO', dir:'esq',

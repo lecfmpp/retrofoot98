@@ -16,20 +16,20 @@
 window.TROPHY_ROOM = {
   regions: ['BRASIL', 'AMÉRICA DO SUL', 'EUROPA', 'MUNDO'],
   comps: [
-    { id:'serieA', nome:'Brasileirão Série A', curto:'Série A', img:'serie-a.webp', regiao:'BRASIL', tipo:'liga',
+    { id:'serieA', nome:'Brasileirão Série A', curto:'Série A', img:'liga-soberana.webp', regiao:'BRASIL', tipo:'liga',
       dica:'Termine a Série A em 1º. São 38 rodadas: precisa de elenco pra aguentar o ano inteiro e de caixa pra segurar os titulares.' },
-    { id:'serieB', nome:'Brasileirão Série B', curto:'Série B', img:'serie-b.webp', regiao:'BRASIL', tipo:'liga',
+    { id:'serieB', nome:'Brasileirão Série B', curto:'Série B', img:'liga-acesso.webp', regiao:'BRASIL', tipo:'liga',
       dica:'Suba da Série C e termine a B em 1º — o acesso e o título saem na mesma temporada.' },
-    { id:'serieC', nome:'Brasileirão Série C', curto:'Série C', img:'serie-c.webp', regiao:'BRASIL', tipo:'liga',
+    { id:'serieC', nome:'Brasileirão Série C', curto:'Série C', img:'liga-impulso.webp', regiao:'BRASIL', tipo:'liga',
       dica:'Suba da Série D e feche a C na liderança. Folha enxuta e time em forma decidem.' },
-    { id:'serieD', nome:'Brasileirão Série D', curto:'Série D', img:'serie-d.webp', regiao:'BRASIL', tipo:'liga',
+    { id:'serieD', nome:'Brasileirão Série D', curto:'Série D', img:'liga-raiz.webp', regiao:'BRASIL', tipo:'liga',
       dica:'O primeiro degrau da carreira. Folha baixa, foco em jogadores de forma alta.' },
-    { id:'copaBrasil', nome:'Copa do Brasil', curto:'Copa do Brasil', img:'copa-do-brasil.webp', regiao:'BRASIL', tipo:'copa',
+    { id:'copaBrasil', nome:'Copa do Brasil', curto:'Copa do Brasil', img:'copa-federacao.webp', regiao:'BRASIL', tipo:'copa',
       dica:'Mata-mata puro, do começo ao fim. Sobreviva a todas as fases sem reclamar do sorteio.' },
 
-    { id:'libertadores', nome:'Copa Libertadores', curto:'Libertadores', img:'libertadores.webp', escala:1.625, regiao:'AMÉRICA DO SUL', tipo:'copa',
+    { id:'libertadores', nome:'Copa Libertadores', curto:'Libertadores', img:'liberta-cup.webp', regiao:'AMÉRICA DO SUL', tipo:'copa',
       dica:'Entre pelos seis primeiros da Série A, passe da fase de grupos e ganhe o mata-mata.' },
-    { id:'sulamericana', nome:'Copa Sul-Americana', curto:'Sul-Americana', img:'sul-americana.webp', escala:1.625, regiao:'AMÉRICA DO SUL', tipo:'copa',
+    { id:'sulamericana', nome:'Copa Sul-Americana', curto:'Sul-Americana', img:'clubes-america.webp', regiao:'AMÉRICA DO SUL', tipo:'copa',
       dica:'Vem pela faixa do 7º ao 12º lugar da Série A. Grupos e depois mata-mata.' },
 
     { id:'premier', nome:'Premier League', curto:'Premier League', img:'premier.webp', regiao:'EUROPA', tipo:'liga',
@@ -47,3 +47,20 @@ window.TROPHY_ROOM = {
       dica:'Ainda não é disputado no RetroFoot98. A taça já tem lugar guardado na estante para quando a competição entrar no jogo.' },
   ],
 };
+
+/* ===== A MESMA TAÇA NO ÍCONE DE 28px =====
+   `TROPHIES` (trophies.js) guarda as miniaturas em base64 e é dele que saem os ícones
+   espalhados pelo jogo — tabela, calendário, relatório de fim de temporada, cerimônia.
+   Enquanto a estante mostrava a arte nova e o resto do jogo a antiga, eram duas taças
+   para a mesma competição, e o jogador via as duas na mesma tela.
+   Só as SETE que ganharam arte de estúdio entram aqui. As outras (Premier, Champions,
+   Europa, Mundial) continuam com a miniatura que sempre tiveram: trocá-las por uma foto
+   grande reduzida a 28px pioraria o ícone sem ninguém ter pedido.
+   Depende da ordem em index.html — trophies.js vem antes deste ficheiro. */
+(function(){
+  var NOVAS = ['serieA','serieB','serieC','serieD','copaBrasil','libertadores','sulamericana'];
+  window.TROPHIES = window.TROPHIES || {};
+  window.TROPHY_ROOM.comps.forEach(function(c){
+    if(NOVAS.indexOf(c.id) >= 0 && c.img) window.TROPHIES[c.id] = 'img/trofeus/' + c.img;
+  });
+})();
