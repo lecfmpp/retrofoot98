@@ -1039,14 +1039,17 @@ function rfImEfeito(o){
 function rfImprensaHTML(P){
   P=P||(typeof CL!=='undefined'?CL._press:null);
   if(!P) return '';
+  /* ===== SÃO DUAS COLETIVAS, E SÃO DUAS TELAS =====
+     A de RODADA é a entrevista pós-jogo do handoff de design (modal sobre a
+     sala de imprensa, três perguntas, barras de moral e cargo): mora em
+     rfEntrevistaHTML, no ficheiro da assessoria. Esta aqui continua a ser a
+     SALA DE IMPRENSA DE FIM DE TEMPORADA — manchetes do ano, medidores e as
+     cinco perguntas fixas —, que é outro momento e outro desenho. */
+  if(P.modo==='rodada' && typeof rfEntrevistaHTML==='function') return rfEntrevistaHTML(P);
   const seg=Math.max(0,CL._pressLeft!=null?CL._pressLeft:25);
   const qs=(typeof rfPressQs==='function')?rfPressQs(P)
     :((P.qs&&P.qs.length)?P.qs:((typeof PRESS_QUESTIONS!=='undefined')?PRESS_QUESTIONS:[]));
   const total=qs.length;
-  /* A COLETIVA DE RODADA NÃO É A DE TEMPORADA. Uma fecha um ano e abre outro; a
-     outra acontece no meio da semana, entre a classificação e o clube. O que
-     muda é o enquadramento (kicker e botão de saída) — a mecânica é a mesma. */
-  const daRodada=(P.modo==='rodada');
   let contexto, titulo, direita, acoes;
 
   if(P.step==='news'){
@@ -1066,9 +1069,7 @@ function rfImprensaHTML(P){
        a rever entre um e outro, e ninguém escolhe uma resposta sem querer dá-la. Fica "Não
        declarar nada", que é uma resposta diferente, não uma confirmação. */
     const q=qs[P.qIdx]||{opts:[]};
-    contexto=daRodada
-      ? `Assessoria de imprensa · ${(S.round||0)}ª rodada · pergunta ${P.qIdx+1} de ${total}`
-      : `Coletiva de imprensa · pergunta ${P.qIdx+1} de ${total}`;
+    contexto=`Coletiva de imprensa · pergunta ${P.qIdx+1} de ${total}`;
     titulo='Imprensa';
     direita='';
     acoes=`<span class="rf-im-auto">avança sozinho em ${seg}s</span><div class="rf-sp"></div>
@@ -1086,43 +1087,28 @@ function rfImprensaHTML(P){
     </div>`;
     return rfStage({ w:1020, contexto, titulo, corpo:perguntaHTML, acoes });
   } else {
-    /* O BALANÇO MOSTRA OS TRÊS NÚMEROS QUE VÃO MUDAR. Antes só falava de moral —
-       e a coletiva de rodada mexe também na cadeira e na reputação. Os tetos são
-       os mesmos que rfPressAplicar usa, senão a tela prometia um número e o
-       motor aplicava outro. */
-    const lim=(v,a,b)=>Math.max(a,Math.min(b,Math.round(v||0)));
-    const d=lim(P.morale, daRodada?-12:-15, daRodada?12:15);
-    const dc=daRodada?lim(P.cargo,-12,12):0;
-    const dr=daRodada?lim(P.rep,-6,6):0;
-    const frase=(rot,v,quando)=>{
-      if(!v) return `<p class="rf-im-p">${rot} segue ${quando}.</p>`;
-      return `<p class="rf-im-p">${rot} <b>${v>0?'sobe':'cai'}</b> ${v>0?'+':'−'}${Math.abs(v)} ponto${Math.abs(v)===1?'':'s'}.</p>`;
-    };
+    const d=Math.max(-15,Math.min(15,Math.round(P.morale||0)));
+    const tom = d>0?'sobe':d<0?'cai':'estável';
+    const moralTxt = d===0 ? 'A moral do elenco segue estável.'
+      : `A moral do elenco <b>${tom}</b> ${d>0?'+':'−'}${Math.abs(d)} ponto${Math.abs(d)===1?'':'s'} para o início da temporada.`;
     contexto='O que saiu nos jornais';
     titulo='Repercussão da coletiva';
     direita=rfImMedidoresHTML()+`<div class="rf-card">
-      <span class="rf-label-t">${daRodada?'O que muda a partir de agora':'Vestiário'}</span>
-      ${frase('A moral do elenco', d, 'estável')}
-      ${daRodada?frase('A segurança no cargo', dc, 'como estava'):''}
-      ${daRodada?frase('A sua reputação', dr, 'como estava'):''}
+      <span class="rf-label-t">Vestiário</span>
+      <p class="rf-im-p">${moralTxt}</p>
     </div>`;
     acoes=`<span class="rf-im-auto">avança sozinho em ${seg}s</span><div class="rf-sp"></div>
-      <button type="button" class="rf-ov-cta" onclick="pressFinish()">${daRodada?'Voltar ao clube':'Começar a temporada'}</button>`;
+      <button type="button" class="rf-ov-cta" onclick="pressFinish()">Começar a temporada</button>`;
   }
 
-  /* A COLUNA DA ESQUERDA É O JORNAL. No fim, o que a sua boca produziu. Antes
-     disso: na coletiva de temporada, o balanço do ano; na de rodada, a PAUTA da
-     semana — placar, sequência, tabela —, que é o material sobre o qual os
-     jornalistas estão a perguntar. Sem ela a pergunta chegava sem contexto. */
+  /* A COLUNA DA ESQUERDA É O JORNAL: o balanço do ano antes da coletiva, e
+     depois dela o que a sua própria boca produziu. */
   const esquerda = P.step==='fim'
     ? ((P.answers||[]).filter(a=>a.h).map(a=>rfImNoticia('Declaração','Coletiva · agora há pouco', escC(a.h), escC(a.t))).join('')
        || rfImNoticia('Silêncio','Coletiva · agora há pouco','Sem declarações','Você preferiu não falar com a imprensa.'))
-    : (daRodada ? (((typeof rfImPautaHTML==='function')?rfImPautaHTML(P.fatos):'')
-        || rfImNoticia('Bastidores','Sala de imprensa · agora','Os jornalistas já estão na sala',
-             'Cada resposta pesa na moral do elenco, na sua cadeira e na sua reputação.'))
-      : (rfImManchetesHTML(P.b) || rfImNoticia('Bastidores','Sala de imprensa · agora',
-          'Os jornalistas já estão na sala',
-          'A coletiva começa assim que você entrar. Cada resposta pesa na moral do elenco.')));
+    : (rfImManchetesHTML(P.b) || rfImNoticia('Bastidores','Sala de imprensa · agora',
+        'Os jornalistas já estão na sala',
+        'A coletiva começa assim que você entrar. Cada resposta pesa na moral do elenco.'));
 
   return rfStage({
     w:1020, contexto, titulo,

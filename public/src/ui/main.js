@@ -9615,7 +9615,7 @@ function armPressTimer(){
   if(CL._pressTimer){ clearInterval(CL._pressTimer); CL._pressTimer=null; }
   /* O RELÓGIO É DO MODO, não um 25 fixo. Na Resenha há gente à espera na sala,
      e a coletiva de rodada é curta de propósito (ver RF_PRESS_CFG). */
-  CL._pressLeft=(typeof rfPressCfg==='function')?(rfPressCfg().segundos||25):25;
+  CL._pressLeft=25;
   CL._pressTimer=setInterval(()=>{
     if(CL.screen!=='imprensa'){ clearInterval(CL._pressTimer); CL._pressTimer=null; return; }
     CL._pressLeft=(CL._pressLeft!=null?CL._pressLeft:25)-1;
@@ -9642,14 +9642,21 @@ function pressAnswer(optIdx){
   const q=qs[P.qIdx];
   if(optIdx>=0 && q && q.opts[optIdx]){
     const o=q.opts[optIdx];
-    P.answers.push({ q:q.q, t:o.t, h:o.h, m:o.m||0, c:o.c||0, r:o.r||0 });
+    /* `imprensa` e `torcida` são a REPERCUSSÃO IMEDIATA da entrevista pós-jogo:
+       ficam na resposta porque é a tela que as mostra logo abaixo do botão que
+       acabou de ser carregado (ver rfEntrevistaHTML). */
+    P.answers.push({ q:q.q, t:o.t, h:o.h, m:o.m||0, c:o.c||0, r:o.r||0,
+                     imprensa:o.imprensa||'', torcida:o.torcida||'' });
     P.morale+=(o.m||0); P.cargo=(P.cargo||0)+(o.c||0); P.rep=(P.rep||0)+(o.r||0);
   } else {
     P.answers.push({ q:(q&&q.q)||'', t:'(não quis responder)', h:null, m:0, c:0, r:0 });
   }
   P.qIdx++;
   if(P.qIdx>=qs.length){ P.step='fim'; }
-  cdraw(); armPressTimer();
+  cdraw();
+  /* o relógio é da coletiva de FIM DE TEMPORADA, que corre dentro da virada; a
+     entrevista pós-jogo não tem contador (ver rfPressTentarRodada). */
+  if(P.modo!=='rodada') armPressTimer();
 }
 /* FECHA A COLETIVA. Os efeitos (moral do elenco, segurança no cargo e reputação
    do treinador) são aplicados num sítio só — rfPressAplicar —, que também é
@@ -9658,6 +9665,8 @@ function pressAnswer(optIdx){
    jogador ao fluxo de pós-rodada que a chamou; a de temporada abre o ano novo. */
 function pressFinish(){
   clearPressTimer();
+  /* o som da sala morre COM o modal, não depois dele (regra do handoff) */
+  if(typeof rfPressSomParar==='function') rfPressSomParar();
   const P=CL._press; CL._press=null;
   const efeito=(typeof rfPressAplicar==='function') ? rfPressAplicar(P) : {moral:0,cargo:0,rep:0};
 
