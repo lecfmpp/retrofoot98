@@ -224,11 +224,13 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
    uma aba ausente deste mapa nao aparece para NINGUEM — nem para o socio. Foi o
    que aconteceu com 'videos': a pagina existia, a rota existia, e o item nunca
    chegou ao menu. */
+/* 'espera' acompanha 'analytics': é a mesma pergunta (o funil antes da conta),
+   e quem vê uma tem de ver a outra. Fora do financeiro, como o analytics. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa'],
   financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','videos','parceiros','conteudo','features','editor','estudio'],
-  leitura:    ['visao','usuarios','jogos','analytics','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
+  produto:    ['visao','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio'],
+  leitura:    ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -388,6 +390,7 @@ const NAV = [
   { id:'usuarios',    ic:'◍', label:'Usuários',       tit:'Usuários',           sub:'Contas, plano e tempo de jogo' },
   { id:'jogos',       ic:'⚑', label:'Resenhas & solo',tit:'Resenhas & solo',    sub:'Salas abertas, convites e saves' },
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
+  { id:'espera',      ic:'◷', label:'Lista de espera',tit:'Lista de espera',    sub:'Quem se inscreveu, quando e o que respondeu' },
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
   { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos dos momentos', sub:'Quando cada modal aparece e com que vídeo' },
@@ -418,6 +421,7 @@ function irPara(tab, forcar){
   el('mob-tit').textContent = n.tit;
   el('page').innerHTML = '<div class="vazio">Carregando…</div>';
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
+               espera:pgEspera,
                financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo,
                editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
@@ -1393,6 +1397,232 @@ function renderGA4(ga4){
     <div class="card card-p"><div class="tt" style="margin-bottom:14px">Dispositivo e retenção</div>
       ${(ga4.device||[]).map(d=>linha(d.l, d.v)).join('') || '<div class="st">—</div>'}</div>
   </div>`;
+}
+
+/* ============================ LISTA DE ESPERA ============================
+   Quem preencheu o modal da landing. A tabela existe desde 12/08/2026 e não
+   havia NENHUMA porta para a ler: `retrofoot_waitlist` só tinha policy de
+   INSERT, e o número da barra de vagas vinha de uma RPC que conta sem mostrar.
+   Dava para saber QUANTOS, nunca QUEM — nem o que responderam sobre preço, de
+   que time são, quem indicou amigos. (A leitura abriu em
+   supabase/sql/rls-lista-de-espera.sql, só para administradores.)
+
+   A página responde a duas perguntas diferentes, e por isso tem duas metades:
+   COMO A LISTA CRESCE (o gráfico e os números do topo) e QUEM ESTÁ NELA (a
+   tabela, com tudo o que a pessoa escreveu, e o CSV para levar embora).
+
+   A pergunta aberta e o e-mail dos indicados não cabem numa coluna: vão numa
+   segunda linha da própria pessoa, que é onde se lê texto sem espremer o resto.
+   ======================================================================== */
+/* o dia LOCAL de um timestamptz. `String(iso).slice(0,10)` daria o dia em UTC —
+   uma inscrição às 21h de Brasília cairia no dia seguinte no gráfico. */
+function espDiaLocal(iso){
+  const d = new Date(iso);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function espHora(iso){
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2,'0')+'h'+String(d.getMinutes()).padStart(2,'0');
+}
+/* SIM / NÃO / não respondeu são TRÊS estados, e o terceiro é o mais comum:
+   a pergunta de preço entrou depois das primeiras inscrições, e quem entrou
+   antes tem null. Pintar null de "não" seria inventar uma recusa. */
+function espPreco(v){
+  if(v === true)  return '<span class="tag t-ok">sim</span>';
+  if(v === false) return '<span class="tag t-bad">não</span>';
+  return '<span class="tag t-dim" title="entrou antes da pergunta, ou não respondeu">—</span>';
+}
+function espCSV(ls){
+  const cab = ['Entrou em','Nome','E-mail','Telefone','Time de coração',
+               'Pagaria 19,90','Pagaria 39,90','Resposta','Indicados','Origem','Navegador'];
+  const sn = v => v===true ? 'sim' : v===false ? 'não' : '';
+  const linhas = ls.map(w => [
+    new Date(w.created_at).toLocaleString('pt-BR'),
+    w.nome, w.email, w.telefone, w.time_coracao,
+    sn(w.paga_1990), sn(w.paga_3990), w.resposta,
+    (w.amigos||[]).join(' | '), w.origem, w.user_agent
+  ].map(csvCampo).join(';'));
+  return cab.join(';') + '\n' + linhas.join('\n');
+}
+async function pgEspera(){
+  /* a lista inteira, do mais recente para o mais antigo. `todasAsLinhas` não
+     serve aqui (é por pack_id), e o teto de 1000 do Supabase ainda está longe —
+     quando chegar perto, isto passa a paginar. */
+  const r = await jogo('retrofoot_waitlist').select('*').order('created_at', { ascending:false }).range(0, PAGINA_SB-1);
+  if(r.error) throw r.error;
+  const todas = r.data || [];
+  D.espera = todas;
+
+  const agora = Date.now(), dia = 864e5;
+  const dentro = (w, de, ate) => {
+    const t = new Date(w.created_at).getTime();
+    return t >= agora - de*dia && t < agora - ate*dia;
+  };
+  const noPeriodo = todas.filter(w => dentro(w, ST.periodo, 0)).length;
+  const anterior  = todas.filter(w => dentro(w, ST.periodo*2, ST.periodo)).length;
+  const varia = anterior ? Math.round((noPeriodo-anterior)*100/anterior) : (noPeriodo?100:0);
+  const comTel  = todas.filter(w => (w.telefone||'').trim()).length;
+  const comResp = todas.filter(w => (w.resposta||'').trim()).length;
+  const indicados = todas.reduce((s,w) => s + (w.amigos||[]).length, 0);
+  const vagas = 500;   // mesmo número que a landing anuncia (WAITLIST_VAGAS)
+
+  /* ---- o gráfico: cada coluna é um dia; a altura é o ACUMULADO até ali, e a
+     fatia clara no topo é quanto entrou naquele dia. Uma coisa só mostra a
+     curva de crescimento e o ritmo — que é o que se quer acompanhar. ---- */
+  const dias = [];
+  for(let i = ST.periodo-1; i >= 0; i--){
+    const d = new Date(agora - i*dia);
+    dias.push({ chave: espDiaLocal(d), n:0, ac:0 });
+  }
+  const porDia = {};
+  todas.forEach(w => { const k = espDiaLocal(w.created_at); porDia[k] = (porDia[k]||0)+1; });
+  const antesDaJanela = todas.filter(w => new Date(w.created_at).getTime() < agora - ST.periodo*dia).length;
+  let ac = antesDaJanela;
+  dias.forEach(d => { d.n = porDia[d.chave]||0; ac += d.n; d.ac = ac; });
+  const maxAc = Math.max(1, ...dias.map(d=>d.ac));
+
+  const precoCard = (rot, campo) => {
+    const sim = todas.filter(w => w[campo] === true).length;
+    const nao = todas.filter(w => w[campo] === false).length;
+    const sem = todas.length - sim - nao;
+    const resp = sim + nao;
+    return `<div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px">
+        <b style="font-size:13px">${h(rot)}</b>
+        <span class="mono" style="font-size:12px;color:var(--dim2)">${
+          resp ? num(sim)+' de '+num(resp)+' · '+pct(sim,resp)+'%' : 'ninguém respondeu ainda'}</span>
+      </div>
+      <div class="bar" style="height:9px;display:flex;background:var(--bd3)">
+        <i style="width:${pct(sim,todas.length)}%;background:var(--verde)"></i>
+        <i style="width:${pct(nao,todas.length)}%;background:var(--vermelho);border-radius:0"></i>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:6px;font-size:11.5px;color:var(--dim2)">
+        <span>${num(sim)} pagaria</span><span>${num(nao)} não pagaria</span>
+        <span style="color:var(--dim3)">${num(sem)} sem resposta</span>
+      </div>
+    </div>`;
+  };
+
+  const porOrigem = {};
+  todas.forEach(w => { const o = (w.origem||'—').trim() || '—'; porOrigem[o] = (porOrigem[o]||0)+1; });
+  const origens = Object.entries(porOrigem).sort((a,b) => b[1]-a[1]);
+
+  /* a busca varre tudo o que a pessoa escreveu — inclusive a resposta aberta e
+     o time, que é onde costuma estar o que se procura */
+  const q = (ST.buscaEspera||'').toLowerCase();
+  const ls = q ? todas.filter(w => [w.nome,w.email,w.telefone,w.time_coracao,w.resposta,w.origem]
+    .some(v => String(v||'').toLowerCase().includes(q))) : todas;
+
+  const col = 'minmax(0,1.6fr) 118px minmax(0,.9fr) 62px 62px 74px minmax(0,1fr)';
+  el('page').innerHTML = `
+    <div class="g4" style="margin-bottom:16px">
+      ${kpiHTML({ l:'Na lista de espera', v:num(todas.length),
+                  d:`${pct(todas.length,vagas)}% das ${num(vagas)} vagas anunciadas` })}
+      ${kpiHTML({ l:`Entradas em ${ST.periodo} dias`, v:num(noPeriodo),
+                  d:anterior ? `${varia>=0?'+':''}${varia}% face aos ${ST.periodo} dias anteriores`
+                             : 'sem período anterior para comparar',
+                  dc:anterior ? (varia>=0?'var(--verde2)':'var(--vermelho)') : '' })}
+      ${kpiHTML({ l:'Deixaram telefone', v:num(comTel), d:`${pct(comTel,todas.length)}% da lista` })}
+      ${kpiHTML({ l:'Responderam a pergunta', v:num(comResp),
+                  d:indicados ? `${num(indicados)} amigo${indicados===1?'':'s'} indicado${indicados===1?'':'s'}` : 'nenhuma indicação ainda' })}
+    </div>
+
+    <div class="card card-p" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div><div class="tt">Como a lista cresceu</div>
+          <div class="st">Total acumulado por dia · últimos ${ST.periodo} dias</div></div>
+        <div class="leg"><span><i style="background:#4ade80"></i>Entrou nesse dia</span>
+          <span><i style="background:#1f7a45"></i>Acumulado</span></div>
+      </div>
+      <div class="chart" style="height:210px;gap:${ST.periodo>60?'2px':'6px'}">
+        ${dias.map(d => `
+          <div class="chcol" title="${h(d.chave.split('-').reverse().slice(0,2).join('/'))} · ${d.n} nova${d.n===1?'':'s'} · ${d.ac} no total">
+            <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
+              <div style="width:100%;border-radius:3px 3px 0 0;background:#4ade80;height:${Math.round((d.n)*100/maxAc)}%"></div>
+              <div style="width:100%;background:linear-gradient(180deg,#1f7a45,#14532d);height:${Math.round((d.ac-d.n)*100/maxAc)}%"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="chlabels" style="gap:${ST.periodo>60?'2px':'6px'}">${dias.map((d,i) => {
+        const mostra = ST.periodo<=14 || i===0 || i===dias.length-1 || i===Math.floor(dias.length/2);
+        return `<div class="mono" style="font-size:10.5px;color:var(--dim3)">${mostra?h(d.chave.slice(8)+'/'+d.chave.slice(5,7)):''}</div>`;
+      }).join('')}</div>
+    </div>
+
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card card-p">
+        <div class="tt" style="margin-bottom:4px">Pagariam pelo jogo?</div>
+        <div class="st" style="margin-bottom:16px">As duas perguntas de preço do formulário</div>
+        ${precoCard('R$ 19,90 por mês', 'paga_1990')}
+        ${precoCard('R$ 39,90 por mês', 'paga_3990')}
+      </div>
+      <div class="card card-p">
+        <div class="tt" style="margin-bottom:4px">De onde vieram</div>
+        <div class="st" style="margin-bottom:16px">O botão que abriu o formulário</div>
+        ${origens.length ? origens.map(([o,n]) => `
+          <div style="margin-bottom:11px">
+            <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
+              <span style="font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis"
+                    title="${h(o)}">${h(o)}</span>
+              <span class="mono" style="font-size:12px;color:var(--dim2);flex:none">${num(n)} · ${pct(n,todas.length)}%</span>
+            </div>
+            <span class="bar"><i style="width:${pct(n,todas.length)}%"></i></span>
+          </div>`).join('') : '<div class="st">—</div>'}
+      </div>
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>Quem está na lista</b>
+        <input class="busca" id="esp-busca" placeholder="Procurar nome, e-mail, time, resposta…" value="${h(ST.buscaEspera||'')}">
+        <button class="btn btn-sm btn-ghost" id="esp-csv" title="Planilha com todos os campos, inclusive a resposta aberta e os indicados">⤓ CSV</button>
+        <span class="mono" style="font-size:12px;color:var(--dim2)">${num(ls.length)}${
+          ls.length!==todas.length?' de '+num(todas.length):''}</span>
+      </div>
+      <div class="rowh" style="grid-template-columns:${col}">
+        <span>Pessoa</span><span>Entrou em</span><span>Telefone</span>
+        <span style="text-align:center">19,90</span><span style="text-align:center">39,90</span>
+        <span style="text-align:center">Indicou</span><span>Time · origem</span>
+      </div>
+      ${ls.length ? ls.map(w => {
+        const amigos = w.amigos||[];
+        const extra = [
+          (w.resposta||'').trim() ? `<b style="color:var(--dim)">Respondeu:</b> ${h(w.resposta.trim())}` : '',
+          amigos.length ? `<b style="color:var(--dim)">Indicou:</b> ${h(amigos.join(', '))}` : ''
+        ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+        return `<div class="row" style="grid-template-columns:${col}">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0">
+            <i class="av" style="width:26px;height:26px;background:${corAv(w.nome)};color:#0c1210;font-size:11px">${h(iniciais(w.nome))}</i>
+            <span style="min-width:0">
+              <b style="display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${h(w.nome)}</b>
+              <small style="font-size:11.5px;color:var(--dim2);overflow:hidden;text-overflow:ellipsis;display:block">${h(w.email)}</small>
+            </span>
+          </span>
+          <span class="mono" style="font-size:12px" title="${h(new Date(w.created_at).toLocaleString('pt-BR'))}">
+            ${h(dmy(w.created_at))}<small style="display:block;font-size:10.5px;color:var(--dim3)">${h(espHora(w.created_at))}</small></span>
+          <span class="mono" style="font-size:12px;color:${w.telefone?'var(--fg)':'var(--dim3)'}">${h(w.telefone||'—')}</span>
+          <span style="text-align:center">${espPreco(w.paga_1990)}</span>
+          <span style="text-align:center">${espPreco(w.paga_3990)}</span>
+          <span class="mono" style="text-align:center;font-size:12px">${
+            amigos.length ? '<b style="color:var(--verde2)">'+amigos.length+'</b>' : '<span style="color:var(--dim3)">—</span>'}</span>
+          <span style="min-width:0;font-size:12px">
+            ${w.time_coracao ? h(w.time_coracao) : '<span style="color:var(--dim3)">sem time</span>'}
+            <small style="display:block;font-size:10.5px;color:var(--dim3);overflow:hidden;text-overflow:ellipsis"
+                   title="${h(w.user_agent||'')}">${h(w.origem||'—')}</small></span>
+          ${extra ? `<span style="grid-column:1/-1;font-size:12px;color:var(--dim);line-height:1.6;
+              padding:2px 0 0 36px">${extra}</span>` : ''}
+        </div>`;
+      }).join('') : '<div class="vazio">Ninguém encontrado com esse termo.</div>'}
+    </div>`;
+
+  const b = el('esp-busca');
+  let t = null;
+  b.oninput = () => { clearTimeout(t); t = setTimeout(() => { ST.buscaEspera = b.value.trim(); pgEspera(); }, 350); };
+  el('esp-csv').onclick = () => {
+    const hoje = new Date().toISOString().slice(0,10);
+    baixarTexto(`retrofoot98-lista-de-espera-${hoje}.csv`, espCSV(ls), 'text/csv;charset=utf-8');
+    toast(`${ls.length} inscrito${ls.length===1?'':'s'} exportado${ls.length===1?'':'s'}.`);
+  };
 }
 
 /* ============================ FINANÇAS ============================ */
