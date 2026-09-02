@@ -21,10 +21,33 @@ Referência de design: o handoff *Dashboard administrativo do projeto* (protóti
 | Batimento de tempo de jogo | `netStartHeartbeat()` em `public/src/net/supabase-adapter.js` |
 | Hosting | `firebase.json` (dois targets: `jogo` e `admin`) · `.firebaserc` |
 
+### Uma página de cada vez
+
+Cada aba é uma função `pgX()` assíncrona: pede à base, **espera**, e só então escreve em
+`#page`. Enquanto ninguém mandava nisso, dois desenhos podiam estar no ar ao mesmo tempo — o
+sócio clicava em *Usuários* com a *Visão geral* ainda carregando — e quem escrevia na tela era
+quem **respondia por último**, não quem foi pedido por último. Os dois sintomas conhecidos eram
+o mesmo bug: abrir uma página e ver o conteúdo da anterior, e ter de clicar duas ou três vezes
+até "pegar" (cada clique sorteava a corrida de novo).
+
+`irPara()` agora tira uma **senha** (`pedirDesenho()`) por navegação e passa-a à `pgX()`. Antes
+de escrever, a página confere `desenhoAtual(senha)`: com senha vencida sai fora sem pintar nada
+— nem o HTML, nem os handlers que vêm depois dele. O último clique é sempre o que manda.
+
+> **Página nova ou desenho novo tem de fazer o mesmo.** A assinatura é
+> `async function pgX(forcar, senha = pedirDesenho())` — o valor por omissão é o que faz
+> `pgX()` chamada à mão (a busca com debounce, o redesenho depois de gravar) tirar senha
+> própria em vez de nascer vencida. Antes de cada `el('page').innerHTML =`, um
+> `if(!desenhoAtual(senha)) return;`.
+
+O item clicado também pisca no menu enquanto a base responde: sem sinal nenhum, página lenta
+parecia clique perdido — e a resposta natural era clicar de novo.
+
 ### Dois schemas no Supabase, de propósito
 
 - **`admin_rf98`** — o que só os sócios veem: `adm_users`, `adm_invites`, `adm_lancamentos`,
-  `adm_patrocinadores`, `adm_user_plans`, `adm_kanban_cols`, `adm_features`, `adm_config`.
+  `adm_patrocinadores`, `adm_user_plans`, `adm_kanban_cols`, `adm_features`, `adm_config`,
+  `adm_parceiros`, `adm_conteudo` e `adm_audit` (o registro de ações, § 3b).
   O papel `anon` **não tem sequer USAGE** neste schema: um bug no jogo não alcança as finanças.
 - **`elifoot_v3`** (schema do jogo) — só o que o **jogo** precisa ler/escrever:
   `ad_spaces`, `ad_creatives`, `ad_events` e `user_activity`.
@@ -195,6 +218,48 @@ Em *Resenhas & solo*, o ✕ na linha da sala chama `admin_rf98.apagar_sala(codig
 `ON DELETE CASCADE` e vão junto. **Não há cópia do `shared_state` em lugar nenhum**: quem
 estava jogando perde a temporada. Por isso o painel exige digitar o código da sala e avisa
 quantos humanos estão sentados nela antes de liberar o botão.
+
+---
+
+## 3b. Registro — o que cada pessoa fez
+
+Toda escrita do painel deixa uma linha em `admin_rf98.adm_audit`
+(`quando`, `quem`, `quem_email`, `acao`, `alvo`, `detalhe` em JSONB). Duas mãos escrevem lá:
+
+- **o painel**, pela função `registrar(acao, alvo, detalhe)` em `admin.js`, para o que passa
+  direto por RLS (criar card, publicar criativo, editar clube, subir vídeo…);
+- **o banco**, pela função `admin_rf98.registrar()`, para o que já é função `SECURITY DEFINER`
+  (`apagar_sala`, `apagar_usuarios`, `convidar`, `reivindicar_convite`…) — ali o registro entra
+  na **mesma transação**: se a ação der errado, a linha de auditoria cai junto.
+
+**Ninguém edita o próprio rastro.** `adm_audit` tem política de `SELECT` (qualquer admin) e de
+`INSERT` (só com `quem = auth.uid()`). Não há política de `UPDATE` nem de `DELETE` — com RLS
+ligada, a ausência é a proibição.
+
+A página **Registro** (menu, só para `socio`) lê isso em duas alturas:
+
+| Bloco | O que responde |
+|---|---|
+| KPIs | quantas ações no período, quantas pessoas mexeram, área mais movimentada, última ação |
+| *Quem fez o quê* | por pessoa: total, as três áreas em que mais mexeu, quando foi a última e qual |
+| *Registro* | a lista, filtrável por pessoa, por área e por busca livre; CSV; clique abre o `detalhe` cru |
+
+O período é o mesmo seletor do cabeçalho (7 dias / 30 dias / Ano) que o resto do painel usa.
+A busca livre varre também o **JSON do detalhe**: procurar "Palmeiras" acha a edição de clube
+mesmo que o nome do clube só exista lá dentro.
+
+**Quem saiu do painel continua aparecendo**, identificado pelo e-mail gravado na linha e marcado
+em âmbar. Tirar o acesso de alguém não pode apagar o que essa pessoa fez — seria o oposto de
+auditoria.
+
+**Ação nova entra no catálogo `ACOES`** (rótulo) e, se o prefixo for novo, em `AREA_POR_PREFIXO`
+(área). Sem isso a linha **ainda aparece** — nada fica escondido —, mas com a chave técnica crua
+em vez da frase.
+
+O que o `detalhe` guarda é escolhido por ação, e é aí que mora a leitura útil: `clube.editar`
+grava os **nomes** dos jogadores criados, alterados e removidos (não só a contagem — "3 novos"
+não diz a ninguém o que entrou no elenco); `criativo.publicar` grava o arquivo e o peso;
+`feature.mover`, a coluna de origem e a de destino.
 
 ---
 

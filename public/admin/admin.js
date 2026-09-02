@@ -100,7 +100,9 @@ const SEL = { salas:new Set(), saves:new Set(), contas:new Set(), convites:new S
 const JOGO_URL = 'https://retrofoot98.com.br';   // destino dos links que o painel gera
 const ST = {
   tab: 'visao', periodo: 30, authMode: 'login', authErro: '', authOk: '',
-  busca: '', carregando: false, modal: null, drag: null
+  busca: '', carregando: false, modal: null, drag: null,
+  /* filtros da página Registro (log de ações) */
+  regQuem: '', regArea: '', regBusca: ''
 };
 
 /* ============================ utilidades ============================ */
@@ -133,6 +135,7 @@ function partes(d){
 }
 function dma(d){ if(!d) return '—'; const p=partes(d); return p.d+'/'+p.m; }
 function dmy(d){ if(!d) return '—'; const p=partes(d); return p.d+'/'+p.m+'/'+p.a; }
+function horaHM(d){ return d ? new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'; }
 /* "há 3 dias" — usado em último acesso, idade da sala e envio de convite */
 function ha(d){
   if(!d) return 'nunca';
@@ -226,8 +229,11 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
    chegou ao menu. */
 /* 'espera' acompanha 'analytics': é a mesma pergunta (o funil antes da conta),
    e quem vê uma tem de ver a outra. Fora do financeiro, como o analytics. */
+/* 'registro' é o log de quem fez o quê. Fica com o sócio, como 'equipa': é a
+   página que serve para CONFERIR a equipe, e quem está a ser conferido não
+   precisa dela para trabalhar. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa','registro'],
   financeiro: ['visao','financas','publicidade','parceiros'],
   produto:    ['visao','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio'],
   leitura:    ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
@@ -399,7 +405,8 @@ const NAV = [
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
   { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
   { id:'estudio',     ic:'❖', label:'Estúdio IA',     tit:'Estúdio de imagens',  sub:'Escudos fictícios e fotos de jogadores por IA' },
-  { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' }
+  { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' },
+  { id:'registro',    ic:'⧉', label:'Registro',       tit:'Registro de ações',  sub:'O que cada sócio fez no painel, por pessoa e por área' }
 ];
 function renderNav(){
   el('nav').innerHTML = NAV.filter(n=>podeVer(n.id)).map(n =>
@@ -413,19 +420,48 @@ function renderNav(){
     ST.periodo = +s.dataset.per; renderNav(); irPara(ST.tab, true);
   });
 }
+/* ===== UMA PÁGINA DE CADA VEZ =====
+   Toda pgX() é assíncrona: pede à base, ESPERA, e só então escreve em #page.
+   Enquanto ninguém mandava nisso, dois desenhos podiam estar no ar ao mesmo
+   tempo — clicar em Usuários enquanto a Visão geral ainda carregava — e quem
+   escrevia na tela era quem RESPONDIA POR ÚLTIMO, não quem foi pedido por
+   último. Daí os dois sintomas relatados, que são o mesmo bug:
+
+     · abre-se uma página e aparece o conteúdo da anterior (a resposta atrasada
+       chegou depois e pintou por cima);
+     · tem de se clicar duas ou três vezes até "pegar" (a cada clique novo a
+       corrida é sorteada de novo, e uma hora calha a ordem certa).
+
+   Agora cada pedido de desenho leva uma SENHA. Ao voltar da base, quem tem
+   senha vencida não escreve nada — nem o HTML, nem os handlers que vêm depois
+   dele (o `return` corta a função inteira). O último clique é sempre o que
+   manda, independentemente de qual consulta respondeu primeiro. */
+let SENHA_DESENHO = 0;
+function pedirDesenho(){ return ++SENHA_DESENHO; }
+function desenhoAtual(senha){ return senha === SENHA_DESENHO; }
 function irPara(tab, forcar){
   if(!podeVer(tab)) tab = 'visao';
   ST.tab = tab; renderNav(); menuLateral(false);
   const n = NAV.find(x=>x.id===tab);
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
   el('mob-tit').textContent = n.tit;
-  el('page').innerHTML = '<div class="vazio">Carregando…</div>';
+  const senha = pedirDesenho();   // invalida qualquer desenho ainda no ar
+  el('page').innerHTML = `<div class="vazio">Carregando ${h(n.label)}…</div>`;
+  /* O item clicado pisca no menu enquanto a base responde: sem sinal nenhum, a
+     página lenta parecia clique perdido — e a resposta era clicar de novo. */
+  const marcar = (txt) => { const t = el('tag-'+tab); if(t) t.textContent = txt; };
+  marcar('···');
+  const pronto = () => { if(desenhoAtual(senha)) marcar(''); };
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
                espera:pgEspera,
                financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
-               parceiros:pgParceiros, conteudo:pgConteudo,
+               parceiros:pgParceiros, conteudo:pgConteudo, registro:pgRegistro,
                editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
-  fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
+  fn(forcar, senha).then(pronto, e => {
+    pronto();
+    if(!desenhoAtual(senha)) return;   // erro de página abandonada não vai à tela
+    el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`;
+  });
 }
 
 /* ============================ VÍDEOS DOS MOMENTOS ============================
@@ -451,7 +487,7 @@ const TOM_MOMENTO = {
   green: { n:'Boa notícia',  tag:'t-ok'   },
   gray:  { n:'Notícia ruim', tag:'t-dim'  },
 };
-async function pgVideos(){
+async function pgVideos(forcar, senha = pedirDesenho()){
   const editar = podeEditar('dados');
   const r = await jogo('momentos').select('*').order('ord');
   if(r.error) throw r.error;
@@ -501,6 +537,7 @@ async function pgVideos(){
     </div>`;
   };
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4" style="margin-bottom:16px">
       ${kpiHTML({l:'Momentos no jogo', v:num(ms.length), d:'modais de celebração'})}
@@ -523,6 +560,7 @@ async function pgVideos(){
     const { error } = await jogo('momentos')
       .update({ ativo: !m.ativo, atualizado_em: new Date().toISOString() }).eq('id', m.id);
     if(error) return toast(erroMsg(error), true);
+    registrar(m.ativo?'momento.desligar':'momento.ligar', m.id, { nome:m.nome });
     toast(m.ativo ? 'Momento desligado.' : 'Momento ligado.'); pgVideos();
   });
 }
@@ -601,6 +639,7 @@ function abrirVideoMomento(m){
     const { error } = await jogo('momentos')
       .update({ video_url:null, atualizado_em:new Date().toISOString() }).eq('id', m.id);
     if(error) return falhar(erroMsg(error));
+    registrar('momento.video_tirar', m.id, { nome:m.nome });
     fecharModal(); toast('Vídeo retirado — o modal continua a abrir, sem ele.'); pgVideos();
   };
 
@@ -624,13 +663,18 @@ function abrirVideoMomento(m){
       }
       const { error } = await jogo('momentos').update(campos).eq('id', m.id);
       if(error) throw error;
+      registrar(arquivo?'momento.video':'momento.editar', m.id, {
+        nome: m.nome,
+        arquivo: arquivo ? arquivo.name : null,
+        bytes: arquivo ? arquivo.size : null,
+        chance: campos.chance, max_por_temporada: campos.max_por_temporada });
       fecharModal(); toast('Momento atualizado.'); pgVideos();
     }catch(e){ falhar(erroMsg(e)); bt.disabled=false; bt.textContent='Salvar'; }
   };
 }
 
 /* ============================ VISÃO GERAL ============================ */
-async function pgVisao(){
+async function pgVisao(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('overview', { p_dias: ST.periodo });
   if(error) throw error;
   D.overview = data;
@@ -674,6 +718,7 @@ async function pgVisao(){
   ];
   const maxEng = Math.max(1, ...engBarras.map(b=>+b[1]||0));
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">${kpis.map(k=>kpiHTML(k)).join('')}</div>
     <div style="display:grid;grid-template-columns:1.45fr 1fr;gap:16px">
@@ -776,7 +821,7 @@ const PLANOS_ADM = {
 const planoAdm = (k) => PLANOS_ADM[k] || PLANOS_ADM.free;
 const ehPago   = (u) => !!u.plano && u.plano !== 'free';
 
-async function pgUsuarios(){
+async function pgUsuarios(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
   if(error) throw error;
   D.usuarios = data || [];
@@ -793,6 +838,7 @@ async function pgUsuarios(){
   // Jogos / Pontos / Títulos vêm por MODO — é a leitura que a página precisa dar
   const col = `${podeApagar?'30px ':''}1.5fr .55fr .9fr .85fr .8fr .7fr .8fr .75fr .7fr 84px`;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Contas totais', v:num(us.length), d:`${num(us.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
@@ -921,7 +967,7 @@ function modalResetSenha(email, nome){
 }
 
 /* ============================ RESENHAS & SOLO ============================ */
-async function pgJogos(){
+async function pgJogos(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('jogos');
   if(error) throw error;
   D.jogos = data;
@@ -945,6 +991,7 @@ async function pgJogos(){
   // saves de cada pessoa, para o check da linha marcar todos de uma vez
   const savesDe = u => solos.filter(s => s.user_id === u.user_id);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Resenhas abertas', v:num(salas.length), d:`${num(salas.filter(s=>s.phase==='running').length)} em jogo`})}
@@ -1309,7 +1356,7 @@ function mascara(s){
 }
 
 /* ============================ ANALYTICS ============================ */
-async function pgAnalytics(){
+async function pgAnalytics(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('analytics', { p_dias: Math.min(ST.periodo,60) });
   if(error) throw error;
   D.analytics = data;
@@ -1328,6 +1375,7 @@ async function pgAnalytics(){
       nota:`${+f.resenha||0} Resenha · ${+f.embaixador||0} Embaixador` }
   ].filter(Boolean);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Sessões (período)', v:num(totalSes), d:'contas com tempo de jogo registrado'})}
@@ -1444,7 +1492,7 @@ function espCSV(ls){
   ].map(csvCampo).join(';'));
   return cab.join(';') + '\n' + linhas.join('\n');
 }
-async function pgEspera(){
+async function pgEspera(forcar, senha = pedirDesenho()){
   /* a lista inteira, do mais recente para o mais antigo. `todasAsLinhas` não
      serve aqui (é por pack_id), e o teto de 1000 do Supabase ainda está longe —
      quando chegar perto, isto passa a paginar. */
@@ -1514,6 +1562,7 @@ async function pgEspera(){
     .some(v => String(v||'').toLowerCase().includes(q))) : todas;
 
   const col = 'minmax(0,1.6fr) 118px minmax(0,.9fr) 62px 62px 74px minmax(0,1fr)';
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4" style="margin-bottom:16px">
       ${kpiHTML({ l:'Na lista de espera', v:num(todas.length),
@@ -1629,7 +1678,7 @@ async function pgEspera(){
 const CATS_DESPESA = ['softwares','creditos_ia','banco_dados','servidor'];
 const CATS_RECEITA = ['publicidade','assinaturas','aportes'];
 
-async function pgFinancas(){
+async function pgFinancas(forcar, senha = pedirDesenho()){
   // recorrência mensal/anual materializa os meses em falta antes de somar
   try{ await sb.rpc('gerar_recorrencias'); }catch(e){}
   const [ov, lanc, ia] = await Promise.all([
@@ -1736,6 +1785,7 @@ async function pgFinancas(){
       </div>
     </div>`;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Receita do mês', v:brl(tRec), d:`${rec.length} lançamentos`, c:'var(--verde2)'})}
@@ -1819,6 +1869,7 @@ async function editarConfig(chave, rotulo, atual){
   if(isNaN(centavos)) return toast('Valor inválido.', true);
   const { error } = await sb.from('adm_config').upsert({ chave, valor: centavos });
   if(error) return toast(erroMsg(error), true);
+  registrar('config.editar', chave, { de: Number(atual)||0, para: centavos });
   toast('Salvo.'); pgFinancas();
 }
 
@@ -1852,12 +1903,14 @@ function modalLancamento(tipo){
       valor_centavos: valor, recorrencia: el('l-rec').value, criado_por: (await sb.auth.getUser()).data.user.id
     });
     if(error) return toast(erroMsg(error), true);
+    registrar('lancamento.criar', desc, { tipo, valor, categoria: el('l-cat').value,
+      data: el('l-data').value, recorrencia: el('l-rec').value });
     fecharModal(); toast('Lançamento salvo.'); pgFinancas();
   };
 }
 
 /* ============================ PUBLICIDADE ============================ */
-async function pgPublicidade(){
+async function pgPublicidade(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('publicidade');
   if(error) throw error;
   D.pub = data;
@@ -1872,6 +1925,7 @@ async function pgPublicidade(){
   espacos.forEach(e => { if(e.criativo && e.criativo.patrocinador){
     (porPatro[e.criativo.patrocinador] = porPatro[e.criativo.patrocinador] || []).push(e.nome); } });
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Espaços ocupados', v:`${noAr}/${espacos.length}`, d:`${espacos.length-noAr} livres para vender`})}
@@ -2481,7 +2535,7 @@ function modalUpload(chave){
 }
 
 /* ============================ FUNCIONALIDADES (kanban) ============================ */
-async function pgFeatures(){
+async function pgFeatures(forcar, senha = pedirDesenho()){
   const [cols, feats] = await Promise.all([
     sb.from('adm_kanban_cols').select('*').order('ord'),
     sb.from('adm_features').select('*').order('ord')
@@ -2492,6 +2546,7 @@ async function pgFeatures(){
   const editar = podeEditar('produto');
   const total = D.feats.length, votos = D.feats.reduce((a,f)=>a+ +f.votos,0);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:12.5px;color:var(--dim2);flex:1">
@@ -2549,9 +2604,14 @@ function ligarKanban(){
 
   document.querySelectorAll('[data-add-card]').forEach(b => b.onclick = () => modalFeature(b.dataset.addCard));
   document.querySelectorAll('[data-rename]').forEach(i => {
+    /* o nome ANTIGO só existe antes da gravação — guardado aqui para o log poder
+       dizer "de X para Y", que é a única forma de a linha ser útil depois */
+    const antes = (D.cols.find(c=>c.id===i.dataset.rename)||{}).nome || '';
     i.onchange = async () => {
-      const { error } = await sb.from('adm_kanban_cols').update({ nome: i.value.trim()||'Sem nome' }).eq('id', i.dataset.rename);
+      const nome = i.value.trim()||'Sem nome';
+      const { error } = await sb.from('adm_kanban_cols').update({ nome }).eq('id', i.dataset.rename);
       if(error) return toast(erroMsg(error), true);
+      registrar('coluna.renomear', nome, { de: antes, para: nome });
       toast('Coluna renomeada.');
     };
   });
@@ -2559,17 +2619,22 @@ function ligarKanban(){
     const id = b.dataset.delCol;
     if(D.cols.length<2) return toast('Precisa sobrar pelo menos uma coluna.', true);
     if(!confirm('Apagar a coluna? Os cards vão para a primeira coluna.')) return;
+    const col = D.cols.find(c=>c.id===id) || {};
+    const mudados = D.feats.filter(f=>f.coluna_id===id).length;
     const destino = D.cols.find(c=>c.id!==id).id;
     await sb.from('adm_features').update({ coluna_id: destino }).eq('coluna_id', id);
     const { error } = await sb.from('adm_kanban_cols').delete().eq('id', id);
     if(error) return toast(erroMsg(error), true);
+    registrar('coluna.apagar', col.nome||id, { cards_movidos: mudados });
     toast('Coluna apagada.'); pgFeatures();
   });
   document.querySelectorAll('[data-del-card]').forEach(b => b.onclick = async ev => {
     ev.stopPropagation();
     if(!confirm('Apagar esta funcionalidade?')) return;
+    const f = D.feats.find(x=>x.id===b.dataset.delCard) || {};
     const { error } = await sb.from('adm_features').delete().eq('id', b.dataset.delCard);
     if(error) return toast(erroMsg(error), true);
+    registrar('feature.apagar', f.titulo||b.dataset.delCard, { votos: f.votos, origem: f.origem });
     pgFeatures();
   });
   document.querySelectorAll('[data-voto]').forEach(b => b.onclick = async ev => {
@@ -2578,6 +2643,7 @@ function ligarKanban(){
     const novo = Math.max(0, f.votos + (+b.dataset.voto));
     const { error } = await sb.from('adm_features').update({ votos: novo }).eq('id', f.id);
     if(error) return toast(erroMsg(error), true);
+    registrar('feature.voto', f.titulo, { de: f.votos, para: novo });
     f.votos = novo; pgFeatures();
   });
 
@@ -2696,6 +2762,13 @@ function ligarKanban(){
         try{
           await Promise.all(ids.map((cid,i) =>
             sb.from('adm_features').update({ coluna_id: colId, ord: i }).eq('id', cid)));
+          /* só registra quando o card MUDA DE COLUNA: reordenar dentro da mesma
+             coluna acontece o tempo todo e encheria o log de linhas sem leitura */
+          const f = D.feats.find(x=>x.id===id) || {};
+          if(f.coluna_id !== colId){
+            const nomeCol = (c) => (D.cols.find(x=>x.id===c)||{}).nome || '—';
+            registrar('feature.mover', f.titulo||id, { de: nomeCol(f.coluna_id), para: nomeCol(colId) });
+          }
         }catch(err){ toast(erroMsg(err), true); }
         pgFeatures();
       };
@@ -2720,6 +2793,7 @@ async function criarColuna(){
   const { error } = await sb.from('adm_kanban_cols').insert({ nome, ord: D.cols.length,
     cor: CORES_AV[D.cols.length % CORES_AV.length] });
   if(error) return toast(erroMsg(error), true);
+  registrar('coluna.criar', nome);
   toast('Coluna criada.'); pgFeatures();
 }
 function modalFeature(colunaId){
@@ -2750,28 +2824,165 @@ function modalFeature(colunaId){
       coluna_id: col, ord
     });
     if(error) return toast(erroMsg(error), true);
+    registrar('feature.criar', titulo, { origem: el('nf-origem').value,
+      coluna: (D.cols.find(c=>c.id===col)||{}).nome || null,
+      nota: el('nf-nota').value.trim()||null });
     fecharModal(); toast('Funcionalidade registrada.'); pgFeatures();
   };
 }
 
-/* rótulos das ações do log — a coluna mostra a frase, não a chave técnica */
-const ACOES = {
-  'sala.apagar':'Apagou uma sala', 'convite.criar':'Criou convite',
-  'convite.aceitar':'Entrou no painel pela primeira vez', 'papel.mudar':'Mudou o papel de alguém',
-  'criativo.publicar':'Publicou criativo', 'criativo.tirar':'Tirou criativo do ar',
-  'patrocinador.criar':'Cadastrou patrocinador', 'patrocinador.apagar':'Apagou patrocinador',
-  'lancamento.apagar':'Apagou lançamento'
+/* ============================ CATÁLOGO DE AÇÕES ============================
+   Rótulos do log: a tela mostra a frase, não a chave técnica. Cada ação também
+   diz a que ÁREA pertence — é por área que se lê "o que esta pessoa anda a
+   mexer", e é ela que alimenta o filtro da página Registro.
+
+   AÇÃO NOVA ENTRA AQUI. Sem entrada no catálogo a linha ainda aparece (nada
+   fica escondido), mas com a chave crua e a área adivinhada pelo prefixo — que
+   é o suficiente para não perder nada e pouco para ler com conforto. */
+const AREAS = {
+  acesso:    'Acesso ao painel',
+  contas:    'Contas e salas',
+  financas:  'Finanças',
+  publicidade:'Publicidade',
+  produto:   'Funcionalidades',
+  conteudo:  'Conteúdo',
+  parceiros: 'Parceiros',
+  dados:     'Dados do jogo',
+  imagens:   'Imagens (IA)',
+  videos:    'Vídeos dos momentos',
+  outro:     'Outros'
 };
+const ACOES = {
+  /* acesso */
+  'convite.criar':'Criou convite de acesso',
+  'convite.apagar':'Cancelou convite de acesso',
+  'convite.aceitar':'Entrou no painel pela primeira vez',
+  'papel.mudar':'Mudou o papel de alguém',
+  /* contas e salas do jogo */
+  'sala.apagar':'Apagou uma sala',
+  'salas.apagar_massa':'Apagou salas em massa',
+  'saves.apagar_massa':'Apagou saves em massa',
+  'usuarios.apagar_massa':'Apagou contas de jogador',
+  'convites.apagar_massa':'Apagou convites de Resenha',
+  'senha.reenviar':'Reenviou link de senha',
+  /* finanças */
+  'lancamento.criar':'Criou lançamento',
+  'lancamento.apagar':'Apagou lançamento',
+  'config.editar':'Mudou caixa/meta',
+  /* publicidade */
+  'criativo.publicar':'Publicou criativo',
+  'criativo.tirar':'Tirou criativo do ar',
+  'espaco.ligar':'Ligou espaço de anúncio',
+  'espaco.desligar':'Desligou espaço de anúncio',
+  'patrocinador.criar':'Cadastrou patrocinador',
+  'patrocinador.apagar':'Apagou patrocinador',
+  /* funcionalidades (kanban) */
+  'feature.criar':'Criou card de funcionalidade',
+  'feature.apagar':'Apagou card de funcionalidade',
+  'feature.mover':'Moveu card de coluna',
+  'feature.voto':'Mudou votos de um card',
+  'coluna.criar':'Criou coluna do kanban',
+  'coluna.renomear':'Renomeou coluna do kanban',
+  'coluna.apagar':'Apagou coluna do kanban',
+  'kanban.ordem':'Reordenou as colunas',
+  /* conteúdo */
+  'conteudo.criar':'Criou pauta de conteúdo',
+  'conteudo.editar':'Editou pauta de conteúdo',
+  'conteudo.apagar':'Apagou pauta de conteúdo',
+  'conteudo.aprovar':'Aprovou conteúdo',
+  'conteudo.desaprovar':'Tirou a aprovação de um conteúdo',
+  /* parceiros */
+  'parceiro.criar':'Cadastrou parceiro',
+  'parceiro.editar':'Editou parceiro',
+  'parceiro.apagar':'Apagou parceiro',
+  'parceiro.status':'Mudou o status de um parceiro',
+  'parceiros.seguidores':'Atualizou seguidores dos canais',
+  'config.youtube_api_key':'Configurou a chave da API do YouTube',
+  /* dados do jogo */
+  'clube.criar':'Criou clube',
+  'clube.editar':'Editou clube e elenco',
+  'clube.reverter':'Reverteu as edições de um clube',
+  'pacote.criar':'Criou pacote de dados',
+  'pacote.importar':'Importou pacote de dados',
+  'competicoes.gravar':'Gravou competições',
+  'competicoes.arte':'Trocou a arte de uma competição',
+  'dados.csv_jogadores':'Exportou CSV de jogadores',
+  'dados.csv_economia':'Exportou CSV de economia',
+  /* vídeos dos momentos */
+  'momento.video':'Subiu vídeo de momento',
+  'momento.video_tirar':'Tirou o vídeo de um momento',
+  'momento.editar':'Editou um momento',
+  'momento.ligar':'Ligou um momento',
+  'momento.desligar':'Desligou um momento',
+  /* estúdio de imagens */
+  'estudio.escudo':'Gerou escudo por IA',
+  'estudio.escudo.lote.item':'Subiu escudo (lote)',
+  'estudio.foto':'Gerou foto de jogador',
+  'estudio.foto.lote':'Gerou fotos do elenco',
+  'estudio.fotos.reaproveitar':'Reaproveitou foto de jogador',
+  'estudio.fotos.recortar':'Recortou fotos',
+  'estudio.fotos.medir':'Remediu fotos',
+  'estudio.torso':'Gerou torso base',
+  'estudio.base.faces':'Gerou rostos base',
+  'estudio.treinador.refazer':'Refez avatar de treinador',
+  'estudio.treinadores.preparar':'Preparou avatares de treinador',
+  'estudio.estilos.preparar':'Preparou estilos de uniforme',
+  'estudio.molde.refazer':'Refez molde de uniforme',
+  'estudio.molde-mini.refazer':'Refez molde pequeno de uniforme',
+  'estudio.uniforme.aplicar':'Aplicou uniforme no clube',
+  'estudio.uniforme.rascunho':'Guardou rascunho de uniforme',
+  'estudio.uniforme.remover':'Removeu o uniforme do clube',
+  'estudio.uniformes.repintar':'Repintou uniformes',
+  'estudio.uniformes.repintar1':'Repintou o uniforme de um clube',
+  'estudio.elenco.remontar':'Remontou as fotos do elenco',
+  'estudio.camadas.pos':'Ajustou camadas do clube',
+  'estudio.camadas.pos.jogador':'Ajustou camadas de um jogador',
+  'estudio.patro.pos':'Ajustou o patrocínio na camisa',
+  'estudio.clube.cores':'Mudou as cores do clube'
+};
+/* prefixo → área, para a ação que ainda não está no catálogo acima */
+const AREA_POR_PREFIXO = {
+  convite:'acesso', papel:'acesso',
+  sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
+  lancamento:'financas',
+  criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade',
+  feature:'produto', coluna:'produto', kanban:'produto',
+  conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
+  clube:'dados', pacote:'dados', competicoes:'dados', dados:'dados',
+  momento:'videos', estudio:'imagens', config:'financas'
+};
+function areaDaAcao(acao){
+  const pre = String(acao||'').split('.')[0];
+  return AREA_POR_PREFIXO[pre] || 'outro';
+}
+function rotuloAcao(acao){ return ACOES[acao] || acao || '—'; }
+/* a frase curta que fica ao lado do rótulo — o "o quê", com o número que importa */
 function resumoAcao(a){
   const d = a.detalhe || {};
+  const lista = (v) => Array.isArray(v) && v.length ? v.join(', ') : '';
   if(a.acao==='sala.apagar')  return `${a.alvo} · ${d.assentos||0} assentos, ${d.humanos||0} humano${d.humanos===1?'':'s'}`;
   if(a.acao==='lancamento.apagar') return `${d.descricao||a.alvo||''}${d.valor?' · '+brl(d.valor):''}`;
+  if(a.acao==='lancamento.criar')  return `${a.alvo||''}${d.valor?' · '+brl(d.valor):''}${d.tipo?' · '+d.tipo:''}`;
+  if(a.acao==='config.editar')     return `${a.alvo} · de ${brl(d.de)} para ${brl(d.para)}`;
   if(a.acao==='criativo.publicar') return `${a.alvo}${d.bytes?' · '+Math.round(d.bytes/1024)+' KB':''}`;
+  if(a.acao==='clube.editar'){
+    const p = [];
+    if(d.novos)     p.push(`${d.novos} jogador${d.novos===1?'':'es'} novo${d.novos===1?'':'s'}${lista(d.nomes_novos)?' ('+lista(d.nomes_novos)+')':''}`);
+    if(d.jogadores) p.push(`${d.jogadores} alterado${d.jogadores===1?'':'s'}`);
+    if(d.removidos) p.push(`${d.removidos} removido${d.removidos===1?'':'s'}${lista(d.nomes_removidos)?' ('+lista(d.nomes_removidos)+')':''}`);
+    if(lista(d.campos)) p.push('campos: '+lista(d.campos));
+    return `${a.alvo} · ${p.join(' · ')||'sem mudança de elenco'}`;
+  }
+  if(a.acao==='feature.mover')     return `${a.alvo} · ${d.de||'?'} → ${d.para||'?'}`;
+  if(a.acao==='feature.voto')      return `${a.alvo} · ${d.de} → ${d.para} votos`;
+  if(a.acao==='coluna.renomear')   return `${d.de||''} → ${d.para||a.alvo||''}`;
+  if(a.acao==='momento.video')     return `${d.nome||a.alvo}${d.bytes?' · '+Math.round(d.bytes/1048576*10)/10+' MB':''}`;
+  if(/^momento\./.test(a.acao||'')) return d.nome || a.alvo || '—';
   if(d.papel) return `${a.alvo} · ${d.papel}`;
   return a.alvo || '—';
 }
 /* ============================ EQUIPE ADMIN ============================ */
-async function pgEquipa(){
+async function pgEquipa(forcar, senha = pedirDesenho()){
   // A lista de contas do jogo alimenta o seletor do convite: quase sempre o convidado
   // já é jogador, e digitar o e-mail dele de novo é onde nasce o erro de digitação
   // (o convite fica preso a um endereço que ninguém usa).
@@ -2791,6 +3002,7 @@ async function pgEquipa(){
   // só o dono do painel convida e mexe em papéis (regra do banco: admin_rf98.dono())
   const dono = !!ME.dono;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">
       <div class="card" style="overflow:hidden">
@@ -2858,16 +3070,19 @@ async function pgEquipa(){
     </div>
 
     <div class="card" style="overflow:hidden">
-      <div class="card-h"><b>Histórico de ações</b>
-        <span style="font-size:11.5px;color:var(--dim3)">quem mexeu em quê · o registro não pode ser editado nem apagado</span></div>
+      <div class="card-h"><b>Últimas ações</b>
+        <span style="font-size:11.5px;color:var(--dim3);flex:1">quem mexeu em quê · o registro não pode ser editado nem apagado</span>
+        <span class="link" id="eq-ver-registro" style="font-size:12px">Ver o registro completo →</span></div>
       ${(log.data||[]).length ? (log.data||[]).map(a=>`
         <div class="row" style="grid-template-columns:150px 1fr 1.2fr 130px;padding:10px 20px">
-          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${new Date(a.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
-          <span style="font-size:12.5px">${h(ACOES[a.acao]||a.acao)}</span>
+          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
+          <span style="font-size:12.5px">${h(rotuloAcao(a.acao))}</span>
           <span class="mono" style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">${h(resumoAcao(a))}</span>
           <span style="font-size:12px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">${h(a.quem_email||'—')}</span>
         </div>`).join('') : '<div class="vazio">Nenhuma ação registrada ainda.</div>'}
     </div>`;
+
+  el('eq-ver-registro').onclick = () => irPara('registro');
 
   if(dono){
     el('i-go').onclick = async () => {
@@ -2894,6 +3109,241 @@ async function pgEquipa(){
     });
   }
 }
+/* ============================ REGISTRO DE AÇÕES ============================
+   O log já existia — `adm_audit`, escrita pelo painel e pelas funções do banco,
+   sem UPDATE nem DELETE em RLS nenhuma (ninguém edita o próprio rastro). O que
+   faltava era a LEITURA: as últimas 40 linhas espremidas no fim da Equipe admin
+   não respondem "o que o Rafael andou a mexer esta semana?", que é a pergunta
+   dos sócios.
+
+   Esta página responde a isso por PESSOA e por ÁREA. O período é o do cabeçalho
+   (7 dias / 30 dias / Ano) — o mesmo seletor que o resto do painel usa, para
+   não haver duas noções de "período" na mesma tela.
+
+   TUDO É LIDO DO BANCO, nada é derivado da sessão: quem apareceu no log e já
+   saiu do painel continua a aparecer (marcado em âmbar), porque apagar a conta
+   não pode apagar o que ela fez. */
+const TETO_REGISTRO = 5000;   // linhas lidas por período; acima disto a tela avisa
+async function lerAuditoria(desdeISO){
+  const linhas = [];
+  for(let de = 0; de < TETO_REGISTRO; de += PAGINA_SB){
+    let q = sb.from('adm_audit').select('*').order('quando', { ascending:false });
+    if(desdeISO) q = q.gte('quando', desdeISO);
+    const r = await q.range(de, de + PAGINA_SB - 1);
+    if(r.error) throw r.error;
+    linhas.push.apply(linhas, r.data||[]);
+    if(!r.data || r.data.length < PAGINA_SB) break;
+  }
+  return linhas;
+}
+/* o que a busca livre varre: rótulo, chave, alvo e o detalhe inteiro em texto —
+   procurar "Palmeiras" tem de achar a edição de clube mesmo que o nome só exista
+   dentro do JSON do detalhe */
+function textoDaAcao(a){
+  return [a.acao, rotuloAcao(a.acao), a.alvo, a.quem_email, resumoAcao(a),
+          a.detalhe ? JSON.stringify(a.detalhe) : ''].join(' ').toLowerCase();
+}
+function regCSV(ls, nomeDe){
+  const cab = ['Quando','Quem','E-mail','Área','Ação','Chave da ação','Alvo','Detalhe'];
+  const linhas = ls.map(a => [
+    new Date(a.quando).toLocaleString('pt-BR'),
+    nomeDe(a), a.quem_email||'',
+    AREAS[areaDaAcao(a.acao)]||'', rotuloAcao(a.acao), a.acao, a.alvo||'',
+    a.detalhe ? JSON.stringify(a.detalhe) : ''
+  ].map(csvCampo).join(';'));
+  return '﻿' + cab.join(';') + '\r\n' + linhas.join('\r\n') + '\r\n';
+}
+async function pgRegistro(forcar, senha = pedirDesenho()){
+  const desde = new Date(Date.now() - ST.periodo*86400000).toISOString();
+  const [admins, log] = await Promise.all([
+    sb.from('adm_users').select('*').order('criado_em'),
+    lerAuditoria(desde)
+  ]);
+  if(admins.error) throw admins.error;
+  D.admins = admins.data || [];
+  D.registro = log;
+
+  /* Quem aparece no log e NÃO está mais em adm_users continua a contar: o
+     e-mail gravado na linha é a identidade que sobra. Sem isto, tirar o acesso
+     de alguém apagaria o histórico dele da tela — o oposto de auditoria. */
+  const porConta = new Map(D.admins.map(a => [a.user_id, a]));
+  const chaveDe = (a) => a.quem || ('email:'+(a.quem_email||'—'));
+  const nomeDe  = (a) => {
+    const u = porConta.get(a.quem);
+    return (u && (u.nome || u.email)) || a.quem_email || 'conta removida';
+  };
+
+  // ---- resumo por pessoa (do período inteiro, antes dos filtros da tabela) ----
+  const pessoas = new Map();
+  for(const a of log){
+    const k = chaveDe(a);
+    let p = pessoas.get(k);
+    if(!p){
+      const u = porConta.get(a.quem);
+      p = { chave:k, quem:a.quem, nome:nomeDe(a), email:a.quem_email||(u&&u.email)||'',
+            papel:(u&&u.papel)||null, fora:!u, n:0, areas:{}, ultima:a };
+      pessoas.set(k, p);
+    }
+    p.n++;
+    const ar = areaDaAcao(a.acao);
+    p.areas[ar] = (p.areas[ar]||0) + 1;
+    if(new Date(a.quando) > new Date(p.ultima.quando)) p.ultima = a;
+  }
+  const equipa = Array.from(pessoas.values()).sort((x,y) => y.n - x.n);
+
+  // ---- áreas presentes no período, para o filtro não oferecer o que não existe ----
+  const porArea = {};
+  log.forEach(a => { const ar = areaDaAcao(a.acao); porArea[ar] = (porArea[ar]||0)+1; });
+  const areasNoLog = Object.keys(porArea).sort((a,b) => porArea[b]-porArea[a]);
+  const areaTopo = areasNoLog[0];
+
+  // ---- filtros da tabela ----
+  const q = (ST.regBusca||'').trim().toLowerCase();
+  const visiveis = log.filter(a =>
+    (!ST.regQuem || chaveDe(a) === ST.regQuem) &&
+    (!ST.regArea || areaDaAcao(a.acao) === ST.regArea) &&
+    (!q || textoDaAcao(a).includes(q)));
+  D.registroVisivel = visiveis;
+
+  const linhaPessoa = (p) => {
+    const tops = Object.entries(p.areas).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const sel = ST.regQuem === p.chave;
+    return `<div class="row" data-pessoa="${h(p.chave)}" style="grid-template-columns:1.5fr 96px 1fr 110px 130px;cursor:pointer;${sel?'background:var(--card2,rgba(255,255,255,.04))':''}">
+      <span style="display:flex;align-items:center;gap:10px;min-width:0">
+        <i class="av" style="width:26px;height:26px;background:${corAv(p.nome)};color:#0c1210;font-size:11px">${h(iniciais(p.nome))}</i>
+        <span style="min-width:0">
+          <b style="display:block;font-size:13px;font-weight:600">${h(p.nome)}</b>
+          <small style="font-size:11.5px;color:${p.fora?'var(--ambar)':'var(--dim2)'}">
+            ${h(p.email||'—')}${p.fora?' · já não tem acesso':''}</small></span>
+      </span>
+      <span class="mono" style="font-size:13px;text-align:center;font-weight:700">${num(p.n)}</span>
+      <span style="font-size:11.5px;color:var(--dim2);display:flex;gap:6px;flex-wrap:wrap">
+        ${tops.map(([ar,n]) => `<span class="tag t-dim">${h(AREAS[ar]||ar)} ${n}</span>`).join('')}</span>
+      <span style="font-size:12px;color:var(--dim2);text-align:right">${h(ha(p.ultima.quando))}</span>
+      <span style="font-size:12px;color:var(--dim);text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
+            title="${h(rotuloAcao(p.ultima.acao))}">${h(rotuloAcao(p.ultima.acao))}</span>
+    </div>`;
+  };
+
+  const linhaAcao = (a, i) => `
+    <div class="row" data-acao="${i}" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr;cursor:pointer">
+      <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
+      <span style="font-size:12.5px;display:flex;align-items:center;gap:8px;min-width:0">
+        <i class="av" style="width:20px;height:20px;background:${corAv(nomeDe(a))};color:#0c1210;font-size:9px">${h(iniciais(nomeDe(a)))}</i>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(nomeDe(a))}</span></span>
+      <span><span class="tag t-dim">${h(AREAS[areaDaAcao(a.acao)]||'—')}</span></span>
+      <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${h(a.acao)}">${h(rotuloAcao(a.acao))}</span>
+      <span class="mono" style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${h(resumoAcao(a))}">${h(resumoAcao(a))}</span>
+    </div>`;
+
+  const filtrando = !!(ST.regQuem || ST.regArea || q);
+  const ultima = log[0];
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
+  el('page').innerHTML = `
+    <div class="g4">
+      ${kpiHTML({ l:'Ações no período', v:num(log.length),
+                  d: log.length>=TETO_REGISTRO ? `teto de ${num(TETO_REGISTRO)} — reduza o período` : `últimos ${ST.periodo} dias` })}
+      ${kpiHTML({ l:'Pessoas que mexeram', v:num(equipa.length),
+                  d:`${num(D.admins.length)} contas com acesso hoje` })}
+      ${/* nome de área é frase, não número: em corpo de KPI ele quebraria a linha */''}
+      ${kpiHTML({ l:'Área mais movimentada',
+                  v: `<span style="font-size:20px">${areaTopo ? h(AREAS[areaTopo]||areaTopo) : '—'}</span>`,
+                  d: areaTopo ? `${num(porArea[areaTopo])} de ${num(log.length)} ações` : 'nada registrado' })}
+      ${kpiHTML({ l:'Última ação', v: ultima ? h(ha(ultima.quando)) : '—',
+                  d: ultima ? `${nomeDe(ultima)} · ${rotuloAcao(ultima.acao)}` : 'nenhuma ainda' })}
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h"><b>Quem fez o quê</b>
+        <span style="font-size:11.5px;color:var(--dim3);flex:1">clique numa pessoa para filtrar a lista abaixo</span></div>
+      <div class="rowh" style="grid-template-columns:1.5fr 96px 1fr 110px 130px">
+        <span>Pessoa</span><span style="text-align:center">Ações</span><span>Onde mexeu</span>
+        <span style="text-align:right">Última</span><span style="text-align:right">O que foi</span>
+      </div>
+      ${equipa.length ? equipa.map(linhaPessoa).join('')
+        : '<div class="vazio">Ninguém mexeu no painel neste período.</div>'}
+    </div>
+
+    <div class="card" style="overflow:hidden;margin-top:16px">
+      <div class="card-h" style="flex-wrap:wrap;gap:10px">
+        <b>Registro</b>
+        <select class="f" id="rg-quem" style="width:auto;min-width:170px;font-size:12.5px">
+          <option value="">Todas as pessoas</option>
+          ${equipa.map(p=>`<option value="${h(p.chave)}" ${ST.regQuem===p.chave?'selected':''}>${h(p.nome)} (${p.n})</option>`).join('')}
+        </select>
+        <select class="f" id="rg-area" style="width:auto;min-width:150px;font-size:12.5px">
+          <option value="">Todas as áreas</option>
+          ${areasNoLog.map(ar=>`<option value="${h(ar)}" ${ST.regArea===ar?'selected':''}>${h(AREAS[ar]||ar)} (${porArea[ar]})</option>`).join('')}
+        </select>
+        <input class="busca" id="rg-busca" placeholder="Procurar clube, jogador, e-mail, ação…" value="${h(ST.regBusca)}">
+        <span class="mono" style="font-size:12px;color:var(--dim2)">${num(visiveis.length)}${filtrando?' de '+num(log.length):''} ações</span>
+        <button class="btn btn-sm btn-ghost" id="rg-csv">Baixar CSV</button>
+        ${filtrando?'<span class="link" id="rg-limpar" style="font-size:12px">limpar filtros</span>':''}
+      </div>
+      <div class="rowh" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr">
+        <span>Quando</span><span>Quem</span><span>Área</span><span>Ação</span><span>O quê</span>
+      </div>
+      ${visiveis.length ? visiveis.map(linhaAcao).join('')
+        : `<div class="vazio">${filtrando?'Nenhuma ação bate com o filtro.':'Nenhuma ação registrada neste período.'}</div>`}
+      <div style="border-top:1px solid var(--bd);padding:12px 20px;font-size:11.5px;color:var(--dim3);line-height:1.6">
+        O registro é escrito pelo painel e pelas funções do banco, e não tem UPDATE nem DELETE em
+        política nenhuma: ninguém — sócio incluído — edita ou apaga o próprio rastro. Clique numa
+        linha para ver o detalhe completo do que foi gravado.</div>
+    </div>`;
+
+  document.querySelectorAll('[data-pessoa]').forEach(l => l.onclick = () => {
+    ST.regQuem = (ST.regQuem === l.dataset.pessoa) ? '' : l.dataset.pessoa;   // clicar de novo desmarca
+    pgRegistro();
+  });
+  el('rg-quem').onchange = () => { ST.regQuem = el('rg-quem').value; pgRegistro(); };
+  el('rg-area').onchange = () => { ST.regArea = el('rg-area').value; pgRegistro(); };
+  if(el('rg-limpar')) el('rg-limpar').onclick = () => {
+    ST.regQuem = ST.regArea = ST.regBusca = ''; pgRegistro();
+  };
+  el('rg-csv').onclick = () => {
+    if(!visiveis.length) return toast('Não há ações para exportar.', true);
+    baixarTexto(`retrofoot98-registro-${new Date().toISOString().slice(0,10)}.csv`,
+                regCSV(visiveis, nomeDe), 'text/csv;charset=utf-8');
+  };
+  /* a busca redesenha a página, e redesenhar tira o foco do campo — por isso o
+     cursor é devolvido à posição em que estava (mesmo padrão da tela Usuários) */
+  const b = el('rg-busca'); let t;
+  b.oninput = () => { clearTimeout(t); t = setTimeout(() => {
+    ST.regBusca = b.value; pgRegistro().then(() => {
+      const n = el('rg-busca'); if(!n) return;
+      n.focus(); n.setSelectionRange(n.value.length, n.value.length);
+    });
+  }, 300); };
+  document.querySelectorAll('[data-acao]').forEach(l =>
+    l.onclick = () => modalAcao(visiveis[+l.dataset.acao], nomeDe));
+}
+/* o detalhe é JSON de propósito: cada ação guarda o que faz sentido para ela, e
+   uma tabela de colunas fixas não teria como abrigar "nomes dos jogadores
+   criados" ao lado de "bytes do criativo". Aqui ele aparece cru, formatado. */
+function modalAcao(a, nomeDe){
+  if(!a) return;
+  abrirModal(`
+    <h3>${h(rotuloAcao(a.acao))}</h3>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(a.acao)}</code>
+        <span style="color:var(--dim2);text-align:right">${h(AREAS[areaDaAcao(a.acao)]||'—')}</span></div>
+      <div><span style="color:var(--dim2)">Quem</span><b>${h(nomeDe(a))}</b></div>
+      <div><span style="color:var(--dim2)">Quando</span><b>${h(new Date(a.quando).toLocaleString('pt-BR'))}</b></div>
+      <div class="full"><span style="color:var(--dim2)">E-mail</span>
+        <span class="mono" style="text-align:right">${h(a.quem_email||'—')}</span></div>
+      <div class="full"><span style="color:var(--dim2)">Alvo</span>
+        <span class="mono" style="text-align:right">${h(a.alvo||'—')}</span></div>
+    </div>
+    <div class="col" style="margin-top:14px">
+      <div class="tt" style="font-size:12.5px">Detalhe gravado</div>
+      <pre class="mono" style="margin:0;padding:12px;border:1px solid var(--bd);border-radius:8px;
+           background:var(--card);font-size:11.5px;line-height:1.6;white-space:pre-wrap;
+           word-break:break-word;max-height:320px;overflow:auto">${h(a.detalhe ? JSON.stringify(a.detalhe, null, 2) : 'sem detalhe')}</pre>
+      <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>
+    </div>`);
+}
 /* quem é o dono do painel — só para explicar na tela a quem pedir acesso. Quem MANDA é o
    banco (admin_rf98.dono(), lido de adm_config['dono_email']); isto aqui é só o rótulo. */
 function donoEmail(){
@@ -2906,9 +3356,13 @@ function donoEmail(){
    não condição. */
 async function registrar(acao, alvo, detalhe){
   try{
-    const { data:{ user } } = await sb.auth.getUser();
-    await sb.from('adm_audit').insert({ quem:user.id, quem_email:user.email,
-      acao, alvo: alvo||null, detalhe: detalhe||null });
+    /* ME já traz a conta autenticada — getUser() é uma ida à rede por ação, e
+       registrar acontece no fim de todo salvamento. Só se ME ainda não existir
+       (registro logo depois de entrar) é que vale a pena perguntar. */
+    let id = ME && ME.user_id, email = ME && ME.email;
+    if(!id){ const { data:{ user } } = await sb.auth.getUser(); id = user.id; email = user.email; }
+    await sb.from('adm_audit').insert({ quem:id, quem_email:email,
+      acao, alvo: alvo==null?null:String(alvo), detalhe: detalhe||null });
   }catch(e){ console.warn('auditoria:', e && e.message); }
 }
 function copiarLink(token){
@@ -3178,10 +3632,13 @@ const CAMPOS_CLUBE_ADM = ['name','short','color','color2','crest','OS','MS','DS'
 
 }
 
-async function pgEditor(){
+async function pgEditor(forcar, senha = pedirDesenho()){
   const editar = podeEditar('dados');
   try{ await carregarCatalogo(); }
-  catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
+  catch(e){
+    if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
+    el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return;
+  }
 
   const packs = await jogo('data_packs').select('*').order('oficial', { ascending:false }).order('criado_em');
   if(packs.error) throw packs.error;
@@ -3189,6 +3646,7 @@ async function pgEditor(){
   if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
     ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
   const pack = D.packs.find(p=>p.id===ST.packId);
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const eds = await todasAsLinhas('pack_edits', pack.id, ['club_id']);
@@ -3208,6 +3666,7 @@ async function pgEditor(){
   D.catalogo = base;
 
   const aba = ST.abaEditor || 'clubes';
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     ${cabecalhoPatches(pack, editar)}
     <div class="per" style="gap:6px;margin-top:2px">
@@ -4067,10 +4526,16 @@ async function salvarClube(item){
   const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
   if(error) return toast(erroMsg(error), true);
   await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
-  registrar('clube.editar', String(c.id), {
-    pacote: ST.packId,
+  /* O log guarda os NOMES dos jogadores criados e removidos, não só a contagem:
+     "3 novos" não diz a ninguém o que entrou no elenco, e é justamente isso que
+     os sócios querem conferir depois. */
+  registrar('clube.editar', c.name || String(c.id), {
+    clube_id: String(c.id), pacote: ST.packId,
     campos: Object.keys(patch).filter(k=>!k.startsWith('squad')),
-    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length });
+    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length,
+    nomes_novos: novos.map(j=>j.n).filter(Boolean).slice(0,30),
+    nomes_alterados: Object.keys(squad).slice(0,30),
+    nomes_removidos: remover.slice(0,30) });
   fecharModal(); toast('Salvo no pacote.'); pgEditor();
 }
 
@@ -5247,7 +5712,7 @@ async function inscritosYoutube(handle, key){
   if(!item) return null;
   return Number(item.statistics && item.statistics.subscriberCount) || 0;
 }
-async function pgParceiros(){
+async function pgParceiros(forcar, senha = pedirDesenho()){
   const editar = podeEditar('publicidade');
   const { data, error } = await sb.rpc('parceiros');
   if(error) throw error;
@@ -5261,6 +5726,7 @@ async function pgParceiros(){
   const inscritos = ps.reduce((a,p)=>a+ +p.inscritos, 0);
   const pagantes = ps.reduce((a,p)=>a+ +p.pagantes, 0);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="kpis">
       ${kpiHTML({l:'Parceiros', v:num(ps.length), d:`${num(ps.filter(p=>p.estado==='ativo').length)} ativos`})}
@@ -5637,7 +6103,7 @@ const CANAIS = { youtube:['YouTube','#ff0033'], instagram:['Instagram','#c13584'
 const STATUS = { ideia:['Ideia','t-dim'], design:['Design','t-azul'], edicao:['Edição','t-warn'],
                  agendado:['Agendado','t-roxo'], publicado:['Publicado','t-ok'] };
 
-async function pgConteudo(){
+async function pgConteudo(forcar, senha = pedirDesenho()){
   const editar = podeEditar('publicidade') || podeEditar('produto');
   const { data, error } = await sb.from('adm_conteudo').select('*').order('data_prevista', { ascending:true, nullsFirst:false });
   if(error) throw error;
@@ -5648,6 +6114,7 @@ async function pgConteudo(){
   const semData = lista.filter(c => !c.data_prevista);
   const comData = lista.filter(c => c.data_prevista);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Na pauta', v:num(cs.length), d:`${num(cs.filter(c=>c.status==='ideia').length)} ainda são ideia`})}
@@ -8636,9 +9103,12 @@ function blocoTreinadoresHTML(){
     </div>`;
 }
 
-async function pgEstudio(){
+async function pgEstudio(forcar, senha = pedirDesenho()){
   try{ await carregarCatalogo(); }
-  catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
+  catch(e){
+    if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
+    el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return;
+  }
 
   const packs = await jogo('data_packs').select('*').order('oficial', { ascending:false }).order('criado_em');
   if(packs.error) throw packs.error;
@@ -8646,6 +9116,7 @@ async function pgEstudio(){
   if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
     ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
   const pack = D.packs.find(p=>p.id===ST.packId);
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const [eds, fotos] = await Promise.all([
@@ -8710,6 +9181,7 @@ async function pgEstudio(){
   const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY) && !k.endsWith('|'+TORSO_KEY_FEM) && !k.startsWith(MOLDE_KEY+'|')).length;
   const totalEscudosIA = base.filter(escudoIA).length;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="card card-p">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
