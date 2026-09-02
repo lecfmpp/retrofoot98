@@ -1024,7 +1024,14 @@ function rfImManchetesHTML(b){
     b.humanos.map((h,i)=>`${i+1}º ${escC(h.nome)} <span class="rf-im-par">(${escC(h.clube)} · ${escC(h.divLabel)}, ${h.pos}º)</span>`).join('<br>')));
   return out.join('');
 }
-function rfImEfeito(m){
+/* O PREÇO DE CADA RESPOSTA, EM PORTUGUÊS. A coletiva de rodada mexe em três
+   números (moral do elenco, segurança no cargo e reputação do treinador); a de
+   temporada, só na moral. Aceita a opção inteira — as antigas, que só têm `m`,
+   continuam a ler-se igual. */
+function rfImEfeito(o){
+  if(typeof o==='number') o={m:o};
+  if(typeof rfPressEfeitoTxt==='function') return rfPressEfeitoTxt(o);
+  const m=(o&&o.m)||0;
   if(m>0) return 'moral do elenco +'+m;
   if(m<0) return 'moral do elenco −'+Math.abs(m);
   return 'sem efeito, sem risco';
@@ -1032,8 +1039,17 @@ function rfImEfeito(m){
 function rfImprensaHTML(P){
   P=P||(typeof CL!=='undefined'?CL._press:null);
   if(!P) return '';
+  /* ===== SÃO DUAS COLETIVAS, E SÃO DUAS TELAS =====
+     A de RODADA é a entrevista pós-jogo do handoff de design (modal sobre a
+     sala de imprensa, três perguntas, barras de moral e cargo): mora em
+     rfEntrevistaHTML, no ficheiro da assessoria. Esta aqui continua a ser a
+     SALA DE IMPRENSA DE FIM DE TEMPORADA — manchetes do ano, medidores e as
+     cinco perguntas fixas —, que é outro momento e outro desenho. */
+  if(P.modo==='rodada' && typeof rfEntrevistaHTML==='function') return rfEntrevistaHTML(P);
   const seg=Math.max(0,CL._pressLeft!=null?CL._pressLeft:25);
-  const total=(typeof PRESS_QUESTIONS!=='undefined')?PRESS_QUESTIONS.length:0;
+  const qs=(typeof rfPressQs==='function')?rfPressQs(P)
+    :((P.qs&&P.qs.length)?P.qs:((typeof PRESS_QUESTIONS!=='undefined')?PRESS_QUESTIONS:[]));
+  const total=qs.length;
   let contexto, titulo, direita, acoes;
 
   if(P.step==='news'){
@@ -1052,7 +1068,7 @@ function rfImprensaHTML(P){
        depois carregar em "Dar a entrevista". O segundo passo não acrescentava nada — não há nada
        a rever entre um e outro, e ninguém escolhe uma resposta sem querer dá-la. Fica "Não
        declarar nada", que é uma resposta diferente, não uma confirmação. */
-    const q=PRESS_QUESTIONS[P.qIdx]||{opts:[]};
+    const q=qs[P.qIdx]||{opts:[]};
     contexto=`Coletiva de imprensa · pergunta ${P.qIdx+1} de ${total}`;
     titulo='Imprensa';
     direita='';
@@ -1064,14 +1080,14 @@ function rfImprensaHTML(P){
       <div class="rf-im-ops">
         ${(q.opts||[]).map((o,i)=>`<button type="button" class="rf-im-op" onclick="pressAnswer(${i})">
           <span class="rf-im-ot">${escC(o.t)}</span>
-          <span class="rf-im-oe">${escC(rfImEfeito(o.m||0))}</span>
+          <span class="rf-im-oe">${escC(rfImEfeito(o))}</span>
         </button>`).join('')}
       </div>
       <div class="rf-im-medidores">${rfImMedidoresHTML()}</div>
     </div>`;
     return rfStage({ w:1020, contexto, titulo, corpo:perguntaHTML, acoes });
   } else {
-    const d=Math.max(-15,Math.min(15,P.morale||0));
+    const d=Math.max(-15,Math.min(15,Math.round(P.morale||0)));
     const tom = d>0?'sobe':d<0?'cai':'estável';
     const moralTxt = d===0 ? 'A moral do elenco segue estável.'
       : `A moral do elenco <b>${tom}</b> ${d>0?'+':'−'}${Math.abs(d)} ponto${Math.abs(d)===1?'':'s'} para o início da temporada.`;
@@ -1085,6 +1101,8 @@ function rfImprensaHTML(P){
       <button type="button" class="rf-ov-cta" onclick="pressFinish()">Começar a temporada</button>`;
   }
 
+  /* A COLUNA DA ESQUERDA É O JORNAL: o balanço do ano antes da coletiva, e
+     depois dela o que a sua própria boca produziu. */
   const esquerda = P.step==='fim'
     ? ((P.answers||[]).filter(a=>a.h).map(a=>rfImNoticia('Declaração','Coletiva · agora há pouco', escC(a.h), escC(a.t))).join('')
        || rfImNoticia('Silêncio','Coletiva · agora há pouco','Sem declarações','Você preferiu não falar com a imprensa.'))

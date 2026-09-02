@@ -3112,12 +3112,28 @@ function rfLeituraHTML(){
       <span class="rf-label-r">${escC(rfQuandoHTML(e))}</span>
     </div>
     <div class="rf-mail-body">${e.body||''}</div>
-    <div class="rf-acts">
-      <button type="button" class="rf-btn rf-btn-secondary"
-        onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">📥 Arquivar</button>
-      <button type="button" class="rf-btn rf-btn-cta"
-        onclick="rfAcAbrir('${e.kind==='prize'?'mail-imprensa':'mail-responder'}',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">${e.kind==='prize'?'🎙️ Falar com a imprensa':'↩ Responder'}</button>
-    </div>`;
+    <div class="rf-acts">${rfEmailBotoesHTML(e)}</div>`;
+}
+/* OS BOTÕES DE UM E-MAIL, num sítio só. Esta leitura (layout antigo de "Clube &
+   Sistema") e a da página E-mail mostravam a mesma fila codificada duas vezes —
+   e as duas mandavam qualquer mensagem para o diálogo genérico de "responder à
+   diretoria". A regra de qual botão aparece vive agora em rf26-email-config.js
+   (rfEmailDestino/RF_EMAIL_RESP); aqui só se desenha o que ela decidir. */
+function rfEmailBotoesHTML(e){
+  const chave=escC(e.key), assunto=escC(e.subject||'');
+  const tipo=(typeof rfEmailTipo==='function')?rfEmailTipo(e):(e.kind||'');
+  const dest=(typeof rfEmailDestino==='function')?rfEmailDestino(e):null;
+  const temResposta=(typeof RF_EMAIL_RESP!=='undefined') && !!RF_EMAIL_RESP[tipo];
+  const out=[];
+  if(dest) out.push(`<button type="button" class="rf-btn rf-btn-cta"
+      onclick="rfEmailIr('${chave}')">${escC(dest.label)}</button>`);
+  if(tipo==='prize') out.push(`<button type="button" class="rf-btn ${dest?'rf-btn-secondary':'rf-btn-cta'}"
+      onclick="rfAcAbrir('mail-imprensa',{key:'${chave}',assunto:'${assunto}'})">Falar com a imprensa</button>`);
+  else if(temResposta) out.push(`<button type="button" class="rf-btn ${dest?'rf-btn-secondary':'rf-btn-cta'}"
+      onclick="rfAcAbrir('mail-responder',{key:'${chave}',assunto:'${assunto}'})">${e.reply?'Ver a sua resposta':'Responder'}</button>`);
+  out.push(`<button type="button" class="rf-btn rf-btn-secondary"
+      onclick="rfAcAbrir('mail-arquivar',{key:'${chave}',assunto:'${assunto}'})">Arquivar</button>`);
+  return out.join('');
 }
 /* OPÇÕES: cada linha é rótulo + explicação + controle, como na referência */
 function rfOpcaoHTML(titulo, explica, controle){

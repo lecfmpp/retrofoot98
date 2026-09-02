@@ -1,0 +1,162 @@
+# Publica o SITE no Firebase Hosting.
+#
+# POR QUE existe: o deploy do site era `npm run deploy` na máquina do dono — o único
+# caminho, e só funciona com a CLI logada naquela máquina. Quem não estivesse nela
+# (uma sessão remota, outro computador, um domingo) não conseguia publicar nada, mesmo
+# com o build passando. Aqui a credencial vive nos secrets do repositório, o build roda
+# nos mesmos portões de sempre e o deploy é disparado pela aba Actions.
+#
+# NÃO publica sozinho a cada push, e isso é deliberado: o site do jogo tem salas de
+# Resenha em andamento, e publicar no meio de uma rodada troca o JavaScript debaixo de
+# quem está jogando (ver o carimbo do motor em scripts/versao-motor.mjs). Quem decide a
+# hora é uma pessoa, na aba Actions -> "Publicar o site" -> Run workflow.
+#
+# SETUP (uma vez): crie a credencial de serviço e guarde-a no repositório.
+#
+#   CAMINHO CURTO (a própria CLI cria a conta e o secret):
+#     firebase init hosting:github        # na raiz do projeto, logado como dono
+#   Ele cria um secret com nome próprio (FIREBASE_SERVICE_ACCOUNT_ELIFOOT_D368D ou
+#   parecido) e workflows de exemplo. GUARDE OS WORKFLOWS DELE FORA DAQUI — este
+#   ficheiro já faz o trabalho, com os portões do projeto. Copie o VALOR do secret
+#   criado para um secret chamado FIREBASE_SERVICE_ACCOUNT (o nome que este workflow lê),
+#   ou renomeie a variável abaixo.
+#
+#   CAMINHO À MÃO:
+#     1. console.cloud.google.com -> projeto elifoot-d368d -> IAM e Admin -> Contas de
+#        serviço -> Criar. Papel: "Firebase Hosting Admin" (roles/firebasehosting.admin).
+#        Se o deploy reclamar de quota/API, some "Consumidor do Service Usage".
+#     2. Nessa conta -> Chaves -> Adicionar chave -> JSON -> baixar.
+#     3. github.com/lecfmpp/retrofoot98 -> Settings -> Secrets and variables -> Actions
+#        -> New repository secret -> nome: FIREBASE_SERVICE_ACCOUNT
+#        -> valor: o CONTEÚDO INTEIRO do JSON baixado.
+#
+# A chave nunca aparece no log: entra por variável de ambiente, é escrita num ficheiro
+# temporário do runner e apagada no fim, mesmo quando o deploy falha.
+name: Publicar o site
+
+on:
+  workflow_dispatch:
+    inputs:
+      alvo:
+        description: 'Onde publicar'
+        type: choice
+        default: beta
+        options:
+          - beta      # retrofoot98-beta.web.app — o provisório, para testar no ar
+          - jogo      # retrofoot98.com.br — PRODUÇÃO, com salas em andamento
+          - admin     # admin.retrofoot98.com.br — o painel dos sócios
+        required: true
+      motivo:
+        description: 'O que está a subir (fica no log da execução)'
+        type: string
+        required: false
+
+# dois deploys no mesmo alvo não podem correr em paralelo: o último a terminar venceria,
+# e não necessariamente é o commit mais novo. Alvos diferentes não disputam nada.
+concurrency:
+  group: deploy-hosting-${{ inputs.alvo }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: O que vai subir
+        run: |
+          echo "alvo   : ${{ inputs.alvo }}"
+          echo "ref    : ${{ github.ref_name }}"
+          echo "commit : $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
+          echo "motivo : ${{ inputs.motivo }}"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # PORTÃO DO CARIMBO DO MOTOR. `npm run build` REESCREVE o carimbo quando ele está
+      # atrasado — e aí o site subiria com um carimbo que não existe em nenhum commit:
+      # quem tem a aba aberta receberia pedido de recarga por uma versão que ninguém
+      # consegue reproduzir a partir do repositório. Aqui ele só CONFERE, e falha se
+      # estiver por gravar. O conserto é `node scripts/versao-motor.mjs` + commit.
+      - name: Carimbo do motor em dia
+        if: inputs.alvo != 'admin'
+        run: node scripts/versao-motor.mjs --check
+
+      # O MESMO `npm run build` da máquina do dono, com os mesmos portões dentro dele:
+      # regras de mundo cliente=servidor, calendário, pirâmide de país, virada de
+      # temporada, regressão masculina e identidade. Se algum falhar, não se publica.
+      # O painel (`admin`) serve public/admin direto e não passa pelo bundler.
+      - name: Build (com os testes do projeto)
+        if: inputs.alvo != 'admin'
+        run: npm run build
+
+      # A credencial entra por env e vai para um ficheiro do runner — nunca para a linha
+      # de comando (que apareceria no log) nem para o repositório.
+      - name: Preparar a credencial
+        env:
+          CONTA_DE_SERVICO: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$CONTA_DE_SERVICO" ]; then
+            echo "FALTA O SECRET FIREBASE_SERVICE_ACCOUNT — veja o cabeçalho deste workflow."
+            exit 1
+          fi
+          printf '%s' "$CONTA_DE_SERVICO" > "$RUNNER_TEMP/firebase-sa.json"
+          node -e "JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/firebase-sa.json','utf8'))" \
+            || { echo "O secret não é um JSON válido — cole o ficheiro inteiro da chave."; exit 1; }
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy
+        run: |
+          npx --yes firebase-tools@latest deploy \
+            --only "hosting:${{ inputs.alvo }}" \
+            --project elifoot-d368d \
+            --non-interactive \
+            --message "${{ github.ref_name }}@$(git rev-parse --short HEAD) ${{ inputs.motivo }}"
+
+      # O DEPLOY TEM DE ESTAR NO AR, não só ter respondido "success". Compara o index.html
+      # SERVIDO com o que acabou de ser construído: se forem o mesmo ficheiro, o que está
+      # no ar é este commit. O hosting serve `**` com no-cache (ver firebase.json), então
+      # a comparação é honesta; o laço cobre os segundos de propagação do CDN.
+      - name: Conferir que o que está no ar é este build
+        run: |
+          case "${{ inputs.alvo }}" in
+            jogo)  URL="https://elifoot-d368d.web.app";     LOCAL="dist/index.html" ;;
+            beta)  URL="https://retrofoot98-beta.web.app";  LOCAL="dist/index.html" ;;
+            admin) URL="https://retrofoot98-admin.web.app"; LOCAL="public/admin/index.html" ;;
+          esac
+          esperado=$(sha256sum "$LOCAL" | cut -d' ' -f1)
+          echo "esperado: $esperado  ($LOCAL)"
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o /tmp/no-ar.html -w '%{http_code}' "$URL/index.html")
+            servido=$(sha256sum /tmp/no-ar.html | cut -d' ' -f1)
+            echo "tentativa $i -> HTTP $code  sha $servido"
+            if [ "$code" = "200" ] && [ "$servido" = "$esperado" ]; then
+              echo "OK: $URL está a servir este build."
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "FALHOU: $URL respondeu $code e não bate com o build local."
+          echo "(o deploy pode ter subido à mesma — confira em $URL antes de repetir)"
+          exit 1
+
+      # apaga a chave mesmo quando o deploy falha
+      - name: Apagar a credencial
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-sa.json"
+
+      - name: Onde ficou
+        run: |
+          case "${{ inputs.alvo }}" in
+            jogo)  echo "No ar: https://retrofoot98.com.br (e https://elifoot-d368d.web.app)" ;;
+            beta)  echo "No ar: https://retrofoot98-beta.web.app" ;;
+            admin) echo "No ar: https://admin.retrofoot98.com.br (e https://retrofoot98-admin.web.app)" ;;
+          esac

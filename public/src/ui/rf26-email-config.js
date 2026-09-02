@@ -44,8 +44,125 @@ function rfEmLinha(e){
   </div>`;
 }
 
+/* =====================================================================
+   O QUE CADA E-MAIL É, ONDE SE EXECUTA, E O QUE SE PODE RESPONDER
+
+   O PROBLEMA. Todo e-mail que não fosse premiação abria o MESMO diálogo — o
+   "resposta à diretoria", com três opções sobre ACEITAR UMA META. Chegava
+   uma proposta de dez milhões por um titular e as respostas eram "Assumo a
+   meta / Peço mais tempo / Discordo da meta"; nenhuma delas dizia respeito à
+   mensagem, e nenhuma fazia coisa alguma (a escolha era guardada no e-mail e
+   mais nada). E o botão que devia levar ao sítio onde a coisa se resolve não
+   existia: o `action.go` que o motor escrevia falava a linguagem das abas
+   antigas (CL.tab="financas"), que o envelope de 2026 não usa.
+
+   A CORREÇÃO, em três peças:
+     · rfEmailTipo   — o que a mensagem é, com o detalhe que o `kind` não dá
+                       (risco de aposentadoria ≠ aposentadoria consumada;
+                       caixa no vermelho ≠ transferência fechada).
+     · rfEmailIr     — o BOTÃO QUE LEVA AO LUGAR CERTO, pela navegação nova
+                       (rfGo(página, aba)), com o e-mail marcado como lido.
+     · RF_EMAIL_RESP — a resposta REAL de cada tipo: opções escritas sobre os
+                       fatos daquela mensagem, e efeito de verdade na moral do
+                       elenco, na segurança no cargo e na reputação — os mesmos
+                       três números da assessoria de imprensa.
+   ===================================================================== */
+function rfEmailTipo(e){
+  if(!e) return '';
+  const k=String(e.key||'');
+  if(k.indexOf('risco-')===0) return 'risco';
+  if(k.indexOf('caixa-')===0) return 'caixa';
+  return e.kind||'';
+}
+/* DESTINO PADRÃO POR TIPO. O e-mail pode trazer o seu (`nav`, escrito em
+   syncInbox); esta tabela é a rede para os que ficaram guardados antes disso —
+   uma caixa de entrada sobrevive ao save, e mensagem velha não pode ficar sem
+   botão. */
+const RF_EMAIL_DEST = {
+  offer:   { label:'Ver a proposta',           page:'mercado',     tab:'propostas' },
+  counter: { label:'Ver a contraproposta',     page:'mercado',     tab:'contra' },
+  job:     { label:'Ver o convite',            page:'treinador',   tab:'ofertas' },
+  warn:    { label:'Ver a classificação',      page:'campeonatos', tab:'classificacao' },
+  retire:  { label:'Ver o elenco',             page:'elenco',      tab:'elenco' },
+  risco:   { label:'Ver quem pode sair',       page:'mercado',     tab:'vender' },
+  money:   { label:'Ver o extrato',            page:'financas',    tab:'extrato' },
+  caixa:   { label:'Ver as finanças',          page:'financas',    tab:'resumo' },
+  prize:   { label:'Ver o resumo financeiro',  page:'financas',    tab:'resumo' },
+};
+function rfEmailDestino(e){
+  if(!e) return null;
+  const n=e.nav;
+  if(n && n.page) return { label:n.label||'Abrir', page:n.page, tab:n.tab||'' };
+  return RF_EMAIL_DEST[rfEmailTipo(e)]||null;
+}
+function rfEmailIr(key){
+  const e=(CL.inbox||[]).find(x=>x.key===key);
+  const d=rfEmailDestino(e);
+  if(!d){ toastC('Esta mensagem não pede nenhuma ação.'); return; }
+  if(e && !e.read){ e.read=true; if(typeof saveInbox==='function') saveInbox(); }
+  if(typeof rfAcFechar==='function' && CL.acao) CL.acao=null;
+  rfGo(d.page, d.tab||undefined);
+}
+
+/* AS RESPOSTAS QUE VALEM ALGUMA COISA.
+   `m` moral do elenco · `c` segurança no cargo · `r` reputação do treinador.
+   Os números são pequenos de propósito — um e-mail inclina a temporada, não a
+   decide —, e cada opção diz o seu preço ANTES do clique.
+   `efeito` é o gancho para o que muda no jogo além dos números (hoje só o
+   convite recusado, que sai mesmo da mesa). */
+const RF_EMAIL_RESP = {
+  offer: {
+    kicker:'E-MAIL · RESPOSTA AO DIRETOR DE FUTEBOL',
+    intro:d=>`O ${escC(d.clube||'clube interessado')} ofereceu <b>${escC(rfDin(d.valor||0))}</b> por <b>${escC(d.jogador||'um jogador seu')}</b>. O diretor quer saber a sua posição antes de responder.`,
+    ops:[
+      { t:'Esse jogador não está à venda',        s:'o elenco vê que você segura o time · a diretoria queria o dinheiro', m:+4, c:-3, r:+1, fala:'cravou que não vende o titular' },
+      { t:'Escuto se cobrirem o valor de mercado',s:'sem promessa a ninguém; nada muda no vestiário',                     m: 0, c: 0, r:+1, fala:'deixou a negociação em aberto' },
+      { t:'Pode negociar, o caixa precisa',       s:'a diretoria aprova · o vestiário estranha',                          m:-3, c:+4, r: 0, fala:'liberou a venda para reforçar o caixa' } ],
+    nota:'A venda em si é decidida no Mercado, em <b>Propostas</b> — isto é a sua posição pública sobre ela.' },
+
+  job: {
+    kicker:'E-MAIL · RESPOSTA AO PRESIDENTE',
+    intro:d=>`O ${escC(d.clube||'clube')} ofereceu <b>${escC(rfDin(d.salario||0))}</b> de salário${d.verba?` e <b>${escC(rfDin(d.verba))}</b> de verba`:''}. O seu clube atual está a ver o que você responde.`,
+    ops:[
+      { t:'Estou feliz aqui. Não vou conversar',  s:'tira o convite da mesa · o elenco e a diretoria valorizam a lealdade', m:+3, c:+5, r:+1, fala:'recusou publicamente o convite', efeito:'recusarConvite' },
+      { t:'Não comento propostas',                s:'o convite continua na mesa; ninguém se ofende',                       m: 0, c: 0, r:+1, fala:'não quis comentar o convite' },
+      { t:'Vou ouvir o que eles têm a dizer',     s:'o convite continua na mesa · aqui dentro ninguém gosta',              m:-4, c:-6, r:+2, fala:'admitiu ouvir outro clube' } ],
+    nota:'Aceitar de verdade é em <b>Treinador · Ofertas</b>, onde estão os termos completos.' },
+
+  warn: {
+    kicker:'E-MAIL · RESPOSTA À DIRETORIA',
+    intro:d=>`A segurança no cargo está em <b>${d.cargo!=null?d.cargo:'—'}/100</b>${d.posicao?` e o time é o <b>${d.posicao}º</b> colocado`:''}. O presidente quer uma resposta, não um relatório.`,
+    ops:[
+      { t:'Assumo a responsabilidade. O problema é meu', s:'a diretoria gosta da postura · o elenco se sente protegido', m:+5, c:+4, r:+1, fala:'assumiu a responsabilidade pela crise' },
+      { t:'O elenco precisa render mais',                s:'a diretoria concorda · o vestiário escuta a cobrança',       m:-6, c:+2, r: 0, fala:'cobrou publicamente o elenco' },
+      { t:'Me deem tempo. O trabalho é de médio prazo',  s:'sem promessa; a diretoria anota o pedido',                   m:+1, c:-3, r: 0, fala:'pediu tempo à diretoria' } ],
+    nota:'Abaixo de 15 na segurança no cargo, a demissão passa a ser sorteada a cada rodada.' },
+
+  retire: {
+    kicker:'E-MAIL · RESPOSTA AO DIRETOR DE FUTEBOL',
+    intro:d=>`${d.quantos===1?'Um jogador pendurou':(d.quantos||'Alguns')+' jogadores penduraram'} as chuteiras${(d.nomes&&d.nomes.length)?': <b>'+escC(d.nomes.slice(0,4).join(', '))+'</b>':''}. O clube pergunta como marcar a saída.`,
+    ops:[
+      { t:'Homenagem no próximo jogo em casa',    s:'o vestiário inteiro sente o gesto',                     m:+4, c: 0, r:+1, fala:'anunciou homenagem aos que se aposentaram' },
+      { t:'Agradecer nos bastidores e seguir',    s:'discreto; nada muda',                                   m: 0, c: 0, r: 0, fala:'agradeceu discretamente' },
+      { t:'Renovar o elenco agora é a prioridade',s:'a diretoria aprova · o grupo entende como recado',      m:-2, c:+3, r: 0, fala:'colocou a renovação do elenco à frente' } ],
+    nota:'As vagas abertas na folha aparecem no Mercado ainda nesta janela.' },
+
+  caixa: {
+    kicker:'E-MAIL · RESPOSTA AO PRESIDENTE',
+    intro:d=>`O caixa fechou a semana em <b>${escC(rfDin(d.caixa||0))}</b>${d.folha?` com uma folha de <b>${escC(rfDin(d.folha))}</b>/mês`:''}. O presidente quer saber o seu plano.`,
+    ops:[
+      { t:'Vou vender quem estiver sobrando',     s:'a diretoria aprova · o elenco fica em alerta',          m:-3, c:+5, r: 0, fala:'prometeu vendas para equilibrar o caixa' },
+      { t:'Corto custos sem mexer no elenco',     s:'ninguém se assusta; a conta continua apertada',         m:+1, c:+1, r: 0, fala:'prometeu cortar custos sem vender ninguém' },
+      { t:'Preciso de aporte da diretoria',       s:'o grupo aprova · a diretoria não gostou do recado',     m:+3, c:-5, r: 0, fala:'pediu aporte à diretoria em público' } ],
+    nota:'O jogo não deixa o caixa financiar compras no vermelho — vender é o caminho mais rápido.' },
+};
+
 /* A LEITURA: assunto em serifa, bloco do remetente com escudo, corpo, e a
-   fila de botões separada por filete. */
+   fila de botões separada por filete.
+   OS BOTÕES SEGUEM A MENSAGEM. O primeiro é o que ela PEDE (ir ao sítio onde
+   se executa); o segundo, quando existe, é a RESPOSTA daquele assunto. Uma
+   mensagem que não pede nada — uma venda concluída, um extrato — não ganha
+   botão nenhum inventado. */
 function rfEmLeituraHTML(){
   const box=rfInbox();
   const e=CL.inboxOpen? box.find(x=>x.key===CL.inboxOpen) : box[0];
@@ -54,6 +171,15 @@ function rfEmLeituraHTML(){
     <div class="rf-empty">Escolha um e-mail na lista ao lado.</div></div>`;
   const cl=clubOf(CL.clubId)||{short:'—'};
   const de=e.from||('Diretoria do '+(cl.short||''));
+  /* A RESPOSTA JÁ DADA FICA NO PRÓPRIO E-MAIL. O motor não tem um "histórico da
+     direção" separado — o e-mail é o registo, e sem isto o jogador respondia e
+     nada na tela dizia o que tinha dito. */
+  const resposta=e.reply?`<div class="rf-ml-resp">
+      <span class="rf-label-t">A SUA RESPOSTA</span>
+      <p class="rf-ml-resp-t">“${escC(e.reply.opcao||'—')}”</p>
+      ${e.reply.nota?`<p class="rf-ml-resp-n">${escC(e.reply.nota)}</p>`:''}
+      ${e.reply.efeitoTxt?`<span class="rf-ml-resp-e">${escC(e.reply.efeitoTxt)}</span>`:''}
+    </div>`:'';
   return `<div class="rf-card">
     <div class="rf-label"><span class="rf-label-t">MENSAGEM ABERTA</span>
       <span class="rf-label-r">${escC(String(e.from||'').split('·')[0].trim()||'—')} · ${escC(rfQuandoHTML(e))}</span></div>
@@ -72,13 +198,8 @@ function rfEmLeituraHTML(){
         </span>
       </div>
       <div class="rf-ml-corpo">${e.body||''}</div>
-      <div class="rf-ml-acts">
-        <button type="button" class="rf-btn rf-btn-secondary"
-          onclick="rfAcAbrir('mail-arquivar',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">Arquivar</button>
-        <!-- premiação não se "responde à diretoria": dá-se uma coletiva (ver 'mail-imprensa') -->
-        <button type="button" class="rf-btn rf-btn-cta"
-          onclick="rfAcAbrir('${e.kind==='prize'?'mail-imprensa':'mail-responder'}',{key:'${escC(e.key)}',assunto:'${escC(e.subject||'')}'})">${e.kind==='prize'?'Falar com a imprensa':'Responder'}</button>
-      </div>
+      ${resposta}
+      <div class="rf-ml-acts">${rfEmailBotoesHTML(e)}</div>
     </div>
   </div>`;
 }
@@ -616,20 +737,69 @@ function rfImprensaGo(key){
   rfAcFechar();
   toastC('Coletiva dada — moral '+(f.moral>=0?'+':'')+f.moral+' em '+n+' jogadores, cargo '+(f.cargo>=0?'+':'')+f.cargo+'.');
 }
-/* Responder à diretoria: guarda a resposta escolhida no próprio e-mail e
-   marca-o lido. O motor não tem um "histórico da direção" separado — o e-mail
-   é o registo, e a resposta fica nele. */
+/* ===== RESPONDER A UM E-MAIL MEXE NO JOGO =====
+   A resposta antiga lia o texto do botão selecionado no DOM, guardava-o no
+   e-mail e acabava aí: escolher "Assumo a meta" ou "Discordo da meta" dava
+   exactamente no mesmo. Aqui a opção vem da TABELA do tipo daquela mensagem
+   (RF_EMAIL_RESP), e o que ela promete é o que acontece: moral de todo o
+   elenco, segurança no cargo e reputação do treinador — os mesmos três números
+   da coletiva de imprensa, aplicados com os mesmos tetos.
+   Uma vez por mensagem: o botão continua lá depois (para reler o que se disse),
+   e sem esta trava dava para reabrir e somar moral sem limite. */
 function rfMailResponderGo(key){
   const e=(CL.inbox||[]).find(x=>x.key===key);
   if(!e){ toastC('Essa mensagem não está mais na caixa.'); rfAcFechar(); return; }
-  const sel=document.querySelector('.rf-ac-op.on,.rf-ac-opcao.on');
+  if(e.reply){ toastC('Você já respondeu a esta mensagem.'); rfAcFechar(); return; }
+  const def=RF_EMAIL_RESP[rfEmailTipo(e)];
+  if(!def){ rfAcFechar(); return; }
+  const d=(typeof rfAcD==='function')?rfAcD():{};
+  const i=(d.resp!=null)?d.resp:0;
+  const o=def.ops[i];
+  if(!o){ toastC('Escolha o que responder.'); return; }
+
+  const lim=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const dMoral=o.m||0, dCargo=o.c||0, dRep=o.r||0;
+  let n=0;
+  if(dMoral){
+    try{ (squad(CL.clubId)||[]).forEach(p=>{ p.moral=lim((p.moral==null?70:p.moral)+dMoral,0,100); n++; }); }
+    catch(err){ console.warn('moral:', err&&err.message); }
+    /* na Resenha a moral só sobrevive se for publicada: aplicar no cliente seria
+       desfeito na adoção da rodada seguinte (mesma regra da coletiva). */
+    if(CL.online) S._netMorale=(S._netMorale||0)+dMoral;
+  }
+  if(dCargo) S.jobSecurity=lim((S.jobSecurity==null?60:S.jobSecurity)+dCargo,0,100);
+  if(dRep)   S.coachRep   =lim((S.coachRep==null?50:S.coachRep)+dRep,0,100);
+  if(o.efeito==='recusarConvite') rfEmailRecusarConvite(e);
+
+  const partes=[];
+  if(dMoral) partes.push('moral do elenco '+(dMoral>0?'+':'')+dMoral);
+  if(dCargo) partes.push('cargo '+(dCargo>0?'+':'')+dCargo+' (agora '+S.jobSecurity+'/100)');
+  if(dRep)   partes.push('reputação '+(dRep>0?'+':'')+dRep+' (agora '+S.coachRep+'/100)');
+  const efeitoTxt=partes.length?partes.join(' · '):'sem efeito';
+
   const txt=document.querySelector('#rf-ac-msg');
-  e.reply={ opcao:(sel&&sel.textContent.trim().split('\n')[0])||'—',
-            nota:((txt&&txt.value)||'').slice(0,140), at:Date.now() };
+  e.reply={ opcao:o.t, nota:((txt&&txt.value)||'').slice(0,140), at:Date.now(), efeitoTxt };
   e.read=true;
   if(typeof saveInbox==='function') saveInbox();
+
+  S.roundNews=S.roundNews||[];
+  S.roundNews.push('✉️ '+(o.fala?('Você '+o.fala):('Você respondeu a "'+(e.subject||'')+'"'))
+    + (partes.length?(' — '+efeitoTxt+'.'):'.'));
+  try{ if(typeof persistCareer==='function') persistCareer(); }catch(err){}
+  try{ if(typeof rfGravar==='function') rfGravar(); else if(typeof saveV3==='function') saveV3(); }catch(err){}
   rfAcFechar();
-  toastC('Resposta enviada à diretoria.');
+  toastC(partes.length?('Resposta enviada — '+efeitoTxt+'.'):'Resposta enviada.');
+}
+/* "Não vou conversar" TIRA O CONVITE DA MESA — senão o treinador recusava em
+   público e a proposta continuava a piscar em Treinador · Ofertas. Tirado o
+   convite, o próprio syncInbox faz a faxina do e-mail (ver a lista `vivos`). */
+function rfEmailRecusarConvite(e){
+  const dd=e.dados||{};
+  if(String(e.key||'').indexOf('rjob-')===0){ CL._pendingResenhaOffer=null; return true; }
+  const arr=S.pendingJobOffers||[];
+  const i=arr.findIndex(o=>String(o.clubId)===String(dd.clubeId));
+  if(i>=0){ arr.splice(i,1); return true; }
+  return false;
 }
 
 /* Pular a espera: é o mesmo "aguardar mais um pouco" do painel da sala — adia

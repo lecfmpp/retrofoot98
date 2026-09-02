@@ -590,10 +590,16 @@ const RF_ACOES = {
   const e=((CL.inbox||[]).find(x=>x.key===d.key))||{};
   const jaFalou=!!e.reply;
   const seg=(S&&S.jobSecurity!=null)?S.jobSecurity:60;
+  /* a coletiva também fala do CASO: quanto entrou e de que temporada. Sem isto,
+     a janela pedia uma declaração sobre um prémio que não nomeava. */
+  const dd=e.dados||{};
+  const ficha=dd.total?rfAcAvisoHTML(
+    `O ${escC(dd.clube||'clube')} recebeu <b>${escC(rfDin(dd.total))}</b> pela temporada <b>${escC(String(dd.temporada||''))}</b>. Os jornalistas querem a sua leitura da campanha.`):'';
   const corpo = jaFalou
     ? rfAcSeloHTML(rfIcone('megafone',18),'Você já falou','“'+escC((e.reply&&e.reply.opcao)||'—')+'”')
       + rfAcNotaHTML('A coletiva desta premiação já aconteceu. A próxima vem no fim da temporada.')
-    : rfAcOpcoesHTML('resp', RF_IMPRENSA.map(o=>({t:o.t, s:o.s})), d.resp)
+    : ficha
+      + rfAcOpcoesHTML('resp', RF_IMPRENSA.map(o=>({t:o.t, s:o.s})), d.resp)
       + rfAcLinhaHTML('Segurança no cargo agora', seg+'/100', seg>=60?'ok':(seg<=25?'ruim':''), true)
       + rfAcNotaHTML('O que você diz pesa no vestiário e na sala da diretoria. Não dá para voltar atrás.');
   return rfAcao({ kicker:'IMPRENSA · COLETIVA', titulo:escC(d.assunto||'Falar com a imprensa'), w:520,
@@ -603,16 +609,47 @@ const RF_ACOES = {
       : [{l:'Não falar agora',tom:'fantasma'},{l:'Falar com a imprensa',on:`rfImprensaGo('${escC(String(d.key||''))}')`}] });
 },
 
-'mail-responder': d=>rfAcao({ kicker:'E-MAIL · RESPOSTA À DIRETORIA', titulo:escC(d.assunto||'Resposta'), w:520,
-  corpo:
-    `<span class="rf-ac-l">O que responder</span>`
-    + rfAcOpcoesHTML('resp',[
-        {t:'Assumo a meta', s:'a direção cobra o resultado, mas ganha paciência agora'},
-        {t:'Peço mais tempo', s:'sem promessa; a segurança no cargo não sobe nem desce'},
-        {t:'Discordo da meta', s:'a direção anota; segurança no cargo cai se a campanha não virar'}], d.resp)
-    + rfAcCampoHTML('rf-ac-msg','Acrescentar algo (opcional)','', '', {tipo:'texto',puro:true,ph:'até 140 caracteres'})
-    + rfAcNotaHTML('A resposta vai pro histórico da direção e pesa na avaliação de fim de temporada.'),
-  acoes:[{l:'Descartar',tom:'fantasma'},{l:'Enviar resposta',on:`rfMailResponderGo('${escC(String(d.key||''))}')`}] }),
+/* ===== RESPONDER AO E-MAIL QUE ESTÁ ABERTO, E NÃO A UM E-MAIL IMAGINÁRIO =====
+   Este diálogo era UM SÓ para toda a caixa de entrada: três opções sobre aceitar
+   uma meta, mostradas por igual a uma proposta de compra, a um convite de outro
+   clube, a um aviso de aposentadorias e a um alerta de caixa. Nenhuma delas tinha
+   que ver com a mensagem, e nenhuma fazia nada.
+   Agora o diálogo é montado a partir do TIPO daquela mensagem (RF_EMAIL_RESP, em
+   rf26-email-config.js): o texto de abertura remonta os fatos do próprio e-mail
+   (quem ofereceu, quanto, por quem), as opções são as daquele assunto com o preço
+   à vista, e o rodapé tem as duas saídas que a mensagem pede — ir ao lugar onde a
+   coisa se resolve, e responder. */
+'mail-responder': d=>{
+  const e=((CL.inbox||[]).find(x=>x.key===d.key))||{};
+  const tipo=(typeof rfEmailTipo==='function')?rfEmailTipo(e):(e.kind||'');
+  const def=(typeof RF_EMAIL_RESP!=='undefined')?RF_EMAIL_RESP[tipo]:null;
+  const dest=(typeof rfEmailDestino==='function')?rfEmailDestino(e):null;
+  const irAcao=dest?[{l:dest.label,tom:'fantasma',on:`rfEmailIr('${escC(String(d.key||''))}')`}]:[{l:'Fechar',tom:'fantasma'}];
+  if(!def) return rfAcao({ kicker:'E-MAIL', titulo:escC(d.assunto||'Mensagem'), w:460,
+    corpo:rfAcNotaHTML('Esta mensagem é um aviso: não há o que responder. O que ela pede resolve-se na tela indicada abaixo.'),
+    acoes:irAcao });
+
+  const dados=e.dados||{};
+  const seg=(S&&S.jobSecurity!=null)?S.jobSecurity:60;
+  if(e.reply) return rfAcao({ kicker:def.kicker, titulo:escC(d.assunto||'Resposta'), w:520,
+    corpo: rfAcSeloHTML(rfIcone('email',18),'Você já respondeu','“'+escC(e.reply.opcao||'—')+'”')
+      + (e.reply.efeitoTxt?rfAcLinhaHTML('O que isso custou', e.reply.efeitoTxt, '', true):'')
+      + rfAcNotaHTML('Cada mensagem se responde uma vez só — o que foi dito fica no e-mail.'),
+    acoes: dest?[{l:dest.label,tom:'fantasma',on:`rfEmailIr('${escC(String(d.key||''))}')`},{l:'Fechar'}]:[{l:'Fechar'}] });
+
+  let abertura='';
+  try{ abertura=def.intro(dados)||''; }catch(err){ abertura=''; }
+  return rfAcao({ kicker:def.kicker, titulo:escC(d.assunto||'Resposta'), w:540,
+    corpo:
+      (abertura?rfAcAvisoHTML(abertura):'')
+      + `<span class="rf-ac-l">O que responder</span>`
+      + rfAcOpcoesHTML('resp', def.ops.map(o=>({t:o.t, s:o.s})), d.resp)
+      + rfAcCampoHTML('rf-ac-msg','Acrescentar algo (opcional)','', '', {tipo:'texto',puro:true,ph:'até 140 caracteres'})
+      + rfAcLinhaHTML('Segurança no cargo agora', seg+'/100', seg>=60?'ok':(seg<=25?'ruim':''), true)
+      + rfAcNotaHTML(def.nota||'O que você responde pesa no vestiário e na sala da diretoria.'),
+    acoes:[ (dest?{l:dest.label,tom:'fantasma',on:`rfEmailIr('${escC(String(d.key||''))}')`}:{l:'Descartar',tom:'fantasma'}),
+            {l:'Enviar resposta',on:`rfMailResponderGo('${escC(String(d.key||''))}')`} ] });
+},
 
 'mail-arquivar': d=>rfAcao({ kicker:'E-MAIL', titulo:'Arquivar esta mensagem?', w:440,
   corpo:

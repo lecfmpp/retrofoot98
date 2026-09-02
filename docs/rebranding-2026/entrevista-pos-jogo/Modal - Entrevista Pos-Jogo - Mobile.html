@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#08131c}
+a{color:#F2B90C;text-decoration:none}
+a:hover{color:#ffcb2e}
+@keyframes flashPulse{0%,100%{opacity:.14}50%{opacity:.36}}
+@keyframes liveDot{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes entraResposta{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="width:390px;max-width:100%;margin:0 auto;min-height:100vh;box-sizing:border-box;padding:10px 10px 92px;display:flex;flex-direction:column;justify-content:flex-start;font-family:'Space Grotesk',system-ui,sans-serif;background:radial-gradient(120% 70% at 50% 0%,#123a5e 0%,#0e2a41 52%,#08131c 100%);position:relative;overflow:hidden">
+  <span style="position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,.03) 0 44px,transparent 44px 88px);pointer-events:none"></span>
+  <span style="position:absolute;left:-40px;top:8%;width:200px;height:200px;border-radius:99px;background:radial-gradient(circle,rgba(255,255,255,.45) 0%,rgba(255,255,255,0) 62%);animation:flashPulse 3.4s ease-in-out infinite;pointer-events:none"></span>
+
+  <div style="position:relative;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -34px rgba(0,0,0,.8);display:flex;flex-direction:column;box-sizing:border-box">
+
+    <div style="background:linear-gradient(100deg,#0e2f66,#17458F 62%);padding:14px 16px;display:flex;align-items:center;gap:10px;position:relative">
+      <span style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#F2B90C"></span>
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0;margin-left:5px;flex:1">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.14em;color:#a9bfe0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">PÓS-JOGO · XV 2 × 1 CIANORTE</span>
+        <span style="font-size:18px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap">Entrevista pós-jogo</span>
+      </div>
+      <span style="{{ somStyle }}" onClick="{{ alternarSom }}">{{ somTexto }}</span>
+      <span style="display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:#fff;background:#c0392b;border-radius:99px;padding:5px 10px;white-space:nowrap;flex:0 0 auto">
+        <span style="width:8px;height:8px;border-radius:99px;background:#fff;display:block;animation:liveDot 1.4s ease-in-out infinite"></span>AO VIVO
+      </span>
+    </div>
+
+    <div style="padding:14px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+        <div style="border:1px solid #dde7db;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;background:#fff;min-width:0">
+          <div style="position:relative;height:112px;background:#12201a">
+            <image-slot id="ent-treinador-m" shape="rect" fit="cover" placeholder="Foto do treinador"></image-slot>
+            <span style="position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(0deg,rgba(9,18,13,.94) 0%,rgba(9,18,13,0) 100%);pointer-events:none"></span>
+            <span style="position:absolute;left:8px;bottom:7px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#0b1710;background:#F2B90C;padding:3px 7px;white-space:nowrap">TREINADOR</span>
+          </div>
+          <div style="padding:9px 10px;display:flex;flex-direction:column;gap:3px;min-width:0">
+            <span style="font-size:14px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Você</span>
+            <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">XV de Piracicaba · 14 jogos</span>
+          </div>
+        </div>
+        <div style="border:1px solid #dde7db;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;background:#fff;min-width:0">
+          <div style="position:relative;height:112px;background:#1b2b22">
+            <image-slot id="ent-jornalista-m" shape="rect" fit="cover" placeholder="Foto do entrevistador"></image-slot>
+            <span style="position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(0deg,rgba(9,18,13,.94) 0%,rgba(9,18,13,0) 100%);pointer-events:none"></span>
+            <span style="position:absolute;left:8px;bottom:7px;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#fff;background:#17458F;padding:3px 7px;white-space:nowrap">REPÓRTER</span>
+          </div>
+          <div style="padding:9px 10px;display:flex;flex-direction:column;gap:3px;min-width:0">
+            <span style="font-size:14px;font-weight:700;color:#12201a;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dida Mesquita</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0">
+              <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rádio Interior</span>
+              <span style="{{ tomColetiva }}">{{ tomColetivaTexto }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+        <div style="border:1px solid #dde7db;border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:8px;background:#fff;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#8b978d;white-space:nowrap">MORAL</span>
+            <div style="flex:1"></div>
+            <span style="{{ moralDeltaStyle }}">{{ moralDelta }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#12201a;line-height:1;white-space:nowrap">{{ moral }}</span>
+          </div>
+          <div style="height:12px;border-radius:99px;background:#eef1ee;overflow:hidden;display:flex"><span style="{{ moralBarStyle }}"></span></div>
+          <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ moralRotulo }}</span>
+        </div>
+        <div style="border:1px solid #dde7db;border-radius:14px;padding:11px 12px;display:flex;flex-direction:column;gap:8px;background:#fff;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#8b978d;white-space:nowrap">CARGO</span>
+            <div style="flex:1"></div>
+            <span style="{{ cargoDeltaStyle }}">{{ cargoDelta }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#12201a;line-height:1;white-space:nowrap">{{ cargo }}</span>
+          </div>
+          <div style="height:12px;border-radius:99px;background:#eef1ee;overflow:hidden;display:flex"><span style="{{ cargoBarStyle }}"></span></div>
+          <span style="font-size:11px;color:#78877c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cargoRotulo }}</span>
+        </div>
+      </div>
+
+      <div style="border:1px solid #dde7db;border-left:4px solid #F2B90C;border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:7px;background:#fff;min-width:0">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:#17458F;white-space:nowrap">{{ perguntaKicker }}</span>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:5px">
+            <sc-for list="{{ passos }}" as="p" hint-placeholder-count="3">
+              <span style="{{ p.style }}"></span>
+            </sc-for>
+          </div>
+        </div>
+        <span style="font-size:17px;font-weight:700;color:#12201a;letter-spacing:-.02em;line-height:1.32;text-wrap:pretty">{{ pergunta }}</span>
+        <span style="font-size:12px;color:#78877c;line-height:1.5;text-wrap:pretty">{{ perguntaNota }}</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <sc-for list="{{ respostas }}" as="r" hint-placeholder-count="3">
+          <div style="{{ r.cardStyle }}" onClick="{{ r.onClick }}" style-active="border-color:#17458F;background:#f7faf6">
+            <span style="{{ r.tomStyle }}">{{ r.tom }}</span>
+            <span style="{{ r.textoStyle }}">{{ r.texto }}</span>
+            <div style="{{ r.deltaBox }}">
+              <span style="{{ r.deltaMoral }}">{{ r.rotuloMoral }}</span>
+              <span style="{{ r.deltaCargo }}">{{ r.rotuloCargo }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="{{ reacaoBox }}">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:#17458F;white-space:nowrap">REPERCUSSÃO IMEDIATA</span>
+          <div style="flex:1;height:1px;background:#e6ece4"></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px;min-width:0">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#0b1710;background:#e8eef7;border-radius:6px;padding:4px 7px;white-space:nowrap;flex:0 0 auto">IMPRENSA</span>
+          <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;line-height:1.5;text-wrap:pretty">{{ falaImprensa }}</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px;min-width:0">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#0b1710;background:#f4ecd2;border-radius:6px;padding:4px 7px;white-space:nowrap;flex:0 0 auto">TORCIDA</span>
+          <span style="flex:1;min-width:0;font-size:12px;color:#3a473f;line-height:1.5;text-wrap:pretty">{{ falaTorcida }}</span>
+        </div>
+      </div>
+
+      <span style="font-size:11.5px;color:#78877c;line-height:1.5;text-wrap:pretty">{{ rodape }}</span>
+    </div>
+  </div>
+
+  <div style="position:fixed;left:50%;transform:translateX(-50%);width:390px;max-width:100%;bottom:0;z-index:5;padding:12px 14px;box-sizing:border-box;background:linear-gradient(180deg,rgba(8,19,28,0),rgba(8,19,28,.96) 40%);display:flex;align-items:center;gap:10px">
+    <span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:#9fb3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">PERGUNTAS {{ contadorPerguntas }}</span>
+    <span style="{{ btnEncerrar }}" onClick="{{ avancar }}">{{ btnEncerrarTexto }}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:1100},&quot;moralInicial&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:62,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Estado inicial&quot;},&quot;cargoInicial&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:54,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Estado inicial&quot;},&quot;mostrarPrevias&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Quiz&quot;}}">
+class Component extends DCLogic {
+  state = { q: 0, moral: null, cargo: null, ultima: null, feitas: 0, som: true };
+
+  componentDidMount() {
+    this.audio = new Audio('assets/audio/coletiva-ambiente.mp3');
+    this.audio.loop = true;
+    this.audio.volume = 0.22;
+    this.tocar();
+    this.destravar = () => { if (this.state.som) this.tocar(); };
+    document.addEventListener('pointerdown', this.destravar, { once: true });
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('pointerdown', this.destravar);
+    if (this.audio) { this.audio.pause(); this.audio.currentTime = 0; this.audio = null; }
+  }
+
+  tocar() { if (this.audio) { const p = this.audio.play(); if (p && p.catch) p.catch(() => {}); } }
+
+  alternarSom() {
+    const som = !this.state.som;
+    if (this.audio) { som ? this.tocar() : this.audio.pause(); }
+    this.setState({ som });
+  }
+
+  get roteiro() {
+    return [
+      {
+        kicker: 'PERGUNTA 1 · O JOGO',
+        pergunta: 'Vitória apertada em casa, com o time recuando no fim. Faltou fôlego ou faltou coragem?',
+        nota: 'O time cedeu 11 finalizações no último quarto de hora. A pergunta é provocativa de propósito.',
+        respostas: [
+          { tom: 'PROTETOR', texto: '“O grupo entregou o que tinha. Cansaço de jogar três em uma semana explica muito.”', moral: 6, cargo: -2,
+            imprensa: 'Setoristas anotam a queixa de calendário — vai virar manchete secundária.', torcida: 'Torcida aprova a defesa do grupo, mas cobra reforços na próxima janela.' },
+          { tom: 'DIRETO', texto: '“Faltou coragem. A gente parou de jogar e quase jogou fora três pontos.”', moral: -9, cargo: 5,
+            imprensa: 'A imprensa gosta da franqueza e destaca a cobrança pública.', torcida: 'Arquibancada comemora a cobrança: “finalmente alguém falou”.' },
+          { tom: 'TÉCNICO', texto: '“Recuamos por escolha minha, para fechar o meio. Ganhamos o jogo assim.”', moral: 2, cargo: 3,
+            imprensa: 'Resposta fria esvazia a polêmica; ninguém sai com título pronto.', torcida: 'Parte da torcida acha morno, mas ninguém se irrita.' }
+        ]
+      },
+      {
+        kicker: 'PERGUNTA 2 · O ELENCO',
+        pergunta: 'O camisa 10 foi vaiado na substituição. Ele continua sendo titular no próximo jogo?',
+        nota: 'Cuidado: a resposta chega ao vestiário antes de você.',
+        respostas: [
+          { tom: 'ABRAÇO', texto: '“Continua. Ele é o cara que decide os nossos jogos e vai ouvir aplauso na próxima.”', moral: 8, cargo: -1,
+            imprensa: 'Bancada acha que você comprou briga com a arquibancada.', torcida: 'Divide a torcida: uns respeitam a lealdade, outros vaiam de novo.' },
+          { tom: 'AMBÍGUO', texto: '“Quem joga é quem treina melhor na semana. Vale para ele e para todos.”', moral: -3, cargo: 2,
+            imprensa: 'Imprensa lê como recado interno e cobra definição na véspera.', torcida: 'Torcida entende o recado e aprova a meritocracia.' },
+          { tom: 'DURO', texto: '“A vaia foi justa. Nível daquele jogo, ele não pode repetir.”', moral: -12, cargo: 7,
+            imprensa: 'Manchete garantida: técnico endossa vaia ao camisa 10.', torcida: 'Arquibancada em festa com o técnico.' }
+        ]
+      },
+      {
+        kicker: 'PERGUNTA 3 · O CLUBE',
+        pergunta: 'A diretoria vetou a contratação que você pediu. Você reclama em público?',
+        nota: 'Última pergunta. É aqui que a coletiva vira ou não uma crise.',
+        respostas: [
+          { tom: 'INSTITUCIONAL', texto: '“Conversas de clube ficam no clube. Trabalho com quem tenho.”', moral: 3, cargo: 8,
+            imprensa: 'Imprensa acha pouco, mas registra a postura institucional.', torcida: 'Torcida esperava mais peito, e diz isso nas redes.' },
+          { tom: 'PRESSÃO', texto: '“Pedi um centroavante em janeiro. Ainda espero. A torcida merece saber.”', moral: 5, cargo: -11,
+            imprensa: 'Bomba: a coletiva vira crise entre comissão e diretoria.', torcida: 'Torcida abraça o treinador e pressiona a diretoria.' },
+          { tom: 'IRÔNICO', texto: '“Contratação? Aqui a gente contrata pela lista de aniversário do sócio.”', moral: -4, cargo: -6,
+            imprensa: 'A ironia rende clipe e desgasta os dois lados.', torcida: 'Rende meme, mas ninguém sai defendido.' }
+        ]
+      }
+    ];
+  }
+
+  renderVals() {
+    const MONO = "'IBM Plex Mono',monospace";
+    const R = this.roteiro;
+    const total = R.length;
+    const moralBase = this.props.moralInicial ?? 62;
+    const cargoBase = this.props.cargoInicial ?? 54;
+    const mostrarPrevias = this.props.mostrarPrevias ?? true;
+    const moral = Math.max(0, Math.min(100, this.state.moral === null ? moralBase : this.state.moral));
+    const cargo = Math.max(0, Math.min(100, this.state.cargo === null ? cargoBase : this.state.cargo));
+    const idx = Math.min(this.state.q, total - 1);
+    const fim = this.state.q >= total;
+    const passo = R[idx];
+    const u = this.state.ultima;
+
+    const corMoral = moral >= 66 ? '#2f8f4a' : moral >= 40 ? '#F2B90C' : '#c0392b';
+    const corCargo = cargo >= 66 ? '#2f8f4a' : cargo >= 40 ? '#F2B90C' : '#c0392b';
+    const rotuloMoral = moral >= 80 ? 'Vestiário comprado' : moral >= 66 ? 'Grupo confiante' : moral >= 40 ? 'Clima instável' : 'Vestiário rachado';
+    const rotuloCargo = cargo >= 80 ? 'Cargo blindado' : cargo >= 66 ? 'Diretoria tranquila' : cargo >= 40 ? 'Sob observação' : 'Demissão no radar';
+
+    const chip = (v, cor) => `display:${v === 0 ? 'none' : 'flex'};align-items:center;font-family:${MONO};font-size:11px;font-weight:700;color:${cor};background:${cor}1a;border-radius:99px;padding:3px 9px;white-space:nowrap`;
+    const sinal = v => (v > 0 ? '+' + v : String(v));
+
+    return {
+      perguntaKicker: fim ? 'COLETIVA ENCERRADA' : passo.kicker,
+      pergunta: fim
+        ? 'Coletiva encerrada. O que você disse já está circulando.'
+        : passo.pergunta,
+      perguntaNota: fim
+        ? 'Moral e segurança no cargo entram na próxima semana de jogo com estes valores.'
+        : passo.nota,
+      contadorPerguntas: `${Math.min(this.state.feitas, total)} / ${total}`,
+
+      passos: R.map((_, n) => ({
+        style: `width:${n === idx && !fim ? 22 : 8}px;height:8px;border-radius:99px;background:${n < this.state.feitas ? '#17458F' : n === idx && !fim ? '#F2B90C' : '#dde7db'};transition:all .25s ease`
+      })),
+
+      respostas: fim ? [] : passo.respostas.map((r, n) => ({
+        tom: r.tom,
+        texto: r.texto,
+        cardStyle: 'display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid #dde7db;border-radius:14px;padding:13px 15px;cursor:pointer;min-width:0;transition:border-color .18s ease,background .18s ease',
+        tomStyle: `font-family:${MONO};font-size:9px;font-weight:700;letter-spacing:.14em;color:#17458F;white-space:nowrap`,
+        textoStyle: 'font-size:13.5px;font-weight:600;color:#12201a;line-height:1.4;text-wrap:pretty',
+        deltaBox: `display:${mostrarPrevias ? 'flex' : 'none'};align-items:center;gap:7px;padding-top:2px`,
+        rotuloMoral: `moral ${sinal(r.moral)}`,
+        rotuloCargo: `cargo ${sinal(r.cargo)}`,
+        deltaMoral: `font-family:${MONO};font-size:10px;font-weight:600;color:${r.moral >= 0 ? '#2f8f4a' : '#c0392b'};background:${r.moral >= 0 ? '#eaf6ee' : '#fbeceb'};border-radius:6px;padding:3px 8px;white-space:nowrap`,
+        deltaCargo: `font-family:${MONO};font-size:10px;font-weight:600;color:${r.cargo >= 0 ? '#2f8f4a' : '#c0392b'};background:${r.cargo >= 0 ? '#eaf6ee' : '#fbeceb'};border-radius:6px;padding:3px 8px;white-space:nowrap`,
+        onClick: () => this.setState({
+          q: this.state.q + 1,
+          feitas: Math.min(this.state.feitas + 1, total),
+          moral: moral + r.moral,
+          cargo: cargo + r.cargo,
+          ultima: r
+        })
+      })),
+
+      reacaoBox: `display:${u ? 'flex' : 'none'};flex-direction:column;gap:9px;background:#f6f8f5;border:1px solid #e6ece4;border-radius:16px;padding:14px 16px;animation:entraResposta .28s ease`,
+      falaImprensa: u ? u.imprensa : '',
+      falaTorcida: u ? u.torcida : '',
+
+      moral, cargo,
+      moralBarStyle: `width:${moral}%;background:${corMoral};border-radius:99px;transition:width .55s cubic-bezier(.22,.61,.36,1),background .3s ease`,
+      cargoBarStyle: `width:${cargo}%;background:${corCargo};border-radius:99px;transition:width .55s cubic-bezier(.22,.61,.36,1),background .3s ease`,
+      moralRotulo: rotuloMoral,
+      cargoRotulo: rotuloCargo,
+      moralDelta: u ? sinal(u.moral) : '',
+      cargoDelta: u ? sinal(u.cargo) : '',
+      moralDeltaStyle: chip(u ? u.moral : 0, u && u.moral < 0 ? '#c0392b' : '#2f8f4a'),
+      cargoDeltaStyle: chip(u ? u.cargo : 0, u && u.cargo < 0 ? '#c0392b' : '#2f8f4a'),
+
+      tomColetivaTexto: !u ? 'neutro' : u.cargo >= 4 ? 'quente' : u.moral <= -8 ? 'tenso' : 'cordial',
+      tomColetiva: `font-family:${MONO};font-size:12px;font-weight:600;color:${!u ? '#3a473f' : u.cargo >= 4 ? '#c0392b' : u.moral <= -8 ? '#a8730c' : '#2f8f4a'};white-space:nowrap`,
+
+      rodape: fim
+        ? 'As respostas já foram aplicadas: moral entra no próximo treino e a segurança no cargo entra na avaliação da diretoria.'
+        : 'Cada resposta mexe na moral do vestiário e na sua segurança no cargo — e a imprensa repercute na hora.',
+
+      btnEncerrarTexto: fim ? '✓ Voltar ao clube' : '⏩ Pular a coletiva',
+      btnEncerrar: `display:flex;align-items:center;height:44px;padding:0 20px;border-radius:13px;background:${fim ? '#17458F' : '#F2B90C'};color:${fim ? '#fff' : '#17458F'};font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;flex:0 0 auto;box-shadow:0 8px 18px -10px rgba(18,32,26,.5)`,
+      avancar: () => this.setState({ q: total, feitas: total }),
+
+      somTexto: this.state.som ? '🔊' : '🔇',
+      somStyle: `display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-size:14px;color:${this.state.som ? '#0b1710' : '#fff'};background:${this.state.som ? '#F2B90C' : 'rgba(255,255,255,.14)'};border-radius:99px;white-space:nowrap;cursor:pointer;flex:0 0 auto`,
+      alternarSom: () => this.alternarSom()
+    };
+  }
+}
+</script>
+</body>
+</html>
