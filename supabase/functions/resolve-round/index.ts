@@ -1944,6 +1944,67 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
       'Cabrera','Godoy','Molina','Ortiz','Benítez','Aguirre','Suárez','Ibáñez','Herrera','Castro','Flores',
       'Rojas','Medina'] },
   };
+  /* ===== NOMES FICTICIOS DOS ESTRANGEIROS, CALCULADOS =====
+     Os 1.900 brasileiros sao renomeados por PACOTE: o painel edita, o banco guarda, o boot
+     aplica. Para os 9.832 de fora esse caminho foi medido e recusado -- o pacote e' baixado por
+     todo cliente no arranque e pesa hoje 106 KB; as 352 linhas de elenco fariam dele 576 KB, uma
+     descarga 5,4x maior em cada primeira visita, para dados que ninguem vai editar clube a clube.
+
+     Entao o nome nao viaja: nasce aqui, do mesmo pool do pais, por uma semente estavel
+     (club_id + indice no elenco). Duas maquinas chegam ao mesmo nome sem combinarem nada, e nao
+     ha' payload nenhum.
+
+     O SERVIDOR HERDA DE GRACA. Ele nunca le os bundles -- trabalha sobre `S.squads`, que o
+     cliente publica ja' renomeado. E' exatamente como o pacote brasileiro ja' funciona: o
+     resolve-round nao sabe que ele existe.
+
+     AS TRE^S REGRAS DE COMPRIMENTO sao as do conjunto brasileiro, o unico que ja' provou caber
+     nas telas: duas palavras, palavra ate' 11 caracteres, nome ate' 21. O bundle tem hoje nomes
+     de 45 ("Bernardo Fernandes da Silva Junior") e ha' slots sem reticencias, onde isso estoura.
+
+     NINGUEM REAL: um sorteio que calhe de dar um nome que existe no bundle e' rejeitado -- o pool
+     ingles tem "Declan" e tem "Rice", e a combinacao sairia sozinha mais cedo ou mais tarde. */
+  var INTL_MAX_PALAVRA=11, INTL_MAX_NOME=21;
+  function intlSemente(s){ var h=2166136261>>>0;
+    for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+    return h||1; }
+  function intlRng(seed){ var x=seed; return function(){
+    x^=x<<13; x>>>=0; x^=x>>17; x^=x<<5; x>>>=0; return x/4294967296; }; }
+  /* `usados` e `reais` sao Sets que o chamador mantem entre clubes — e' o que garante nome
+     unico no mundo inteiro, e nao apenas dentro de um elenco. */
+  function nomeFicticioIntl(pais, chave, usados, reais){
+    var pool=nomesDoPais(pais)||NAME_POOLS._hispano;
+    var R=intlRng(intlSemente(chave));
+    for(var t=0;t<4000;t++){
+      var f=pool.first[Math.floor(R()*pool.first.length)];
+      var l=pool.last [Math.floor(R()*pool.last .length)];
+      if(f.length>INTL_MAX_PALAVRA || l.length>INTL_MAX_PALAVRA) continue;
+      var nome=f+' '+l;
+      if(nome.length>INTL_MAX_NOME) continue;
+      var k=nome.toLowerCase();
+      if((usados&&usados.has(k)) || (reais&&reais.has(k))) continue;
+      if(usados) usados.add(k);
+      return nome;
+    }
+    return null;
+  }
+  /* Renomeia os elencos de um mapa pais -> [clubes], NO LUGAR. Idempotente pelo carimbo
+     `_nIntl` em cada jogador: o pacote e' aplicado duas vezes por visita (cache e rede) e uma
+     segunda passagem daria nomes diferentes. */
+  function renomearIntl(mapas){
+    var usados=new Set(), reais=new Set(), n=0;
+    mapas.forEach(function(m){ for(var pais in m) (m[pais]||[]).forEach(function(c){
+      (c.squad||[]).forEach(function(p){ if(p&&p.n) reais.add(p.n.toLowerCase()); }); }); });
+    mapas.forEach(function(m){ for(var pais in m) (m[pais]||[]).forEach(function(c){
+      (c.squad||[]).forEach(function(p,i){
+        if(!p || !p.n || p._nIntl) return;
+        var novo=nomeFicticioIntl(pais, String(c.id)+'|'+i, usados, reais);
+        if(!novo) return;
+        p._n0=p._n0||p.n; p.n=novo; p._nIntl=1; n++;
+      }); }); });
+    return n;
+  }
+
   function nomesDoPais(uniKey){
     const c=uniCfg(uniKey);
     return NAME_POOLS[uniKey] || NAME_POOLS[(c&&c.country)] || NAME_POOLS._hispano;
@@ -1963,7 +2024,8 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
     BANDA_POR_NIVEL, FORCA_POR_NIVEL, CAP_POR_NIVEL,
     bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
     CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
-    vagasContinentais, NAME_POOLS, nomesDoPais, nacionalidadeDe, codigoDaLiga };
+    vagasContinentais, NAME_POOLS, nomesDoPais, nacionalidadeDe, codigoDaLiga,
+    nomeFicticioIntl, renomearIntl };
   root.WORLD_CONFIG=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);

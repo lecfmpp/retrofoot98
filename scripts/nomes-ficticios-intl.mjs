@@ -1,45 +1,32 @@
 /* ============================================================================
-   NOMES FICTÍCIOS DOS JOGADORES ESTRANGEIROS — gerador do patch
+   AUDITOR DOS NOMES FICTÍCIOS ESTRANGEIROS
    ----------------------------------------------------------------------------
-   Os 1.900 brasileiros já jogam com nome fictício (scripts/nomes-ficticios.mjs,
-   a partir de um CSV curado). Os 9.832 de fora ainda chegam com o nome REAL do
-   bundle — e chegam ao jogador de verdade, porque o mercado lê a lista direto
-   dos bundles: com RF_SO_BRASIL desligado, dá para contratar "Declan Rice".
+   Este script JÁ NÃO gera patch. Ele recalcula, fora do browser, os mesmos nomes
+   que o jogo calcula no arranque (WORLD_CONFIG.renomearIntl) e confere as regras
+   — para poder auditar 9.832 nomes sem abrir o jogo e sem confiar na inspeção.
 
-   MESMO MECANISMO, OUTRA FONTE. Lá os nomes vieram de uma planilha; aqui são
-   SORTEADOS dos NAME_POOLS por país (engine/world-config.js), que existem desde
-   sempre para batizar reforços e foram ampliados para ~50x50 por país. Nada de
-   novo no caminho de aplicação: continua um `squad` no patch do pacote oficial,
-   lido por net/dados.js no boot, e continua saindo com um DELETE.
+   POR QUE O PATCH FOI ABANDONADO, e é a parte que interessa. A primeira versão
+   emitia SQL no molde do gerador brasileiro: um `squad` no patch do pacote
+   oficial, 352 clubes, 470 KB. Medido antes de aplicar: o pacote é descarregado
+   por TODO cliente no arranque e pesa hoje 106 KB — passaria a 576 KB, 5,4x
+   maior em cada primeira visita, e ficaria guardado em localStorage, para dados
+   que ninguém vai editar clube a clube.
 
-   INSERT, NÃO UPDATE. Os 80 clubes brasileiros já têm linha em pack_edits (o
-   pacote renomeia clube e escudo). Os 352 de fora não têm nenhuma — o pacote
-   nunca precisou tocar-lhes. Por isso aqui é `insert ... on conflict do update`.
+   O nome passou a ser CALCULADO: mesmo pool, mesma semente estável (club_id +
+   índice), zero bytes de payload. As duas implementações são o mesmo algoritmo
+   — fnv1a para a semente, xorshift para o sorteio — e é por isso que este
+   ficheiro continua a valer: se as duas divergirem, os números aqui deixam de
+   bater com os do jogo.
 
-   AS TRÊS REGRAS DE COMPRIMENTO saem do conjunto brasileiro, que é o único que
-   já provou caber nas telas: nome de DUAS palavras (nunca três), palavra de no
-   máximo 11 caracteres, nome inteiro de no máximo 21. Hoje o bundle tem nomes
-   de 45 ("Bernardo Fernandes da Silva Junior") — e há slots sem reticências,
-   onde isso não corta: estoura.
+   AS TRÊS REGRAS DE COMPRIMENTO saem do conjunto brasileiro, o único que já
+   provou caber nas telas: duas palavras, palavra até 11, nome até 21.
 
-   AS FOTOS NÃO ENTRAM AQUI, E ISSO FOI CONFERIDO. O gerador brasileiro renomeia
-   player_photos junto, porque ela é indexada por (club_id, jogador) com o nome e
-   renomear só um lado quebraria RF_FOTOS[club_id|nome]. Medido no pacote oficial:
-   1.855 fotos brasileiras e ZERO estrangeiras — o Estúdio IA nunca gerou nenhuma
-   para fora do Brasil. Não há o que renomear; se um dia houver, este script
-   precisa do mesmo par de UPDATEs que o brasileiro tem.
-
-   DETERMINÍSTICO. A semente é (club_id, índice no elenco), então rodar duas
-   vezes dá o mesmo resultado e o SQL é reproduzível. Não depende da ordem em
-   que os países aparecem nem de Math.random.
-
-   NINGUÉM REAL. Um nome sorteado que calhe de ser igual a um nome REAL de
-   qualquer jogador de qualquer bundle é rejeitado — o pool tem "Declan" e tem
-   "Rice", e a combinação sairia sozinha mais cedo ou mais tarde.
+   AS FOTOS NÃO ENTRAM, E ISSO FOI CONFERIDO: 1.855 fotos brasileiras e ZERO
+   estrangeiras no pacote oficial. O gerador brasileiro renomeia player_photos
+   junto porque ela é indexada pelo nome; aqui não há o que renomear.
 
    Uso:  node scripts/nomes-ficticios-intl.mjs
-         node scripts/nomes-ficticios-intl.mjs --json <ficheiro>
-   Escreve scripts/sql/nomes-ficticios-intl-aplicar.sql e -reverter.sql.
+         node scripts/nomes-ficticios-intl.mjs --json <ficheiro>   (despeja o mapa)
    ========================================================================= */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -117,41 +104,9 @@ for (const fonte of ['INTL_LEAGUES','CONMEBOL_LEAGUES']){
   }
 }
 
-const asp = s => "'" + String(s).replace(/'/g, "''") + "'";
-const jsonb = o => asp(JSON.stringify(o)) + '::jsonb';
-const cabecalho = t => `-- ${t}
--- Gerado por scripts/nomes-ficticios-intl.mjs — não editar à mão.
--- Pacote oficial ${PACOTE_OFICIAL} · ${porClube.size} clubes · ${meta.length} jogadores
-set search_path to elifoot_v3;
-begin;
-`;
-
-const aplicar = [cabecalho('APLICAR os nomes fictícios dos jogadores estrangeiros')];
-for (const [cid, {squad}] of porClube){
-  aplicar.push(`insert into pack_edits (pack_id, club_id, patch) values (${asp(PACOTE_OFICIAL)}, ${asp(cid)}, ${jsonb({squad})})`
-             + `\n  on conflict (pack_id, club_id) do update set patch = pack_edits.patch || excluded.patch;`);
-}
-aplicar.push('', 'commit;');
-
-/* A VOLTA TIRA A LINHA INTEIRA quando ela só existe por causa disto, e tira só a
-   chave `squad` quando o clube já tinha patch antes (nome, escudo). Assim
-   reverter não apaga trabalho de outra pessoa. */
-const reverter = [cabecalho('REVERTER os nomes fictícios dos jogadores estrangeiros')];
-const ids = [...porClube.keys()].map(asp).join(', ');
-reverter.push(`delete from pack_edits where pack_id = ${asp(PACOTE_OFICIAL)} and club_id in (${ids})`
-            + `\n  and patch - 'squad' = '{}'::jsonb;`);
-reverter.push(`update pack_edits set patch = patch - 'squad'`
-            + `\n where pack_id = ${asp(PACOTE_OFICIAL)} and club_id in (${ids});`);
-reverter.push('', 'commit;');
-
-const dir = path.join(RAIZ, 'scripts/sql');
-fs.writeFileSync(path.join(dir, 'nomes-ficticios-intl-aplicar.sql'),  aplicar.join('\n')  + '\n');
-fs.writeFileSync(path.join(dir, 'nomes-ficticios-intl-reverter.sql'), reverter.join('\n') + '\n');
-
 const iJson = process.argv.indexOf('--json');
 if (iJson > 0 && process.argv[iJson+1]){
-  const payload = [...porClube].map(([club_id, {squad}]) => ({ club_id, patch:{ squad } }));
-  fs.writeFileSync(process.argv[iJson+1], JSON.stringify(payload));
+  fs.writeFileSync(process.argv[iJson+1], JSON.stringify(meta));
 }
 
 /* ---- relatório ---- */

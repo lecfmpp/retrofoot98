@@ -166,6 +166,33 @@ function aplicarCompeticoes(pais, patch){
   return n;
 }
 
+/* ===== OS ESTRANGEIROS TAMBEM PERDEM O NOME REAL =====
+   O pacote renomeia os 1.900 brasileiros. Os 9.832 de fora nao cabiam nele: sao 470 KB de
+   elenco, e o pacote e' descarregado por TODO cliente no arranque (hoje 106 KB) — passaria a
+   576 KB por visita, para dados que ninguem edita clube a clube. Entao o nome deles nao viaja:
+   e' CALCULADO no arranque, do pool do proprio pais, por semente estavel (ver renomearIntl em
+   engine/world-config.js).
+
+   AQUI, E NAO NO MOTOR, pelo mesmo motivo que o pacote e' aqui: e' o unico sitio por onde todos
+   os caminhos passam. O mercado le `c.squad` cru em dois pontos, `gkSquad` noutro, o editor
+   noutro — remendar o bundle uma vez cobre os tre^s sem os conhecer.
+
+   DEPOIS do pacote, de proposito: se um dia um clube de fora ganhar `squad` no pacote, o que
+   veio do banco manda, e o calculado nem chega a correr (o carimbo `_nIntl` so' e' posto por
+   quem renomeia aqui, e `aplicar` ja' escreveu o nome do pacote por cima).
+
+   O SERVIDOR NAO PRECISA DE NADA: ele trabalha sobre `S.squads`, que o cliente publica ja'
+   renomeado — como acontece com o pacote brasileiro desde sempre. */
+function renomearEstrangeiros(){
+  const W = (typeof globalThis!=='undefined') && globalThis.WORLD_CONFIG;
+  if(!W || typeof W.renomearIntl!=='function') return 0;
+  const mapas = [];
+  if(window.INTL_LEAGUES)     mapas.push(window.INTL_LEAGUES);
+  if(window.CONMEBOL_LEAGUES) mapas.push(window.CONMEBOL_LEAGUES);
+  if(!mapas.length) return 0;
+  try{ return W.renomearIntl(mapas); }catch(e){ console.warn('nomes estrangeiros:', e.message); return 0; }
+}
+
 function aplicar(edits){
   if(!Array.isArray(edits) || !edits.length) return 0;
   let n = 0;
@@ -237,6 +264,7 @@ function aplicar(edits){
       n++;
     }catch(err){ /* um patch torto não pode derrubar o boot do jogo */ }
   }
+  renomearEstrangeiros();   // ver o comentario acima: depois do pacote, uma vez por visita
   return n;
 }
 
