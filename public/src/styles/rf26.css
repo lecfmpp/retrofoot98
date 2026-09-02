@@ -2376,123 +2376,209 @@
 }
 
 /* =====================================================================
-   CERIMÔNIA DO SORTEIO — portado de telas/Sorteio 2..6
-   Painel do troféu de 270px à esquerda, cerimônia à direita.
+   CERIMÔNIA DO SORTEIO — palco de gala (pacote "Sorteio das Competições")
+   ---------------------------------------------------------------------
+   Substitui o painel de 270px da versão anterior. O desenho é o mesmo para
+   TODAS as competições — muda só o tema, e o tema entra por variáveis:
+     --sg  gradiente da barra      --sa  cor de acento
+     --si  tinta do prêmio         --sw  brilho do halo
+   São os MESMOS gradientes da barra de jogos ao vivo, de propósito: a
+   cerimônia e a partida têm de parecer a mesma competição.
+
+   Escrito com classes, e não com estilo em linha como o protótipo: o
+   protótipo gera tudo em JS porque é um ficheiro solto; aqui a folha já
+   existe, e uma competição nova só precisa das quatro variáveis.
    ===================================================================== */
-.rf-srt{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
-.rf-srt-mid{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rf-srt{--sg:linear-gradient(100deg,#14181c,#2e363d 52%,#7f8a94);--sa:#dfe6ec;--si:#eef2f6;
+  --sw:rgba(200,214,228,.3);
+  min-height:100vh;background:#07090c;padding:22px;box-sizing:border-box;
+  display:flex;flex-direction:column;align-items:center}
+.rf-srt-in{width:100%;max-width:1240px;display:flex;flex-direction:column;gap:14px}
+.rf-srt-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rf-srt-top img{height:26px;display:block}
+.rf-srt-kick{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;font-weight:600;
+  letter-spacing:.16em;color:#7d8894;text-transform:uppercase}
 
-/* painel do troféu */
-/* O painel é a identidade da COMPETIÇÃO, não do meu clube: as seis telas de
-   sorteio usam o mesmo azul, seja qual for o time do usuário. Aqui ele é
-   fixo de propósito — o cromo não segue o clube, e uma cerimônia da
-   Libertadores pintada de verde porque eu sou do Palmeiras seria justamente
-   o erro que a regra do design system evita. */
-.rf-srt-trofeu{display:flex;flex-direction:column;gap:12px;min-width:0;border-radius:var(--r-card);
-  padding:18px;background:linear-gradient(160deg,#0e2f66,#17458F)}
-.rf-srt-fase{color:#F2B90C}
-.rf-srt-pote.on .rf-srt-pn{background:#F2B90C;color:#17458F}
-.rf-srt-gb{background:#17458F;color:#F2B90C}
-.rf-srt-taca{background:linear-gradient(160deg,#0e2f66,#17458F)}
-.rf-srt-top{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
-.rf-srt-ic{font-size:44px;line-height:1}
-.rf-srt-ic img{width:44px;height:44px;object-fit:contain;display:block}
-.rf-srt-nome{font-size:16px;font-weight:var(--fw-bold);color:#fff;letter-spacing:var(--ls-tight);white-space:nowrap}
-.rf-srt-fase{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;white-space:nowrap}
-.rf-srt-hr{height:1px;background:rgba(255,255,255,.15)}
-.rf-srt-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.rf-srt-l{font-size:var(--fs-caption);color:var(--text-on-dark-soft);white-space:nowrap}
-.rf-srt-v{font-family:var(--font-mono);font-size:var(--fs-caption);font-weight:var(--fw-semibold);
-  color:#fff;white-space:nowrap}
-.rf-srt-secao{font-size:var(--fs-label-xs);font-weight:var(--fw-semibold);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--text-on-dark-soft);white-space:nowrap}
-.rf-srt-pote{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r-chip);
-  background:rgba(255,255,255,.07)}
-.rf-srt-pote.on{background:rgba(255,255,255,.18)}
-.rf-srt-pn{width:18px;height:18px;border-radius:var(--r-pill);background:rgba(255,255,255,.16);
-  color:#fff;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
-  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-.rf-srt-pote.on .rf-srt-pn{background:var(--club-secondary);color:var(--club-on-secondary)}
-.rf-srt-pl{flex:1;min-width:0;font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:#fff;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-srt-pq{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-soft);white-space:nowrap}
+/* ---- chips de competição ---- */
+.rf-srt-chips{display:flex;gap:9px;flex-wrap:wrap}
+.rf-srt-chip{appearance:none;font:inherit;cursor:pointer;display:flex;align-items:center;gap:9px;
+  border-radius:12px;padding:9px 14px;border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.05);color:#98a3ae;font-size:12.5px;font-weight:600;
+  transition:background .15s ease,color .15s ease}
+.rf-srt-chip:hover{background:rgba(255,255,255,.09)}
+.rf-srt-chip.on{background:var(--sg);color:#fff;font-weight:700;border-color:transparent}
+.rf-srt-chip i{width:24px;height:24px;flex:0 0 auto;background-size:contain;background-position:center;
+  background-repeat:no-repeat;display:block}
 
-/* grupos */
+/* ---- barra da competição (a mesma dos jogos ao vivo, em tamanho grande) ---- */
+.rf-srt-bar{position:relative;overflow:hidden;display:flex;align-items:center;gap:20px;
+  border-radius:20px;padding:22px 26px;background:var(--sg);
+  box-shadow:0 26px 50px -30px rgba(0,0,0,.9)}
+.rf-srt-bar>.ac{position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--sa)}
+.rf-srt-bar>.glow{position:absolute;right:-60px;top:-120px;width:420px;height:420px;border-radius:99px;
+  background:radial-gradient(circle,var(--sw) 0%,rgba(0,0,0,0) 68%);pointer-events:none}
+.rf-srt-bar-tr{position:relative;width:112px;height:112px;flex:0 0 auto;margin-left:6px;
+  background-size:contain;background-position:center;background-repeat:no-repeat;
+  filter:drop-shadow(0 10px 20px rgba(0,0,0,.6))}
+.rf-srt-bar-id{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.rf-srt-bar-k{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;font-weight:600;
+  letter-spacing:.16em;color:var(--sa);text-transform:uppercase}
+.rf-srt-bar-t{font-size:38px;font-weight:700;color:#fff;letter-spacing:-.03em;line-height:1}
+.rf-srt-bar-s{font-size:13px;color:rgba(255,255,255,.72)}
+.rf-srt-bar-pr{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:0 0 auto}
+.rf-srt-bar-pl{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;font-weight:600;
+  letter-spacing:.16em;color:rgba(255,255,255,.66);text-transform:uppercase}
+.rf-srt-bar-pv{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:34px;font-weight:700;
+  color:var(--si);line-height:1}
+.rf-srt-bar-pn{font-size:11.5px;color:rgba(255,255,255,.6)}
+
+/* ---- as duas colunas ---- */
+.rf-srt-grid{display:grid;grid-template-columns:328px minmax(0,1fr);gap:14px;align-items:start}
+
+/* ---- palco do troféu ---- */
+.rf-srt-palco{position:relative;overflow:hidden;border-radius:20px;padding:22px 18px 16px;
+  background:linear-gradient(180deg,#101620,#0a0d12 62%,#080a0e);
+  border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;gap:10px}
+.rf-srt-palco>.glow{position:absolute;left:50%;top:-90px;transform:translateX(-50%);width:460px;height:460px;
+  border-radius:99px;background:radial-gradient(circle,var(--sw) 0%,rgba(0,0,0,0) 66%);pointer-events:none}
+.rf-srt-palco-tr{position:relative;width:100%;height:258px;background-size:contain;background-position:center;
+  background-repeat:no-repeat;filter:drop-shadow(0 22px 34px rgba(0,0,0,.8))}
+.rf-srt-regua{position:relative;width:120px;height:2px;background:var(--sa);opacity:.75}
+.rf-srt-camp-l{position:relative;font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;
+  font-weight:600;letter-spacing:.16em;color:#7d8894;text-transform:uppercase}
+.rf-srt-camp-n{position:relative;font-size:17px;font-weight:700;color:#fff}
+.rf-srt-camp-s{position:relative;font-size:11.5px;color:#7d8894}
+
+/* ---- premiação por fase ---- */
+.rf-srt-prem{position:relative;width:100%;margin-top:6px;display:flex;flex-direction:column;gap:3px}
+.rf-srt-prem-h{display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;letter-spacing:.14em;
+  color:#7d8894;text-transform:uppercase;padding:0 2px 5px}
+.rf-srt-prem-r{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 10px;border-radius:9px;border-left:3px solid transparent}
+.rf-srt-prem-r.top{background:rgba(255,255,255,.07);border-left-color:var(--sa)}
+.rf-srt-prem-f{font-size:12px;color:#98a3ae}
+.rf-srt-prem-r.top .rf-srt-prem-f{font-size:12px;font-weight:700;color:#fff}
+.rf-srt-prem-v{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:12px;font-weight:600;color:#dfe6ec}
+.rf-srt-prem-r.top .rf-srt-prem-v{font-size:14px;font-weight:700;color:var(--si)}
+
+/* ---- painel de conteúdo ---- */
+.rf-srt-painel{border-radius:20px;background:#0c1017;border:1px solid rgba(255,255,255,.08);
+  padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.rf-srt-abas{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rf-srt-aba{appearance:none;font:inherit;cursor:pointer;border-radius:11px;padding:8px 15px;
+  font-size:12.5px;font-weight:700;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);color:#98a3ae;transition:background .15s ease}
+.rf-srt-aba:hover{background:rgba(255,255,255,.09)}
+.rf-srt-aba.on{background:var(--sa);color:#0b0e13;border-color:transparent}
+.rf-srt-tog{appearance:none;font:inherit;cursor:pointer;margin-left:auto;border-radius:11px;padding:8px 15px;
+  font-size:12.5px;font-weight:700;background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);color:#98a3ae}
+.rf-srt-tog.on{background:#F2B90C;color:#0b0e13;border-color:transparent}
+.rf-srt-status{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;color:#7d8894}
+
+/* ---- aba grupos ---- */
 .rf-srt-grupos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.rf-srt-grupo{background:var(--surface-card);border:var(--border-hairline);border-radius:14px;
-  padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
-.rf-srt-ghd{display:flex;align-items:center;gap:7px;padding:0 2px 4px}
-.rf-srt-gb{width:20px;height:20px;border-radius:6px;font-family:var(--font-mono);
-  font-size:var(--fs-micro);font-weight:var(--fw-semibold);display:flex;align-items:center;
-  justify-content:center;flex:0 0 auto}
-.rf-srt-gt{font-size:var(--fs-micro);font-weight:var(--fw-bold);color:var(--text-muted);
-  letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.rf-srt-grupo{background:#111722;border:1px solid rgba(255,255,255,.07);border-radius:13px;
+  padding:9px 9px 7px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-srt-ghd{display:flex;align-items:center;gap:7px;padding:0 1px 4px}
+.rf-srt-gb{width:20px;height:20px;border-radius:6px;background:var(--sa);color:#0b0e13;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;font-weight:700}
+.rf-srt-gt{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;
+  letter-spacing:.14em;color:#7d8894;text-transform:uppercase}
 
-/* vaga de clube */
-/* a linha do clube aperta o que dá para o nome caber inteiro: a 1080 sobrava
-   1 nome cortado ("Coquimbo Unido", 95px num espaço de 88) — 6px de folga e
-   2px de escudo resolvem sem mexer no tamanho da letra */
-.rf-srt-vaga{display:flex;align-items:center;gap:6px;padding:7px 6px;border-radius:9px;min-width:0}
-.rf-srt-vaga.caiu{background:var(--surface-sunken);animation:rf-bola .3s var(--ease)}
-.rf-srt-vaga.meu{background:var(--club-primary-soft)}
-.rf-srt-vaga.meu .rf-srt-cn{font-weight:var(--fw-bold);color:var(--club-primary)}
-@keyframes rf-bola{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.rf-srt-crest img,.rf-srt-crest .rf-crest-fb{width:20px;height:20px;object-fit:contain;flex:0 0 auto}
-.rf-srt-bolha{width:20px;height:20px;border-radius:6px;background:var(--line-3);flex:0 0 auto}
-.rf-srt-cn{flex:1;min-width:0;font-size:var(--fs-caption);font-weight:var(--fw-medium);
-  color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-srt-vaga.vazia .rf-srt-cn,.rf-srt-cn.vazio{color:var(--text-faint)}
+/* ---- vaga de clube (grupos e chave) ---- */
+.rf-srt-vaga{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:8px;min-width:0}
+.rf-srt-vaga.caiu{background:rgba(255,255,255,.05);animation:ballDrop .3s ease}
+.rf-srt-vaga.meu{box-shadow:inset 0 0 0 1px var(--sa)}
+.rf-srt-vaga .rf-srt-cn{flex:1;min-width:0;font-size:11.5px;font-weight:600;color:#eef2f6;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-srt-vaga.vazia .rf-srt-cn{font-weight:500;color:#8d98a4}
+.rf-srt-bolha{width:19px;height:19px;border-radius:5px;background:rgba(255,255,255,.08);flex:0 0 auto}
+.rf-srt-crest{width:19px;height:19px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.rf-srt-crest img,.rf-srt-crest .rf-crest-fb{width:19px;height:19px;border-radius:5px}
+@keyframes ballDrop{from{opacity:0;transform:translateY(-8px) scale(.92)}to{opacity:1;transform:none}}
 
-/* confrontos (Copa do Brasil) */
-.rf-srt-confrontos{display:flex;flex-direction:column;gap:4px}
-.rf-srt-conf{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);align-items:center;
-  gap:8px;padding:8px 10px;border-radius:var(--r-chip);border:var(--border-hairline);
-  background:var(--surface-card)}
-.rf-srt-conf.meu{background:var(--club-primary-soft);border-color:var(--club-primary)}
-.rf-srt-lado{display:flex;align-items:center;gap:8px;min-width:0}
-.rf-srt-lado.dir{justify-content:flex-end}
-.rf-srt-x{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-faint);text-align:center}
+/* ---- aba confrontos ---- */
+.rf-srt-confrontos{display:grid;gap:6px;grid-template-columns:repeat(6,minmax(0,1fr))}
+.rf-srt-confrontos.mm{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.rf-srt-conf{background:#111722;border:1px solid rgba(255,255,255,.07);border-radius:11px;
+  padding:7px 8px;display:flex;align-items:center;gap:8px;min-width:0}
+.rf-srt-conf.meu{border-color:var(--sa)}
+.rf-srt-conf-n{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:700;
+  color:var(--sa);flex:0 0 auto}
+.rf-srt-conf-l{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.rf-srt-conf-c{font-size:11px;color:#eef2f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-srt-conf-c.vazio{color:#8d98a4}
+.rf-srt-conf-g{display:flex;flex-direction:column;gap:2px;flex:0 0 auto;padding-left:8px;
+  border-left:1px solid rgba(255,255,255,.08)}
+.rf-srt-conf-g span{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:11px;
+  font-weight:500;color:#98a3ae;text-align:right}
+.rf-srt-conf-g span.win{font-weight:700;color:var(--sa)}
 
-/* chave (playoffs) */
-.rf-srt-chave{display:flex;flex-direction:column;gap:8px;overflow-x:auto}
-.rf-srt-rots{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;
-  font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--text-muted);text-align:center}
-.rf-srt-bracket{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;align-items:center}
-.rf-srt-col{display:flex;flex-direction:column;justify-content:space-around;gap:8px;min-width:0}
-.rf-srt-par{display:flex;flex-direction:column;gap:2px;background:var(--surface-card);
-  border:var(--border-hairline);border-radius:var(--r-chip);padding:4px}
-.rf-srt-final{display:flex;align-items:center;justify-content:center}
-.rf-srt-taca{width:88px;height:88px;border-radius:var(--r-pill);
-  display:flex;align-items:center;justify-content:center;font-size:38px}
+/* ---- aba chave ---- */
+.rf-srt-chave{display:grid;grid-template-columns:1fr 1fr 1fr 168px 1fr 1fr 1fr;gap:9px;align-items:center}
+.rf-srt-col{display:flex;flex-direction:column;gap:9px;min-width:0}
+.rf-srt-fase-l{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;
+  letter-spacing:.16em;color:#7d8894;text-transform:uppercase;text-align:center;padding-bottom:4px}
+.rf-srt-tie{background:#111722;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:4px;
+  display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-srt-tie-r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;
+  border-radius:7px;border-left:3px solid transparent}
+.rf-srt-tie-r.win{background:rgba(255,255,255,.09);border-left-color:var(--sa)}
+.rf-srt-tie-n{font-size:10.5px;font-weight:500;color:#98a3ae;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;min-width:0}
+.rf-srt-tie-r.win .rf-srt-tie-n{font-weight:700;color:#fff}
+.rf-srt-tie-g{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:11px;font-weight:700;
+  color:#7d8894;flex:0 0 auto}
+.rf-srt-tie-r.win .rf-srt-tie-g{color:var(--sa)}
+.rf-srt-centro{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.rf-srt-centro-tr{width:104px;height:104px;background-size:contain;background-position:center;
+  background-repeat:no-repeat;filter:drop-shadow(0 14px 24px rgba(0,0,0,.75))}
+.rf-srt-tie.final{border-color:color-mix(in srgb,var(--sa) 55%,transparent);
+  box-shadow:0 16px 30px -18px rgba(0,0,0,.9)}
+.rf-srt-faixa{width:100%;border-radius:8px;padding:6px 9px;background:var(--sa);color:#0b0e13;
+  font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:10px;font-weight:700;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* progresso e o aviso do meu confronto */
-.rf-srt-prog{display:flex;align-items:center;gap:10px}
-.rf-srt-bar{flex:1;height:6px;border-radius:var(--r-pill);background:var(--surface-sunken);
-  border:1px solid var(--line-3);overflow:hidden;display:block}
-.rf-srt-bar>i{display:block;height:100%;background:var(--club-primary);border-radius:var(--r-pill);
-  transition:width var(--dur-base) var(--ease)}
-.rf-srt-n{font-family:var(--font-mono);font-size:var(--fs-micro);color:var(--text-3);white-space:nowrap}
-.rf-srt-meu{background:var(--club-primary-soft);border:1px solid var(--club-primary-line);
-  border-radius:var(--r-control);padding:10px 14px;font-size:var(--fs-body-sm);color:var(--text-2)}
-.rf-srt-meu b{color:var(--club-primary)}
+/* ---- rodapé do painel ---- */
+.rf-srt-foot{display:flex;align-items:center;gap:12px;margin-top:auto;padding-top:4px}
+.rf-srt-bar-p{flex:1;height:7px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+.rf-srt-bar-p i{display:block;height:100%;background:var(--sa);transition:width .4s ease}
+.rf-srt-n{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:11px;color:#98a3ae;flex:0 0 auto}
+.rf-srt-go{appearance:none;font:inherit;cursor:pointer;border:0;border-radius:11px;padding:9px 16px;
+  background:var(--sa);color:#0b0e13;font-size:12.5px;font-weight:700;flex:0 0 auto}
+.rf-srt-meu{font-size:12.5px;color:#eef2f6;background:rgba(255,255,255,.05);border-radius:11px;
+  padding:9px 12px;border-left:3px solid var(--sa)}
 
-/* ----- No telefone o bracket não cabe: a navegação é POR FASE ----- */
-@media (max-width:760px){
-  .rf-srt{grid-template-columns:minmax(0,1fr)}
-  .rf-srt-grupos{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  /* em 375px cada cartão de grupo fica com 142px, e o nome do clube com 83 —
-     "Coquimbo Unido" precisa de 95. O escudo encolhe 2px e a folga 2, e a
-     letra desce um degrau: o nome cabe inteiro sem tirar uma coluna. */
-  .rf-srt-grupo{padding:8px}
-  .rf-srt-vaga{gap:5px;padding:6px 4px}
-  .rf-srt-crest img,.rf-srt-crest .rf-crest-fb{width:18px;height:18px}
-  .rf-srt-bolha{width:18px;height:18px}
-  .rf-srt-cn{font-size:var(--fs-label)}
-  .rf-srt-chave{overflow-x:auto}
-  .rf-srt-bracket{grid-auto-columns:minmax(140px,1fr)}
-  .rf-srt-taca{width:56px;height:56px;font-size:26px}
-  .rf-srt-conf{grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr)}
+/* ---- mobile: uma coluna, faixas roláveis, rodapé fixo ---- */
+@media (max-width:900px){
+  .rf-srt{padding:14px 14px 84px}
+  .rf-srt-grid{grid-template-columns:minmax(0,1fr)}
+  .rf-srt-chips,.rf-srt-abas{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+    margin:0 -14px;padding:0 14px}
+  .rf-srt-chips::-webkit-scrollbar,.rf-srt-abas::-webkit-scrollbar{display:none}
+  .rf-srt-chip,.rf-srt-aba,.rf-srt-tog{flex:0 0 auto}
+  .rf-srt-tog{margin-left:0}
+  /* a barra vira quatro linhas: o bloco do prémio deixa de ser coluna à direita */
+  .rf-srt-bar{flex-wrap:wrap;gap:12px;padding:16px 18px;border-radius:18px}
+  .rf-srt-bar-tr{width:74px;height:74px;margin-left:2px}
+  .rf-srt-bar-t{font-size:24px}
+  .rf-srt-bar-pr{align-items:flex-start;width:100%}
+  .rf-srt-bar-pv{font-size:22px}
+  .rf-srt-palco{border-radius:18px}
+  .rf-srt-palco-tr{height:186px}
+  .rf-srt-painel{border-radius:18px;padding:14px}
+  .rf-srt-grupos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-srt-confrontos,.rf-srt-confrontos.mm{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* a chave empilha: FINAL primeiro (com a taça), depois semi, quartas e oitavas */
+  .rf-srt-chave{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-srt-chave>.rf-srt-centro{grid-column:1/-1;order:-1}
+  .rf-srt-chave>.rf-srt-fase-l{grid-column:1/-1}
+  .rf-srt-foot{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px 14px;
+    background:linear-gradient(180deg,rgba(7,9,12,0),rgba(7,9,12,.96) 38%)}
+  .rf-srt-go{min-height:44px}
 }
 
 /* =====================================================================
