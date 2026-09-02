@@ -32,8 +32,8 @@ window.TROPHY_ROOM = {
     { id:'sulamericana', nome:'Copa Sul-Americana', curto:'Sul-Americana', img:'clubes-america.webp', regiao:'AMÉRICA DO SUL', tipo:'copa',
       dica:'Vem pela faixa do 7º ao 12º lugar da Série A. Grupos e depois mata-mata.' },
 
-    { id:'premier', nome:'Premier League', curto:'Premier League', img:'premier.webp', regiao:'EUROPA', tipo:'liga',
-      dica:'Só num save da Inglaterra: termine a Premier League em 1º.' },
+    { id:'premier', nome:'Crown League', curto:'Crown League', img:'crown-league.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Inglaterra: termine a primeira divisão em 1º.' },
     { id:'championsLeague', nome:'UEFA Champions League', curto:'Champions League', img:'champions.webp', regiao:'EUROPA', tipo:'copa',
       dica:'Só num save europeu: classifique-se pela liga nacional, passe dos grupos e ganhe o mata-mata.' },
     { id:'europaLeague', nome:'UEFA Europa League', curto:'Europa League', img:'europa-league.webp', regiao:'EUROPA', tipo:'copa',
@@ -46,7 +46,7 @@ window.TROPHY_ROOM = {
        A CHAVE É A DO MOTOR: quem a decide é COMP_CHAVE_DIVISAO (src/data/competicoes.js), e é
        por ela que o título conquistado casa com o card. Inglaterra/1ª é a exceção histórica:
        chama-se 'premier' desde antes disto. */
-    { id:'liga:Inglaterra:CH', nome:'Vanguard League', curto:'Vanguard League', img:null, regiao:'EUROPA', tipo:'liga',
+    { id:'liga:Inglaterra:CH', nome:'Vanguard League', curto:'Vanguard League', img:'vanguard-league.webp', regiao:'EUROPA', tipo:'liga',
       dica:'Só num save da Inglaterra: termine a segunda divisão em 1º e suba.' },
     { id:'liga:Itália:IT', nome:'Lega Suprema', curto:'Lega Suprema', img:'lega-suprema.webp', regiao:'EUROPA', tipo:'liga',
       dica:'Só num save da Itália: termine a primeira divisão em 1º.' },
@@ -64,7 +64,7 @@ window.TROPHY_ROOM = {
       dica:'Só num save de Portugal: termine a primeira divisão em 1º.' },
     { id:'liga:Portugal:PT2', nome:'Liga Navegação', curto:'Liga Navegação', img:'liga-navegacao.webp', regiao:'EUROPA', tipo:'liga',
       dica:'Só num save de Portugal: termine a segunda divisão em 1º e suba.' },
-    { id:'liga:Argentina:ARG', nome:'Liga AFA Suprema', curto:'Liga AFA Suprema', img:'liga-afa-suprema.webp', regiao:'AMÉRICA DO SUL', tipo:'liga',
+    { id:'liga:Argentina:ARG', nome:'Liga ARG Suprema', curto:'Liga ARG Suprema', img:'liga-arg-suprema.webp', regiao:'AMÉRICA DO SUL', tipo:'liga',
       dica:'Só num save da Argentina: termine a divisão nacional em 1º.' },
 
     /* Ainda não existe no motor: nenhuma competição do jogo entrega este título hoje. Fica na
@@ -86,9 +86,9 @@ window.TROPHY_ROOM = {
    grande reduzida a 28px pioraria o ícone sem ninguém ter pedido.
    Depende da ordem em index.html — trophies.js vem antes deste ficheiro. */
 (function(){
-  /* As quatro herdadas ficam com a miniatura que sempre tiveram: uma fotografia grande
+  /* As três herdadas ficam com a miniatura que sempre tiveram: uma fotografia grande
      reduzida a 28px piora o ícone sem ninguém ter pedido. Toda arte nova entra. */
-  var LEGADO = ['premier','championsLeague','europaLeague','mundial'];
+  var LEGADO = ['championsLeague','europaLeague','mundial'];
   window.TROPHIES = window.TROPHIES || {};
   window.TROPHY_ROOM.comps.forEach(function(c){
     if(LEGADO.indexOf(c.id) < 0 && c.img) window.TROPHIES[c.id] = 'img/trofeus/' + c.img;

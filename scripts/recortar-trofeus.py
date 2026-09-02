@@ -31,7 +31,8 @@ from scipy import ndimage
 SAIDA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                      'public', 'img', 'trofeus')
 # quais artes têm vão fechado de verdade (o resto: desligado, ver o cabeçalho)
-COM_VAO = {'liga-soberana', 'copa-federacao'}
+COM_VAO = {'liga-soberana', 'copa-federacao', 'lega-suprema', 'lega-ascesa',
+           'liga-hispanica', 'liga-segunda', 'liga-lusitana', 'liga-arg-suprema'}
 
 
 def ligado_a_borda(cand):

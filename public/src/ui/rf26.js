@@ -1077,10 +1077,10 @@ const RF_COMP_TROFEU={A:'liga-soberana',B:'liga-acesso',C:'liga-impulso',D:'liga
   copaBrasil:'copa-federacao',libertadores:'liberta-cup',sulamericana:'clubes-america',
   championsLeague:'champions',europaLeague:'europa-league',
   /* as divisões de fora: a chave aqui é a SIGLA DA DIVISÃO (UNIVERSOS[pais].order), que é o
-     que rfCompInfo recebe. Inglaterra ainda não tem arte própria — PL fica com a antiga. */
-  PL:'premier', IT:'lega-suprema', IT2:'lega-ascesa', ES:'liga-hispanica', ES2:'liga-segunda',
+     que rfCompInfo recebe. */
+  PL:'crown-league', CH:'vanguard-league', IT:'lega-suprema', IT2:'lega-ascesa', ES:'liga-hispanica', ES2:'liga-segunda',
   DE:'meisterliga', DE2:'zweite-liga', PT:'liga-lusitana', PT2:'liga-navegacao',
-  ARG:'liga-afa-suprema'};
+  ARG:'liga-arg-suprema'};
 
 function rfCompInfo(d){
   const comp=(typeof COMPETICOES!=='undefined')?COMPETICOES[d]:null;
