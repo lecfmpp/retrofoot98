@@ -9653,3 +9653,245 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-mod-card:hover .rf-mod-sel{ background:#f2f7f1; border-color:#17458F; color:#17458F; }
 .rf-mod-card.on .rf-mod-sel{ background:#17458F; border-color:#17458F; color:#fff; }
 .rf-mod-nota{ display:block; font-size:12px; color:#9aa79e; line-height:1.55; }
+
+/* =====================================================================
+   ENTREVISTA PÓS-JOGO — a assessoria de imprensa de cada rodada
+   Portado de "design_handoff_entrevista_pos_jogo" (desktop 940px + mobile
+   390px). O handoff escreve valores literais (#17458F, #F2B90C, #dde7db,
+   #12201a, Space Grotesk, IBM Plex Mono) que são EXACTAMENTE os tokens
+   desta folha — por isso aqui vão as variáveis e não os hex: mudar a marca
+   num sítio continua a mudar o jogo inteiro, esta tela incluída.
+
+   As duas excepções são os dois tons de resultado do handoff: o verde
+   #2f8f4a e o vermelho #c0392b são mais escuros que --ok/--danger, porque
+   aqui aparecem em mono de 10px sobre branco e precisam do contraste.
+   ===================================================================== */
+.rf-ent-sala{
+  --ent-ok:#2f8f4a; --ent-ok-fundo:#eaf6ee;
+  --ent-bad:#c0392b; --ent-bad-fundo:#fbeceb;
+  --ent-mid:#F2B90C; --ent-warn:#a8730c;
+  min-height:100vh; box-sizing:border-box; padding:30px;
+  display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(120% 90% at 50% 0%,#123a5e 0%,#0e2a41 52%,#08131c 100%);
+  position:relative; overflow:hidden;
+}
+/* as faixas da parede da sala e os dois flashes de fotógrafo */
+.rf-ent-listras{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.03) 0 44px,transparent 44px 88px)}
+.rf-ent-flash{position:absolute;border-radius:var(--r-pill);pointer-events:none}
+.rf-ent-flash.a{left:8%;top:12%;width:220px;height:220px;
+  background:radial-gradient(circle,rgba(255,255,255,.5) 0%,rgba(255,255,255,0) 62%);
+  animation:rfEntFlash 3.4s ease-in-out infinite}
+.rf-ent-flash.b{right:12%;bottom:16%;width:260px;height:260px;
+  background:radial-gradient(circle,rgba(242,185,12,.4) 0%,rgba(242,185,12,0) 64%);
+  animation:rfEntFlash 4.6s ease-in-out infinite}
+@keyframes rfEntFlash{0%,100%{opacity:.14}50%{opacity:.36}}
+@keyframes rfEntLive{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes rfEntEntra{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.rf-ent{position:relative;width:940px;max-width:100%;background:var(--surface-card);
+  border-radius:var(--r-shell);overflow:hidden;box-shadow:0 44px 100px -44px rgba(0,0,0,.78);
+  display:flex;flex-direction:column;box-sizing:border-box}
+
+/* ---- cabeçalho ---- */
+.rf-ent-hd{background:linear-gradient(100deg,var(--club-primary-deep),var(--club-primary) 62%);
+  padding:18px 22px;display:flex;align-items:center;gap:14px;position:relative}
+.rf-ent-hd-filete{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--club-secondary)}
+.rf-ent-hd-id{display:flex;flex-direction:column;gap:3px;min-width:0;margin-left:6px}
+.rf-ent-hd-k{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
+  letter-spacing:.14em;color:var(--text-on-dark-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ent-hd-t{font-size:var(--fs-title);font-weight:var(--fw-bold);color:var(--text-on-dark);
+  letter-spacing:-.02em;white-space:nowrap}
+.rf-ent-som{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);
+  font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:.1em;
+  color:var(--text-on-dark);background:rgba(255,255,255,.14);border:none;
+  border-radius:var(--r-pill);padding:6px 12px;white-space:nowrap;flex:0 0 auto;cursor:pointer}
+.rf-ent-som.on{color:#0b1710;background:var(--club-secondary)}
+.rf-ent-live{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);
+  font-size:var(--fs-micro);font-weight:var(--fw-bold);letter-spacing:.12em;color:#fff;
+  background:var(--note);border-radius:var(--r-pill);padding:6px 13px;white-space:nowrap;flex:0 0 auto}
+.rf-ent-live i{width:9px;height:9px;border-radius:var(--r-pill);background:#fff;display:block;
+  animation:rfEntLive 1.4s ease-in-out infinite}
+
+/* ---- corpo: três colunas no desktop, empilhado no telefone ---- */
+/* `align-items:stretch` é o do handoff: as três colunas terminam na mesma
+   linha. O que estica é a FOTO (flex:1 sobre os 196px de mínimo), não um vazio
+   branco no pé do cartão — com o quiz mais alto que a ficha, esticar o cartão
+   sem esticar o retrato deixaria um buraco do tamanho da diferença. */
+.rf-ent-corpo{padding:20px 22px 22px;display:grid;gap:14px;box-sizing:border-box;
+  grid-template-columns:196px minmax(0,1fr) 196px;
+  grid-template-areas:"tre quiz rep" "bar bar bar" "pe pe pe";align-items:stretch}
+.rf-ent-pessoa.treinador{grid-area:tre}
+.rf-ent-quiz{grid-area:quiz}
+.rf-ent-pessoa.reporter{grid-area:rep}
+.rf-ent-barras{grid-area:bar}
+.rf-ent-pe{grid-area:pe}
+
+/* ---- cartões de quem fala ---- */
+.rf-ent-pessoa{border:var(--border-hairline);border-radius:var(--r-card);overflow:hidden;
+  display:flex;flex-direction:column;background:var(--surface-card);min-width:0}
+.rf-ent-foto{position:relative;flex:1 1 196px;min-height:196px;background:var(--text-1);
+  display:flex;align-items:center;justify-content:center;overflow:hidden}
+.rf-ent-foto.reporter{background:#1b2b22}
+.rf-ent-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.rf-ent-mono-ini{font-family:var(--font-mono);font-size:44px;font-weight:var(--fw-bold);
+  color:rgba(255,255,255,.22);letter-spacing:.04em}
+.rf-ent-foto-veu{position:absolute;left:0;right:0;bottom:0;height:56%;pointer-events:none;
+  background:linear-gradient(0deg,rgba(9,18,13,.94) 0%,rgba(9,18,13,0) 100%)}
+.rf-ent-etq{position:absolute;left:10px;bottom:9px;font-family:var(--font-mono);
+  font-size:var(--fs-label-xs);font-weight:var(--fw-bold);letter-spacing:.14em;
+  padding:4px 8px;white-space:nowrap;color:#0b1710;background:var(--club-secondary)}
+.rf-ent-foto.reporter .rf-ent-etq{color:#fff;background:var(--club-primary)}
+.rf-ent-pessoa-id{padding:12px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.rf-ent-pessoa-n{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:-.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ent-pessoa-s{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-ent-pessoa-s i{width:4px;align-self:stretch;flex:0 0 auto;background:var(--club-primary)}
+.rf-ent-pessoa-s i.veiculo{background:var(--note)}
+.rf-ent-pessoa-s span{font-size:var(--fs-caption);color:var(--text-4);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-ent-div{height:1px;background:var(--line-3)}
+.rf-ent-linha{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rf-ent-linha span{font-family:var(--font-mono);font-size:var(--fs-label-xs);letter-spacing:.12em;
+  color:var(--text-faint);white-space:nowrap}
+.rf-ent-linha b{font-family:var(--font-mono);font-size:var(--fs-caption);
+  font-weight:var(--fw-semibold);color:var(--text-2);white-space:nowrap}
+.rf-ent-tom.cordial{color:var(--ent-ok)}
+.rf-ent-tom.tenso{color:var(--ent-warn)}
+.rf-ent-tom.quente{color:var(--ent-bad)}
+
+/* ---- o quiz ---- */
+.rf-ent-quiz{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rf-ent-pergunta{border:var(--border-hairline);border-left:4px solid var(--club-secondary);
+  border-radius:var(--r-card);padding:16px 18px;display:flex;flex-direction:column;gap:9px;
+  background:var(--surface-card);min-width:0}
+.rf-ent-pergunta-hd{display:flex;align-items:center;gap:10px}
+.rf-ent-pergunta-k{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  letter-spacing:.14em;color:var(--club-primary);white-space:nowrap}
+.rf-ent-passos{display:flex;align-items:center;gap:5px}
+.rf-ent-passo{width:8px;height:8px;border-radius:var(--r-pill);background:var(--line-1);
+  transition:all .25s ease}
+.rf-ent-passo.atual{width:22px;background:var(--club-secondary)}
+.rf-ent-passo.feito{background:var(--club-primary)}
+.rf-ent-q{margin:0;font-size:21px;font-weight:var(--fw-bold);color:var(--text-1);
+  letter-spacing:-.02em;line-height:1.3;text-wrap:pretty}
+.rf-ent-nota{font-size:12.5px;color:var(--text-4);line-height:1.5;text-wrap:pretty}
+.rf-ent-ops{display:flex;flex-direction:column;gap:9px;min-width:0}
+.rf-ent-op{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;
+  background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-inner);
+  padding:13px 15px;cursor:pointer;min-width:0;width:100%;box-sizing:border-box;
+  font-family:inherit;transition:border-color .18s ease,background .18s ease}
+.rf-ent-op:hover{border-color:var(--club-primary);background:#f7faf6}
+.rf-ent-op:focus-visible{outline:2px solid var(--club-primary);outline-offset:2px}
+.rf-ent-op-tom{font-family:var(--font-mono);font-size:var(--fs-label-xs);font-weight:var(--fw-bold);
+  letter-spacing:.14em;color:var(--club-primary);white-space:nowrap}
+.rf-ent-op-t{font-size:var(--fs-body);font-weight:var(--fw-semibold);color:var(--text-1);
+  line-height:1.4;text-wrap:pretty}
+.rf-ent-op-chips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding-top:2px}
+.rf-ent-chip{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-semibold);
+  border-radius:var(--r-tag);padding:3px 8px;white-space:nowrap}
+.rf-ent-chip.sobe{color:var(--ent-ok);background:var(--ent-ok-fundo)}
+.rf-ent-chip.cai{color:var(--ent-bad);background:var(--ent-bad-fundo)}
+
+/* ---- repercussão imediata ---- */
+.rf-ent-reacao{display:flex;flex-direction:column;gap:9px;background:var(--surface-sunken);
+  border:1px solid var(--line-3);border-radius:16px;padding:14px 16px;animation:rfEntEntra .28s ease}
+.rf-ent-reacao-hd{display:flex;align-items:center;gap:9px}
+.rf-ent-reacao-hd span{font-family:var(--font-mono);font-size:var(--fs-label-xs);
+  font-weight:var(--fw-bold);letter-spacing:.14em;color:var(--club-primary);white-space:nowrap}
+.rf-ent-reacao-hd i{flex:1;height:1px;background:var(--line-3)}
+.rf-ent-reacao-l{display:flex;align-items:flex-start;gap:10px;min-width:0;
+  font-size:12.5px;color:var(--text-2);line-height:1.5;text-wrap:pretty}
+.rf-ent-tag{font-family:var(--font-mono);font-size:var(--fs-label-xs);font-weight:var(--fw-bold);
+  letter-spacing:.12em;color:#0b1710;border-radius:var(--r-tag);padding:4px 8px;
+  white-space:nowrap;flex:0 0 auto}
+.rf-ent-tag.imprensa{background:#e8eef7}
+.rf-ent-tag.torcida{background:#f4ecd2}
+
+/* ---- as duas barras de destaque ---- */
+.rf-ent-barras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rf-ent-barra{border:var(--border-hairline);border-radius:var(--r-card);padding:16px;
+  display:flex;flex-direction:column;gap:11px;background:var(--surface-card);min-width:0}
+.rf-ent-barra-top{display:flex;align-items:center;gap:10px}
+.rf-ent-barra-l{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  letter-spacing:.14em;color:var(--text-muted);white-space:nowrap}
+.rf-ent-barra-v{font-family:var(--font-mono);font-size:var(--fs-title);font-weight:var(--fw-bold);
+  color:var(--text-1);line-height:1;white-space:nowrap}
+.rf-ent-delta{font-family:var(--font-mono);font-size:var(--fs-micro);font-weight:var(--fw-bold);
+  border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap}
+.rf-ent-delta.sobe{color:var(--ent-ok);background:var(--ent-ok-fundo)}
+.rf-ent-delta.cai{color:var(--ent-bad);background:var(--ent-bad-fundo)}
+.rf-ent-trilha{height:16px;border-radius:var(--r-pill);background:var(--line-3);
+  overflow:hidden;display:flex}
+.rf-ent-trilha i{display:block;border-radius:var(--r-pill);
+  transition:width .55s cubic-bezier(.22,.61,.36,1),background .3s ease}
+/* A COR DA BARRA É SEMÂNTICA, NÃO DO CLUBE. As faixas do handoff (≥66 verde,
+   40-65 amarelo, <40 vermelho) dizem se o número é bom ou mau — e num clube de
+   camisa verde o amarelo da faixa do meio viraria o mesmo verde do "está tudo
+   bem", que é exactamente a leitura errada. Os três tons são fixos. */
+.rf-ent-trilha i.ok{background:var(--ent-ok)}
+.rf-ent-trilha i.aviso{background:var(--ent-mid)}
+.rf-ent-trilha i.ruim{background:var(--ent-bad)}
+.rf-ent-barra-pe{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rf-ent-barra-e{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-ent-barra-o{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;
+  color:var(--text-faint);white-space:nowrap}
+
+/* ---- rodapé ---- */
+.rf-ent-pe{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rf-ent-pe-nota{font-size:var(--fs-caption);color:var(--text-4);text-wrap:pretty;flex:1;min-width:180px}
+.rf-ent-pe-conta{display:none;font-family:var(--font-mono);font-size:var(--fs-label);
+  letter-spacing:.08em;color:var(--text-on-dark-soft);white-space:nowrap}
+.rf-ent-bt{display:flex;align-items:center;height:44px;padding:0 20px;border:none;
+  border-radius:13px;background:var(--club-secondary);color:var(--club-on-secondary);
+  font-family:inherit;font-size:var(--fs-body);font-weight:var(--fw-bold);white-space:nowrap;
+  cursor:pointer;flex:0 0 auto;box-shadow:0 8px 18px -10px rgba(18,32,26,.5)}
+.rf-ent-bt.fim{background:var(--club-primary);color:var(--club-on-primary)}
+
+/* =====================================================================
+   TELEFONE (o desenho de 390px do handoff)
+   Mesma marcação, outra ordem: as duas pessoas lado a lado, DEPOIS as
+   barras e só então a pergunta — o efeito da resposta tem de estar à vista
+   sem rolar. O rodapé cola-se ao fundo do ecrã enquanto se responde.
+   ===================================================================== */
+@media (max-width:980px){
+  .rf-ent-sala{padding:10px;align-items:flex-start;overflow-y:auto}
+  .rf-ent{border-radius:20px;box-shadow:0 30px 70px -34px rgba(0,0,0,.8)}
+  .rf-ent-hd{padding:14px 16px;gap:10px}
+  .rf-ent-hd-t{font-size:18px}
+  .rf-ent-hd-k{font-size:var(--fs-label-xs)}
+  .rf-ent-som b{display:none}
+  .rf-ent-som{padding:7px 10px}
+  .rf-ent-corpo{padding:14px;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:"tre rep" "bar bar" "quiz quiz" "pe pe"}
+  .rf-ent-pessoa{border-radius:var(--r-inner)}
+  .rf-ent-foto{flex:0 0 112px;min-height:112px;height:112px}
+  .rf-ent-mono-ini{font-size:30px}
+  .rf-ent-pessoa-id{padding:9px 10px;gap:4px}
+  .rf-ent-pessoa-n{font-size:var(--fs-body)}
+  .rf-ent-pessoa-s span{font-size:var(--fs-micro)}
+  /* no telefone o cartão da pessoa mostra só a identidade: as três linhas mono
+     do desktop repetiriam o que as barras já dizem em letra maior */
+  .rf-ent-pessoa .rf-ent-div,
+  .rf-ent-pessoa .rf-ent-linha{display:none}
+  /* fica só o TOM DA COLETIVA, na linha do repórter, como no desenho de 390px */
+  .rf-ent-pessoa.reporter .rf-ent-linha.tom{display:flex}
+  .rf-ent-barras{gap:10px}
+  .rf-ent-barra{border-radius:var(--r-inner);padding:11px 12px;gap:8px}
+  .rf-ent-barra-l{font-size:8.5px;letter-spacing:.12em}
+  .rf-ent-barra-v{font-size:18px}
+  .rf-ent-trilha{height:12px}
+  .rf-ent-barra-o{display:none}
+  .rf-ent-pergunta{border-radius:var(--r-inner);padding:13px 14px}
+  .rf-ent-q{font-size:17px;line-height:1.32}
+  .rf-ent-nota{font-size:var(--fs-caption)}
+  .rf-ent-op{padding:12px 14px}
+  .rf-ent-op-t{font-size:13.5px}
+  .rf-ent-op:hover{border-color:var(--line-1);background:var(--surface-card)}
+  .rf-ent-op:active{border-color:var(--club-primary);background:#f7faf6}
+  .rf-ent-pe{position:sticky;bottom:0;z-index:5;margin:0 -14px -14px;padding:12px 14px;
+    background:linear-gradient(180deg,rgba(255,255,255,0),var(--surface-card) 38%)}
+  .rf-ent-pe-nota{display:none}
+  .rf-ent-pe-conta{display:block;flex:1;color:var(--text-faint)}
+  .rf-ent-bt{min-height:44px}
+}
