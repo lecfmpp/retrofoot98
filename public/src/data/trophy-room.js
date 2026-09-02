@@ -39,6 +39,34 @@ window.TROPHY_ROOM = {
     { id:'europaLeague', nome:'UEFA Europa League', curto:'Europa League', img:'europa-league.webp', regiao:'EUROPA', tipo:'copa',
       dica:'A outra porta da Europa, para quem fica logo abaixo da zona de Champions.' },
 
+
+    /* AS LIGAS DE FORA, com arte de estúdio e o nome do universo RetroFoot. Não estavam aqui
+       porque não tínhamos taça delas — o motor gravava 'liga:<universo>:<divisão>' e a Sala
+       montava um card avulso com o 🏆 genérico (ver salaCatalog). Agora têm ficha própria.
+       A CHAVE É A DO MOTOR: quem a decide é COMP_CHAVE_DIVISAO (src/data/competicoes.js), e é
+       por ela que o título conquistado casa com o card. Inglaterra/1ª é a exceção histórica:
+       chama-se 'premier' desde antes disto. */
+    { id:'liga:Inglaterra:CH', nome:'Vanguard League', curto:'Vanguard League', img:null, regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Inglaterra: termine a segunda divisão em 1º e suba.' },
+    { id:'liga:Itália:IT', nome:'Lega Suprema', curto:'Lega Suprema', img:'lega-suprema.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Itália: termine a primeira divisão em 1º.' },
+    { id:'liga:Itália:IT2', nome:'Lega Ascesa', curto:'Lega Ascesa', img:'lega-ascesa.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Itália: termine a segunda divisão em 1º e suba.' },
+    { id:'liga:Espanha:ES', nome:'Liga Hispânica', curto:'Liga Hispânica', img:'liga-hispanica.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Espanha: termine a primeira divisão em 1º.' },
+    { id:'liga:Espanha:ES2', nome:'Liga Segunda', curto:'Liga Segunda', img:'liga-segunda.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Espanha: termine a segunda divisão em 1º e suba.' },
+    { id:'liga:Alemanha:DE', nome:'Meisterliga', curto:'Meisterliga', img:'meisterliga.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Alemanha: termine a primeira divisão em 1º.' },
+    { id:'liga:Alemanha:DE2', nome:'Zweite Liga', curto:'Zweite Liga', img:'zweite-liga.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save da Alemanha: termine a segunda divisão em 1º e suba.' },
+    { id:'liga:Portugal:PT', nome:'Liga Lusitana', curto:'Liga Lusitana', img:'liga-lusitana.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save de Portugal: termine a primeira divisão em 1º.' },
+    { id:'liga:Portugal:PT2', nome:'Liga Navegação', curto:'Liga Navegação', img:'liga-navegacao.webp', regiao:'EUROPA', tipo:'liga',
+      dica:'Só num save de Portugal: termine a segunda divisão em 1º e suba.' },
+    { id:'liga:Argentina:ARG', nome:'Liga AFA Suprema', curto:'Liga AFA Suprema', img:'liga-afa-suprema.webp', regiao:'AMÉRICA DO SUL', tipo:'liga',
+      dica:'Só num save da Argentina: termine a divisão nacional em 1º.' },
+
     /* Ainda não existe no motor: nenhuma competição do jogo entrega este título hoje. Fica na
        estante como silhueta declarada, com a dica dizendo isso — decisão do usuário (05/08/2026),
        pra reservar o lugar dele na prateleira MUNDO. Quando o Mundial virar competição de
@@ -58,9 +86,11 @@ window.TROPHY_ROOM = {
    grande reduzida a 28px pioraria o ícone sem ninguém ter pedido.
    Depende da ordem em index.html — trophies.js vem antes deste ficheiro. */
 (function(){
-  var NOVAS = ['serieA','serieB','serieC','serieD','copaBrasil','libertadores','sulamericana'];
+  /* As quatro herdadas ficam com a miniatura que sempre tiveram: uma fotografia grande
+     reduzida a 28px piora o ícone sem ninguém ter pedido. Toda arte nova entra. */
+  var LEGADO = ['premier','championsLeague','europaLeague','mundial'];
   window.TROPHIES = window.TROPHIES || {};
   window.TROPHY_ROOM.comps.forEach(function(c){
-    if(NOVAS.indexOf(c.id) >= 0 && c.img) window.TROPHIES[c.id] = 'img/trofeus/' + c.img;
+    if(LEGADO.indexOf(c.id) < 0 && c.img) window.TROPHIES[c.id] = 'img/trofeus/' + c.img;
   });
 })();
