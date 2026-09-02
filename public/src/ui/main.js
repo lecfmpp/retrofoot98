@@ -3466,10 +3466,24 @@ function startPostRoundClassifs(seats){
   CL._classifQueue=(seats||[]).slice(); // humanos secundários, mostrados DEPOIS do manager 1
   CL.clsDivOpen=null; showLiveClassif(); // manager 1 primeiro (screen='classif')
 }
+/* FIM DO PÓS-RODADA. Depois da classificação, a ASSESSORIA DE IMPRENSA pede a
+   palavra — quando a régua do modo deixa (ver rfPressDevida em rf26-imprensa.js:
+   de 3 em 3 rodadas no Solo, de 4 em 4 na Resenha, com teto por temporada).
+
+   A ORDEM IMPORTA, E É ESTA: liveDone() PRIMEIRO, coletiva depois. liveDone é
+   quem larga os relógios da partida e, na Resenha, quem chama `reopenReady` —
+   o sinal que reabre a rodada seguinte para a sala inteira. Abrir a coletiva
+   antes dele seguraria toda a mesa enquanto UM treinador dá entrevista (até um
+   minuto, com o relógio da tela a correr). Assim a sala segue na hora, e a
+   coletiva acontece por cima da tela do clube, que é onde ela termina. */
+function posRodadaFim(){
+  liveDone();
+  if(typeof rfPressTentarRodada==='function') rfPressTentarRodada(null);
+}
 function postRoundClassifNext(){
   if(CL._classifTimer){ clearTimeout(CL._classifTimer); CL._classifTimer=null; }
   const q=CL._classifQueue;
-  if(!q || !q.length){ CL._classifQueue=null; CL._classifSeat=null; liveDone(); return; }
+  if(!q || !q.length){ CL._classifQueue=null; CL._classifSeat=null; posRodadaFim(); return; }
   CL._classifSeat=q[0]; CL._classifQueue=q.slice(1);
   CL.clsDivOpen=null; CL.screen='seatclassif'; cdraw(); armClassifTimer();
 }
@@ -3477,7 +3491,7 @@ function postRoundClassifNext(){
    humano; senão, volta pra tela principal do manager 1 (comportamento original). */
 function clClassifContinue(){
   if(CL._classifQueue!=null){ postRoundClassifNext(); return; }
-  liveDone();
+  posRodadaFim();
 }
 /* classificação de pós-jogo de um HUMANO secundário — mesma tela do manager 1 (scClassif),
    só que com a liga do assento (fundo OU divisão primária, se mesmo país) e o clube dele em destaque. */
@@ -4155,11 +4169,23 @@ function syncInbox(){
     if(CL.inboxOpen && !CL.inbox.some(e=>e.key===CL.inboxOpen)) CL.inboxOpen=null; // estava lendo o que sumiu
     saveInbox();
   }
+  /* ===== TODO E-MAIL CARREGA OS SEUS FATOS E O SEU DESTINO =====
+     `dados` é o que a mensagem afirma em números (jogador, valor, clube, prazo):
+     é dali que a janela de resposta remonta o caso, em vez de mostrar três
+     opções genéricas que não têm que ver com o que se está a ler.
+     `nav` é O LUGAR ONDE SE EXECUTA o que o e-mail pede — página e aba do
+     envelope novo (ver RF_PAGES em rf26.js). O `action.go` que já existia
+     continua para as telas antigas, mas ele fala a linguagem das abas velhas
+     (CL.tab), que a interface de 2026 não usa: era por isso que o botão do
+     e-mail não levava a lado nenhum. */
   // 1) PROPOSTAS por jogadores meus
   myIncomingOffers().forEach(o=>{
     addInboxEmail({ key:'offer-'+o.id, kind:'offer', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
       subject:'Proposta por '+o.playerName,
       body:`O ${escC((clubOf(o.buyerId)||bgClubById?.(o.buyerId)||{short:o.buyerName||'um clube'}).short||o.buyerName||'um clube')} ofereceu ${fmt(o.fee)} pelo ${escC(o.playerName)}. Quer avaliar?`,
+      dados:{ jogador:o.playerName, valor:o.fee,
+              clube:(clubOf(o.buyerId)||bgClubById?.(o.buyerId)||{}).short||o.buyerName||'um clube' },
+      nav:{ label:'Ver a proposta', page:'mercado', tab:'propostas' },
       action:{label:'Ver proposta', go:'CL.tab="jogo";clCloseOverlay();clIncomingOffers()'} });
   });
   // 1b) CONTRAPROPOSTAS que EU recebi (sou o comprador): o vendedor humano recusou meu valor e
@@ -4171,6 +4197,8 @@ function syncInbox(){
       body:`Recusamos sua proposta de <b>${fmt(c.offeredFee)}</b> por <b>${escC(c.playerName)}</b>.`
         +` Liberamos a negociação por <b>${fmt(c.askFee)}</b>.`
         +`<br><br><span style="opacity:.8">— ${escC(c.sellerHumanName||'o treinador')} (${escC(c.sellerName||'')})</span>`,
+      dados:{ jogador:c.playerName, valor:c.askFee, minhaOferta:c.offeredFee, clube:c.sellerName||'' },
+      nav:{ label:'Ver a contraproposta', page:'mercado', tab:'contra' },
       action:{label:'Responder', go:'clCloseOverlay();clCounterOffers()'} });
   });
   // 2) CONVITES pra treinar outro clube (solo)
@@ -4179,6 +4207,8 @@ function syncInbox(){
     addInboxEmail({ key:'job-'+o.clubId+'-'+(o.roundOfferred||0), kind:'job', from:inboxSigner('pres',o.clubId), role:'Presidente · '+(c.short||''),
       subject:'Convite para treinar o '+(c.short||'clube'),
       body:`Gostaríamos de você no comando do ${escC(c.short||'clube')}${o.foreign?' ('+escC(o.country||'')+')':''}. Salário: ${fmt(o.salary||0)}/sem.`,
+      dados:{ clube:c.short||'clube', clubeId:o.clubId, salario:o.salary||0, verba:o.budget||0, objetivo:o.goal||'' },
+      nav:{ label:'Ver o convite', page:'treinador', tab:'ofertas' },
       action:{label:'Ver oferta', go:'clCloseOverlay();clJobOffers()'} });
   });
   // 3) CONVITE da Resenha (Fase 2) — clube livre da CPU
@@ -4186,6 +4216,8 @@ function syncInbox(){
     addInboxEmail({ key:'rjob-'+o.clubId+'-'+(S.season||0), kind:'job', from:inboxSigner('pres',o.clubId), role:'Presidente · '+(c.short||''),
       subject:'Proposta para assumir o '+(c.short||'clube'),
       body:`Estamos sem treinador e queremos você. Topa assumir o ${escC(c.short||'clube')}?`,
+      dados:{ clube:c.short||'clube', clubeId:o.clubId, salario:o.salary||0 },
+      nav:{ label:'Ver a proposta', page:'treinador', tab:'ofertas' },
       action:{label:'Ver proposta', go:'clCloseOverlay();showResenhaOffer(CL._pendingResenhaOffer)'} });
   }
   // 4) AVISO DA DIRETORIA sobre o cargo (uma vez por episódio de risco na temporada)
@@ -4194,6 +4226,8 @@ function syncInbox(){
     addInboxEmail({ key:'warn-'+(S.season||0), kind:'warn', from:inboxSigner('pres',S.clubId), role:'Presidente · '+myShort,
       subject:'Conversa séria sobre o seu trabalho',
       body:`Os resultados e o clima do elenco preocupam a diretoria. Precisamos de uma reação nas próximas rodadas para você seguir no ${escC(myShort)}.`,
+      dados:{ cargo:js, posicao:(typeof tablePos==='function')?tablePos(S.clubId):null, clube:myShort },
+      nav:{ label:'Ver a classificação', page:'campeonatos', tab:'classificacao' },
       action:{label:'Ver classificação', go:'clCloseOverlay();clClassif()'} });
   }
   // 5) APOSENTADORIAS do MEU elenco na virada de temporada (S._prevSeason.retirements — o mesmo
@@ -4211,6 +4245,8 @@ function syncInbox(){
                           escC(r.reason||'encerrou a carreira'),
                           r.replacement ? escC(r.replacement)+(r.replacementAge?' <span style="opacity:.6">('+r.replacementAge+')</span>':'') : '—' ]))
           +mailNota('Cada saída abre uma vaga na folha — e a base só entrega um por temporada.'),
+        dados:{ quantos:meus.length, nomes:meus.map(r=>r.name) },
+        nav:{ label:'Ver o elenco', page:'elenco', tab:'elenco' },
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4225,8 +4261,10 @@ function syncInbox(){
           +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Força',m:1},{t:'Risco',m:1},{t:'Vale',m:1}],
             risco.slice(0,8).map(x=>[ escC(x.p.n), x.p.age, posLetter(x.p.s), x.p.f,
                                       Math.round(x.chance*100)+'%', fmt(x.p.mv||0) ]))
-          +mailNota(risco.length>8 ? `E mais ${risco.length-8} na mesma faixa de idade.` 
+          +mailNota(risco.length>8 ? `E mais ${risco.length-8} na mesma faixa de idade.`
                                    : 'A janela ainda está aberta — depois da virada, não vale mais nada.'),
+        dados:{ quantos:risco.length, nomes:risco.slice(0,8).map(x=>x.p.n) },
+        nav:{ label:'Ver quem pode sair', page:'mercado', tab:'vender' },
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
@@ -4246,6 +4284,8 @@ function syncInbox(){
       addInboxEmail({ key:'mov-'+(f.round||0)+'-'+i+'-'+hashC(linha), kind:'money', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
         subject:(compra&&venda)?'Movimentação no elenco':(compra?'Contratação concluída':'Venda concluída'),
         body:`<p>${escC(linha)}</p>`+mailKV([['Caixa depois do negócio', fmt(S.budget||0)]]),
+        dados:{ linha, caixa:S.budget||0 },
+        nav:{ label:'Ver o extrato', page:'financas', tab:'extrato' },
         action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
     });
   });
@@ -4253,6 +4293,8 @@ function syncInbox(){
     addInboxEmail({ key:'caixa-'+(S.season||0), kind:'money', from:inboxSigner('pres',S.clubId), role:'Presidente · '+myShort,
       subject:'Caixa no vermelho',
       body:`O clube fechou a rodada com <b>${fmt(S.budget||0)}</b> em caixa. Precisamos cortar folha ou vender alguém antes que isso vire problema com a diretoria.`,
+      dados:{ caixa:S.budget||0, folha:(typeof rfFolha==='function')?rfFolha():0 },
+      nav:{ label:'Ver as finanças', page:'financas', tab:'resumo' },
       action:{label:'Ver finanças', go:'clCloseOverlay();CL.tab="financas";cdraw()'} });
   }
   // 8) PREMIAÇÃO da temporada anterior (fim de temporada)
@@ -4264,6 +4306,8 @@ function syncInbox(){
         body:`<p>Parabéns! O ${escC(myShort)} recebeu a premiação da temporada ${pv.season}.</p>`
           +mailKV([['Total recebido', fmt(sum.total)], ['Temporada', pv.season]])
           +mailNota('O valor já entrou no caixa do clube.'),
+        dados:{ total:sum.total, temporada:pv.season, clube:myShort },
+        nav:{ label:'Ver o resumo financeiro', page:'financas', tab:'resumo' },
         action:null });
     }
   }
@@ -9569,7 +9613,9 @@ function openPressRoom(sum){
 }
 function armPressTimer(){
   if(CL._pressTimer){ clearInterval(CL._pressTimer); CL._pressTimer=null; }
-  CL._pressLeft=25;
+  /* O RELÓGIO É DO MODO, não um 25 fixo. Na Resenha há gente à espera na sala,
+     e a coletiva de rodada é curta de propósito (ver RF_PRESS_CFG). */
+  CL._pressLeft=(typeof rfPressCfg==='function')?(rfPressCfg().segundos||25):25;
   CL._pressTimer=setInterval(()=>{
     if(CL.screen!=='imprensa'){ clearInterval(CL._pressTimer); CL._pressTimer=null; return; }
     CL._pressLeft=(CL._pressLeft!=null?CL._pressLeft:25)-1;
@@ -9586,28 +9632,45 @@ function pressAdvanceAuto(){
   return pressFinish();
 }
 function pressGoQA(){ const P=CL._press; if(!P) return; P.step='qa'; P.qIdx=0; cdraw(); armPressTimer(); }
+/* AS PERGUNTAS PODEM SER DUAS COISAS. Na virada de temporada são as cinco fixas
+   (PRESS_QUESTIONS); na coletiva de RODADA são as montadas com os fatos da
+   semana (P.qs, ver rf26-imprensa.js). rfPressQs devolve as certas nos dois
+   casos, e é por isso que este fluxo não precisa saber em qual está. */
 function pressAnswer(optIdx){
   const P=CL._press; if(!P || P.step!=='qa') return;
-  const q=PRESS_QUESTIONS[P.qIdx];
+  const qs=(typeof rfPressQs==='function')?rfPressQs(P):PRESS_QUESTIONS;
+  const q=qs[P.qIdx];
   if(optIdx>=0 && q && q.opts[optIdx]){
     const o=q.opts[optIdx];
-    P.answers.push({ q:q.q, t:o.t, h:o.h, m:o.m }); P.morale+=o.m;
+    P.answers.push({ q:q.q, t:o.t, h:o.h, m:o.m||0, c:o.c||0, r:o.r||0 });
+    P.morale+=(o.m||0); P.cargo=(P.cargo||0)+(o.c||0); P.rep=(P.rep||0)+(o.r||0);
   } else {
-    P.answers.push({ q:(q&&q.q)||'', t:'(não quis responder)', h:null, m:0 });
+    P.answers.push({ q:(q&&q.q)||'', t:'(não quis responder)', h:null, m:0, c:0, r:0 });
   }
   P.qIdx++;
-  if(P.qIdx>=PRESS_QUESTIONS.length){ P.step='fim'; }
+  if(P.qIdx>=qs.length){ P.step='fim'; }
   cdraw(); armPressTimer();
 }
-/* aplica a moral no MEU elenco e deixa pendente pro servidor (senão a rodada seguinte desfaz) */
+/* FECHA A COLETIVA. Os efeitos (moral do elenco, segurança no cargo e reputação
+   do treinador) são aplicados num sítio só — rfPressAplicar —, que também é
+   quem publica a moral pro servidor na Resenha e escreve as manchetes nas
+   notícias da rodada. Aqui fica só o DESTINO: a coletiva de rodada devolve o
+   jogador ao fluxo de pós-rodada que a chamou; a de temporada abre o ano novo. */
 function pressFinish(){
   clearPressTimer();
   const P=CL._press; CL._press=null;
-  const d=P?Math.max(-15,Math.min(15,P.morale)):0;  // teto de segurança
-  if(d && S.squads && S.squads[CL.clubId]){
-    S.squads[CL.clubId].forEach(p=>{ p.moral=Math.max(0,Math.min(100,(p.moral!=null?p.moral:70)+d)); });
-    if(CL.online) S._netMorale=(S._netMorale||0)+d;   // publicado junto do resultado da rodada
+  const efeito=(typeof rfPressAplicar==='function') ? rfPressAplicar(P) : {moral:0,cargo:0,rep:0};
+
+  if(P && P.modo==='rodada'){
+    const p=[];
+    if(efeito.moral) p.push('moral '+(efeito.moral>0?'+':'')+efeito.moral);
+    if(efeito.cargo) p.push('cargo '+(efeito.cargo>0?'+':'')+efeito.cargo);
+    if(efeito.rep)   p.push('reputação '+(efeito.rep>0?'+':'')+efeito.rep);
+    if(p.length) toastC('Coletiva dada — '+p.join(' · ')+'.');
+    if(typeof P.depois==='function'){ P.depois(); return; }
+    CL.screen='main'; CL.tab='jogo'; cdraw(); return;
   }
+
   const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
   toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
   // vai direto pra "Formação" (não "Jogo") — nunca mostramos outra tela antes de uma rodada
