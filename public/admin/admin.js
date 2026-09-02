@@ -1678,56 +1678,184 @@ async function pgEspera(forcar, senha = pedirDesenho()){
 const CATS_DESPESA = ['softwares','creditos_ia','banco_dados','servidor'];
 const CATS_RECEITA = ['publicidade','assinaturas','aportes'];
 
+/* ===== O GASTO DE IA E A FATURA QUE MANDA NELE =====
+   O painel tem DUAS contas do mesmo dinheiro, e elas não valem o mesmo:
+
+   · a ESTIMATIVA — `elifoot_v3.ia_custos`, uma linha por geração, escrita pela
+     edge function a partir do `usage` que a própria OpenAI devolve na resposta;
+   · a FATURA — o export de uso da plataforma da OpenAI (Usage → Export CSV),
+     que é o que de facto vai ser cobrado.
+
+   As duas batem quase sempre, porque a estimativa usa os mesmos tokens e a
+   mesma tabela de preços. Divergem quando a geração é cobrada mas não chega a
+   ser registrada — pedido que falha depois de a imagem sair, chamada feita
+   antes de o registro de custo entrar no ar, tentativa repetida. Foi o que
+   aconteceu em agosto de 2026: a estimativa deu US$ 239,35 e a fatura US$
+   260,83, tudo concentrado em 25, 26 e 27/08.
+
+   Quando há fatura importada para o mês, é ela que vira despesa. Sem fatura
+   (o mês corrente, sempre), vale a estimativa — melhor um número honesto que
+   se corrige na virada do mês do que um zero à espera. */
+const DESC_IA = 'Gastos com IA — Estúdio de imagens';
+/* Preços do gpt-image-1 por milhão de tokens. São os MESMOS de `TOK_USD` em
+   supabase/functions/generate-image/index.ts — se a OpenAI mexer na tabela, os
+   dois lados mudam juntos, ou a conciliação passa a comparar contas diferentes. */
+const OPENAI_TOK_USD = { texto_in:5.0, imagem_in:10.0, imagem_out:40.0 };
+const MODELOS_OPENAI_CONHECIDOS = /^gpt-image-1/;
+
+/* Lê o CSV de uso da OpenAI (Usage → Export) e soma por mês. O ficheiro traz
+   TOKENS, não dólares — o custo é calculado com a tabela acima, que é como a
+   própria fatura o faz. O mês é o UTC do `start_time_iso`, o mesmo corte que
+   `admin_rf98.ia_custos_mes()` usa do lado do banco. */
+function lerUsoOpenAI(texto){
+  const linhas = String(texto).replace(/^﻿/,'').trim().split(/\r?\n/);
+  if(linhas.length < 2) throw new Error('O ficheiro está vazio.');
+  const cab = linhas[0].split(',').map(s=>s.trim());
+  const col = (n) => cab.indexOf(n);
+  const iDia = col('start_time_iso'), iMod = col('model');
+  if(iDia < 0 || iMod < 0)
+    throw new Error('Não parece o export de uso da OpenAI (faltam as colunas start_time_iso e model).');
+  const iTxt = col('input_text_tokens'), iImg = col('input_image_tokens');
+  const iOutI = col('output_image_tokens'), iOutT = col('output_text_tokens');
+  const iReq = col('num_model_requests');
+
+  const meses = {}; const desconhecidos = new Set(); let usadas = 0;
+  for(let i=1; i<linhas.length; i++){
+    const c = linhas[i].split(',');
+    const modelo = (c[iMod]||'').trim();
+    if(!modelo) continue;                       // dia sem uso: o export traz a linha vazia
+    if(!MODELOS_OPENAI_CONHECIDOS.test(modelo)) desconhecidos.add(modelo);
+    const n = (i2) => i2>=0 ? (Number(c[i2])||0) : 0;
+    const dia = (c[iDia]||'').slice(0,10), mes = dia.slice(0,7);
+    if(!mes) continue;
+    const inTxt = n(iTxt), inImg = n(iImg), out = n(iOutI) + n(iOutT);
+    const usd = (inTxt*OPENAI_TOK_USD.texto_in + inImg*OPENAI_TOK_USD.imagem_in
+               + out*OPENAI_TOK_USD.imagem_out) / 1e6;
+    const m = meses[mes] || (meses[mes] = { usd:0, requisicoes:0,
+      tokens:{ in_texto:0, in_imagem:0, out:0 }, de:dia, ate:dia, modelos:[] });
+    m.usd += usd; m.requisicoes += n(iReq);
+    m.tokens.in_texto += inTxt; m.tokens.in_imagem += inImg; m.tokens.out += out;
+    if(dia < m.de) m.de = dia;
+    if(dia > m.ate) m.ate = dia;
+    if(!m.modelos.includes(modelo)) m.modelos.push(modelo);
+    usadas++;
+  }
+  if(!usadas) throw new Error('Nenhuma linha com uso no ficheiro.');
+  Object.values(meses).forEach(m => { m.usd = Math.round(m.usd*1e6)/1e6; });
+  return { meses, desconhecidos:[...desconhecidos], linhas:usadas };
+}
+
+/* a moeda do painel é o REAL; a da OpenAI é o dólar. Cache de 1h, e um valor de
+   recurso honesto se a cotação não vier — melhor converter por 5,50 e dizer que
+   foi por 5,50 do que não mostrar despesa nenhuma. */
+async function cotacaoUSD(){
+  try{
+    const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
+    if(cc && Date.now()-cc.t < 3600e3 && cc.v) return cc.v;
+    const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
+    const v = parseFloat((await r.json()).USDBRL.bid) || 0;
+    if(v){ localStorage.setItem('rf_cotacao', JSON.stringify({ v, t:Date.now() })); return v; }
+  }catch(e){}
+  return 5.5;
+}
+
+/* UMA FATURA SÓ MANDA SE COBRIR O MÊS INTEIRO. O export da OpenAI é de um
+   período qualquer — quem baixa hoje leva o mês corrente pela metade. Tomar isso
+   como fatura fecharia setembro com dois dias de gasto e apagaria o resto. Então
+   a fatura só substitui a estimativa quando o período dela chega ao último dia
+   do mês; até lá fica guardada, marcada como parcial, e quem manda é a
+   estimativa — que é diária e está sempre em dia. */
+function ultimoDiaDoMes(m){
+  const [a,b] = String(m).split('-').map(Number);
+  return new Date(Date.UTC(a, b, 0)).toISOString().slice(0,10);
+}
+function faturaFechada(m, fat){
+  return !!(fat && fat.ate && fat.ate >= ultimoDiaDoMes(m));
+}
+
+/* GASTO DE IA VIRA DESPESA: uma linha por MÊS em adm_lancamentos (categoria
+   creditos_ia), para o extrato não virar poeira de microlançamentos e a soma de
+   despesas passar a incluir a IA.
+
+   ANTES ISTO SÓ OLHAVA O MÊS CORRENTE, e por isso o valor de um mês fechado era
+   o que ele tinha na última abertura da página — sempre a meio do mês. Agosto de
+   2026 ficou congelado em R$ 292,28, escrito no dia 25, enquanto o mês fechou dez
+   vezes acima disso. Agora percorre TODO mês com gasto, fechado ou não. */
+async function sincronizarDespesaIA(porMes, faturas){
+  if(!podeEditar('financas')) return;
+  const cotHoje = await cotacaoUSD();
+  const chaves = new Set([...Object.keys(porMes||{}), ...Object.keys(faturas||{})]);
+  let cambiosNovos = null;
+  for(const m of chaves){
+    const fat = faturas[m];
+    const vale = faturaFechada(m, fat);
+    const usd = vale ? Number(fat.usd) : (porMes[m] ? porMes[m].usd : 0);
+    if(!(usd > 0)) continue;
+    /* o câmbio do mês conciliado fica GRAVADO: mês fechado não muda de valor em
+       reais porque o dólar mexeu hoje. Fica gravado no momento em que a despesa
+       é de facto lançada — assim uma fatura importada por fora (semeada no banco)
+       congela na primeira vez que alguém abre a página, e não antes. */
+    let cambio = vale ? Number(fat.cambio) : 0;
+    if(vale && !cambio){
+      cambio = cotHoje;
+      cambiosNovos = cambiosNovos || Object.assign({}, faturas);
+      cambiosNovos[m] = Object.assign({}, fat, { cambio });
+    }
+    if(!cambio) cambio = cotHoje;
+    const centavos = Math.round(usd * cambio * 100);
+    const existente = D.lancamentos.find(l =>
+      l.tipo==='despesa' && l.descricao===DESC_IA && String(l.data).slice(0,7)===m);
+    if(!existente){
+      const ins = await sb.from('adm_lancamentos').insert({
+        data: m+'-01', descricao: DESC_IA, categoria:'creditos_ia',
+        tipo:'despesa', valor_centavos: centavos }).select().single();
+      if(!ins.error && ins.data) D.lancamentos.unshift(ins.data);
+    } else if(Math.abs(existente.valor_centavos - centavos) >= 1){
+      const up = await sb.from('adm_lancamentos').update({ valor_centavos: centavos }).eq('id', existente.id);
+      if(!up.error) existente.valor_centavos = centavos;
+    }
+  }
+  if(cambiosNovos){
+    const { error } = await sb.from('adm_config').upsert({ chave:'openai_faturas', valor: cambiosNovos });
+    if(!error) D.faturasIA = cambiosNovos;
+  }
+}
+
 async function pgFinancas(forcar, senha = pedirDesenho()){
   // recorrência mensal/anual materializa os meses em falta antes de somar
   try{ await sb.rpc('gerar_recorrencias'); }catch(e){}
-  const [ov, lanc, ia] = await Promise.all([
+  /* `ia_custos` passou de 4800 linhas: lida direto, o `select()` sem `range()`
+     devolvia as primeiras mil e o painel somava um quinto do gasto — sem erro e
+     sem aviso. A soma passou para o banco (admin_rf98.ia_custos_mes). */
+  const [ov, lanc, iaMes, cfgFat] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
     sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(400),
-    jogo('ia_custos').select('tipo,custo_usd,criado_em')
+    sb.rpc('ia_custos_mes'),
+    sb.from('adm_config').select('valor').eq('chave','openai_faturas').maybeSingle()
   ]);
   if(ov.error) throw ov.error;
   if(lanc.error) throw lanc.error;
   D.overview = ov.data; D.lancamentos = lanc.data||[];
-  D.iaCustos = ia.error ? [] : (ia.data||[]);
+  D.iaMes = iaMes.error ? [] : (iaMes.data||[]);
+  D.iaErro = iaMes.error ? erroMsg(iaMes.error) : '';
+  D.faturasIA = (cfgFat.data && cfgFat.data.valor) || {};
 
   const mes = new Date().toISOString().slice(0,7);
 
-  /* GASTO DE IA VIRA DESPESA DO MÊS: uma linha única por mês em adm_lancamentos
-     (categoria creditos_ia), com o total de ia_custos convertido em R$ e
-     ATUALIZADA a cada abertura desta página — o extrato não vira poeira de
-     microlançamentos e a soma de despesas passa a incluir a IA. */
-  try{
-    const iaMesUsd = D.iaCustos
-      .filter(r => String(r.criado_em||'').slice(0,7) === mes)
-      .reduce((t,r) => t + Number(r.custo_usd), 0);
-    if(iaMesUsd > 0 && podeEditar('financas')){
-      let cotSync = 0;
-      try{
-        const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
-        if(cc && Date.now()-cc.t < 3600e3) cotSync = cc.v;
-        else{
-          const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
-          cotSync = parseFloat((await r.json()).USDBRL.bid)||0;
-          if(cotSync) localStorage.setItem('rf_cotacao', JSON.stringify({v:cotSync, t:Date.now()}));
-        }
-      }catch(e){}
-      if(!cotSync) cotSync = 5.5;
-      const DESC_IA = 'Gastos com IA — Estúdio de imagens';
-      const centavos = Math.round(iaMesUsd * cotSync * 100);
-      const existente = D.lancamentos.find(l =>
-        l.tipo==='despesa' && l.descricao===DESC_IA && String(l.data).slice(0,7)===mes);
-      if(!existente){
-        const ins = await sb.from('adm_lancamentos').insert({
-          data: mes+'-01', descricao: DESC_IA, categoria: 'creditos_ia',
-          tipo: 'despesa', valor_centavos: centavos }).select().single();
-        if(!ins.error && ins.data) D.lancamentos.unshift(ins.data);
-      } else if(Math.abs(existente.valor_centavos - centavos) >= 1){
-        const up = await sb.from('adm_lancamentos').update({ valor_centavos: centavos }).eq('id', existente.id);
-        if(!up.error) existente.valor_centavos = centavos;
-      }
-    }
-  }catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
+  /* estimativa somada por mês e por tipo. O TOTAL é a soma de todos os tipos,
+     não a dos grupos desenhados abaixo: os grupos são leitura, e um tipo novo
+     que não coubesse em nenhum deles sumia da conta — foi o que aconteceu com
+     'camisa' e 'treinador', que ficaram fora do card durante semanas. */
+  const iaPorMes = {}, iaPorTipo = {};
+  for(const r of D.iaMes){
+    const m = iaPorMes[r.mes] || (iaPorMes[r.mes] = { usd:0, n:0 });
+    m.usd += Number(r.usd)||0; m.n += Number(r.n)||0;
+    const t = iaPorTipo[r.tipo] || (iaPorTipo[r.tipo] = { usd:0, n:0 });
+    t.usd += Number(r.usd)||0; t.n += Number(r.n)||0;
+  }
+  try{ await sincronizarDespesaIA(iaPorMes, D.faturasIA); }
+  catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
+
   const doMes = D.lancamentos.filter(l => String(l.data).slice(0,7)===mes);
   const desp = doMes.filter(l=>l.tipo==='despesa');
   const rec  = doMes.filter(l=>l.tipo==='receita');
@@ -1750,39 +1878,85 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
       ${editar?`<span class="link" data-del-lanc="${l.id}" title="Apagar" style="color:var(--dim3);text-align:center">✕</span>`:''}
     </div>`).join('') : '<div class="vazio">Nada lançado neste mês.</div>';
 
-  /* gastos com IA do Estúdio — registrados pela edge function a cada geração.
-     "Escudo" = escudo; "Uniforme" = torso (uniformes e moldes); "Jogador" =
-     rosto + montagem (e o retrato legado). Dólar, direto da tabela da OpenAI. */
-  const iaSoma = tipos => D.iaCustos.filter(r=>tipos.includes(r.tipo))
-    .reduce((a,r)=>({ n:a.n+1, v:a.v + Number(r.custo_usd) }), { n:0, v:0 });
-  const iaEsc = iaSoma(['escudo']), iaUni = iaSoma(['torso']),
-        iaJog = iaSoma(['rosto','montagem','jogador']);
-  const iaTot = iaEsc.v + iaUni.v + iaJog.v;
-  /* a moeda do painel é o REAL: converte pelo câmbio do dia (cache de 1h) e o
-     dólar da fatura da OpenAI aparece como secundário */
-  let cot = 0;
-  try{
-    const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
-    if(cc && Date.now()-cc.t < 3600e3) cot = cc.v;
-    else{
-      const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
-      cot = parseFloat((await r.json()).USDBRL.bid)||0;
-      if(cot) localStorage.setItem('rf_cotacao', JSON.stringify({v:cot, t:Date.now()}));
-    }
-  }catch(e){}
-  if(!cot) cot = 5.5;   // fallback honesto se a cotação não vier
-  const usd  = v => 'US$ ' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-  const emRe = v => 'R$ ' + (v*cot).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+  /* gastos com IA do Estúdio. Os grupos são leitura — "Escudo" = escudo,
+     "Uniformes" = torso + camisa, "Jogadores" = rosto + montagem + retrato
+     legado, "Treinadores" = treinador —, e o que sobra cai em "Outros", para
+     que tipo novo apareça em vez de desaparecer. */
+  const GRUPOS_IA = [
+    ['Escudos',      ['escudo']],
+    ['Uniformes',    ['torso','camisa']],
+    ['Jogadores',    ['rosto','montagem','jogador']],
+    ['Treinadores',  ['treinador']]
+  ];
+  const nomeados = new Set(GRUPOS_IA.flatMap(g=>g[1]));
+  const somaTipos = (tipos) => tipos.reduce((a,t) =>
+    ({ n:a.n + ((iaPorTipo[t]||{}).n||0), v:a.v + ((iaPorTipo[t]||{}).usd||0) }), { n:0, v:0 });
+  const grupos = GRUPOS_IA.map(([rot,ts]) => [rot, somaTipos(ts)])
+    .concat([['Outros', somaTipos(Object.keys(iaPorTipo).filter(t=>!nomeados.has(t)))]])
+    .filter(([,s]) => s.n > 0);
+  const iaTot = Object.values(iaPorTipo).reduce((a,t)=>a+t.usd, 0);
+  const iaN   = Object.values(iaPorTipo).reduce((a,t)=>a+t.n, 0);
+
+  const cot = await cotacaoUSD();
+  const usd  = v => 'US$ ' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const emRe = (v, c) => 'R$ ' + ((Number(v)||0)*(c||cot)).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const mesRot = (m) => { const [a,b]=String(m).split('-'); return b+'/'+a; };
+
+  /* a conciliação, mês a mês: o que o painel contou, o que a fatura diz, e a
+     diferença. É a linha que responde "posso confiar neste número?" */
+  const mesesIA = [...new Set([...Object.keys(iaPorMes), ...Object.keys(D.faturasIA)])].sort().reverse();
+  const linhaConcil = (m) => {
+    const est = (iaPorMes[m]||{}).usd || 0, n = (iaPorMes[m]||{}).n || 0;
+    const fat = D.faturasIA[m];
+    const vale = faturaFechada(m, fat);
+    const dif = fat ? Number(fat.usd) - est : 0;
+    const comoFoi = vale
+      ? `pela fatura, <b class="mono">${usd(fat.usd)}</b> × R$ ${Number(fat.cambio||cot).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+      : fat ? `fatura só até <b>${h(dmy(fat.ate))}</b> — vale a estimativa`
+      : m === mes ? 'mês em curso — vale a estimativa'
+      : 'ainda por conciliar';
+    return `<div class="row" style="grid-template-columns:86px 1fr 1fr 1fr 1.25fr">
+      <span class="mono" style="font-size:12.5px;font-weight:700">${h(mesRot(m))}</span>
+      <span class="mono" style="font-size:12px;color:var(--dim)">${usd(est)}
+        <small style="color:var(--dim3)">· ${num(n)} gerações</small></span>
+      <span class="mono" style="font-size:12px;color:${!fat?'var(--dim3)':vale?'var(--fg)':'var(--dim2)'}">
+        ${fat ? usd(fat.usd) : 'sem fatura'}${fat&&!vale?' <small style="color:var(--ambar)">parcial</small>':''}</span>
+      <span class="mono" style="font-size:12px;color:${!fat?'var(--dim3)':Math.abs(dif)<0.01?'var(--dim2)':'var(--ambar)'}">
+        ${fat ? (dif>=0?'+':'−')+usd(Math.abs(dif)).slice(4) : '—'}</span>
+      <span style="font-size:11.5px;color:var(--dim2);text-align:right">${comoFoi}</span>
+    </div>`;
+  };
+
   const iaCards = `
-    <div class="card card-p" style="margin-top:4px">
-      <div class="tt">Gastos com IA — Estúdio de imagens</div>
-      <div class="st" style="margin-bottom:12px">Registrado automaticamente a cada geração (contagem desde 25/08/2026). Pintura de molde e camadas não custam nada. Câmbio do dia: R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}.</div>
-      <div class="g4">
-        ${kpiHTML({l:'Escudos gerados', v:emRe(iaEsc.v), d:`${usd(iaEsc.v)} · ${num(iaEsc.n)} gerações`})}
-        ${kpiHTML({l:'Uniformes e moldes', v:emRe(iaUni.v), d:`${usd(iaUni.v)} · ${num(iaUni.n)} gerações`})}
-        ${kpiHTML({l:'Jogadores (rosto + costura)', v:emRe(iaJog.v), d:`${usd(iaJog.v)} · ${num(iaJog.n)} gerações`})}
-        ${kpiHTML({l:'Total gasto com IA', v:emRe(iaTot), d:`${usd(iaTot)} · ${num(iaEsc.n+iaUni.n+iaJog.n)} imagens`, c:'var(--ambar)'})}
+    <div class="card" style="margin-top:4px;overflow:hidden">
+      <div class="card-h" style="flex-wrap:wrap;gap:10px">
+        <b>Gastos com IA — Estúdio de imagens</b>
+        <span class="st" style="margin:0;flex:1">contagem desde 25/08/2026 · pintura de molde e camadas não custam nada</span>
+        ${editar?'<button class="btn btn-sm btn-ghost" id="f-openai">Conciliar com a fatura da OpenAI</button>':''}
       </div>
+      ${D.iaErro ? `<div class="erro" style="margin:16px 20px">Não deu para somar o gasto de IA: ${h(D.iaErro)}</div>` : `
+      ${/* os grupos variam (um tipo novo abre a caixa "Outros"), então a grade se
+           ajusta ao número deles em vez de fixar quatro e deixar o total órfão */''}
+      <div style="padding:16px 20px 4px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px">
+          ${grupos.map(([rot,s]) => kpiHTML({ l:rot, v:emRe(s.v), d:`${usd(s.v)} · ${num(s.n)} gerações` })).join('')}
+          ${kpiHTML({ l:'Total estimado', v:emRe(iaTot), d:`${usd(iaTot)} · ${num(iaN)} imagens`, c:'var(--ambar)' })}
+        </div>
+      </div>
+      <div class="rowh" style="grid-template-columns:86px 1fr 1fr 1fr 1.1fr;margin-top:8px">
+        <span>Mês</span><span>Estimado (painel)</span><span>Fatura (OpenAI)</span>
+        <span>Diferença</span><span style="text-align:right">Como foi lançado</span>
+      </div>
+      ${mesesIA.map(linhaConcil).join('') || '<div class="vazio">Nenhum gasto de IA ainda.</div>'}
+      <div style="border-top:1px solid var(--bd);padding:12px 20px;font-size:11.5px;color:var(--dim3);line-height:1.6">
+        A estimativa sai do <code class="mono">usage</code> que a própria OpenAI devolve em cada geração;
+        a fatura sai do export de uso da plataforma (Usage → Export). Divergem quando a geração é cobrada
+        mas não chega a ser registrada — pedido que falha depois da imagem sair, ou tentativa repetida.
+        <b>A fatura vira despesa do mês assim que cobre o mês inteiro</b>, ao câmbio do dia em que foi
+        lançada, que fica gravado — mês fechado não muda de valor porque o dólar mexeu hoje. Export que
+        para no meio do mês fica guardado como parcial e não substitui nada. Câmbio de agora:
+        R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}.
+      </div>`}
     </div>`;
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
@@ -1846,6 +2020,7 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     </div>`;
 
   if(editar){
+    if(el('f-openai')) el('f-openai').onclick = () => modalFaturaOpenAI(iaPorMes, cot);
     el('f-nova-desp').onclick = () => modalLancamento('despesa');
     el('f-nova-rec').onclick  = () => modalLancamento('receita');
     el('f-caixa').onclick = () => editarConfig('caixa_centavos','Caixa do projeto (R$)', caixa);
@@ -1862,6 +2037,129 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     });
   }
 }
+/* CONCILIAR COM A FATURA. O sócio baixa o CSV em platform.openai.com → Usage →
+   Export e larga-o aqui. O painel calcula o custo a partir dos tokens (a fatura
+   não traz dólares), mostra a diferença face ao que ele próprio contou, e só
+   grava depois de a pessoa ver os dois números lado a lado.
+
+   O câmbio é congelado no momento da conciliação — daí a conversão aparecer na
+   prévia: é o valor que vai para o extrato, não uma estimativa que muda amanhã. */
+function modalFaturaOpenAI(iaPorMes, cot){
+  let lido = null;
+  abrirModal(`
+    <h3>Conciliar com a fatura da OpenAI</h3>
+    <div class="st" style="margin:-12px 0 16px;line-height:1.6">
+      Em <b>platform.openai.com → Usage → Export</b>, baixe o CSV do período e largue-o aqui.
+      O ficheiro traz tokens; o custo é calculado com a tabela do gpt-image-1
+      (US$ ${OPENAI_TOK_USD.texto_in}/${OPENAI_TOK_USD.imagem_in}/${OPENAI_TOK_USD.imagem_out} por milhão —
+      texto de entrada, imagem de entrada, imagem de saída).
+    </div>
+    <div class="erro hide" id="fo-erro"></div>
+    <div class="col">
+      <div class="drop" id="fo-drop">
+        <div class="t">Arraste o CSV de uso ou clique</div>
+        <div class="s" id="fo-sub">completions_usage_AAAAMMDD_AAAAMMDD.csv</div>
+        <input type="file" id="fo-file" accept=".csv,text/csv" style="display:none">
+      </div>
+      <div id="fo-previa"></div>
+      <div class="acoes">
+        <button class="btn" id="fo-ok" disabled>Gravar e lançar</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+
+  const erro = el('fo-erro');
+  const falhar = (m) => { erro.textContent = m; erro.classList.remove('hide'); };
+  const mesRot = (m) => { const [a,b]=String(m).split('-'); return b+'/'+a; };
+  const usd = v => 'US$ ' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+
+  function previa(){
+    const ms = Object.keys(lido.meses).sort();
+    el('fo-previa').innerHTML = `
+      ${lido.desconhecidos.length ? `<div class="card card-p" style="margin-bottom:12px">
+        <div class="st" style="line-height:1.6">O ficheiro tem modelo fora da tabela de preços
+        (${h(lido.desconhecidos.join(', '))}). O custo dele foi calculado com os preços do
+        gpt-image-1, que pode não ser o dele — confira antes de gravar.</div></div>`:''}
+      <div class="rowh" style="grid-template-columns:80px 1fr 1fr 1fr 1fr">
+        <span>Mês</span><span>Período</span><span>Painel</span><span>Fatura</span>
+        <span style="text-align:right">Vai lançar</span>
+      </div>
+      ${ms.map(m => {
+        const f = lido.meses[m], est = (iaPorMes[m]||{}).usd || 0, dif = f.usd - est;
+        return `<div class="row" style="grid-template-columns:80px 1fr 1fr 1fr 1fr">
+          <span class="mono" style="font-size:12.5px;font-weight:700">${h(mesRot(m))}</span>
+          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${h(dmy(f.de))}–${h(dmy(f.ate))}
+            <small style="color:var(--dim3)">· ${num(f.requisicoes)} pedidos</small></span>
+          <span class="mono" style="font-size:12px;color:var(--dim)">${usd(est)}</span>
+          <span class="mono" style="font-size:12px">${usd(f.usd)}
+            <small style="color:${Math.abs(dif)<0.01?'var(--dim3)':'var(--ambar)'}">
+              ${dif>=0?'+':'−'}${usd(Math.abs(dif)).slice(4)}</small></span>
+          <span class="mono" style="font-size:12.5px;font-weight:700;text-align:right">
+            R$ ${(f.usd*cot).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+        </div>`;
+      }).join('')}
+      <div style="font-size:11.5px;color:var(--dim3);line-height:1.6;padding:10px 0 0">
+        ${lido.linhas} linha${lido.linhas===1?'':'s'} com uso · câmbio de agora
+        <b class="mono">R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b>,
+        que fica gravado com a fatura. Um mês já conciliado é substituído pelo valor deste ficheiro.
+      </div>`;
+    el('fo-ok').disabled = false;
+  }
+
+  function receber(f){
+    erro.classList.add('hide');
+    if(!/\.csv$/i.test(f.name)) return falhar('Só CSV.');
+    const fr = new FileReader();
+    fr.onload = () => {
+      try{
+        lido = lerUsoOpenAI(fr.result);
+        el('fo-drop').classList.add('ok');
+        el('fo-sub').textContent = `${f.name} · ${Object.keys(lido.meses).length} mês(es)`;
+        previa();
+      }catch(e){ lido = null; el('fo-ok').disabled = true; el('fo-previa').innerHTML=''; falhar(erroMsg(e)); }
+    };
+    fr.onerror = () => falhar('Não deu para ler o ficheiro.');
+    fr.readAsText(f);
+  }
+
+  const drop = el('fo-drop'), input = el('fo-file');
+  drop.onclick = () => input.click();
+  input.onchange = () => { if(input.files[0]) receber(input.files[0]); };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('sobre'); };
+  drop.ondragleave = () => drop.classList.remove('sobre');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('sobre');
+    if(e.dataTransfer.files[0]) receber(e.dataTransfer.files[0]); };
+
+  el('fo-ok').onclick = async () => {
+    if(!lido) return;
+    const bt = el('fo-ok'); bt.disabled = true; bt.textContent = 'Gravando…';
+    try{
+      const faturas = Object.assign({}, D.faturasIA);
+      const agora = new Date().toISOString();
+      for(const [m, f] of Object.entries(lido.meses)){
+        /* mês que JÁ foi fechado por uma fatura mantém o câmbio com que entrou no
+           extrato: reimportar o mesmo período não pode mexer no valor em reais de
+           um mês encerrado só porque o dólar de hoje é outro. */
+        const antes = D.faturasIA[m];
+        const cambio = faturaFechada(m, antes) ? Number(antes.cambio)||cot : cot;
+        faturas[m] = { usd:f.usd, requisicoes:f.requisicoes, tokens:f.tokens,
+                       de:f.de, ate:f.ate, modelos:f.modelos,
+                       cambio, importado_em: agora };
+      }
+      const { error } = await sb.from('adm_config').upsert({ chave:'openai_faturas', valor: faturas });
+      if(error) throw error;
+      D.faturasIA = faturas;
+      registrar('openai.conciliar', Object.keys(lido.meses).sort().join(', '), {
+        meses: Object.fromEntries(Object.entries(lido.meses).map(([m,f]) =>
+          [m, { usd:f.usd, requisicoes:f.requisicoes, estimado: (iaPorMes[m]||{}).usd || 0 }])),
+        cambio: cot });
+      fecharModal();
+      toast('Fatura conciliada — a despesa do mês foi relançada.');
+      pgFinancas();
+    }catch(e){ falhar(erroMsg(e)); bt.disabled=false; bt.textContent='Gravar e lançar'; }
+  };
+}
+
 async function editarConfig(chave, rotulo, atual){
   const v = prompt(rotulo, String((atual||0)/100));
   if(v==null) return;
@@ -2869,6 +3167,7 @@ const ACOES = {
   'lancamento.criar':'Criou lançamento',
   'lancamento.apagar':'Apagou lançamento',
   'config.editar':'Mudou caixa/meta',
+  'openai.conciliar':'Conciliou a fatura da OpenAI',
   /* publicidade */
   'criativo.publicar':'Publicou criativo',
   'criativo.tirar':'Tirou criativo do ar',
@@ -2944,7 +3243,7 @@ const ACOES = {
 const AREA_POR_PREFIXO = {
   convite:'acesso', papel:'acesso',
   sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
-  lancamento:'financas',
+  lancamento:'financas', openai:'financas',
   criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade',
   feature:'produto', coluna:'produto', kanban:'produto',
   conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
@@ -2964,6 +3263,11 @@ function resumoAcao(a){
   if(a.acao==='lancamento.apagar') return `${d.descricao||a.alvo||''}${d.valor?' · '+brl(d.valor):''}`;
   if(a.acao==='lancamento.criar')  return `${a.alvo||''}${d.valor?' · '+brl(d.valor):''}${d.tipo?' · '+d.tipo:''}`;
   if(a.acao==='config.editar')     return `${a.alvo} · de ${brl(d.de)} para ${brl(d.para)}`;
+  if(a.acao==='openai.conciliar'){
+    const ms = Object.entries(d.meses||{});
+    return `${a.alvo} · ${ms.map(([m,v]) =>
+      `${m} US$ ${(+v.usd).toFixed(2)} (painel ${(+v.estimado).toFixed(2)})`).join(' · ')}`;
+  }
   if(a.acao==='criativo.publicar') return `${a.alvo}${d.bytes?' · '+Math.round(d.bytes/1024)+' KB':''}`;
   if(a.acao==='clube.editar'){
     const p = [];

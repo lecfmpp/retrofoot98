@@ -282,6 +282,7 @@ Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEF
   inventado.
 - **Finanças**: `adm_lancamentos`, em centavos. Recorrência mensal/anual materializa os meses em
   falta ao abrir a página (`gerar_recorrencias()`, idempotente).
+- **Gasto de IA**: ver § 4b — são duas contas do mesmo dinheiro, e elas não valem o mesmo.
 - **Analytics**: contas criadas, atividade diária e funil saem da base própria. Os blocos de
   **GA4** (origem de tráfego, páginas, dispositivo) precisam da Google Analytics Data API, que
   exige uma chave de serviço no servidor — o painel não pode guardá-la. Assim que houver um job a
@@ -291,6 +292,53 @@ Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEF
   { "visitas": 12000, "fontes": [{"nome":"Orgânico","pct":42}],
     "paginas": [{"url":"/","n":8100}], "device": [{"l":"Celular","v":"63%"}] }
   ```
+
+---
+
+## 4b. Gasto de IA — a estimativa e a fatura
+
+O painel tem **duas contas do mesmo dinheiro**, e elas não valem o mesmo:
+
+| | De onde vem | Quando vale |
+|---|---|---|
+| **Estimativa** | `elifoot_v3.ia_custos` — uma linha por geração, escrita pela edge function a partir do `usage` que a própria OpenAI devolve | sempre; é diária e está sempre em dia |
+| **Fatura** | export de uso da plataforma (*platform.openai.com → Usage → Export*), guardado em `adm_config['openai_faturas']` | quando cobre o **mês inteiro** |
+
+As duas batem quase sempre — a estimativa usa os mesmos tokens e a mesma tabela de preços
+(`TOK_USD` na edge function = `OPENAI_TOK_USD` no painel; **mexeu numa, mexa na outra**).
+Divergem quando a geração é cobrada mas não chega a ser registrada: pedido que falha depois de a
+imagem sair, tentativa repetida, ou chamada feita antes de o registro de custo entrar no ar. Em
+agosto de 2026 a estimativa deu US$ 239,35 e a fatura US$ 260,83 — os US$ 21,48 de diferença
+estão todos em 25, 26 e 27/08; de 28/08 em diante as duas contas batem ao cêntimo.
+
+**Conciliar** é largar o CSV do export em *Finanças → Conciliar com a fatura da OpenAI*. O
+ficheiro traz **tokens, não dólares**: o custo é calculado com a tabela de preços, que é como a
+própria fatura o faz. A tela mostra os dois números lado a lado antes de gravar.
+
+**Uma fatura só substitui a estimativa se cobrir o mês inteiro** (`ate` ≥ último dia do mês).
+Um export baixado hoje leva o mês corrente pela metade; tomá-lo como fatura fecharia setembro com
+dois dias de gasto. Export parcial fica guardado, marcado como *parcial* na tela, e não substitui
+nada.
+
+**O câmbio fica gravado com a fatura**, no dia em que a despesa é de facto lançada. Mês fechado
+não muda de valor em reais porque o dólar mexeu hoje; reimportar o mesmo mês mantém o câmbio com
+que ele entrou no extrato. O mês corrente não tem fatura e acompanha o câmbio do dia — ele ainda
+está a acontecer.
+
+### Três armadilhas que já morderam aqui
+
+1. **A despesa mensal só era sincronizada no mês corrente.** Na virada do mês a linha congelava no
+   valor que tinha na última abertura da página — sempre a meio do mês. Agosto ficou em R$ 292,28,
+   escrito no dia 25, com o mês a fechar dez vezes acima disso. Agora `sincronizarDespesaIA()`
+   percorre **todo** mês com gasto, fechado ou não.
+2. **`ia_custos` passou das 1000 linhas.** Lida com `select()` sem `range()`, o Supabase devolvia
+   as primeiras mil sem erro e sem aviso: com 4881 linhas, o painel somava um quinto do gasto — e
+   *lançava* esse quinto como despesa. A soma passou para o banco,
+   `admin_rf98.ia_custos_mes()` (`supabase/sql/ia-custos-mes.sql`), que devolve uma linha por
+   mês/tipo. É a mesma armadilha já documentada em `todasAsLinhas()`, desta vez nas finanças.
+3. **O card só somava os grupos que ele desenhava.** `camisa` e `treinador` não estavam em nenhum
+   grupo e sumiam da conta — US$ 108 fora do total. Agora o total é a soma de **todos** os tipos e
+   o que não cabe num grupo nomeado cai em *Outros*, para aparecer em vez de desaparecer.
 
 ---
 
