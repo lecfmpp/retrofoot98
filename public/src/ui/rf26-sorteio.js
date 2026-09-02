@@ -132,47 +132,98 @@ function rfSrtConfrontosHTML(pares, meuId, mm, letras, fim){
 
 /* ---- ABA 3 · chave até a taça ----
    As fases derivam dos confrontos: quem vence uma passa para a seguinte. Sem
-   resultados, a chave mostra a estrutura com as vagas por preencher. */
-function rfSrtTieHTML(t, fim, cls){
+   resultados, a chave mostra a estrutura com as vagas por preencher.
+
+   NOME CURTO, MAS SÓ SE CONTINUAR A DAR PARA DISTINGUIR. A coluna da chave é
+   estreita e 'Marinheiro de Santa Cruz' saía cortado com reticências. Cortar na
+   preposição resolve — mas cortar às cegas cria a falha pior: 'Dep. Gran Río' e
+   'Dep. Gran Llano' na mesma chave viravam dois cards iguais, e o jogador deixava
+   de saber quem joga contra quem. Por isso o corte só vale se o resultado for
+   ÚNICO dentro desta chave; havendo empate, os dois voltam ao nome inteiro. */
+const RF_SRT_PREP = /\s+(?:d[aeo]s?|del|de\s+la|du|des)\s+/i;
+function rfSrtCurtos(ids){
+  const nomes = {}, cand = {};
+  ids.forEach(id=>{
+    const c = id!=null && rfSrtClube(id); if(!c) return;
+    const inteiro = c.short || c.name || String(id);
+    nomes[id] = inteiro;
+    const m = inteiro.split(RF_SRT_PREP)[0];
+    /* 4 caracteres é o mínimo para não sobrar só a sigla ('CA', 'Atl.') */
+    cand[id] = (m && m !== inteiro && m.length >= 4) ? m : inteiro;
+  });
+  /* o corte só passa se não confundir com NENHUM outro clube da chave — nem com o
+     corte dele (dois 'Galo'), nem com o nome inteiro dele ('Fantasma' ao lado de
+     'Fantasma FC'), que foi o caso que o primeiro teste apanhou */
+  const ids2 = Object.keys(cand), out = {};
+  ids2.forEach(id=>{
+    const c = cand[id];
+    const bate = c !== nomes[id] && ids2.some(j => j !== id &&
+      (cand[j] === c || nomes[j] === c || nomes[j].indexOf(c + ' ') === 0));
+    out[id] = bate ? nomes[id] : c;
+  });
+  return out;
+}
+function rfSrtTieHTML(t, fim, cls, curtos){
   const a=rfSrtClube(t&&t[0]), b=rfSrtClube(t&&t[1]);
   const gols=fim && t && t[2]!=null && t[3]!=null;
   const aw=gols && t[2]>=t[3], bw=gols && t[3]>t[2];
-  const lin=(c,win,g)=>`<span class="rf-srt-tie-r ${win?'win':''}">
-    <span class="rf-srt-tie-n">${escC(c?c.short:'a definir')}</span>
+  const nome=(c,id)=>(curtos && curtos[id]) || (c ? (c.short||c.name) : 'a definir');
+  const lin=(c,id,win,g)=>`<span class="rf-srt-tie-r ${win?'win':''}">
+    <span class="rf-srt-tie-n">${escC(nome(c,id))}</span>
     ${gols?`<span class="rf-srt-tie-g">${g}</span>`:''}</span>`;
-  return `<div class="rf-srt-tie ${cls||''}">${lin(a,aw,t&&t[2])}${lin(b,bw,t&&t[3])}</div>`;
+  return `<div class="rf-srt-tie ${cls||''}">${lin(a,t&&t[0],aw,t&&t[2])}${lin(b,t&&t[1],bw,t&&t[3])}</div>`;
 }
 function rfSrtChaveHTML(K, key, fim){
+  /* o conjunto que decide a unicidade é a chave inteira, não a coluna: dois nomes
+     iguais em fases diferentes continuam a ser dois nomes iguais no mesmo ecrã */
+  const todos=[];
+  [K.oitavas,K.quartas,K.semis,[K.finalTie]].forEach(f=>(f||[]).forEach(t=>{
+    if(t){ todos.push(t[0]); todos.push(t[1]); } }));
+  if(K.campeao!=null) todos.push(K.campeao);
+  const curtos=rfSrtCurtos(todos.filter(x=>x!=null));
   const col=(lista,rot)=>`<div class="rf-srt-col">
     <span class="rf-srt-fase-l">${escC(rot)}</span>
-    ${lista.map(t=>rfSrtTieHTML(t,fim)).join('')}</div>`;
+    ${lista.map(t=>rfSrtTieHTML(t,fim,'',curtos)).join('')}</div>`;
   const meio=a=>Math.ceil(a.length/2);
-  const oi=K.oitavas||[], qu=K.quartas||[], se=K.semis||[];
   const campeao=fim&&K.campeao?rfSrtClube(K.campeao):null;
-  return `<div class="rf-srt-chave">
-    ${col(oi.slice(0,meio(oi)),'Oitavas')}
-    ${col(qu.slice(0,meio(qu)),'Quartas')}
-    ${col(se.slice(0,meio(se)),'Semifinal')}
+  /* as fases vêm da chave, não de nomes fixos: a Copa da Federação entra com 32
+     clubes (16 avos → oitavas → quartas → semi → final) e a versão anterior, que
+     assumia 8 confrontos, mostrava metade do sorteio — o clube do jogador podia
+     simplesmente não aparecer */
+  const fases=K.fases||[];
+  const esq=fases.map(f=>col(f.ties.slice(0,meio(f.ties)), f.rotulo)).join('');
+  const dir=fases.map(f=>col(f.ties.slice(meio(f.ties)), f.rotulo)).reverse().join('');
+  return `<div class="rf-srt-chave" style="--sfases:${fases.length}">
+    ${esq}
     <div class="rf-srt-centro">
       <span class="rf-srt-centro-tr" style="${rfSrtTrofeuBg(key)}"></span>
       <span class="rf-srt-fase-l">Final</span>
-      ${rfSrtTieHTML(K.finalTie,fim,'final')}
-      ${campeao?`<span class="rf-srt-faixa">🏆 ${escC(campeao.short)}</span>`:''}
+      ${rfSrtTieHTML(K.finalTie,fim,'final',curtos)}
+      ${campeao?`<span class="rf-srt-faixa">🏆 ${escC(curtos[K.campeao]||campeao.short)}</span>`:''}
     </div>
-    ${col(se.slice(meio(se)),'Semifinal')}
-    ${col(qu.slice(meio(qu)),'Quartas')}
-    ${col(oi.slice(meio(oi)),'Oitavas')}
+    ${dir}
   </div>`;
 }
 /* deriva a chave dos confrontos: o vencedor de cada par sobe. Sem placar, a fase
-   seguinte fica com vagas vazias — que é exatamente o que se sabe antes de jogar. */
+   seguinte fica com vagas vazias — que é exatamente o que se sabe antes de jogar.
+   O número de fases sai do número de confrontos, para servir qualquer copa. */
+const RF_SRT_FASES = {16:'16 avos', 8:'Oitavas', 4:'Quartas', 2:'Semifinal', 1:'Final'};
 function rfSrtChaveDe(pares){
   const venc=t=>(t && t[2]!=null && t[3]!=null) ? (t[2]>=t[3]?t[0]:t[1]) : null;
   const juntar=arr=>{ const out=[]; for(let i=0;i<arr.length;i+=2)
     out.push([venc(arr[i]), venc(arr[i+1]), null, null]); return out; };
-  const oitavas=pares.slice(0,8);
-  const quartas=juntar(oitavas), semis=juntar(quartas), fin=juntar(semis)[0]||[null,null];
-  return { oitavas, quartas, semis, finalTie:fin, campeao:venc(fin) };
+  /* uma potência de 2 é o que a chave sabe desenhar; sobrando confrontos ímpares,
+     fica-se pela maior potência que cabe em vez de inventar uma fase torta */
+  let n=1; while(n*2 <= pares.length) n*=2;
+  let atual=pares.slice(0,n);
+  const fases=[];
+  while(atual.length > 1){
+    fases.push({ ties:atual, rotulo: RF_SRT_FASES[atual.length] || (atual.length+' confrontos') });
+    atual=juntar(atual);
+  }
+  const fin=atual[0]||[null,null,null,null];
+  return { fases, finalTie:fin, campeao:venc(fin),
+           oitavas:(fases[0]||{}).ties||[], quartas:(fases[1]||{}).ties||[], semis:(fases[2]||{}).ties||[] };
 }
 
 /* =====================================================================
@@ -292,7 +343,7 @@ function rfSorteioHTML(key, dr){
         <div class="rf-srt-abas">
           ${abaBt('grupos','Grupos sorteados',temGrupos)}
           ${abaBt('confrontos',temGrupos?`Confrontos da fase · ${nConf}`:`${nConf} confrontos`,nConf>0)}
-          ${abaBt('chave','Chave até a taça',nConf>=8)}
+          ${abaBt('chave','Chave até a taça',pares.length>=8)}   <!-- nConf conta os jogos de grupo; a chave só existe quando há pares de mata-mata -->
           <button type="button" class="rf-srt-tog ${fim?'on':''}" onclick="rfSrtToggleFim()">
             ${fim?'● Resultados da rodada':'○ Antes da rodada'}</button>
         </div>

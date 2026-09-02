@@ -2518,7 +2518,13 @@
 .rf-srt-conf-g span.win{font-weight:700;color:var(--sa)}
 
 /* ---- aba chave ---- */
-.rf-srt-chave{display:grid;grid-template-columns:1fr 1fr 1fr 168px 1fr 1fr 1fr;gap:9px;align-items:center}
+/* A CHAVE ROLA. O número de colunas é o número de fases × 2 + a final, e uma copa
+   de 32 clubes dá onze colunas — espremê-las no painel deixava cada clube com 50px.
+   Cada fase tem largura mínima própria e o bloco rola na horizontal, como qualquer
+   chave de mata-mata; o miolo (a taça) fica no meio do conteúdo, não do ecrã. */
+.rf-srt-chave{display:grid;gap:9px;align-items:center;overflow-x:auto;padding-bottom:6px;
+  grid-template-columns:repeat(var(--sfases,3),minmax(96px,1fr)) 168px repeat(var(--sfases,3),minmax(96px,1fr));
+  scrollbar-width:thin}
 .rf-srt-col{display:flex;flex-direction:column;gap:9px;min-width:0}
 .rf-srt-fase-l{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:9px;font-weight:600;
   letter-spacing:.16em;color:#7d8894;text-transform:uppercase;text-align:center;padding-bottom:4px}
@@ -2527,8 +2533,14 @@
 .rf-srt-tie-r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;
   border-radius:7px;border-left:3px solid transparent}
 .rf-srt-tie-r.win{background:rgba(255,255,255,.09);border-left-color:var(--sa)}
-.rf-srt-tie-n{font-size:10.5px;font-weight:500;color:#98a3ae;white-space:nowrap;overflow:hidden;
-  text-overflow:ellipsis;min-width:0}
+/* DUAS LINHAS, NÃO RETICÊNCIAS. O nome curto resolve a maioria, mas 'Elefante
+   Potiguar' não tem preposição por onde cortar e a coluna da chave tem ~55px.
+   Entre mostrar 'Elefante Poti…' e deixar quebrar em duas linhas, a segunda diz
+   quem é o clube; o card cresce um pouco e a chave continua alinhada porque as
+   colunas centram na vertical. */
+.rf-srt-tie-n{font-size:10.5px;font-weight:500;color:#98a3ae;min-width:0;line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  overflow-wrap:anywhere}
 .rf-srt-tie-r.win .rf-srt-tie-n{font-weight:700;color:#fff}
 .rf-srt-tie-g{font-family:var(--font-mono,'IBM Plex Mono',monospace);font-size:11px;font-weight:700;
   color:#7d8894;flex:0 0 auto}
