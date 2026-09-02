@@ -6295,6 +6295,17 @@
 }
 .rf-ml-acts{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line-1);padding-top:12px}
 
+/* A RESPOSTA JÁ DADA, dentro do próprio e-mail (ver rfEmLeituraHTML). Fica entre
+   o corpo e a fila de botões, com o filete do clube à esquerda: é uma citação do
+   que VOCÊ disse, não mais um parágrafo do remetente. */
+.rf-ml-resp{display:flex;flex-direction:column;gap:5px;padding:11px 13px;
+  border-left:3px solid var(--club-secondary,var(--brand-primary));
+  background:var(--surface-sunken);border-radius:0 var(--r-inner) var(--r-inner) 0}
+.rf-ml-resp-t{margin:0;font-family:var(--font-serif,Georgia,serif);font-size:15px;
+  line-height:1.45;color:var(--text-1)}
+.rf-ml-resp-n{margin:0;font-size:var(--fs-caption);color:var(--text-3);line-height:1.5}
+.rf-ml-resp-e{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-4)}
+
 /* =====================================================================
    CONFIGURAÇÕES — preferências, save e Modo Resenha.
    ===================================================================== */
