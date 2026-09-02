@@ -102,7 +102,10 @@ const ST = {
   tab: 'visao', periodo: 30, authMode: 'login', authErro: '', authOk: '',
   busca: '', carregando: false, modal: null, drag: null,
   /* filtros da página Registro (log de ações) */
-  regQuem: '', regArea: '', regBusca: ''
+  regQuem: '', regArea: '', regBusca: '',
+  /* filtros das Finanças: finMes null = ainda não escolhido (a página decide),
+     '' = ano inteiro. despFiltro é o da aba Despesas, independente do de cima. */
+  finAno: '', finMes: null, despFiltro: 'recentes'
 };
 
 /* ============================ utilidades ============================ */
@@ -114,6 +117,32 @@ function h(s){ return String(s==null?'':s).replace(/[&<>"']/g, c =>
 function brl(centavos){
   const v = (Number(centavos)||0)/100;
   return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:0, maximumFractionDigits:0});
+}
+/* ===== DUAS MOEDAS, UMA PRIMÁRIA =====
+   O painel fecha em REAL — é a moeda do projeto e a do fechamento do mês. Mas
+   metade do custo nasce em DÓLAR (OpenAI, Supabase, softwares), e converter na
+   cabeça a cada linha é onde o sócio erra a conta. Então o real manda no
+   tamanho e na cor, e o dólar vai junto, menor, ao lado.
+
+   A cotação é a mesma de todo o painel (cache de 1h em cotacaoUSD). Enquanto ela
+   não tiver sido buscada, COTACAO é 0 e o dólar simplesmente não aparece — em
+   vez de aparecer convertido por um número inventado. */
+let COTACAO = 0;
+function usdDeCentavos(centavos){
+  if(!COTACAO) return '';
+  const v = (Number(centavos)||0)/100/COTACAO;
+  return 'US$ ' + v.toLocaleString('en-US',{ minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+/* R$ grande, US$ pequeno logo abaixo — para a coluna de valor das tabelas */
+function brlUsd(centavos, cor){
+  const d = usdDeCentavos(centavos);
+  return `<span class="mono" style="font-size:12.5px;font-weight:700;text-align:right;line-height:1.3${cor?';color:'+cor:''}">
+    ${brl(centavos)}${d?`<small style="display:block;font-size:10.5px;font-weight:500;color:var(--dim3)">${d}</small>`:''}</span>`;
+}
+/* "R$ 1.234 · US$ 227" — para uma linha só (KPIs, fechamento) */
+function brlEUsd(centavos){
+  const d = usdDeCentavos(centavos);
+  return brl(centavos) + (d ? ' · ' + d : '');
 }
 function num(n){ return (Number(n)||0).toLocaleString('pt-BR'); }
 function pct(a,b){ return b>0 ? Math.round(a*100/b) : 0; }
@@ -136,6 +165,13 @@ function partes(d){
 function dma(d){ if(!d) return '—'; const p=partes(d); return p.d+'/'+p.m; }
 function dmy(d){ if(!d) return '—'; const p=partes(d); return p.d+'/'+p.m+'/'+p.a; }
 function horaHM(d){ return d ? new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'; }
+const MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho',
+                  'julho','agosto','setembro','outubro','novembro','dezembro'];
+/* '2026-08' -> 'agosto de 2026' (rótulo dos filtros de período das Finanças) */
+function mesPorExtenso(m){
+  const [a,b] = String(m||'').split('-');
+  return (MESES_PT[(+b||1)-1] || '?') + ' de ' + a;
+}
 /* "há 3 dias" — usado em último acesso, idade da sala e envio de convite */
 function ha(d){
   if(!d) return 'nunca';
@@ -397,7 +433,7 @@ const NAV = [
   { id:'jogos',       ic:'⚑', label:'Resenhas & solo',tit:'Resenhas & solo',    sub:'Salas abertas, convites e saves' },
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
   { id:'espera',      ic:'◷', label:'Lista de espera',tit:'Lista de espera',    sub:'Quem se inscreveu, quando e o que respondeu' },
-  { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
+  { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do período — por mês ou por ano' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
   { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos dos momentos', sub:'Quando cada modal aparece e com que vídeo' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
@@ -675,7 +711,10 @@ function abrirVideoMomento(m){
 
 /* ============================ VISÃO GERAL ============================ */
 async function pgVisao(forcar, senha = pedirDesenho()){
-  const { data, error } = await sb.rpc('overview', { p_dias: ST.periodo });
+  const [{ data, error }] = await Promise.all([
+    sb.rpc('overview', { p_dias: ST.periodo }),
+    cotacaoUSD()          // alimenta COTACAO: os cartões de dinheiro mostram R$ e US$
+  ]);
   if(error) throw error;
   D.overview = data;
   const meses = data.meses||[], mesAtual = meses[meses.length-1] || {receita:0,despesa:0,lucro:0};
@@ -688,13 +727,14 @@ async function pgVisao(forcar, senha = pedirDesenho()){
     { l:'Ativos (7 dias)',  v:num(data.ativos7),  d:`${num(data.retorno7)} voltaram noutro dia` },
     { l:'Tempo médio por usuário', v:hm(data.minutos_medio), d:`${hm(data.minutos_total)} no total` },
     { l:'Lucro do mês', v:brl(mesAtual.lucro),
-      d: meta ? (mesAtual.lucro>=meta ? 'acima da meta '+brl(meta) : 'abaixo da meta '+brl(meta)) : 'sem meta definida',
+      d: `${usdDeCentavos(mesAtual.lucro)}${meta ? ' · ' + (mesAtual.lucro>=meta ? 'acima da meta '+brl(meta) : 'abaixo da meta '+brl(meta)) : ' · sem meta definida'}`.replace(/^ · /,''),
       c: mesAtual.lucro>=0 ? 'var(--verde2)' : 'var(--vermelho)' }
   ];
 
   const barras = meses.map(m => `
     <div class="chcol">
-      <div class="cap" style="color:${m.lucro>=0?'var(--verde2)':'var(--vermelho)'}">${brl(m.lucro)}</div>
+      <div class="cap" style="color:${m.lucro>=0?'var(--verde2)':'var(--vermelho)'}"
+           title="${h(m.rotulo)}: receita ${brlEUsd(m.receita)} · despesa ${brlEUsd(m.despesa)} · lucro ${brlEUsd(m.lucro)}">${brl(m.lucro)}</div>
       <div class="chpair">
         <i class="chrec"  style="height:${Math.round(m.receita*100/maxBarra)}%"></i>
         <i class="chdesp" style="height:${Math.round(m.despesa*100/maxBarra)}%"></i>
@@ -705,7 +745,7 @@ async function pgVisao(forcar, senha = pedirDesenho()){
     <div style="display:grid;grid-template-columns:110px 1fr 86px;align-items:center;gap:10px">
       <span style="font-size:12.5px;color:var(--fg2)">${h(catNome(c.nome))}</span>
       <span class="bar"><i style="width:${pct(c.valor,total)}%;background:${cor}"></i></span>
-      <span class="mono" style="font-size:12px;text-align:right">${brl(c.valor)}</span>
+      <span class="mono" style="font-size:12px;text-align:right" title="${h(brlEUsd(c.valor))}">${brl(c.valor)}</span>
     </div>`;
   const totRec = (data.cats_receita||[]).reduce((a,c)=>a+ +c.valor, 0) || 1;
   const totDesp= (data.cats_despesa||[]).reduce((a,c)=>a+ +c.valor, 0) || 1;
@@ -1751,12 +1791,12 @@ function lerUsoOpenAI(texto){
 async function cotacaoUSD(){
   try{
     const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
-    if(cc && Date.now()-cc.t < 3600e3 && cc.v) return cc.v;
+    if(cc && Date.now()-cc.t < 3600e3 && cc.v) return (COTACAO = cc.v);
     const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
     const v = parseFloat((await r.json()).USDBRL.bid) || 0;
-    if(v){ localStorage.setItem('rf_cotacao', JSON.stringify({ v, t:Date.now() })); return v; }
+    if(v){ localStorage.setItem('rf_cotacao', JSON.stringify({ v, t:Date.now() })); return (COTACAO = v); }
   }catch(e){}
-  return 5.5;
+  return (COTACAO = 5.5);
 }
 
 /* UMA FATURA SÓ MANDA SE COBRIR O MÊS INTEIRO. O export da OpenAI é de um
@@ -1829,7 +1869,7 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
      sem aviso. A soma passou para o banco (admin_rf98.ia_custos_mes). */
   const [ov, lanc, iaMes, cfgFat] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
-    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(400),
+    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(PAGINA_SB),
     sb.rpc('ia_custos_mes'),
     sb.from('adm_config').select('valor').eq('chave','openai_faturas').maybeSingle()
   ]);
@@ -1846,17 +1886,41 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
      não a dos grupos desenhados abaixo: os grupos são leitura, e um tipo novo
      que não coubesse em nenhum deles sumia da conta — foi o que aconteceu com
      'camisa' e 'treinador', que ficaram fora do card durante semanas. */
-  const iaPorMes = {}, iaPorTipo = {};
+  const iaPorMes = {}, iaPorTipo = {}, iaPorFonte = { tokens:{usd:0,n:0}, tabela:{usd:0,n:0} };
   for(const r of D.iaMes){
+    const usdR = Number(r.usd)||0, nR = Number(r.n)||0;
     const m = iaPorMes[r.mes] || (iaPorMes[r.mes] = { usd:0, n:0 });
-    m.usd += Number(r.usd)||0; m.n += Number(r.n)||0;
+    m.usd += usdR; m.n += nR;
     const t = iaPorTipo[r.tipo] || (iaPorTipo[r.tipo] = { usd:0, n:0 });
-    t.usd += Number(r.usd)||0; t.n += Number(r.n)||0;
+    t.usd += usdR; t.n += nR;
+    const f = iaPorFonte[r.fonte] || (iaPorFonte[r.fonte] = { usd:0, n:0 });
+    f.usd += usdR; f.n += nR;
   }
   try{ await sincronizarDespesaIA(iaPorMes, D.faturasIA); }
   catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
 
-  const doMes = D.lancamentos.filter(l => String(l.data).slice(0,7)===mes);
+  /* ===== O PERÍODO DA PÁGINA =====
+     A página mostrava sempre o mês corrente e ponto: não havia como abrir
+     agosto para conferir o fecho, nem somar o ano. Agora o ano e o mês são
+     escolhidos (mês vazio = ano inteiro), e é esse recorte que manda nos KPIs,
+     nas receitas e no fechamento.
+
+     A lista de meses sai dos LANÇAMENTOS, não de um intervalo inventado: mês
+     sem movimento não aparece, e um lançamento antigo não fica inalcançável. */
+  const mesesComLanc = [...new Set(D.lancamentos.map(l => String(l.data).slice(0,7)))].sort().reverse();
+  const anos = [...new Set(mesesComLanc.map(m => m.slice(0,4)))].sort().reverse();
+  if(!anos.length) anos.push(mes.slice(0,4));
+  if(!ST.finAno || !anos.includes(ST.finAno)) ST.finAno = anos.includes(mes.slice(0,4)) ? mes.slice(0,4) : anos[0];
+  const mesesDoAno = mesesComLanc.filter(m => m.startsWith(ST.finAno));
+  if(ST.finMes === null) ST.finMes = mesesDoAno.includes(mes) ? mes : (mesesDoAno[0] || '');
+  if(ST.finMes && !ST.finMes.startsWith(ST.finAno)) ST.finMes = mesesDoAno[0] || '';
+  /* o recorte em vigor: mês escolhido, ou o ano inteiro quando o mês está vazio */
+  const noPeriodo = (l) => ST.finMes
+    ? String(l.data).slice(0,7) === ST.finMes
+    : String(l.data).slice(0,4) === ST.finAno;
+  const rotuloPeriodo = ST.finMes ? mesPorExtenso(ST.finMes) : 'ano de '+ST.finAno;
+
+  const doMes = D.lancamentos.filter(noPeriodo);
   const desp = doMes.filter(l=>l.tipo==='despesa');
   const rec  = doMes.filter(l=>l.tipo==='receita');
   const tDesp = desp.reduce((a,l)=>a+ +l.valor_centavos,0);
@@ -1866,17 +1930,39 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   const meses = ov.data.meses||[];
   const maxL = Math.max(1, ...meses.map(m=>Math.abs(+m.lucro)));
   const caixa = +ov.data.caixa || 0;
-  const custoFixo = tDesp || 1;
+  /* "o caixa cobre N meses" só faz sentido contra o custo de UM mês: com o ano
+     inteiro selecionado, tDesp são doze meses de despesa e a conta daria N/12 */
+  const custoFixo = (ST.finMes ? tDesp : Math.round(tDesp / Math.max(1, mesesDoAno.length))) || 1;
   const editar = podeEditar('financas');
 
-  const tabela = (lista, cor) => lista.length ? lista.map(l=>`
-    <div class="row" style="grid-template-columns:.6fr 1.6fr 1fr .8fr ${editar?'28px':''}">
-      <span class="mono" style="font-size:12px;color:var(--dim2)">${dma(l.data)}</span>
+  /* a data vem com o ANO quando a lista atravessa meses (a aba Despesas mostra
+     os últimos gastos, não só os do período) — "28/08" sozinho não diz de que
+     ano é quando a lista mistura dezembro com janeiro */
+  const tabela = (lista, cor, comAno) => lista.length ? lista.map(l=>`
+    <div class="row" style="grid-template-columns:${comAno?'.8fr':'.6fr'} 1.6fr 1fr .8fr ${editar?'28px':''}">
+      <span class="mono" style="font-size:12px;color:var(--dim2)">${comAno?dmy(l.data):dma(l.data)}</span>
       <span style="font-size:12.5px">${h(l.descricao)}${l.origem_id?' <small style="color:var(--dim3)">(recorrente)</small>':''}</span>
       <span class="tag ${CAT_TAG[l.categoria]||'t-dim'}" style="justify-self:start">${h(catNome(l.categoria))}</span>
-      <span class="mono" style="font-size:12.5px;font-weight:700;text-align:right;color:${cor}">${brl(l.valor_centavos)}</span>
+      ${brlUsd(l.valor_centavos, cor)}
       ${editar?`<span class="link" data-del-lanc="${l.id}" title="Apagar" style="color:var(--dim3);text-align:center">✕</span>`:''}
-    </div>`).join('') : '<div class="vazio">Nada lançado neste mês.</div>';
+    </div>`).join('') : '<div class="vazio">Nada lançado aqui.</div>';
+
+  /* ===== A ABA DESPESAS TEM FILTRO PRÓPRIO =====
+     O filtro da página serve para FECHAR um mês; a lista de despesas serve para
+     "o que saiu ultimamente", que quase nunca cabe no mês corrente — dia 2 do
+     mês ela estaria praticamente vazia. Por isso ela abre nos últimos gastos,
+     atravessando meses, e tem o seu próprio seletor, independente do de cima. */
+  const DESP_FILTROS = { recentes:'Últimos gastos', periodo:'Do período' };
+  if(!ST.despFiltro) ST.despFiltro = 'recentes';
+  const despVista = (() => {
+    if(ST.despFiltro === 'periodo') return { lista: desp, comAno: !ST.finMes };
+    if(/^\d{4}-\d{2}$/.test(ST.despFiltro))
+      return { lista: D.lancamentos.filter(l=>l.tipo==='despesa' && String(l.data).slice(0,7)===ST.despFiltro), comAno:false };
+    if(/^\d{4}$/.test(ST.despFiltro))
+      return { lista: D.lancamentos.filter(l=>l.tipo==='despesa' && String(l.data).slice(0,4)===ST.despFiltro), comAno:true };
+    return { lista: D.lancamentos.filter(l=>l.tipo==='despesa').slice(0,40), comAno:true };
+  })();
+  const tDespVista = despVista.lista.reduce((a,l)=>a+ +l.valor_centavos, 0);
 
   /* gastos com IA do Estúdio. Os grupos são leitura — "Escudo" = escudo,
      "Uniformes" = torso + camisa, "Jogadores" = rosto + montagem + retrato
@@ -1901,6 +1987,9 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   const usd  = v => 'US$ ' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
   const emRe = (v, c) => 'R$ ' + ((Number(v)||0)*(c||cot)).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
   const mesRot = (m) => { const [a,b]=String(m).split('-'); return b+'/'+a; };
+  /* o número que a pergunta "quanto custa uma imagem?" pede — quatro casas,
+     porque a duas ou três ($0,06) some a diferença entre a camisa e o rosto */
+  const porImagem = (v, n) => n ? 'US$ ' + (v/n).toFixed(4) : '—';
 
   /* a conciliação, mês a mês: o que o painel contou, o que a fatura diz, e a
      diferença. É a linha que responde "posso confiar neste número?" */
@@ -1939,8 +2028,10 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
            ajusta ao número deles em vez de fixar quatro e deixar o total órfão */''}
       <div style="padding:16px 20px 4px">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px">
-          ${grupos.map(([rot,s]) => kpiHTML({ l:rot, v:emRe(s.v), d:`${usd(s.v)} · ${num(s.n)} gerações` })).join('')}
-          ${kpiHTML({ l:'Total estimado', v:emRe(iaTot), d:`${usd(iaTot)} · ${num(iaN)} imagens`, c:'var(--ambar)' })}
+          ${grupos.map(([rot,s]) => kpiHTML({ l:rot, v:emRe(s.v),
+            d:`${usd(s.v)} · ${num(s.n)} × ${porImagem(s.v,s.n)}` })).join('')}
+          ${kpiHTML({ l:'Total estimado', v:emRe(iaTot),
+            d:`${usd(iaTot)} · ${num(iaN)} imagens a ${porImagem(iaTot,iaN)}`, c:'var(--ambar)' })}
         </div>
       </div>
       <div class="rowh" style="grid-template-columns:86px 1fr 1fr 1fr 1.1fr;margin-top:8px">
@@ -1948,6 +2039,27 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
         <span>Diferença</span><span style="text-align:right">Como foi lançado</span>
       </div>
       ${mesesIA.map(linhaConcil).join('') || '<div class="vazio">Nenhum gasto de IA ainda.</div>'}
+      ${(() => {
+        /* QUANTO DO TOTAL É MEDIDO E QUANTO É CHUTE. A edge function usa o `usage`
+           real quando ele vem; quando não vem, cai numa tabela de preço por imagem
+           que só cobre a imagem de SAÍDA e ignora o prompt e a imagem de entrada.
+           Essa tabela é um PISO — subestima de 3% (rosto) a 10% (montagem, que
+           manda imagem no pedido). Era daí que vinha a sensação de "o custo que
+           aparece não é real": num lote de montagens, 64% do gasto era piso. */
+        const tk = iaPorFonte.tokens || {usd:0,n:0}, tb = iaPorFonte.tabela || {usd:0,n:0};
+        if(!tb.n) return '';
+        return `<div style="border-top:1px solid var(--bd);padding:12px 20px;display:flex;gap:22px;flex-wrap:wrap;font-size:12px">
+          <span><span style="color:var(--dim2)">Medido pelos tokens da OpenAI</span>
+            <b class="mono" style="color:var(--verde2)">${usd(tk.usd)}</b>
+            <span style="color:var(--dim3)">· ${num(tk.n)} imagens a ${porImagem(tk.usd,tk.n)}</span></span>
+          <span><span style="color:var(--dim2)">Estimado pela tabela (piso)</span>
+            <b class="mono" style="color:var(--ambar)">${usd(tb.usd)}</b>
+            <span style="color:var(--dim3)">· ${num(tb.n)} imagens a ${porImagem(tb.usd,tb.n)}</span></span>
+          <span style="color:var(--dim3);flex:1;min-width:220px;line-height:1.5">
+            a tabela só cobre a imagem de saída e ignora o prompt e a imagem de entrada:
+            subestima de 3% a 10% conforme o tipo</span>
+        </div>`;
+      })()}
       <div style="border-top:1px solid var(--bd);padding:12px 20px;font-size:11.5px;color:var(--dim3);line-height:1.6">
         A estimativa sai do <code class="mono">usage</code> que a própria OpenAI devolve em cada geração;
         a fatura sai do export de uso da plataforma (Usage → Export). Divergem quando a geração é cobrada
@@ -1959,14 +2071,28 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
       </div>`}
     </div>`;
 
+  const plural = (n,s) => `${n} ${s}${n===1?'':'s'}`;
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
+    <div class="card card-p" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 20px">
+      <b style="font-size:13px">Período</b>
+      <select class="f" id="fin-ano" style="width:auto;font-size:12.5px">
+        ${anos.map(a=>`<option value="${h(a)}" ${a===ST.finAno?'selected':''}>${h(a)}</option>`).join('')}
+      </select>
+      <select class="f" id="fin-mes" style="width:auto;min-width:150px;font-size:12.5px">
+        <option value="" ${!ST.finMes?'selected':''}>Ano inteiro</option>
+        ${mesesDoAno.map(m=>`<option value="${h(m)}" ${m===ST.finMes?'selected':''}>${h(mesPorExtenso(m))}</option>`).join('')}
+      </select>
+      <span class="st" style="margin:0;flex:1">${h(rotuloPeriodo)} · ${plural(doMes.length,'lançamento')}</span>
+    </div>
     <div class="g4">
-      ${kpiHTML({l:'Receita do mês', v:brl(tRec), d:`${rec.length} lançamentos`, c:'var(--verde2)'})}
-      ${kpiHTML({l:'Despesa do mês', v:brl(tDesp), d:`${desp.length} lançamentos`, c:'var(--vermelho)'})}
-      ${kpiHTML({l:'Lucro do mês', v:brl(lucro), d: tRec? `margem de ${pct(lucro,tRec)}%` : 'sem receita', c: lucro>=0?'var(--verde2)':'var(--vermelho)'})}
+      ${kpiHTML({l:'Receita', v:brl(tRec), d:`${usdDeCentavos(tRec)||plural(rec.length,'lançamento')} · ${plural(rec.length,'lançamento')}`.replace(/^ · /,''), c:'var(--verde2)'})}
+      ${kpiHTML({l:'Despesa', v:brl(tDesp), d:`${usdDeCentavos(tDesp)} · ${plural(desp.length,'lançamento')}`.replace(/^ · /,''), c:'var(--vermelho)'})}
+      ${kpiHTML({l:'Lucro', v:brl(lucro),
+                 d:`${usdDeCentavos(lucro)}${tRec?' · margem de '+pct(lucro,tRec)+'%':' · sem receita'}`.replace(/^ · /,''),
+                 c: lucro>=0?'var(--verde2)':'var(--vermelho)'})}
       ${kpiHTML({l:'Por usuário ativo', v: ativos? brl(Math.round(tDesp/ativos)) : '—',
-                 d: ativos? `receita ${brl(Math.round(tRec/ativos))} por ativo` : 'sem ativos no período'})}
+                 d: ativos? `${usdDeCentavos(Math.round(tDesp/ativos))} de custo · receita ${brl(Math.round(tRec/ativos))}` : 'sem ativos no período'})}
     </div>
     ${iaCards}
     <div class="card card-p">
@@ -1983,41 +2109,61 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     </div>
     <div class="g2">
       <div class="card" style="overflow:hidden">
-        <div class="card-h">
-          <b>Despesas do mês</b>
-          <span class="mono" style="font-size:13px;color:var(--vermelho)">${brl(tDesp)}</span>
+        <div class="card-h" style="flex-wrap:wrap;gap:8px">
+          <b>Despesas</b>
+          <select class="f" id="desp-filtro" style="width:auto;min-width:150px;font-size:12px;flex:1">
+            ${Object.entries(DESP_FILTROS).map(([k,r]) =>
+              `<option value="${k}" ${ST.despFiltro===k?'selected':''}>${h(r)}${k==='periodo'?' ('+h(rotuloPeriodo)+')':''}</option>`).join('')}
+            <option value="${h(ST.finAno)}" ${ST.despFiltro===ST.finAno?'selected':''}>Ano de ${h(ST.finAno)}</option>
+            ${mesesComLanc.map(m=>`<option value="${h(m)}" ${ST.despFiltro===m?'selected':''}>${h(mesPorExtenso(m))}</option>`).join('')}
+          </select>
+          <span class="mono" style="font-size:13px;color:var(--vermelho);text-align:right;line-height:1.25">${brl(tDespVista)}
+            ${usdDeCentavos(tDespVista)?`<small style="display:block;font-size:10.5px;font-weight:500;color:var(--dim3)">${usdDeCentavos(tDespVista)}</small>`:''}</span>
           ${editar?'<button class="btn btn-sm" id="f-nova-desp">+ Despesa</button>':''}
         </div>
-        ${tabela(desp,'var(--vermelho)')}
+        ${ST.despFiltro==='recentes' && despVista.lista.length>=40
+          ? '<div class="st" style="padding:8px 20px 0;margin:0">as 40 mais recentes — escolha um mês para ver o resto</div>':''}
+        ${tabela(despVista.lista,'var(--vermelho)', despVista.comAno)}
       </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card" style="overflow:hidden">
           <div class="card-h">
-            <b>Receitas do mês</b>
-            <span class="mono" style="font-size:13px;color:var(--verde2)">${brl(tRec)}</span>
+            <b>Receitas · ${h(rotuloPeriodo)}</b>
+            <span class="mono" style="font-size:13px;color:var(--verde2);text-align:right;line-height:1.25">${brl(tRec)}
+              ${usdDeCentavos(tRec)?`<small style="display:block;font-size:10.5px;font-weight:500;color:var(--dim3)">${usdDeCentavos(tRec)}</small>`:''}</span>
             ${editar?'<button class="btn btn-sm" id="f-nova-rec">+ Receita</button>':''}
           </div>
-          ${tabela(rec,'var(--verde2)')}
+          ${tabela(rec,'var(--verde2)', !ST.finMes)}
         </div>
         <div class="card card-p">
-          <div class="tt" style="margin-bottom:12px">Fechamento do mês</div>
+          <div class="tt" style="margin-bottom:12px">Fechamento — ${h(rotuloPeriodo)}</div>
           <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Receita</span><b class="mono" style="color:var(--verde2)">${brl(tRec)}</b></div>
-            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Despesa</span><b class="mono" style="color:var(--vermelho)">${brl(tDesp)}</b></div>
-            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:10px"><b>Lucro</b><b class="mono" style="font-size:16px">${brl(lucro)}</b></div>
+            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Receita</span>
+              <b class="mono" style="color:var(--verde2)">${brlEUsd(tRec)}</b></div>
+            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Despesa</span>
+              <b class="mono" style="color:var(--vermelho)">${brlEUsd(tDesp)}</b></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--bd);padding-top:10px">
+              <b>Lucro</b><b class="mono" style="font-size:16px">${brl(lucro)}
+                ${usdDeCentavos(lucro)?`<small style="font-size:11px;font-weight:500;color:var(--dim3)">${usdDeCentavos(lucro)}</small>`:''}</b></div>
             <div style="font-size:12px;color:var(--dim2);line-height:1.6;margin-top:2px">
-              Caixa do projeto: <b class="mono" style="color:var(--fg2)">${brl(caixa)}</b>
+              Caixa do projeto: <b class="mono" style="color:var(--fg2)">${brlEUsd(caixa)}</b>
               ${caixa? `— cobre ${Math.floor(caixa/custoFixo)} ${Math.floor(caixa/custoFixo)===1?'mês':'meses'} de custo no ritmo atual.` : '— ainda não informado.'}
               ${editar?' <span class="link" id="f-caixa">editar</span>':''}
             </div>
             <div style="font-size:12px;color:var(--dim2)">
-              Meta de lucro: <b class="mono" style="color:var(--fg2)">${brl(ov.data.meta_lucro)}</b>
+              Meta de lucro: <b class="mono" style="color:var(--fg2)">${brlEUsd(ov.data.meta_lucro)}</b>
               ${editar?' <span class="link" id="f-meta">editar</span>':''}
             </div>
           </div>
         </div>
       </div>
     </div>`;
+
+  /* os filtros valem para quem só lê também — conferir o fecho de agosto não é
+     escrita nenhuma, e prendê-los ao papel esconderia a página de metade da equipe */
+  el('fin-ano').onchange = () => { ST.finAno = el('fin-ano').value; ST.finMes = ''; pgFinancas(); };
+  el('fin-mes').onchange = () => { ST.finMes = el('fin-mes').value; pgFinancas(); };
+  el('desp-filtro').onchange = () => { ST.despFiltro = el('desp-filtro').value; pgFinancas(); };
 
   if(editar){
     if(el('f-openai')) el('f-openai').onclick = () => modalFaturaOpenAI(iaPorMes, cot);

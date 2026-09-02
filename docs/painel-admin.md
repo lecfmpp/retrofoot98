@@ -295,13 +295,31 @@ Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEF
 
 ---
 
+## 4a. Finanças — período, despesas e as duas moedas
+
+**Dois filtros, de propósito diferente.** O de cima (ano + mês; mês vazio = ano inteiro) serve
+para **fechar um período** — manda nos KPIs, nas receitas e no fechamento. O da aba *Despesas* é
+**independente** e serve para outra pergunta: "o que saiu ultimamente". Por isso ela abre nos
+**últimos gastos**, atravessando meses — presa ao mês corrente, no dia 2 ela estaria vazia. A
+lista de meses sai dos lançamentos, não de um intervalo inventado: mês sem movimento não aparece
+e lançamento antigo não fica inalcançável.
+
+**Real primário, dólar secundário.** O painel fecha em real — é a moeda do projeto —, mas metade
+do custo nasce em dólar (OpenAI, Supabase, softwares), e converter de cabeça a cada linha é onde
+se erra a conta. Então o real manda no tamanho e na cor, e o dólar vai junto, menor
+(`brlUsd()` para a coluna de valor, `brlEUsd()` para uma linha só). A cotação é a mesma de todo
+o painel (`cotacaoUSD()`, cache de 1h, que alimenta `COTACAO`); enquanto ela não tiver sido
+buscada, o dólar **não aparece** — em vez de aparecer convertido por um número inventado.
+
+---
+
 ## 4b. Gasto de IA — a estimativa e a fatura
 
 O painel tem **duas contas do mesmo dinheiro**, e elas não valem o mesmo:
 
 | | De onde vem | Quando vale |
 |---|---|---|
-| **Estimativa** | `elifoot_v3.ia_custos` — uma linha por geração, escrita pela edge function a partir do `usage` que a própria OpenAI devolve | sempre; é diária e está sempre em dia |
+| **Estimativa** | `elifoot_v3.ia_custos` — uma linha por geração, escrita pela edge function a partir do `usage` que a própria OpenAI devolve (`custo_fonte='tokens'`) ou, quando ele não vem, de uma tabela de preço por imagem (`'tabela'`) | sempre; é diária e está sempre em dia |
 | **Fatura** | export de uso da plataforma (*platform.openai.com → Usage → Export*), guardado em `adm_config['openai_faturas']` | quando cobre o **mês inteiro** |
 
 As duas batem quase sempre — a estimativa usa os mesmos tokens e a mesma tabela de preços
@@ -336,7 +354,12 @@ está a acontecer.
    *lançava* esse quinto como despesa. A soma passou para o banco,
    `admin_rf98.ia_custos_mes()` (`supabase/sql/ia-custos-mes.sql`), que devolve uma linha por
    mês/tipo. É a mesma armadilha já documentada em `todasAsLinhas()`, desta vez nas finanças.
-3. **O card só somava os grupos que ele desenhava.** `camisa` e `treinador` não estavam em nenhum
+3. **A tabela de preços é um PISO, não o preço.** Ela cobre só a imagem de **saída** e ignora o
+   prompt e a imagem de entrada — subestima 3% (rosto, prompt curto) a 10% (montagem, que manda
+   imagem no pedido). Em 02/09/2026, 65% das gerações tinham sido precificadas assim. O card
+   agora separa **medido pelos tokens** de **estimado pela tabela**, com o custo por imagem de
+   cada um: era daí que vinha a sensação de "o custo que aparece não é real".
+4. **O card só somava os grupos que ele desenhava.** `camisa` e `treinador` não estavam em nenhum
    grupo e sumiam da conta — US$ 108 fora do total. Agora o total é a soma de **todos** os tipos e
    o que não cabe num grupo nomeado cai em *Outros*, para aparecer em vez de desaparecer.
 

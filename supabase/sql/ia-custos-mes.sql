@@ -22,13 +22,20 @@
 -- jogo não é lido diretamente pelo papel do painel. A trava é `is_admin()` —
 -- gasto do projeto é dado de sócio, e quem não entra no painel não soma nada.
 --
+-- `fonte` separa o custo MEDIDO do ESTIMADO. A edge function usa o `usage` que a
+-- OpenAI devolve quando ele vem ('tokens'); quando não vem, cai numa tabela de
+-- preço por imagem ('tabela') que só cobre a imagem de SAÍDA e ignora o prompt e
+-- a imagem de entrada — por isso ela é um PISO, e subestima entre 3% e 10%
+-- conforme o tipo. Sem esta coluna não havia como ver quanto do total é medido e
+-- quanto é chute, que é exatamente a dúvida que abriu esta conciliação.
+--
 -- O mês é em UTC, de propósito: é o corte que a fatura da OpenAI usa (o export
 -- de uso vem com `start_time_iso` em UTC), e conciliar os dois com fusos
 -- diferentes daria diferença todo mês na virada do dia.
 -- ============================================================================
 
 create or replace function admin_rf98.ia_custos_mes()
-returns table (mes text, tipo text, n bigint, usd numeric)
+returns table (mes text, tipo text, fonte text, n bigint, usd numeric)
 language plpgsql
 security definer
 set search_path = admin_rf98, elifoot_v3, public
@@ -40,11 +47,12 @@ begin
   return query
     select to_char(c.criado_em at time zone 'UTC', 'YYYY-MM')::text,
            c.tipo::text,
+           coalesce(c.custo_fonte, 'tabela')::text,
            count(*)::bigint,
            round(sum(c.custo_usd)::numeric, 6)
       from elifoot_v3.ia_custos c
-     group by 1, 2
-     order by 1, 2;
+     group by 1, 2, 3
+     order by 1, 2, 3;
 end $$;
 
 revoke all on function admin_rf98.ia_custos_mes() from public, anon;
