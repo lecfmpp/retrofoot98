@@ -358,6 +358,114 @@
       'Mendoza','Menacho','Miranda','Montaño','Moreno','Ortiz','Paniagua','Peredo','Pinedo','Ribera',
       'Rojas','Roca','Salvatierra','Sánchez','Suárez','Terceros','Vargas','Zambrana',
     ] },
+    /* ===== OS POOLS FEMININOS DOS OUTROS PAISES =====
+       So' os PRIMEIROS NOMES estao aqui, e isso nao e' economia: nestas linguas o SOBRENOME nao
+       tem genero. Schmidt, Rossi, Garcia e Smith servem a ela como servem a ele, e duplicar a
+       lista so' criaria duas verdades para manter em dia. `last` e' emprestado do pool masculino
+       do mesmo pais, em renomearIntl.
+
+       Mesmo envelope do resto: nenhuma palavra passa de 11 caracteres.
+
+       O `brasilFem` NAO esta' aqui -- ele vive em world-config-fem.js, com os nomes tirados das
+       1.900 jogadoras reais da base, e continua a mandar no Brasil. */
+    InglaterraFem:{ first:[
+      'Amelia','Olivia','Isla','Emily','Grace','Sophie','Chloe','Ella','Lucy','Hannah','Jessica',
+      'Charlotte','Freya','Poppy','Ruby','Daisy','Evie','Millie','Alice','Phoebe','Rosie','Lily','Maisie',
+      'Erin','Holly','Abigail','Bethany','Eleanor','Georgia','Harriet','Imogen','Jasmine','Katie','Lauren',
+      'Megan','Naomi','Niamh','Paige','Rebecca','Sienna','Summer','Tilly','Verity','Zara','Bella','Caitlin',
+      'Darcy','Elsie','Faye','Nicole',
+    ] },
+    AlemanhaFem:{ first:[
+      'Lena','Mia','Emma','Hanna','Lea','Sophie','Marie','Laura','Julia','Sarah','Anna','Lisa','Nele','Pia',
+      'Greta','Jana','Katharina','Leonie','Luisa','Melina','Nina','Paula','Ronja','Selina','Svenja','Tabea',
+      'Vanessa','Amelie','Antonia','Carla','Charlotte','Clara','Elena','Emilia','Fiona','Franziska',
+      'Helena','Ida','Johanna','Josefine','Karla','Klara','Magdalena','Mareike','Merle','Nora','Sina',
+      'Theresa','Verena','Yvonne',
+    ] },
+    'ItáliaFem':{ first:[
+      'Giulia','Sofia','Chiara','Martina','Sara','Francesca','Alice','Elisa','Ilaria','Valentina','Alessia',
+      'Arianna','Aurora','Beatrice','Camilla','Carlotta','Cecilia','Elena','Emma','Federica','Gaia',
+      'Giorgia','Greta','Irene','Laura','Letizia','Linda','Lucia','Ludovica','Marta','Matilde','Michela',
+      'Noemi','Paola','Rebecca','Roberta','Serena','Silvia','Simona','Stella','Vittoria','Anna','Bianca',
+      'Claudia','Daniela','Eleonora','Giada','Marina','Nicole','Viola',
+    ] },
+    EspanhaFem:{ first:[
+      'Lucía','Martina','Paula','Sofía','Daniela','Carla','Alba','Julia','Sara','Claudia','Andrea','Ainhoa',
+      'Aitana','Alejandra','Ana','Beatriz','Blanca','Carmen','Celia','Clara','Cristina','Elena','Elsa',
+      'Emma','Eva','Irene','Isabel','Jimena','Laura','Leire','Lidia','Lorena','Manuela','Marina','Marta',
+      'Miriam','Natalia','Noelia','Nuria','Olivia','Patricia','Raquel','Rocío','Rosa','Silvia','Teresa',
+      'Valeria','Vega','Nerea',
+    ] },
+    PortugalFem:{ first:[
+      'Matilde','Leonor','Beatriz','Carolina','Mariana','Inês','Francisca','Maria','Ana','Rita','Joana',
+      'Sofia','Catarina','Diana','Filipa','Helena','Íris','Jéssica','Lara','Laura','Lídia','Luísa',
+      'Madalena','Margarida','Mafalda','Marta','Micaela','Miriam','Núria','Patrícia','Raquel','Rute',
+      'Salomé','Sara','Sónia','Tatiana','Teresa','Vera','Vitória','Alice','Bárbara','Camila','Cláudia',
+      'Daniela','Eduarda','Erica','Gabriela','Nádia',
+    ] },
+    ArgentinaFem:{ first:[
+      'Sofía','Valentina','Martina','Camila','Julieta','Catalina','Emilia','Lucía','Micaela','Agustina',
+      'Abril','Bianca','Brenda','Candela','Carla','Delfina','Estefanía','Florencia','Gabriela','Guadalupe',
+      'Ivana','Jazmín','Josefina','Ludmila','Magalí','Malena','Mariana','Melina','Milagros','Mora',
+      'Natalia','Nerea','Oriana','Paula','Pilar','Renata','Rocío','Romina','Sabrina','Serena','Tamara',
+      'Tatiana','Ushuaia','Valeria','Vera','Victoria','Yamila','Zoe','Antonella','Belén',
+    ] },
+    UruguaiFem:{ first:[
+      'Valentina','Sofía','Camila','Lucía','Martina','Agustina','Victoria','Julieta','Florencia','Micaela',
+      'Ana','Belén','Carolina','Cecilia','Daniela','Elena','Fabiana','Gabriela','Inés','Jimena','Laura',
+      'Lorena','Luciana','Magdalena','Manuela','Mariana','Marina','Natalia','Noelia','Paula','Pilar',
+      'Renata','Rocío','Romina','Rosario','Sabrina','Silvana','Sol','Tamara','Valeria','Vanesa','Verónica',
+      'Virginia','Ximena','Yanina','Zoe','Aitana','Bianca','Clara','Delfina',
+    ] },
+    ChileFem:{ first:[
+      'Constanza','Javiera','Catalina','Antonia','Fernanda','Valentina','Camila','Josefa','Isidora',
+      'Trinidad','Amanda','Barbara','Belén','Carla','Carolina','Daniela','Emilia','Esperanza','Fabiola',
+      'Francisca','Gabriela','Ignacia','Isabel','Jazmín','Karen','Laura','Loreto','Macarena','Magdalena',
+      'Manuela','Marcela','Margarita','María','Martina','Matilde','Monserrat','Natalia','Nicole','Paloma',
+      'Paula','Pía','Renata','Rocío','Sofía','Soledad','Tamara','Valeria','Vania','Verónica','Ximena',
+    ] },
+    PeruFem:{ first:[
+      'Camila','Valeria','Fabiana','Luciana','Mariana','Alessandra','Andrea','Ariana','Claudia','Daniela',
+      'Fernanda','Gabriela','Isabella','Jimena','Ximena','Adriana','Alejandra','Ana','Antonella','Brenda',
+      'Carolina','Cecilia','Diana','Elena','Fátima','Flavia','Gianella','Karla','Katherine','Lucero',
+      'Lucía','Marcela','Melissa','Micaela','Milagros','Mónica','Natalia','Nicole','Paola','Patricia',
+      'Pierina','Rosa','Rubí','Sandra','Silvana','Sofía','Talía','Vanessa','Verónica','Yamile',
+    ] },
+    'ColômbiaFem':{ first:[
+      'Valentina','Isabella','Mariana','Sofía','Salomé','Manuela','Camila','Daniela','Juliana','Laura',
+      'Alejandra','Andrea','Ángela','Carolina','Catalina','Diana','Estefanía','Gabriela','Jhoana','Johana',
+      'Karen','Katherine','Leidy','Liseth','Lorena','Luisa','Marcela','María','Melissa','Natalia','Nataly',
+      'Paola','Paula','Sandra','Sara','Tatiana','Valeria','Vanessa','Verónica','Viviana','Ximena','Yeimy',
+      'Yuliana','Adriana','Bibiana','Carmen','Claudia','Erika','Nancy',
+    ] },
+    EquadorFem:{ first:[
+      'Doménica','Camila','Valentina','Emily','Nayeli','Anahí','Ariana','Belén','Carla','Carolina',
+      'Cristina','Daniela','Denisse','Diana','Elena','Erika','Estefanía','Fernanda','Gabriela','Génesis',
+      'Gissela','Ingrid','Jhoana','Johanna','Karla','Katherine','Kerly','Lisbeth','Madelin','Mayra',
+      'Melany','Michelle','Milena','Mishell','Nicole','Odalis','Paola','Paulina','Priscila','Rosa','Sandra',
+      'Sofía','Solange','Stefany','Tatiana','Valeria','Vanessa','Verónica','Viviana','Yamila',
+    ] },
+    ParaguaiFem:{ first:[
+      'Camila','Fátima','Rocío','Belén','Larissa','Liz','Marizza','Alejandra','Ana','Analía','Andrea',
+      'Antonella','Araceli','Carolina','Cecilia','Cintia','Claudia','Cynthia','Dahiana','Daniela','Diana',
+      'Elizabeth','Fabiola','Fernanda','Gabriela','Gloria','Jazmín','Jessica','Johana','Karen','Laura',
+      'Leticia','Lourdes','Lucía','Magali','Marcela','María','Mariana','Marlene','Mayra','Melissa','Nadia',
+      'Natalia','Nathalia','Patricia','Ramona','Rebeca','Rossana','Tania','Verónica',
+    ] },
+    VenezuelaFem:{ first:[
+      'Deyna','Oriana','Michell','Daniela','Verónica','Yerliane','Ysaura','Adriana','Alejandra','Ana',
+      'Andrea','Bárbara','Carla','Carolina','Claudia','Cristina','Dayana','Diana','Elena','Emily','Fabiana',
+      'Gabriela','Génesis','Gleidys','Isabel','Jenifer','Jessica','Karla','Katherine','Laura','Lisbeth',
+      'Loanis','Mariana','Maribel','Marielys','Marta','Mayra','Melissa','Michelle','Nairelis','Natalia',
+      'Nayluisa','Patricia','Rosangel','Sandra','Sofía','Valeria','Vanessa','Yulimar',
+    ] },
+    'BolíviaFem':{ first:[
+      'Camila','Daniela','Fernanda','Gabriela','Andrea','Alejandra','Ana','Carla','Carolina','Cecilia',
+      'Claudia','Cristina','Diana','Elena','Elizabeth','Erika','Estefanía','Fabiola','Jhoselin','Jimena',
+      'Karen','Katherine','Laura','Lidia','Lorena','Lucía','Luisa','Magali','Marcela','María','Mariana',
+      'Maribel','Marisol','Melissa','Mónica','Natalia','Nayra','Nicole','Noelia','Paola','Patricia','Paula',
+      'Rosa','Ruth','Sandra','Sofía','Tatiana','Valeria','Vanessa','Verónica',
+    ] },
     _hispano:{ first:[
       'Martín','Diego','Franco','Nicolás','Iván','Bruno','Gonzalo','Sebastián','Rodrigo','Emiliano','Cristian',
       'Federico','Agustín','Maximiliano','Ezequiel','Leandro','Matías','Joaquín','Tomás','Julián','Rafael',
@@ -411,6 +519,37 @@
     }
     return null;
   }
+  /* O NOME FEMININO DE UM JOGADOR, calculado. Mesma maquina de nomeFicticioIntl, outro pool:
+     primeiros nomes de `<pais>Fem` e SOBRENOMES emprestados do pool masculino do mesmo pais --
+     nestas linguas o sobrenome nao tem genero, e duplicar a lista so' criaria duas verdades.
+
+     POR QUE NAO E' O renomearIntl DO ARRANQUE. Aquele corre no boot, quando a modalidade do save
+     ainda nao existe (ela e' escolhida no assistente, depois). Entao o mundo feminino nomeia no
+     mesmo sitio onde ja' troca tudo o resto: femSquad (core.js), na materializacao do elenco.
+
+     O `usados` vem do chamador e vive por clube: a garantia que importa aqui e' nao haver duas
+     jogadoras com o mesmo nome NO MESMO ELENCO, que e' o que corrompe artilharia e escalacao. */
+  function nomeFemininoDe(pais, chave, usados){
+    var base=NAME_POOLS[pais] || NAME_POOLS._hispano;
+    var fem =NAME_POOLS[pais+'Fem'] || NAME_POOLS.brasilFem || NAME_POOLS._femHispano;
+    if(!fem || !fem.first || !fem.first.length) return null;
+    var last=(fem.last && fem.last.length) ? fem.last : (base.last||[]);
+    if(!last.length) return null;
+    var R=intlRng(intlSemente('fem|'+chave));
+    for(var t=0;t<4000;t++){
+      var f=fem.first[Math.floor(R()*fem.first.length)];
+      var l=last[Math.floor(R()*last.length)];
+      if(f.length>INTL_MAX_PALAVRA || l.length>INTL_MAX_PALAVRA) continue;
+      var nome=f+' '+l;
+      if(nome.length>INTL_MAX_NOME) continue;
+      var k=nome.toLowerCase();
+      if(usados && usados.has(k)) continue;
+      if(usados) usados.add(k);
+      return nome;
+    }
+    return null;
+  }
+
   /* Renomeia os elencos de um mapa pais -> [clubes], NO LUGAR. Idempotente pelo carimbo
      `_nIntl` em cada jogador: o pacote e' aplicado duas vezes por visita (cache e rede) e uma
      segunda passagem daria nomes diferentes. */
@@ -448,7 +587,7 @@
     bandaDaDivisao, forcaDaDivisao, capDaDivisao, bandaDaDivisaoSemPais, tabelasDoUniverso,
     CONFEDERACOES, COPA_NACIONAL, nomeDoPais, confederacaoDe, copasContinentaisDe, copasDe,
     vagasContinentais, NAME_POOLS, nomesDoPais, nacionalidadeDe, codigoDaLiga,
-    nomeFicticioIntl, renomearIntl };
+    nomeFicticioIntl, renomearIntl, nomeFemininoDe };
   root.WORLD_CONFIG=API;
   if(typeof module!=='undefined' && module.exports){ module.exports=API; }
 })(typeof globalThis!=='undefined'?globalThis:this);

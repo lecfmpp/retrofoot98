@@ -38,6 +38,32 @@
     modalidade:'fem',
   };
 
+  /* ===== OS OUTROS PAISES, GEMEOS GERADOS =====
+     O brasilFem esta' escrito a' mao acima porque tem particularidades (src:'conmebol' para cair
+     na Libertadores, e a AUSENCIA de `lg`). Os outros catorze sao copia fiel do masculino mais
+     dois campos -- e escrever catorze blocos a' mao seria catorze sitios para esquecer de
+     atualizar quando a piramide de um pais mudar. Aqui derivam do original: se a Inglaterra
+     ganhar uma terceira divisao amanha, a InglaterraFem ganha-a no mesmo instante.
+
+     O `lg` VEM JUNTO, e isto e' o oposto do que brasilFem faz. La' ele foi omitido de proposito,
+     porque o Brasil masculino tambem nao o declara e declara'-lo no gemeo faria o mapa reverso
+     resolver 'BRA-A' para brasilFem. Aqui o masculino DEPENDE de `lg` -- e' assim que se acham os
+     clubes de um pais dentro de INTL_LEAGUES -- entao o gemeo tem de o ter. O desvio do mapa
+     reverso e' resolvido do outro lado: lgToUniDiv passa a ignorar universos femininos (core.js),
+     que e' o certo, porque quem pergunta "de que pais e' o codigo ENG-1" quer o pais, nao a
+     modalidade. */
+  var _FEM_PAISES = ['Inglaterra','Espanha','Itália','Alemanha','Portugal',
+    'Argentina','Uruguai','Colômbia','Chile','Peru','Equador','Paraguai','Venezuela','Bolívia'];
+  _FEM_PAISES.forEach(function(pais){
+    var m = U[pais]; if(!m) return;                 /* pais que o masculino nao tem: nao ha' gemeo */
+    var g = {}; for(var k in m) g[k] = m[k];        /* copia rasa: os valores sao lidos, nunca mutados */
+    g.base = pais;
+    g.modalidade = 'fem';
+    U[pais+'Fem'] = g;
+    if(root.UNIVERSO_BANDEIRA && root.UNIVERSO_BANDEIRA[pais])
+      root.UNIVERSO_BANDEIRA[pais+'Fem'] = root.UNIVERSO_BANDEIRA[pais];
+  });
+
   if(root.UNIVERSO_BANDEIRA) root.UNIVERSO_BANDEIRA.brasilFem = 'br';
 
   /* A TRAVA MESTRA. `false` faz o seletor sumir do onboarding e do painel, e nenhum mundo

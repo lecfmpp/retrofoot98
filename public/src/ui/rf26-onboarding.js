@@ -435,7 +435,12 @@ function rfOb3(){
        · com RF_SO_BRASIL ligado, porque os 9.832 estrangeiros ainda tem NOME REAL (ver
          universos.js). Esta vale para as duas modalidades.
      A tela e' a mesma nos dois casos; so' a frase de baixo muda, porque o motivo e' outro. */
-  const soFem=(typeof rfFemLigado==='function' && rfFemLigado()) && CL.modalidade==='fem';
+  /* O FEMININO DEIXOU DE SER SO' O BRASIL (etapa 3): os catorze gemeos existem, com os mesmos
+     clubes, a mesma piramide e elenco feminino nomeado pelo pool do proprio pais. A trava que
+     resta e' a outra — RF_SO_BRASIL — e ela vale para as DUAS modalidades. Enquanto estiver
+     ligada nao ha' diferenca visivel; quando cair, o feminino abre junto com o masculino. */
+  const soFem=(typeof rfFemLigado==='function' && rfFemLigado()) && CL.modalidade==='fem'
+              && !(typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS.InglaterraFem);
   const soTrava=(typeof globalThis!=='undefined') && globalThis.RF_SO_BRASIL===true;
   const soBrasil=soFem||soTrava;
   const jogaveis=lista.filter(c=>c.on && (!soBrasil || c.n==='Brasil'));

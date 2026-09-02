@@ -3406,6 +3406,13 @@ let _LG_TO_UNIDIV=null;
 function lgToUniDiv(lg){
   if(!_LG_TO_UNIDIV){ _LG_TO_UNIDIV={};
     Object.keys(UNI_CONFIGS).forEach(uni=>{ const cfg=UNI_CONFIGS[uni];
+      /* UNIVERSO FEMININO NAO ENTRA NO MAPA. Ele declara o MESMO `lg` do gemeo masculino (e tem
+         de declarar: e' assim que se acham os clubes dele em INTL_LEAGUES), e este mapa e'
+         ultimo-a-escrever-vence — sem esta linha, 'ENG-1' passaria a resolver para InglaterraFem
+         e o mundo MASCULINO mudava de comportamento por causa de um universo que ele nem usa.
+         E o certo e' ignora'-lo: os dois que perguntam aqui querem o PAIS e o nome da liga
+         ('de que pais e' o ENG-1'), e isso nao muda com a modalidade. */
+      if(cfg.modalidade==='fem') return;
       if(cfg.lg) Object.keys(cfg.lg).forEach(dk=>{ _LG_TO_UNIDIV[cfg.lg[dk]]={uni,div:dk}; }); });
   }
   return lg?(_LG_TO_UNIDIV[lg]||null):null;
@@ -3723,12 +3730,43 @@ function femSemearNomes(){
   const mapa=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
   for(const k in mapa) PROC_USED_NAMES.add(mapa[k]);
 }
+/* O NOME DELA VEM DE TRE^S SITIOS, NESTA ORDEM, e a ordem e' a da qualidade:
+     1. JOGADORAS_BR — as 1.900 jogadoras REAIS da base brasileira, por id. Manda sempre que
+        existe, porque e' curadoria e nao sorteio.
+     2. o pool feminino do PAIS do clube — calculado, deterministico por (clube, indice). E' o
+        que da' nome as jogadoras dos outros catorze paises, que nao tem base propria.
+     3. pickProcPlayerName — a rede de sempre, para um clube sem pais reconhecivel.
+
+     O 2 nasceu na etapa 3: antes, fora do Brasil, caia-se direto no 3 — e o 3 depende de
+     `S.seed`, ou seja, a MESMA jogadora mudava de nome de save para save. Um nome instavel nao
+     pode ter foto nem entrar para a artilharia historica.
+
+     `usados` e' POR CLUBE: duas jogadoras com o mesmo nome no mesmo elenco corrompem artilharia
+     e escalacao (parte do motor ainda identifica jogador por nome). Entre clubes nao ha' problema,
+     como nao ha' no futebol. */
 function femSquad(club){
   if(FEM_SQUADS[club.id]) return FEM_SQUADS[club.id];
   const mapa=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
+  const W=(typeof globalThis!=='undefined') && globalThis.WORLD_CONFIG;
+  /* o pais do clube, para escolher o pool: o campo do proprio clube, senao o do codigo de liga,
+     senao o universo ativo — a mesma cadeia que clubCountry ja' usa. */
+  const paisDoClube=(()=>{
+    try{
+      if(club.country) return club.country;
+      const m=club.lg ? lgToUniDiv(club.lg) : null;
+      if(m) return m.uni;
+      const cfg=UNI_CONFIGS[activeUniverseKey()];
+      return (cfg && cfg.base) || (cfg && cfg.country) || 'brasil';
+    }catch(e){ return 'brasil'; }
+  })();
+  const usados=new Set();
   const out=(club.squad||[]).map((p,i)=>{
     const nome = (p && p.id!=null) ? mapa[p.id] : null;
-    if(nome) return {...p, n:nome};
+    if(nome){ usados.add(String(nome).toLowerCase()); return {...p, n:nome}; }
+    if(W && typeof W.nomeFemininoDe==='function'){
+      const calc=W.nomeFemininoDe(paisDoClube, String(club.id)+'|'+i, usados);
+      if(calc) return {...p, n:calc};
+    }
     const R=makeRng(hashSeed('fem', (typeof S!=='undefined'&&S&&S.seed)||1, club.id, i));
     return {...p, n:pickProcPlayerName(R)};
   });

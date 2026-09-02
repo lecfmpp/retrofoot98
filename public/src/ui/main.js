@@ -2472,13 +2472,16 @@ function clAllCountries(){ COUNTRY_LIST().forEach(c=>{ if(c.on)CL.countries.add(
 /* chave de universo de um país selecionável (Brasil = pirâmide A/B/C/D; europeus = UNI_CONFIGS) */
 /* O Brasil tem dois universos — o de sempre e o gemeo feminino — e e' a modalidade escolhida no
    assistente que decide qual. Sem o feminino ligado, a expressao e' a de sempre. */
+/* O Brasil e' o unico cujo universo nao se chama como o pais ('brasil', minusculo); os outros
+   catorze usam o proprio nome. Fora isso a regra e' uma so': havendo modalidade feminina
+   escolhida E gemeo registado, e' o gemeo. Era um `if` para o Brasil e um `return` para o resto,
+   e por isso escolher o feminino em Inglaterra devolvia o universo MASCULINO. */
 function countryUniverseKey(country){
-  if(country==='Brasil'){
-    const fem = (typeof rfFemLigado==='function' && rfFemLigado()) && (CL.modalidade==='fem')
-             && (typeof UNI_CONFIGS!=='undefined' && UNI_CONFIGS.brasilFem);
-    return fem ? 'brasilFem' : 'brasil';
-  }
-  return (typeof UNI_CONFIGS!=='undefined'&&UNI_CONFIGS[country])?country:null;
+  const U = (typeof UNI_CONFIGS!=='undefined') ? UNI_CONFIGS : {};
+  const base = (country==='Brasil') ? 'brasil' : (U[country] ? country : null);
+  if(!base) return null;
+  const querFem = (typeof rfFemLigado==='function' && rfFemLigado()) && (CL.modalidade==='fem');
+  return (querFem && U[base+'Fem']) ? base+'Fem' : base;
 }
 /* países selecionados que têm liga jogável de verdade (têm clubes carregados) */
 function selectedPlayableCountries(){ return [...CL.countries].filter(c=>countryUniverseKey(c) && (c==='Brasil'||intlTeams(c)>0)); }
