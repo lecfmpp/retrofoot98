@@ -4451,7 +4451,7 @@ function panViewJogo(vid,oppId,uf){
   const rnd=rngFrom(uf?(hashC(uf[0])+hashC(uf[1])):hashC(vid));
   const ref=REFS_C[Math.floor(rnd()*REFS_C.length)];
   const sq=squad(vid)||[];
-  const moral=sq.length?Math.round(sq.reduce((s,p)=>s+(p.moral||70),0)/sq.length):70;
+  const moral=sq.length?Math.round(sq.reduce((s,p)=>s+(p.moral==null?70:p.moral),0)/sq.length):70;
   const line=(id,t,blue)=>`<div class="cl-grow ${blue?'blue':''}"><span class="cl-gname">${escC(clubOf(id).short)}</span>
      <span class="cl-gnums"><b>${t.P}</b><b>${t.W}</b><b>${t.D}</b><b>${t.GF}:${t.GA}</b><b>${t.Pts}</b></span></div>`;
   return `<div class="cl-jogo">
@@ -4509,7 +4509,7 @@ function panJogo(oppId,home,uf,nm){
   const me=tableRow(CL.clubId), op=oppId?tableRow(oppId):null;
   const rnd=rngFrom(uf?(hashC(uf[0])+hashC(uf[1])):(nm?hashC(nm.h)+hashC(nm.a):12345));
   const ref=REFS_C[Math.floor(rnd()*REFS_C.length)];
-  const moral=Math.round(squad(CL.clubId).reduce((s,p)=>s+(p.moral||70),0)/Math.max(1,squad(CL.clubId).length));
+  const moral=Math.round(squad(CL.clubId).reduce((s,p)=>s+(p.moral==null?70:p.moral),0)/Math.max(1,squad(CL.clubId).length));
   const line=(id,t,blue)=>`<div class="cl-grow ${blue?'blue':''}"><span class="cl-gname">${escC((anyClubOf(id)||{short:String(id)}).short)}</span>
      <span class="cl-gnums"><b>${t.P}</b><b>${t.W}</b><b>${t.D}</b><b>${t.GF}:${t.GA}</b><b>${t.Pts}</b></span></div>`;
   // Numa semana de COPA a linha de tabela da liga não diz nada sobre o confronto (o adversário
@@ -5387,7 +5387,7 @@ function dadosCrise(){
   const pos=(typeof tablePos==='function')?tablePos(CL.clubId):0;
   const t=(typeof sortedTable==='function')?sortedTable()[pos-1]:null;
   const sq=squad(CL.clubId)||[];
-  const moral=sq.length?Math.round(sq.reduce((a,p)=>a+(p.moral||70),0)/sq.length):70;
+  const moral=sq.length?Math.round(sq.reduce((a,p)=>a+(p.moral==null?70:p.moral),0)/sq.length):70;
   const nome=(clubOf(CL.clubId)||{}).short||'o clube';
   return { titulo:'A diretoria quer falar com você',
     manchete:'O clima azedou.', trofeu:null,
@@ -11935,7 +11935,7 @@ function clJobOffers(){ CL.menu=null;
   const rows=offers.map((o,i)=>{
     const c=jobOfferClub(o);
     const sq = (typeof squad==='function') ? squad(o.clubId) : null;
-    const avgMoral = (sq && sq.length) ? sq.reduce((s,p)=>s+(p.moral||70),0)/sq.length : null;
+    const avgMoral = (sq && sq.length) ? sq.reduce((s,p)=>s+(p.moral==null?70:p.moral),0)/sq.length : null;
     const pos = (typeof sortedTable==='function') ? sortedTable().findIndex(t=>t.id===o.clubId)+1 : 0;
     const posTxt = pos>0 ? pos+'º lugar' : (o.foreign?escC(o.country||'exterior'):'—');
     return `<div class="cl-offer-item">
@@ -13454,7 +13454,7 @@ function clRenewPropose(){
 
   // atualizar contrato
   p.contract = Object.assign({}, p.contract, {salary: CL.newSalary, years: newYears});
-  p.moral = Math.min(100, (p.moral||70) + 6);
+  p.moral = Math.min(100, (p.moral==null?70:p.moral) + 6);
 
   // registrar na notícia de rodada
   S.roundNews = S.roundNews || [];

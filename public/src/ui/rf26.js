@@ -600,7 +600,7 @@ function rfBandContaHTML(){
    dois números seria desperdício de altura num ecrã de 375px. */
 function rfFaixaEstadoHTML(){
   const sq=(typeof squad==='function')?squad(CL.clubId):[];
-  const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral||70),0)/sq.length):0;
+  const moral=sq.length?Math.round(sq.reduce((t,p)=>t+(p.moral==null?70:p.moral),0)/sq.length):0;
   const j=(typeof transferWindowStatus==='function')?transferWindowStatus():null;
   let janela='';
   if(j&&j.open) janela=`<span class="rf-fx-chip aberta">Janela · ${j.closesIn} ${j.closesIn===1?'semana':'semanas'}</span>`;
@@ -1241,7 +1241,7 @@ function rfHubHTML(){
   const oppId=nm?nm.oppId:null;
   const xi=xiPlayers(CL.clubId);
   const sq=squad(CL.clubId);
-  const moral=Math.round(sq.reduce((s,p)=>s+(p.moral||70),0)/Math.max(1,sq.length));
+  const moral=Math.round(sq.reduce((s,p)=>s+(p.moral==null?70:p.moral),0)/Math.max(1,sq.length));
 
   const esquerda=`
     <div class="rf-card rf-card-flat" data-hub="elenco">

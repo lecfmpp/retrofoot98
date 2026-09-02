@@ -155,7 +155,7 @@ function penaltyConvChance(taker, gk, opts){
   const takerBonus=((taker.f||65)-70)/100*0.35;      // batedor mais forte que a média converte mais
   const posBonus = taker.s==='ATT'?0.05:taker.s==='MID'?0.02:taker.s==='DEF'?-0.02:-0.08; // GK batendo é raríssimo/pior
   const gkPenalty = gk ? (((gk.f||65)-65)/100)*0.22 : 0; // goleiro bom defende mais
-  const moralAdj = ((taker.moral||70)-70)/100*0.12;
+  const moralAdj = ((taker.moral==null?70:taker.moral)-70)/100*0.12;
   const bruto=base+takerBonus+posBonus-gkPenalty+moralAdj;
   if(opts&&opts.humano) return clamp(bruto+(opts.canto!=null?0.06:0), 0.72, 0.95);
   return clamp(bruto, 0.42, 0.93); // nunca abaixo de 42% nem acima de 93% — sempre emoção

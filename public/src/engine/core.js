@@ -4378,7 +4378,7 @@ function tickJobSecurity(){
   const pos=tablePos(S.clubId), total=DATA.clubs.length;
   const posScore = total>1 ? 100-((pos-1)/(total-1))*100 : 60;          // 1º=100, lanterna=0 (RESULTADOS)
   const sq=squad(S.clubId)||[];
-  const moraleScore = sq.length ? clamp(sq.reduce((s,p)=>s+(p.moral||70),0)/sq.length, 0, 100) : 70; // MORAL do elenco
+  const moraleScore = sq.length ? clamp(sq.reduce((s,p)=>s+(p.moral==null?70:p.moral),0)/sq.length, 0, 100) : 70; // MORAL do elenco
   const target = 0.7*posScore + 0.3*moraleScore;                        // 70% resultados + 30% moral (decisão do usuário)
   S.jobSecurity = clamp(Math.round(S.jobSecurity + (target-S.jobSecurity)*0.18), 0, 100);
 }
@@ -4648,7 +4648,7 @@ function maybeForeignJobOffer(){
 }
 function generateJobOffer(){
   // verificar critérios de sucesso do treinador
-  const avgMoral = squad(S.clubId).reduce((s,p)=>s+(p.moral||70),0) / (squad(S.clubId).length||1);
+  const avgMoral = squad(S.clubId).reduce((s,p)=>s+(p.moral==null?70:p.moral),0) / (squad(S.clubId).length||1);
   const titles = (S.coachHistory||[]).filter(h=>h.type==='campeao').length;
   const trophyDisputes = (S.coachHistory||[]).filter(h=>h.type==='campeao' || (h.text && h.text.includes('Final'))).length;
 

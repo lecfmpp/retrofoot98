@@ -309,14 +309,14 @@ function rfElRenovarGo(pid){
   const R=(typeof makeRng==='function')?makeRng(hashSeed(S.seed,'renova',p.pid,S.round)):null;
   const sorte=R?R.random()*100:Math.random()*100;
   if(sorte>chance){
-    p.moral=Math.max(0,(p.moral||70)-3);
+    p.moral=Math.max(0,(p.moral==null?70:p.moral)-3);
     rfGravar();
     CL.acao=null;
     toastC(`${p.n} recusou a proposta. Ele quer mais.`);
     cdraw(); return;
   }
   p.contract=Object.assign({}, p.contract||{}, {salary:novo, years:anos});
-  p.moral=Math.min(100,(p.moral||70)+6);
+  p.moral=Math.min(100,(p.moral==null?70:p.moral)+6);
   S.roundNews=S.roundNews||[];
   S.roundNews.push(`✍️ ${p.n} renovou contrato: ${fmt(novo)}/mês por ${anos} ano${anos>1?'s':''}.`);
   rfGravar();
