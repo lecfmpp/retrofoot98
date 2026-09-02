@@ -1736,41 +1736,205 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
       'Gomes','Martins','Barbosa','Rocha','Dias','Nascimento','Araújo','Cardoso','Teixeira','Moreira',
       'Carvalho','Cavalcante','Mendes','Freitas','Vieira','Monteiro','Nunes','Correia','Machado','Fernandes',
       'Ramos','Azevedo','Campos','Pinto','Cunha','Moraes','Farias','Batista','Andrade'] },
-    Espanha:{ first:[
-      'Álvaro','Sergio','Javier','Carlos','Pablo','Rubén','Iker','Marcos','Adrián','Diego','Jorge','Raúl',
-      'Óscar','Iván','Mario','Hugo','Dani','Nacho'],
-      last:[
-      'García','Fernández','Martínez','López','Sánchez','Gómez','Ruiz','Torres','Navarro','Molina','Ortega',
-      'Serrano','Castro','Vidal','Herrera','Cano','Rubio','Marín','Peña','Vega','Bravo','Nieto','Gallardo',
-      'Reyes'] },
-    Itália:{ first:[
-      'Marco','Luca','Andrea','Matteo','Alessandro','Federico','Davide','Simone','Giacomo','Nicolò','Lorenzo',
-      'Riccardo','Antonio','Gabriele','Stefano','Fabio','Emanuele','Christian'],
-      last:[
-      'Rossi','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno','Gallo','Conti','De Luca','Mancini',
-      'Costa','Giordano','Rizzo','Lombardi','Moretti','Barbieri','Fontana','Caruso','Ferrara','Longo',
-      'Marchetti','Villa'] },
-    Alemanha:{ first:[
-      'Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan','Tobias',
-      'Marvin','Philipp','Nico','Kevin','Sven'],
-      last:[
-      'Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer','Koch',
-      'Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann','Lange',
-      'Werner','Krause'] },
-    Portugal:{ first:[
-      'João','Miguel','Rui','Pedro','Tiago','André','Bruno','Diogo','Ricardo','Nuno','Gonçalo','Fábio','Rafael',
-      'Hélder','Vítor','Luís','Daniel','Sérgio'],
-      last:[
-      'Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Sousa','Fonseca','Gomes',
-      'Lopes','Marques','Almeida','Ribeiro','Pinto','Carvalho','Teixeira','Moreira','Cardoso','Nunes','Correia',
-      'Machado','Tavares'] },
+    /* ===== POOLS AMPLIADOS (01/09) =====
+       Eram 18 nomes x 24 sobrenomes por pais europeu (432 combinacoes) e um `_hispano` unico para
+       os nove da CONMEBOL (625). Chegavam para gerar um reforco aqui e outro ali, que era para o
+       que existiam. Nao chegam para BATIZAR OS ELENCOS INTEIROS: sao 1.245 jogadores so' em
+       Inglaterra, e com 432 combinacoes o homonimo deixa de ser acidente e vira regra.
+
+       Agora cada pais tem ~50x50 (~2.500) e os nove da CONMEBOL ganharam pool PROPRIO -- um
+       sobrenome boliviano nao e' um sobrenome uruguaio, e o `_hispano` unico apagava isso. A folga
+       ficou entre 2,0x (Inglaterra) e 6,6x (Venezuela) sobre o numero real de jogadores.
+
+       TODA PALAVRA TEM NO MAXIMO 11 CARACTERES, e isso e' medida, nao gosto: nos 1.900 nomes
+       ficticios brasileiros -- o conjunto que ja' provou caber nas telas -- a palavra mais longa
+       tem 11 e o nome inteiro nao passa de 21. Nome de 45 caracteres ('Bernardo Fernandes da Silva
+       Junior', que existe hoje no bundle) estoura o layout onde nao ha' reticencias.
+
+       `_hispano` fica como rede para um pais sem pool proprio. */
     Inglaterra:{ first:[
-      'Jack','Harry','Oliver','Charlie','George','Jacob','Alfie','Freddie','Archie','Thomas','Callum','Reece',
-      'Kieran','Declan','Mason','Ollie','Josh','Lewis'],
-      last:[
+      'Jack','Harry','Oliver','Charlie','George','Jacob','Alfie','Freddie','Archie','Thomas','Callum',
+      'Reece','Kieran','Declan','Mason','Ollie','Josh','Lewis','Ethan','Noah','Leo','Riley','Finley',
+      'Tyler','Jamie','Connor','Dylan','Aaron','Bailey','Cameron','Dexter','Elliot','Frankie','Harvey',
+      'Isaac','Jude','Kyle','Lucas','Marcus','Nathan','Owen','Reuben','Sonny','Toby','Wilfred','Zack',
+      'Rhys','Spencer','Miles','Joel',
+    ], last:[
       'Smith','Jones','Taylor','Brown','Wilson','Davies','Evans','Thomas','Roberts','Walker','Wright',
-      'Robinson','Thompson','White','Hughes','Edwards','Green','Hall','Wood','Harris','Clarke','Baker','Turner',
-      'Hill'] },
+      'Robinson','Thompson','White','Hughes','Edwards','Green','Hall','Wood','Harris','Clarke','Baker',
+      'Turner','Hill','Cooper','Ward','Morris','Bennett','Bailey','Carter','Foster','Gibson','Hayes',
+      'Jackson','Kelly','Lawson','Marsh','Newton','Palmer','Quinn','Reid','Shaw','Ellis','Vaughan','Webb',
+      'Young','Barnes','Chapman','Dawson','Fletcher',
+    ] },
+    Alemanha:{ first:[
+      'Lukas','Jonas','Leon','Finn','Tim','Niklas','Maximilian','Felix','Paul','Julian','Moritz','Jan',
+      'Tobias','Marvin','Philipp','Nico','Kevin','Sven','Anton','Bastian','Cedric','Dennis','Elias',
+      'Fabian','Florian','Hendrik','Jannik','Jonathan','Kilian','Lennart','Linus','Marco','Mats','Merlin',
+      'Nils','Oskar','Pascal','Rafael','Simon','Thilo','Tom','Valentin','Vincent','Yannick','Emil','Malte',
+      'Ruben','Silas','Theo',
+    ], last:[
+      'Müller','Schmidt','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schäfer',
+      'Koch','Bauer','Richter','Klein','Wolf','Neumann','Schwarz','Zimmermann','Braun','Krüger','Hofmann',
+      'Lange','Werner','Krause','Böhm','Busch','Dietrich','Engel','Frank','Gross','Haas','Hartmann','Jung',
+      'Kaiser','Keller','König','Kraus','Lorenz','Mayer','Otto','Peters','Reuter','Sauer','Seidel','Stein',
+      'Vogel','Walter','Winter','Ziegler','Berg',
+    ] },
+    'Itália':{ first:[
+      'Lorenzo','Matteo','Andrea','Francesco','Alessandro','Davide','Simone','Luca','Marco','Riccardo',
+      'Gabriele','Federico','Tommaso','Nicolò','Stefano','Giulio','Emanuele','Pietro','Antonio','Cristian',
+      'Daniele','Edoardo','Fabio','Filippo','Giacomo','Giovanni','Leonardo','Manuel','Mattia','Michele',
+      'Nicola','Paolo','Raffaele','Salvatore','Samuele','Sergio','Valerio','Vincenzo','Alberto','Claudio',
+      'Diego','Enrico','Gianluca','Ivan','Massimo','Mirko','Roberto','Sandro','Tiziano','Umberto',
+    ], last:[
+      'Rossi','Russo','Ferrari','Esposito','Bianchi','Romano','Colombo','Ricci','Marino','Greco','Bruno',
+      'Gallo','Conti','Costa','Giordano','Mancini','Rizzo','Lombardi','Moretti','Barbieri','Fontana',
+      'Santoro','Mariani','Rinaldi','Caruso','Ferrara','Galli','Martini','Leone','Longo','Gentile',
+      'Martinelli','Vitale','Lombardo','Serra','Coppola','Sala','Farina','Villa','Monti','Grasso',
+      'Pellegrini','Palumbo','Sanna','Basile','Neri','Testa','Ferri','Rossetti','Silvestri',
+    ] },
+    Espanha:{ first:[
+      'Alejandro','Javier','Sergio','Carlos','Pablo','Adrián','Álvaro','Marcos','Rubén','Iván','Jorge',
+      'Raúl','Óscar','Víctor','Hugo','Aitor','Borja','Cristian','Daniel','David','Diego','Eduardo',
+      'Enrique','Fernando','Gonzalo','Guillermo','Ignacio','Iker','Isaac','Joaquín','Jordi','Julián',
+      'Lucas','Manuel','Mario','Miguel','Nacho','Nicolás','Pedro','Rafael','Roberto','Rodrigo','Samuel',
+      'Santiago','Tomás','Unai','Vicente','Xavi','Andrés','Bruno',
+    ], last:[
+      'García','Martínez','López','Sánchez','Pérez','Gómez','Fernández','Ruiz','Díaz','Moreno','Álvarez',
+      'Romero','Navarro','Torres','Domínguez','Gil','Vázquez','Serrano','Blanco','Molina','Castro','Ortega',
+      'Rubio','Marín','Sanz','Núñez','Iglesias','Medina','Cortés','Garrido','Santos','Lozano','Cano',
+      'Prieto','Méndez','Cruz','Calvo','Gallego','Vidal','León','Herrera','Peña','Cabrera','Campos','Reyes',
+      'Vega','Fuentes','Carrasco','Soler','Pardo',
+    ] },
+    Portugal:{ first:[
+      'João','Miguel','Rui','Tiago','Bruno','Diogo','Ricardo','Nuno','Pedro','André','Gonçalo','Rafael',
+      'Hugo','Fábio','Duarte','Afonso','Alexandre','Bernardo','Carlos','Daniel','David','Dinis','Eduardo',
+      'Fernando','Filipe','Francisco','Gabriel','Gil','Gustavo','Henrique','Ivo','Jorge','Leandro','Luís',
+      'Manuel','Marco','Mário','Martim','Nelson','Paulo','Renato','Roberto','Rodrigo','Salvador','Samuel',
+      'Sérgio','Simão','Tomás','Vasco','Vítor',
+    ], last:[
+      'Silva','Santos','Ferreira','Pereira','Oliveira','Costa','Rodrigues','Martins','Jesus','Sousa',
+      'Fernandes','Gonçalves','Gomes','Lopes','Marques','Alves','Almeida','Ribeiro','Pinto','Carvalho',
+      'Teixeira','Moreira','Correia','Mendes','Nunes','Soares','Vieira','Monteiro','Cardoso','Rocha',
+      'Neves','Coelho','Cruz','Cunha','Pires','Ramos','Reis','Antunes','Barbosa','Branco','Campos','Duarte',
+      'Faria','Freitas','Leite','Matos','Nogueira','Pacheco','Queirós','Tavares',
+    ] },
+    Argentina:{ first:[
+      'Martín','Franco','Nicolás','Iván','Gonzalo','Agustín','Matías','Joaquín','Tomás','Julián','Facundo',
+      'Lautaro','Santiago','Emiliano','Ezequiel','Leandro','Maximiliano','Federico','Cristian','Bruno',
+      'Ramiro','Thiago','Valentín','Lisandro','Nahuel','Alan','Brian','Damián','Enzo','Gastón','Hernán',
+      'Ignacio','Juan','Kevin','Lucas','Marcos','Nicolas','Pablo','Rodrigo','Sebastián','Tobías','Ulises',
+      'Vicente','Walter','Ariel','Braian','Cristofer','Dylan','Elías','Fabricio',
+    ], last:[
+      'Gómez','Fernández','Rodríguez','Sosa','Díaz','Romero','Torres','Núñez','Acosta','Ramírez','Vega',
+      'Cabrera','Godoy','Molina','Ortiz','Benítez','Aguirre','Suárez','Ibáñez','Herrera','Castro','Flores',
+      'Rojas','Medina','Silva','Álvarez','Bustos','Cáceres','Domínguez','Escobar','Figueroa','Gutiérrez',
+      'Juárez','Ledesma','Luna','Maidana','Miranda','Moyano','Ojeda','Peralta','Quiroga','Ríos','Ruiz',
+      'Salvatierra','Tévez','Vera','Villalba','Zárate','Arias','Bravo',
+    ] },
+    Uruguai:{ first:[
+      'Diego','Sebastián','Rodrigo','Federico','Nicolás','Mathías','Facundo','Gastón','Martín','Bruno',
+      'Camilo','Emiliano','Fabián','Gonzalo','Ignacio','Joaquín','Leandro','Lucas','Manuel','Maximiliano',
+      'Nahuel','Pablo','Rafael','Renzo','Santiago','Thiago','Agustín','Alejandro','Andrés','Brian',
+      'Cristian','Damián','Emanuel','Franco','Guillermo','Hernán','Jonathan','Juan','Kevin','Marcelo',
+      'Matías','Mauricio','Nicolas','Óscar','Ramiro','Rubén','Sergio','Tomás','Valentín','Walter',
+    ], last:[
+      'Pereira','Rodríguez','Fernández','González','Silva','Martínez','Sánchez','Techera','Cabrera',
+      'Olivera','Suárez','Núñez','Píriz','Viera','Correa','Machado','Barrios','Duarte','Méndez','Ramos',
+      'Vázquez','Acuña','Alonso','Bentancur','Cáceres','Castro','Coelho','Domínguez','Espinosa','Ferreira',
+      'Figueredo','Gómez','Larrañaga','Lima','Lozano','Mederos','Mereles','Morales','Olivares','Peña',
+      'Quintana','Rivero','Rossi','Sosa','Tabárez','Ubal','Varela','Vera','Zabala','Britos',
+    ] },
+    Chile:{ first:[
+      'Matías','Benjamín','Vicente','Diego','Sebastián','Cristóbal','Ignacio','Felipe','Joaquín','Gabriel',
+      'Bastián','Nicolás','Tomás','Martín','Agustín','Alonso','Andrés','Ángel','Antonio','Camilo','Carlos',
+      'Claudio','César','Daniel','Eduardo','Emilio','Esteban','Fabián','Francisco','Gonzalo','Hernán',
+      'Hugo','Iván','Javier','Jorge','José','Juan','Leandro','Lucas','Luis','Manuel','Marco','Mauricio',
+      'Miguel','Nelson','Óscar','Pablo','Patricio','Rodrigo','Víctor',
+    ], last:[
+      'González','Muñoz','Rojas','Díaz','Pérez','Soto','Contreras','Silva','Martínez','Sepúlveda','Morales',
+      'Rodríguez','López','Fuentes','Hernández','Torres','Araya','Flores','Espinoza','Valenzuela',
+      'Castillo','Tapia','Reyes','Gutiérrez','Castro','Vargas','Álvarez','Vásquez','Sánchez','Fernández',
+      'Ramírez','Carrasco','Riquelme','Miranda','Cortés','Herrera','Guzmán','Aguilera','Cáceres','Bravo',
+      'Vera','Salazar','Ortiz','Pizarro','Vergara','Escobar','Alarcón','Cañas','Bustos','Leiva',
+    ] },
+    Peru:{ first:[
+      'Luis','Carlos','José','Jorge','Miguel','Christian','Diego','Sergio','Renato','Piero','Alexander',
+      'Aldo','André','Ángel','Antonio','Bruno','César','Cristian','Daniel','Edison','Eduardo','Erick',
+      'Fabio','Fernando','Franco','Gabriel','Gerson','Gianluca','Gonzalo','Gustavo','Hernán','Iván','Jean',
+      'Jesús','Joel','Jhonny','Juan','Kevin','Leandro','Manuel','Marcos','Mauricio','Nilson','Óscar',
+      'Pablo','Paolo','Raúl','Ricardo','Rodrigo','Sebastián',
+    ], last:[
+      'Quispe','Flores','Rojas','Vásquez','Ramos','Castillo','Sánchez','García','Chávez','Huamán','Torres',
+      'Guerrero','Cueva','Advíncula','Zambrano','Aquino','Ballón','Benavente','Cabrera','Calderón',
+      'Cárdenas','Carrillo','Concha','Córdova','Corzo','Díaz','Espinoza','Farfán','Gómez','Herrera','Lazo',
+      'Loyola','Malca','Mendoza','Mora','Ortiz','Palacios','Peña','Ponce','Quiroz','Reyna','Ríos','Salazar',
+      'Solano','Tapia','Ugarte','Valera','Vega','Villanueva','Zegarra',
+    ] },
+    'Colômbia':{ first:[
+      'Juan','Carlos','Andrés','Santiago','Sebastián','Camilo','Nicolás','David','Julián','Miguel',
+      'Alejandro','Álvaro','Brayan','Cristian','Daniel','Diego','Duván','Edwin','Emerson','Fabián','Felipe',
+      'Fernando','Gustavo','Harold','Hernán','Jaime','Jefferson','Jhon','Johan','Jorge','José','Kevin',
+      'Leonardo','Luis','Mateo','Mauricio','Michael','Óscar','Pablo','Rafael','Ricardo','Roberto','Rodrigo',
+      'Samuel','Sergio','Steven','Víctor','Wilmar','Yeison','Yerry',
+    ], last:[
+      'Rodríguez','Gómez','González','Martínez','Ramírez','Moreno','Muñoz','Sánchez','Castro','Ospina',
+      'Cárdenas','Quintero','Zapata','Arias','Mosquera','Palacios','Restrepo','Valencia','Vargas',
+      'Hernández','Álvarez','Bedoya','Borja','Cadavid','Cortés','Cuesta','Duque','Escobar','Estupiñán',
+      'Giraldo','Guerra','Hoyos','Jaramillo','Londoño','Marulanda','Mejía','Mena','Montoya','Murillo',
+      'Navarro','Ortega','Perea','Pérez','Renteria','Riascos','Salazar','Sarmiento','Torres','Uribe',
+      'Villa',
+    ] },
+    Equador:{ first:[
+      'Ángel','Jhon','Christian','Michael','Carlos','Jefferson','Byron','Bryan','Dixon','Enner','Alan',
+      'Alexander','Andrés','Anthony','Antonio','Ayrton','Cristian','Damián','Daniel','Diego','Édison',
+      'Édson','Erick','Fernando','Franklin','Gabriel','Gonzalo','Gustavo','Hernán','Jackson','Jaime',
+      'Javier','Jeremy','Jhonny','Joao','Joffre','Jordy','Jorge','José','Juan','Kevin','Leonardo','Luis',
+      'Marcos','Mario','Miguel','Nilson','Óscar','Pedro','Washington',
+    ], last:[
+      'Valencia','Castillo','Preciado','Caicedo','Quiñónez','Mena','Angulo','Arroyo','Ayoví','Bagüí',
+      'Bolaños','Cabezas','Campana','Carabalí','Cazares','Congo','Corozo','Delgado','Espinoza','Estupiñán',
+      'Franco','Gruezo','Guagua','Hurtado','Ibarra','Jiménez','Klinger','Lastra','Loor','Mendoza','Minda',
+      'Montaño','Morales','Nazareno','Ordóñez','Ortiz','Palacios','Perlaza','Plata','Quintero','Ramírez',
+      'Reasco','Rodríguez','Sánchez','Solís','Tenorio','Torres','Vargas','Vera','Zambrano',
+    ] },
+    Paraguai:{ first:[
+      'Óscar','Julio','Miguel','Gustavo','Hernán','Ángel','Derlis','Antonio','Alberto','Alejandro','Ariel',
+      'Blas','Braian','Carlos','César','Cristian','Dante','Diego','Édgar','Enzo','Fabián','Fernando',
+      'Gabriel','Gonzalo','Guillermo','Iván','Javier','Jorge','José','Juan','Junior','Luis','Marcelo',
+      'Marcos','Mathias','Matías','Nelson','Néstor','Osmar','Pablo','Pedro','Ramón','Raúl','Ricardo',
+      'Roberto','Rodrigo','Rubén','Santiago','Sergio','Víctor',
+    ], last:[
+      'González','Benítez','Martínez','Villalba','Ramírez','Ortiz','Cáceres','Duarte','Giménez','Fernández',
+      'Rojas','Aquino','Alonso','Ayala','Barrios','Bobadilla','Cabañas','Cardozo','Centurión','Chávez',
+      'Colmán','Delgado','Domínguez','Escobar','Espínola','Fariña','Ferreira','Franco','Galeano','Godoy',
+      'Gómez','Insfrán','Larrosa','Lezcano','López','Maciel','Medina','Mendoza','Núñez','Ojeda','Paredes',
+      'Pérez','Recalde','Riveros','Riquelme','Samudio','Sanabria','Torres','Valdez','Vera',
+    ] },
+    Venezuela:{ first:[
+      'Salomón','Yeferson','Darwin','Josef','Jhon','Rómulo','Alejandro','Ángel','Anthony','Carlos','César',
+      'Christian','Cristian','Daniel','David','Edson','Eduard','Eduardo','Fernando','Francisco','Gabriel',
+      'Gelmin','Gustavo','Héctor','Jefferson','Jesús','Johan','John','Jorge','José','Juan','Junior',
+      'Leonardo','Luis','Manuel','Mario','Miguel','Nahuel','Nelson','Óscar','Pablo','Pedro','Rafael',
+      'Ricardo','Roberto','Rolf','Ronald','Samuel','Sergio','Wuilker','Yangel',
+    ], last:[
+      'Rondón','Machís','Rincón','Martínez','Osorio','Otero','Bello','Casseres','Chancellor','Contreras',
+      'Faríñez','Ferraresi','Figuera','Flores','González','Guerra','Guzmán','Hernández','Herrera','Jiménez',
+      'Lucena','Manzano','Marrufo','Mago','Medina','Mendoza','Moreno','Navarro','Ortiz','Peñaranda','Pérez',
+      'Ramírez','Rivas','Rivero','Rodríguez','Rojas','Romo','Rosales','Ruiz','Sánchez','Sanabria',
+      'Savarino','Segovia','Sosa','Soteldo','Suárez','Torres','Vargas','Velázquez','Vielma',
+    ] },
+    'Bolívia':{ first:[
+      'Marcelo','Carlos','Juan','Luis','Diego','Ramiro','Erwin','Bruno','Alejandro','Álvaro','Ariel',
+      'Bernardo','Boris','Christian','Cristhian','Danny','Dario','Edemir','Edson','Efraín','Enrique',
+      'Fernando','Gabriel','Gilbert','Henry','Iván','Jaime','Jairo','Javier','Jhon','Jorge','José','Julio',
+      'Leonardo','Lucas','Marco','Mario','Martín','Miguel','Moisés','Nelson','Óscar','Pablo','Roberto',
+      'Rodrigo','Rubén',
+    ], last:[
+      'Arce','Justiniano','Vaca','Chumacero','Saucedo','Céspedes','Melgar','Flores','Quispe','Mamani','Alí',
+      'Álvarez','Aponte','Ballivián','Bejarano','Bruno','Cabrera','Callaú','Campos','Cardozo','Castro',
+      'Chávez','Choque','Cuéllar','Encinas','Fernández','Gutiérrez','Haquin','Lampe','Lima','Machado',
+      'Mendoza','Menacho','Miranda','Montaño','Moreno','Ortiz','Paniagua','Peredo','Pinedo','Ribera',
+      'Rojas','Roca','Salvatierra','Sánchez','Suárez','Terceros','Vargas','Zambrana',
+    ] },
     _hispano:{ first:[
       'Martín','Diego','Franco','Nicolás','Iván','Bruno','Gonzalo','Sebastián','Rodrigo','Emiliano','Cristian',
       'Federico','Agustín','Maximiliano','Ezequiel','Leandro','Matías','Joaquín','Tomás','Julián','Rafael',
