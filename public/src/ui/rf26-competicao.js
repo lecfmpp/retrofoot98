@@ -19,9 +19,8 @@ function rfTrofeuHTML(key, size){
 }
 
 /* =====================================================================
-   1 · FIM DE TEMPORADA
-   Placeholder de vídeo 16:9 com as SEIS situações como pílulas — cada uma
-   aponta pra um vídeo diferente, e o selo mostra o desfecho corrente.
+   OS CINCO DESFECHOS — a fonte da verdade do que aconteceu na temporada.
+   RF_DESFECHOS dá o rótulo; RF_FS_SIT (mais abaixo) dá a pele de cada um.
    ===================================================================== */
 const RF_DESFECHOS=[
   {k:'titulo',   l:'Título',         selo:'Campeão'},
@@ -70,173 +69,296 @@ function rfDesfecho(sum){
   if(!releg && total && pos>Math.ceil(total*2/3)) return 'rebaixado';
   return 'meio';
 }
+/* =====================================================================
+   1 · FIM DE TEMPORADA v2 — design_handoff_fim_de_temporada
+   ---------------------------------------------------------------------
+   A ordem é a das perguntas do treinador: o que aconteceu comigo (herói),
+   quanto valeu (três números), o que muda agora (três passos), e só então
+   o resumo detalhado, fechado à partida.
+
+   NADA AQUI É EXEMPLO DO PROTÓTIPO. O handoff avisa que os nomes de clube,
+   competição e troféu mudaram no jogo depois do desenho, e pede que se leia
+   tudo do save. Campeões e artilheiros saem de rfCampeoesDaTemporada /
+   rfArtilheirosDaTemporada, as taças de trophyImg, o prémio de S._seasonPrizes
+   e o caixa de S.budget.
+
+   A IMAGEM DE CENA NÃO VEIO NO PACOTE (cinco ficheiros, um por situação). O
+   jogo já tem arte em movimento para estes momentos — rfFimVideo devolve a
+   festa da taça ou a crise — e um vídeo real vale mais que um slot vazio. Sem
+   vídeo, o herói fica com o fundo escuro e o véu, que é o placeholder do
+   desenho, e não uma caixa partida.
+   ===================================================================== */
+/* selo, cor, véu e CTA de cada desfecho. `veu` é só o RGB: a rampa
+   (0.96 → 0.34, de baixo para cima) é a mesma para todos e vive no CSS. */
+const RF_FS_SIT={
+  titulo:   {selo:'TÍTULO',        cor:'#F2B90C', ink:'#0b1710', veu:'6,14,9',
+             cta:'Começar a próxima temporada', rodape:'Tudo desta temporada fica guardado no arquivo do clube.'},
+  acesso:   {selo:'ACESSO',        cor:'#2f8f4a', ink:'#fff',    veu:'6,14,9',
+             cta:'Começar a próxima temporada', rodape:'Tudo desta temporada fica guardado no arquivo do clube.'},
+  meio:     {selo:'PERMANÊNCIA',   cor:'#17458F', ink:'#fff',    veu:'6,14,9',
+             cta:'Começar a próxima temporada', rodape:'Tudo desta temporada fica guardado no arquivo do clube.'},
+  rebaixado:{selo:'REBAIXAMENTO',  cor:'#c0392b', ink:'#fff',    veu:'10,6,6',
+             cta:'Encarar a próxima temporada', rodape:'O arquivo guarda a temporada inteira — inclusive a queda.'},
+  demitido: {selo:'FIM DE CICLO',  cor:'#3a473f', ink:'#fff',    veu:'8,10,12',
+             cta:'Escolher o próximo clube',   rodape:'O histórico do treinador é permanente e acompanha você.'},
+};
+/* O CTA e o número da posição usam a cor da situação — excepto no ouro, que
+   não tem contraste para texto branco nem para servir de fundo com tinta
+   clara: ali o botão fica dourado com tinta azul e o número fica escuro. */
+function rfFsAcento(k){
+  const s=RF_FS_SIT[k]||RF_FS_SIT.meio;
+  return s.cor==='#F2B90C' ? {cta:'#F2B90C', ctaInk:'#17458F', num:'#12201a'}
+                           : {cta:'#17458F', ctaInk:'#fff',    num:s.cor};
+}
+/* AS TAÇAS DA TEMPORADA, DA LISTA REAL DE CAMPEÕES.
+   O desenho prevê 1, 2 e 3 (liga + copa nacional + uma continental, porque
+   Libertadores e Sul-Americana se excluem). Aqui não se assume o máximo: lê-se
+   quem ganhou o quê e conta-se. Um clube que ganhou só a copa e ficou em 9º
+   continua com desfecho 'meio' — mas a taça aparece no herói, porque ganhou
+   mesmo. O selo de dobradinha só entra quando a LIGA foi ganha, senão a tela
+   anunciava "tríplice coroa" a quem terminou a meio da tabela. */
+function rfFsConquistas(sum){
+  return rfCampeoesDaTemporada(sum).filter(x=>String(x.clubId)===String(CL.clubId));
+}
+function rfFsSeloTitulo(n){
+  return n>=3?'TRÍPLICE COROA':n===2?'DOBRADINHA':'TÍTULO';
+}
+/* os três passos: o que a tela pode afirmar sem inventar número que o motor
+   não tem. A divisão de destino é real; o resto é a mesma leitura que o ecrã
+   antigo já dava, agora com tag e nota. */
+function rfFsPassos(d,divNome){
+  const acima=(typeof divisionLabelOf==='function')?divisionLabelOf(rfDivAcima()):'';
+  const abaixo=(typeof divisionLabelOf==='function')?divisionLabelOf(rfDivAbaixo()):'';
+  const janela=['MERCADO','A janela abre na pré-temporada',
+    'O caixa que sobrou é o que há para reforçar — não há crédito extra.'];
+  if(d==='titulo'||d==='acesso') return [
+    ['DIVISÃO', acima&&acima!==divNome?('Você sobe para a '+acima):('Título na '+divNome),
+     'Divisão nova exige folha maior: reveja a base do elenco antes da estreia.'],
+    janela,
+    ['ELENCO','Contratos a vencer','Renove agora quem sustentou a campanha, antes que fiquem livres.']];
+  if(d==='rebaixado') return [
+    ['DIVISÃO', abaixo&&abaixo!==divNome?('Divisão de baixo: '+abaixo):'Divisão de baixo na próxima',
+     'Cotas menores e folha atual insustentável: o corte tem de vir cedo.'],
+    ['ELENCO','Salários acima do teto','Negocie saídas antes da reapresentação para liberar caixa.'],
+    ['CARGO','Reunião com a diretoria','Sua permanência depende de um plano de reconstrução aprovado.']];
+  if(d==='demitido') return [
+    ['CARREIRA','Clubes podem te procurar','O currículo pesa mais que a demissão na avaliação de quem contrata.'],
+    ['CURRÍCULO','Seu histórico é permanente','Títulos e acessos ficam no arquivo do treinador, não no do clube.'],
+    ['DESCANSO','Ou espere a próxima janela','Ficar livre por uma temporada melhora a proposta que chega depois.']];
+  return [
+    ['METAS','A diretoria aceita o ano','E cobra briga por acesso na próxima temporada.'],
+    janela,
+    ['BASE','O que a base entregou','Jovens prontos custam menos que reforço pronto — e já conhecem a casa.']];
+}
+/* A LINHA DE FORMATO DE CADA COMPETIÇÃO, DA PIRÂMIDE REAL.
+   O protótipo trazia "20 clubes · pontos corridos" escrito à mão; aqui sai do
+   universo em jogo, que é o que muda de país para país. Quando não se sabe o
+   tamanho, diz-se só o formato — melhor calar o número que inventá-lo. */
+function rfFsFormato(x){
+  if(x.copa) return 'mata-mata';
+  /* o universo do save é S.universe — `UNI_ATIVO` vive dentro do motor e não
+     existe como global nesta camada (a primeira versão lia-o e o número sumia) */
+  const uni=S.universe||null;
+  const cfg=uni&&(typeof UNIVERSOS!=='undefined')?UNIVERSOS[uni]:null;
+  const n=cfg&&cfg.size?cfg.size[x.comp]:0;
+  const sobem=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[x.comp])||0;
+  const partes=[];
+  if(n) partes.push(n+' clubes');
+  partes.push('pontos corridos');
+  if(sobem) partes.push(sobem+(sobem===1?' sobe':' sobem'));
+  return partes.join(' · ');
+}
 function rfFimTemporadaHTML(sum){
   const cl=clubOf(CL.clubId)||{short:'—'};
   const d=rfDesfecho(sum);
-  /* fallback por CHAVE, não por índice: RF_DESFECHOS[3] era 'meio' quando a lista tinha o
-     'playoff' no meio dela; ao removê-lo, o índice 3 passou a ser 'rebaixado' e um desfecho
-     desconhecido anunciaria queda. */
-  const info=RF_DESFECHOS.find(x=>x.k===d)||RF_DESFECHOS.find(x=>x.k==='meio')||RF_DESFECHOS[0];
+  const sit=RF_FS_SIT[d]||RF_FS_SIT.meio;
+  const ac=rfFsAcento(d);
   const linhas = sum ? (sum.myTable||[]) : ((typeof sortedTable==='function')?sortedTable():[]);
   const total=linhas.length;
   const pos = sum ? sum.myPos : rfMinhaPosicao();
-  const artilheiro=Object.entries(S.scorers||{}).sort((a,b)=>b[1]-a[1])[0];
-  /* o goleador do MEU plantel, dos numeros que o motor guarda por jogador */
-  const artCasa=(function(){
-    try{
-      const l=squad(CL.clubId).map(p=>({n:p.n,g:(p.stats&&p.stats.goals)||0}))
-        .filter(x=>x.g>0).sort((a,b)=>b.g-a.g);
-      return l[0]||null;
-    }catch(e){ return null; }
-  })();
+  /* a divisão DISPUTADA, não a de hoje — com `sum` a virada já correu e
+     S.division é a nova (mesma armadilha de rfDesfecho e rfCampeoesDaTemporada) */
+  const divRef = sum ? sum.myDiv : S.division;
+  /* UM NOME SÓ PARA A DIVISÃO NESTA TELA. `classifDivName` diz "4ª Divisão" e
+     `divisionLabelOf` diz "Série D" — as duas circulam pelo jogo, mas juntas no
+     mesmo ecrã (o kicker numa, o rótulo da taça noutra) parecem competições
+     diferentes. Fica a do troféu e do painel, que é o nome próprio da liga. */
+  const divNome = (typeof divisionLabelOf==='function')?divisionLabelOf(divRef):classifDivName(divRef);
+  const meuT=(linhas.find(t=>String(t.id)===String(CL.clubId)))||{Pts:0};
+  const pontos=meuT.Pts||0;
+  const ano=S.season||'';
+  /* "…com 78 pontos, Gringo." soava a repreensão; o cargo à frente do nome é o
+     tratamento do desenho ("treinador Lucas"), e passa pelo eixo de género. */
+  const G=(typeof RF_GENERO!=='undefined')?RF_GENERO:{t:x=>x};
+  const mgr=CL.mgr?`${G.t('treinador')} ${CL.mgr}`:G.t('treinador');
   const pz = sum || S._seasonPrizes || null;
-  const video=rfFimVideo(d);
   const premio = pz && pz.total ? pz.total : 0;
-  const titulo={titulo:'O '+cl.short+' é campeão.',
-    acesso:'O '+cl.short+' subiu de série.',
-    meio:'O '+cl.short+' fecha no meio da tabela.',
-    rebaixado:'O '+cl.short+' foi rebaixado.',
-    demitido:'Fim de ciclo no '+cl.short+'.'}[d];
+  const video=rfFimVideo(d);
+
+  const conq=rfFsConquistas(sum);
+  const nConq=conq.length;
+  const nomes=conq.map(x=>x.nome);
+  const lista = nomes.length>1
+    ? nomes.slice(0,-1).join(', ')+' e '+nomes[nomes.length-1]
+    : (nomes[0]||'');
+
+  /* título e subtítulo por situação. Quem ganhou a liga E mais alguma coisa
+     recebe a frase da enumeração; o resto tem a sua. */
+  const campeaoMulti = d==='titulo' && nConq>1;
+  const selo = d==='titulo' ? rfFsSeloTitulo(nConq) : sit.selo;
+  const titulo = d==='titulo'
+      ? (nConq>=3?`O ${cl.short} ganhou tudo.`:nConq===2?`O ${cl.short} fez a dobradinha.`:`O ${cl.short} é campeão.`)
+    : d==='acesso'    ? `O ${cl.short} subiu.`
+    : d==='rebaixado' ? `O ${cl.short} caiu.`
+    : d==='demitido'  ? `Fim de linha no ${cl.short}.`
+    :                   `O ${cl.short} fica na ${divNome}.`;
+  const sub = campeaoMulti
+      ? `Campeão de ${lista} na mesma temporada, ${mgr}. ${nConq>=3?'Não tem mais o que ganhar este ano.':'Duas taças na sala de troféus.'}`
+    : d==='titulo'    ? `Campeão da ${divNome} com ${pontos} pontos, ${mgr}. A cidade não dormiu.`
+    : d==='acesso'    ? `${pos}º na ${divNome} e acesso garantido, ${mgr}. Um ano de trabalho conta mais que uma tarde.`
+    : d==='rebaixado' ? `${pos}º de ${total}, ${mgr}. A diretoria quer sua resposta antes da reapresentação.`
+    : d==='demitido'  ? `A diretoria encerrou seu ciclo, ${mgr}. Seu currículo vai com você para a próxima proposta.`
+    :                   `${pos}º de ${total}, ${mgr}. Nada de festa, nada de tragédia — e um elenco que dá para melhorar.`;
+  const posNota = d==='titulo'||d==='meio' ? `na ${divNome} · ${pontos} pontos`
+    : d==='acesso'    ? `na ${divNome} · acesso direto`
+    : d==='rebaixado' ? `na ${divNome} · zona de rebaixamento`
+    :                   `na ${divNome} · ciclo encerrado`;
+
+  /* as taças do herói: as que o clube ganhou. No acesso não há taça, mas há a
+     da divisão para onde vai — é a leitura que o desenho pede ali. */
+  const tacas = nConq ? conq.map(x=>({key:x.comp, nome:x.nome}))
+    : (d==='acesso' ? [{key:rfDivAcima()||divRef, nome:(typeof divisionLabelOf==='function')?divisionLabelOf(rfDivAcima()):''}] : []);
+  const tacaPx = tacas.length>=3?84:100;
+
+  const camp=rfCampeoesDaTemporada(sum);
+  const art=rfArtilheirosDaTemporada();
+  const aberto=!!CL.ftDetalhes;
+
+  /* A JANELA DA TABELA É EM VOLTA DE QUEM JOGA, NÃO O TOPO. Quem terminou em
+     15º não se via na própria tela de fim de temporada. (Mesma regra do resumo
+     da tabela; o desenho mostra 6 linhas, e são estas 6.) */
+  const JAN=6, iEu=Math.max(0, linhas.findIndex(t=>String(t.id)===String(CL.clubId)));
+  let ini=0;
+  if(total>JAN){ ini=Math.max(0, iEu-Math.floor((JAN-1)/2)); ini=Math.min(ini, total-JAN); }
+  const janela=linhas.slice(ini, total>JAN?ini+JAN:total);
 
   return rfStage({
-    w:1240, comp:S.division,
-    contexto:`${classifDivName(S.division)} ${S.season||''} · temporada encerrada`,
+    w:1120, comp:divRef,
+    /* o kicker do desenho ("TEMPORADA 2027 ENCERRADA · SÉRIE A") vive aqui, na
+       sobrancelha do envelope, em vez de repetido dentro do herói */
+    contexto:`Temporada ${ano} encerrada · ${divNome}`,
     titulo:'Fim da temporada',
-    corpo:`<div class="rf-ft-cols">
-      <!-- FAIXA HORIZONTAL, NAO COLUNA. O video vivia num cartao estreito a esquerda, curto,
-           ao lado de uma pilha alta de cartoes: sobrava um vazio enorme embaixo dele. Agora
-           ele e a faixa do topo, com a manchete por cima — mesmo idioma do modal de titulo
-           (rf-cmp-arte) — e os cartoes correm em colunas por baixo.
-           O VIDEO E O DESFECHO DO CLUBE, nao ilustracao: titulo/acesso puxam a taca, queda e
-           demissao puxam a crise; meio de tabela nao tem video proprio e fica com a moldura. -->
-      <div class="rf-ft-hero ${video?'com-video':''}">
-        ${video?`<video class="rf-ft-vid" src="${escC(video)}" autoplay muted loop playsinline
-           onerror="this.style.display='none'"></video><i class="rf-ft-vshade"></i>`:''}
-        <div class="rf-ft-hero-txt">
-          <span class="rf-ft-selo">${escC(info.selo)}</span>
-          <span class="rf-ft-h">${escC(titulo)}</span>
-          <p class="rf-ft-p">${escC(rfFimTexto(d,pos,total))}</p>
-          <span class="rf-ft-objetivo ${d==='rebaixado'||d==='demitido'?'ruim':''}">${
-            d==='rebaixado'||d==='demitido'?'Objetivo não cumprido':'Objetivo cumprido'}</span>
-        </div>
-        <span class="rf-ft-hero-trofeu">${rfTrofeuHTML('serie'+(S.division||'D'), 64)}</span>
-      </div>
-      <div class="rf-ft-dir">
-        <div class="rf-card">
-          <!-- "Como terminou o grupo" era heranca do desenho: uma liga de pontos corridos nao
-               tem grupo, e o rotulo nao batia com o que estava por baixo dele. -->
-          <span class="rf-label-t">Como terminou a ${escC(classifDivName(S.division))}</span>
-          ${(function(){
-            /* A JANELA E EM VOLTA DE QUEM JOGA, NAO O TOPO. Mostrava os 6 primeiros: quem
-               terminou em 15o nao se via na propria tela de fim de temporada, e os seis
-               nomes ali em cima nao lhe diziam nada. Mesma regra do resumo da tabela
-               (rfTabelaHTML): eu no meio, os vizinhos em volta, encostando na ponta quando
-               estou perto dela. Tabela curta cabe inteira. */
-            const JAN=6, meu=Math.max(0, linhas.findIndex(t=>t.id===CL.clubId));
-            let ini=0;
-            if(total>JAN){ ini=Math.max(0, meu-Math.floor((JAN-1)/2)); ini=Math.min(ini, total-JAN); }
-            return linhas.slice(ini, total>JAN?ini+JAN:total).map((t,k)=>{ const i=ini+k;
-            const c=anyClubOf(t.id)||{short:t.id}, eu=t.id===CL.clubId;
-            const z=rfZonaTabela(i+1,total);
-            return `<div class="rf-ft-lin ${eu?'me':''}">
-              <span class="rf-ft-pos">${i+1}º</span>
-              <span class="rf-ft-crest">${rfCrest(c,22)}</span>
-              ${rfNomeClube(c,"rf-ft-n")}
-              <div class="rf-sp"></div>
-              ${z?`<span class="rf-ft-tag ${z}">${z==='promo'?'Acesso à '+divisionLabelOf(rfDivAcima()):'Rebaixado'}</span>`:''}
-            </div>`;
-            }).join('');
-          })()}
-        </div>
-        ${(function(){
-          const camp=rfCampeoesDaTemporada(sum);
-          if(!camp.length) return '';
-          return `<div class="rf-card">
-            <div class="rf-label"><span class="rf-label-t">Campeões da temporada</span>
-              <span class="rf-label-r">${camp.length} competiç${camp.length===1?'ão':'ões'}</span></div>
-            ${camp.map(x=>{ const c=anyClubOf(x.clubId)||{short:String(x.clubId)}, eu=String(x.clubId)===String(CL.clubId);
-              return `<div class="rf-ft-lin camp ${eu?'me':''}">
-                <span class="rf-ft-comp">${escC(x.nome)}</span>
-                <span class="rf-ft-crest">${rfCrest(c,22)}</span>
-                ${rfNomeClube(c,"rf-ft-n")}
-              </div>`; }).join('')}
-          </div>`;
-        })()}
-        ${(function(){
-          const art=rfArtilheirosDaTemporada();
-          if(!art.length) return '';
-          return `<div class="rf-card">
-            <div class="rf-label"><span class="rf-label-t">${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Artilheiros')} por competição</span></div>
-            ${art.map(a=>`<div class="rf-ft-lin">
-              <span class="rf-ft-comp">${escC(a.nome)}</span>
-              <div class="rf-sp"></div>
-              <span class="rf-ft-n">${escC(a.jogador)}</span>
-              <span class="rf-ft-gols">${a.gols} ${a.gols===1?'gol':'gols'}</span>
-            </div>`).join('')}
-            <span class="rf-note rf-ft-nota">Contado a partir desta temporada — saves antigos só mostram as competições que já registraram gol.</span>
-          </div>`;
-        })()}
-        <div class="rf-card">
-          <span class="rf-label-t">Premiação e balanço</span>
-          <div class="rf-ft-grid">
-            <div class="rf-ft-b"><span class="rf-ov-res-t">Prêmio da campanha</span>
-              <span class="rf-ft-bv">${escC(fmt(premio))}</span>
-              <span class="rf-pr-ms">depositado</span></div>
-            <div class="rf-ft-b"><span class="rf-ov-res-t">Caixa após fechar</span>
-              <span class="rf-ft-bv">${escC(fmt(S.budget||0))}</span>
-              <span class="rf-pr-ms">no ano</span></div>
-            <!-- O artilheiro da competicao subiu para o cartao proprio (um por competicao);
-                 aqui fica o do MEU elenco, que e outra informacao e nao repete a de cima. -->
-            <div class="rf-ft-b"><span class="rf-ov-res-t">${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Artilheiro')} do elenco</span>
-              <span class="rf-ft-bv sm">${escC(artCasa?artCasa.n:'—')}</span>
-              <span class="rf-pr-ms">${artCasa?(artCasa.g+' gol'+(artCasa.g===1?'':'s')):''}</span></div>
-            <div class="rf-ft-b"><span class="rf-ov-res-t">Melhor nota</span>
-              <span class="rf-ft-bv sm">${escC(rfMelhorNota())}</span>
-              <span class="rf-pr-ms">do plantel</span></div>
+    corpo:`<div class="rf-fs" style="--fsc:${sit.cor};--fsi:${sit.ink};--fsv:${sit.veu}">
+      <div class="rf-fs-hero">
+        ${video?`<video class="rf-fs-cena" src="${escC(video)}" autoplay muted loop playsinline
+           onerror="this.style.display='none'"></video>`:''}
+        <i class="rf-fs-veu"></i>
+        <div class="rf-fs-hero-in">
+          <span class="rf-fs-selo">${escC(selo)}</span>
+          <div class="rf-fs-linha">
+            ${tacas.length?`<div class="rf-fs-tacas">${tacas.map(t=>`<span class="rf-fs-taca">
+              ${rfCompTrofeuHTML(rfCompInfo(t.key), tacaPx)}
+              <span class="rf-fs-taca-l">${escC(t.nome)}</span></span>`).join('')}</div>`:''}
+            <span class="rf-fs-crest">${rfCrest(cl,104)}</span>
+            <div class="rf-fs-txt">
+              <span class="rf-fs-h">${escC(titulo)}</span>
+              <span class="rf-fs-sub">${escC(sub)}</span>
+            </div>
           </div>
         </div>
-        <div class="rf-card">
-          <span class="rf-label-t">O que vem agora</span>
-          ${rfFimProximos(d).map(x=>`<div class="rf-ft-prox">
-            <span class="rf-ft-pi">${x.i}</span>
-            <span class="rf-ft-pid"><span class="rf-ft-pt">${escC(x.t)}</span>
-              <span class="rf-ft-ps">${escC(x.s)}</span></span>
-          </div>`).join('')}
+      </div>
+
+      <div class="rf-fs-nums">
+        <div class="rf-fs-num">
+          <span class="rf-fs-num-l">Posição final</span>
+          <span class="rf-fs-num-v" style="color:${ac.num}">${pos?pos+'º':'—'}</span>
+          <span class="rf-fs-num-n">${escC(posNota)}</span>
+        </div>
+        <div class="rf-fs-num">
+          <span class="rf-fs-num-l">Prêmio da temporada</span>
+          <span class="rf-fs-num-v">${escC(fmt(premio))}</span>
+          <span class="rf-fs-num-n">${escC(nConq>1?`${nConq} títulos + bilheteria dos mata-matas`:'campanha + bilheteria da temporada')}</span>
+        </div>
+        <div class="rf-fs-num larga">
+          <span class="rf-fs-num-l">Caixa para a próxima</span>
+          <span class="rf-fs-num-v">${d==='demitido'?'—':escC(fmt(S.budget||0))}</span>
+          <span class="rf-fs-num-n">${d==='demitido'?'o caixa fica com o clube':'após fechar a folha da temporada'}</span>
         </div>
       </div>
+
+      <div class="rf-fs-cx">
+        <div class="rf-fs-cx-hd">
+          <span class="rf-fs-cx-t">O que muda agora</span>
+          <div class="rf-fs-regua"></div>
+          <span class="rf-fs-cx-r">TEMPORADA ${escC(String((+ano||0)+1))}</span>
+        </div>
+        <div class="rf-fs-passos">${rfFsPassos(d,divNome).map(([tag,t,n])=>`<div class="rf-fs-passo">
+          <span class="rf-fs-passo-tag">${escC(tag)}</span>
+          <span class="rf-fs-passo-t">${escC(t)}</span>
+          <span class="rf-fs-passo-n">${escC(n)}</span></div>`).join('')}</div>
+      </div>
+
+      <div class="rf-fs-res">
+        <button type="button" class="rf-fs-res-hd ${aberto?'on':''}" onclick="rfFsAlternar()">
+          <span class="rf-fs-res-t">Resumo da temporada</span>
+          <span class="rf-fs-res-s">campeões · artilharia · classificação</span>
+          <div class="rf-sp"></div>
+          <span class="rf-fs-seta">▾</span>
+        </button>
+        ${aberto?`<div class="rf-fs-res-box">
+          <div class="rf-fs-col">
+            <span class="rf-fs-col-l">As competições do país</span>
+            ${camp.length?camp.map(x=>{
+              const c=anyClubOf(x.clubId)||{short:String(x.clubId)};
+              const eu=String(x.clubId)===String(CL.clubId);
+              return `<div class="rf-fs-cmp">
+                ${rfCompTrofeuHTML(rfCompInfo(x.comp),30)}
+                <span class="rf-fs-cmp-d">
+                  <span class="rf-fs-cmp-n">${escC(x.nome)}</span>
+                  <span class="rf-fs-cmp-f">${escC(rfFsFormato(x))}</span>
+                </span>
+                <span class="rf-fs-cmp-c ${eu?'eu':''}">${escC(c.short||c.name||'')}</span>
+              </div>`;}).join(''):'<span class="rf-fs-cmp-f">Nenhuma competição fechou nesta temporada.</span>'}
+          </div>
+          <div class="rf-fs-col">
+            <span class="rf-fs-col-l">${escC(G.t('Artilharia'))}</span>
+            ${art.length?art.map(a=>`<div class="rf-fs-art">
+              <span class="rf-fs-art-c">${escC(a.nome)}</span>
+              <span class="rf-fs-art-n">${escC(a.jogador)}</span>
+              <span class="rf-fs-art-g">${a.gols}</span>
+            </div>`).join(''):'<span class="rf-fs-cmp-f">Sem gols registrados nesta temporada.</span>'}
+          </div>
+          <div class="rf-fs-col">
+            <span class="rf-fs-col-l">Classificação final</span>
+            ${janela.map((t,k)=>{ const i=ini+k, c=anyClubOf(t.id)||{short:t.id};
+              const eu=String(t.id)===String(CL.clubId);
+              return `<div class="rf-fs-tab ${eu?'eu':''}">
+                <span class="rf-fs-tab-p">${i+1}</span>
+                <span class="rf-fs-tab-n">${escC(c.short||c.name||'')}</span>
+                <span class="rf-fs-tab-v">${t.Pts}</span>
+              </div>`;}).join('')}
+          </div>
+        </div>`:''}
+      </div>
     </div>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')">${rfIcone('calendario',16)} Ver o calendário</button>
+    acoes:`<span class="rf-fs-nota">${escC(sit.rodape)}</span>
       <div class="rf-sp"></div>
-      <button type="button" class="rf-ov-cta" onclick="${sum?'clOnlineSeasonContinue()':'clAdvanceSeason()'}">Começar a próxima temporada</button>
+      <button type="button" class="rf-ov-b2" onclick="rfSetTabIr('campeonatos','calendario')">${rfIcone('calendario',16)}
+        <span class="rf-so-desktop">Ver calendário</span><span class="rf-so-mobile">Calendário</span></button>
+      <button type="button" class="rf-ov-cta rf-fs-cta" style="background:${ac.cta};color:${ac.ctaInk}"
+        onclick="${sum?'clOnlineSeasonContinue()':'clAdvanceSeason()'}">${escC(sit.cta)}</button>
       ${sum?'<span class="rf-im-auto">avança sozinho em <span id="cl-season-count">15</span>s</span>':''}`
   });
+}
+function rfFsAlternar(){ CL.ftDetalhes=!CL.ftDetalhes; cdraw(); }
+/* espelho de rfDivAcima: a divisão logo abaixo, ou a própria se já for a última */
+function rfDivAbaixo(){
+  const i=(typeof DIV_ORDER!=='undefined')?DIV_ORDER.indexOf(S.division):-1;
+  return (i>=0&&i<DIV_ORDER.length-1)?DIV_ORDER[i+1]:S.division;
 }
 function rfDivAcima(){
   const i=(typeof DIV_ORDER!=='undefined')?DIV_ORDER.indexOf(S.division):-1;
   return (i>0)?DIV_ORDER[i-1]:S.division;
-}
-function rfMelhorNota(){
-  const sq=squad(CL.clubId).filter(p=>typeof playerNota==='function'&&playerNota(p)!=null);
-  if(!sq.length) return '—';
-  return sq.sort((a,b)=>playerNota(b)-playerNota(a))[0].n;
-}
-function rfFimTexto(d,pos,total){
-  const cl=(clubOf(CL.clubId)||{short:'o clube'}).short;
-  return {
-    titulo:`Campeão da ${classifDivName(S.division)}. A cidade não dormiu.`,
-    acesso:`${pos}º lugar e vaga garantida. Ano que vem é ${divisionLabelOf(rfDivAcima())}.`,
-    meio:`${pos}º de ${total}. Temporada sem sustos, e sem festa.`,
-    rebaixado:`${pos}º de ${total}. O ${cl} cai de série e recomeça mais abaixo.`,
-    demitido:`A diretoria decidiu mudar. O seu ciclo no ${cl} termina aqui.`
-  }[d]||'';
-}
-function rfFimProximos(d){
-  const out=[];
-  if(d==='acesso'||d==='titulo') out.push({i:rfIcone('seta-cima',16)+'',t:'Nova divisão',s:'Elenco vai precisar de reforço'});
-  if(d==='rebaixado') out.push({i:rfIcone('seta-baixo',16)+'',t:'Divisão de baixo',s:'Reconstrução de elenco'});
-  out.push({i:rfIcone('mercado',16)+'',t:'Janela de transferências',s:'Abre no começo da pré-temporada'});
-  out.push({i:rfIcone('treinador',16)+'',t:'Renovação de contrato',s:'A diretoria quer conversar'});
-  return out;
 }
 function rfSetTabIr(page,tab){ clCloseOverlay(); rfState().page=page; rfState().tab[page]=tab; CL.screen='main'; cdraw(); }
 

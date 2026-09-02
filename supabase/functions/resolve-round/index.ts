@@ -15,7 +15,7 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = '69feddfb4cac';
+/* @motor-ver */ const MOTOR_VER = '25c227d040a3';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -90,7 +90,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
     const takerBonus=((taker.f||65)-70)/100*0.35;
     const posBonus = taker.s==='ATT'?0.05:taker.s==='MID'?0.02:taker.s==='DEF'?-0.02:-0.08;
     const gkPenalty = gk ? (((gk.f||65)-65)/100)*0.22 : 0;
-    const moralAdj = ((taker.moral||70)-70)/100*0.12;
+    const moralAdj = ((taker.moral==null?70:taker.moral)-70)/100*0.12;
     const bruto=base+takerBonus+posBonus-gkPenalty+moralAdj;
     if(opts&&opts.humano) return clamp(bruto+(opts.canto!=null?0.06:0), 0.72, 0.95);
     return clamp(bruto, 0.42, 0.93); }
