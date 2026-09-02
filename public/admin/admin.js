@@ -10204,13 +10204,33 @@ function competicoesPorPais(){
       itens.push({ chave:k, div:null, tipo:defs[k].type||'mata-mata',
                    fabricaNome: defs[k].name, fabricaCurto: defs[k].short });
     });
-    if(itens.length) grupos.push({ pais:p.chave, nome:p.nome, itens });
+    if(itens.length) grupos.push(Object.assign({ pais:p.chave, nome:p.nome, itens }, situacaoDoPais(p.chave)));
   });
   const mundo = COMP_CONTINENTAIS.filter(k => defs[k]).map(k => ({
     chave:k, div:null, tipo:defs[k].type||'mata-mata',
     fabricaNome: defs[k].name, fabricaCurto: defs[k].short }));
-  if(mundo.length) grupos.push({ pais:COMP_PAIS_MUNDO, nome:'Continentais e mundiais', itens:mundo });
+  if(mundo.length) grupos.push({ pais:COMP_PAIS_MUNDO, nome:'Continentais e mundiais', itens:mundo,
+                                 jogavel:true, temCalendario:true, situacao:'' });
+  /* PRIMEIRO O QUE ESTÁ NO AR. A lista tem 16 países e só uma parte deles é jogável hoje —
+     ordenar por situação evita a pergunta "então por que a Bolívia aparece aqui?". */
+  grupos.sort((a,b) => (b.jogavel?2:0)+(b.temCalendario?1:0) - ((a.jogavel?2:0)+(a.temCalendario?1:0)));
   return grupos;
+}
+/* A SITUAÇÃO DE CADA PAÍS NO JOGO DE HOJE, e não a lista de universos como se todos
+   valessem o mesmo. Dois interruptores decidem quem entra em campo:
+     · RF_SO_BRASIL (universos.js) — a trava dos nomes reais dos estrangeiros;
+     · a folha de calendário — país sem calendário não tem temporada para jogar.
+   O editor mostra os dois: a ficha continua editável (a taça pode ser desenhada antes de o
+   país abrir), mas ninguém fica esperando ver no jogo uma coisa que o jogo ainda não joga. */
+function situacaoDoPais(pais){
+  const API = calAPI();
+  const comCal = API ? API.paisesComCalendario() : [];
+  const jogavel = !window.RF_SO_BRASIL || pais === 'brasil';
+  const temCalendario = comCal.indexOf(pais) >= 0;
+  return { jogavel, temCalendario,
+    situacao: !jogavel ? 'fora do ar — só o Brasil, até os estrangeiros terem nome fictício'
+            : !temCalendario ? 'sem calendário próprio — a temporada ainda não roda aqui'
+            : '' };
 }
 /* o que o JOGO vai mostrar: o patch por cima da fábrica */
 function compEfetiva(pais, item){
@@ -10259,7 +10279,10 @@ function abaTrofeus(editar){
     ${grupos.map(g => `
       <div class="card" style="overflow:hidden;margin-bottom:16px">
         <div class="card-h"><b>${h(g.nome)}</b>
-          <span class="st mono" style="font-size:11px">${h(g.pais)}</span></div>
+          ${g.situacao
+            ? `<span class="tag ${g.jogavel?'t-dim':'t-warn'}">${h(g.situacao)}</span>`
+            : `<span class="tag t-ok">no ar</span>`}
+          <span class="st mono" style="font-size:11px;margin-left:auto">${h(g.pais)}</span></div>
         <div class="rowh" style="grid-template-columns:60px 1.6fr 1fr 1.4fr ${editar?'96px':''}">
           <span style="text-align:center">Taça</span><span>Nome</span><span>Abreviado</span>
           <span>Chave no jogo</span>${editar?'<span></span>':''}
