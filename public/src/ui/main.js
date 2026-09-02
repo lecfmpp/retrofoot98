@@ -9676,8 +9676,13 @@ function pressFinish(){
     if(efeito.cargo) p.push('cargo '+(efeito.cargo>0?'+':'')+efeito.cargo);
     if(efeito.rep)   p.push('reputação '+(efeito.rep>0?'+':'')+efeito.rep);
     if(p.length) toastC('Coletiva dada — '+p.join(' · ')+'.');
-    if(typeof P.depois==='function'){ P.depois(); return; }
-    CL.screen='main'; CL.tab='jogo'; cdraw(); return;
+    /* VOLTAR AO CLUBE É DESTA FUNÇÃO, sempre. O `depois` é o que estava na fila
+       ATRÁS da coletiva (o aviso de leilão, por exemplo), não quem devolve a
+       tela — um `depois` que não mexesse no ecrã deixava o jogador preso na
+       sala de imprensa depois de "Voltar ao clube". */
+    CL.screen='main'; CL.tab='jogo'; cdraw();
+    if(typeof P.depois==='function') P.depois();
+    return;
   }
 
   const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);

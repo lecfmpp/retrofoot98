@@ -611,11 +611,31 @@ function rfPosRodadaHTML(){
   });
 }
 function rfPrTodas(){ if(typeof clClassifTodas==='function') clClassifTodas(); else toastC('Todas as divisões — em breve.','info'); }
+/* ===== O "CONTINUAR" DESTA TELA É O FIM DA RODADA =====
+   E era o único caminho que não passava por lá. O fim do pós-rodada mora em
+   posRodadaFim (main.js) — é ele que fecha a rodada e chama a assessoria de
+   imprensa —, mas quem o chamava era só o auto-avanço de 10s da classificação
+   (armClassifTimer -> clClassifContinue). Quem carregava no botão, que é toda a
+   gente, saltava direto para o clube: a coletiva de rodada só aparecia a quem
+   deixasse a tela parada dez segundos. Foi o "não apareceu a entrevista".
+
+   Aqui o botão volta a fazer o mesmo que o relógio faria. O aviso de leilão é um
+   MODAL (rfAcAbrir), não um toast: se a coletiva tomou a tela, ele espera o fim
+   dela em vez de abrir por cima — rfPressTentarRodada guarda esse `depois` e
+   pressFinish executa-o depois de devolver o jogador ao clube. */
 function rfPrContinuar(){
   CL.screen='main'; cdraw();
   /* leilões que fecharam para OUTROS clubes viram aviso aqui, ao voltar da
      rodada — antes sumiam em silêncio (ver a resolução do lote no core) */
-  if(typeof rfMkLeilaoOutroPendente==='function') setTimeout(rfMkLeilaoOutroPendente,350);
+  const avisoDeLeilao=()=>{
+    if(typeof rfMkLeilaoOutroPendente==='function') setTimeout(rfMkLeilaoOutroPendente,350);
+  };
+  /* com rotação de assentos por fazer (hotseat), a coletiva fica para o fim da
+     fila — quem a abre lá é posRodadaFim, depois do último assento. Esta tela
+     não é o fim da rodada quando ainda há gente para sentar. */
+  const rotacaoPendente=(typeof CL!=='undefined' && CL._classifQueue!=null);
+  if(!rotacaoPendente && typeof rfPressTentarRodada==='function' && rfPressTentarRodada(avisoDeLeilao)) return;
+  avisoDeLeilao();
 }
 /* a zona de playoff é a faixa entre acesso e permanência; nas divisões que
    não têm playoff ela simplesmente não aparece */
