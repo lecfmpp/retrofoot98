@@ -88,8 +88,29 @@ window.__HSRV={
   /* games.round TEM UM ESCRITOR SÓ: o ponteiro. Em sala com plano de dias o save do anfitrião
      publica só o MUNDO — quem escreve a jornada é o dayAck, a partir do plano (item 3,
      mesma regra do netSaveGame de produção). */
+  /* ===== FECHAR A RODADA ESCREVE games.round — COM PLANO DE DIAS OU SEM =====
+     Aqui estava a infidelidade que travava o cenario 1. O mock so' actualizava `round` quando NAO
+     havia plano de dias, deixando a jornada inteiramente por conta do ponteiro. A producao nao faz
+     isso: o resolve-round escreve sempre
+
+         patchJogo = { shared_state, state_version: curVer+1, round: S.round }
+
+     sem olhar ao day_plan (index.ts, ~4668). Com o plano gravado — que e' o caso do cenario — o
+     `games.round` do mock ficava em 0 para sempre, e o efeito era um NO PERFEITO:
+
+       o convidado so' se reconcilia quando se descobre atrasado, e essa descoberta e'
+       `(room.round||0)!==(S.round||0)` (local-transport, tela waitround). Com games.round preso
+       em 0 e o S dele tambem em 0, ele concluia que estava em dia — ficava em 'waitround', nunca
+       voltava a' tela do clube, e por isso nunca carimbava o momento 'classificacao'. Sem esse
+       carimbo o ponteiro nao andava; sem o ponteiro, games.round nao subia; sem games.round, ele
+       nunca se descobria atrasado. Medido: A na rodada 1 e tela 'main', B na rodada 0 e tela
+       'waitround', ack de B a null, para sempre.
+
+     E' a armadilha que este ficheiro ja' descreve duas vezes noutro sentido — mock com semantica
+     diferente da RPC. Aqui ela nao deixava a sala passar; nas outras, deixava passar o que a sala
+     real nao deixa. */
   saveShared(code, S, round){ const g=G(code); g.shared=S; g.sharedVersion++;
-    if(!g.day_plan) g.round=round||S.round||0;
+    g.round=round||S.round||0;
     log('SRV: shared_state salvo v'+g.sharedVersion+' (rodada '+g.round+')','info'); bcast(code); },
   loadShared(code){ const g=G(code); return g.shared?{S:g.shared, version:g.sharedVersion}:null; },
 
