@@ -3006,11 +3006,30 @@ function bgClubById(id){ const i=intlClubById(id); let c=i||bgBrazilIndex()[id]|
    S.mundos). É daqui que saem tabela, campeão e artilharia de cada país, e é esta
    classificação real que alimenta as vagas continentais (unifiedContinentalPool /
    rebuildContinentalCups) em vez da reciclagem congelada. */
+/* CHAVE DE UNIVERSO -> NOME DE PAIS. 'brasil' nao declara `country` (e o universo original,
+   anterior ao campo), dai o caso especial; 'brasilFem' declara 'Brasil', e e' por isso que os
+   dois eixos se cruzam aqui. Ver o comentario em bgLeagueCountries. */
+function uniKeyParaNome(k){ return (k==='brasil')?'Brasil':((UNI_CONFIGS[k]&&UNI_CONFIGS[k].country)||k); }
+/* os NOMES dos paises que existem por inteiro neste mundo (a piramide deles roda a serio, em
+   S.table/S.otherDivs ou em S.mundos) — o complemento exacto das ligas de fundo. */
+function paisesVivosNomes(){
+  const chaves=(S&&S.paisesVivos&&S.paisesVivos.length)?S.paisesVivos:[(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:'brasil'];
+  return new Set(chaves.map(uniKeyParaNome));
+}
 function bgLeagueCountries(){
-  const vivos=new Set((S&&S.paisesVivos&&S.paisesVivos.length)?S.paisesVivos:[(typeof ACTIVE_UNI!=='undefined')?ACTIVE_UNI:'brasil']);
-  const nomeDe=k=>(k==='brasil')?'Brasil':((UNI_CONFIGS[k]&&UNI_CONFIGS[k].country)||k);
+  const nomesVivos=paisesVivosNomes();
+  const nomeDe=uniKeyParaNome;
+  /* ===== A EXCLUSAO E' PELO NOME, PORQUE A LISTA E' DE NOMES =====
+     `vivos` guarda CHAVES de universo ('brasil', 'brasilFem', 'Inglaterra'); esta funcao devolve
+     NOMES de pais. Filtrar por chave e agrupar por nome deixava todo universo a fazer sombra de
+     si proprio: com o Brasil vivo, a chave 'brasil' era pulada mas 'brasilFem' nao — e
+     `UNI_CONFIGS.brasilFem.country` e 'Brasil', entao o nome voltava a entrar. O resultado era
+     uma liga de fundo com A/B/C/D e EXACTAMENTE os clubes da piramide real: o Brasil simulado
+     duas vezes em todo save brasileiro. Nao era um caso do Brasil — media-se o mesmo com a
+     Inglaterra viva (InglaterraFem repunha 'Inglaterra') e com duas seleccoes vivas numa sala.
+     Traduzir as chaves vivas para nomes ANTES de comparar fecha os tres casos de uma vez. */
   const out=[];
-  Object.keys(UNI_CONFIGS).forEach(k=>{ if(vivos.has(k)) return; const n=nomeDe(k); if(out.indexOf(n)<0) out.push(n); });
+  Object.keys(UNI_CONFIGS).forEach(k=>{ const n=nomeDe(k); if(nomesVivos.has(n)) return; if(out.indexOf(n)<0) out.push(n); });
   return out;
 }
 /* o pacote de UM país: tabelas + calendário + overall por clube (pro quick-sim rodar em
@@ -3055,7 +3074,23 @@ function initBgLeagues(){
 function ensureBgLeaguesCompletas(){
   S.bgLeagues=S.bgLeagues||{};
   let novos=0;
-  bgLeagueCountries().forEach(country=>{
+  const devidos=bgLeagueCountries();
+  /* ===== E TAMBEM TIRA A SOMBRA QUE JA' ESTA' GRAVADA =====
+     Reparar so' por acrescimo nao chegava: os saves feitos antes da correccao de
+     bgLeagueCountries ja' TEM a sombra do proprio pais dentro, e ela nunca sairia sozinha —
+     `initBgLeagues` so' corre em save novo.
+
+     A CONDICAO E' "E' UM PAIS VIVO", e nao "nao esta' na lista devida". Sao o mesmo conjunto por
+     construcao, mas nao sao a mesma PROMESSA: se um dia `S.paisesVivos` chegar aqui vazio ou a
+     meio de uma troca de universo, a lista devida encolhe e a versao larga apagaria ligas
+     legitimas com tabela e artilharia acumuladas. Assim, o pior caso e' nao limpar desta vez.
+     Apagar a do pais vivo e' seguro: a piramide dele existe a serio noutro sitio (S.table /
+     S.otherDivs), entao nao se perde tabela nenhuma — perde-se a copia. */
+  const vivos=paisesVivosNomes();
+  Object.keys(S.bgLeagues).forEach(country=>{
+    if(vivos.has(country)) delete S.bgLeagues[country];
+  });
+  devidos.forEach(country=>{
     if(S.bgLeagues[country]) return;
     const L=bgInitCountry(country); if(L){ S.bgLeagues[country]=L; novos++; }
   });

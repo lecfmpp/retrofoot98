@@ -1496,25 +1496,67 @@ root.UNIVERSOS = {
 };
 
 /* código ISO da bandeira de cada universo (UNIVERSOS só guarda o nome do país) */
-/* ===== SO' O BRASIL, POR ENQUANTO =====
-   Os 1.900 jogadores brasileiros ja' jogam com nome ficticio (o pacote oficial renomeia no boot).
-   Os 9.832 estrangeiros ainda nao: Arsenal, River Plate e companhia chegam ao jogo com os nomes
-   REAIS que vieram do bundle. Enquanto for assim, os outros paises ficam fora de alcance.
+/* =====================================================================
+   AS TRES TRAVAS DA 1a VERSAO PUBLICA
+   ---------------------------------------------------------------------
+   Sao tres EIXOS diferentes, e ate' aqui dois deles eram um interruptor so'. Separa'-los e' o
+   trabalho deste bloco: cada eixo liga e desliga sozinho, e nenhum arrasta o outro sem querer.
 
-   E' UM INTERRUPTOR SO', E ELE PRECISA DE DUAS FECHADURAS. Esconder os paises no assistente NAO
-   basta: o mercado le a lista dele direto dos bundles (foreignMarketCountries, core.js), sem
-   consultar o que foi escolhido -- medido, com CL.countries=['Brasil'] o filtro continuava a
-   oferecer os 15 paises e o Arsenal vinha com "Declan Rice". Por isso a trava e' lida nos dois
-   sitios: COUNTRY_LIST (quem se pode escolher) e foreignMarketCountries (de quem se pode
-   contratar).
+     RF_SO_BRASIL             de que pais se pode ESCOLHER um clube para treinar.
+     RF_MERCADO_MUNDIAL       de que paises se pode COMPRAR, e para quem se pode VENDER.
+     RF_TREINADOR_SO_NO_PAIS  se o TREINADOR pode ser convidado a mudar de pais.
 
-   O BRASIL CONTINUA NO MERCADO. `foreignClubsOf('Brasil')` devolve a Serie A, que e' a prateleira
-   de quem joga nas divisoes de baixo -- e esses nomes JA' sao ficticios. Travar isso nao protegia
-   nada e tirava uma funcionalidade boa.
+   O desenho do lancamento: joga-se no Brasil, nas quatro divisoes, com a carreira do treinador
+   inteira dentro do pais — mas o mercado de jogadores e' o mundo todo, de ida e de volta.
+   ===================================================================== */
 
-   PARA RELIGAR: `false`. Nada mais. Os bundles nunca foram tocados, entao os paises voltam
-   inteiros -- e devem voltar no dia em que os nomes ficticios dos estrangeiros existirem. */
+/* ===== SO' O BRASIL SE JOGA =====
+   O pais jogavel e' um so'. Isto e' desenho de lancamento, nao limitacao tecnica: os catorze
+   universos estrangeiros existem, tem piramide, calendario e elenco, e ja' rodam de fundo (ver
+   bgLeagueCountries, core.js) — o que nao se pode e' SENTAR neles.
+
+   ESTA TRAVA JA' NAO GOVERNA O MERCADO. Ate' aqui ela tinha duas fechaduras, e a segunda estava
+   em `foreignMarketCountries` (core.js) por um motivo que DEIXOU DE EXISTIR: os estrangeiros
+   chegavam ao jogo com o nome REAL do bundle. Hoje nao chegam — `renomearEstrangeiros`
+   (net/dados.js) corre no arranque de toda visita e calcula 10.080 nomes ficticios do pool de
+   cada pais, sem uma unica colisao com nome real (conferido por scripts/nomes-ficticios-intl.mjs).
+   Resolvida a razao da fechadura, ela saiu daqui e virou a flag propria abaixo.
+
+   PARA RELIGAR: `false`. Os bundles nunca foram tocados, entao os paises voltam inteiros. */
 root.RF_SO_BRASIL = true;
+
+/* ===== O MERCADO E' O MUNDO TODO =====
+   Compra-se de qualquer pais com bundle (CONMEBOL_LEAGUES + INTL_LEAGUES) e vende-se para eles,
+   desde a 1a temporada, nos dois modos. `foreignMarketCountries` (core.js) le esta flag.
+
+   O LADO DE ENTRADA JA' ESTAVA ABERTO, e e' por isso que esta flag so' precisa de tocar num
+   sitio. As propostas que CHEGAM saem de `S.bgLeagues` (generateIncomingOffers), e as ligas de
+   fundo incluem todo pais que nao e' o vivo — sempre incluiram, independentemente do que foi
+   escolhido no assistente. Um clube ingles ja podia oferecer por um jogador do utilizador, e o
+   aceite ja sabia lidar com comprador de fora (ver acceptIncomingOffer: materializa o clube e
+   regista a saida do mundo). O que faltava era o lado de SAIDA: procurar la fora e propor.
+
+   PARA FECHAR: `false`. A prateleira encolhe para a Serie A brasileira (`foreignClubsOf('Brasil')`)
+   e nada mais muda — o caminho de compra e' o mesmo para dentro e para fora do pais. */
+root.RF_MERCADO_MUNDIAL = true;
+
+/* ===== O TREINADOR NAO ATRAVESSA A FRONTEIRA =====
+   Trava IRMA da de cima, e nao a mesma coisa. RF_SO_BRASIL decide de que paises se pode
+   ESCOLHER um clube e de quem se pode CONTRATAR; esta decide se o TREINADOR pode ser convidado
+   a mudar de pais. Sao eixos diferentes de proposito: no lancamento da 1a versao publica o
+   mercado de jogadores e mundial (compra-se e vende-se com o mundo todo) mas a carreira do
+   treinador acontece dentro do Brasil, nas quatro divisoes.
+
+   POR QUE PRECISA DE SER EXPLICITA. Hoje o convite de fora ja nao aparece — mas por ACIDENTE:
+   `clubesDoExterior()` le `S.bgLeagues`, que so tem paises escolhidos no assistente, e com
+   RF_SO_BRASIL ligado nao ha nenhum. Isso e um efeito colateral, nao uma regra: basta uma sala
+   de Resenha com paises misturados, ou o dia em que RF_SO_BRASIL cair, para o convite
+   internacional voltar sozinho e sem ninguem ter decidido que devia voltar. Escrita aqui, a
+   regra sobrevive as duas coisas.
+
+   PARA RELIGAR: `false`. A mecanica inteira continua no sitio (clubesDoExterior,
+   escolherClubeDoExterior, applyManagerJobChange, NIVEL_LIGA) — nada foi apagado, so' fechado. */
+root.RF_TREINADOR_SO_NO_PAIS = true;
 
 root.UNIVERSO_BANDEIRA = {brasil:'br',Inglaterra:'gb-eng',Espanha:'es','Itália':'it',Alemanha:'de',Portugal:'pt',
   Argentina:'ar',Uruguai:'uy','Colômbia':'co',Chile:'cl',Peru:'pe',Equador:'ec',Paraguai:'py',Venezuela:'ve','Bolívia':'bo'};
