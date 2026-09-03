@@ -7970,6 +7970,11 @@
 .rf-ac-sg{height:26px;padding:0 9px;border:0;border-radius:8px;background:transparent;cursor:pointer;
   font-size:var(--fs-1);font-weight:600;color:var(--text-2);white-space:nowrap;font-family:inherit}
 .rf-ac-sg.on{background:var(--brand-primary);color:#fff}
+/* O DEGRAU PAGO E' VISIVEL, MAS NAO PARECE ESCOLHIVEL. Fica apagado e sem o fundo do `.on`;
+   o cadeado vem no proprio texto do botao. Clicavel de proposito — abre a janela que explica
+   o plano (RF_TRAVAS.velocidade), e por isso NAO leva `disabled` nem `pointer-events:none`. */
+.rf-ac-sg.travada{color:var(--text-3);opacity:.72}
+.rf-ac-sg.travada:hover{opacity:1;background:var(--surface-3,rgba(0,0,0,.06))}
 .rf-ac-seg-lock{display:flex;align-items:center;gap:6px;font-size:var(--fs-2);color:var(--text-3);
   white-space:nowrap;flex:0 0 auto}
 .rf-ac-bt.peq{height:34px;padding:0 13px;font-size:var(--fs-1);flex:0 0 auto}

@@ -7391,7 +7391,7 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
 function liveRitmoMs(RL){
   // Online o ritmo e' o do ANFITRIAO (games.speed_mult, sincronizado — ver clSetTempo/wireNet),
   // nao a preferencia local de cada convidado. Solo: cada um usa a propria opcao "Tempo de jogo".
-  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT]);
+  const spd = CL.online ? TEMPO_MS['Usain Bolt'] : (TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[tempoPadrao()]);
   let ms = Math.max(onlineTickFloorMs(RL), spd / roundSpeedMult());
   if(camLentoAtivo()) ms *= CAM_LENTO_MULT;   // camera lenta na festa do gol dele
   return ms;
@@ -8324,7 +8324,7 @@ const CAM_TATICA={retranca:'Retranca',equilibrado:'Equilibrado',ofensivo:'Ofensi
    Vale pros dois modos: no solo lê a opção local, na Resenha lê o ritmo do anfitrião. */
 function camTempoMs(){
   if(CL.online) return TEMPO_MS['Usain Bolt']/roundSpeedMult();
-  return TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[TEMPO_DEFAULT];
+  return TEMPO_MS[tempoLabelAtual()]||TEMPO_MS[tempoPadrao()];
 }
 // tolerância de 1ms: o ritmo online vem de uma divisão (37/mult) e pode cair em 109.9999
 function camSpeedOk(){ return camTempoMs() >= (TEMPO_MS['Ultrassônico']-1); }
@@ -8383,10 +8383,14 @@ function liveWatchdog(){
     liveRetomaRelogio();
   }, 1000);
 }
+/* DESDE QUE OS RITMOS DE TESTE SAIRAM DO SELETOR, isto quase nao aparece: o mais rapido que se
+   escolhe e' o Ultrassônico (110ms), e camSpeedOk aceita-o. Fica de rede para o unico caso que
+   ainda desce abaixo disso — TEMPO_TESTE ligado na bancada — e por isso deixou de mandar a
+   pessoa a Opcoes mudar um ritmo que la' nao esta'. */
 function camSpeedHint(){
   return CL.online
-    ? '🎥 Camarote indisponível: o anfitrião está no Usain Bolt. Disponível até Ultrassônico.'
-    : '🎥 Camarote indisponível no Usain Bolt — mude em Opções › Tempo de jogo (até Ultrassônico).';
+    ? '🎥 Camarote indisponível: o ritmo da sala está rápido demais para acompanhar.'
+    : '🎥 Camarote indisponível: o ritmo está rápido demais para acompanhar.';
 }
 function camTab(t){ CL.camTab=t; cdraw(); }
 function camBackdrop(e){ if(e && e.target===e.currentTarget) camToggle(); }
@@ -11371,6 +11375,49 @@ const TEMPO_MS={Curto:360,Médio:560,Longo:820,Ultrassônico:110,'Usain Bolt':37
    partida) é o ponto em que ainda dá pra assistir sem ficar lento. Quem quiser o extremo continua
    escolhendo Usain Bolt na mão — só perde o Camarote enquanto estiver nele. */
 const TEMPO_DEFAULT='Ultrassônico';
+/* =====================================================================
+   AS VELOCIDADES TEM DEGRAU DE PLANO
+   ---------------------------------------------------------------------
+   Tres faixas, e elas nao sao a mesma coisa:
+
+     TESTE   'Usain Bolt' e 'Foguete' saem do seletor para TODA a gente. Sao ferramentas de
+             bancada — atravessar temporadas em minutos para ver o fim delas — e nao ritmos de
+             jogar. Quem precisa deles liga TEMPO_TESTE (acima), que ja e' a trava de bancada
+             documentada e passa por cima de tudo, inclusive disto.
+     PAGO    'Ultrassônico' e' o ritmo rapido de quem assina.
+     LIVRE   Curto/Médio/Longo, o que o Peladeiro joga.
+
+   POR QUE A TRAVA NAO PODE VIVER SO' NO SELETOR. O rotulo fica GRAVADO no save
+   (clOpcoes().tempo): quem ja' escolheu 'Usain Bolt' continuaria nele para sempre, e quem nunca
+   abriu as Opcoes cairia no TEMPO_DEFAULT, que e' 'Ultrassônico' — ou seja, o plano gratis
+   nascia com a velocidade paga. Por isso quem TRANCA e' tempoLabelAtual(), que e' por onde todo
+   o jogo pergunta o ritmo; o seletor apenas mostra o que ela ja' decidiu.
+   ===================================================================== */
+const TEMPO_TESTE_LABELS=['Usain Bolt','Foguete'];
+const TEMPO_PAGO=['Ultrassônico'];
+/* `!== false` E' DE PROPOSITO, e segue a regra das outras travas (ver rfPodeResenha,
+   rf26-landing.js): sem sessao, com o banco fora do ar ou na bancada, o campo chega
+   null/undefined e null quer dizer LIBERADO. Trancar por falta de resposta e' trancar quem
+   pagou — e aqui nao ha' recusa de servidor a apanhar o caso, porque o ritmo e' so' do cliente. */
+function tempoPodePago(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  return st.pro !== false;
+}
+function tempoLiberado(label){
+  if(!label || !TEMPO_MS[label]) return false;
+  if(TEMPO_TESTE_LABELS.indexOf(label)>=0) return false;     // bancada: so' por TEMPO_TESTE
+  if(TEMPO_PAGO.indexOf(label)>=0) return tempoPodePago();
+  return true;
+}
+/* o que o seletor mostra como escolhivel, na ordem do catalogo */
+function temposDoSeletor(){ return Object.keys(TEMPO_MS).filter(tempoLiberado); }
+/* o padrao de quem nao escolheu (ou escolheu o que ja' nao pode): o MAIS RAPIDO que o plano
+   permite — derivado, nunca escrito a mao, senao muda o catalogo e este numero fica para tras. */
+function tempoPadrao(){
+  if(tempoLiberado(TEMPO_DEFAULT)) return TEMPO_DEFAULT;
+  const livres=temposDoSeletor().sort((a,b)=>TEMPO_MS[a]-TEMPO_MS[b]);
+  return livres[0]||'Curto';
+}
 /* ===== INTERRUPTOR TEMPORÁRIO DE TESTE: RITMO ULTRASSÔNICO NOS DOIS MODOS =====
    Ligado, força o rótulo abaixo no Solo E na Resenha, ignorando a opção salva de cada save e o
    ritmo escolhido pelo anfitrião da sala. É uma trava de BANCADA — serve pra rodar temporada
@@ -11394,10 +11441,12 @@ const TEMPO_TESTE=null;   // ← rótulo (ex.: 'Foguete') liga a trava de bancad
 function tempoLabelAtual(){
   if(TEMPO_TESTE && TEMPO_MS[TEMPO_TESTE]) return TEMPO_TESTE;
   const salvo=clOpcoes().tempo;
-  /* RITMO SALVO QUE JA NAO EXISTE CAI NO PADRAO. Quem experimentou o 'Foguete' tem o rotulo
-     gravado no save; sem esta rede, TEMPO_MS[rotulo] vinha undefined e o relogio da partida
-     ficava sem intervalo. */
-  return (salvo && TEMPO_MS[salvo]) ? salvo : TEMPO_DEFAULT;
+  /* RITMO SALVO QUE JA NAO EXISTE — OU QUE O PLANO NAO DA — CAI NO PADRAO. Eram dois casos e
+     agora sao o mesmo: quem experimentou o 'Foguete' tem o rotulo gravado no save (sem esta rede,
+     TEMPO_MS[rotulo] vinha undefined e o relogio ficava sem intervalo), e quem esta' no Peladeiro
+     com 'Ultrassônico' gravado continuaria no ritmo pago para sempre. tempoLiberado cobre os
+     dois, e e' aqui que a trava de velocidade de facto acontece. */
+  return tempoLiberado(salvo) ? salvo : tempoPadrao();
 }
 /* A Resenha usa a MESMA escala do solo: o rótulo escolhido pelo ANFITRIÃO vale ms por ms pra todo
    mundo (viaja em games.speed_mult = TEMPO_MS['Usain Bolt']/TEMPO_MS[rótulo], então

@@ -534,7 +534,9 @@ function rfObPaisSala(uni){
 /* =====================================================================
    4 · CRIAR SALA (só Resenha) — substitui scSalaHost()
    ===================================================================== */
-const RF_RITMOS=['Calmo','Normal','Ultrassônico','Usain Bolt'];
+/* RF_RITMOS saiu: era uma lista de ritmos que ninguem lia (nenhum consumidor em todo o repo) e
+   que nomeava o 'Usain Bolt', agora fora do seletor. Deixa'-la seria um segundo catalogo de
+   velocidades a discordar do de main.js no dia em que alguem a ligasse. */
 const RF_ENTRADAS=[['convite','Só com convite'],['codigo','Qualquer um com o código'],['aprovar','Aprovar cada entrada']];
 function rfOb4(){
   const n=CL.net||(CL.net={});

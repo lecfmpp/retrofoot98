@@ -901,6 +901,34 @@ function rfAcSegHTML(rotulo, chave, opcoes, val, dica, travada){
     ${dir}
   </div>`;
 }
+/* ===== A LINHA DO RITMO TEM UM DEGRAU QUE AS OUTRAS NAO TEM =====
+   Nao passa por rfAcSegHTML porque precisa de uma coisa que nenhuma outra linha de Opcoes
+   precisa: uma opcao VISIVEL e nao escolhivel. Esconder o Ultrassônico de quem nao assina seria
+   mais simples e vende menos — ninguem compra o que nao sabe que existe; o cadeado mostra o
+   degrau e abre a janela que o explica (RF_TRAVAS.velocidade).
+
+   As velocidades de TESTE nao entram aqui de todo, nem com cadeado: nao ha' plano que as compre
+   (ver TEMPO_TESTE_LABELS em main.js), entao um cadeado nelas seria uma promessa falsa. */
+function rfAcTempoHTML(trava){
+  const o=(typeof clOpcoes==='function')?clOpcoes():{};
+  const val=(typeof tempoLabelAtual==='function')?tempoLabelAtual():o.tempo;
+  const livres=(typeof temposDoSeletor==='function')?temposDoSeletor():['Curto','Médio','Longo'];
+  const pagas=(typeof TEMPO_PAGO!=='undefined'?TEMPO_PAGO:[]).filter(l=>livres.indexOf(l)<0);
+  const dica = trava ? 'Na resenha, quem define o ritmo é o anfitrião.'
+                     : 'Do mais devagar ao mais rápido. O Camarote funciona em todos.';
+  if(trava) return rfAcSegHTML('Tempo de jogo','tempo',livres,val,dica,trava);
+  const bts=livres.map(l=>
+      `<button type="button" class="rf-ac-sg ${l===val?'on':''}"
+        onclick="rfOpcoesSet('tempo',this.dataset.v)" data-v="${escC(l)}">${escC(l)}</button>`)
+    .concat(pagas.map(l=>
+      `<button type="button" class="rf-ac-sg travada" title="Disponível nos planos pagos"
+        onclick="rfAcFechar();rfTrava&&rfTrava('velocidade')">🔒 ${escC(l)}</button>`));
+  return `<div class="rf-ac-orow empilha">
+    <span class="rf-ac-or-id"><span class="rf-ac-or-t">Tempo de jogo</span>
+      <span class="rf-ac-or-s">${escC(dica)}</span></span>
+    <span class="rf-ac-seg">${bts.join('')}</span>
+  </div>`;
+}
 /* AGORA → DEPOIS DA OBRA */
 function rfAcSaltoHTML(rotA, a, rotB, b, delta){
   return `<div class="rf-ac-salto">
@@ -1076,9 +1104,7 @@ const RF_ACOES_EXTRA = {
 
   const jogo =
       rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
-    + rfAcSegHTML('Tempo de jogo','tempo',['Curto','Médio','Longo','Ultrassônico','Usain Bolt','Foguete'],
-        o.tempo, trava?'Na resenha, quem define o ritmo é o anfitrião.'
-          :'Foguete é de teste: a partida passa num segundo.', trava)
+    + rfAcTempoHTML(trava)
     + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE)
         ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
         : '');

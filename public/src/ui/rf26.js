@@ -3148,7 +3148,7 @@ function rfOpcaoHTML(titulo, explica, controle){
 function rfOpcoesHTML(){
   const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
   const moeda=(typeof curSym==='function')?curSym():'R$';
-  return rfOpcaoHTML('Tempo de jogo','Velocidade da semana ao vivo — o Camarote trava no Usain Bolt',
+  return rfOpcaoHTML('Tempo de jogo','Velocidade da semana ao vivo — o Ultrassônico é dos planos pagos',
       `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(tempo)}</button>`)
     + rfOpcaoHTML('Moeda','Símbolo usado em todo valor da tela',
       `<button type="button" class="rf-opt-c" onclick="clOptions()">${escC(moeda)}</button>`)
