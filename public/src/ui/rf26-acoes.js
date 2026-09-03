@@ -1066,60 +1066,41 @@ function rfOpcoesSet(k,v){
   }
   cdraw();
 }
+/* Sem modal nao ha' "Cancelar"/"Guardar": cada controlo grava ao ser tocado (rfOpcoesSet ->
+   clOpcoesGravar). Fica para o "Gravar agora" do cabecalho da pagina, que continua a chama'-lo. */
 function rfOpcoesGuardar(){
-  rfAcFechar();
   if(typeof rfGravar==='function') rfGravar();
   if(typeof toastC==='function') toastC('Opções guardadas.');
 }
 
-const RF_ACOES_EXTRA = {
+/* ===== O MODAL DE OPCOES MORREU; AS OPCOES SAO A PAGINA =====
+   Havia duas telas para a mesma coisa: a pagina Configuracoes mostrava os valores e mandava abrir
+   um modal para os MUDAR. E nao eram sequer as mesmas opcoes — o Som existia nas duas, a gravar
+   em campos diferentes, e a pagina listava Moeda/Idioma/Formato de data, que o modal nao tinha
+   porque nao se configuram em lado nenhum. Agora os controlos vivem na pagina (rfCfOpcoesHTML,
+   rf26-email-config.js) e `clOptions()` leva la'.
 
-'opcoes': d=>{
+   O QUE SOBREVIVEU DO MODAL: o objecto de omissao (era montado a' entrada dele, e sem isso as
+   opcoes nascem vazias) e a regra do ritmo travado na sala. `rfAcTempoHTML`/`rfAcSegHTML` ficam
+   onde estao e a pagina reusa-os — as classes .rf-ac-* nunca estiveram presas ao dialogo. */
+function rfOpcoesSeed(){
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',
     gravar:'De 3 em 3 semanas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',
     /* o padrao do PLANO, nao o do catalogo: TEMPO_DEFAULT e' 'Ultrassônico', e semear com ele
-       gravava o rotulo pago no save de quem nao o pode usar. tempoLabelAtual ja' o corrigia na
-       leitura, mas a preferencia guardada ficava a mentir. */
+       gravava o rotulo pago no save de quem nao o pode usar. */
     tempo:(typeof tempoPadrao==='function'?tempoPadrao():TEMPO_DEFAULT)};
   if(!CL.options.autoSave) CL.options.autoSave='Sim';
-  const o=(typeof clOpcoes==='function')?clOpcoes():(CL.options||{}), aba=d.aba||'geral';
+  return (typeof clOpcoes==='function')?clOpcoes():(CL.options||{});
+}
+/* na sala so' o anfitriao mexe no ritmo — a partida e' uma so' para todos. Devolve o rotulo
+   travado (para mostrar) ou null (livre). */
+function rfOpcoesTravaRitmo(){
   const online=!!CL.online, anfitriao=(typeof NET!=='undefined' && NET.isHost);
-  // na sala, só o anfitrião mexe no ritmo — a partida é uma só para todos
-  const trava = (online && !anfitriao)
-    ? ((typeof tempoLabelFromMult==='function')?tempoLabelFromMult(CL.speedMult):(o.tempo||'—')) : null;
+  if(!online || anfitriao) return null;
+  return (typeof tempoLabelFromMult==='function')?tempoLabelFromMult(CL.speedMult):((CL.options||{}).tempo||'—');
+}
 
-  /* SAIRAM DAQUI (27/08): "Chicotadas psicologicas", "Ver sorteio da taca", "Gravar o jogo" e
-     "Ver desempates por penalties". As quatro gravavam em CL.options e NINGUEM as lia — mexer
-     nelas nao mudava nada no jogo. Interruptor que nao faz nada e pior do que nao existir:
-     ensina o jogador a desconfiar dos que funcionam.
-     O "Som" agora escreve no mesmo sitio que o motor le (S.config.sound, via rfOpcoesSet) —
-     antes havia dois interruptores de som em duas telas gravando em campos diferentes, e so
-     o da pagina de Configuracoes desligava som. */
-  const geral =
-      rfAcSegHTML('Som','som',['Sim','Não'],
-        ((typeof rfPrefDef==='function')?rfPrefDef('som',true):true)?'Sim':'Não')
-    + rfAcSegHTML('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
-        'As 3 últimas semanas e o fim de cada temporada.')
-    /* a dica daqui saiu: o botao ao lado ja diz o que acontece ("Escolher ponto…") */
-    + `<div class="rf-ac-orow">
-        <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span></span>
-        <button type="button" class="rf-ac-bt fantasma peq" onclick="rfAcFechar();clAutoSaveAbrir&&clAutoSaveAbrir()">Escolher ponto…</button>
-      </div>`;
-
-  const jogo =
-      rfAcSegHTML('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo)
-    + rfAcTempoHTML(trava)
-    + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE)
-        ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
-        : '');
-
-  return rfAcao({
-    kicker:'OPÇÕES DO JOGO'+((online&&NET&&NET.room&&NET.room.code)?(' · SALA '+escC(String(NET.room.code).toUpperCase())):''),
-    titulo:'Opções', w:560,
-    corpo: rfAcAbasHTML([{k:'geral',l:'Geral'},{k:'jogo',l:'Jogo'}], aba)
-      + `<div class="rf-ac-opanel">${aba==='geral'?geral:jogo}</div>`,
-    acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Guardar',on:'rfOpcoesGuardar()'}] });
-},
+const RF_ACOES_EXTRA = {
 
 'hist-clube': d=>{
   const id=d.clubId||CL.clubId;
@@ -1480,7 +1461,12 @@ Object.keys(RF_ACOES_AVATAR).forEach(k=>{ RF_ACOES[k]=RF_ACOES_AVATAR[k]; });
 
    Aqui a definicao e' incondicional, porque nao ha' nada para preservar: quem manda nas Opcoes e'
    a pele nova. As outras duas mantem a guarda — ali ela protege alguma coisa. */
-window.clOptions=function(aba){ CL.menu=null; rfAcAbrir('opcoes',{aba:(typeof aba==='string'&&aba)||'geral'}); };
+window.clOptions=function(){ CL.menu=null;
+  /* leva a' PAGINA, que e' onde os controlos vivem desde que o modal saiu. O argumento de aba
+     que isto aceitava deixou de fazer sentido: nao ha' abas, ha' uma pagina so'. */
+  if(typeof rfNavegar==='function') rfNavegar('config');
+  else if(typeof cdraw==='function') cdraw();
+};
 if(typeof clStadium==='function'){
   window.clStadium=function(){ CL.menu=null; rfAcEstadio(); };
 }

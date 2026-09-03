@@ -308,27 +308,44 @@ function rfCfSwitch(k, rot, padrao){
       aria-pressed="${v?'true':'false'}"><i></i></button>
   </div>`;
 }
+/* ===== OS CONTROLOS SAO ESTES, E NAO HA' SEGUNDA TELA =====
+   Isto mostrava quatro campos com cara de seletor que abriam um modal — e o modal nao tinha tres
+   deles. Agora o que se pode mudar muda-se AQUI, e o que nao se pode nao aparece:
+
+     Moeda            escolhida no assistente (rfMoedaHTML) e nunca mais. NAO ha' caminho para a
+                      trocar depois — e as duas frases daquela tela prometiam que havia. Sai da
+                      lista ate' existir; a promessa saiu de la' no mesmo passo.
+     Idioma           nao existe. Nao ha' i18n nenhum no jogo: era a string 'Português do Brasil'
+                      escrita a' mao, com cara de escolha.
+     Formato de data  nunca foi preferencia: era `new Date()` formatado por um array de meses
+                      fixo aqui dentro. Mostrava a data de HOJE, do mundo real, como se fosse
+                      um ajuste.
+
+   Interruptor que nao faz nada e' pior do que nao existir — e' a mesma regra que ja tinha tirado
+   daqui as "Chicotadas psicologicas" e companhia (ver o commit de 27/08). */
 function rfCfOpcoesHTML(){
-  const tempo=(typeof tempoLabelAtual==='function')?tempoLabelAtual():'—';
-  /* o desenho escreve "Real (R$)", não só o símbolo — RF_MOEDAS já tem o nome */
-  const moedaK=CL.currency||'Reais';
-  const mo=(typeof RF_MOEDAS!=='undefined')?RF_MOEDAS.find(m=>m.k===moedaK):null;
-  const simb=(typeof curSym==='function')?curSym():'R$';
-  const moeda=mo?`${mo.t} (${mo.simb})`:simb;
-  const hoje=new Date();
-  const data=String(hoje.getDate()).padStart(2,'0')+'/'+
-    ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][hoje.getMonth()]+
-    '/'+(S.season||hoje.getFullYear());
+  const o=(typeof rfOpcoesSeed==='function')?rfOpcoesSeed():(CL.options||{});
+  const trava=(typeof rfOpcoesTravaRitmo==='function')?rfOpcoesTravaRitmo():null;
+  const seg=(typeof rfAcSegHTML==='function')?rfAcSegHTML:null;
+  const linhas = seg ? (
+      rfAcTempoHTML(trava)
+    + seg('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo,
+        'Trocar quem está em campo no descanso.')
+    + seg('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
+        'As 3 últimas semanas e o fim de cada temporada.')
+    + `<div class="rf-ac-orow">
+        <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span></span>
+        <button type="button" class="rf-ac-bt fantasma peq" onclick="clAutoSaveAbrir&&clAutoSaveAbrir()">Escolher ponto…</button>
+      </div>`
+    + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE && typeof rfAcAvisoHTML==='function')
+        ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
+        : '')
+  ) : '<div class="rf-empty">Opções indisponíveis.</div>';
   return `<div class="rf-cf-duo">
       <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">PREFERÊNCIAS</span></div>
-        ${rfCfCampo('Moeda', moeda)}
-        ${rfCfCampo('Idioma', 'Português do Brasil')}
-        ${/* a aba 'jogo' e' onde o ritmo vive; sem o argumento este campo abria as Opcoes na
-              aba 'geral' (Som, Salvamento) e quem clicou em "Velocidade da partida" tinha de a
-              procurar. */''}
-        ${rfCfCampo('Velocidade da partida', tempo, "clOptions('jogo')")}
-        ${rfCfCampo('Formato de data', data)}
+        <div class="rf-label"><span class="rf-label-t">PARTIDA</span></div>
+        ${linhas}
+      </div>
       </div>
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">AVISOS E SOM</span></div>
@@ -355,7 +372,8 @@ function rfCfOpcoesHTML(){
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CONTA</span></div>
       <div class="rf-cf-fila">
-        <button type="button" class="rf-btn rf-btn-cta" onclick="clOptions()">${rfIcone('config',16)} Abrir opções do jogo</button>
+        ${/* "Abrir opcoes do jogo" saiu: desde que os controlos vieram para esta pagina, ele
+              mandava a pessoa para a pagina onde ela ja' esta'. */''}
         <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{email:((typeof NET!=='undefined'&&NET.authStatus)?(NET.authStatus().email||''):'')})">Trocar a senha</button>
         <!-- "Sair da conta" saiu daqui: virou a página Sair, a última da barra
              lateral. Aqui ficou só o que é AJUSTE de conta; sair é outra coisa. -->
