@@ -4870,6 +4870,44 @@ function persistCareer(){
   if(typeof NET==='undefined' || !NET.saveCareer) return;
   const snap=snapshotCareer(); if(!snap) return;
   try{ Promise.resolve(NET.saveCareer(snap)).catch(()=>{}); }catch(e){}
+  /* o ranking da sala vive do mesmo momento: toda mudanca de carreira que vale um assento vale
+     tambem um titulo novo, se houve. A guarda de "nada mudou" esta' dentro (ver enviarTitulos). */
+  try{ enviarTitulos('resenha', (typeof NET!=='undefined' && NET.gameId) || null); }catch(e){}
+}
+/* ===== OS TITULOS QUE VAO PARA O RANKING =====
+   O livro do servidor (elifoot_v3.coach_titles) guarda UM titulo por linha, com o peso ja'
+   calculado. O peso e' `pontosDeTitulo`, que vive AQUI e depende do indice do pais e do nivel da
+   divisao — por isso e' o cliente que o manda, e nao o SQL que o recalcula: duas versoes da mesma
+   regra e' a armadilha que este projeto ja' pagou caro mais de uma vez.
+
+   `origem` E' A CARREIRA, nao a conta: save_name no solo, game_id na resenha. E' o que separa
+   "ganhei a Serie D em duas carreiras diferentes" de "ganhei duas vezes na mesma" — e entra na
+   chave de idempotencia do servidor.
+
+   A GUARDA DE "NADA MUDOU" e' aqui e nao la': o servidor aceita o reenvio sem duplicar, mas uma
+   ida a' rede por gravacao, sem titulo novo, e' rede gasta a toa. A assinatura e' o numero de
+   titulos mais o ultimo deles — barata e suficiente, porque titulo nao se apaga nem se reordena. */
+function enviarTitulos(modo, origem){
+  if(typeof NET==='undefined' || !NET.enviarTitulos || !origem) return;
+  if(typeof S==='undefined' || !S) return;
+  const campeoes=(S.coachHistory||[]).filter(h=>h && h.type==='campeao' && h.comp && h.season!=null);
+  if(!campeoes.length) return;
+  const ult=campeoes[campeoes.length-1];
+  const assinatura=modo+'|'+origem+'|'+campeoes.length+'|'+ult.season+'|'+ult.comp;
+  if(typeof CL!=='undefined'){
+    if(CL._titulosEnviados===assinatura) return;
+    CL._titulosEnviados=assinatura;
+  }
+  const nome=(typeof CL!=='undefined' && CL.mgr) || (S && S.mgr) || null;
+  const lista=campeoes.map(h=>({
+    season:h.season, comp:h.comp, uni:h.uni||null, div:h.div||null,
+    clubId:h.clubId||null, clubShort:h.clubShort||null,
+    /* `pontos` PODE SER 0 de verdade (uma Serie D de um pais fraco), e 0 e' diferente de "nao
+       sei" — por isso vai sempre um numero, nunca null: o null do servidor significa
+       "ninguem calculou ainda" e e' o que o backfill deixou la'. */
+    pontos:(typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(h.comp,h.uni,h.div))||0 : 0
+  }));
+  try{ Promise.resolve(NET.enviarTitulos(modo, origem, nome, lista)).catch(()=>{}); }catch(e){}
 }
 /* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
    Diferente do solo (que oferece clubes na hora): na Resenha o treinador é DEMITIDO, fica

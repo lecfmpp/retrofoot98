@@ -3622,6 +3622,11 @@ async function saveV3(explicit){
   if(explicit) finishSavingOverlay=showSavingOverlay();
   try{
     await NET.saveSoloGame(name, payload);
+    /* O SOLO NAO PASSA POR persistCareer (ele sai logo quando !CL.online), entao o livro de
+       titulos entra aqui — a gravacao na nuvem e' o momento em que a carreira fica publicada, e
+       `name` e' exactamente a `origem` que o servidor usa como chave. Best-effort e depois do
+       upsert: o ranking nunca pode fazer a gravacao do jogo falhar. */
+    try{ if(typeof enviarTitulos==='function') enviarTitulos('solo', name); }catch(e){}
     if(explicit){
       finishSavingOverlay();
       await new Promise(r=>setTimeout(r,350));

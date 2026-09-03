@@ -1453,6 +1453,25 @@ async function netSaveSoloGame(name, state){
   if(error) throw error;
   return true;
 }
+/* ===== O LIVRO DE TITULOS DO RANKING =====
+   Entrega os titulos da carreira a `rf_registrar_titulos` (elifoot_v3). O user_id NAO vai no
+   payload — quem o poe e' a funcao, a partir de auth.uid(); mandar daqui seria abrir a porta a
+   escrever no nome de outra conta.
+
+   IDEMPOTENTE DO OUTRO LADO: a chave (conta, carreira, temporada, competicao) faz o reenvio do
+   historico inteiro nao duplicar nada, e e' por isso que se pode chamar a cada gravacao sem
+   contabilidade nenhuma aqui.
+
+   SILENCIOSO E BEST-EFFORT, como o persistCareer: um ranking que nao subiu nunca pode atrapalhar
+   quem esta a jogar. */
+async function netEnviarTitulos(modo, origem, treinador, titulos){
+  if(!sb || !SB_AUTH_USER || !modo || !origem) return 0;
+  if(!Array.isArray(titulos) || !titulos.length) return 0;
+  const { data, error } = await sb.rpc('rf_registrar_titulos', {
+    p_modo:modo, p_origem:String(origem), p_treinador:treinador||null, p_titulos:titulos });
+  if(error){ console.warn('enviarTitulos:', error.message||error); return 0; }
+  return data||0;
+}
 async function netDeleteSoloSave(name){
   if(!sb || !SB_AUTH_USER) return false;
   const { error } = await sb.from('solo_saves').delete().eq('save_name', name);
@@ -1921,6 +1940,7 @@ NET.getDivisionClubs = netGetDivisionClubs;
 NET.listSoloSaves = netListSoloSaves;
 NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
+NET.enviarTitulos = netEnviarTitulos;
 NET.deleteSoloSave = netDeleteSoloSave;
 
 /* ===== AVATAR DO TREINADOR =====
