@@ -53,14 +53,35 @@ function rfRankSouEu(nome){
   const meu=(typeof rfTreinadorNome==='function')?rfTreinadorNome():(CL.mgr||'');
   return !!meu && String(nome||'').toLowerCase()===String(meu).toLowerCase();
 }
+/* ===== O ESCUDO DO ULTIMO SAVE =====
+   O servidor manda o `club_id` e nao a arte: ele nao conhece escudo nenhum, e uma
+   tabela de escudos no banco seria a segunda verdade sobre o mesmo dado. Quem
+   resolve e' o MESMO caminho que desenha os escudos no resto do jogo
+   (anyClubOf -> clubCrestUrl), entao o ranking mostra exactamente o que o jogo
+   mostra — inclusive um escudo trocado pelo painel.
+
+   O NOME TAMBEM SE RESOLVE AQUI. Do Solo vem `clubShort` gravado no save, mas da
+   Resenha vem so' o id (game_seats nao guarda nome). Preferir o clube resolvido
+   faz as duas origens desenharem igual; o que veio do servidor fica como recuo
+   para um clube que este cliente nao conhece (outro universo, outro pacote). */
+function rfRankClube(id, nomeDoServidor){
+  const c=(id!=null && typeof anyClubOf==='function') ? anyClubOf(id) : null;
+  const nome=(c && (c.short||c.name)) || (nomeDoServidor && String(nomeDoServidor)!==String(id) ? nomeDoServidor : null);
+  const escudo=(c && typeof clubCrestUrl==='function') ? clubCrestUrl(c) : null;
+  return { clube:nome, escudo:escudo };
+}
 function rfRankLinhas(){
   const d=rfRankCarregar();
   if(!d) return null;
   return d.map(r=>({
     pos:r.pos, treinador:r.treinador, pts:Number(r.pontos||0), titulos:Number(r.titulos||0),
     temporadas:Number(r.carreiras||0),
-    /* ainda sem fonte — ver o cabeçalho do ficheiro */
-    delta:0, foto:null, clube:null, escudo:null, modo:'Resenha',
+    foto:r.foto||null,
+    /* delta (variacao da semana) continua sem fonte: precisaria de uma foto do
+       ranking da semana passada, que o livro ainda nao guarda. `0` desenha "—",
+       que e' um estado legitimo e nao um buraco. */
+    delta:0,
+    ...rfRankClube(r.club_id, r.clube), modo:r.modo_save||'Resenha',
     souEu:rfRankSouEu(r.treinador), semPeso:Number(r.sem_peso||0)
   }));
 }

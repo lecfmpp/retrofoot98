@@ -1923,6 +1923,7 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
           <div class="cl-wiz-fieldhd2"><label>Senha</label>${isSignup?'':'<span class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</span>'}</div>
           <input type="password" autocomplete="${isSignup?'new-password':'current-password'}" minlength="6" placeholder="••••••••" value="${escC(a.password||'')}" oninput="CL.auth.password=this.value;clLoginSync()" onkeydown="if(event.key==='Enter')${isSignup?'clLoginSignup':'clLoginDo'}()"></div>
         ${isSignup?`<div class="cl-authhint">Pelo menos 6 caracteres. Evite senhas óbvias (ex.: 123456, sua data de nascimento).</div>`:''}
+        ${isSignup?clFotoCadastroHTML():''}
       </div>
     </div>`;
   return wizShell({
@@ -1932,6 +1933,42 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
     actionCls:'cl-wiz-action-e',
     action: btn(isSignup?'Criar conta':'Entrar', isSignup?'clLoginSignup()':'clLoginDo()', {icon:'✔',cls:'cl-wiz-cta',dis:disabled})
   });
+}
+/* ===== A FOTO NO CADASTRO =====
+   A conta ainda NAO EXISTE quando a pessoa escolhe o ficheiro, e a politica do
+   bucket pede `auth.uid()` — entao aqui so' se GUARDA o File e se mostra a
+   pre-visualizacao. O envio acontece depois do signUp, quando ja' ha' sessao
+   (ver clLoginSignup).
+
+   OPCIONAL DE PROPOSITO: nao entra na regra que habilita o botao. Pedir foto
+   para criar conta e' uma porta a mais num sitio onde cada porta custa gente. */
+function clFotoCadastroHTML(){
+  const a=CL.auth||{};
+  const previa=a.fotoPrevia
+    ? `<img src="${escC(a.fotoPrevia)}" alt="">`
+    : `<span>${escC((a.name||'').trim().split(/\s+/).filter(x=>x.length>2).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'?')}</span>`;
+  return `<div class="cl-authfoto">
+    <span class="cl-authfoto-av">${previa}</span>
+    <span class="cl-authfoto-id">
+      <b>Foto de perfil <i>(opcional)</i></b>
+      <span>Aparece no pódio do ranking e na Resenha. Sem foto, entram as suas iniciais.</span>
+      ${a.fotoErro?`<em class="cl-authfoto-erro">${escC(a.fotoErro)}</em>`:''}
+    </span>
+    <label class="cl-authfoto-bt">${a.foto?'Trocar':'Escolher'}
+      <input type="file" accept="image/jpeg,image/png,image/webp" onchange="clFotoCadastroSel(this)" hidden>
+    </label>
+  </div>`;
+}
+function clFotoCadastroSel(input){
+  const a=CL.auth||(CL.auth={}); const f=input.files&&input.files[0];
+  if(!f) return;
+  a.fotoErro=null;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type||'')){ a.fotoErro='Só JPG, PNG ou WebP.'; a.foto=null; a.fotoPrevia=null; cdraw(); return; }
+  if(f.size>2*1024*1024){ a.fotoErro='A foto passa de 2 MB. Escolha uma menor.'; a.foto=null; a.fotoPrevia=null; cdraw(); return; }
+  a.foto=f;
+  try{ if(a.fotoPrevia) URL.revokeObjectURL(a.fotoPrevia); }catch(e){}
+  a.fotoPrevia=URL.createObjectURL(f);
+  cdraw();
 }
 function clLoginSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(!b) return; const a=CL.auth||{}; const isSignup=a.mode==='signup'; b.disabled=!(a.email&&a.password&&(!isSignup||a.name)); }
 function clLoginAfter(name){ CL.mgr=name||CL.mgr; CL.auth=null; CL.screen='modo'; cdraw(); }
@@ -1944,6 +1981,19 @@ function clLoginDo(){ const a=CL.auth; if(!a||!(a.email&&a.password)) return; to
 function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)) return; toastC('Criando conta...');
   (async ()=>{ try {
     await NET.authSignUp(a.email, a.password, a.name);
+    /* AGORA HA' SESSAO — e' o primeiro instante em que o upload e' possivel, porque
+       a politica do bucket exige auth.uid(). Falhar aqui nao pode derrubar o
+       cadastro: a conta ja' foi criada e a foto e' opcional; ela fica guardada em
+       CL._fotoPendente e a secao Perfil (Opcoes) reoferece o envio.
+       SE UM DIA A CONFIRMACAO DE E-MAIL FOR LIGADA, o signUp passa a nao devolver
+       sessao e o codigo acima ja' lanca NEEDS_CONFIRM — nunca se chega aqui, e a
+       foto pendente e' o que salva a escolha da pessoa. */
+    if(a.foto && typeof NET!=='undefined' && NET.perfilFoto){
+      try{
+        const r=await NET.perfilFoto(a.foto);
+        if(r && r.error){ CL._fotoPendente=a.foto; console.warn('foto do cadastro:', r.error); }
+      }catch(err){ CL._fotoPendente=a.foto; console.warn('foto do cadastro:', err&&err.message); }
+    }
     clLoginAfter(a.name); toastC('Conta criada!');
   } catch(e){
     if(e.code==='DUPLICATE_ACCOUNT'){ CL.auth.mode='login'; cdraw(); }

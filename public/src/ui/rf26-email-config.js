@@ -322,6 +322,45 @@ function rfCfSwitch(k, rot, padrao){
    primeira linha, e a grafia do ritmo é a nossa — 'Ultrassônico' com ô, que é o
    que TEMPO_MS tem.
    ===================================================================== */
+/* ===== PERFIL: a foto e a presenca no ranking =====
+   Uma leitura por visita, como os pontos guardados: `undefined` = ainda nao
+   perguntei, `null` = perguntei e nao ha' sessao/linha. A tela distingue os tres
+   estados, senao "sem foto" e "ainda a carregar" desenhariam igual. */
+function rfPerfil(){
+  if(CL._perfil !== undefined) return CL._perfil;
+  CL._perfil = null;
+  if(typeof NET!=='undefined' && NET.perfilLer){
+    NET.perfilLer().then(p=>{ CL._perfil = p || {foto_url:null, no_ranking:true}; cdraw(); })
+      .catch(()=>{ CL._perfil={foto_url:null, no_ranking:true}; });
+  } else CL._perfil={foto_url:null, no_ranking:true};
+  return CL._perfil;
+}
+function rfPerfilFicheiro(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  CL._perfilErro=null; CL._perfilEnviando=true; cdraw();
+  Promise.resolve(NET.perfilFoto(f)).then(r=>{
+    CL._perfilEnviando=false;
+    if(r && r.error){ CL._perfilErro=r.error; }
+    else { CL._perfil = Object.assign({}, CL._perfil||{}, {foto_url:r.url}); CL._perfilErro=null;
+           CL._rank=null;   /* o ranking mostra a foto: obriga-o a reler */
+           if(typeof toastC==='function') toastC('Foto enviada.'); }
+    cdraw();
+  }).catch(e=>{ CL._perfilEnviando=false; CL._perfilErro=(e&&e.message)||'Não consegui enviar.'; cdraw(); });
+}
+function rfPerfilIniciais(){
+  CL._perfilEnviando=true; cdraw();
+  Promise.resolve(NET.perfilSemFoto()).then(()=>{
+    CL._perfilEnviando=false;
+    CL._perfil=Object.assign({}, CL._perfil||{}, {foto_url:null}); CL._rank=null;
+    if(typeof toastC==='function') toastC('Voltou às iniciais.');
+    cdraw();
+  }).catch(()=>{ CL._perfilEnviando=false; cdraw(); });
+}
+function rfPerfilRanking(){
+  const p=rfPerfil()||{}; const novo=!(p.no_ranking!==false);
+  CL._perfil=Object.assign({}, p, {no_ranking:novo}); CL._rank=null; cdraw();
+  Promise.resolve(NET.perfilRanking(novo)).catch(()=>{});
+}
 function rfOpSec(i){ CL._opSec = (CL._opSec===i) ? -1 : i; cdraw(); }
 function rfOpPonto(id){ CL._opPonto = (CL._opPonto===id) ? null : id; cdraw(); }
 /* Os pontos guardados vivem em IndexedDB e `autoSaveLista()` é assíncrona; esta
@@ -446,6 +485,37 @@ function rfCfOpcoesHTML(){
     </div>
     <span class="rf-op-n" style="padding-top:10px;display:block">Apagar a conta remove os saves na nuvem e a sua carreira de treinador. Não tem volta.</span>`;
 
+  /* ---- PERFIL ---- */
+  const pf = rfPerfil();
+  const semSessao = !(typeof NET!=='undefined' && NET.perfilLer && NET.authStatus && NET.authStatus().loggedIn);
+  const nome = (typeof rfTreinadorNome==='function') ? rfTreinadorNome() : (CL.mgr||'Treinador');
+  const ini = String(nome||'').trim().split(/\s+/).filter(x=>x.length>2).slice(0,2)
+                .map(x=>x.charAt(0).toUpperCase()).join('') || '?';
+  const temFoto = !!(pf && pf.foto_url);
+  const visivel = !pf || pf.no_ranking !== false;
+  const perfil = semSessao
+    ? `<div class="rf-op-l" style="border-top:0"><span class="rf-op-n">Entre na sua conta para ter foto de perfil e aparecer no ranking.</span></div>`
+    : `<div class="rf-op-l perfil" style="border-top:0">
+        <span class="rf-op-pf-fig">
+          <span class="rf-op-pf-av">${temFoto?`<img src="${escC(pf.foto_url)}" alt="">`:escC(ini)}</span>
+        </span>
+        <span class="rf-op-l-id">
+          <span class="rf-op-n">Sua foto aparece no pódio do ranking dos treinadores, na Resenha e no chat. Sem foto, entram as suas iniciais.</span>
+          ${CL._perfilErro?`<span class="rf-op-pf-erro">${escC(CL._perfilErro)}</span>`:''}
+          <span class="rf-op-pf-bts">
+            <label class="rf-op-bt cta ${CL._perfilEnviando?'morto':''}">${CL._perfilEnviando?'A enviar…':'📤 '+(temFoto?'Trocar a foto':'Enviar foto')}
+              <input type="file" accept="image/jpeg,image/png,image/webp" onchange="rfPerfilFicheiro(this)" hidden ${CL._perfilEnviando?'disabled':''}></label>
+            ${temFoto?`<button type="button" class="rf-op-bt" onclick="rfPerfilIniciais()">Usar as iniciais</button>`:''}
+          </span>
+        </span>
+      </div>
+      ${rfOpLinha('Aparecer no ranking global','Desligado, você continua pontuando mas some da lista pública.',
+        `<button type="button" class="rf-op-tg ${visivel?'on':''}" role="switch" aria-checked="${visivel?'true':'false'}"
+           onclick="rfPerfilRanking()"><i></i></button>`)}`;
+
+  const resumoPerfil = semSessao ? 'SEM SESSÃO'
+    : (pf===null ? 'A CARREGAR…' : ((temFoto?'FOTO NO RANKING':'INICIAIS') + ' · ' + (visivel?'VISÍVEL':'FORA DA LISTA')));
+
   const resumoTempo = 'TEMPO ' + String(tempo).toUpperCase();
   const resumoSom = som ? ('SOM LIGADO · '+vol+'%') : 'SOM DESLIGADO';
   const resumoGrav = CL._lastSaveAt
@@ -455,12 +525,13 @@ function rfCfOpcoesHTML(){
 
   return `<div class="rf-op"><div class="rf-op-grid">
       <div class="rf-op-col">
-        ${rfOpCard(0,'⚽','Partida', resumoTempo, partida)}
-        ${rfOpCard(1,'🔔','Avisos e som', resumoSom, avisos)}
+        ${rfOpCard(0,'🖼','Perfil', resumoPerfil, perfil)}
+        ${rfOpCard(1,'⚽','Partida', resumoTempo, partida)}
+        ${rfOpCard(2,'🔔','Avisos e som', resumoSom, avisos)}
       </div>
       <div class="rf-op-col">
-        ${rfOpCard(2,'💾','Gravação', resumoGrav, gravacao)}
-        ${rfOpCard(3,'👤','Conta', email, conta)}
+        ${rfOpCard(3,'💾','Gravação', resumoGrav, gravacao)}
+        ${rfOpCard(4,'👤','Conta', email, conta)}
       </div>
     </div>
   </div>`;

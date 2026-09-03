@@ -1952,6 +1952,10 @@ NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.enviarTitulos = netEnviarTitulos;
 NET.ranking = netRanking;
+NET.perfilFoto = netPerfilFoto;
+NET.perfilSemFoto = netPerfilSemFoto;
+NET.perfilLer = netPerfilLer;
+NET.perfilRanking = netPerfilRanking;
 NET.deleteSoloSave = netDeleteSoloSave;
 
 /* ===== AVATAR DO TREINADOR =====
@@ -1981,6 +1985,55 @@ async function netCoachAvatarSet(campos){
    depois de gerar. O caminho COMECA pelo uid porque e' isso que a policy do
    Storage exige — e e' o que impede um assinante de mandar gerar em cima da
    foto pessoal de outro. */
+/* ===== A FOTO DE PERFIL DO TREINADOR =====
+   Bucket `perfil`, pasta `<uid>/` — a politica so' aceita ali (ver a migracao).
+
+   SEMPRE O MESMO CAMINHO (`<uid>/avatar.<ext>`) com upsert: trocar a foto
+   substitui o ficheiro em vez de deixar um orfao por troca. E' por isso que o
+   bucket tem politica de UPDATE alem de INSERT.
+
+   O ENDERECO VAI PARA A TABELA, nao fica so' no storage: e' `coach_profiles` que
+   o ranking le' (rf_ranking), e o URL publico e' estavel, entao guarda'-lo uma
+   vez chega. `?v=` no fim e' para o navegador nao servir a foto velha do cache
+   depois de uma troca — o caminho nao muda, so' o conteudo. */
+async function netPerfilFoto(arquivo){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const tipo=String(arquivo && arquivo.type||'');
+  if(!/^image\/(jpeg|png|webp)$/.test(tipo)) return { error:'A foto tem de ser JPG, PNG ou WebP.' };
+  if(arquivo.size > 2*1024*1024) return { error:'A foto passa de 2 MB. Escolha uma menor.' };
+  const ext = tipo.split('/')[1].replace('jpeg','jpg');
+  const caminho = `${SB_AUTH_USER.id}/avatar.${ext}`;
+  const up = await sb.storage.from('perfil').upload(caminho, arquivo, { upsert:true, contentType:tipo });
+  if(up.error) return { error: up.error.message };
+  const { data } = sb.storage.from('perfil').getPublicUrl(caminho);
+  const url = (data && data.publicUrl ? data.publicUrl : '') + '?v=' + Date.now();
+  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:url, p_no_ranking:null });
+  if(r.error) return { error: r.error.message };
+  return { url };
+}
+/* voltar a's iniciais: limpa o endereco (string vazia = "apaga", ver a RPC) e o
+   ficheiro. A ordem importa — primeiro o endereco, para nao ficar um URL a
+   apontar para um ficheiro que ja' nao existe se o remove falhar. */
+async function netPerfilSemFoto(){
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:'', p_no_ranking:null });
+  if(r.error) return { error: r.error.message };
+  try{ await sb.storage.from('perfil').remove([
+    SB_AUTH_USER.id+'/avatar.jpg', SB_AUTH_USER.id+'/avatar.png', SB_AUTH_USER.id+'/avatar.webp' ]); }catch(e){}
+  return { ok:true };
+}
+async function netPerfilLer(){
+  if(!sb || !SB_AUTH_USER) return null;
+  const { data, error } = await sb.rpc('rf_perfil_meu');
+  if(error) return null;
+  return (data && data[0]) || { foto_url:null, no_ranking:true };
+}
+async function netPerfilRanking(visivel){
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:null, p_no_ranking:!!visivel });
+  return r.error ? { error:r.error.message } : { ok:true };
+}
 async function netCoachAvatarRef(arquivo){
   if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
   const ext = (String(arquivo.type||'').split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,'').slice(0,5);
