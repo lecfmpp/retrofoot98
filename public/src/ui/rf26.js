@@ -158,7 +158,9 @@ const RF_PAGES=[
     grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
 
   { key:'config', ico:'config', label:'Configurações', curto:'Config',
-    titulo:'Configurações', sub:()=>rfCfSubHTML(),
+    /* O TITULO DA PAGINA E' o do desenho ("Opções do jogo"); o da BARRA LATERAL continua
+       "Configurações", que e' onde a pessoa procura. Sao dois nomes de proposito. */
+    titulo:'Opções do jogo', sub:()=>rfCfSubHTML(),
     acoes:()=>rfCfAcoesHTML(), grid:'minmax(0,1fr)',
     /* A aba "Modo Resenha" SAIU daqui e virou página própria (abaixo): a sala é
        onde a pessoa passa o tempo numa resenha — código, treinadores, ritmo,

@@ -10133,3 +10133,119 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-ent-pe-conta{display:block;flex:1;color:var(--text-faint)}
   .rf-ent-bt{min-height:44px}
 }
+
+/* =====================================================================
+   OPÇÕES DO JOGO (pacote "telas opcoes de jogo", 03/09/2026)
+   ---------------------------------------------------------------------
+   UMA ESTRUTURA, DOIS LAYOUTS. O desenho entrega duas telas — desktop em duas
+   colunas de cartões sempre abertos, mobile em accordion com barra fixa — mas o
+   jogo faz responsivo por CSS, não por ramo de JS (não há uma única checagem de
+   largura no rf26.js). Duas árvores de HTML para a mesma tela seriam duas telas
+   para manter, e a segunda fica desactualizada na primeira mudança.
+   Aqui o HTML é o do accordion e o DESKTOP é que desfaz: corpo sempre aberto,
+   seta escondida, cabeçalho não clicável, barra fixa fora.
+   ===================================================================== */
+.rf-op{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-op-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.rf-op-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-op-card{background:#fff;border:1px solid #dde7db;border-radius:18px;min-width:0;box-sizing:border-box;overflow:hidden}
+.rf-op-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:16px 16px 6px}
+.rf-op-hd-ic{display:none}
+/* DESKTOP: rótulo à esquerda, resumo à direita, na mesma linha de base. MOBILE: o cabeçalho
+   vira título + resumo empilhados ao lado do emoji (ver o bloco @media). */
+.rf-op-hd-id{display:flex;flex-direction:row;align-items:baseline;justify-content:space-between;gap:10px;flex:1;min-width:0}
+.rf-op-rot{font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em;white-space:nowrap;text-transform:uppercase}
+.rf-op-res{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#9aa79e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-op-seta{display:none}
+.rf-op-bd{display:flex;flex-direction:column;gap:2px;padding:0 16px 16px}
+/* linha de opção */
+.rf-op-l{display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid #eef1ee;min-width:0}
+/* `pilha` = título e nota EM CIMA do controlo, nos dois tamanhos — é o Tempo de jogo, o único
+   segmentado de largura total. `seg` = lado a lado no desktop, empilhado no mobile. */
+.rf-op-l.pilha{flex-direction:column;align-items:stretch;gap:8px}
+.rf-op-l-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rf-op-t{font-size:13px;font-weight:600;color:#12201a;line-height:1.3;text-wrap:pretty}
+.rf-op-n{font-size:11px;color:#9aa79e;line-height:1.5;text-wrap:pretty}
+/* segmentado */
+.rf-op-seg{display:flex;align-items:center;gap:3px;background:#f2f7f1;border:1px solid #e6ebe4;border-radius:10px;padding:3px;flex:0 0 auto}
+.rf-op-seg.cheio{flex:1 1 auto}
+.rf-op-seg.travado{background:#f2f4f2;border-color:#e4e8e3}
+.rf-op-sg{font-size:11px;font-weight:500;color:#5d6c62;background:transparent;border:0;border-radius:7px;padding:6px 11px;white-space:nowrap;cursor:pointer;font-family:inherit}
+.rf-op-seg.cheio .rf-op-sg{flex:1;text-align:center;padding:8px 0}
+.rf-op-sg.on{background:#17458F;color:#fff;font-weight:700}
+.rf-op-seg.travado .rf-op-sg{color:#9aa79e;cursor:not-allowed}
+.rf-op-seg.travado .rf-op-sg.on{background:#b6c2b8;color:#f2f4f2}
+.rf-op-sg.plano{color:#9aa79e;opacity:.75}
+.rf-op-sg.plano:hover{opacity:1;background:#e9efe8}
+/* toggle */
+.rf-op-tg{width:40px;height:22px;border-radius:99px;background:#dde7db;position:relative;flex:0 0 auto;cursor:pointer;transition:background .15s;border:0;padding:0}
+.rf-op-tg.on{background:#17458F}
+.rf-op-tg i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:99px;background:#fff;transition:left .15s,right .15s}
+.rf-op-tg.on i{left:auto;right:2px}
+/* volume */
+.rf-op-vol{flex:1;min-width:0;cursor:pointer;accent-color:#17458F;height:18px;margin:0}
+.rf-op-volv{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;font-weight:600;color:#17458F;white-space:nowrap;flex:0 0 auto;width:38px;text-align:right}
+/* aviso do anfitrião */
+.rf-op-aviso{display:flex;align-items:flex-start;gap:9px;background:#fdf1c8;border-radius:11px;padding:10px 12px;margin-top:10px}
+.rf-op-aviso b{font-weight:600}
+.rf-op-aviso span{flex:1;min-width:0;font-size:11px;color:#5c4a00;line-height:1.5;text-wrap:pretty}
+/* pontos guardados */
+.rf-op-pts{display:flex;flex-direction:column;gap:6px;padding-top:8px}
+.rf-op-pt{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:12px;border:1px solid #eef1ee;background:#fff;cursor:pointer;min-width:0;text-align:left;font-family:inherit}
+.rf-op-pt.on{border-color:#17458F;background:#f4f7fb}
+.rf-op-pt i{width:16px;height:16px;border-radius:99px;flex:0 0 auto;border:1px solid #cdd8ce;background:#fff;box-sizing:border-box}
+.rf-op-pt.on i{border:5px solid #17458F}
+.rf-op-pt-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.rf-op-pt-t{font-size:12.5px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-op-pt-q{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#9aa79e;white-space:nowrap}
+.rf-op-tag{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#8b978d;background:#f2f7f1;border-radius:99px;padding:3px 8px;white-space:nowrap;flex:0 0 auto}
+.rf-op-tag.man{color:#17458F;background:#e8eef8}
+/* botões */
+.rf-op-bts{display:flex;align-items:center;gap:9px;padding-top:12px;flex-wrap:wrap}
+.rf-op-bt{height:40px;padding:0 16px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;white-space:nowrap;cursor:pointer;font-family:inherit}
+.rf-op-bt:hover{background:#f2f7f1}
+.rf-op-bt.risco{border-color:#e8c4bf;color:#c0392b}
+.rf-op-bt.risco:hover{background:#fdf4f3}
+.rf-op-bt.perigo{background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700}
+.rf-op-bt.perigo:hover{background:#a93226}
+.rf-op-bt.morto{background:#f4f6f4;border-color:#e6ebe4;color:#9aa79e;cursor:default}
+.rf-op-bt.morto:hover{background:#f4f6f4}
+.rf-op-conta{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid #eef1ee;padding-top:12px}
+
+/* ---------- MOBILE: accordion + barra fixa ---------- */
+@media (max-width:900px){
+  .rf-op-grid{grid-template-columns:minmax(0,1fr)}
+  .rf-op{gap:10px}
+  .rf-op-col{gap:10px}
+  .rf-op-card{border-radius:16px}
+  .rf-op-hd{align-items:center;gap:11px;padding:14px;cursor:pointer}
+  .rf-op-hd-ic{display:block;font-size:16px;flex:0 0 auto}
+  .rf-op-hd-id{flex:1;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:1px}
+  .rf-op-rot{font-size:14.5px;font-weight:700;color:#12201a;letter-spacing:0;text-transform:none}
+  .rf-op-res{font-size:10px}
+  .rf-op-seta{display:block;font-size:13px;color:#78877c;flex:0 0 auto;transition:transform .2s ease}
+  .rf-op-card.aberta .rf-op-seta{transform:rotate(180deg)}
+  .rf-op-bd{display:none;padding:0 14px;border-top:1px solid #eef1ee}
+  .rf-op-card.aberta .rf-op-bd{display:flex}
+  .rf-op-l{padding:12px 0;gap:12px}
+  .rf-op-l.seg{flex-direction:column;align-items:stretch;gap:9px}
+  .rf-op-t{font-size:13.5px}
+  .rf-op-n{font-size:11.5px;line-height:1.45}
+  .rf-op-seg{flex:1 1 auto;border-radius:12px;padding:4px}
+  .rf-op-sg{flex:1;text-align:center;font-size:12px;padding:11px 8px;border-radius:9px}
+  .rf-op-seg.tempo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+  .rf-op-tg{width:46px;height:26px}
+  .rf-op-tg i{width:20px;height:20px;top:3px;left:3px}
+  .rf-op-tg.on i{right:3px}
+  .rf-op-volv{font-size:12.5px;width:40px}
+  .rf-op-vol{height:22px}
+  .rf-op-pt{padding:11px}
+  /* o confirmar desce para baixo da lista e ocupa a largura */
+  .rf-op-bts{flex-direction:column;align-items:stretch;gap:8px}
+  .rf-op-bt{height:46px;font-size:13.5px}
+  .rf-op-conta{flex-direction:column}
+  /* A BARRA FIXA DO PROTOTIPO NAO ENTRA. Ela existe no mock porque la' nao ha' moldura; aqui o
+     jogo ja' tem a sua propria barra de navegacao colada em baixo, e uma segunda por cima seria
+     duas barras a disputar o mesmo polegar. Os dois botoes que ela levava — Voltar ao hub e
+     Guardar opções — ja' estao no cabecalho da pagina, que no mobile fica logo a' vista. */
+}

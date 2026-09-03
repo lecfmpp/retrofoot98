@@ -308,87 +308,164 @@ function rfCfSwitch(k, rot, padrao){
       aria-pressed="${v?'true':'false'}"><i></i></button>
   </div>`;
 }
-/* ===== OS CONTROLOS SAO ESTES, E NAO HA' SEGUNDA TELA =====
-   Isto mostrava quatro campos com cara de seletor que abriam um modal — e o modal nao tinha tres
-   deles. Agora o que se pode mudar muda-se AQUI, e o que nao se pode nao aparece:
+/* =====================================================================
+   OPÇÕES DO JOGO — pacote "telas opcoes de jogo" (03/09/2026)
+   ---------------------------------------------------------------------
+   Quatro secções: Partida · Avisos e som · Gravação · Conta. Desktop em duas
+   colunas de cartões abertos; mobile em accordion com barra fixa em baixo. O
+   HTML é UM só — quem troca de layout é o CSS (ver .rf-op-* em rf26.css), porque
+   é assim que o resto do jogo faz responsivo e duas árvores seriam duas telas
+   para manter.
 
-     Moeda            escolhida no assistente (rfMoedaHTML) e nunca mais. NAO ha' caminho para a
-                      trocar depois — e as duas frases daquela tela prometiam que havia. Sai da
-                      lista ate' existir; a promessa saiu de la' no mesmo passo.
-     Idioma           nao existe. Nao ha' i18n nenhum no jogo: era a string 'Português do Brasil'
-                      escrita a' mao, com cara de escolha.
-     Formato de data  nunca foi preferencia: era `new Date()` formatado por um array de meses
-                      fixo aqui dentro. Mostrava a data de HOJE, do mundo real, como se fosse
-                      um ajuste.
-
-   Interruptor que nao faz nada e' pior do que nao existir — e' a mesma regra que ja tinha tirado
-   daqui as "Chicotadas psicologicas" e companhia (ver o commit de 27/08). */
+   O QUE VEM DO JOGO, E NÃO DO PROTÓTIPO: rótulos, nomes de clube e treinador,
+   valores dos controlos e a lista de pontos guardados. O handoff diz isso na
+   primeira linha, e a grafia do ritmo é a nossa — 'Ultrassônico' com ô, que é o
+   que TEMPO_MS tem.
+   ===================================================================== */
+function rfOpSec(i){ CL._opSec = (CL._opSec===i) ? -1 : i; cdraw(); }
+function rfOpPonto(id){ CL._opPonto = (CL._opPonto===id) ? null : id; cdraw(); }
+/* Os pontos guardados vivem em IndexedDB e `autoSaveLista()` é assíncrona; esta
+   página é desenhada de forma síncrona. Carrega uma vez por visita e redesenha —
+   `null` é "ainda não perguntei", `[]` é "não há nenhum", e a tela diz coisas
+   diferentes para os dois. */
+function rfOpPontos(){
+  if(CL._opPts !== undefined) return CL._opPts;
+  CL._opPts = null;
+  if(typeof autoSaveLista === 'function'){
+    autoSaveLista().then(f => { CL._opPts = f || []; cdraw(); }).catch(() => { CL._opPts = []; });
+  } else CL._opPts = [];
+  return CL._opPts;
+}
+function rfOpSeg(chave, opcoes, valor, extra){
+  const trava = !!(extra && extra.travado);
+  return `<span class="rf-op-seg ${extra&&extra.cheio?'cheio':''} ${extra&&extra.tempo?'tempo':''} ${trava?'travado':''}">${
+    opcoes.map(o => {
+      const v = (typeof o === 'string') ? o : o.v;
+      const l = (typeof o === 'string') ? o : o.l;
+      if(o && o.plano) return `<button type="button" class="rf-op-sg plano" title="Disponível nos planos pagos"
+        onclick="rfTrava&&rfTrava('velocidade')">🔒 ${escC(l)}</button>`;
+      return `<button type="button" class="rf-op-sg ${v===valor?'on':''}" ${trava?'disabled':''}
+        onclick="${trava?'':`rfOpcoesSet('${chave}',this.dataset.v)`}" data-v="${escC(v)}">${escC(l)}</button>`;
+    }).join('')}</span>`;
+}
+function rfOpTog(chave, ligado){
+  return `<button type="button" class="rf-op-tg ${ligado?'on':''}" role="switch" aria-checked="${ligado?'true':'false'}"
+    onclick="rfOpcoesSet('${chave}','${ligado?'Não':'Sim'}')"><i></i></button>`;
+}
+function rfOpLinha(titulo, nota, controlo, cls){
+  return `<div class="rf-op-l ${cls||''}">
+    <span class="rf-op-l-id"><span class="rf-op-t">${escC(titulo)}</span>
+      ${nota?`<span class="rf-op-n">${escC(nota)}</span>`:''}</span>
+    ${controlo}</div>`;
+}
+function rfOpCard(i, ico, rotulo, resumo, corpo){
+  const aberta = (CL._opSec===undefined ? 0 : CL._opSec) === i;
+  return `<div class="rf-op-card ${aberta?'aberta':''}">
+    <div class="rf-op-hd" onclick="rfOpSec(${i})">
+      <span class="rf-op-hd-ic">${ico}</span>
+      <span class="rf-op-hd-id"><span class="rf-op-rot">${escC(rotulo)}</span>
+        <span class="rf-op-res">${escC(resumo)}</span></span>
+      <span class="rf-op-seta">▾</span>
+    </div>
+    <div class="rf-op-bd">${corpo}</div>
+  </div>`;
+}
 function rfCfOpcoesHTML(){
-  const o=(typeof rfOpcoesSeed==='function')?rfOpcoesSeed():(CL.options||{});
-  const trava=(typeof rfOpcoesTravaRitmo==='function')?rfOpcoesTravaRitmo():null;
-  const seg=(typeof rfAcSegHTML==='function')?rfAcSegHTML:null;
-  const linhas = seg ? (
-      rfAcTempoHTML(trava)
-    + seg('Substituições ao intervalo','subsIntervalo',['Sim','Não'],o.subsIntervalo,
-        'Trocar quem está em campo no descanso.')
-    + seg('Salvamento automático','autoSave',['Sim','Não'],o.autoSave,
-        'As 3 últimas semanas e o fim de cada temporada.')
-    + `<div class="rf-ac-orow">
-        <span class="rf-ac-or-id"><span class="rf-ac-or-t">Voltar a um ponto guardado</span></span>
-        <button type="button" class="rf-ac-bt fantasma peq" onclick="clAutoSaveAbrir&&clAutoSaveAbrir()">Escolher ponto…</button>
-      </div>`
-    + ((typeof TEMPO_TESTE!=='undefined' && TEMPO_TESTE && typeof rfAcAvisoHTML==='function')
-        ? rfAcAvisoHTML('🧪 <b>Modo de teste:</b> o ritmo está travado em <b>'+escC(TEMPO_TESTE)+'</b> no Solo e na Resenha, ignorando esta opção e a escolha do anfitrião.','aviso')
-        : '')
-  ) : '<div class="rf-empty">Opções indisponíveis.</div>';
-  return `<div class="rf-cf-duo">
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">PARTIDA</span></div>
-        ${linhas}
+  const o = (typeof rfOpcoesSeed==='function') ? rfOpcoesSeed() : (CL.options||{});
+  const trava = (typeof rfOpcoesTravaRitmo==='function') ? rfOpcoesTravaRitmo() : null;
+  const tempo = (typeof tempoLabelAtual==='function') ? tempoLabelAtual() : (o.tempo||'—');
+  const livres = (typeof temposDoSeletor==='function') ? temposDoSeletor() : ['Curto','Médio','Longo'];
+  const pagas = ((typeof TEMPO_PAGO!=='undefined'?TEMPO_PAGO:[])||[]).filter(l=>livres.indexOf(l)<0);
+  const som = (typeof rfPrefDef==='function') ? rfPrefDef('som',true) : true;
+  const vol = Math.round(((typeof rfSomVolume==='function')?rfSomVolume():0.5)*100);
+  const email = ((typeof NET!=='undefined'&&NET.authStatus)?(NET.authStatus().email||''):'') || 'sem sessão';
+
+  /* ---- PARTIDA ---- */
+  const opsTempo = livres.map(l=>({v:l,l:l})).concat(pagas.map(l=>({v:l,l:l,plano:true})));
+  const partida =
+      `<div class="rf-op-l pilha" style="border-top:0">
+         <span class="rf-op-l-id"><span class="rf-op-t">Tempo de jogo</span>
+           <span class="rf-op-n">Do mais devagar ao mais rápido. O Camarote funciona em todos.</span></span>
+         ${rfOpSeg('tempo', opsTempo, tempo, {cheio:true, tempo:true, travado:!!trava})}
+       </div>`
+    + rfOpLinha('Substituições ao intervalo','Trocar quem está em campo no descanso.',
+        rfOpSeg('subsIntervalo',['Sim','Não'], o.subsIntervalo||'Sim'), 'seg')
+    /* O NOME DO ANFITRIAO NAO SE INVENTA. O protótipo escreve "fale com o Gringo", mas o cliente
+       de um CONVIDADO não conhece o nome de quem hospeda — `rfTreinadorNome()` é o nome DELE
+       próprio, e usá-lo aqui mandaria a pessoa falar consigo mesma. Sem nome, a frase diz o que
+       importa: quem manda no ritmo é o anfitrião. */
+    + (trava ? `<div class="rf-op-aviso"><span style="flex:0 0 auto;font-size:12px">🔒</span>
+         <span>Numa resenha, quem define o tempo de jogo é o <b>Anfitrião</b>. O ritmo da sala está em <b>${escC(trava)}</b>.</span></div>` : '');
+
+  /* ---- AVISOS E SOM ---- */
+  const avisos =
+      rfOpLinha('Som da partida','Cartão amarelo, pênalti defendido, goleada e o apito final.',
+        rfOpTog('som', som))
+    + `<div class="rf-op-l"><span class="rf-op-t" style="flex:0 0 auto">Volume</span>
+         <input type="range" class="rf-op-vol" min="0" max="100" step="5" value="${vol}"
+           oninput="rfCfVolume(this.value)" aria-label="Volume dos sons da partida">
+         <b class="rf-op-volv" id="rf-cf-vol-v">${vol}%</b></div>`;
+
+  /* ---- GRAVAÇÃO ---- */
+  const pts = rfOpPontos();
+  const sel = CL._opPonto;
+  const linhasPts = (pts===null)
+    ? `<div class="rf-op-n" style="padding:8px 0">A carregar os pontos guardados…</div>`
+    : (!pts.length
+        ? `<div class="rf-op-n" style="padding:8px 0">Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima rodada.</div>`
+        : `<div class="rf-op-pts">${pts.map(f=>{
+             const r = (typeof autoSaveRotulo==='function') ? autoSaveRotulo(f) : {que:'Ponto', quando:'', fixa:false};
+             const on = sel===f.id;
+             return `<button type="button" class="rf-op-pt ${on?'on':''}" onclick="rfOpPonto(${f.id})">
+               <i></i><span class="rf-op-pt-id">
+                 <span class="rf-op-pt-t">${r.fixa?'📌 ':''}${escC(r.que)}</span>
+                 <span class="rf-op-pt-q">${escC(r.quando||'')}</span></span>
+               <span class="rf-op-tag ${r.fixa?'man':''}">${r.fixa?'MANUAL':'AUTO'}</span></button>`;
+           }).join('')}</div>`);
+  const alvo = (pts||[]).find(f=>f.id===sel);
+  const rotAlvo = alvo && typeof autoSaveRotulo==='function' ? autoSaveRotulo(alvo).que : '';
+  const gravacao =
+      rfOpLinha('Salvamento automático','As 3 últimas semanas e o fim de cada temporada.',
+        rfOpTog('autoSave', (o.autoSave||'Sim')==='Sim'))
+    + `<div style="display:flex;flex-direction:column;gap:6px;padding:13px 0 4px;border-top:1px solid #eef1ee">
+         <span class="rf-op-t">Voltar a um ponto guardado</span>
+         <span class="rf-op-n">Escolha o ponto e a temporada volta para lá. O que veio depois é perdido.</span></div>`
+    + linhasPts
+    + `<div class="rf-op-bts">
+         <button type="button" class="rf-op-bt" onclick="rfAcGravar()">💾 Gravar agora</button>
+         ${sel==null
+           ? `<button type="button" class="rf-op-bt morto" disabled>Escolha um ponto acima</button>`
+           : `<button type="button" class="rf-op-bt perigo" onclick="clAutoSaveVoltar(${sel})">Voltar para ${escC(rotAlvo)}</button>`}
+       </div>`;
+
+  /* ---- CONTA ---- */
+  const conta = `<div class="rf-op-conta">
+      <button type="button" class="rf-op-bt" onclick="rfAcAbrir('conta-senha',{email:'${escC(email)}'})">Trocar a senha</button>
+      <button type="button" class="rf-op-bt" onclick="rfAcAbrir('conta-sair',{})">Sair da conta</button>
+      <button type="button" class="rf-op-bt risco" onclick="rfAcAbrir('conta-apagar',{})">Apagar a conta</button>
+    </div>
+    <span class="rf-op-n" style="padding-top:10px;display:block">Apagar a conta remove os saves na nuvem e a sua carreira de treinador. Não tem volta.</span>`;
+
+  const resumoTempo = 'TEMPO ' + String(tempo).toUpperCase();
+  const resumoSom = som ? ('SOM LIGADO · '+vol+'%') : 'SOM DESLIGADO';
+  const resumoGrav = CL._lastSaveAt
+    ? ('ÚLTIMA · ' + new Date(CL._lastSaveAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}).toUpperCase().replace('.','')
+       + ' ' + new Date(CL._lastSaveAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}))
+    : 'SEM GRAVAÇÃO NESTA SESSÃO';
+
+  return `<div class="rf-op"><div class="rf-op-grid">
+      <div class="rf-op-col">
+        ${rfOpCard(0,'⚽','Partida', resumoTempo, partida)}
+        ${rfOpCard(1,'🔔','Avisos e som', resumoSom, avisos)}
       </div>
-      </div>
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">AVISOS E SOM</span></div>
-        <!-- SAIRAM DAQUI (27/08): "Aviso de proposta recebida", "Aviso de lesao", "Chat da
-             Resenha durante o jogo" e "Confirmar antes de gravar". Os quatro gravavam em
-             S.config.ui e NINGUEM os lia — o interruptor mudava na tela e o jogo seguia igual.
-             Sobra o Som, que e o unico que o motor le (S.config.sound). -->
-        ${rfCfSwitch('som','Som da partida',true)}
-        <!-- VOLUME: desliza, toca a amostra na hora e grava no save. A amostra
-             ignora a trava do Camarote de proposito: aqui o utilizador esta'
-             justamente a regular o volume, e exigir que esteja assistindo a uma
-             partida para ouvir seria absurdo. -->
-        <label class="rf-cf-vol">
-          <span class="rf-cf-vol-t">Volume dos sons</span>
-          <input type="range" min="0" max="100" step="5" value="${Math.round(rfSomVolume()*100)}"
-                 oninput="rfCfVolume(this.value)" onchange="rfCfVolumeTeste()"
-                 aria-label="Volume dos sons da partida">
-          <b class="rf-cf-vol-v" id="rf-cf-vol-v">${Math.round(rfSomVolume()*100)}%</b>
-        </label>
-        <p class="rf-cf-nota">Os sons tocam no <b>Modo Camarote</b>: cartão amarelo, pênalti defendido,
-          jogador marcando de novo, goleada e o apito final. Solte o controle para ouvir uma amostra.</p>
+      <div class="rf-op-col">
+        ${rfOpCard(2,'💾','Gravação', resumoGrav, gravacao)}
+        ${rfOpCard(3,'👤','Conta', email, conta)}
       </div>
     </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">CONTA</span></div>
-      <div class="rf-cf-fila">
-        ${/* "Abrir opcoes do jogo" saiu: desde que os controlos vieram para esta pagina, ele
-              mandava a pessoa para a pagina onde ela ja' esta'. */''}
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfAcAbrir('conta-senha',{email:((typeof NET!=='undefined'&&NET.authStatus)?(NET.authStatus().email||''):'')})">Trocar a senha</button>
-        <!-- "Sair da conta" saiu daqui: virou a página Sair, a última da barra
-             lateral. Aqui ficou só o que é AJUSTE de conta; sair é outra coisa. -->
-        <button type="button" class="rf-btn rf-btn-recusar" onclick="rfAcAbrir('conta-apagar',{})">Apagar a conta</button>
-      </div>
-    </div>`;
+  </div>`;
 }
 
-/* =====================================================================
-   CONFIG · 2 · JOGO
-   ===================================================================== */
-/* `rfCfJogoHTML` foi removida: era a página "Sair do jogo" desenhada uma
-   segunda vez dentro de Configurações — SAVE ATUAL repetido, OUTROS SAVES e
-   SAIR DO SAVE. O conteúdo que valia mudou-se para a página certa; o resto era
-   duplicado, e três dos seus botões chamavam todos o mesmo `rfAcSairSave()`. */
 function rfCfBaixarSave(){
   try{
     const a=document.createElement('a');
@@ -504,18 +581,25 @@ function rfResenhaChatHTML(){
 }
 
 /* ---- cabeçalho da página ---- */
+/* A LINHA DE ESTADO do desenho: modo · clube · estado do salvamento. Os tres sao dinamicos —
+   o protótipo escreve "XV Piracicaba" como exemplo e o handoff avisa para puxar do jogo. */
 function rfCfSubHTML(){
-  const t=CL._lastSaveAt?new Date(CL._lastSaveAt):null;
-  const quando=t?('Save gravado às '+String(t.getHours()).padStart(2,'0')+'h'+String(t.getMinutes()).padStart(2,'0'))
-    :'Gravação automática ligada';
   const room=(typeof NET!=='undefined')?NET.room:null;
   const codigo=(room&&room.code)||null;
-  return quando + (CL.online&&codigo? (' · sala '+codigo+' em dia') : ' · Modo Solo');
+  const modo=(CL.online&&codigo) ? ('Modo Resenha · sala '+codigo) : 'Modo Solo';
+  const cl=(typeof clubOf==='function'&&clubOf(CL.clubId))||{};
+  const clube=cl.short||cl.name||null;
+  const o=(typeof clOpcoes==='function')?clOpcoes():(CL.options||{});
+  const auto=((o.autoSave||'Sim')==='Sim')?'ligada':'desligada';
+  return [modo, clube, 'gravação automática '+auto].filter(Boolean).join(' · ');
 }
+/* O CTA DESTA PAGINA E' "Guardar opções", nao "Gravar agora" — sao coisas diferentes e o desenho
+   separa-as: aqui em cima guardam-se as PREFERENCIAS; "Gravar agora" (o save do jogo) vive dentro
+   do cartao Gravação, ao lado dos pontos guardados, que e' o assunto dele. */
 function rfCfAcoesHTML(){
   return `<div class="rf-mk-acoes">
     <button type="button" class="rf-btn rf-btn-secondary" onclick="rfGo('hub')">${rfIcone('voltar',16)} Voltar ao hub</button>
-    <button type="button" class="rf-btn rf-btn-cta" onclick="rfAcGravar()">${rfIcone('gravar',16)} Gravar agora</button>
+    <button type="button" class="rf-btn rf-btn-cta" onclick="rfOpcoesGuardar()">${rfIcone('gravar',16)} Guardar opções</button>
   </div>`;
 }
 
