@@ -50,13 +50,13 @@ function rfMoedaHTML(){
       <span class="rf-wiz-nota-c">É a faixa de caixa inicial da divisão de entrada, convertida — o valor exato do seu clube sai no sorteio.</span>
     </div>`;
   return rfWiz({
-    /* A ESCOLHA E' PARA A CARREIRA INTEIRA, e as duas frases daqui diziam o contrario: "Da' para
-     trocar depois nas opcoes" e "Voce pode trocar depois em Clube & Sistema". Nao da': a moeda
-     e' escrita em CL.currency no assistente e nao ha' um unico caminho que a mude depois — o
-     campo "Moeda" em Configuracoes era so' leitura, e abria um dialogo que nem moeda tinha.
-     Prometer o que nao existe e' pior do que a limitacao. Quando houver troca a serio, a frase
-     volta. */
-    titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube — e acompanha esta carreira até o fim.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo, nota:'Escolha com calma: não dá para trocar depois.',
+    /* NEM PROMETE NEM AVISA. Estas duas frases diziam "Da' para trocar depois nas opcoes" e
+       "Voce pode trocar depois em Clube & Sistema" — e nao da': a moeda e' escrita em
+       CL.currency no assistente e nenhum caminho a muda depois. Trocar a promessa por um AVISO
+       ("nao da' para trocar") corrigia a mentira e criava outra coisa ma': pos em destaque uma
+       limitacao que ninguem tinha perguntado, logo no passo em que se quer escolher e seguir.
+       A frase fala do que a moeda FAZ. Quando houver troca a serio, a promessa volta. */
+    titulo:'Em que moeda você quer jogar?', sub:'Vale para salários, transferências e o caixa do clube.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo, nota:'',
     voltar:'clMoedaBack()', voltarLabel:'‹ Voltar ao país',
     topoDir:'', cta:'Continuar', ctaOn:'clMoedaOk()' });
 }
