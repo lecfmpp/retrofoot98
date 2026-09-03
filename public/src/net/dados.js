@@ -354,6 +354,11 @@ window.RF_FOTO_POS = window.RF_FOTO_POS || {};
 window.RF_TREINADORES = window.RF_TREINADORES || {};
 window.RF_TREINADOR_MARCA = window.RF_TREINADOR_MARCA || {};   // {escudoUrl, marcaUrl, escudo, marca}
 window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto por face
+/* RF_JORNALISTAS['j1'..'j10'] -> as faces da coletiva pos-jogo. Mesmo truque das de treinador
+   (linhas com club_id '__jornalista__'), entao vem desta mesma busca — sem requisicao nova e sem
+   asset a commitar. O jogo escolhe uma por rodada e clube; sem nenhuma gerada, o modal volta a
+   mostrar as iniciais do nome, que e' o que ele fazia antes de existirem. */
+window.RF_JORNALISTAS = window.RF_JORNALISTAS || {};
 /* ===== OS MOMENTOS (modais de celebração) VÊM DO PAINEL =====
    O vídeo de cada momento estava num mapa dentro de ui/main.js: trocar um
    obrigava a publicar o site. Agora a tabela elifoot_v3.momentos manda, e este
@@ -404,6 +409,13 @@ function buscarFotos(packId){
           if(f.url) window.RF_TREINADORES[f.jogador] = f.url;
           const at = f.atributos || {};
           if(at.pos) window.RF_TREINADOR_POS[f.jogador] = at.pos;
+          continue;
+        }
+        /* como o ramo do treinador acima, e pela mesma razao: a face do jornalista nao e' foto de
+           elenco nem uniforme, e cair nos ramos de baixo poria 'j1' em RF_FOTOS como se fosse o
+           nome de um jogador. */
+        if(f.club_id === '__jornalista__'){
+          if(f.url) window.RF_JORNALISTAS[f.jogador] = f.url;
           continue;
         }
         const at = f.atributos || {};

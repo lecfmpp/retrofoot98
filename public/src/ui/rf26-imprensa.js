@@ -219,7 +219,33 @@ function rfPressReporter(){
   try{ i=Math.abs((typeof hashC==='function')?hashC(String(clube)+'|'+rodada):(rodada*7))%RF_PRESS_VEICULOS.length; }
   catch(e){ i=rodada%RF_PRESS_VEICULOS.length; }
   const v=RF_PRESS_VEICULOS[i];
-  return { nome, veiculo:v[0], funcao:v[1] };
+  /* `_clube`/`_rodada` viajam com o reporter porque a foto e' resolvida DE NOVO no desenho: o
+     pacote pode chegar da rede depois de a coletiva ja' ter comecado, e sem as coordenadas nao
+     haveria como recalcular a escolha certa (a de S seria a da rodada seguinte). */
+  return { nome, veiculo:v[0], funcao:v[1], _clube:clube, _rodada:rodada, foto:rfPressFoto(clube, rodada) };
+}
+/* ===== A CARA DE QUEM PERGUNTA =====
+   As faces sao geradas no painel (Estudio IA > Jornalistas) e chegam em RF_JORNALISTAS pela mesma
+   busca das fotos de elenco. Aqui so' se escolhe UMA.
+
+   A ESCOLHA E' POR PESSOA, NAO POR VEICULO, e de proposito: sao dez faces para oito veiculos, e a
+   mesma redacao pode mandar gente diferente. Por isso o indice sai de um sal DIFERENTE do que
+   escolhe o veiculo — com o mesmo sal, a cara ficaria colada ao nome do jornal para sempre e duas
+   das dez nunca apareceriam.
+
+   DETERMINISTICA pelo par (clube, rodada), como o resto do reporter: redesenhar a tela nao troca a
+   pessoa a' sua frente, e os dois clientes de uma Resenha veem a mesma cara.
+
+   Sem nenhuma face gerada devolve null, e quem desenha volta a's iniciais do nome — o retrato e'
+   enfeite, nunca requisito (mesma regra de rfCoachAvatarUrl). */
+function rfPressFoto(clube, rodada){
+  const M=(typeof window!=='undefined' && window.RF_JORNALISTAS) || {};
+  const chaves=Object.keys(M).filter(k=>M[k]).sort();     // ordenado: a escolha nao pode depender da ordem de chegada da rede
+  if(!chaves.length) return null;
+  let i=0;
+  try{ i=Math.abs((typeof hashC==='function')?hashC('jorn|'+String(clube)+'|'+rodada):(rodada*13+5))%chaves.length; }
+  catch(e){ i=rodada%chaves.length; }
+  return M[chaves[i]]||null;
 }
 
 /* =====================================================================
@@ -869,6 +895,15 @@ function rfEntRetratoHTML(cls, etiqueta, url, iniciais){
     <span class="rf-ent-etq">${escC(etiqueta)}</span>
   </div>`;
 }
+/* a foto do reporter no momento do DESENHO. Prefere a que ja' vinha no estado; se ela e' nula
+   (coletiva aberta antes de o pacote chegar), recalcula pelas coordenadas guardadas. Continua
+   deterministica: a mesma cara para o mesmo (clube, rodada), em qualquer cliente. */
+function rfPressFotoDe(rep){
+  if(!rep) return null;
+  if(rep.foto) return rep.foto;
+  if(rep._clube==null || typeof rfPressFoto!=='function') return null;
+  return rfPressFoto(rep._clube, rep._rodada||0);
+}
 function rfEntIniciais(nome){
   return String(nome||'').trim().split(/\s+/).slice(0,2).map(p=>p.charAt(0).toUpperCase()).join('')||'—';
 }
@@ -987,7 +1022,7 @@ function rfEntrevistaHTML(P){
           </div>
 
           <div class="rf-ent-pessoa reporter">
-            ${rfEntRetratoHTML('reporter','REPÓRTER', null, rfEntIniciais(rep0.nome))}
+            ${rfEntRetratoHTML('reporter','REPÓRTER', rfPressFotoDe(rep0), rfEntIniciais(rep0.nome))}
             <div class="rf-ent-pessoa-id">
               <span class="rf-ent-pessoa-n">${escC(rep0.nome)}</span>
               <div class="rf-ent-pessoa-s"><i class="veiculo"></i>
