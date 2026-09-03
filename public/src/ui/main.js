@@ -4141,18 +4141,48 @@ function inboxKey(){
   const g = (CL.online && typeof NET!=='undefined' && NET.gameId) ? NET.gameId : ('solo_'+(CL.save||'')+'_'+((S&&S.seed)||'x'));
   return 'ef_inbox_'+g+'_'+(CL.clubId||'');
 }
+/* VERSAO DA CAIXA GRAVADA. 1 (ou ausente) = antes de `archived` existir, quando `read` fazia os
+   dois papeis; 2 = os dois carimbos sao independentes. E' o que diz a migrarArquivadas se aquela
+   caixa precisa de conversao — sem isto ela nao consegue distinguir "lida ha muito tempo, no
+   modelo velho" de "lida agora, de proposito, e deixada na caixa", e arquivava as duas. */
+const INBOX_V=2;
 function saveInbox(){
-  const payload={ inbox:CL.inbox||[], deleted:CL.inboxDeleted||{} };
+  const payload={ v:INBOX_V, inbox:CL.inbox||[], deleted:CL.inboxDeleted||{} };
   try{ localStorage.setItem(inboxKey(), JSON.stringify(payload)); }catch(e){}
   if(CL.online && typeof NET!=='undefined' && NET.saveInbox){   // debounce: escrita no assento
     clearTimeout(CL._inboxSaveT); CL._inboxSaveT=setTimeout(()=>{ NET.saveInbox(payload); }, 900);
   }
 }
+/* ===== ARQUIVADA E LIDA DEIXAM DE SER A MESMA COISA =====
+   Ate' aqui `read` fazia os dois papeis, e o botao Arquivar so' o punha a true — como a caixa de
+   entrada desenhava a lista INTEIRA, arquivar nao tirava nada de lado nenhum, e bastava ABRIR uma
+   mensagem para ela aparecer em Arquivadas sem ninguem a ter arquivado. Agora `archived` e' um
+   estado proprio: ler tira o ponto de nao-lida, arquivar tira da caixa.
+
+   A MIGRACAO PRESERVA O QUE O JOGADOR VE HOJE. Numa caixa gravada antes desta mudanca, as lidas
+   sao exactamente as que hoje aparecem em Arquivadas — entao lida-sem-carimbo passa a arquivada,
+   e o separador continua com o mesmo conteudo depois da actualizacao. Sem isto, tudo o que ja'
+   foi lido voltava de golpe para a caixa de entrada, que e' o oposto do que se pediu.
+   `archived` a false e' escolha explicita (desarquivar) e NAO e' remigrado: so' o `undefined`.
+
+   CORRE UMA VEZ, E SO' NA CAIXA VELHA. A primeira versao disto migrava a cada carregamento, e o
+   efeito era o contrario do pretendido: uma mensagem lida DEPOIS da mudanca e deixada na caixa de
+   proposito era arquivada sozinha na recarga seguinte (medido). O carimbo `v` do payload separa
+   os dois mundos — sem ele nao ha' como distinguir as duas leituras. */
+function migrarArquivadas(lista, versao){
+  if((versao||1) >= INBOX_V) return lista;                 // ja' nasceu com os dois carimbos
+  (lista||[]).forEach(e=>{ if(e && e.archived===undefined && e.read) e.archived=true; });
+  return lista;
+}
 function mergeInbox(other){
   if(!other) return;
   CL.inbox=CL.inbox||[]; CL.inboxDeleted=Object.assign({}, other.deleted||{}, CL.inboxDeleted||{});
   const byKey={}; CL.inbox.forEach(x=>byKey[x.key]=x);
-  (other.inbox||[]).forEach(e=>{ if(!byKey[e.key]){ CL.inbox.push(e); byKey[e.key]=e; } else if(e.read){ byKey[e.key].read=true; } });
+  /* `archived` viaja como `read` sempre viajou: arquivar num aparelho tem de valer no outro,
+     senao a mensagem ressuscitava na caixa de entrada ao abrir o jogo no telemovel. */
+  migrarArquivadas(other.inbox, other.v);
+  (other.inbox||[]).forEach(e=>{ if(!byKey[e.key]){ CL.inbox.push(e); byKey[e.key]=e; }
+    else { if(e.read) byKey[e.key].read=true; if(e.archived) byKey[e.key].archived=true; } });
   CL.inbox=CL.inbox.filter(x=>!CL.inboxDeleted[x.key]);        // some com os apagados
 }
 function loadInbox(){
@@ -4160,7 +4190,7 @@ function loadInbox(){
   // um save cuja caixa ainda não existe no storage mantinha em tela os e-mails do save ANTERIOR
   // (o `CL.inbox=CL.inbox||[]` de antes preservava o array velho quando não havia nada gravado).
   CL.inbox=[]; CL.inboxDeleted={}; CL.inboxOpen=null;
-  try{ const raw=localStorage.getItem(inboxKey()); if(raw){ const s=JSON.parse(raw); CL.inbox=s.inbox||[]; CL.inboxDeleted=s.deleted||{}; } }catch(e){}
+  try{ const raw=localStorage.getItem(inboxKey()); if(raw){ const s=JSON.parse(raw); CL.inbox=migrarArquivadas(s.inbox||[], s.v); CL.inboxDeleted=s.deleted||{}; } }catch(e){}
   if(CL.online && typeof NET!=='undefined' && NET.loadInbox){   // mescla com o assento (cross-device)
     NET.loadInbox().then(db=>{ if(db){ mergeInbox(db); if(typeof cdraw==='function') cdraw(); } }).catch(()=>{});
   }

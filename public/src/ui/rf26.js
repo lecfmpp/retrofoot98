@@ -3131,7 +3131,9 @@ function rfEmailBotoesHTML(e){
       onclick="rfAcAbrir('mail-imprensa',{key:'${chave}',assunto:'${assunto}'})">Falar com a imprensa</button>`);
   else if(temResposta) out.push(`<button type="button" class="rf-btn ${dest?'rf-btn-secondary':'rf-btn-cta'}"
       onclick="rfAcAbrir('mail-responder',{key:'${chave}',assunto:'${assunto}'})">${e.reply?'Ver a sua resposta':'Responder'}</button>`);
-  out.push(`<button type="button" class="rf-btn rf-btn-secondary"
+  /* nada de oferecer Arquivar ao que ja' esta' arquivado: o painel de leitura tambem serve as
+     mensagens abertas a partir do separador Arquivadas, e ali o botao nao teria efeito nenhum. */
+  if(!e.archived) out.push(`<button type="button" class="rf-btn rf-btn-secondary"
       onclick="rfAcAbrir('mail-arquivar',{key:'${chave}',assunto:'${assunto}'})">Arquivar</button>`);
   return out.join('');
 }

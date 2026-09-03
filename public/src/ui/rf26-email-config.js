@@ -2,11 +2,12 @@
    RetroFoot98 — E-MAIL (2 abas) e CONFIGURAÇÕES (3 abas)
    Portado de telas/E-mail - Abas.html e telas/Configuracoes - Abas.html.
 
-   ARQUIVADAS são as JÁ LIDAS. O motor não tem pasta de arquivo: CL.inbox é
-   uma lista só, com `read` por mensagem, e apagar é definitivo
-   (CL.inboxDeleted). Então a aba mostra o que já foi lido — que é o
-   histórico que a referência desenha — em vez de inventar um arquivo que
-   o jogo não sabe manter.
+   ARQUIVAR TIRA DA CAIXA. CL.inbox é uma lista só, com dois carimbos por
+   mensagem: `read` (o ponto de não-lida) e `archived` (em que separador
+   vive). Apagar continua a ser definitivo e à parte (CL.inboxDeleted).
+   Os dois carimbos já foram o mesmo — e enquanto foram, ABRIR uma mensagem
+   punha-a em Arquivadas sem ninguém a arquivar, e o botão Arquivar não
+   tirava nada de lado nenhum. Ver migrarArquivadas em main.js.
    ===================================================================== */
 
 /* =====================================================================
@@ -15,8 +16,12 @@
    do jogo que usa a grade de duas colunas — nas outras o pacote empilha
    cartões de largura cheia.
    ===================================================================== */
+/* as duas metades da caixa, num sitio so' — quatro sitios liam a lista e cada um decidia por si
+   o que era "estar na caixa", que foi como as duas abas passaram a mostrar a mesma mensagem. */
+function rfCaixa(){ return rfInbox().filter(e=>!e.archived); }
+function rfArquivadas(){ return rfInbox().filter(e=>e.archived); }
 function rfEmCaixaHTML(){
-  const todas=rfInbox();
+  const todas=rfCaixa();
   const naoLidas=todas.filter(e=>!e.read).length;
   return rfCol(
     `<div class="rf-card">
@@ -164,8 +169,11 @@ const RF_EMAIL_RESP = {
    mensagem que não pede nada — uma venda concluída, um extrato — não ganha
    botão nenhum inventado. */
 function rfEmLeituraHTML(){
-  const box=rfInbox();
-  const e=CL.inboxOpen? box.find(x=>x.key===CL.inboxOpen) : box[0];
+  const box=rfCaixa();
+  /* `|| box[0]`: ao arquivar a mensagem aberta ela sai da caixa, e sem isto o painel continuava
+     a mostra'-la (a busca por CL.inboxOpen ainda a achava na lista completa). Agora passa a' que
+     ficou em cima. */
+  const e=(CL.inboxOpen && box.find(x=>x.key===CL.inboxOpen)) || box[0];
   if(!e) return `<div class="rf-card">
     <div class="rf-label"><span class="rf-label-t">MENSAGEM ABERTA</span></div>
     <div class="rf-empty">Escolha um e-mail na lista ao lado.</div></div>`;
@@ -210,11 +218,11 @@ function rfEmLeituraHTML(){
    pacote desenha.
    ===================================================================== */
 function rfEmArquivadasHTML(){
-  const lidas=rfInbox().filter(e=>e.read);
+  const arq=rfArquivadas();
   return `<div class="rf-card">
     <div class="rf-label"><span class="rf-label-t">ARQUIVADAS</span>
-      <span class="rf-label-r">${lidas.length} ${lidas.length===1?'mensagem':'mensagens'}</span></div>
-    ${rfLista('arquivadas', lidas.map(rfEmLinha), 'Nada arquivado ainda. Uma mensagem entra aqui depois de lida.')}
+      <span class="rf-label-r">${arq.length} ${arq.length===1?'mensagem':'mensagens'}</span></div>
+    ${rfLista('arquivadas', arq.map(rfEmLinha), 'Nada arquivado ainda. Use Arquivar numa mensagem para a guardar aqui.')}
   </div>`;
 }
 
@@ -243,7 +251,7 @@ function rfResenhaDesdeSync(){
 
 /* ---- cabeçalho da página ---- */
 function rfEmSubHTML(){
-  const box=rfInbox();
+  const box=rfCaixa();
   const n=box.filter(e=>!e.read).length;
   return `${box.length} ${box.length===1?'mensagem':'mensagens'} · ${n} não lida${n===1?'':'s'}`;
 }
@@ -254,6 +262,8 @@ function rfEmAcoesHTML(){
   </div>`;
 }
 function rfEmLerTudo(){
+  /* so' `read`: isto e' "marcar como lidas", nao "arquivar tudo" — e antes de `archived` existir
+     era exactamente a mesma coisa, o que esvaziava a caixa de entrada de uma vez sem aviso. */
   (CL.inbox||[]).forEach(e=>{ e.read=true; });
   if(typeof toastC==='function') toastC('Tudo marcado como lido.');
   cdraw();
@@ -707,9 +717,10 @@ function rfSairSalaGo(){
 function rfMailArquivarGo(key){
   const e=(CL.inbox||[]).find(x=>x.key===key);
   if(!e){ toastC('Essa mensagem não está mais na caixa.'); rfAcFechar(); return; }
-  e.read=true;
+  e.archived=true; e.read=true;              // arquivada conta como vista: sai da caixa sem ponto
+  if(CL.inboxOpen===key) CL.inboxOpen=null;  // o painel de leitura passa a' mensagem seguinte
   if(typeof saveInbox==='function') saveInbox();
-  rfAcFechar();
+  rfAcFechar();                              // rfAcFechar ja' redesenha (cdraw)
   toastC('Mensagem arquivada.');
 }
 

@@ -653,7 +653,7 @@ const RF_ACOES = {
 
 'mail-arquivar': d=>rfAcao({ kicker:'E-MAIL', titulo:'Arquivar esta mensagem?', w:440,
   corpo:
-    rfAcNotaHTML(`<b>${escC(d.assunto||'A mensagem')}</b> sai da caixa de entrada. Nada se perde: ela continua na aba <b>Arquivo</b>.`),
+    rfAcNotaHTML(`<b>${escC(d.assunto||'A mensagem')}</b> sai da caixa de entrada. Nada se perde: ela continua na aba <b>Arquivadas</b>.`),
   acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Arquivar',on:`rfMailArquivarGo('${escC(String(d.key||''))}')`}] }),
 
 'elenco-renovar': d=>{
