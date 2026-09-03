@@ -572,6 +572,19 @@
        isso enviesa qualquer aferição de equilíbrio financeiro entre os dois. O fallback antigo
        fica como rede para um chamador que não passe `preco`. */
     const precoDe=opts.preco||function(div, ov){ return Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32))); };
+    /* ===== O PATROCINIO E' PAGO DE UMA VEZ, NO INICIO DA TEMPORADA (regra do dono) =====
+       Antes ele entrava diluido em todas as rodadas, dentro da receita-base. Agora a rodada
+       credita so' a COTA DE TV, e o patrocinio do ano inteiro cai num pagamento so'.
+       `partes` reparte a receita-base (REBAL.receitaPartes); sem ela, cai no comportamento
+       antigo — receita-base cheia por rodada — e nenhum chamador antigo quebra.
+
+       O ANO INTEIRO DE UMA VEZ E' `patrocinio x rodadasDoAno`, e quem manda esse numero e' o
+       chamador (`opts.patrocinioRodadas`), porque so' ele sabe quantas rodadas faltam. Num save
+       que ja' estava a meio quando esta regra nasceu, as rodadas ja' jogadas creditaram a sua
+       parte — pagar o ano inteiro seria pagar duas vezes; pagar so' as que FALTAM fecha certo.
+       Zero (o normal) = esta rodada nao paga patrocinio nenhum. */
+    const partes=opts.partes||null;
+    const patroRodadas=Number(opts.patrocinioRodadas)||0;
     Object.keys(S.budgets).forEach(function(id){
       if(humanos.has(id)) return;                       // humano paga/recebe pelo próprio caminho
       const ov=overall(id); if(ov==null) return;
@@ -585,7 +598,13 @@
       // estádio virava enfeite. É este ponto que liga o crescimento (cpuCrescerEstadio) ao caixa.
       const persistida=(S.clubStadiumCap && S.clubStadiumCap[id] && S.clubStadiumCap[id].capacity)||null;
       const bilheteriaEmCasa=Math.round((persistida||capacidade(ov))*0.55)*preco;
-      const porRodada=base + Math.round(bilheteriaEmCasa/2) - salarios - Math.round(base*OPEX);
+      /* A DESPESA CONTINUA A MEDIR-SE PELA RECEITA-BASE CHEIA. O OPEX e' o porte do clube, nao o
+         que entrou nesta rodada: descontar 8% de uma receita agora menor faria o custo operacional
+         encolher junto e mudaria o equilibrio — que nao e' o que foi pedido. */
+      const p=partes?partes(ov, div):null;
+      const recorrente=p ? (p.tvFixa + p.tvMerito) : base;
+      const patrocinio=(p && patroRodadas) ? p.patrocinio*patroRodadas : 0;
+      const porRodada=recorrente + patrocinio + Math.round(bilheteriaEmCasa/2) - salarios - Math.round(base*OPEX);
       S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0)+porRodada));
     });
   }

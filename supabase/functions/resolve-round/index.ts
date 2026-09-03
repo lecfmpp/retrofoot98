@@ -15,7 +15,7 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = '25c227d040a3';
+/* @motor-ver */ const MOTOR_VER = '0a58fe3bff3c';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -1249,6 +1249,19 @@ const ME = (globalThis as any).MATCH_ENGINE;
        isso enviesa qualquer aferição de equilíbrio financeiro entre os dois. O fallback antigo
        fica como rede para um chamador que não passe `preco`. */
     const precoDe=opts.preco||function(div, ov){ return Math.round(Math.max(6, Math.min(16, 6+Math.max(0,ov-20)*0.32))); };
+    /* ===== O PATROCINIO E' PAGO DE UMA VEZ, NO INICIO DA TEMPORADA (regra do dono) =====
+       Antes ele entrava diluido em todas as rodadas, dentro da receita-base. Agora a rodada
+       credita so' a COTA DE TV, e o patrocinio do ano inteiro cai num pagamento so'.
+       `partes` reparte a receita-base (REBAL.receitaPartes); sem ela, cai no comportamento
+       antigo — receita-base cheia por rodada — e nenhum chamador antigo quebra.
+
+       O ANO INTEIRO DE UMA VEZ E' `patrocinio x rodadasDoAno`, e quem manda esse numero e' o
+       chamador (`opts.patrocinioRodadas`), porque so' ele sabe quantas rodadas faltam. Num save
+       que ja' estava a meio quando esta regra nasceu, as rodadas ja' jogadas creditaram a sua
+       parte — pagar o ano inteiro seria pagar duas vezes; pagar so' as que FALTAM fecha certo.
+       Zero (o normal) = esta rodada nao paga patrocinio nenhum. */
+    const partes=opts.partes||null;
+    const patroRodadas=Number(opts.patrocinioRodadas)||0;
     Object.keys(S.budgets).forEach(function(id){
       if(humanos.has(id)) return;                       // humano paga/recebe pelo próprio caminho
       const ov=overall(id); if(ov==null) return;
@@ -1262,7 +1275,13 @@ const ME = (globalThis as any).MATCH_ENGINE;
       // estádio virava enfeite. É este ponto que liga o crescimento (cpuCrescerEstadio) ao caixa.
       const persistida=(S.clubStadiumCap && S.clubStadiumCap[id] && S.clubStadiumCap[id].capacity)||null;
       const bilheteriaEmCasa=Math.round((persistida||capacidade(ov))*0.55)*preco;
-      const porRodada=base + Math.round(bilheteriaEmCasa/2) - salarios - Math.round(base*OPEX);
+      /* A DESPESA CONTINUA A MEDIR-SE PELA RECEITA-BASE CHEIA. O OPEX e' o porte do clube, nao o
+         que entrou nesta rodada: descontar 8% de uma receita agora menor faria o custo operacional
+         encolher junto e mudaria o equilibrio — que nao e' o que foi pedido. */
+      const p=partes?partes(ov, div):null;
+      const recorrente=p ? (p.tvFixa + p.tvMerito) : base;
+      const patrocinio=(p && patroRodadas) ? p.patrocinio*patroRodadas : 0;
+      const porRodada=recorrente + patrocinio + Math.round(bilheteriaEmCasa/2) - salarios - Math.round(base*OPEX);
       S.budgets[id]=Math.max(-base*4, Math.round((S.budgets[id]||0)+porRodada));
     });
   }
@@ -2541,6 +2560,20 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
      Sem o overall médio (chamador antigo, save velho), cai em 100% pelo clube — idêntico ao de
      antes, então nenhum chamador quebra. */
   const TV_MERITO=0.75, TV_FIXA=0.25;
+  /* AS TRÊS PARCELAS COM NOME. O split acima é de DUAS metades (o que depende do clube e o que
+     depende da divisão) porque é só isso que a conta do dinheiro precisa de saber. Mas os 75%
+     do clube são, no desenho, duas coisas diferentes — patrocínio e cota de TV por mérito — e
+     sem esta tabela esse desenho existia apenas no comentário: não havia um só sítio no código
+     capaz de responder "quanto deste dinheiro é patrocínio?".
+
+     É POR ISSO QUE A ABA PATROCÍNIO INVENTAVA A SUA PRÓPRIA CONTA (capacidade × peso da divisão),
+     que não tinha relação nenhuma com o dinheiro realmente creditado — mostrava 1,8 M/temporada
+     na Série A quando o patrocínio a sério rende ~60 M. Duas réguas para o mesmo dado, a
+     armadilha de sempre. Agora há uma só, e é esta.
+
+     NÃO MUDA UM CENTAVO: as parcelas somam EXACTAMENTE `income()` (ver receitaPartes). O que
+     muda é o jogo passar a saber dizer de onde o dinheiro vem. */
+  const SPLIT={ patrocinio:0.50, tvMerito:0.25, tvFixa:0.25 };
 
   /* ---- 3c. O EIXO DE MODALIDADE (masculino / feminino) ----
      O universo feminino (brasilFem) usa OS MESMOS clubes e o MESMO objeto de jogador do masculino
@@ -2568,6 +2601,26 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
     const medio=(typeof ovMedioDivisao==='number' && isFinite(ovMedioDivisao))
       ? incomeTabela(ovMedioDivisao) : proprio;
     return Math.max(20000, Math.round((TV_MERITO*proprio + TV_FIXA*medio) * modFator(uni)));
+  }
+  /* A RECEITA-BASE REPARTIDA, com a garantia de que as partes somam o todo.
+     Arredondar cada parcela por si daria uma soma 1 ou 2 reais diferente de `income()`, e o
+     extrato de finanças mostraria linhas que não fecham com o total — o tipo de desacerto que
+     ninguém consegue explicar depois. Aqui as duas primeiras são arredondadas e a terceira é o
+     RESTO: fecha sempre, por construção.
+
+     O piso de 20 mil de `income()` também é respeitado: quando ele morde, as parcelas são
+     re-escaladas na mesma proporção em vez de somarem menos do que o clube recebeu. */
+  function receitaPartes(overall, ovMedioDivisao, uni){
+    const total=income(overall, ovMedioDivisao, uni);
+    const f=modFator(uni);
+    const proprio=incomeTabela(overall);
+    const medio=(typeof ovMedioDivisao==='number' && isFinite(ovMedioDivisao))
+      ? incomeTabela(ovMedioDivisao) : proprio;
+    const cru=(SPLIT.patrocinio+SPLIT.tvMerito)*proprio*f + SPLIT.tvFixa*medio*f;
+    const k=cru>0 ? total/cru : 0;                       // 1 salvo quando o piso mordeu
+    const patrocinio=Math.round(SPLIT.patrocinio*proprio*f*k);
+    const tvMerito=Math.round(SPLIT.tvMerito*proprio*f*k);
+    return { total, patrocinio, tvMerito, tvFixa: total-patrocinio-tvMerito };
   }
   /* Bônus de vitória/empate como FRAÇÃO da receita-base, não valor fixo. O antigo R$500k fixo
      valia 9% da receita de um clube da Série A e 40% da de um da Série D — uma vitória na D
@@ -2599,8 +2652,8 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
   function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
 
   root.REBAL={ force, engForce, engForceGK, value, valueBase, salary, wage, budget,
-               income, incomeTabela, modFator, stadiumCap, stadiumCapForDivision,
-               BUDGET, BANDS, MOD_FATOR, TV_MERITO, TV_FIXA, WIN_BONUS, DRAW_BONUS, OPEX };
+               income, incomeTabela, receitaPartes, modFator, stadiumCap, stadiumCapForDivision,
+               BUDGET, BANDS, MOD_FATOR, TV_MERITO, TV_FIXA, SPLIT, WIN_BONUS, DRAW_BONUS, OPEX };
   if(typeof module!=='undefined' && module.exports){ module.exports={ REBAL:root.REBAL }; }
 })(typeof globalThis!=='undefined'?globalThis:this);
 /* <<< REBALANCE:FIM >>> */
@@ -4330,12 +4383,28 @@ function divDeCadaClubeT(S: any): any {
   DIV_ORDER.forEach((d) => { const od = S.otherDivs && S.otherDivs[d]; if (od && od.table) reg(d, od.table); });
   return out;
 }
+/* gemeo de `patrocinioRodadasAPagar` (core.js): 0 quando o ano ja' foi pago, senao as rodadas que
+   o patrocinio ainda tem de cobrir. O carimbo vive em S, que e' o mundo gravado — sobrevive entre
+   invocacoes da funcao, que e' o que faz a trava valer. */
+function patrocinioRodadasT(S: any, marca: string): number {
+  const carimbo = '_patroAno_' + marca;
+  if (S[carimbo] === S.season) return 0;
+  S[carimbo] = S.season;
+  const total = ((S.sched || []).length) || 38;
+  return Math.max(0, total - (S.round || 0));
+}
 function cpuRoundCash(S: any, humans: Set<string>) {
   const avg = divOverallAvgT(S);
   const divDe = divDeCadaClubeT(S);
   WR.cpuCaixaRodada(S, {
     humanos: humans,
     renda: (ov: number, div: string) => rbIncome(ov, ovMedioDe(avg, div || S.division)),
+    /* O PATROCINIO E' PAGO DE UMA VEZ, no inicio da temporada (regra do dono) — aqui como no
+       cliente, senao o rival da Resenha vive uma economia diferente da do solo. A rodada credita
+       so' a cota de TV; o carimbo `_patroAno_cpu` em S e' o que impede pagar duas vezes, e num
+       mundo que ja' ia a meio quando a regra nasceu paga so' as rodadas que faltam. */
+    partes: (ov: number, div: string) => REBAL.receitaPartes(ov, ovMedioDe(avg, div || S.division)),
+    patrocinioRodadas: patrocinioRodadasT(S, 'cpu'),
     folha: (p: any) => (p.contract && p.contract.salary) || rbWage(p.f),
     capacidade: rbStadiumCap,
     overall: (id: string) => (S.clubOverall && S.clubOverall[id] != null) ? S.clubOverall[id] : null,

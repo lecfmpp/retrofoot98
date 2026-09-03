@@ -5872,14 +5872,28 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   // item 4: receita = base (TV/patrocínio, por overall, SEMPRE) + bilheteria REAL quando joga em
   // casa + bônus de vitória. Antes a bilheteria SUBSTITUÍA a base em casa, o que deixava as rodadas
   // em casa mais pobres que as de fora (bilheteria << base) e inviabilizava os clubes grandes.
-  const income=base + (gate!=null?gate:0) + winBonus;
+  /* ===== O PATROCINIO NAO VEM DILUIDO: CAI DE UMA VEZ, NO INICIO DA TEMPORADA =====
+     Regra do dono. A rodada credita a COTA DE TV (fixa + merito) e a bilheteria; o patrocinio do
+     ano inteiro entra num lancamento so', na primeira rodada da temporada — como um contrato de
+     verdade, assinado e pago a' cabeca. O TOTAL DO ANO E' O MESMO: o que muda e' quando o dinheiro
+     esta' disponivel, e isso muda de facto o jogo — ha caixa para o mercado logo na abertura, e
+     quem o gastar todo passa o ano a viver de TV e bilheteria.
+
+     O OPEX E O BONUS DE VITORIA continuam a medir-se pela receita-base CHEIA: sao o porte do
+     clube, nao o que entrou nesta rodada. Amarra-los a' receita agora menor encolheria a despesa
+     junto e mudaria o equilibrio — que nao foi o que se pediu. */
+  const patroRodadas=patrocinioRodadasAPagar('eu');
   /* AS PARCELAS VAO PARA O LANCAMENTO, e nao so' o total. `income` e' uma soma de quatro coisas
      de naturezas diferentes — cota de TV fixa, TV por merito, patrocinio e bilheteria, mais o
      premio de vitoria — e a aba Financas so' conseguia dizer "Receita da rodada". Dai a leitura
      de que TV e patrocinio nao faziam parte do sistema financeiro: fazem, sempre fizeram, mas
      eram invisiveis.
-     NENHUM CENTAVO MUDA: `partes` reparte exactamente o `base` que ja' era creditado. */
+     `partes` reparte exactamente o `base` da regua (REBAL.receitaPartes), e e' dela que sai tanto
+     a cota de TV de cada rodada como o patrocinio pago a' cabeca. */
   const partes=(REBAL.receitaPartes)?REBAL.receitaPartes(cl.overall, divOverallAvgOf(S.division)):null;
+  const tv=partes?(partes.tvFixa+partes.tvMerito):base;
+  const patrocinio=(partes&&patroRodadas)?partes.patrocinio*patroRodadas:0;
+  const income=tv + patrocinio + (gate!=null?gate:0) + winBonus;
   let salaries=0,bonuses=0,log=[];
   squad(S.clubId).forEach(p=>{
     if(!p.contract)return; const c=p.contract; salaries+=c.salary;
@@ -5903,8 +5917,9 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   const net=income-salaries-bonuses-opex; S.budget+=net;
   pushFinanceEntry({income,salaries,bonuses,opex,log,
     tvFixa:partes?partes.tvFixa:0, tvMerito:partes?partes.tvMerito:0,
-    patrocinio:partes?partes.patrocinio:0,
+    patrocinio:patrocinio,
     bilheteria:(gate!=null?Math.round(gate):0), premioVitoria:winBonus});
+  if(patrocinio>0) S.roundNews.push(`🤝 Patrocínio da temporada recebido: ${fmt(patrocinio)}. É o valor do ano inteiro — daqui para a frente entram apenas cota de TV e bilheteria.`);
   if(S.budget<0) S.roundNews.push(`⚠️ Caixa negativo (${fmt(S.budget)}). Folha salarial pressionando as contas.`);
 }
 /* registra QUALQUER movimentação financeira — tanto o fechamento de cada rodada (bilheteria/
@@ -6889,6 +6904,20 @@ function divOverallAvgOf(div){
 /* CAIXA DA CPU POR RODADA (solo/hotseat) — a regra mora em world-rules.js e é a MESMA que o
    servidor roda na Resenha (cpuRoundCash no resolve-round). Ver applyCpuSeasonFinances acima:
    o que é operação entra aqui, rodada a rodada; o que é desempenho fica na virada. */
+/* ===== QUANTAS RODADAS O PATROCINIO DESTE ANO AINDA COBRE =====
+   Devolve 0 quando ja' foi pago nesta temporada — e' esta a trava que impede pagar duas vezes.
+   Na primeira rodada do ano devolve o calendario inteiro; num save que ja' ia a meio quando a
+   regra nasceu, devolve so' o que FALTA, porque as rodadas ja' jogadas creditaram a sua parte
+   pela regra antiga. `marca` separa o carimbo do humano do da CPU: sao dois pagamentos
+   independentes e nenhum pode desligar o outro. */
+function patrocinioRodadasAPagar(marca){
+  if(!S) return 0;
+  const carimbo='_patroAno_'+marca;
+  if(S[carimbo]===S.season) return 0;
+  S[carimbo]=S.season;
+  const total=((S.sched||[]).length)||38;
+  return Math.max(0, total-(S.round||0));
+}
 function applyCpuRoundCash(){
   if(!S || !S.budgets) return;
   if(typeof CL!=='undefined' && CL.online) return;   // na Resenha quem faz esta conta é o servidor
@@ -6898,6 +6927,10 @@ function applyCpuRoundCash(){
   WORLD_RULES.cpuCaixaRodada(S, {
     humanos:humans,
     renda:(ov,div)=>baseIncome(ov,div),
+    /* o mesmo split do humano: a rodada credita a cota de TV, o patrocinio vem de uma vez.
+       Sem isto o rival da CPU e o clube do usuario viveriam economias diferentes. */
+    partes:(ov,div)=>REBAL.receitaPartes(ov, (typeof divOverallAvgOf==='function')?divOverallAvgOf(div):undefined),
+    patrocinioRodadas:patrocinioRodadasAPagar('cpu'),
     folha:p=>(p.contract && p.contract.salary) || REBAL.wage(p.f),
     capacidade:ov=>(typeof REBAL.stadiumCap==='function')?REBAL.stadiumCap(ov):20000,
     overall:id=>{ const c=clubOf(id); return c?c.overall:null; },

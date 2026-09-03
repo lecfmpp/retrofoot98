@@ -75,7 +75,13 @@ function rfFiResumoHTML(){
   const totalRodadas=(S.sched||[]).length||14;
   const faltam=Math.max(0,totalRodadas-(S.round||0));
   const rodadas=Math.max(1,S.round||1);
-  const porRodada=Math.round((receita-despesa)/rodadas);
+  /* O PATROCINIO SAI DA MEDIA, porque ele nao se repete. Ele entra de uma vez na 1a rodada do
+     ano; incluido na conta "por rodada" fazia a media da 2a rodada projectar um ano inteiro de
+     patrocinios que nao vao acontecer — na Serie D dava um saldo previsto quarenta vezes maior
+     que o real. O que se projecta e' o RITMO: cota de TV, bilheteria, folha e custos. O dinheiro
+     do patrocinio ja' esta' dentro de `S.budget`, entao nao se perde da projecao — so' deixa de
+     ser contado outra vez em cada rodada que falta. */
+  const porRodada=Math.round(((receita-(t.patrocinio||0))-despesa)/rodadas);
   const projecao=(S.budget||0)+porRodada*faltam;
   const entra=rfFiReceitaLinhas(t).concat([[('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerSales||0]]);
   /* A FOLHA NAO NASCE A ZERO. `t.salaries` e o ACUMULADO da temporada, e antes
@@ -423,10 +429,11 @@ function rfFiPatrocinioHTML(){
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COMO AUMENTAR O PATROCÍNIO</span></div>
-      <span class="rf-fi-texto">O patrocínio é metade da receita-base, e a receita-base sobe com a
-        força do elenco: elenco melhor, contrato maior. Subir de divisão puxa a conta duas vezes —
-        o seu próprio clube vale mais e a média da ${escC(divisionLabel())} também. A outra metade
-        da receita-base é a cota de TV, que aparece no Extrato ao lado desta.</span>
+      <span class="rf-fi-texto">O valor do ano inteiro entra <b>de uma vez</b>, na primeira rodada
+        da temporada — é caixa para o mercado logo na abertura, e não volta a entrar. Depois disso o
+        clube vive de cota de TV e bilheteria. O contrato sobe com a força do elenco, e subir de
+        divisão puxa a conta duas vezes: o seu clube vale mais e a média da
+        ${escC(divisionLabel())} também.</span>
     </div>`;
 }
 
