@@ -8,12 +8,15 @@
    público, só a Resenha, por decisão do dono: no Solo o save é escrito pelo
    cliente e um placar que qualquer um pode escrever não é placar.
 
-   O QUE O DESENHO PEDE E O LIVRO AINDA NÃO TEM: `delta` (posições ganhas na
-   semana), `foto` do treinador, e o escudo/clube/modo do último save. Estes
-   campos existem na tela como estrutura e chegam vazios — a tela desenha o
-   caso "sem foto" (iniciais) e "sem variação" (—), que são estados legítimos
-   e não buracos. Ligar cada um é um passo à parte, e o sítio é um só:
-   rfRankLinhas().
+   TUDO O QUE O DESENHO PEDE JÁ TEM FONTE. A `foto` sai do perfil (bucket
+   `perfil` + coach_profiles); o clube e o escudo saem do save MAIS RECENTE — o
+   servidor manda o `club_id` e quem resolve a arte é este cliente, com o mesmo
+   `clubCrestUrl` do resto do jogo; e a `delta` vem da fotografia tirada toda
+   segunda-feira (rf_fechar_semana), positiva quando a pessoa subiu.
+
+   O QUE AINDA CHEGA VAZIO É ESTADO LEGÍTIMO, não buraco: sem foto entram as
+   iniciais, e quem não estava na fotografia da semana vem com 0, que a tela
+   desenha como "—" em vez de inventar uma subida que não aconteceu.
    ===================================================================== */
 
 /* ---------- estado ---------- */
@@ -74,13 +77,18 @@ function rfRankLinhas(){
   const d=rfRankCarregar();
   if(!d) return null;
   return d.map(r=>({
-    pos:r.pos, treinador:r.treinador, pts:Number(r.pontos||0), titulos:Number(r.titulos||0),
-    temporadas:Number(r.carreiras||0),
+    pos:r.pos, treinador:r.treinador,
+    /* TRÊS NÚMEROS, não um: `pts` é o TOTAL (o que ordena), e as duas parcelas
+       vão ao lado para a tabela poder mostrar de onde ele veio. */
+    pts:Number(r.pontos||0),
+    titulos:Number(r.titulos||0), ptsTitulos:Number(r.pts_titulos||0),
+    temporadas:Number(r.temporadas||0), ptsCampanha:Number(r.pts_campanha||0),
+    carreiras:Number(r.carreiras||0),
     foto:r.foto||null,
-    /* delta (variacao da semana) continua sem fonte: precisaria de uma foto do
-       ranking da semana passada, que o livro ainda nao guarda. `0` desenha "—",
-       que e' um estado legitimo e nao um buraco. */
-    delta:0,
+    /* POSITIVO = SUBIU. O servidor ja' devolve a conta feita contra a fotografia
+       da segunda-feira (rf_fechar_semana); quem nao estava na foto vem 0, e a
+       tela desenha "—" — nao "subiu do nada". */
+    delta:Number(r.delta||0),
     ...rfRankClube(r.club_id, r.clube), modo:r.modo_save||'Resenha',
     souEu:rfRankSouEu(r.treinador), semPeso:Number(r.sem_peso||0)
   }));
@@ -164,7 +172,7 @@ function rfRankTabelaHTML(linhas){
     </div>
     <div class="rf-rk-th">
       <span>POS</span><span>SEMANA</span><span>TREINADOR</span>
-      <span>ÚLTIMO SAVE</span><span class="dir">CARREIRAS</span><span class="dir">PONTOS</span>
+      <span>ÚLTIMO SAVE</span><span class="dir">TÍTULOS</span><span class="dir">CAMPANHA</span><span class="dir">TOTAL</span>
     </div>
     ${vis.map(l=>`<div class="rf-rk-tr ${l.souEu?'eu':''}" id="${l.souEu?'rf-rk-eu':''}">
       <span class="rf-rk-pos ${l.pos<=3?'top':''}">${l.pos}º</span>
@@ -181,13 +189,16 @@ function rfRankTabelaHTML(linhas){
           <span class="rf-rk-save-m">${escC(l.modo||'')}</span>
         </span>
       </span>
-      <span class="rf-rk-temp dir">${l.temporadas}</span>
+      <span class="rf-rk-col dir" title="${l.titulos} título(s) · ${rfRankNum(l.ptsTitulos)} pontos">
+        <b>${l.titulos}</b><i>${rfRankNum(l.ptsTitulos)} pts</i></span>
+      <span class="rf-rk-col dir" title="${l.temporadas} temporada(s) concluída(s)">
+        <b>${l.temporadas}</b><i>${rfRankNum(l.ptsCampanha)} pts</i></span>
       <span class="rf-rk-pts dir">${rfRankNum(l.pts)}</span>
     </div>`).join('')}
     <div class="rf-rk-ft">
       ${linhas.length>e.aberto?`<button type="button" class="rf-rk-bt" onclick="rfRankSet('aberto',${e.aberto+20})">Ver mais 20</button>`:''}
       ${linhas.some(l=>l.souEu)?`<button type="button" class="rf-rk-bt" onclick="rfRankIrParaMim()">Ir para a minha posição</button>`:''}
-      <span class="rf-rk-nota">Pontos por título, com o peso de cada competição. O ranking é do Modo Resenha.</span>
+      <span class="rf-rk-nota">O total soma os <b>títulos</b> (com o peso de cada competição) e a <b>campanha</b> (os pontos que o time fez, pesados pela divisão). O ranking é do Modo Resenha.</span>
     </div>
   </div>`;
 }
@@ -231,6 +242,37 @@ function rfRankHTML(){
    ponta com uma pílula à direita (mobile). A troca é por CSS — o HTML é um só,
    pela mesma razão da tela de Opções.
    ===================================================================== */
+/* a barra quando ainda não há 4º colocado: o pódio ocupa a largura e o ticker não
+   existe. Melhor uma barra curta e verdadeira do que uma a fingir movimento com
+   os mesmos nomes. */
+function rfFitaSemTicker(tres, eu){
+  return `<div class="rf-fita curta" onclick="rfGo('ranking')" role="button" tabindex="0"
+      onkeydown="if(event.key==='Enter')rfGo('ranking')" title="Abrir o ranking dos treinadores">
+    <div class="rf-fita-podio">${tres.map((t,i)=>`
+      <span class="rf-fita-c c${i+1}">
+        <span class="rf-fita-med m${i+1}">${i+1}º</span>
+        ${rfRankEscudo(t,30)}
+        <span class="rf-fita-cid">
+          <span class="rf-fita-cn">${escC(t.treinador)}</span>
+          <span class="rf-fita-cp">${rfRankNum(t.pts)} pts</span>
+        </span>
+      </span>`).join('')}</div>
+    <div class="rf-fita-mid"></div>
+    ${eu?`<div class="rf-fita-eu">
+      <span class="rf-fita-eu-id">
+        <span class="rf-fita-eu-r">A SUA POSIÇÃO</span>
+        <span class="rf-fita-eu-l"><b>${eu.pos}º</b>${rfRankPill(eu.delta,false)}</span>
+      </span>
+      <span class="rf-fita-eu-div"></span>
+      ${rfRankEscudo(eu,26)}
+      <span class="rf-fita-eu-id2">
+        <span class="rf-fita-eu-n">${escC(eu.treinador)}</span>
+        <span class="rf-fita-eu-p">${rfRankNum(eu.pts)} PTS</span>
+      </span>
+    </div>`:''}
+    ${eu?`<span class="rf-fita-pilula">#${eu.pos}${eu.delta?(' '+(eu.delta>0?'▲':'▼')+Math.abs(eu.delta)):''}</span>`:''}
+  </div>`;
+}
 function rfFitaHTML(){
   const l=rfRankLinhas();
   if(!l || !l.length) return '';                 // sem ranking não há faixa
@@ -243,10 +285,22 @@ function rfFitaHTML(){
       <span class="rf-fita-v">${rfRankNum(t.pts)}</span>
       ${t.souEu?'<span class="rf-fita-tag">VOCÊ</span>':''}
     </span>`;
-  /* a lista vai DUPLICADA e o trilho anda de 0 a -50%: é o que faz o laço não
-     ter emenda. Sem a cópia, o fim da lista deixaria um vazio a atravessar. */
-  const corrida=(resto.length?resto:l);
-  const trilho=corrida.map(item).join('')+corrida.map(item).join('');
+  /* ===== O TICKER É DO 4º PARA BAIXO, E SÓ EXISTE SE HOUVER 4º =====
+     Duas coisas davam nomes repetidos na barra, e as duas apareciam juntas
+     quando o ranking é pequeno:
+       · sem `resto`, o código caía na lista INTEIRA — e aí os mesmos três do
+         pódio ancorado voltavam a correr ao lado dele;
+       · a lista vai duplicada de propósito (o trilho anda de 0 a -50%, e é o que
+         faz o laço não ter emenda), o que com poucos nomes lê-se como "o jogo
+         está a repetir gente".
+     Com o ranking a nascer — dois treinadores — o efeito era ver GRINGO e
+     CHIANELLI quatro vezes na mesma barra. Agora: sem 4º não há ticker (o pódio
+     já mostra toda a gente), e a cópia só entra quando há nomes que cheguem para
+     o laço ser laço em vez de repetição visível. */
+  if(!resto.length) return rfFitaSemTicker(tres, eu);
+  const trilho = (resto.length>=6)
+    ? resto.map(item).join('')+resto.map(item).join('')
+    : resto.map(item).join('');
   return `<div class="rf-fita" onclick="rfGo('ranking')" role="button" tabindex="0"
       onkeydown="if(event.key==='Enter')rfGo('ranking')" title="Abrir o ranking dos treinadores">
     <div class="rf-fita-podio">${tres.map((t,i)=>`
@@ -258,7 +312,7 @@ function rfFitaHTML(){
           <span class="rf-fita-cp">${rfRankNum(t.pts)} pts</span>
         </span>
       </span>`).join('')}</div>
-    <div class="rf-fita-mid"><div class="rf-fita-trilho">${trilho}</div><span class="rf-fita-mask"></span></div>
+    <div class="rf-fita-mid"><div class="rf-fita-trilho ${resto.length>=6?'':'parado'}">${trilho}</div><span class="rf-fita-mask"></span></div>
     ${eu?`<div class="rf-fita-eu">
       <span class="rf-fita-eu-id">
         <span class="rf-fita-eu-r">A SUA POSIÇÃO</span>

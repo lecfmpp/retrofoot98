@@ -4908,6 +4908,55 @@ function enviarTitulos(modo, origem){
     pontos:(typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(h.comp,h.uni,h.div))||0 : 0
   }));
   try{ Promise.resolve(NET.enviarTitulos(modo, origem, nome, lista)).catch(()=>{}); }catch(e){}
+  enviarTemporadas(modo, origem, nome);
+}
+/* ===== A CAMPANHA TAMBEM PONTUA =====
+   O ranking somava so' titulos, e quem faz uma grande temporada sem levantar taca
+   valia zero. Agora a campanha conta — e conta MENOS que o titulo, que continua a
+   ser a conquista.
+
+   O PESO DE UM PONTO DEPENDE DA DIVISAO, e tem de depender: 60 pontos na Serie D
+   nao podem valer o mesmo que 60 na Serie A, senao subir de divisao PIORA o
+   ranking de quem sobe. O fator sai da mesma escala dos titulos —
+   `pontosDeTitulo` da competicao daquela divisao — dividido por 100:
+
+     Serie A (titulo 15) -> 0,15 -> uma campanha de 70 pontos vale 10,5
+     Serie D (titulo 0,5) -> 0,005 -> uma campanha de 60 pontos vale 0,3
+
+   Ou seja: uma grande campanha na elite vale cerca de dois tercos do titulo dela,
+   e nunca mais do que ele. O DIVISOR 100 e' a unica coisa a mexer para tornar a
+   campanha mais ou menos importante — esta' aqui, num sitio so'.
+
+   A FONTE E' S.history, o registo por temporada que o jogo ja' guarda. Sem ele
+   (save antigo) nao se inventa nada: nao ha' o que enviar. */
+const CAMPANHA_DIVISOR = 100;
+function enviarTemporadas(modo, origem, nome){
+  if(typeof NET==='undefined' || !NET.enviarTemporadas || !origem) return;
+  if(typeof S==='undefined' || !S || !Array.isArray(S.history) || !S.history.length) return;
+  const lista=[];
+  S.history.forEach(h=>{
+    if(!h || h.season==null) return;
+    const pts=Number(h.pts!=null?h.pts:h.Pts);
+    if(!isFinite(pts)) return;
+    const div=h.div||h.division||null;
+    const uni=h.uni||(S.intlUniverse||'brasil');
+    let peso=0;
+    try{
+      const comp=(typeof divisionCompKeyFor==='function') ? divisionCompKeyFor(div) : null;
+      peso=(comp && typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(comp, uni, div))||0 : 0;
+    }catch(e){}
+    lista.push({ season:h.season, div:div, uni:uni,
+      pos:(h.pos!=null?h.pos:null), ptsLiga:Math.round(pts),
+      pontos:Math.round((pts*peso/CAMPANHA_DIVISOR)*100)/100 });
+  });
+  if(!lista.length) return;
+  const ult=lista[lista.length-1];
+  const assinatura=modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.ptsLiga;
+  if(typeof CL!=='undefined'){
+    if(CL._temporadasEnviadas===assinatura) return;
+    CL._temporadasEnviadas=assinatura;
+  }
+  try{ Promise.resolve(NET.enviarTemporadas(modo, origem, nome, lista)).catch(()=>{}); }catch(e){}
 }
 /* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
    Diferente do solo (que oferece clubes na hora): na Resenha o treinador é DEMITIDO, fica

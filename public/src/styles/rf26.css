@@ -10328,7 +10328,7 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-rk-convite-id b{font-size:14px;font-weight:700;color:#12201a}
 .rf-rk-convite-id span{font-size:12px;color:#78877c;line-height:1.5;text-wrap:pretty}
 /* tabela */
-.rf-rk-th,.rf-rk-tr{display:grid;grid-template-columns:44px 52px minmax(0,1.6fr) minmax(0,1.3fr) 96px 92px;gap:12px;align-items:center;min-width:0}
+.rf-rk-th,.rf-rk-tr{display:grid;grid-template-columns:44px 52px minmax(0,1.5fr) minmax(0,1.2fr) 78px 78px 84px;gap:10px;align-items:center;min-width:0}
 .rf-rk-th{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:#9aa79e;padding:0 10px 8px}
 .rf-rk-th .dir,.rf-rk-tr .dir{text-align:right;justify-self:end}
 .rf-rk-tr{padding:10px;border-radius:12px;border-bottom:1px solid #f4f6f3}
@@ -10345,6 +10345,11 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-rk-save-id{display:flex;flex-direction:column;gap:1px;min-width:0}
 .rf-rk-save-c{font-size:12.5px;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-rk-save-m{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#9aa79e}
+/* coluna de parcela: o número grande em cima, os pontos dele em mono por baixo —
+   é o que deixa ver que 3 títulos podem valer mais que 8 temporadas. */
+.rf-rk-col{display:flex;flex-direction:column;gap:1px;align-items:flex-end}
+.rf-rk-col b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;font-weight:700;color:#12201a}
+.rf-rk-col i{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;font-style:normal;color:#9aa79e}
 .rf-rk-temp{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;color:#5d6c62}
 .rf-rk-pts{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;font-weight:700;color:#12201a}
 .rf-rk-ft{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:12px}
@@ -10426,7 +10431,7 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-rk-av.mini{width:32px;height:32px}
   .rf-rk-save{order:5;width:100%;padding-left:65px;margin-top:-4px}
   .rf-rk-save-c{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#9aa79e}
-  .rf-rk-temp{display:none}
+  .rf-rk-temp,.rf-rk-col{display:none}
   .rf-rk-pts{font-size:13px;order:4}
   .rf-rk-tr .rf-rk-pill{order:6}
   .rf-rk-ft{flex-direction:column;align-items:stretch}
@@ -10479,4 +10484,18 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-op-pf-av{width:72px;height:72px;font-size:22px}
   .rf-op-pf-bts{flex-direction:column}
   .rf-op-pf-bts .rf-op-bt{width:100%;height:46px}
+}
+/* trilho sem nomes que cheguem para o laço: fica parado, em vez de repetir gente */
+.rf-fita-trilho.parado{animation:none}
+/* barra sem ticker (ainda não há 4º): o pódio ocupa a largura */
+.rf-fita.curta .rf-fita-podio{flex:1;min-width:0}
+.rf-fita.curta .rf-fita-c{flex:1;min-width:0}
+@media (max-width:900px){
+  /* no mobile a barra é SÓ o ticker; sem 4º não há o que correr, então mostra o
+     pódio em linha, que é a informação que a pílula sozinha não dá */
+  .rf-fita.curta .rf-fita-podio{display:flex;background:none;border-right:0}
+  .rf-fita.curta .rf-fita-c{padding:0 10px;gap:7px}
+  .rf-fita.curta .rf-fita-cn{font-size:12px}
+  .rf-fita.curta .rf-fita-cp{font-size:9px}
+  .rf-fita.curta .rf-fita-pilula{display:none}
 }

@@ -1482,6 +1482,15 @@ async function netRanking(modo, limite){
   if(error){ console.warn('ranking:', error.message||error); return []; }
   return data||[];
 }
+/* gemea de netEnviarTitulos, para a CAMPANHA (ver rf_registrar_temporadas). */
+async function netEnviarTemporadas(modo, origem, treinador, temporadas){
+  if(!sb || !SB_AUTH_USER || !modo || !origem) return 0;
+  if(!Array.isArray(temporadas) || !temporadas.length) return 0;
+  const { data, error } = await sb.rpc('rf_registrar_temporadas', {
+    p_modo:modo, p_origem:String(origem), p_treinador:treinador||null, p_temporadas:temporadas });
+  if(error){ console.warn('enviarTemporadas:', error.message||error); return 0; }
+  return data||0;
+}
 async function netDeleteSoloSave(name){
   if(!sb || !SB_AUTH_USER) return false;
   const { error } = await sb.from('solo_saves').delete().eq('save_name', name);
@@ -1951,6 +1960,7 @@ NET.listSoloSaves = netListSoloSaves;
 NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.enviarTitulos = netEnviarTitulos;
+NET.enviarTemporadas = netEnviarTemporadas;
 NET.ranking = netRanking;
 NET.perfilFoto = netPerfilFoto;
 NET.perfilSemFoto = netPerfilSemFoto;
