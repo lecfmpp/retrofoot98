@@ -25,6 +25,28 @@ function rfFiTotais(){
   const despesa=(t.salaries||0)+(t.bonuses||0)+(t.opex||0)+(t.playerPurchases||0)+(t.stadium||0);
   return {receita, despesa, saldo:receita-despesa};
 }
+/* ===== DE ONDE VEM A RECEITA =====
+   O motor credita a receita-base todas as rodadas desde sempre — cota de TV e patrocínio
+   incluídos —, mas o lançamento só tinha um campo, `income`, com tudo somado. A tela dizia
+   "Receita da rodada" e mais nada, e daí a leitura de que TV e patrocínio não existiam no jogo.
+   Agora o motor carimba as parcelas (ver RF_RECEITA_PARTES em core.js) e elas aparecem com nome.
+
+   SAVES ANTERIORES A ISTO não têm as parcelas: as rodadas já fechadas guardaram só o total. Aí
+   a linha única volta, em vez de mostrar quatro zeros e um total que não bate com elas — o que
+   é a verdade daquele save, não um buraco. As rodadas seguintes já entram repartidas.
+
+   A SOBRA APARECE. Se o total for maior do que as parcelas conhecidas (uma receita futura que
+   nasça fora destas cinco naturezas), o resto sai como "Outras receitas" em vez de sumir. */
+const RF_FI_RECEITA_ROT=[['tvFixa','Cota de TV (fixa)'],['tvMerito','Cota de TV (mérito)'],
+  ['patrocinio','Patrocínio'],['bilheteria','Bilheteria'],['premioVitoria','Prêmio de desempenho']];
+function rfFiReceitaLinhas(o){
+  const total=(o&&o.income)||0;
+  const partes=RF_FI_RECEITA_ROT.map(([k,rot])=>[rot, Math.round((o&&o[k])||0)]);
+  const soma=partes.reduce((t,x)=>t+x[1],0);
+  if(!soma) return total?[['Receita da rodada', total]]:[];
+  const sobra=total-soma;
+  return partes.filter(x=>x[1]).concat(sobra>0?[['Outras receitas', sobra]]:[]);
+}
 /* linha de ENTRA/SAI: rótulo · barrinha proporcional ao maior item · valor */
 function rfFiLinha(rot, valor, maior, cor){
   const pct=maior?Math.round(100*valor/maior):0;
@@ -55,7 +77,7 @@ function rfFiResumoHTML(){
   const rodadas=Math.max(1,S.round||1);
   const porRodada=Math.round((receita-despesa)/rodadas);
   const projecao=(S.budget||0)+porRodada*faltam;
-  const entra=[['Receita da rodada', t.income||0],[('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerSales||0]];
+  const entra=rfFiReceitaLinhas(t).concat([[('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerSales||0]]);
   /* A FOLHA NAO NASCE A ZERO. `t.salaries` e o ACUMULADO da temporada, e antes
      da primeira rodada nao acumulou nada — a tela dizia "Folha salarial 0" com
      o elenco todo contratado, e so na 2a rodada aparecia. O compromisso ja e
@@ -125,14 +147,13 @@ function rfFiExtratoHTML(){
   let saldo=S.budget||0;
   const linhas=[];
   fin.forEach(f=>{
-    const itens=[
-      ['Receita da rodada', f.income||0, 1],
+    const itens=rfFiReceitaLinhas(f).map(([rot,v])=>[rot,v,1]).concat([
       [('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), f.playerSales||0, 1],
       ['Folha salarial', -(f.salaries||0), -1],
       ['Custo operacional', -(f.opex||0), -1],
       [('Compra de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), -(f.playerPurchases||0), -1],
       ['Obras no estádio', -(f.stadium||0), -1],
-    ].filter(x=>x[1]);
+    ]).filter(x=>x[1]);
     itens.forEach(([rot,valor])=>{
       const entrada=valor>0;
       linhas.push(`<div class="rf-el-row">
@@ -338,38 +359,52 @@ function rfFiEstadioHTML(){
 
 /* =====================================================================
    5 · PATROCÍNIO
-   OS ESPAÇOS SÃO O CÁLCULO DO JOGO, não contratos assinados: o motor não
-   guarda contrato com marca e vencimento. O que existe é quanto cada espaço
-   RENDE, por capacidade e divisão. As marcas do inventário (AD_SPONSORS) são
-   publicidade da tela, não do save — por isso entram como a arte do espaço
-   ocupado, e o vencimento fica em traço.
+   O DINHEIRO AQUI É O DINHEIRO A SÉRIO. Esta aba tinha a sua PRÓPRIA fórmula
+   (capacidade × peso da divisão × 0,7) que não tinha relação nenhuma com o que
+   o motor credita: mostrava ~1,8 M/temporada a um clube da Série A quando o
+   patrocínio realmente creditado é ~60 M. Duas réguas para o mesmo dado — e a
+   que a tela mostrava não pagava nada a ninguém.
+
+   Agora a conta vem de `REBAL.receitaPartes`, a mesma que `processFinances`
+   usa todas as rodadas: metade da receita-base é patrocínio. Os três espaços
+   REPARTEM esse valor (a soma é o total exacto, o último leva o resto), então
+   o que está escrito nos contratos é dinheiro que entra mesmo no caixa.
+
+   NÃO HÁ CONTRATO NO MOTOR — não há marca com vencimento nem negociação. As
+   marcas de AD_SPONSORS são publicidade da tela e entram só como a arte do
+   espaço; o vencimento fica em traço porque não existe.
+
+   OS "ESPAÇOS LIVRES" SAÍRAM. Ofereciam calção e boné "a partir de X/temporada"
+   numa venda que o jogo não sabe fazer: nenhum clique, nenhuma receita. Pela
+   regra do dono — funcionalidade que não existe não se anuncia — o cartão foi
+   removido em vez de continuar a prometer.
    ===================================================================== */
 function rfFiPatrocinioHTML(){
-  const st=(typeof myStadium==='function')?myStadium():null;
-  const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:20000);
-  const peso={A:8,B:4,C:2,D:1}[S.division]||1;
-  const base=Math.round(cap*peso*0.7);
+  const cl=(typeof clubOf==='function')?clubOf(CL.clubId):null;
+  const med=(typeof divOverallAvgOf==='function')?divOverallAvgOf(S.division):undefined;
+  const partes=(cl && REBAL.receitaPartes)?REBAL.receitaPartes(cl.overall, med):null;
+  const porRodada=partes?partes.patrocinio:0;
+  /* POR TEMPORADA = por rodada × as rodadas do calendário deste ano. É a unidade em que um
+     contrato se lê, e a divisão por rodada continua à vista na etiqueta do cartão. */
+  const rodadas=((S.sched||[]).length)||38;
+  const total=porRodada*rodadas;
   const marcas=(typeof AD_SPONSORS!=='undefined')?AD_SPONSORS:[];
-  /* SINCRONIA COM O UNIFORME: o patrocinador da CAMISA é o mesmo que está
-     estampado no uniforme do clube (Estúdio do painel -> RF_UNIFORMES).
-     Trocou o logo no uniforme, troca aqui — uma fonte só. Sem uniforme com
-     patrocinador, cai no rodízio de sempre (AD_SPONSORS). */
+  /* SINCRONIA COM O UNIFORME: o patrocinador da CAMISA é o mesmo que está estampado no uniforme
+     do clube (Estúdio do painel -> RF_UNIFORMES). Trocou o logo no uniforme, troca aqui — uma
+     fonte só. Sem uniforme com patrocinador, cai no rodízio de sempre (AD_SPONSORS). */
   const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)]||{};
+  const quota=[0.55,0.27,0.18];                    // camisa · manga · placas
+  const v0=Math.round(total*quota[0]), v1=Math.round(total*quota[1]);
   const ativos=[
-    {nome:'Camisa', papel:'Patrocinador principal — camisa', valor:base*2,
+    {nome:'Camisa', papel:'Patrocinador principal — camisa', valor:v0,
      marcaSrc: uni.patroUrl||null, marcaNome: uni.patroNome||null},
-    {nome:'Manga',  papel:'Manga da camisa',        valor:Math.round(base*1.3),
+    {nome:'Manga',  papel:'Manga da camisa', valor:v1,
      marcaSrc: uni.fabricanteUrl||null, marcaNome: null},
-    {nome:'Placas', papel:'Placas do estádio',      valor:base},
-  ];
-  const total=ativos.reduce((t,e)=>t+e.valor,0);
-  const livres=[
-    {nome:'Calção', valor:Math.round(base*.35)},
-    {nome:'Boné de treino', valor:Math.round(base*.12)},
+    {nome:'Placas', papel:'Placas do estádio', valor:total-v0-v1},
   ];
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CONTRATOS ATIVOS</span>
-        <span class="rf-label-r">${ativos.length} · ${escC(fmt(total))}/temporada</span></div>
+        <span class="rf-label-r">${escC(fmt(total))}/temporada · ${escC(fmt(porRodada))} por rodada</span></div>
       ${ativos.map((e,i)=>{
         const m=marcas[i%Math.max(1,marcas.length)];
         const src=e.marcaSrc||(m&&m.src)||null;
@@ -386,24 +421,12 @@ function rfFiPatrocinioHTML(){
         </div>`;
       }).join('')}
     </div>
-    <div class="rf-fi-duo">
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">ESPAÇOS LIVRES</span>
-          <span class="rf-label-r">${livres.length}</span></div>
-        ${livres.map(e=>`<div class="rf-fi-livre">
-          <span class="rf-fi-livre-i">＋</span>
-          <span class="rf-fi-livre-id">
-            <span class="rf-fi-livre-n">${escC(e.nome)}</span>
-            <span class="rf-fi-livre-v">${escC(fmt(e.valor))}/temporada estimados</span>
-          </span>
-        </div>`).join('')}
-      </div>
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">COMO AUMENTAR O PATROCÍNIO</span></div>
-        <span class="rf-fi-texto">Subir de divisão multiplica o valor dos espaços — o peso da
-          ${escC(divisionLabel())} é o que manda na conta. Estádio maior também paga mais, porque o
-          cálculo usa a capacidade: cada bancada nova entra no valor da temporada seguinte.</span>
-      </div>
+    <div class="rf-card">
+      <div class="rf-label"><span class="rf-label-t">COMO AUMENTAR O PATROCÍNIO</span></div>
+      <span class="rf-fi-texto">O patrocínio é metade da receita-base, e a receita-base sobe com a
+        força do elenco: elenco melhor, contrato maior. Subir de divisão puxa a conta duas vezes —
+        o seu próprio clube vale mais e a média da ${escC(divisionLabel())} também. A outra metade
+        da receita-base é a cota de TV, que aparece no Extrato ao lado desta.</span>
     </div>`;
 }
 

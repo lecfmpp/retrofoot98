@@ -5873,6 +5873,13 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   // casa + bônus de vitória. Antes a bilheteria SUBSTITUÍA a base em casa, o que deixava as rodadas
   // em casa mais pobres que as de fora (bilheteria << base) e inviabilizava os clubes grandes.
   const income=base + (gate!=null?gate:0) + winBonus;
+  /* AS PARCELAS VAO PARA O LANCAMENTO, e nao so' o total. `income` e' uma soma de quatro coisas
+     de naturezas diferentes — cota de TV fixa, TV por merito, patrocinio e bilheteria, mais o
+     premio de vitoria — e a aba Financas so' conseguia dizer "Receita da rodada". Dai a leitura
+     de que TV e patrocinio nao faziam parte do sistema financeiro: fazem, sempre fizeram, mas
+     eram invisiveis.
+     NENHUM CENTAVO MUDA: `partes` reparte exactamente o `base` que ja' era creditado. */
+  const partes=(REBAL.receitaPartes)?REBAL.receitaPartes(cl.overall, divOverallAvgOf(S.division)):null;
   let salaries=0,bonuses=0,log=[];
   squad(S.clubId).forEach(p=>{
     if(!p.contract)return; const c=p.contract; salaries+=c.salary;
@@ -5894,7 +5901,10 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   // limite. Escala com a receita-base, então acompanha o porte do clube.
   const opex=Math.round(base*REBAL.OPEX);
   const net=income-salaries-bonuses-opex; S.budget+=net;
-  pushFinanceEntry({income,salaries,bonuses,opex,log});
+  pushFinanceEntry({income,salaries,bonuses,opex,log,
+    tvFixa:partes?partes.tvFixa:0, tvMerito:partes?partes.tvMerito:0,
+    patrocinio:partes?partes.patrocinio:0,
+    bilheteria:(gate!=null?Math.round(gate):0), premioVitoria:winBonus});
   if(S.budget<0) S.roundNews.push(`⚠️ Caixa negativo (${fmt(S.budget)}). Folha salarial pressionando as contas.`);
 }
 /* registra QUALQUER movimentação financeira — tanto o fechamento de cada rodada (bilheteria/
@@ -5904,20 +5914,28 @@ function processFinances(userResult,uf,startedNames,gateOverride){
    2) S.seasonTotals acumula tudo, SEM cap, pro total "da temporada até agora" da aba Finanças —
       antes esse total vinha de somar o próprio S.finances capado, então depois da 12ª rodada
       as rodadas mais antigas silenciosamente saíam da conta (salário/bônus "sumindo"). */
+/* as cinco naturezas em que a receita de uma rodada se reparte. Uma lista so', para o motor e a
+   tela nunca discordarem sobre quais sao. */
+const RF_RECEITA_PARTES=['tvFixa','tvMerito','patrocinio','bilheteria','premioVitoria'];
 function pushFinanceEntry(patch){
   S.finances=S.finances||[];
   S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+  /* as parcelas da receita nasceram depois; saves antigos entram com zero e a partir da proxima
+     rodada acumulam normalmente. O total (`income`) nunca depende delas — e' ele que manda. */
+  RF_RECEITA_PARTES.forEach(k=>{ if(S.seasonTotals[k]==null) S.seasonTotals[k]=0; });
   if(S.seasonTotals.opex==null) S.seasonTotals.opex=0;                 // saves antigos, salvos antes do custo operacional existir
   /* O DIA DO SAVE VAI NO LANCAMENTO. So o `round` nao chega para dizer QUANDO:
      desde o calendario por dia, uma rodada tem sete dias e ha movimentacao que
      acontece fora do fecho da rodada (compra, venda, obra). Com o dia carimbado
      o extrato mostra a data real; saves antigos, sem ele, caem na data da
      rodada (ver rfFiExtratoHTML). */
-  const entry=Object.assign({round:S.round+1,day:S.day,income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[]},patch);
+  const entry=Object.assign({round:S.round+1,day:S.day,income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[],
+    tvFixa:0,tvMerito:0,patrocinio:0,bilheteria:0,premioVitoria:0},patch);
   entry.net=(entry.income||0)+(entry.playerSales||0)-(entry.salaries||0)-(entry.bonuses||0)-(entry.opex||0)-(entry.playerPurchases||0)-(entry.stadium||0);
   S.finances.unshift(entry);
   if(S.finances.length>12) S.finances.pop();
   S.seasonTotals.income+=entry.income||0;
+  RF_RECEITA_PARTES.forEach(k=>{ S.seasonTotals[k]+=entry[k]||0; });
   S.seasonTotals.salaries+=entry.salaries||0;
   S.seasonTotals.bonuses+=entry.bonuses||0;
   S.seasonTotals.opex+=entry.opex||0;

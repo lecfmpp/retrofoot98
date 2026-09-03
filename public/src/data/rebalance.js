@@ -182,6 +182,20 @@
      Sem o overall médio (chamador antigo, save velho), cai em 100% pelo clube — idêntico ao de
      antes, então nenhum chamador quebra. */
   const TV_MERITO=0.75, TV_FIXA=0.25;
+  /* AS TRÊS PARCELAS COM NOME. O split acima é de DUAS metades (o que depende do clube e o que
+     depende da divisão) porque é só isso que a conta do dinheiro precisa de saber. Mas os 75%
+     do clube são, no desenho, duas coisas diferentes — patrocínio e cota de TV por mérito — e
+     sem esta tabela esse desenho existia apenas no comentário: não havia um só sítio no código
+     capaz de responder "quanto deste dinheiro é patrocínio?".
+
+     É POR ISSO QUE A ABA PATROCÍNIO INVENTAVA A SUA PRÓPRIA CONTA (capacidade × peso da divisão),
+     que não tinha relação nenhuma com o dinheiro realmente creditado — mostrava 1,8 M/temporada
+     na Série A quando o patrocínio a sério rende ~60 M. Duas réguas para o mesmo dado, a
+     armadilha de sempre. Agora há uma só, e é esta.
+
+     NÃO MUDA UM CENTAVO: as parcelas somam EXACTAMENTE `income()` (ver receitaPartes). O que
+     muda é o jogo passar a saber dizer de onde o dinheiro vem. */
+  const SPLIT={ patrocinio:0.50, tvMerito:0.25, tvFixa:0.25 };
 
   /* ---- 3c. O EIXO DE MODALIDADE (masculino / feminino) ----
      O universo feminino (brasilFem) usa OS MESMOS clubes e o MESMO objeto de jogador do masculino
@@ -209,6 +223,26 @@
     const medio=(typeof ovMedioDivisao==='number' && isFinite(ovMedioDivisao))
       ? incomeTabela(ovMedioDivisao) : proprio;
     return Math.max(20000, Math.round((TV_MERITO*proprio + TV_FIXA*medio) * modFator(uni)));
+  }
+  /* A RECEITA-BASE REPARTIDA, com a garantia de que as partes somam o todo.
+     Arredondar cada parcela por si daria uma soma 1 ou 2 reais diferente de `income()`, e o
+     extrato de finanças mostraria linhas que não fecham com o total — o tipo de desacerto que
+     ninguém consegue explicar depois. Aqui as duas primeiras são arredondadas e a terceira é o
+     RESTO: fecha sempre, por construção.
+
+     O piso de 20 mil de `income()` também é respeitado: quando ele morde, as parcelas são
+     re-escaladas na mesma proporção em vez de somarem menos do que o clube recebeu. */
+  function receitaPartes(overall, ovMedioDivisao, uni){
+    const total=income(overall, ovMedioDivisao, uni);
+    const f=modFator(uni);
+    const proprio=incomeTabela(overall);
+    const medio=(typeof ovMedioDivisao==='number' && isFinite(ovMedioDivisao))
+      ? incomeTabela(ovMedioDivisao) : proprio;
+    const cru=(SPLIT.patrocinio+SPLIT.tvMerito)*proprio*f + SPLIT.tvFixa*medio*f;
+    const k=cru>0 ? total/cru : 0;                       // 1 salvo quando o piso mordeu
+    const patrocinio=Math.round(SPLIT.patrocinio*proprio*f*k);
+    const tvMerito=Math.round(SPLIT.tvMerito*proprio*f*k);
+    return { total, patrocinio, tvMerito, tvFixa: total-patrocinio-tvMerito };
   }
   /* Bônus de vitória/empate como FRAÇÃO da receita-base, não valor fixo. O antigo R$500k fixo
      valia 9% da receita de um clube da Série A e 40% da de um da Série D — uma vitória na D
@@ -240,7 +274,7 @@
   function stadiumCapForDivision(division){ return DIV_CAP[bandKey(division)] || 25000; }
 
   root.REBAL={ force, engForce, engForceGK, value, valueBase, salary, wage, budget,
-               income, incomeTabela, modFator, stadiumCap, stadiumCapForDivision,
-               BUDGET, BANDS, MOD_FATOR, TV_MERITO, TV_FIXA, WIN_BONUS, DRAW_BONUS, OPEX };
+               income, incomeTabela, receitaPartes, modFator, stadiumCap, stadiumCapForDivision,
+               BUDGET, BANDS, MOD_FATOR, TV_MERITO, TV_FIXA, SPLIT, WIN_BONUS, DRAW_BONUS, OPEX };
   if(typeof module!=='undefined' && module.exports){ module.exports={ REBAL:root.REBAL }; }
 })(typeof globalThis!=='undefined'?globalThis:this);
