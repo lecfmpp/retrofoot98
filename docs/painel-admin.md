@@ -295,6 +295,42 @@ Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEF
 
 ---
 
+## 3c. Funcionalidades — o card como ficha
+
+O quadro tem de continuar legível **de relance**: título, prioridade, nota de uma linha, autor,
+votos. Tudo o que é comprido vive na **ficha**, que abre ao clicar no card.
+
+| Onde | O quê |
+|---|---|
+| Card no quadro | checkbox de feito, título, prioridade, nota curta, origem, votos, quem criou e quando |
+| Ficha (clique no card) | título, nota, **conteúdo** (texto livre com links), prioridade, origem, coluna, autoria e o **histórico do card** |
+
+**Prioridade** tem quatro valores — *Urgente*, *Importante*, *Para depois*, *Só ideia* — e um
+quinto estado que é **não ter**: card recém-criado não é "só ideia", é não triado, e pintar os
+dois igual esconderia a fila de triagem.
+
+**O checkbox move para a coluna de conclusão** (`colunaFeito()`: por nome — *Feito*, *Concluído*,
+*Pronto*, *Done* — com a última coluna como reserva). Desmarcar devolve à coluna de origem, que
+fica guardada; sem registro dela, volta para a primeira. Sem isso, desmarcar deixaria o card
+preso em "Feito".
+
+**Os filtros escondem, não removem.** O card filtrado continua na coluna e na ordem dele — é o
+que faz o arrasto e a gravação de ordem continuarem corretos — e o cabeçalho diz quantos estão
+escondidos, porque um quadro que parece vazio por causa de um filtro esquecido é pior do que
+nenhum filtro. O corte por data é sobre a **criação** do card, que é a pergunta real ("o que
+entrou esta semana?"), não sobre a última mexida.
+
+**O histórico do card não é tabela nova**: sai de `adm_audit`, filtrado por
+`detalhe->>'feature_id'`. Filtrar pelo título não serviria — o título muda, e o histórico é
+justamente onde se vê que mudou. Por isso **toda ação de card grava o id** em `feature_id`
+(`supabase/sql/features-autoria.sql` cria o índice que torna essa pergunta barata). Cards
+mexidos antes de 03/09/2026 só passam a ter histórico a partir da mexida seguinte.
+
+Ler é leitura: **quem tem papel de `leitura` abre a ficha, vê o conteúdo e o histórico** — só não
+edita. Prender a ficha ao papel de escrita tiraria de metade da equipe a parte mais útil dela.
+
+---
+
 ## 4a. Finanças — período, despesas e as duas moedas
 
 **Dois filtros, de propósito diferente.** O de cima (ano + mês; mês vazio = ano inteiro) serve
@@ -303,6 +339,17 @@ para **fechar um período** — manda nos KPIs, nas receitas e no fechamento. O 
 **últimos gastos**, atravessando meses — presa ao mês corrente, no dia 2 ela estaria vazia. A
 lista de meses sai dos lançamentos, não de um intervalo inventado: mês sem movimento não aparece
 e lançamento antigo não fica inalcançável.
+
+**Nem tudo na página segue o filtro, e isso está escrito na tela.** O gráfico *Lucro por mês* é a
+tendência dos últimos seis meses (vem de `overview`, não dos lançamentos filtrados) e o card de
+gasto de IA é sempre de todos os meses — os dois dizem isso no próprio bloco, e o gráfico marca a
+barra do mês escolhido. Parados ao lado de KPIs que mudam, eles pareciam não ter atualizado.
+
+**Redesenho de dentro da página nunca falha em silêncio.** Trocar um filtro chama `pgX()` de
+novo, e essa promessa não era apanhada por ninguém — só `irPara()` tem `.catch`. Qualquer erro no
+meio virava rejeição silenciosa e a tela ficava com os números **antigos**, sem aviso: um sintoma
+indistinguível de "o filtro não funciona". Todo redesenho passa agora por `redesenhar()`, que
+mostra o erro num toast.
 
 **Real primário, dólar secundário.** O painel fecha em real — é a moeda do projeto —, mas metade
 do custo nasce em dólar (OpenAI, Supabase, softwares), e converter de cabeça a cada linha é onde
