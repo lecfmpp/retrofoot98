@@ -1478,7 +1478,7 @@ async function netEnviarTitulos(modo, origem, treinador, titulos){
 async function netRanking(modo, limite){
   if(!sb) await netInitSupabase();
   if(!sb) return [];
-  const { data, error } = await sb.rpc('rf_ranking', { p_modo:modo||'resenha', p_limite:limite||100 });
+  const { data, error } = await sb.rpc('rf_ranking', { p_modo:modo||'geral', p_limite:limite||100 });
   if(error){ console.warn('ranking:', error.message||error); return []; }
   return data||[];
 }

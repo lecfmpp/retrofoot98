@@ -3,10 +3,15 @@
    Portado de "ranking pages e top bar" (03/09/2026): a faixa fixa do topo,
    a página de ranking (desktop + mobile) e o item no menu lateral.
 
-   DE ONDE VÊM OS DADOS. O livro de títulos vive no servidor
-   (elifoot_v3.coach_titles) e o ranking sai da RPC `rf_ranking('resenha')` —
-   público, só a Resenha, por decisão do dono: no Solo o save é escrito pelo
-   cliente e um placar que qualquer um pode escrever não é placar.
+   DE ONDE VÊM OS DADOS. O livro vive no servidor (elifoot_v3.coach_titles para
+   os títulos, coach_seasons para a campanha) e o ranking sai de
+   `rf_ranking('geral')` — os DOIS modos somados.
+
+   ERA SÓ RESENHA, e a razão continua verdadeira: no Solo o save é escrito pelo
+   cliente, e um placar que qualquer um pode escrever não é placar. O dono
+   mandou abrir o Solo mesmo assim, para o ranking ter gente, com a protecção
+   anti-fake adiada de propósito — e o que a resolve é validar o save NO
+   SERVIDOR, não filtrar aqui na leitura.
 
    TUDO O QUE O DESENHO PEDE JÁ TEM FONTE. A `foto` sai do perfil (bucket
    `perfil` + coach_profiles); o clube e o escudo saem do save MAIS RECENTE — o
@@ -39,7 +44,7 @@ function rfRankCarregar(){
   e.carregando=true;
   const pronto=(linhas)=>{ e.dados=linhas||[]; e.carregando=false; cdraw(); };
   if(typeof NET!=='undefined' && NET.ranking){
-    Promise.resolve(NET.ranking('resenha',100)).then(pronto).catch(()=>pronto([]));
+    Promise.resolve(NET.ranking('geral',100)).then(pronto).catch(()=>pronto([]));
   } else pronto([]);
   return null;
 }
