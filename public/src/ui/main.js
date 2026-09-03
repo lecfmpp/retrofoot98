@@ -3310,7 +3310,23 @@ function clConfirmarClubes(){
    jogam na liga de fundo daquele país (clube materializado com elenco real). Os resultados
    entram nas tabelas certas via playRound()/advanceBgLeagues(). Nada disso roda quando só
    existe 1 humano — o caminho de 1 país fica idêntico. */
-function primaryCountry(){ return S.intlUniverse || 'Brasil'; }
+/* O NOME DO PAIS, NUNCA A CHAVE DO UNIVERSO. `S.intlUniverse` guarda a chave — e num mundo
+   feminino essa chave e 'brasilFem', nao 'Brasil'. Quem chama esta funcao compara o retorno com
+   NOMES de pais: as tabelas de vagas continentais (LIB_SLOTS_UNI/SUL_SLOTS_UNI, core.js), o pool
+   de classificados (unifiedContinentalPool), as chaves de S.bgLeagues e NIVEL_LIGA. Devolvendo a
+   chave, o feminino nao batia com nenhuma delas: o pool do Brasil deixava de ser a CLASSIFICACAO
+   FINAL da Serie A e voltava a ser a lista congelada ORDENADA POR OVERALL, e a vaga do proprio
+   clube caia no ramo "ja tinha vaga" — era assim que um 13o colocado entrava na Libertadores.
+   O universo feminino declara `country:'Brasil'` (universos-fem.js), entao ler o campo faz o
+   feminino usar exatamente a mesma mecanica do masculino. Para todo universo masculino o valor
+   e identico ao de antes ('Inglaterra' declara country:'Inglaterra'; o Brasil masculino guarda
+   false em S.intlUniverse e ja caia no 'Brasil' literal). */
+function primaryCountry(){
+  const uni=S.intlUniverse;
+  if(!uni) return 'Brasil';
+  const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
+  return (cfg && cfg.country) || (String(uni).toLowerCase()==='brasil' ? 'Brasil' : uni);
+}
 /* país (universo) onde o clube de um assento joga: primário (tabela do usuário / outras
    divisões do universo) ou uma liga de background. */
 function seatCountryOfClub(cid){
