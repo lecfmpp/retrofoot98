@@ -157,6 +157,12 @@ const RF_PAGES=[
     acoes:()=>rfResenhaAcoesHTML(),
     grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
 
+  /* O RANKING E' PAGINA, nao aba de Treinador: ele e' do JOGO INTEIRO, nao da
+     carreira de quem esta' a jogar — a pagina Treinador fala do proprio. */
+  { key:'ranking', ico:'trofeu', label:'Ranking', curto:'Ranking',
+    titulo:'Ranking dos treinadores', sub:()=>rfRankSubHTML(),
+    acoes:()=>rfRankAcoesHTML(), grid:'minmax(0,1fr)', resumo:()=>rfRankHTML() },
+
   { key:'config', ico:'config', label:'Configurações', curto:'Config',
     /* O TITULO DA PAGINA E' o do desenho ("Opções do jogo"); o da BARRA LATERAL continua
        "Configurações", que e' onde a pessoa procura. Sao dois nomes de proposito. */
@@ -1186,7 +1192,14 @@ function rfTopAd(){
    quem vende precisa saber que ele deixou de existir. */
 function rfAncoraHTML(){ return ''; }
 function rfEnvelope(conteudo){
-  return `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
+  /* A FAIXA E' IRMA do .rf-app, nao filha: ela e' fixa no topo da JANELA e o
+     .rf-app desce por baixo dela (ver body.rf-tem-fita no CSS). Pendurada
+     dentro, herdaria o overflow:hidden e o layout em linha do app.
+     A classe no body e' o que reserva o espaco — sem ranking nao ha' faixa e
+     nada muda de sitio. */
+  const fita = (typeof rfFitaHTML==='function') ? rfFitaHTML() : '';
+  try{ document.body.classList.toggle('rf-tem-fita', !!fita); }catch(e){}
+  return fita + `<div class="rf-app ${rfSidebarCollapsed()?'collapsed':''}">
     ${rfSidebarHTML()}
     <main class="rf-main">
       <div class="rf-content">

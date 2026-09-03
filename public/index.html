@@ -350,7 +350,7 @@ const ATTR_LABEL={fin:'Finalização',pas:'Passe',dri:'Drible',des:'Desarme',cab
    quando o código que decide partida muda; edição de tela não mexe nele.
    Serve para detectar dois humanos na mesma sala com motores diferentes (aba
    aberta antes do deploy). Ver netMotorDivergente(). */
-/* @motor-ver */ const RF_MOTOR_VER = '25c227d040a3';
+/* @motor-ver */ const RF_MOTOR_VER = '0a58fe3bff3c';
 
 /* ===== O QUE O MOTOR REALMENTE LÊ — FONTE ÚNICA DA VERDADE =====
    Dos 16 atributos, só estes entram no resultado hoje; os outros existem, evoluem
@@ -893,6 +893,8 @@ function teamMorale(id,players){
 <script src="src/ui/rf26-financas.js"></script>
 <!-- Leva 5: E-mail (2 abas) e Configurações (3 abas) — ver src/ui/rf26-email-config.js -->
 <script src="src/ui/rf26-email-config.js"></script>
+<!-- Leva 6: Ranking dos treinadores + a faixa fixa do topo — ver src/ui/rf26-ranking.js -->
+<script src="src/ui/rf26-ranking.js"></script>
 <!-- Hub v2: notas do plantel e cartão do adversário (ver src/ui/rf26-formacao.js) -->
 <script src="src/ui/rf26-formacao.js"></script>
 <!-- entrega dos espaços publicitários (o painel dos sócios publica, o jogo lê por chave).

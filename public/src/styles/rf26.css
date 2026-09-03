@@ -10249,3 +10249,201 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
      duas barras a disputar o mesmo polegar. Os dois botoes que ela levava — Voltar ao hub e
      Guardar opções — ja' estao no cabecalho da pagina, que no mobile fica logo a' vista. */
 }
+
+/* =====================================================================
+   RANKING DOS TREINADORES + FAIXA FIXA DO TOPO
+   (pacote "ranking pages e top bar", 03/09/2026)
+   Um HTML, dois layouts — mesma escolha da tela de Opções: o jogo faz
+   responsivo por CSS e duas árvores seriam duas telas para manter.
+   ===================================================================== */
+.rf-rk{display:flex;flex-direction:column;gap:14px;min-width:0}
+.rf-rk-card{background:#fff;border:1px solid #dde7db;border-radius:18px;padding:16px;min-width:0}
+.rf-rk-card-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:10px}
+.rf-rk-rot{font-size:10px;font-weight:700;color:#8b978d;letter-spacing:.12em}
+.rf-rk-tot,.rf-rk-nota{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;color:#9aa79e}
+.rf-rk-nota{font-family:var(--font-sans);font-size:11.5px;line-height:1.5;text-wrap:pretty}
+/* filtros */
+.rf-rk-filtros{display:flex;gap:8px;flex-wrap:wrap}
+.rf-rk-seg{display:flex;gap:3px;background:#fff;border:1px solid #dde7db;border-radius:12px;padding:4px}
+.rf-rk-sg{font-size:12px;font-weight:500;color:#5d6c62;background:transparent;border:0;border-radius:9px;padding:7px 12px;white-space:nowrap;cursor:pointer;font-family:inherit}
+.rf-rk-sg.on{background:#17458F;color:#fff;font-weight:700}
+/* pill de variação */
+.rf-rk-pill{display:inline-flex;align-items:center;gap:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-size:10px;font-weight:700;border-radius:99px;padding:2px 7px;white-space:nowrap;flex:0 0 auto;
+  color:#5d6c62;background:#f2f7f1}
+.rf-rk-pill.sobe{color:#1e8f47;background:#e4f7ea}
+.rf-rk-pill.desce{color:#a93226;background:#fbe6e3}
+.rf-rk-pill.esc{color:#8fabd6;background:rgba(255,255,255,.12)}
+.rf-rk-pill.esc.sobe{color:#5fd98b;background:rgba(95,217,139,.16)}
+.rf-rk-pill.esc.desce{color:#ff9b8f;background:rgba(255,155,143,.16)}
+/* avatar e escudo */
+.rf-rk-av{border-radius:99px;overflow:hidden;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  box-sizing:border-box;background:#eef3ea;border:1px solid #dde7db;color:#8b978d;
+  font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:700}
+.rf-rk-av img{width:100%;height:100%;object-fit:cover;display:block}
+.rf-rk-av.mini{width:30px;height:30px;font-size:11px}
+.rf-rk-tr.eu .rf-rk-av.mini{background:#17458F;border-color:#17458F;color:#fff}
+.rf-rk-crest{flex:0 0 auto;background-size:contain;background-position:center;background-repeat:no-repeat}
+.rf-rk-crest.vazio{border-radius:99px;background:#eef3ea;border:1px solid #dde7db}
+/* pódio */
+.rf-rk-podio{border-radius:20px;padding:20px;position:relative;overflow:hidden;
+  background:linear-gradient(115deg,#06112b,#0e2f66 48%,#17458F);
+  box-shadow:0 24px 50px -32px rgba(20,33,26,.55)}
+.rf-rk-podio::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(110% 150% at 50% -10%,rgba(242,185,12,.2),transparent 58%)}
+.rf-rk-podio-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:14px;position:relative;z-index:1}
+.rf-rk-podio-t{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#F2B90C}
+.rf-rk-podio-q{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#a9bfe0}
+.rf-rk-podio-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;position:relative;z-index:1}
+.rf-rk-p{display:flex;flex-direction:column;gap:14px;border-radius:18px;padding:15px;box-sizing:border-box;min-width:0;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);margin-bottom:6px}
+.rf-rk-p.ouro{padding:18px;margin-bottom:0;background:linear-gradient(160deg,rgba(242,185,12,.24),rgba(242,185,12,.06));border-color:rgba(242,185,12,.55)}
+/* a ORDEM VISUAL do degrau: 2º · 1º · 3º. O HTML fica na ordem real da
+   classificação (1,2,3) e é aqui que ela vira pódio — um leitor de ecrã
+   continua a ler a lista certa. */
+.rf-rk-p1{order:2}.rf-rk-p2{order:1}.rf-rk-p3{order:3}
+.rf-rk-p-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rf-rk-med{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:17px;font-weight:700;color:#dfe6ef}
+.rf-rk-p1 .rf-rk-med{font-size:22px;color:#F2B90C}
+.rf-rk-p3 .rf-rk-med{color:#d9a06a}
+.rf-rk-p-fig{position:relative;align-self:flex-start}
+.rf-rk-p .rf-rk-av{background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:24px;border:3px solid #dfe6ef}
+.rf-rk-p1 .rf-rk-av{font-size:30px;border-color:#F2B90C}
+.rf-rk-p3 .rf-rk-av{border-color:#d9a06a}
+.rf-rk-badge{position:absolute;right:-4px;bottom:-2px;width:30px;height:30px;border-radius:99px;background:#0b1a12;
+  border:2px solid rgba(255,255,255,.22);box-sizing:border-box;background-size:64%;background-position:center;background-repeat:no-repeat}
+.rf-rk-p1 .rf-rk-badge{width:36px;height:36px}
+.rf-rk-p-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-rk-p-n{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rk-p1 .rf-rk-p-n{font-size:22px}
+.rf-rk-p-c{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;color:#a9bfe0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rk-p-pts{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:15px;font-weight:700;color:#F2B90C}
+.rf-rk-p1 .rf-rk-p-pts{font-size:18px}
+.rf-rk-p-nota{font-size:11.5px;color:rgba(255,255,255,.66);line-height:1.45;text-wrap:pretty}
+.rf-rk-p1 .rf-rk-p-nota{color:rgba(255,255,255,.8)}
+/* convite */
+.rf-rk-convite{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #dde7db;border-radius:18px;padding:14px 16px}
+.rf-rk-convite-ic{width:44px;height:44px;border-radius:99px;background:#eef3ea;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto}
+.rf-rk-convite-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rf-rk-convite-id b{font-size:14px;font-weight:700;color:#12201a}
+.rf-rk-convite-id span{font-size:12px;color:#78877c;line-height:1.5;text-wrap:pretty}
+/* tabela */
+.rf-rk-th,.rf-rk-tr{display:grid;grid-template-columns:44px 52px minmax(0,1.6fr) minmax(0,1.3fr) 96px 92px;gap:12px;align-items:center;min-width:0}
+.rf-rk-th{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:#9aa79e;padding:0 10px 8px}
+.rf-rk-th .dir,.rf-rk-tr .dir{text-align:right;justify-self:end}
+.rf-rk-tr{padding:10px;border-radius:12px;border-bottom:1px solid #f4f6f3}
+.rf-rk-tr.eu{background:#f4f7fb;box-shadow:inset 3px 0 0 #17458F}
+.rf-rk-pos{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;font-weight:700;color:#8b978d}
+.rf-rk-pos.top{color:#c99a00}
+.rf-rk-tr.eu .rf-rk-pos{color:#17458F}
+.rf-rk-nome-c{display:flex;align-items:center;gap:9px;min-width:0}
+.rf-rk-nome{font-size:13.5px;font-weight:600;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rf-rk-tr.eu .rf-rk-nome{font-weight:700}
+.rf-rk-voce{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:700;letter-spacing:.1em;
+  color:#fff;background:#17458F;border-radius:99px;padding:2px 7px;flex:0 0 auto}
+.rf-rk-save{display:flex;align-items:center;gap:8px;min-width:0}
+.rf-rk-save-id{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-rk-save-c{font-size:12.5px;color:#12201a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-rk-save-m{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#9aa79e}
+.rf-rk-temp{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:13px;color:#5d6c62}
+.rf-rk-pts{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;font-weight:700;color:#12201a}
+.rf-rk-ft{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:12px}
+.rf-rk-bt{height:40px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;
+  background:#fff;border:1px solid #d8e2d6;color:#3a473f;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.rf-rk-bt:hover{background:#f2f7f1}
+.rf-rk-bt.cta{background:#F2B90C;border-color:#F2B90C;color:#17458F;font-weight:700}
+.rf-rk-bt.cta:hover{background:#ffcb2e}
+
+/* ---------- A FAIXA FIXA ---------- */
+@keyframes rfCorre{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.rf-fita{position:fixed;top:0;left:0;right:0;height:64px;z-index:60;display:flex;align-items:center;overflow:hidden;cursor:pointer;
+  background:linear-gradient(100deg,#06112b,#0e2f66 52%,#17458F);font-family:var(--font-sans)}
+/* PADDING, NAO MARGEM. O .rf-app nao e' filho directo do body — vive dentro do no' de
+   render — e a margem colapsava com o pai, deixando o topo da pagina POR BAIXO da faixa
+   (medido: marginTop 64px e getBoundingClientRect().top a 0). Padding na propria caixa
+   flex nao colapsa, e o app mantem a altura da janela inteira. */
+body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
+.rf-fita-podio{display:flex;align-items:center;flex:0 0 auto;height:100%;z-index:2;
+  background:linear-gradient(180deg,rgba(242,185,12,.2),rgba(242,185,12,.05));border-right:1px solid rgba(255,255,255,.16)}
+.rf-fita-c{display:flex;align-items:center;gap:10px;height:100%;padding:0 16px;border-right:1px solid rgba(255,255,255,.12);min-width:0}
+.rf-fita-med{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:15px;font-weight:700;color:#dfe6ef}
+.rf-fita-med.m1{color:#F2B90C}.rf-fita-med.m3{color:#d9a06a}
+.rf-fita-cid{display:flex;flex-direction:column;gap:1px;min-width:0}
+.rf-fita-cn{font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rf-fita-cp{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;font-weight:600;color:#F2B90C;white-space:nowrap}
+.rf-fita-mid{flex:1;min-width:0;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
+.rf-fita-trilho{display:flex;align-items:center;width:max-content;animation:rfCorre 38s linear infinite}
+.rf-fita:hover .rf-fita-trilho{animation-play-state:paused}
+.rf-fita-i{display:flex;align-items:center;gap:9px;padding:0 18px;height:64px;flex:0 0 auto}
+.rf-fita-i.eu{background:rgba(242,185,12,.14)}
+.rf-fita-p{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700;color:#8fabd6}
+.rf-fita-p.m1{color:#F2B90C}.rf-fita-p.m2{color:#dfe6ef}.rf-fita-p.m3{color:#d9a06a}
+.rf-fita-n{font-size:13px;font-weight:500;color:#fff;white-space:nowrap}
+.rf-fita-i.eu .rf-fita-n{color:#F2B90C}
+.rf-fita-v{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:#a9bfe0;white-space:nowrap}
+.rf-fita-tag{display:none}
+.rf-fita-mask{position:absolute;right:0;top:0;bottom:0;width:44px;pointer-events:none;
+  background:linear-gradient(270deg,#17458F,rgba(23,69,143,0))}
+.rf-fita-eu{display:flex;align-items:center;gap:10px;flex:0 0 auto;height:100%;padding:0 18px;background:#F2B90C;z-index:2}
+.rf-fita:hover .rf-fita-eu{background:#ffcb2e}
+.rf-fita-eu-id{display:flex;flex-direction:column;gap:1px;align-items:flex-end}
+.rf-fita-eu-r{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#8a6a00;white-space:nowrap}
+.rf-fita-eu-l{display:flex;align-items:baseline;gap:6px}
+.rf-fita-eu-l b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:16px;font-weight:700;color:#17458F}
+/* no fundo amarelo a tinta clara do pill não tem contraste: aqui ele vira sólido */
+.rf-fita-eu-l .rf-rk-pill{color:#fff;background:#5d6c62}
+.rf-fita-eu-l .rf-rk-pill.sobe{background:#1e8f47}
+.rf-fita-eu-l .rf-rk-pill.desce{background:#a93226}
+.rf-fita-eu-div{width:1px;height:28px;background:rgba(23,69,143,.28);flex:0 0 auto}
+.rf-fita-eu-id2{display:flex;flex-direction:column;gap:1px}
+.rf-fita-eu-n{font-size:13px;font-weight:700;color:#17458F;white-space:nowrap}
+.rf-fita-eu-p{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#8a6a00;white-space:nowrap}
+.rf-fita-pilula{display:none}
+@media (prefers-reduced-motion:reduce){.rf-fita-trilho{animation:none}}
+/* abaixo de 1100px o 3º lugar sai — é o que garante largura para o ticker */
+@media (max-width:1100px){ .rf-fita-c.c3{display:none} }
+
+@media (max-width:900px){
+  .rf-rk-podio{padding:14px;border-radius:18px}
+  .rf-rk-podio-g{grid-template-columns:minmax(0,1fr);gap:8px;align-items:stretch}
+  .rf-rk-p,.rf-rk-p.ouro{order:0;margin-bottom:0;flex-direction:row;align-items:center;gap:11px;padding:11px}
+  .rf-rk-p-top{flex-direction:column;gap:4px;flex:0 0 auto;width:22px;align-items:flex-start}
+  .rf-rk-p-top .rf-rk-pill{display:none}
+  .rf-rk-med{font-size:13px}.rf-rk-p1 .rf-rk-med{font-size:16px}
+  .rf-rk-p .rf-rk-av{width:54px!important;height:54px!important;font-size:17px;border-width:2px}
+  .rf-rk-p1 .rf-rk-av{width:68px!important;height:68px!important;font-size:22px}
+  .rf-rk-badge{width:22px;height:22px}.rf-rk-p1 .rf-rk-badge{width:26px;height:26px}
+  .rf-rk-p-id{flex:1}
+  .rf-rk-p-n{font-size:15px}.rf-rk-p1 .rf-rk-p-n{font-size:17px}
+  .rf-rk-p-pts{font-size:12px}.rf-rk-p1 .rf-rk-p-pts{font-size:13.5px}
+  .rf-rk-p-nota{display:none}
+  .rf-rk-card{border-radius:16px;padding:14px}
+  .rf-rk-th{display:none}
+  /* a linha vira flex: posição · avatar · (nome + clube) · (pontos + variação) */
+  .rf-rk-tr{display:flex;align-items:center;gap:9px;padding:10px 8px}
+  .rf-rk-pos{width:24px;flex:0 0 auto;font-size:12.5px}
+  .rf-rk-nome-c{flex:1;flex-wrap:wrap;gap:6px}
+  .rf-rk-av.mini{width:32px;height:32px}
+  .rf-rk-save{order:5;width:100%;padding-left:65px;margin-top:-4px}
+  .rf-rk-save-c{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;color:#9aa79e}
+  .rf-rk-temp{display:none}
+  .rf-rk-pts{font-size:13px;order:4}
+  .rf-rk-tr .rf-rk-pill{order:6}
+  .rf-rk-ft{flex-direction:column;align-items:stretch}
+  .rf-rk-bt{height:46px}
+  .rf-rk-convite{border-radius:16px;flex-wrap:wrap}
+  .rf-rk-convite .rf-rk-bt{height:44px;width:100%}
+  /* a faixa vira ticker de ponta a ponta: sem pódio ancorado, sem âncora */
+  .rf-fita{height:40px}
+  body.rf-tem-fita .rf-app{padding-top:40px}
+  .rf-fita-podio,.rf-fita-eu{display:none}
+  .rf-fita-i{height:40px;gap:8px;padding:0 0 0 14px;border-right:1px solid rgba(255,255,255,.16)}
+  .rf-fita-trilho{animation-duration:34s}
+  .rf-fita:active .rf-fita-trilho{animation-play-state:paused}
+  .rf-fita-tag{display:inline;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:8.5px;font-weight:700;
+    color:#0b1710;background:#F2B90C;border-radius:99px;padding:2px 6px;white-space:nowrap}
+  .rf-fita-mask{width:26px}
+  .rf-fita-pilula{display:block;position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:2;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;font-weight:700;color:#0b1710;
+    background:#F2B90C;border-radius:99px;padding:3px 8px;white-space:nowrap}
+}

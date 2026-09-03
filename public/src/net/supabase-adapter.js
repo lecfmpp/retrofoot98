@@ -1472,6 +1472,16 @@ async function netEnviarTitulos(modo, origem, treinador, titulos){
   if(error){ console.warn('enviarTitulos:', error.message||error); return 0; }
   return data||0;
 }
+/* O RANKING PUBLICO. `rf_ranking` e' SECURITY DEFINER e devolve nome e totais —
+   nunca user_id, nunca e-mail (ver a migracao). Leitura publica: funciona sem
+   sessao, que e' o que permite a faixa do topo existir antes do login. */
+async function netRanking(modo, limite){
+  if(!sb) await netInitSupabase();
+  if(!sb) return [];
+  const { data, error } = await sb.rpc('rf_ranking', { p_modo:modo||'resenha', p_limite:limite||100 });
+  if(error){ console.warn('ranking:', error.message||error); return []; }
+  return data||[];
+}
 async function netDeleteSoloSave(name){
   if(!sb || !SB_AUTH_USER) return false;
   const { error } = await sb.from('solo_saves').delete().eq('save_name', name);
@@ -1941,6 +1951,7 @@ NET.listSoloSaves = netListSoloSaves;
 NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.enviarTitulos = netEnviarTitulos;
+NET.ranking = netRanking;
 NET.deleteSoloSave = netDeleteSoloSave;
 
 /* ===== AVATAR DO TREINADOR =====
