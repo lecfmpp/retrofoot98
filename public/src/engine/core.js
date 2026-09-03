@@ -4915,49 +4915,74 @@ function enviarTitulos(modo, origem){
    valia zero. Agora a campanha conta — e conta MENOS que o titulo, que continua a
    ser a conquista.
 
-   O PESO DE UM PONTO DEPENDE DA DIVISAO, e tem de depender: 60 pontos na Serie D
-   nao podem valer o mesmo que 60 na Serie A, senao subir de divisao PIORA o
-   ranking de quem sobe. O fator sai da mesma escala dos titulos —
-   `pontosDeTitulo` da competicao daquela divisao — dividido por 100:
+   MEDIDA PELA POSICAO, E NAO PELOS PONTOS DA LIGA. A primeira versao disto lia
+   `h.pts` do historico e teria enviado SEMPRE lista vazia: `S.history` guarda
+   `season`, `division`, `myPos` e o clube — os pontos da tabela nao ficam la'
+   (`rankingFinal` vem nulo nos 55 saves em producao, conferido). A posicao final
+   e' o que o jogo de facto regista, entao e' com ela que se mede.
 
-     Serie A (titulo 15) -> 0,15 -> uma campanha de 70 pontos vale 10,5
-     Serie D (titulo 0,5) -> 0,005 -> uma campanha de 60 pontos vale 0,3
+   O PESO DEPENDE DA DIVISAO, e tem de depender: um vice na Serie D nao pode valer
+   o que um vice na Serie A, senao SUBIR DE DIVISAO PIORA o ranking de quem sobe.
+   O peso sai da mesma escala dos titulos (pontosDeTitulo da competicao daquela
+   divisao).
 
-   Ou seja: uma grande campanha na elite vale cerca de dois tercos do titulo dela,
-   e nunca mais do que ele. O DIVISOR 100 e' a unica coisa a mexer para tornar a
-   campanha mais ou menos importante — esta' aqui, num sitio so'.
+     contribuicao = peso(divisao) × ((N - pos) / (N - 1)) × CAMPANHA_FATOR
 
-   A FONTE E' S.history, o registo por temporada que o jogo ja' guarda. Sem ele
-   (save antigo) nao se inventa nada: nao ha' o que enviar. */
-const CAMPANHA_DIVISOR = 100;
+   Com N = clubes da divisao. O 1º tira o maximo, o ultimo tira zero. Na Serie A
+   (peso 15, 20 clubes) um vice vale ~5,7 e um 10º ~3,2, contra 15 do titulo — a
+   campanha nunca passa o titulo dela, que e' a regra que o dono pediu.
+   CAMPANHA_FATOR e' a UNICA coisa a mexer para a campanha pesar mais ou menos. */
+const CAMPANHA_FATOR = 0.4;
 function enviarTemporadas(modo, origem, nome){
   if(typeof NET==='undefined' || !NET.enviarTemporadas || !origem) return;
   if(typeof S==='undefined' || !S || !Array.isArray(S.history) || !S.history.length) return;
   const lista=[];
   S.history.forEach(h=>{
     if(!h || h.season==null) return;
-    const pts=Number(h.pts!=null?h.pts:h.Pts);
-    if(!isFinite(pts)) return;
-    const div=h.div||h.division||null;
+    const div=h.division||h.div||null;
+    const pos=Number(h.myPos!=null?h.myPos:h.pos);
+    if(!div) return;
     const uni=h.uni||(S.intlUniverse||'brasil');
-    let peso=0;
+    let peso=0, n=20;
     try{
       const comp=(typeof divisionCompKeyFor==='function') ? divisionCompKeyFor(div) : null;
       peso=(comp && typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(comp, uni, div))||0 : 0;
+      const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
+      if(cfg && cfg.size && cfg.size[div]) n=cfg.size[div];
     }catch(e){}
+    /* DOIS CAMINHOS, e o primeiro e' o que o dono pediu: os PONTOS que o time fez.
+       Temporadas fechadas a partir de agora trazem `myPts`; as antigas nao o tem
+       (o campo nasceu hoje) e sobra a POSICAO, que e' uma aproximacao pior mas e'
+       o que aquele save guardou. Os dois caem na mesma escala — a fraccao do
+       maximo possivel — para uma carreira antiga e uma nova nao pontuarem em
+       reguas diferentes. */
+    const ptsReais=Number(h.myPts);
+    let fracao;
+    if(isFinite(ptsReais) && ptsReais>0){
+      const maximo=(n-1)*2*3;                        // turno e returno, 3 pontos por vitoria
+      fracao=Math.max(0, Math.min(1, ptsReais/maximo));
+    } else if(isFinite(pos) && pos>=1 && n>1){
+      /* O 0,7 APROXIMA AS DUAS REGUAS. `(n-pos)/(n-1)` da 0,95 ao vice, mas um vice
+         real faz ~65% dos pontos possiveis — sem o ajuste, uma carreira ANTIGA (que
+         so' tem posicao) pontuava visivelmente mais que uma nova com a mesma
+         campanha. Medido na Serie A: vice dava 5,68 por posicao contra 3,79 por
+         pontos; com o ajuste fica 3,98. */
+      fracao=Math.max(0, ((n-pos)/(n-1)) * 0.7);
+    } else return;
     lista.push({ season:h.season, div:div, uni:uni,
-      pos:(h.pos!=null?h.pos:null), ptsLiga:Math.round(pts),
-      pontos:Math.round((pts*peso/CAMPANHA_DIVISOR)*100)/100 });
+      pos:(isFinite(pos)?pos:null), ptsLiga:(isFinite(ptsReais)?Math.round(ptsReais):null),
+      pontos: Math.round(peso*fracao*CAMPANHA_FATOR*100)/100 });
   });
   if(!lista.length) return;
   const ult=lista[lista.length-1];
-  const assinatura=modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.ptsLiga;
+  const assinatura=modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.pos;
   if(typeof CL!=='undefined'){
     if(CL._temporadasEnviadas===assinatura) return;
     CL._temporadasEnviadas=assinatura;
   }
   try{ Promise.resolve(NET.enviarTemporadas(modo, origem, nome, lista)).catch(()=>{}); }catch(e){}
 }
+
 /* ===== CARREIRA NA RESENHA (Fase 2): demissão -> desempregado -> convite -> assume =====
    Diferente do solo (que oferece clubes na hora): na Resenha o treinador é DEMITIDO, fica
    assistindo as rodadas sem interagir e só depois recebe convite de um clube LIVRE da CPU.
@@ -6238,6 +6263,12 @@ function registerPrevSeasonTitles(){
     top3:myTable.slice(0,3).map(t=>shortOf(t.id)),
     relegated:relegN?myTable.slice(-relegN).map(t=>shortOf(t.id)):[],
     artilheiro:(arty&&arty[1]>0)?(arty[0]+' ('+arty[1]+')'):'—',
+    /* OS PONTOS DA CAMPANHA ENTRAM NO HISTORICO. Ele guardava posicao e divisao mas
+       NAO os pontos: `rankingFinal` vem nulo nos 55 saves em producao (conferido), e
+       a tabela e' zerada no reset da virada — depois disso o numero e' irrecuperavel.
+       O ranking mede a campanha com isto; sem a linha, sobrava a posicao, que e' uma
+       aproximacao pior de "o que o time fez". */
+    myPts:(myTable.find(t=>t.id===CL.clubId)||{}).Pts||0,
     myPos, myClubShort:shortOf(CL.clubId), cups, myCups, qualifiedFor:[] });
   // taças do MEU treinador — o que a Sala de Troféus lê
   S.coachHistory=S.coachHistory||[];
@@ -6529,6 +6560,7 @@ function endSeason(){
     top3:tbl.slice(0,3).map(t=>clubOf(t.id).short),
     relegated:tbl.slice(-4).map(t=>clubOf(t.id).short),
     artilheiro:arty?`${arty[0]} (${arty[1]})`:'—',
+    myPts:((S.table&&S.table[S.clubId])||{}).Pts||0,   // ver a nota na outra entrada de historico
     myPos:tablePos(S.clubId),
     myClubShort:clubOf(S.clubId).short,
     cups, myCups, qualifiedFor});
