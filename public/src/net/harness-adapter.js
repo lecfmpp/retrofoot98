@@ -57,6 +57,11 @@
         last_result:s.last_result||null, last_result_round:s.last_result_round??null,
         last_cup_result:s.last_cup_result||null, last_cup_round:s.last_cup_round??null,
         day_ack:s.day_ack||null,
+        /* last_bids E' O QUE FAZ O LEILAO EXISTIR ENTRE DOIS CLIENTES. `mergeAuctionBidsFromSeats`
+           (core.js) le exactamente daqui para saber os lances dos OUTROS humanos; sem esta linha
+           cada cliente so' conhecia o proprio lance e o harness nunca poderia exercitar a
+           disputa. O adaptador real ja' o lia de game_seats (ver netJoin). */
+        last_bids:s.last_bids||null,
         last_seen:Date.now() }; });
   }
   function pushState(g){
@@ -167,6 +172,18 @@
   /* publicações por assento */
   NET.publishLineup=function(xi,tactic){ SRV.seatPatch(NET.gameId, uid, { last_xi:(xi||[]).slice(), last_tactic:tactic||'equilibrado' }); };
   NET.publishResult=function(round,res){ SRV.seatPatch(NET.gameId, uid, { last_result:res||null, last_result_round:round }); };
+  /* LANCE DE LEILAO — espelha netPublishBids (supabase-adapter): acumula por lote no MESMO
+     objecto, porque a coluna e' uma so' e um treinador pode estar em varios lotes ao mesmo
+     tempo. Escreve tambem no _claimed local, como o real faz, para o proprio cliente nao
+     precisar de esperar o bcast para se ver na frente. */
+  NET.publishBids=function(lotId, amount, ts){
+    if(!lotId) return;
+    const mine=(NET._claimed && NET._claimed[uid]) || null;
+    const bids=(mine && mine.last_bids) ? Object.assign({}, mine.last_bids) : {};
+    bids[lotId]={amount, ts};
+    if(mine) mine.last_bids=bids;
+    SRV.seatPatch(NET.gameId, uid, { last_bids:bids });
+  };
   /* espelha o acúmulo do adaptador real (ver cupResultsList no supabase-adapter): uma entrada por
      competição, porque a mesma rodada pode ter Copa do Brasil, Libertadores e Sul-Americana e a
      coluna é uma só. Sem isto o harness nunca reproduziria o bug de placar divergente entre copas. */

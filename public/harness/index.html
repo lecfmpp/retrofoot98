@@ -21,6 +21,7 @@
   <button onclick="scenario()">▶ Cenário 1: lockstep (Série D)</button>
   <button onclick="scenario2()">▶ Cenário 2: COPAS (Série A, quarta/sábado)</button>
   <button onclick="scenario3()">▶ Cenário 3: 365ZV (dois fora das copas, até a jornada 3)</button>
+  <button onclick="scenario4()">▶ Cenário 4: LEILÃO (disputa entre os dois humanos)</button>
   <button onclick="hz.timerMs=8000">timer 8s</button>
   <span id="st" class="info"></span>
 </div>
@@ -415,6 +416,105 @@ async function scenario3(){
     log('=== CENÁRIO 365ZV: PASSOU ===','ok');
   }catch(e){ log(String(e&&e.message||e),'fail'); }
   finally{ stopRecorder(); window.__HRIG=null; window.__HDIV=null; }
+}
+/* ---- CENÁRIO 4: LEILÃO ENTRE OS DOIS HUMANOS ----
+   O que os outros cenários não cobrem: `mergeAuctionBidsFromSeats` (core.js) decide quem lidera
+   um lote lendo `NET._claimed[*].last_bids` — ou seja, o lance de um cliente só existe para o
+   outro se viajar pelo assento. Isso nunca tinha sido exercitado fora de produção; até aqui a
+   disputa humano-vs-humano só fora medida com os dois assentos SIMULADOS no mesmo cliente, o que
+   prova a arbitragem mas não a viagem.
+
+   O cenário força o MESMO lote nos dois clientes (o pool é determinístico pela seed, mas aqui é
+   plantado à mão para o teste não depender de os dois sortearem o mesmo jogador), faz cada um
+   lançar, e verifica que os DOIS convergem no mesmo líder e no mesmo valor — e que quem perdeu
+   se vê a perder, que é o lado que o bug histórico escondia (cada um via a si mesmo na frente).
+
+   Depois resolve o lote no anfitrião e confirma que o jogador foi para o elenco de QUEM VENCEU. */
+async function scenario4(){
+  try{
+    hz.timerMs=8000; hz.games={}; CODE=null;
+    fA.src='/?harness=A&t='+Date.now(); fB.src='/?harness=B&t='+Date.now();
+    await sleep(1400);
+    await setup();
+    await sleep(200);
+    start(); startRecorder();
+    await waitFor(()=>stA().netStep==='reveal'&&stB().netStep==='reveal','reveal nos DOIS');
+    await fastUntil(['main'],'os dois chegam à tela do clube',120000);
+
+    /* `S`, `DATA` e `CL` sao `let`/`const` no cliente: nao existem no window, e por isso nao se
+       alcancam daqui. O estado vem por `GAME.S()` (a porta que o proprio jogo expoe) e as funcoes
+       de topo, essas sim, sao declaracoes e estao no window. */
+    const a=A(), b=B();
+    const SA=()=>a.GAME.S(), SB=()=>b.GAME.S();
+    const clubeA=SA().clubId, clubeB=SB().clubId;
+    assert(clubeA && clubeB && clubeA!==clubeB,'cada cliente com o seu clube (A='+clubeA+' B='+clubeB+')');
+
+    /* janela aberta e caixa largo nos dois — o teste é de sincronia, não de economia */
+    for(const c of [a,b]){
+      const st=c.GAME.S();
+      for(let r=1;r<=40;r++){ st.round=r; if(c.inTransferWindow()) break; }
+      st.budget=500000000;
+    }
+    assert(SA().round===SB().round,'os dois na mesma rodada de janela ('+SA().round+')');
+
+    /* O MESMO LOTE NOS DOIS. Planto à mão em vez de confiar no sorteio: o objectivo aqui é a
+       viagem do lance, e um pool diferente entre os dois faria o teste falhar por outra razão. */
+    const vendedor=Object.keys(SA().squads).find(id=>
+      id!==clubeA && id!==clubeB && (SA().squads[id]||[]).length>16 && (SB().squads[id]||[]).length>16);
+    assert(!!vendedor,'ha um clube vendedor com elenco nos dois clientes');
+    const vitima=(SA().squads[vendedor]||[])[0];
+    assert(!!vitima,'o clube vendedor tem elenco');
+    const LOT=vendedor+'|'+vitima.n;
+    /* TETO BAIXO DE PROPOSITO. A cobertura da CPU (WORLD_RULES.leilaoRodada) so' desiste quando o
+       lance humano chega AO TETO — com um teto alto, a CPU cobre sempre e o lote resolve-se em
+       'lost', o que faria este cenario acusar um bug de atribuicao que nao existe (foi o que deu
+       na primeira execucao). Com teto de 2M, o lance de B (2,5M) fica acima e segura. */
+    const molde={ id:LOT, sellerId:vendedor, player:vitima.n, base:100000, interest:4,
+      ceiling:2000000, bid:50000, leader:'cpu', myBid:0, roundsLeft:3, status:'open', bids:{} };
+    for(const c of [a,b]){ const st=c.GAME.S(); st.auctions={ round:st.round, lots:[JSON.parse(JSON.stringify(molde))] }; }
+    log('lote plantado nos dois: '+vitima.n+' ('+vendedor+')','info');
+
+    /* --- 1) A lança --- */
+    const r1=a.placeAuctionBid(LOT, 1000000);
+    assert(r1.ok,'lance de A aceite: '+r1.msg);
+    await sleep(600);
+    b.mergeAuctionBidsFromSeats();
+    const loteB=()=>SB().auctions.lots.find(l=>l.id===LOT);
+    const loteA=()=>SA().auctions.lots.find(l=>l.id===LOT);
+    assert(loteB().bid===1000000,'o lance de A CHEGOU ao cliente B (viu '+loteB().bid+')');
+    assert(String(loteB().leader)===String(clubeA),'B vê A na frente (líder='+loteB().leader+')');
+
+    /* --- 2) B cobre --- */
+    const r2=b.placeAuctionBid(LOT, 2500000);
+    assert(r2.ok,'lance de B aceite: '+r2.msg);
+    await sleep(600);
+    a.mergeAuctionBidsFromSeats();
+    assert(loteA().bid===2500000,'o lance de B chegou ao cliente A (viu '+loteA().bid+')');
+    assert(String(loteA().leader)===String(clubeB),'A vê B na frente — quem perdeu SE VÊ a perder');
+    assert(String(loteA().leader)===String(loteB().leader),'os dois concordam no líder');
+    assert(loteA().bid===loteB().bid,'os dois concordam no valor');
+
+    /* --- 3) A não consegue lançar abaixo do que B já deu --- */
+    const r3=a.placeAuctionBid(LOT, 2000000);
+    assert(!r3.ok,'A é recusado ao tentar lançar abaixo do lance de B: '+r3.msg);
+
+    /* --- 4) resolve no ANFITRIÃO: o jogador vai para quem venceu (B) --- */
+    const elencoB0=(SA().squads[clubeB]||[]).length;
+    const elencoA0=(SA().squads[clubeA]||[]).length;
+    const caixaA0=SA().budget;
+    loteA().roundsLeft=1;
+    a.advanceAuctions(a.makeRng(a.hashSeed(SA().seed,'leilao-hh')));
+    const foiParaB=(SA().squads[clubeB]||[]).some(p=>p.n===vitima.n);
+    const veioParaA=(SA().squads[clubeA]||[]).some(p=>p.n===vitima.n);
+    assert(foiParaB,'o jogador entrou no elenco de B (o vencedor)');
+    assert(!veioParaA,'o jogador NÃO entrou no elenco de A (o anfitrião que resolveu)');
+    assert(SA().budget===caixaA0,'o caixa do anfitrião não foi debitado por uma compra que não é dele');
+    assert((SA().squads[clubeA]||[]).length===elencoA0,'elenco de A intacto');
+    log('resolução: '+vitima.n+' -> '+clubeB+' (B), elenco de B '+elencoB0+' -> '+(SA().squads[clubeB]||[]).length,'info');
+
+    log('=== CENÁRIO 4 (LEILÃO): PASSOU ===','ok');
+  }catch(e){ log(String(e&&e.message||e),'fail'); }
+  finally{ stopRecorder(); }
 }
 async function scenario(){
   try{
