@@ -3724,6 +3724,7 @@ const ACOES = {
   /* estúdio de imagens */
   'estudio.escudo':'Gerou escudo por IA',
   'estudio.escudo.lote.item':'Subiu escudo (lote)',
+  'estudio.jornalistas.preparar':'Gerou faces de jornalista',
   'estudio.foto':'Gerou foto de jogador',
   'estudio.foto.lote':'Gerou fotos do elenco',
   'estudio.fotos.reaproveitar':'Reaproveitou foto de jogador',
@@ -8487,6 +8488,110 @@ const ESTILOS_TREINADOR = [
    A ORDEM de ESTILOS_TREINADOR define quem e' m1 — reordenar aquele array
    troca a roupa de todo mundo que ja' escolheu. Nao reordene: acrescente. */
 const faceChave = (genero, i) => genero + (i + 1);
+
+/* =====================================================================
+   OS JORNALISTAS DA COLETIVA
+   ---------------------------------------------------------------------
+   O modal de entrevista pos-jogo (rf26-imprensa.js) desenha o reporter com
+   `rfEntRetratoHTML('reporter','REPÓRTER', null, iniciais)` — o retrato entra
+   como null e o que aparece sao as INICIAIS do nome. Estas dez faces sao o que
+   falta para aquele null virar uma imagem.
+
+   MESMO TRUQUE DAS FACES DE TREINADOR: um club_id sentinela em player_photos.
+   Nao ha' jornalista no catalogo — ele e' sorteado na hora, por rodada e clube
+   (rfPressReporter) —, entao nao ha' a quem pendurar a foto. A sentinela e' o
+   que permite guardar imagem sem dono.
+
+   DEZ, E NAO OITO. O jogo tem oito veiculos (RF_PRESS_VEICULOS), mas a face nao
+   se escolhe pelo veiculo: a mesma redacao pode mandar gente diferente. Dez da'
+   folga para a escolha ser por pessoa e nao repetir a cara na rodada seguinte.
+
+   A ORDEM DEFINE A CHAVE (j1..j10), como em ESTILOS_TREINADOR. Nao reordene:
+   acrescente no fim, senao troca a cara de quem o save ja' viu. */
+const JORNALISTA_KEY = '__jornalista__';
+/* [chave, rotulo, quem, o que veste/segura] — a funcao acompanha os papeis que
+   RF_PRESS_VEICULOS ja' usa (setorista, reporter de campo, comentarista,
+   colunista, narrador, chefe de reportagem). */
+const JORNALISTAS = [
+  ['j1',  'Setorista de rádio',      'man',   'in his early 30s', 'dark skin',        'short cropped black hair',        'a plain navy field polo shirt, a small foam-tipped handheld microphone just below the chin'],
+  ['j2',  'Repórter de campo',       'woman', 'in her late 20s',  'light brown skin', 'long dark hair tied in a ponytail','a bright yellow broadcast rain jacket, a handheld microphone just below the chin'],
+  ['j3',  'Comentarista de TV',      'man',   'in his 50s',       'fair skin',        'greying hair swept back',          'a sharp charcoal suit jacket with a burgundy tie'],
+  ['j4',  'Colunista de jornal',     'woman', 'in her 40s',       'olive skin',       'short dark bob with glasses',      'a simple black turtleneck, a small spiral notepad held at chest height'],
+  ['j5',  'Chefe de reportagem',     'man',   'in his 40s',       'dark skin',        'shaved head and a short beard',    'a dark grey quarter-zip pullover, a media accreditation badge on a lanyard'],
+  ['j6',  'Narrador veterano',       'man',   'in his 60s',       'fair skin',        'thick white hair',                 'a classic navy blazer over a white open-collar shirt, headset resting around the neck'],
+  ['j7',  'Repórter jovem',          'woman', 'in her early 20s', 'brown skin',       'voluminous curly dark hair',       'a plain white broadcast polo shirt, a handheld microphone just below the chin'],
+  ['j8',  'Setorista de portal',     'man',   'in his 30s',       'light brown skin', 'medium wavy brown hair',           'a casual dark green hoodie, a phone held up recording at chest height'],
+  ['j9',  'Comentarista de rádio',   'woman', 'in her 50s',       'dark skin',        'short greying natural hair',       'a maroon blazer over a cream blouse, headset resting around the neck'],
+  ['j10', 'Fotógrafo de campo',      'man',   'in his late 20s',  'olive skin',       'short messy dark hair and stubble','a black photographer vest, a large camera body held at chest height'],
+];
+function promptFaceJornalista(i){
+  const j = JORNALISTAS[i];
+  /* expressao por indice, como nas faces de treinador: as dez saem diferentes em
+     vez de sortear e calhar sete serias. */
+  const EXPR = ['a calm attentive look','a slight friendly smile','a serious focused look',
+                'a curious raised eyebrow','a neutral professional look','a warm confident smile',
+                'an eager engaged look','a thoughtful half-smile','a composed serious look',
+                'a relaxed neutral look'];
+  return [
+    `Hyper-realistic studio portrait of a fictional FOOTBALL JOURNALIST, a ${j[2]} ${j[3]}, ${j[4]}, ${j[5]}, wearing ${j[6]}.`,
+    `The face has ${EXPR[i]}.`,
+    (typeof FACE_NUNCA!=='undefined') ? FACE_NUNCA : '',
+    'No club crest, no team badge, no sponsor logo and no readable text anywhere on the clothing or the microphone.',
+    'Head and upper chest only, facing the camera directly, press-room photo style.',
+    'Cropped just below the collarbone — do not show the arms, the waist or any part of the background scene.',
+    'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
+    'The head is horizontally centered and fills about 55% of the frame height, with a small margin of empty space above the hair.',
+    'Clean, crisp edges around the hair and the shoulders — every pixel outside the person must be fully transparent, with no grey halo, no soft fade and no leftover backdrop.',
+    (typeof NAO_REAL!=='undefined') ? NAO_REAL : ''
+  ].filter(Boolean).join(' ');
+}
+function jornalistasQueFaltam(){
+  const faltam = [];
+  JORNALISTAS.forEach((j, i) => { if(!D.fotos[JORNALISTA_KEY+'|'+j[0]]) faltam.push(i); });
+  return faltam;
+}
+/* gemea de garantirFaceTreinador: mesmo tipo transparente, mesma tabela. */
+async function garantirFaceJornalista(i, refazer){
+  const j = JORNALISTAS[i];
+  if(!refazer && D.fotos[JORNALISTA_KEY+'|'+j[0]]) return D.fotos[JORNALISTA_KEY+'|'+j[0]];
+  const url = await gerarImagemIA('camisa', promptFaceJornalista(i), 'medium', null,
+    'jornalistas/'+j[0], 'Gerando a face do jornalista…');
+  const linha = { pack_id: ST.packId, club_id: JORNALISTA_KEY, jogador: j[0], url,
+                  atributos: { rotulo: j[1] } };
+  const r = await jogo('player_photos').upsert(linha, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[JORNALISTA_KEY+'|'+j[0]] = linha;
+  return linha;
+}
+async function prepararFacesJornalista(btn){
+  const faltam = jornalistasQueFaltam();
+  if(!faltam.length) return toast('As 10 faces de jornalista já estão prontas.');
+  if(!await rfConfirm({ titulo:'Gerar as faces de jornalista',
+    texto:`Faltam <b>${faltam.length} face(s)</b> das dez que aparecem na coletiva pós-jogo.`,
+    detalhe:`Custo único: <b>~US$ ${(faltam.length*0.042).toFixed(2)}</b>. Face que sair torta pode ser
+             refeita pelo ✦ do cartão.`,
+    nao:'Agora não', sim:`Gerar ${faltam.length} face(s)` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok = 0, erros = 0;
+  for(const i of faltam){
+    btn.textContent = `${JORNALISTAS[i][0]}… (${ok+erros+1}/${faltam.length})`;
+    try{ await garantirFaceJornalista(i); ok++; }
+    catch(err){ erros++; console.warn('face de jornalista falhou:', i, err.message); }
+  }
+  registrar('estudio.jornalistas.preparar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`Faces geradas: ${ok}${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+async function refazerFaceJornalista(i){
+  const j = JORNALISTAS[i];
+  if(D.fotos[JORNALISTA_KEY+'|'+j[0]] && !await rfConfirm({ titulo:'Gerar esta face de novo',
+    texto:`Isto é uma <b>geração nova</b> de <b>${h(j[1])}</b>, e ela substitui a atual.`,
+    detalhe:'Custo: <b>~US$ 0,04</b>. A imagem de agora é perdida.', nao:'Agora não', sim:'Gerar de novo' })) return;
+  try{ await garantirFaceJornalista(i, true); toast('Face gerada.'); }
+  catch(err){ toast(err.message, true); }
+  pgEstudio();
+}
 const faceNome  = (genero, estilo) => (genero === 'f' ? 'treinadora-' : 'treinador-') + estilo;
 
 /* variedade entre as cinco do mesmo genero: sem isto o modelo devolve
@@ -9886,6 +9991,48 @@ function blocoMarcaHTML(){
         Entram como <b>camada</b> por cima da roupa, que a IA gera limpa. Use o ✥ de uma face para arrastar e definir a posição das dez.</span>
     </div>`;
 }
+function jornalistaCartaoHTML(i){
+  const j = JORNALISTAS[i];
+  const linha = D.fotos[JORNALISTA_KEY+'|'+j[0]];
+  const pode = podeEditar('dados');
+  const moldura = linha ? 'border:1px solid var(--bd);background:var(--card2)'
+                        : 'border:1px dashed var(--bd2);background:transparent';
+  const retrato = linha
+    ? `<span data-face-ver="${h(linha.url)}" style="display:block;cursor:zoom-in">
+         <img src="${h(linha.url)}" alt="" style="width:100%;aspect-ratio:1/1;object-fit:cover;object-position:top center;border-radius:9px;background:var(--card)"></span>`
+    : `<span style="width:100%;aspect-ratio:1/1;border-radius:9px;border:1px dashed var(--bd2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#3d4a43">＋</span>`;
+  return `<div style="${moldura};border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0">
+    ${retrato}
+    <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+      <b style="font-size:12.5px;font-weight:600${linha?'':';color:var(--dim)'}">${h(j[1])}</b>
+      <span class="mono" style="font-size:10.5px;color:var(--dim3)">${h(j[0])}</span>
+    </span>
+    ${pode?`<span style="display:flex;align-items:center;gap:8px">
+      <span class="link" style="font-size:11.5px" data-jorn-refazer="${i}">✦ Gerar</span></span>`:''}
+  </div>`;
+}
+function blocoJornalistasHTML(){
+  const faltam = jornalistasQueFaltam().length;
+  const prontas = JORNALISTAS.length - faltam;
+  return `<div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>As 10 faces de jornalista da coletiva</b>
+        <span class="mono" style="font-size:11.5px;color:var(--dim3);white-space:nowrap;flex:0 0 auto">${prontas} de ${JORNALISTAS.length} geradas</span>
+        ${faltam && podeEditar('dados')
+          ? `<button class="btn btn-sm" id="est-jorn" style="white-space:nowrap;flex:0 0 auto"
+               title="Gera só as faces que ainda não existem">Gerar as faces que faltam (${faltam})</button>`
+          : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:16px 20px">
+        ${JORNALISTAS.map((_j, i) => jornalistaCartaoHTML(i)).join('')}
+      </div>
+      <div style="border-top:1px solid var(--bd);padding:13px 20px;font-size:12px;color:var(--dim2);line-height:1.55">
+        Aparecem no <b>modal de entrevista pós-jogo</b>, ao lado do treinador. O jogo escolhe uma
+        por rodada e clube, sempre a mesma para o mesmo jogo. Sem imagem gerada, o modal mostra as
+        iniciais do nome — que é o que ele faz hoje.
+      </div>
+    </div>`;
+}
 function blocoTreinadoresHTML(){
   const faltam = facesQueFaltam().length;
   const prontas = 10 - faltam;
@@ -9967,7 +10114,7 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
      outras tres nao usam, e o Estudio ja' carrega catalogo, patches e fotos —
      nao vale pendurar mais duas por pagina. Falhar aqui e' zero, nunca erro:
      o rodape e' informativo e nao pode impedir a oficina de abrir. */
-  if(aba === 'treinadores'){
+  if(aba === 'treinadores' || aba === 'jornalistas'){
     D.avataresPro = { n:0, usd:0 };
     try{
       const [av, cst] = await Promise.all([
@@ -10025,10 +10172,10 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
       ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'candidatos a foto'})}
     </div>
     <div class="per" style="gap:6px;margin-bottom:2px">
-      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores'],['treinadores','Treinadores']]
+      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores'],['treinadores','Treinadores'],['jornalistas','Jornalistas']]
         .map(([id,l])=>`<span class="${aba===id?'on':''}" data-est-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
     </div>
-    ${aba==='treinadores' ? blocoTreinadoresHTML() : `
+    ${aba==='treinadores' ? blocoTreinadoresHTML() : aba==='jornalistas' ? blocoJornalistasHTML() : `
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>${aba==='escudos'?'Escolha o clube para gerar o escudo'
@@ -10088,6 +10235,12 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
     ST.modEstudio = el('est-modalidade').value; pgEstudio();
   };
   document.querySelectorAll('[data-est-aba]').forEach(x => x.onclick = () => { ST.abaEstudio=x.dataset.estAba; pgEstudio(); });
+  /* mesma guarda `if(bt...)` do resto: a aba de jornalistas nao tem os controlos
+     de clube, e um null aqui mataria o wiring todo (ver o comentario abaixo). */
+  const btJorn = el('est-jorn');
+  if(btJorn) btJorn.onclick = () => prepararFacesJornalista(btJorn);
+  document.querySelectorAll('[data-jorn-refazer]').forEach(x =>
+    x.onclick = () => refazerFaceJornalista(Number(x.dataset.jornRefazer)));
   /* O FILTRO E A BUSCA SO' EXISTEM NAS ABAS DE CLUBE. Sem estes guards a aba
      Treinadores achava null aqui, o TypeError estourava e MATAVA o resto do
      wiring — seletor de patch, botoes de aba, tudo — deixando o Estudio
