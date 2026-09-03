@@ -1076,7 +1076,11 @@ const RF_ACOES_EXTRA = {
 
 'opcoes': d=>{
   if(!CL.options) CL.options={chicotadas:'Dos humanos',sorteio:'Quando houver humanos',
-    gravar:'De 3 em 3 semanas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',tempo:TEMPO_DEFAULT};
+    gravar:'De 3 em 3 semanas',som:'Sim',subsIntervalo:'Sim',penaltisCPU:'Sim',
+    /* o padrao do PLANO, nao o do catalogo: TEMPO_DEFAULT e' 'Ultrassônico', e semear com ele
+       gravava o rotulo pago no save de quem nao o pode usar. tempoLabelAtual ja' o corrigia na
+       leitura, mas a preferencia guardada ficava a mentir. */
+    tempo:(typeof tempoPadrao==='function'?tempoPadrao():TEMPO_DEFAULT)};
   if(!CL.options.autoSave) CL.options.autoSave='Sim';
   const o=(typeof clOpcoes==='function')?clOpcoes():(CL.options||{}), aba=d.aba||'geral';
   const online=!!CL.online, anfitriao=(typeof NET!=='undefined' && NET.isHost);
@@ -1466,9 +1470,17 @@ Object.keys(RF_ACOES_AVATAR).forEach(k=>{ RF_ACOES[k]=RF_ACOES_AVATAR[k]; });
    pontos (menu do topo, Hub, Configurações, Finanças). Em vez de caçar cada
    chamada, redefinimos as três aqui — este ficheiro carrega depois do main.js
    —, e assim TODO caminho, novo ou velho, cai na pele nova. */
-if(typeof clOptions==='function'){
-  window.clOptions=function(){ CL.menu=null; rfAcAbrir('opcoes',{aba:'geral'}); };
-}
+/* clOptions NAO TEM LEGADO, e era isso que a guarda nao sabia. As outras duas existem mesmo no
+   main.js, entao `typeof === 'function'` e' verdade e o override entra. `clOptions` nao existe em
+   lado nenhum — foi-se algures no rebranding —, a guarda dava falso, o override NUNCA era
+   instalado, e todos os botoes que a chamam ficaram mortos sem um erro visivel: Configuracoes
+   (Tempo de jogo, Moeda, Modo), "Abrir opcoes", o menu RetroFoot98 > Opcoes e o "Abrir opcoes do
+   jogo" da pagina de E-mail. Um `onclick` para funcao inexistente nao rebenta nada — nao acontece
+   nada, que e' o pior modo de falhar.
+
+   Aqui a definicao e' incondicional, porque nao ha' nada para preservar: quem manda nas Opcoes e'
+   a pele nova. As outras duas mantem a guarda — ali ela protege alguma coisa. */
+window.clOptions=function(aba){ CL.menu=null; rfAcAbrir('opcoes',{aba:(typeof aba==='string'&&aba)||'geral'}); };
 if(typeof clStadium==='function'){
   window.clStadium=function(){ CL.menu=null; rfAcEstadio(); };
 }

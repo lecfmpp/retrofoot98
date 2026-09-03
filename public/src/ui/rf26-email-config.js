@@ -324,7 +324,10 @@ function rfCfOpcoesHTML(){
         <div class="rf-label"><span class="rf-label-t">PREFERÊNCIAS</span></div>
         ${rfCfCampo('Moeda', moeda)}
         ${rfCfCampo('Idioma', 'Português do Brasil')}
-        ${rfCfCampo('Velocidade da partida', tempo)}
+        ${/* a aba 'jogo' e' onde o ritmo vive; sem o argumento este campo abria as Opcoes na
+              aba 'geral' (Som, Salvamento) e quem clicou em "Velocidade da partida" tinha de a
+              procurar. */''}
+        ${rfCfCampo('Velocidade da partida', tempo, "clOptions('jogo')")}
         ${rfCfCampo('Formato de data', data)}
       </div>
       <div class="rf-card">
