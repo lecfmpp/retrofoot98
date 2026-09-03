@@ -2884,11 +2884,13 @@ function foreignMarketCountries(){
   const CLG=(typeof window!=='undefined'&&window.CONMEBOL_LEAGUES)||{};
   const INT=(typeof window!=='undefined'&&window.INTL_LEAGUES)||{};
   const out=['Brasil'];
-  /* A OUTRA FECHADURA DA MESMA TRAVA. Esta lista sai dos BUNDLES, nao do que o jogador escolheu
-     no assistente — e e' por isso que esconder os paises la' nao bastava: o mercado continuava a
-     oferecer os 15. Com RF_SO_BRASIL ligado a prateleira fica so' com a Serie A, cujos nomes ja'
-     sao ficticios. Ver universos.js. */
-  if(globalThis.RF_SO_BRASIL===true) return out;
+  /* ESTA LISTA SAI DOS BUNDLES, nao do que o jogador escolheu no assistente — e por isso ela
+     precisa da sua PROPRIA trava: esconder os paises no assistente nunca fechou o mercado.
+     Ate' aqui quem mandava aqui era RF_SO_BRASIL, porque os estrangeiros chegavam com nome REAL
+     do bundle; desde que `renomearEstrangeiros` (net/dados.js) passou a calcular nome ficticio
+     para os 10.080 no arranque, essa razao caiu — e o eixo do MERCADO passou a ser independente
+     do eixo do PAIS JOGAVEL. Ver o bloco das tres travas em universos.js. */
+  if(globalThis.RF_MERCADO_MUNDIAL!==true) return out;
   Object.keys(CLG).forEach(n=>{ if(out.indexOf(n)<0) out.push(n); });
   Object.keys(INT).forEach(n=>{ if(out.indexOf(n)<0) out.push(n); });
   return out;
@@ -4603,6 +4605,12 @@ function escolherClubeDoExterior(R){
      brilhando no Brasil, quem mais liga é Portugal/Argentina/2ªs européias — a Premier
      só entra na roda com a estante cheia, e ainda assim como zebra. */
 function clubesDoExterior(){
+  /* A TRAVA DE LANCAMENTO, LIDA NO UNICO SITIO POR ONDE OS DOIS MODOS PASSAM. O solo chega aqui
+     por maybeForeignJobOffer -> escolherClubeDoExterior; a Resenha por resenhaOfferClubs (`fora`).
+     Devolver cesta vazia fecha os dois: escolherClubeDoExterior ja devolve null com lista vazia,
+     e na Resenha `deFora` fica nulo e o convite sai domestico. Ver RF_TREINADOR_SO_NO_PAIS em
+     universos.js — nada aqui foi apagado, para religar basta a flag. */
+  if(globalThis.RF_TREINADOR_SO_NO_PAIS===true) return [];
   const fora=[], bg=S.bgLeagues||{};
   const humanos=new Set(Object.keys((typeof CL!=='undefined'&&CL.humans)||{}));
   if(S.clubId) humanos.add(S.clubId);

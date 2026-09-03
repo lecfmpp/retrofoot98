@@ -432,9 +432,15 @@ function rfOb3(){
      vazio. Some tambem o bloco de ligas de fundo, que e' a mesma escolha por outro nome. */
   /* DUAS RAZOES PARA MOSTRAR SO' O BRASIL, e elas nao sao a mesma coisa:
        · no FEMININO, porque nao ha' elenco feminino para os outros paises — o pote sairia vazio;
-       · com RF_SO_BRASIL ligado, porque os 9.832 estrangeiros ainda tem NOME REAL (ver
-         universos.js). Esta vale para as duas modalidades.
-     A tela e' a mesma nos dois casos; so' a frase de baixo muda, porque o motivo e' outro. */
+       · com RF_SO_BRASIL ligado, porque o pais jogavel da 1a versao publica e' um so'. Esta vale
+         para as duas modalidades.
+     A tela e' a mesma nos dois casos; so' a frase de baixo muda, porque o motivo e' outro.
+
+     O QUE ESTA TRAVA JA' NAO QUER DIZER: que os estrangeiros estao fora de alcance. Ela era, ate'
+     ao lancamento, tambem a trava do MERCADO — e o motivo escrito aqui era o nome REAL dos
+     jogadores de fora. Esse motivo caiu (renomearEstrangeiros, net/dados.js), o mercado ganhou
+     flag propria (RF_MERCADO_MUNDIAL) e hoje compra-se e vende-se com os quinze paises. O que
+     esta trava decide e' apenas onde se SENTA. Ver o bloco das tres travas em universos.js. */
   /* O FEMININO DEIXOU DE SER SO' O BRASIL (etapa 3): os catorze gemeos existem, com os mesmos
      clubes, a mesma piramide e elenco feminino nomeado pelo pool do proprio pais. A trava que
      resta e' a outra — RF_SO_BRASIL — e ela vale para as DUAS modalidades. Enquanto estiver
