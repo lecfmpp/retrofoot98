@@ -10370,7 +10370,9 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-fita-podio{display:flex;align-items:center;flex:0 0 auto;height:100%;z-index:2;
   background:linear-gradient(180deg,rgba(242,185,12,.2),rgba(242,185,12,.05));border-right:1px solid rgba(255,255,255,.16)}
-.rf-fita-c{display:flex;align-items:center;gap:10px;height:100%;padding:0 16px;border-right:1px solid rgba(255,255,255,.12);min-width:0}
+.rf-fita-c{display:flex;align-items:center;gap:10px;height:100%;padding:0 16px;min-width:0}
+/* so' entre os degraus: no 3o a risca encostava na borda do bloco do podio e lia-se dupla */
+.rf-fita-c.c1,.rf-fita-c.c2{border-right:1px solid rgba(255,255,255,.12)}
 .rf-fita-med{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:15px;font-weight:700;color:#dfe6ef}
 .rf-fita-med.m1{color:#F2B90C}.rf-fita-med.m3{color:#d9a06a}
 .rf-fita-cid{display:flex;flex-direction:column;gap:1px;min-width:0}
@@ -10396,7 +10398,7 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-fita-eu-l{display:flex;align-items:baseline;gap:6px}
 .rf-fita-eu-l b{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:16px;font-weight:700;color:#17458F}
 /* no fundo amarelo a tinta clara do pill não tem contraste: aqui ele vira sólido */
-.rf-fita-eu-l .rf-rk-pill{color:#fff;background:#5d6c62}
+.rf-fita-eu-l .rf-rk-pill{color:#fff;background:#5d6c62;font-size:11px}
 .rf-fita-eu-l .rf-rk-pill.sobe{background:#1e8f47}
 .rf-fita-eu-l .rf-rk-pill.desce{background:#a93226}
 .rf-fita-eu-div{width:1px;height:28px;background:rgba(23,69,143,.28);flex:0 0 auto}

@@ -261,7 +261,7 @@ function rfFitaSemTicker(tres, eu){
     ${eu?`<div class="rf-fita-eu">
       <span class="rf-fita-eu-id">
         <span class="rf-fita-eu-r">A SUA POSIÇÃO</span>
-        <span class="rf-fita-eu-l"><b>${eu.pos}º</b>${rfRankPill(eu.delta,false)}</span>
+        <span class="rf-fita-eu-l"><b>#${eu.pos}</b>${rfRankPill(eu.delta,false)}</span>
       </span>
       <span class="rf-fita-eu-div"></span>
       ${rfRankEscudo(eu,26)}
@@ -280,7 +280,7 @@ function rfFitaHTML(){
   const eu=l.find(x=>x.souEu);
   const item=(t)=>`<span class="rf-fita-i ${t.souEu?'eu':''}">
       <span class="rf-fita-p ${t.pos<=3?('m'+t.pos):''}">${t.pos}º</span>
-      ${rfRankEscudo(t,20)}
+      ${rfRankEscudo(t,22)}
       <span class="rf-fita-n">${escC(t.treinador)}</span>
       <span class="rf-fita-v">${rfRankNum(t.pts)}</span>
       ${t.souEu?'<span class="rf-fita-tag">VOCÊ</span>':''}
@@ -316,7 +316,7 @@ function rfFitaHTML(){
     ${eu?`<div class="rf-fita-eu">
       <span class="rf-fita-eu-id">
         <span class="rf-fita-eu-r">A SUA POSIÇÃO</span>
-        <span class="rf-fita-eu-l"><b>${eu.pos}º</b>${rfRankPill(eu.delta,false)}</span>
+        <span class="rf-fita-eu-l"><b>#${eu.pos}</b>${rfRankPill(eu.delta,false)}</span>
       </span>
       <span class="rf-fita-eu-div"></span>
       ${rfRankEscudo(eu,26)}

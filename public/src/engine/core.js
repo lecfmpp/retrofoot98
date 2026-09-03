@@ -4973,9 +4973,43 @@ function enviarTemporadas(modo, origem, nome){
       pos:(isFinite(pos)?pos:null), ptsLiga:(isFinite(ptsReais)?Math.round(ptsReais):null),
       pontos: Math.round(peso*fracao*CAMPANHA_FATOR*100)/100 });
   });
+  /* ===== A TEMPORADA EM CURSO TAMBEM PONTUA =====
+     Ela nao esta' em `S.history` — so' entra la' quando fecha — e sem isto um
+     treinador com 33 rodadas jogadas e 35 pontos valia zero no ranking ate' virar
+     o ano. Vai com os pontos REAIS da tabela, pela mesma escala das fechadas.
+
+     A CHAVE DO SERVIDOR E' (conta, carreira, temporada), entao esta linha vai
+     sendo ACTUALIZADA a cada gravacao enquanto a temporada corre, e no fecho a
+     entrada do historico escreve por cima com o numero final. Uma linha por
+     temporada, do inicio ao fim — nao duas.
+
+     O EFEITO COLATERAL ACEITE: a pontuacao de quem esta' a meio do ano SOBE ao
+     longo da temporada. E' o preco de contar a campanha em curso, e foi decisao
+     do dono para o ranking ter gente desde ja'. */
+  try{
+    const meu=(S.table&&S.clubId)?S.table[S.clubId]:null;
+    const ptsAgora=meu?Number(meu.Pts):NaN;
+    const divAgora=S.division;
+    if(isFinite(ptsAgora) && ptsAgora>0 && divAgora && !lista.some(x=>x.season===S.season)){
+      const uni=S.intlUniverse||'brasil';
+      let peso=0, n=20;
+      const comp=(typeof divisionCompKeyFor==='function')?divisionCompKeyFor(divAgora):null;
+      peso=(comp && typeof pontosDeTitulo==='function')?Number(pontosDeTitulo(comp, uni, divAgora))||0:0;
+      const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
+      if(cfg && cfg.size && cfg.size[divAgora]) n=cfg.size[divAgora];
+      const fr=Math.max(0, Math.min(1, ptsAgora/((n-1)*2*3)));
+      lista.push({ season:S.season, div:divAgora, uni:uni,
+        pos:(typeof tablePos==='function')?tablePos(S.clubId):null,
+        ptsLiga:Math.round(ptsAgora),
+        pontos:Math.round(peso*fr*CAMPANHA_FATOR*100)/100 });
+    }
+  }catch(e){}
   if(!lista.length) return;
   const ult=lista[lista.length-1];
-  const assinatura=modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.pos;
+  /* a assinatura inclui os PONTOS da ultima linha: a temporada em curso muda de
+     valor a cada rodada, e sem isso o guard achava que "nada mudou" e a campanha
+     ficava congelada no primeiro envio. */
+  const assinatura=modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.pos+'|'+ult.ptsLiga;
   if(typeof CL!=='undefined'){
     if(CL._temporadasEnviadas===assinatura) return;
     CL._temporadasEnviadas=assinatura;
