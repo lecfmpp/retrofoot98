@@ -340,10 +340,18 @@ para **fechar um período** — manda nos KPIs, nas receitas e no fechamento. O 
 lista de meses sai dos lançamentos, não de um intervalo inventado: mês sem movimento não aparece
 e lançamento antigo não fica inalcançável.
 
-**Nem tudo na página segue o filtro, e isso está escrito na tela.** O gráfico *Lucro por mês* é a
-tendência dos últimos seis meses (vem de `overview`, não dos lançamentos filtrados) e o card de
-gasto de IA é sempre de todos os meses — os dois dizem isso no próprio bloco, e o gráfico marca a
-barra do mês escolhido. Parados ao lado de KPIs que mudam, eles pareciam não ter atualizado.
+**Quase tudo segue o filtro** — KPIs, receitas, despesas do período, fechamento e o card de gasto
+de IA. A exceção é o gráfico *Lucro por mês*, que é a **tendência** dos últimos seis meses (vem de
+`overview`, não dos lançamentos filtrados): ele diz isso no próprio bloco e marca a barra do mês
+escolhido. Parado ao lado de KPIs que mudam, parecia não ter atualizado.
+
+**A sincronia da despesa de IA não corre a cada troca de filtro.** Ela grava lançamento a
+lançamento, sequencialmente, e persiste o câmbio da fatura — segundos de escritas. Presa ao
+desenho, fazia cada mudança de mês demorar tanto que a pessoa mexia no filtro outra vez, e aí a
+primeira renderização voltava com **senha vencida** e não pintava: o sintoma era *"tem de repetir
+a escolha do mês para funcionar"*. Ela é manutenção de dados, não desenho — corre ao abrir a
+página e no máximo uma vez por minuto (`IA_SINCRONIZADA_EM`). Trocar filtro passou a ser leitura
+do que já está em memória.
 
 **Redesenho de dentro da página nunca falha em silêncio.** Trocar um filtro chama `pgX()` de
 novo, e essa promessa não era apanhada por ninguém — só `irPara()` tem `.catch`. Qualquer erro no
@@ -376,7 +384,13 @@ imagem sair, tentativa repetida, ou chamada feita antes de o registro de custo e
 agosto de 2026 a estimativa deu US$ 239,35 e a fatura US$ 260,83 — os US$ 21,48 de diferença
 estão todos em 25, 26 e 27/08; de 28/08 em diante as duas contas batem ao cêntimo.
 
-**Conciliar** é largar o CSV do export em *Finanças → Conciliar com a fatura da OpenAI*. O
+**A explicação vive num FAQ recolhido no fim da página** (`<details>` nativo, abre e fecha no
+clique, nasce fechado). Empilhada sob os cartões, a tabela de conciliação era cinco colunas mais
+dois parágrafos no meio da página de finanças, e ninguém a lia. Quem abre Finanças quer os
+números; a explicação é procurada depois, quando a dúvida aparece — e é lá que ela está, junto da
+conciliação mês a mês.
+
+**Conciliar** é largar o CSV do export em *Finanças → FAQ → Conciliar com a fatura*. O
 ficheiro traz **tokens, não dólares**: o custo é calculado com a tabela de preços, que é como a
 própria fatura o faz. A tela mostra os dois números lado a lado antes de gravar.
 

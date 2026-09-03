@@ -530,3 +530,11 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
   .ft-uni{flex-wrap:wrap}
   .ft-uni > .btn{flex:1 1 100%}
 }
+
+/* FAQ recolhível (details/summary). O marcador nativo é feio e diferente em
+   cada browser, então some — quem indica o estado é o "abrir ▾" do próprio
+   summary, que gira quando abre. */
+details > summary::-webkit-details-marker{ display:none }
+details > summary::marker{ content:'' }
+details > summary:hover{ background:rgba(255,255,255,.02) }
+details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rótulo ficaria de cabeça para baixo */

@@ -1841,8 +1841,21 @@ function faturaFechada(m, fat){
    o que ele tinha na última abertura da página — sempre a meio do mês. Agosto de
    2026 ficou congelado em R$ 292,28, escrito no dia 25, enquanto o mês fechou dez
    vezes acima disso. Agora percorre TODO mês com gasto, fechado ou não. */
+/* A SINCRONIA NÃO PODE CORRER A CADA TROCA DE FILTRO.
+   Ela percorre os meses gravando lançamento a lançamento, sequencialmente, e
+   ainda persiste o câmbio da fatura — segundos de escritas. Presa ao desenho,
+   fazia cada mudança de mês demorar tanto que a pessoa mexia no filtro de novo,
+   e aí a primeira renderização voltava com senha vencida e não pintava: o
+   sintoma era "tem de repetir a escolha do mês para funcionar".
+
+   Ela é MANUTENÇÃO DE DADOS, não desenho. Corre ao abrir a página e no máximo
+   uma vez por minuto; trocar filtro passa a ser só leitura do que já está em
+   memória, que é instantâneo. */
+let IA_SINCRONIZADA_EM = 0;
 async function sincronizarDespesaIA(porMes, faturas){
   if(!podeEditar('financas')) return;
+  if(Date.now() - IA_SINCRONIZADA_EM < 60000) return;
+  IA_SINCRONIZADA_EM = Date.now();
   const cotHoje = await cotacaoUSD();
   const chaves = new Set([...Object.keys(porMes||{}), ...Object.keys(faturas||{})]);
   let cambiosNovos = null;
@@ -1906,19 +1919,6 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
      não a dos grupos desenhados abaixo: os grupos são leitura, e um tipo novo
      que não coubesse em nenhum deles sumia da conta — foi o que aconteceu com
      'camisa' e 'treinador', que ficaram fora do card durante semanas. */
-  const iaPorMes = {}, iaPorTipo = {}, iaPorFonte = { tokens:{usd:0,n:0}, tabela:{usd:0,n:0} };
-  for(const r of D.iaMes){
-    const usdR = Number(r.usd)||0, nR = Number(r.n)||0;
-    const m = iaPorMes[r.mes] || (iaPorMes[r.mes] = { usd:0, n:0 });
-    m.usd += usdR; m.n += nR;
-    const t = iaPorTipo[r.tipo] || (iaPorTipo[r.tipo] = { usd:0, n:0 });
-    t.usd += usdR; t.n += nR;
-    const f = iaPorFonte[r.fonte] || (iaPorFonte[r.fonte] = { usd:0, n:0 });
-    f.usd += usdR; f.n += nR;
-  }
-  try{ await sincronizarDespesaIA(iaPorMes, D.faturasIA); }
-  catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
-
   /* ===== O PERÍODO DA PÁGINA =====
      A página mostrava sempre o mês corrente e ponto: não havia como abrir
      agosto para conferir o fecho, nem somar o ano. Agora o ano e o mês são
@@ -1939,6 +1939,25 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     ? String(l.data).slice(0,7) === ST.finMes
     : String(l.data).slice(0,4) === ST.finAno;
   const rotuloPeriodo = ST.finMes ? mesPorExtenso(ST.finMes) : 'ano de '+ST.finAno;
+
+  /* `iaPorMes` é de TODOS os meses — é o que a conciliação lá embaixo compara
+     com as faturas. Já `iaPorTipo` e `iaPorFonte` são do PERÍODO ESCOLHIDO: são
+     eles que viram os cartões de gasto, e um cartão que ignora o filtro ao lado
+     de KPIs que o seguem é uma armadilha de leitura. */
+  const noPeriodoIA = (m) => ST.finMes ? m === ST.finMes : String(m).startsWith(ST.finAno);
+  const iaPorMes = {}, iaPorTipo = {}, iaPorFonte = { tokens:{usd:0,n:0}, tabela:{usd:0,n:0} };
+  for(const r of D.iaMes){
+    const usdR = Number(r.usd)||0, nR = Number(r.n)||0;
+    const m = iaPorMes[r.mes] || (iaPorMes[r.mes] = { usd:0, n:0 });
+    m.usd += usdR; m.n += nR;
+    if(!noPeriodoIA(r.mes)) continue;
+    const t = iaPorTipo[r.tipo] || (iaPorTipo[r.tipo] = { usd:0, n:0 });
+    t.usd += usdR; t.n += nR;
+    const f = iaPorFonte[r.fonte] || (iaPorFonte[r.fonte] = { usd:0, n:0 });
+    f.usd += usdR; f.n += nR;
+  }
+  try{ await sincronizarDespesaIA(iaPorMes, D.faturasIA); }
+  catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
 
   const doMes = D.lancamentos.filter(noPeriodo);
   const desp = doMes.filter(l=>l.tipo==='despesa');
@@ -2036,61 +2055,101 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     </div>`;
   };
 
+  /* O CARD DE CIMA MOSTRA O GASTO DO PERÍODO, e só isso. A conciliação com a
+     fatura — que é a parte que explica de onde vem cada número — saiu daqui:
+     empilhada sob os cartões, ela era uma tabela de cinco colunas mais dois
+     parágrafos no meio da página de finanças, e ninguém a lia. Virou um FAQ
+     recolhido no fim da página, que é onde se procura explicação quando se
+     tem a dúvida — não antes. */
   const iaCards = `
     <div class="card" style="margin-top:4px;overflow:hidden">
       <div class="card-h" style="flex-wrap:wrap;gap:10px">
-        <b>Gastos com IA — Estúdio de imagens</b>
-        <span class="st" style="margin:0;flex:1">todos os meses, sempre — não segue o filtro acima ·
-          contagem desde 25/08/2026 · pintura de molde e camadas não custam nada</span>
-        ${editar?'<button class="btn btn-sm btn-ghost" id="f-openai">Conciliar com a fatura da OpenAI</button>':''}
+        <b>Gastos com IA — ${h(rotuloPeriodo)}</b>
+        <span class="st" style="margin:0;flex:1">contagem desde 25/08/2026 ·
+          pintura de molde e camadas não custam nada</span>
       </div>
       ${D.iaErro ? `<div class="erro" style="margin:16px 20px">Não deu para somar o gasto de IA: ${h(D.iaErro)}</div>` : `
       ${/* os grupos variam (um tipo novo abre a caixa "Outros"), então a grade se
            ajusta ao número deles em vez de fixar quatro e deixar o total órfão */''}
-      <div style="padding:16px 20px 4px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px">
+      <div style="padding:16px 20px">
+        ${grupos.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px">
           ${grupos.map(([rot,s]) => kpiHTML({ l:rot, v:emRe(s.v),
             d:`${usd(s.v)} · ${num(s.n)} × ${porImagem(s.v,s.n)}` })).join('')}
-          ${kpiHTML({ l:'Total estimado', v:emRe(iaTot),
+          ${kpiHTML({ l:'Total do período', v:emRe(iaTot),
             d:`${usd(iaTot)} · ${num(iaN)} imagens a ${porImagem(iaTot,iaN)}`, c:'var(--ambar)' })}
-        </div>
+        </div>` : `<div class="vazio">Nenhuma imagem gerada em ${h(rotuloPeriodo)}.</div>`}
+      </div>`}
+    </div>`;
+
+  /* ===== O FAQ DO FATURAMENTO =====
+     `<details>` nativo: abre e fecha no clique sem uma linha de JavaScript, e
+     nasce fechado — quem abre a página de finanças quer os números, não a
+     explicação deles. */
+  const tk = iaPorFonte.tokens || {usd:0,n:0}, tb = iaPorFonte.tabela || {usd:0,n:0};
+  const faqIA = `
+    <details class="card" style="margin-top:16px;overflow:hidden">
+      <summary style="padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;
+                      list-style:none;user-select:none">
+        <span style="font-size:13px;font-weight:700">Como funciona o gasto e o pagamento da OpenAI</span>
+        <span class="st" style="margin:0;flex:1">estimativa × fatura, o preço por imagem, o câmbio
+          e a conciliação mês a mês</span>
+        ${editar?`<span class="btn btn-sm btn-ghost" id="f-openai">Conciliar com a fatura</span>`:''}
+        <span style="color:var(--dim2);font-size:12px;display:flex;align-items:center;gap:5px;flex:0 0 auto">
+          detalhes <i class="faq-seta" style="display:inline-block;font-style:normal">▾</i></span>
+      </summary>
+
+      <div style="padding:0 20px 18px;font-size:12.5px;line-height:1.7;color:var(--dim);
+                  border-top:1px solid var(--bd);padding-top:16px">
+
+        <b style="color:var(--fg2)">A OpenAI cobra por TOKEN, não por imagem.</b>
+        Cada geração gasta tokens de texto (o prompt), às vezes tokens de imagem (quando o pedido
+        manda uma imagem junto) e sempre tokens de imagem na saída. Os preços por milhão são
+        US$ ${OPENAI_TOK_USD.texto_in} (texto de entrada), US$ ${OPENAI_TOK_USD.imagem_in}
+        (imagem de entrada) e US$ ${OPENAI_TOK_USD.imagem_out} (imagem de saída). Por isso duas
+        imagens do mesmo tamanho podem custar diferente: o que varia é o prompt e a entrada.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">O painel tem duas contas do mesmo dinheiro.</b>
+        A <b>estimativa</b> é escrita a cada geração, a partir do <code class="mono">usage</code> que a
+        própria OpenAI devolve na resposta. A <b>fatura</b> é o export de uso da plataforma
+        (<i>platform.openai.com → Usage → Export</i>), que é o que vai ser cobrado. Divergem quando a
+        geração é cobrada mas não chega a ser registrada: pedido que falha depois de a imagem sair,
+        tentativa repetida, ou chamada feita antes de o registro de custo existir.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">Parte da estimativa é um piso, não o preço.</b>
+        Quando a resposta não traz o <code class="mono">usage</code>, o custo cai numa tabela de preço por
+        imagem que cobre <b>só a imagem de saída</b> e ignora o prompt e a imagem de entrada —
+        subestima de 3% (rosto, prompt curto) a 10% (montagem, que manda imagem no pedido).
+        ${tb.n||tk.n ? `No período escolhido:
+          <b class="mono" style="color:var(--verde2)">${usd(tk.usd)}</b> medido pelos tokens
+          (${num(tk.n)} imagens a ${porImagem(tk.usd,tk.n)}) e
+          <b class="mono" style="color:var(--ambar)">${usd(tb.usd)}</b> estimado pela tabela
+          (${num(tb.n)} a ${porImagem(tb.usd,tb.n)}).` : ''}
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">A fatura só vira despesa quando cobre o mês inteiro.</b>
+        Um export baixado hoje leva o mês corrente pela metade; tomá-lo como fatura fecharia o mês
+        com os dias que ele tem. Export parcial fica guardado, marcado como tal, e não substitui
+        nada — até lá vale a estimativa, que é diária e está sempre em dia.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">O câmbio fica congelado.</b>
+        A conversão para real usa a cotação do dia em que a despesa foi lançada, e essa cotação
+        fica gravada junto da fatura: mês fechado não muda de valor porque o dólar mexeu hoje.
+        Cotação de agora: <b class="mono">R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</b>.
+
+        <div style="height:18px"></div>
+        <div class="tt" style="font-size:12.5px;margin-bottom:2px">Conciliação, mês a mês</div>
+        <div class="st" style="margin:0 0 10px">o que o painel contou, o que a fatura diz, e como cada mês foi lançado</div>
       </div>
-      <div class="rowh" style="grid-template-columns:86px 1fr 1fr 1fr 1.1fr;margin-top:8px">
+
+      <div class="rowh" style="grid-template-columns:86px 1fr 1fr 1fr 1.25fr">
         <span>Mês</span><span>Estimado (painel)</span><span>Fatura (OpenAI)</span>
         <span>Diferença</span><span style="text-align:right">Como foi lançado</span>
       </div>
       ${mesesIA.map(linhaConcil).join('') || '<div class="vazio">Nenhum gasto de IA ainda.</div>'}
-      ${(() => {
-        /* QUANTO DO TOTAL É MEDIDO E QUANTO É CHUTE. A edge function usa o `usage`
-           real quando ele vem; quando não vem, cai numa tabela de preço por imagem
-           que só cobre a imagem de SAÍDA e ignora o prompt e a imagem de entrada.
-           Essa tabela é um PISO — subestima de 3% (rosto) a 10% (montagem, que
-           manda imagem no pedido). Era daí que vinha a sensação de "o custo que
-           aparece não é real": num lote de montagens, 64% do gasto era piso. */
-        const tk = iaPorFonte.tokens || {usd:0,n:0}, tb = iaPorFonte.tabela || {usd:0,n:0};
-        if(!tb.n) return '';
-        return `<div style="border-top:1px solid var(--bd);padding:12px 20px;display:flex;gap:22px;flex-wrap:wrap;font-size:12px">
-          <span><span style="color:var(--dim2)">Medido pelos tokens da OpenAI</span>
-            <b class="mono" style="color:var(--verde2)">${usd(tk.usd)}</b>
-            <span style="color:var(--dim3)">· ${num(tk.n)} imagens a ${porImagem(tk.usd,tk.n)}</span></span>
-          <span><span style="color:var(--dim2)">Estimado pela tabela (piso)</span>
-            <b class="mono" style="color:var(--ambar)">${usd(tb.usd)}</b>
-            <span style="color:var(--dim3)">· ${num(tb.n)} imagens a ${porImagem(tb.usd,tb.n)}</span></span>
-          <span style="color:var(--dim3);flex:1;min-width:220px;line-height:1.5">
-            a tabela só cobre a imagem de saída e ignora o prompt e a imagem de entrada:
-            subestima de 3% a 10% conforme o tipo</span>
-        </div>`;
-      })()}
-      <div style="border-top:1px solid var(--bd);padding:12px 20px;font-size:11.5px;color:var(--dim3);line-height:1.6">
-        A estimativa sai do <code class="mono">usage</code> que a própria OpenAI devolve em cada geração;
-        a fatura sai do export de uso da plataforma (Usage → Export). Divergem quando a geração é cobrada
-        mas não chega a ser registrada — pedido que falha depois da imagem sair, ou tentativa repetida.
-        <b>A fatura vira despesa do mês assim que cobre o mês inteiro</b>, ao câmbio do dia em que foi
-        lançada, que fica gravado — mês fechado não muda de valor porque o dólar mexeu hoje. Export que
-        para no meio do mês fica guardado como parcial e não substitui nada. Câmbio de agora:
-        R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}.
-      </div>`}
-    </div>`;
+    </details>`;
 
   const plural = (n,s) => `${n} ${s}${n===1?'':'s'}`;
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
@@ -2191,7 +2250,8 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
           </div>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${faqIA}`;
 
   /* os filtros valem para quem só lê também — conferir o fecho de agosto não é
      escrita nenhuma, e prendê-los ao papel esconderia a página de metade da equipe */
@@ -2200,7 +2260,12 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   el('desp-filtro').onchange = () => { ST.despFiltro = el('desp-filtro').value; redesenhar(pgFinancas); };
 
   if(editar){
-    if(el('f-openai')) el('f-openai').onclick = () => modalFaturaOpenAI(iaPorMes, cot);
+    if(el('f-openai')) el('f-openai').onclick = (ev) => {
+      /* mora dentro do <summary>: sem isto, o clique abriria/fecharia o FAQ
+         debaixo do modal que acabou de abrir */
+      ev.preventDefault(); ev.stopPropagation();
+      modalFaturaOpenAI(iaPorMes, cot);
+    };
     el('f-nova-desp').onclick = () => modalLancamento('despesa');
     el('f-nova-rec').onclick  = () => modalLancamento('receita');
     el('f-caixa').onclick = () => editarConfig('caixa_centavos','Caixa do projeto (R$)', caixa);
