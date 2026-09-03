@@ -21,10 +21,33 @@ Referência de design: o handoff *Dashboard administrativo do projeto* (protóti
 | Batimento de tempo de jogo | `netStartHeartbeat()` em `public/src/net/supabase-adapter.js` |
 | Hosting | `firebase.json` (dois targets: `jogo` e `admin`) · `.firebaserc` |
 
+### Uma página de cada vez
+
+Cada aba é uma função `pgX()` assíncrona: pede à base, **espera**, e só então escreve em
+`#page`. Enquanto ninguém mandava nisso, dois desenhos podiam estar no ar ao mesmo tempo — o
+sócio clicava em *Usuários* com a *Visão geral* ainda carregando — e quem escrevia na tela era
+quem **respondia por último**, não quem foi pedido por último. Os dois sintomas conhecidos eram
+o mesmo bug: abrir uma página e ver o conteúdo da anterior, e ter de clicar duas ou três vezes
+até "pegar" (cada clique sorteava a corrida de novo).
+
+`irPara()` agora tira uma **senha** (`pedirDesenho()`) por navegação e passa-a à `pgX()`. Antes
+de escrever, a página confere `desenhoAtual(senha)`: com senha vencida sai fora sem pintar nada
+— nem o HTML, nem os handlers que vêm depois dele. O último clique é sempre o que manda.
+
+> **Página nova ou desenho novo tem de fazer o mesmo.** A assinatura é
+> `async function pgX(forcar, senha = pedirDesenho())` — o valor por omissão é o que faz
+> `pgX()` chamada à mão (a busca com debounce, o redesenho depois de gravar) tirar senha
+> própria em vez de nascer vencida. Antes de cada `el('page').innerHTML =`, um
+> `if(!desenhoAtual(senha)) return;`.
+
+O item clicado também pisca no menu enquanto a base responde: sem sinal nenhum, página lenta
+parecia clique perdido — e a resposta natural era clicar de novo.
+
 ### Dois schemas no Supabase, de propósito
 
 - **`admin_rf98`** — o que só os sócios veem: `adm_users`, `adm_invites`, `adm_lancamentos`,
-  `adm_patrocinadores`, `adm_user_plans`, `adm_kanban_cols`, `adm_features`, `adm_config`.
+  `adm_patrocinadores`, `adm_user_plans`, `adm_kanban_cols`, `adm_features`, `adm_config`,
+  `adm_parceiros`, `adm_conteudo` e `adm_audit` (o registro de ações, § 3b).
   O papel `anon` **não tem sequer USAGE** neste schema: um bug no jogo não alcança as finanças.
 - **`elifoot_v3`** (schema do jogo) — só o que o **jogo** precisa ler/escrever:
   `ad_spaces`, `ad_creatives`, `ad_events` e `user_activity`.
@@ -198,6 +221,48 @@ quantos humanos estão sentados nela antes de liberar o botão.
 
 ---
 
+## 3b. Registro — o que cada pessoa fez
+
+Toda escrita do painel deixa uma linha em `admin_rf98.adm_audit`
+(`quando`, `quem`, `quem_email`, `acao`, `alvo`, `detalhe` em JSONB). Duas mãos escrevem lá:
+
+- **o painel**, pela função `registrar(acao, alvo, detalhe)` em `admin.js`, para o que passa
+  direto por RLS (criar card, publicar criativo, editar clube, subir vídeo…);
+- **o banco**, pela função `admin_rf98.registrar()`, para o que já é função `SECURITY DEFINER`
+  (`apagar_sala`, `apagar_usuarios`, `convidar`, `reivindicar_convite`…) — ali o registro entra
+  na **mesma transação**: se a ação der errado, a linha de auditoria cai junto.
+
+**Ninguém edita o próprio rastro.** `adm_audit` tem política de `SELECT` (qualquer admin) e de
+`INSERT` (só com `quem = auth.uid()`). Não há política de `UPDATE` nem de `DELETE` — com RLS
+ligada, a ausência é a proibição.
+
+A página **Registro** (menu, só para `socio`) lê isso em duas alturas:
+
+| Bloco | O que responde |
+|---|---|
+| KPIs | quantas ações no período, quantas pessoas mexeram, área mais movimentada, última ação |
+| *Quem fez o quê* | por pessoa: total, as três áreas em que mais mexeu, quando foi a última e qual |
+| *Registro* | a lista, filtrável por pessoa, por área e por busca livre; CSV; clique abre o `detalhe` cru |
+
+O período é o mesmo seletor do cabeçalho (7 dias / 30 dias / Ano) que o resto do painel usa.
+A busca livre varre também o **JSON do detalhe**: procurar "Palmeiras" acha a edição de clube
+mesmo que o nome do clube só exista lá dentro.
+
+**Quem saiu do painel continua aparecendo**, identificado pelo e-mail gravado na linha e marcado
+em âmbar. Tirar o acesso de alguém não pode apagar o que essa pessoa fez — seria o oposto de
+auditoria.
+
+**Ação nova entra no catálogo `ACOES`** (rótulo) e, se o prefixo for novo, em `AREA_POR_PREFIXO`
+(área). Sem isso a linha **ainda aparece** — nada fica escondido —, mas com a chave técnica crua
+em vez da frase.
+
+O que o `detalhe` guarda é escolhido por ação, e é aí que mora a leitura útil: `clube.editar`
+grava os **nomes** dos jogadores criados, alterados e removidos (não só a contagem — "3 novos"
+não diz a ninguém o que entrou no elenco); `criativo.publicar` grava o arquivo e o peso;
+`feature.mover`, a coluna de origem e a de destino.
+
+---
+
 ## 4. De onde vem cada número
 
 Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEFINER` em
@@ -217,6 +282,7 @@ Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEF
   inventado.
 - **Finanças**: `adm_lancamentos`, em centavos. Recorrência mensal/anual materializa os meses em
   falta ao abrir a página (`gerar_recorrencias()`, idempotente).
+- **Gasto de IA**: ver § 4b — são duas contas do mesmo dinheiro, e elas não valem o mesmo.
 - **Analytics**: contas criadas, atividade diária e funil saem da base própria. Os blocos de
   **GA4** (origem de tráfego, páginas, dispositivo) precisam da Google Analytics Data API, que
   exige uma chave de serviço no servidor — o painel não pode guardá-la. Assim que houver um job a
@@ -226,6 +292,137 @@ Tudo o que o painel mostra sai da base real, através de funções `SECURITY DEF
   { "visitas": 12000, "fontes": [{"nome":"Orgânico","pct":42}],
     "paginas": [{"url":"/","n":8100}], "device": [{"l":"Celular","v":"63%"}] }
   ```
+
+---
+
+## 3c. Funcionalidades — o card como ficha
+
+O quadro tem de continuar legível **de relance**: título, prioridade, nota de uma linha, autor,
+votos. Tudo o que é comprido vive na **ficha**, que abre ao clicar no card.
+
+| Onde | O quê |
+|---|---|
+| Card no quadro | checkbox de feito, título, prioridade, nota curta, origem, votos, quem criou e quando |
+| Ficha (clique no card) | título, nota, **conteúdo** (texto livre com links), prioridade, origem, coluna, autoria e o **histórico do card** |
+
+**Prioridade** tem quatro valores — *Urgente*, *Importante*, *Para depois*, *Só ideia* — e um
+quinto estado que é **não ter**: card recém-criado não é "só ideia", é não triado, e pintar os
+dois igual esconderia a fila de triagem.
+
+**O checkbox move para a coluna de conclusão** (`colunaFeito()`: por nome — *Feito*, *Concluído*,
+*Pronto*, *Done* — com a última coluna como reserva). Desmarcar devolve à coluna de origem, que
+fica guardada; sem registro dela, volta para a primeira. Sem isso, desmarcar deixaria o card
+preso em "Feito".
+
+**Os filtros escondem, não removem.** O card filtrado continua na coluna e na ordem dele — é o
+que faz o arrasto e a gravação de ordem continuarem corretos — e o cabeçalho diz quantos estão
+escondidos, porque um quadro que parece vazio por causa de um filtro esquecido é pior do que
+nenhum filtro. O corte por data é sobre a **criação** do card, que é a pergunta real ("o que
+entrou esta semana?"), não sobre a última mexida.
+
+**O histórico do card não é tabela nova**: sai de `adm_audit`, filtrado por
+`detalhe->>'feature_id'`. Filtrar pelo título não serviria — o título muda, e o histórico é
+justamente onde se vê que mudou. Por isso **toda ação de card grava o id** em `feature_id`
+(`supabase/sql/features-autoria.sql` cria o índice que torna essa pergunta barata). Cards
+mexidos antes de 03/09/2026 só passam a ter histórico a partir da mexida seguinte.
+
+Ler é leitura: **quem tem papel de `leitura` abre a ficha, vê o conteúdo e o histórico** — só não
+edita. Prender a ficha ao papel de escrita tiraria de metade da equipe a parte mais útil dela.
+
+---
+
+## 4a. Finanças — período, despesas e as duas moedas
+
+**Dois filtros, de propósito diferente.** O de cima (ano + mês; mês vazio = ano inteiro) serve
+para **fechar um período** — manda nos KPIs, nas receitas e no fechamento. O da aba *Despesas* é
+**independente** e serve para outra pergunta: "o que saiu ultimamente". Por isso ela abre nos
+**últimos gastos**, atravessando meses — presa ao mês corrente, no dia 2 ela estaria vazia. A
+lista de meses sai dos lançamentos, não de um intervalo inventado: mês sem movimento não aparece
+e lançamento antigo não fica inalcançável.
+
+**Quase tudo segue o filtro** — KPIs, receitas, despesas do período, fechamento e o card de gasto
+de IA. A exceção é o gráfico *Lucro por mês*, que é a **tendência** dos últimos seis meses (vem de
+`overview`, não dos lançamentos filtrados): ele diz isso no próprio bloco e marca a barra do mês
+escolhido. Parado ao lado de KPIs que mudam, parecia não ter atualizado.
+
+**A sincronia da despesa de IA não corre a cada troca de filtro.** Ela grava lançamento a
+lançamento, sequencialmente, e persiste o câmbio da fatura — segundos de escritas. Presa ao
+desenho, fazia cada mudança de mês demorar tanto que a pessoa mexia no filtro outra vez, e aí a
+primeira renderização voltava com **senha vencida** e não pintava: o sintoma era *"tem de repetir
+a escolha do mês para funcionar"*. Ela é manutenção de dados, não desenho — corre ao abrir a
+página e no máximo uma vez por minuto (`IA_SINCRONIZADA_EM`). Trocar filtro passou a ser leitura
+do que já está em memória.
+
+**Redesenho de dentro da página nunca falha em silêncio.** Trocar um filtro chama `pgX()` de
+novo, e essa promessa não era apanhada por ninguém — só `irPara()` tem `.catch`. Qualquer erro no
+meio virava rejeição silenciosa e a tela ficava com os números **antigos**, sem aviso: um sintoma
+indistinguível de "o filtro não funciona". Todo redesenho passa agora por `redesenhar()`, que
+mostra o erro num toast.
+
+**Real primário, dólar secundário.** O painel fecha em real — é a moeda do projeto —, mas metade
+do custo nasce em dólar (OpenAI, Supabase, softwares), e converter de cabeça a cada linha é onde
+se erra a conta. Então o real manda no tamanho e na cor, e o dólar vai junto, menor
+(`brlUsd()` para a coluna de valor, `brlEUsd()` para uma linha só). A cotação é a mesma de todo
+o painel (`cotacaoUSD()`, cache de 1h, que alimenta `COTACAO`); enquanto ela não tiver sido
+buscada, o dólar **não aparece** — em vez de aparecer convertido por um número inventado.
+
+---
+
+## 4b. Gasto de IA — a estimativa e a fatura
+
+O painel tem **duas contas do mesmo dinheiro**, e elas não valem o mesmo:
+
+| | De onde vem | Quando vale |
+|---|---|---|
+| **Estimativa** | `elifoot_v3.ia_custos` — uma linha por geração, escrita pela edge function a partir do `usage` que a própria OpenAI devolve (`custo_fonte='tokens'`) ou, quando ele não vem, de uma tabela de preço por imagem (`'tabela'`) | sempre; é diária e está sempre em dia |
+| **Fatura** | export de uso da plataforma (*platform.openai.com → Usage → Export*), guardado em `adm_config['openai_faturas']` | quando cobre o **mês inteiro** |
+
+As duas batem quase sempre — a estimativa usa os mesmos tokens e a mesma tabela de preços
+(`TOK_USD` na edge function = `OPENAI_TOK_USD` no painel; **mexeu numa, mexa na outra**).
+Divergem quando a geração é cobrada mas não chega a ser registrada: pedido que falha depois de a
+imagem sair, tentativa repetida, ou chamada feita antes de o registro de custo entrar no ar. Em
+agosto de 2026 a estimativa deu US$ 239,35 e a fatura US$ 260,83 — os US$ 21,48 de diferença
+estão todos em 25, 26 e 27/08; de 28/08 em diante as duas contas batem ao cêntimo.
+
+**A explicação vive num FAQ recolhido no fim da página** (`<details>` nativo, abre e fecha no
+clique, nasce fechado). Empilhada sob os cartões, a tabela de conciliação era cinco colunas mais
+dois parágrafos no meio da página de finanças, e ninguém a lia. Quem abre Finanças quer os
+números; a explicação é procurada depois, quando a dúvida aparece — e é lá que ela está, junto da
+conciliação mês a mês.
+
+**Conciliar** é largar o CSV do export em *Finanças → FAQ → Conciliar com a fatura*. O
+ficheiro traz **tokens, não dólares**: o custo é calculado com a tabela de preços, que é como a
+própria fatura o faz. A tela mostra os dois números lado a lado antes de gravar.
+
+**Uma fatura só substitui a estimativa se cobrir o mês inteiro** (`ate` ≥ último dia do mês).
+Um export baixado hoje leva o mês corrente pela metade; tomá-lo como fatura fecharia setembro com
+dois dias de gasto. Export parcial fica guardado, marcado como *parcial* na tela, e não substitui
+nada.
+
+**O câmbio fica gravado com a fatura**, no dia em que a despesa é de facto lançada. Mês fechado
+não muda de valor em reais porque o dólar mexeu hoje; reimportar o mesmo mês mantém o câmbio com
+que ele entrou no extrato. O mês corrente não tem fatura e acompanha o câmbio do dia — ele ainda
+está a acontecer.
+
+### Três armadilhas que já morderam aqui
+
+1. **A despesa mensal só era sincronizada no mês corrente.** Na virada do mês a linha congelava no
+   valor que tinha na última abertura da página — sempre a meio do mês. Agosto ficou em R$ 292,28,
+   escrito no dia 25, com o mês a fechar dez vezes acima disso. Agora `sincronizarDespesaIA()`
+   percorre **todo** mês com gasto, fechado ou não.
+2. **`ia_custos` passou das 1000 linhas.** Lida com `select()` sem `range()`, o Supabase devolvia
+   as primeiras mil sem erro e sem aviso: com 4881 linhas, o painel somava um quinto do gasto — e
+   *lançava* esse quinto como despesa. A soma passou para o banco,
+   `admin_rf98.ia_custos_mes()` (`supabase/sql/ia-custos-mes.sql`), que devolve uma linha por
+   mês/tipo. É a mesma armadilha já documentada em `todasAsLinhas()`, desta vez nas finanças.
+3. **A tabela de preços é um PISO, não o preço.** Ela cobre só a imagem de **saída** e ignora o
+   prompt e a imagem de entrada — subestima 3% (rosto, prompt curto) a 10% (montagem, que manda
+   imagem no pedido). Em 02/09/2026, 65% das gerações tinham sido precificadas assim. O card
+   agora separa **medido pelos tokens** de **estimado pela tabela**, com o custo por imagem de
+   cada um: era daí que vinha a sensação de "o custo que aparece não é real".
+4. **O card só somava os grupos que ele desenhava.** `camisa` e `treinador` não estavam em nenhum
+   grupo e sumiam da conta — US$ 108 fora do total. Agora o total é a soma de **todos** os tipos e
+   o que não cabe num grupo nomeado cai em *Outros*, para aparecer em vez de desaparecer.
 
 ---
 

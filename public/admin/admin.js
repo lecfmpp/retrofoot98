@@ -100,7 +100,14 @@ const SEL = { salas:new Set(), saves:new Set(), contas:new Set(), convites:new S
 const JOGO_URL = 'https://retrofoot98.com.br';   // destino dos links que o painel gera
 const ST = {
   tab: 'visao', periodo: 30, authMode: 'login', authErro: '', authOk: '',
-  busca: '', carregando: false, modal: null, drag: null
+  busca: '', carregando: false, modal: null, drag: null,
+  /* filtros da página Registro (log de ações) */
+  regQuem: '', regArea: '', regBusca: '',
+  /* filtros das Finanças: finMes null = ainda não escolhido (a página decide),
+     '' = ano inteiro. despFiltro é o da aba Despesas, independente do de cima. */
+  finAno: '', finMes: null, despFiltro: 'recentes',
+  /* filtros do quadro de funcionalidades */
+  kbPri: '', kbData: ''
 };
 
 /* ============================ utilidades ============================ */
@@ -112,6 +119,32 @@ function h(s){ return String(s==null?'':s).replace(/[&<>"']/g, c =>
 function brl(centavos){
   const v = (Number(centavos)||0)/100;
   return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:0, maximumFractionDigits:0});
+}
+/* ===== DUAS MOEDAS, UMA PRIMÁRIA =====
+   O painel fecha em REAL — é a moeda do projeto e a do fechamento do mês. Mas
+   metade do custo nasce em DÓLAR (OpenAI, Supabase, softwares), e converter na
+   cabeça a cada linha é onde o sócio erra a conta. Então o real manda no
+   tamanho e na cor, e o dólar vai junto, menor, ao lado.
+
+   A cotação é a mesma de todo o painel (cache de 1h em cotacaoUSD). Enquanto ela
+   não tiver sido buscada, COTACAO é 0 e o dólar simplesmente não aparece — em
+   vez de aparecer convertido por um número inventado. */
+let COTACAO = 0;
+function usdDeCentavos(centavos){
+  if(!COTACAO) return '';
+  const v = (Number(centavos)||0)/100/COTACAO;
+  return 'US$ ' + v.toLocaleString('en-US',{ minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+/* R$ grande, US$ pequeno logo abaixo — para a coluna de valor das tabelas */
+function brlUsd(centavos, cor){
+  const d = usdDeCentavos(centavos);
+  return `<span class="mono" style="font-size:12.5px;font-weight:700;text-align:right;line-height:1.3${cor?';color:'+cor:''}">
+    ${brl(centavos)}${d?`<small style="display:block;font-size:10.5px;font-weight:500;color:var(--dim3)">${d}</small>`:''}</span>`;
+}
+/* "R$ 1.234 · US$ 227" — para uma linha só (KPIs, fechamento) */
+function brlEUsd(centavos){
+  const d = usdDeCentavos(centavos);
+  return brl(centavos) + (d ? ' · ' + d : '');
 }
 function num(n){ return (Number(n)||0).toLocaleString('pt-BR'); }
 function pct(a,b){ return b>0 ? Math.round(a*100/b) : 0; }
@@ -133,6 +166,14 @@ function partes(d){
 }
 function dma(d){ if(!d) return '—'; const p=partes(d); return p.d+'/'+p.m; }
 function dmy(d){ if(!d) return '—'; const p=partes(d); return p.d+'/'+p.m+'/'+p.a; }
+function horaHM(d){ return d ? new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '—'; }
+const MESES_PT = ['janeiro','fevereiro','março','abril','maio','junho',
+                  'julho','agosto','setembro','outubro','novembro','dezembro'];
+/* '2026-08' -> 'agosto de 2026' (rótulo dos filtros de período das Finanças) */
+function mesPorExtenso(m){
+  const [a,b] = String(m||'').split('-');
+  return (MESES_PT[(+b||1)-1] || '?') + ' de ' + a;
+}
 /* "há 3 dias" — usado em último acesso, idade da sala e envio de convite */
 function ha(d){
   if(!d) return 'nunca';
@@ -226,8 +267,11 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
    chegou ao menu. */
 /* 'espera' acompanha 'analytics': é a mesma pergunta (o funil antes da conta),
    e quem vê uma tem de ver a outra. Fora do financeiro, como o analytics. */
+/* 'registro' é o log de quem fez o quê. Fica com o sócio, como 'equipa': é a
+   página que serve para CONFERIR a equipe, e quem está a ser conferido não
+   precisa dela para trabalhar. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa'],
+  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa','registro'],
   financeiro: ['visao','financas','publicidade','parceiros'],
   produto:    ['visao','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio'],
   leitura:    ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
@@ -391,7 +435,7 @@ const NAV = [
   { id:'jogos',       ic:'⚑', label:'Resenhas & solo',tit:'Resenhas & solo',    sub:'Salas abertas, convites e saves' },
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
   { id:'espera',      ic:'◷', label:'Lista de espera',tit:'Lista de espera',    sub:'Quem se inscreveu, quando e o que respondeu' },
-  { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do mês' },
+  { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do período — por mês ou por ano' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
   { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos dos momentos', sub:'Quando cada modal aparece e com que vídeo' },
   { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
@@ -399,7 +443,8 @@ const NAV = [
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
   { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
   { id:'estudio',     ic:'❖', label:'Estúdio IA',     tit:'Estúdio de imagens',  sub:'Escudos fictícios e fotos de jogadores por IA' },
-  { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' }
+  { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' },
+  { id:'registro',    ic:'⧉', label:'Registro',       tit:'Registro de ações',  sub:'O que cada sócio fez no painel, por pessoa e por área' }
 ];
 function renderNav(){
   el('nav').innerHTML = NAV.filter(n=>podeVer(n.id)).map(n =>
@@ -413,19 +458,66 @@ function renderNav(){
     ST.periodo = +s.dataset.per; renderNav(); irPara(ST.tab, true);
   });
 }
+/* ===== UMA PÁGINA DE CADA VEZ =====
+   Toda pgX() é assíncrona: pede à base, ESPERA, e só então escreve em #page.
+   Enquanto ninguém mandava nisso, dois desenhos podiam estar no ar ao mesmo
+   tempo — clicar em Usuários enquanto a Visão geral ainda carregava — e quem
+   escrevia na tela era quem RESPONDIA POR ÚLTIMO, não quem foi pedido por
+   último. Daí os dois sintomas relatados, que são o mesmo bug:
+
+     · abre-se uma página e aparece o conteúdo da anterior (a resposta atrasada
+       chegou depois e pintou por cima);
+     · tem de se clicar duas ou três vezes até "pegar" (a cada clique novo a
+       corrida é sorteada de novo, e uma hora calha a ordem certa).
+
+   Agora cada pedido de desenho leva uma SENHA. Ao voltar da base, quem tem
+   senha vencida não escreve nada — nem o HTML, nem os handlers que vêm depois
+   dele (o `return` corta a função inteira). O último clique é sempre o que
+   manda, independentemente de qual consulta respondeu primeiro. */
+let SENHA_DESENHO = 0;
+function pedirDesenho(){ return ++SENHA_DESENHO; }
+function desenhoAtual(senha){ return senha === SENHA_DESENHO; }
+/* ===== REDESENHO PEDIDO DE DENTRO DA PRÓPRIA PÁGINA =====
+   Trocar um filtro, buscar, gravar: tudo isso chama `pgX()` de novo. Chamada
+   assim, ela devolve uma PROMESSA QUE NINGUÉM APANHAVA — só `irPara()` tem
+   `.catch`. Qualquer erro no meio (rede que caiu, RLS que recusou, um campo
+   inesperado) virava rejeição silenciosa: a tela ficava com os números
+   ANTIGOS, sem aviso nenhum. O sintoma que isso produz é indistinguível de
+   "o filtro não funciona", e não há como a pessoa descobrir sozinha.
+
+   Agora todo redesenho de dentro da página passa por aqui: o erro aparece num
+   toast e no console, em vez de sumir. */
+function redesenhar(fn, ...args){
+  const p = fn(...args);
+  if(!p || typeof p.catch !== 'function') return p;
+  return p.catch(e => {
+    console.error('redesenho falhou:', e);
+    toast('Não deu para atualizar a página: ' + erroMsg(e), true);
+  });
+}
 function irPara(tab, forcar){
   if(!podeVer(tab)) tab = 'visao';
   ST.tab = tab; renderNav(); menuLateral(false);
   const n = NAV.find(x=>x.id===tab);
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
   el('mob-tit').textContent = n.tit;
-  el('page').innerHTML = '<div class="vazio">Carregando…</div>';
+  const senha = pedirDesenho();   // invalida qualquer desenho ainda no ar
+  el('page').innerHTML = `<div class="vazio">Carregando ${h(n.label)}…</div>`;
+  /* O item clicado pisca no menu enquanto a base responde: sem sinal nenhum, a
+     página lenta parecia clique perdido — e a resposta era clicar de novo. */
+  const marcar = (txt) => { const t = el('tag-'+tab); if(t) t.textContent = txt; };
+  marcar('···');
+  const pronto = () => { if(desenhoAtual(senha)) marcar(''); };
   const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
                espera:pgEspera,
                financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
-               parceiros:pgParceiros, conteudo:pgConteudo,
+               parceiros:pgParceiros, conteudo:pgConteudo, registro:pgRegistro,
                editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
-  fn(forcar).catch(e => { el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`; });
+  fn(forcar, senha).then(pronto, e => {
+    pronto();
+    if(!desenhoAtual(senha)) return;   // erro de página abandonada não vai à tela
+    el('page').innerHTML = `<div class="erro">${h(erroMsg(e))}</div>`;
+  });
 }
 
 /* ============================ VÍDEOS DOS MOMENTOS ============================
@@ -451,7 +543,7 @@ const TOM_MOMENTO = {
   green: { n:'Boa notícia',  tag:'t-ok'   },
   gray:  { n:'Notícia ruim', tag:'t-dim'  },
 };
-async function pgVideos(){
+async function pgVideos(forcar, senha = pedirDesenho()){
   const editar = podeEditar('dados');
   const r = await jogo('momentos').select('*').order('ord');
   if(r.error) throw r.error;
@@ -501,6 +593,7 @@ async function pgVideos(){
     </div>`;
   };
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4" style="margin-bottom:16px">
       ${kpiHTML({l:'Momentos no jogo', v:num(ms.length), d:'modais de celebração'})}
@@ -523,6 +616,7 @@ async function pgVideos(){
     const { error } = await jogo('momentos')
       .update({ ativo: !m.ativo, atualizado_em: new Date().toISOString() }).eq('id', m.id);
     if(error) return toast(erroMsg(error), true);
+    registrar(m.ativo?'momento.desligar':'momento.ligar', m.id, { nome:m.nome });
     toast(m.ativo ? 'Momento desligado.' : 'Momento ligado.'); pgVideos();
   });
 }
@@ -601,6 +695,7 @@ function abrirVideoMomento(m){
     const { error } = await jogo('momentos')
       .update({ video_url:null, atualizado_em:new Date().toISOString() }).eq('id', m.id);
     if(error) return falhar(erroMsg(error));
+    registrar('momento.video_tirar', m.id, { nome:m.nome });
     fecharModal(); toast('Vídeo retirado — o modal continua a abrir, sem ele.'); pgVideos();
   };
 
@@ -624,14 +719,22 @@ function abrirVideoMomento(m){
       }
       const { error } = await jogo('momentos').update(campos).eq('id', m.id);
       if(error) throw error;
+      registrar(arquivo?'momento.video':'momento.editar', m.id, {
+        nome: m.nome,
+        arquivo: arquivo ? arquivo.name : null,
+        bytes: arquivo ? arquivo.size : null,
+        chance: campos.chance, max_por_temporada: campos.max_por_temporada });
       fecharModal(); toast('Momento atualizado.'); pgVideos();
     }catch(e){ falhar(erroMsg(e)); bt.disabled=false; bt.textContent='Salvar'; }
   };
 }
 
 /* ============================ VISÃO GERAL ============================ */
-async function pgVisao(){
-  const { data, error } = await sb.rpc('overview', { p_dias: ST.periodo });
+async function pgVisao(forcar, senha = pedirDesenho()){
+  const [{ data, error }] = await Promise.all([
+    sb.rpc('overview', { p_dias: ST.periodo }),
+    cotacaoUSD()          // alimenta COTACAO: os cartões de dinheiro mostram R$ e US$
+  ]);
   if(error) throw error;
   D.overview = data;
   const meses = data.meses||[], mesAtual = meses[meses.length-1] || {receita:0,despesa:0,lucro:0};
@@ -644,13 +747,14 @@ async function pgVisao(){
     { l:'Ativos (7 dias)',  v:num(data.ativos7),  d:`${num(data.retorno7)} voltaram noutro dia` },
     { l:'Tempo médio por usuário', v:hm(data.minutos_medio), d:`${hm(data.minutos_total)} no total` },
     { l:'Lucro do mês', v:brl(mesAtual.lucro),
-      d: meta ? (mesAtual.lucro>=meta ? 'acima da meta '+brl(meta) : 'abaixo da meta '+brl(meta)) : 'sem meta definida',
+      d: `${usdDeCentavos(mesAtual.lucro)}${meta ? ' · ' + (mesAtual.lucro>=meta ? 'acima da meta '+brl(meta) : 'abaixo da meta '+brl(meta)) : ' · sem meta definida'}`.replace(/^ · /,''),
       c: mesAtual.lucro>=0 ? 'var(--verde2)' : 'var(--vermelho)' }
   ];
 
   const barras = meses.map(m => `
     <div class="chcol">
-      <div class="cap" style="color:${m.lucro>=0?'var(--verde2)':'var(--vermelho)'}">${brl(m.lucro)}</div>
+      <div class="cap" style="color:${m.lucro>=0?'var(--verde2)':'var(--vermelho)'}"
+           title="${h(m.rotulo)}: receita ${brlEUsd(m.receita)} · despesa ${brlEUsd(m.despesa)} · lucro ${brlEUsd(m.lucro)}">${brl(m.lucro)}</div>
       <div class="chpair">
         <i class="chrec"  style="height:${Math.round(m.receita*100/maxBarra)}%"></i>
         <i class="chdesp" style="height:${Math.round(m.despesa*100/maxBarra)}%"></i>
@@ -661,7 +765,7 @@ async function pgVisao(){
     <div style="display:grid;grid-template-columns:110px 1fr 86px;align-items:center;gap:10px">
       <span style="font-size:12.5px;color:var(--fg2)">${h(catNome(c.nome))}</span>
       <span class="bar"><i style="width:${pct(c.valor,total)}%;background:${cor}"></i></span>
-      <span class="mono" style="font-size:12px;text-align:right">${brl(c.valor)}</span>
+      <span class="mono" style="font-size:12px;text-align:right" title="${h(brlEUsd(c.valor))}">${brl(c.valor)}</span>
     </div>`;
   const totRec = (data.cats_receita||[]).reduce((a,c)=>a+ +c.valor, 0) || 1;
   const totDesp= (data.cats_despesa||[]).reduce((a,c)=>a+ +c.valor, 0) || 1;
@@ -674,6 +778,7 @@ async function pgVisao(){
   ];
   const maxEng = Math.max(1, ...engBarras.map(b=>+b[1]||0));
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">${kpis.map(k=>kpiHTML(k)).join('')}</div>
     <div style="display:grid;grid-template-columns:1.45fr 1fr;gap:16px">
@@ -776,7 +881,7 @@ const PLANOS_ADM = {
 const planoAdm = (k) => PLANOS_ADM[k] || PLANOS_ADM.free;
 const ehPago   = (u) => !!u.plano && u.plano !== 'free';
 
-async function pgUsuarios(){
+async function pgUsuarios(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
   if(error) throw error;
   D.usuarios = data || [];
@@ -793,6 +898,7 @@ async function pgUsuarios(){
   // Jogos / Pontos / Títulos vêm por MODO — é a leitura que a página precisa dar
   const col = `${podeApagar?'30px ':''}1.5fr .55fr .9fr .85fr .8fr .7fr .8fr .75fr .7fr 84px`;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Contas totais', v:num(us.length), d:`${num(us.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
@@ -921,7 +1027,7 @@ function modalResetSenha(email, nome){
 }
 
 /* ============================ RESENHAS & SOLO ============================ */
-async function pgJogos(){
+async function pgJogos(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('jogos');
   if(error) throw error;
   D.jogos = data;
@@ -945,6 +1051,7 @@ async function pgJogos(){
   // saves de cada pessoa, para o check da linha marcar todos de uma vez
   const savesDe = u => solos.filter(s => s.user_id === u.user_id);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Resenhas abertas', v:num(salas.length), d:`${num(salas.filter(s=>s.phase==='running').length)} em jogo`})}
@@ -1309,7 +1416,7 @@ function mascara(s){
 }
 
 /* ============================ ANALYTICS ============================ */
-async function pgAnalytics(){
+async function pgAnalytics(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('analytics', { p_dias: Math.min(ST.periodo,60) });
   if(error) throw error;
   D.analytics = data;
@@ -1328,6 +1435,7 @@ async function pgAnalytics(){
       nota:`${+f.resenha||0} Resenha · ${+f.embaixador||0} Embaixador` }
   ].filter(Boolean);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Sessões (período)', v:num(totalSes), d:'contas com tempo de jogo registrado'})}
@@ -1444,7 +1552,7 @@ function espCSV(ls){
   ].map(csvCampo).join(';'));
   return cab.join(';') + '\n' + linhas.join('\n');
 }
-async function pgEspera(){
+async function pgEspera(forcar, senha = pedirDesenho()){
   /* a lista inteira, do mais recente para o mais antigo. `todasAsLinhas` não
      serve aqui (é por pack_id), e o teto de 1000 do Supabase ainda está longe —
      quando chegar perto, isto passa a paginar. */
@@ -1514,6 +1622,7 @@ async function pgEspera(){
     .some(v => String(v||'').toLowerCase().includes(q))) : todas;
 
   const col = 'minmax(0,1.6fr) 118px minmax(0,.9fr) 62px 62px 74px minmax(0,1fr)';
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4" style="margin-bottom:16px">
       ${kpiHTML({ l:'Na lista de espera', v:num(todas.length),
@@ -1629,57 +1738,228 @@ async function pgEspera(){
 const CATS_DESPESA = ['softwares','creditos_ia','banco_dados','servidor'];
 const CATS_RECEITA = ['publicidade','assinaturas','aportes'];
 
-async function pgFinancas(){
+/* ===== O GASTO DE IA E A FATURA QUE MANDA NELE =====
+   O painel tem DUAS contas do mesmo dinheiro, e elas não valem o mesmo:
+
+   · a ESTIMATIVA — `elifoot_v3.ia_custos`, uma linha por geração, escrita pela
+     edge function a partir do `usage` que a própria OpenAI devolve na resposta;
+   · a FATURA — o export de uso da plataforma da OpenAI (Usage → Export CSV),
+     que é o que de facto vai ser cobrado.
+
+   As duas batem quase sempre, porque a estimativa usa os mesmos tokens e a
+   mesma tabela de preços. Divergem quando a geração é cobrada mas não chega a
+   ser registrada — pedido que falha depois de a imagem sair, chamada feita
+   antes de o registro de custo entrar no ar, tentativa repetida. Foi o que
+   aconteceu em agosto de 2026: a estimativa deu US$ 239,35 e a fatura US$
+   260,83, tudo concentrado em 25, 26 e 27/08.
+
+   Quando há fatura importada para o mês, é ela que vira despesa. Sem fatura
+   (o mês corrente, sempre), vale a estimativa — melhor um número honesto que
+   se corrige na virada do mês do que um zero à espera. */
+const DESC_IA = 'Gastos com IA — Estúdio de imagens';
+/* Preços do gpt-image-1 por milhão de tokens. São os MESMOS de `TOK_USD` em
+   supabase/functions/generate-image/index.ts — se a OpenAI mexer na tabela, os
+   dois lados mudam juntos, ou a conciliação passa a comparar contas diferentes. */
+const OPENAI_TOK_USD = { texto_in:5.0, imagem_in:10.0, imagem_out:40.0 };
+const MODELOS_OPENAI_CONHECIDOS = /^gpt-image-1/;
+
+/* Lê o CSV de uso da OpenAI (Usage → Export) e soma por mês. O ficheiro traz
+   TOKENS, não dólares — o custo é calculado com a tabela acima, que é como a
+   própria fatura o faz. O mês é o UTC do `start_time_iso`, o mesmo corte que
+   `admin_rf98.ia_custos_mes()` usa do lado do banco. */
+function lerUsoOpenAI(texto){
+  const linhas = String(texto).replace(/^﻿/,'').trim().split(/\r?\n/);
+  if(linhas.length < 2) throw new Error('O ficheiro está vazio.');
+  const cab = linhas[0].split(',').map(s=>s.trim());
+  const col = (n) => cab.indexOf(n);
+  const iDia = col('start_time_iso'), iMod = col('model');
+  if(iDia < 0 || iMod < 0)
+    throw new Error('Não parece o export de uso da OpenAI (faltam as colunas start_time_iso e model).');
+  const iTxt = col('input_text_tokens'), iImg = col('input_image_tokens');
+  const iOutI = col('output_image_tokens'), iOutT = col('output_text_tokens');
+  const iReq = col('num_model_requests');
+
+  const meses = {}; const desconhecidos = new Set(); let usadas = 0;
+  for(let i=1; i<linhas.length; i++){
+    const c = linhas[i].split(',');
+    const modelo = (c[iMod]||'').trim();
+    if(!modelo) continue;                       // dia sem uso: o export traz a linha vazia
+    if(!MODELOS_OPENAI_CONHECIDOS.test(modelo)) desconhecidos.add(modelo);
+    const n = (i2) => i2>=0 ? (Number(c[i2])||0) : 0;
+    const dia = (c[iDia]||'').slice(0,10), mes = dia.slice(0,7);
+    if(!mes) continue;
+    const inTxt = n(iTxt), inImg = n(iImg), out = n(iOutI) + n(iOutT);
+    const usd = (inTxt*OPENAI_TOK_USD.texto_in + inImg*OPENAI_TOK_USD.imagem_in
+               + out*OPENAI_TOK_USD.imagem_out) / 1e6;
+    const m = meses[mes] || (meses[mes] = { usd:0, requisicoes:0,
+      tokens:{ in_texto:0, in_imagem:0, out:0 }, de:dia, ate:dia, modelos:[] });
+    m.usd += usd; m.requisicoes += n(iReq);
+    m.tokens.in_texto += inTxt; m.tokens.in_imagem += inImg; m.tokens.out += out;
+    if(dia < m.de) m.de = dia;
+    if(dia > m.ate) m.ate = dia;
+    if(!m.modelos.includes(modelo)) m.modelos.push(modelo);
+    usadas++;
+  }
+  if(!usadas) throw new Error('Nenhuma linha com uso no ficheiro.');
+  Object.values(meses).forEach(m => { m.usd = Math.round(m.usd*1e6)/1e6; });
+  return { meses, desconhecidos:[...desconhecidos], linhas:usadas };
+}
+
+/* a moeda do painel é o REAL; a da OpenAI é o dólar. Cache de 1h, e um valor de
+   recurso honesto se a cotação não vier — melhor converter por 5,50 e dizer que
+   foi por 5,50 do que não mostrar despesa nenhuma. */
+async function cotacaoUSD(){
+  try{
+    const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
+    if(cc && Date.now()-cc.t < 3600e3 && cc.v) return (COTACAO = cc.v);
+    const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
+    const v = parseFloat((await r.json()).USDBRL.bid) || 0;
+    if(v){ localStorage.setItem('rf_cotacao', JSON.stringify({ v, t:Date.now() })); return (COTACAO = v); }
+  }catch(e){}
+  return (COTACAO = 5.5);
+}
+
+/* UMA FATURA SÓ MANDA SE COBRIR O MÊS INTEIRO. O export da OpenAI é de um
+   período qualquer — quem baixa hoje leva o mês corrente pela metade. Tomar isso
+   como fatura fecharia setembro com dois dias de gasto e apagaria o resto. Então
+   a fatura só substitui a estimativa quando o período dela chega ao último dia
+   do mês; até lá fica guardada, marcada como parcial, e quem manda é a
+   estimativa — que é diária e está sempre em dia. */
+function ultimoDiaDoMes(m){
+  const [a,b] = String(m).split('-').map(Number);
+  return new Date(Date.UTC(a, b, 0)).toISOString().slice(0,10);
+}
+function faturaFechada(m, fat){
+  return !!(fat && fat.ate && fat.ate >= ultimoDiaDoMes(m));
+}
+
+/* GASTO DE IA VIRA DESPESA: uma linha por MÊS em adm_lancamentos (categoria
+   creditos_ia), para o extrato não virar poeira de microlançamentos e a soma de
+   despesas passar a incluir a IA.
+
+   ANTES ISTO SÓ OLHAVA O MÊS CORRENTE, e por isso o valor de um mês fechado era
+   o que ele tinha na última abertura da página — sempre a meio do mês. Agosto de
+   2026 ficou congelado em R$ 292,28, escrito no dia 25, enquanto o mês fechou dez
+   vezes acima disso. Agora percorre TODO mês com gasto, fechado ou não. */
+/* A SINCRONIA NÃO PODE CORRER A CADA TROCA DE FILTRO.
+   Ela percorre os meses gravando lançamento a lançamento, sequencialmente, e
+   ainda persiste o câmbio da fatura — segundos de escritas. Presa ao desenho,
+   fazia cada mudança de mês demorar tanto que a pessoa mexia no filtro de novo,
+   e aí a primeira renderização voltava com senha vencida e não pintava: o
+   sintoma era "tem de repetir a escolha do mês para funcionar".
+
+   Ela é MANUTENÇÃO DE DADOS, não desenho. Corre ao abrir a página e no máximo
+   uma vez por minuto; trocar filtro passa a ser só leitura do que já está em
+   memória, que é instantâneo. */
+let IA_SINCRONIZADA_EM = 0;
+async function sincronizarDespesaIA(porMes, faturas){
+  if(!podeEditar('financas')) return;
+  if(Date.now() - IA_SINCRONIZADA_EM < 60000) return;
+  IA_SINCRONIZADA_EM = Date.now();
+  const cotHoje = await cotacaoUSD();
+  const chaves = new Set([...Object.keys(porMes||{}), ...Object.keys(faturas||{})]);
+  let cambiosNovos = null;
+  for(const m of chaves){
+    const fat = faturas[m];
+    const vale = faturaFechada(m, fat);
+    const usd = vale ? Number(fat.usd) : (porMes[m] ? porMes[m].usd : 0);
+    if(!(usd > 0)) continue;
+    /* o câmbio do mês conciliado fica GRAVADO: mês fechado não muda de valor em
+       reais porque o dólar mexeu hoje. Fica gravado no momento em que a despesa
+       é de facto lançada — assim uma fatura importada por fora (semeada no banco)
+       congela na primeira vez que alguém abre a página, e não antes. */
+    let cambio = vale ? Number(fat.cambio) : 0;
+    if(vale && !cambio){
+      cambio = cotHoje;
+      cambiosNovos = cambiosNovos || Object.assign({}, faturas);
+      cambiosNovos[m] = Object.assign({}, fat, { cambio });
+    }
+    if(!cambio) cambio = cotHoje;
+    const centavos = Math.round(usd * cambio * 100);
+    const existente = D.lancamentos.find(l =>
+      l.tipo==='despesa' && l.descricao===DESC_IA && String(l.data).slice(0,7)===m);
+    if(!existente){
+      const ins = await sb.from('adm_lancamentos').insert({
+        data: m+'-01', descricao: DESC_IA, categoria:'creditos_ia',
+        tipo:'despesa', valor_centavos: centavos }).select().single();
+      if(!ins.error && ins.data) D.lancamentos.unshift(ins.data);
+    } else if(Math.abs(existente.valor_centavos - centavos) >= 1){
+      const up = await sb.from('adm_lancamentos').update({ valor_centavos: centavos }).eq('id', existente.id);
+      if(!up.error) existente.valor_centavos = centavos;
+    }
+  }
+  if(cambiosNovos){
+    const { error } = await sb.from('adm_config').upsert({ chave:'openai_faturas', valor: cambiosNovos });
+    if(!error) D.faturasIA = cambiosNovos;
+  }
+}
+
+async function pgFinancas(forcar, senha = pedirDesenho()){
   // recorrência mensal/anual materializa os meses em falta antes de somar
   try{ await sb.rpc('gerar_recorrencias'); }catch(e){}
-  const [ov, lanc, ia] = await Promise.all([
+  /* `ia_custos` passou de 4800 linhas: lida direto, o `select()` sem `range()`
+     devolvia as primeiras mil e o painel somava um quinto do gasto — sem erro e
+     sem aviso. A soma passou para o banco (admin_rf98.ia_custos_mes). */
+  const [ov, lanc, iaMes, cfgFat] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
-    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(400),
-    jogo('ia_custos').select('tipo,custo_usd,criado_em')
+    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(PAGINA_SB),
+    sb.rpc('ia_custos_mes'),
+    sb.from('adm_config').select('valor').eq('chave','openai_faturas').maybeSingle()
   ]);
   if(ov.error) throw ov.error;
   if(lanc.error) throw lanc.error;
   D.overview = ov.data; D.lancamentos = lanc.data||[];
-  D.iaCustos = ia.error ? [] : (ia.data||[]);
+  D.iaMes = iaMes.error ? [] : (iaMes.data||[]);
+  D.iaErro = iaMes.error ? erroMsg(iaMes.error) : '';
+  D.faturasIA = (cfgFat.data && cfgFat.data.valor) || {};
 
   const mes = new Date().toISOString().slice(0,7);
 
-  /* GASTO DE IA VIRA DESPESA DO MÊS: uma linha única por mês em adm_lancamentos
-     (categoria creditos_ia), com o total de ia_custos convertido em R$ e
-     ATUALIZADA a cada abertura desta página — o extrato não vira poeira de
-     microlançamentos e a soma de despesas passa a incluir a IA. */
-  try{
-    const iaMesUsd = D.iaCustos
-      .filter(r => String(r.criado_em||'').slice(0,7) === mes)
-      .reduce((t,r) => t + Number(r.custo_usd), 0);
-    if(iaMesUsd > 0 && podeEditar('financas')){
-      let cotSync = 0;
-      try{
-        const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
-        if(cc && Date.now()-cc.t < 3600e3) cotSync = cc.v;
-        else{
-          const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
-          cotSync = parseFloat((await r.json()).USDBRL.bid)||0;
-          if(cotSync) localStorage.setItem('rf_cotacao', JSON.stringify({v:cotSync, t:Date.now()}));
-        }
-      }catch(e){}
-      if(!cotSync) cotSync = 5.5;
-      const DESC_IA = 'Gastos com IA — Estúdio de imagens';
-      const centavos = Math.round(iaMesUsd * cotSync * 100);
-      const existente = D.lancamentos.find(l =>
-        l.tipo==='despesa' && l.descricao===DESC_IA && String(l.data).slice(0,7)===mes);
-      if(!existente){
-        const ins = await sb.from('adm_lancamentos').insert({
-          data: mes+'-01', descricao: DESC_IA, categoria: 'creditos_ia',
-          tipo: 'despesa', valor_centavos: centavos }).select().single();
-        if(!ins.error && ins.data) D.lancamentos.unshift(ins.data);
-      } else if(Math.abs(existente.valor_centavos - centavos) >= 1){
-        const up = await sb.from('adm_lancamentos').update({ valor_centavos: centavos }).eq('id', existente.id);
-        if(!up.error) existente.valor_centavos = centavos;
-      }
-    }
-  }catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
-  const doMes = D.lancamentos.filter(l => String(l.data).slice(0,7)===mes);
+  /* estimativa somada por mês e por tipo. O TOTAL é a soma de todos os tipos,
+     não a dos grupos desenhados abaixo: os grupos são leitura, e um tipo novo
+     que não coubesse em nenhum deles sumia da conta — foi o que aconteceu com
+     'camisa' e 'treinador', que ficaram fora do card durante semanas. */
+  /* ===== O PERÍODO DA PÁGINA =====
+     A página mostrava sempre o mês corrente e ponto: não havia como abrir
+     agosto para conferir o fecho, nem somar o ano. Agora o ano e o mês são
+     escolhidos (mês vazio = ano inteiro), e é esse recorte que manda nos KPIs,
+     nas receitas e no fechamento.
+
+     A lista de meses sai dos LANÇAMENTOS, não de um intervalo inventado: mês
+     sem movimento não aparece, e um lançamento antigo não fica inalcançável. */
+  const mesesComLanc = [...new Set(D.lancamentos.map(l => String(l.data).slice(0,7)))].sort().reverse();
+  const anos = [...new Set(mesesComLanc.map(m => m.slice(0,4)))].sort().reverse();
+  if(!anos.length) anos.push(mes.slice(0,4));
+  if(!ST.finAno || !anos.includes(ST.finAno)) ST.finAno = anos.includes(mes.slice(0,4)) ? mes.slice(0,4) : anos[0];
+  const mesesDoAno = mesesComLanc.filter(m => m.startsWith(ST.finAno));
+  if(ST.finMes === null) ST.finMes = mesesDoAno.includes(mes) ? mes : (mesesDoAno[0] || '');
+  if(ST.finMes && !ST.finMes.startsWith(ST.finAno)) ST.finMes = mesesDoAno[0] || '';
+  /* o recorte em vigor: mês escolhido, ou o ano inteiro quando o mês está vazio */
+  const noPeriodo = (l) => ST.finMes
+    ? String(l.data).slice(0,7) === ST.finMes
+    : String(l.data).slice(0,4) === ST.finAno;
+  const rotuloPeriodo = ST.finMes ? mesPorExtenso(ST.finMes) : 'ano de '+ST.finAno;
+
+  /* `iaPorMes` é de TODOS os meses — é o que a conciliação lá embaixo compara
+     com as faturas. Já `iaPorTipo` e `iaPorFonte` são do PERÍODO ESCOLHIDO: são
+     eles que viram os cartões de gasto, e um cartão que ignora o filtro ao lado
+     de KPIs que o seguem é uma armadilha de leitura. */
+  const noPeriodoIA = (m) => ST.finMes ? m === ST.finMes : String(m).startsWith(ST.finAno);
+  const iaPorMes = {}, iaPorTipo = {}, iaPorFonte = { tokens:{usd:0,n:0}, tabela:{usd:0,n:0} };
+  for(const r of D.iaMes){
+    const usdR = Number(r.usd)||0, nR = Number(r.n)||0;
+    const m = iaPorMes[r.mes] || (iaPorMes[r.mes] = { usd:0, n:0 });
+    m.usd += usdR; m.n += nR;
+    if(!noPeriodoIA(r.mes)) continue;
+    const t = iaPorTipo[r.tipo] || (iaPorTipo[r.tipo] = { usd:0, n:0 });
+    t.usd += usdR; t.n += nR;
+    const f = iaPorFonte[r.fonte] || (iaPorFonte[r.fonte] = { usd:0, n:0 });
+    f.usd += usdR; f.n += nR;
+  }
+  try{ await sincronizarDespesaIA(iaPorMes, D.faturasIA); }
+  catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
+
+  const doMes = D.lancamentos.filter(noPeriodo);
   const desp = doMes.filter(l=>l.tipo==='despesa');
   const rec  = doMes.filter(l=>l.tipo==='receita');
   const tDesp = desp.reduce((a,l)=>a+ +l.valor_centavos,0);
@@ -1689,113 +1969,303 @@ async function pgFinancas(){
   const meses = ov.data.meses||[];
   const maxL = Math.max(1, ...meses.map(m=>Math.abs(+m.lucro)));
   const caixa = +ov.data.caixa || 0;
-  const custoFixo = tDesp || 1;
+  /* "o caixa cobre N meses" só faz sentido contra o custo de UM mês: com o ano
+     inteiro selecionado, tDesp são doze meses de despesa e a conta daria N/12 */
+  const custoFixo = (ST.finMes ? tDesp : Math.round(tDesp / Math.max(1, mesesDoAno.length))) || 1;
   const editar = podeEditar('financas');
 
-  const tabela = (lista, cor) => lista.length ? lista.map(l=>`
-    <div class="row" style="grid-template-columns:.6fr 1.6fr 1fr .8fr ${editar?'28px':''}">
-      <span class="mono" style="font-size:12px;color:var(--dim2)">${dma(l.data)}</span>
+  /* a data vem com o ANO quando a lista atravessa meses (a aba Despesas mostra
+     os últimos gastos, não só os do período) — "28/08" sozinho não diz de que
+     ano é quando a lista mistura dezembro com janeiro */
+  const tabela = (lista, cor, comAno) => lista.length ? lista.map(l=>`
+    <div class="row" style="grid-template-columns:${comAno?'.8fr':'.6fr'} 1.6fr 1fr .8fr ${editar?'28px':''}">
+      <span class="mono" style="font-size:12px;color:var(--dim2)">${comAno?dmy(l.data):dma(l.data)}</span>
       <span style="font-size:12.5px">${h(l.descricao)}${l.origem_id?' <small style="color:var(--dim3)">(recorrente)</small>':''}</span>
       <span class="tag ${CAT_TAG[l.categoria]||'t-dim'}" style="justify-self:start">${h(catNome(l.categoria))}</span>
-      <span class="mono" style="font-size:12.5px;font-weight:700;text-align:right;color:${cor}">${brl(l.valor_centavos)}</span>
+      ${brlUsd(l.valor_centavos, cor)}
       ${editar?`<span class="link" data-del-lanc="${l.id}" title="Apagar" style="color:var(--dim3);text-align:center">✕</span>`:''}
-    </div>`).join('') : '<div class="vazio">Nada lançado neste mês.</div>';
+    </div>`).join('') : '<div class="vazio">Nada lançado aqui.</div>';
 
-  /* gastos com IA do Estúdio — registrados pela edge function a cada geração.
-     "Escudo" = escudo; "Uniforme" = torso (uniformes e moldes); "Jogador" =
-     rosto + montagem (e o retrato legado). Dólar, direto da tabela da OpenAI. */
-  const iaSoma = tipos => D.iaCustos.filter(r=>tipos.includes(r.tipo))
-    .reduce((a,r)=>({ n:a.n+1, v:a.v + Number(r.custo_usd) }), { n:0, v:0 });
-  const iaEsc = iaSoma(['escudo']), iaUni = iaSoma(['torso']),
-        iaJog = iaSoma(['rosto','montagem','jogador']);
-  const iaTot = iaEsc.v + iaUni.v + iaJog.v;
-  /* a moeda do painel é o REAL: converte pelo câmbio do dia (cache de 1h) e o
-     dólar da fatura da OpenAI aparece como secundário */
-  let cot = 0;
-  try{
-    const cc = JSON.parse(localStorage.getItem('rf_cotacao')||'null');
-    if(cc && Date.now()-cc.t < 3600e3) cot = cc.v;
-    else{
-      const r = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
-      cot = parseFloat((await r.json()).USDBRL.bid)||0;
-      if(cot) localStorage.setItem('rf_cotacao', JSON.stringify({v:cot, t:Date.now()}));
-    }
-  }catch(e){}
-  if(!cot) cot = 5.5;   // fallback honesto se a cotação não vier
-  const usd  = v => 'US$ ' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
-  const emRe = v => 'R$ ' + (v*cot).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+  /* ===== A ABA DESPESAS TEM FILTRO PRÓPRIO =====
+     O filtro da página serve para FECHAR um mês; a lista de despesas serve para
+     "o que saiu ultimamente", que quase nunca cabe no mês corrente — dia 2 do
+     mês ela estaria praticamente vazia. Por isso ela abre nos últimos gastos,
+     atravessando meses, e tem o seu próprio seletor, independente do de cima. */
+  const DESP_FILTROS = { recentes:'Últimos gastos', periodo:'Do período' };
+  if(!ST.despFiltro) ST.despFiltro = 'recentes';
+  const despVista = (() => {
+    if(ST.despFiltro === 'periodo') return { lista: desp, comAno: !ST.finMes };
+    if(/^\d{4}-\d{2}$/.test(ST.despFiltro))
+      return { lista: D.lancamentos.filter(l=>l.tipo==='despesa' && String(l.data).slice(0,7)===ST.despFiltro), comAno:false };
+    if(/^\d{4}$/.test(ST.despFiltro))
+      return { lista: D.lancamentos.filter(l=>l.tipo==='despesa' && String(l.data).slice(0,4)===ST.despFiltro), comAno:true };
+    return { lista: D.lancamentos.filter(l=>l.tipo==='despesa').slice(0,40), comAno:true };
+  })();
+  const tDespVista = despVista.lista.reduce((a,l)=>a+ +l.valor_centavos, 0);
+
+  /* gastos com IA do Estúdio. Os grupos são leitura — "Escudo" = escudo,
+     "Uniformes" = torso + camisa, "Jogadores" = rosto + montagem + retrato
+     legado, "Treinadores" = treinador —, e o que sobra cai em "Outros", para
+     que tipo novo apareça em vez de desaparecer. */
+  const GRUPOS_IA = [
+    ['Escudos',      ['escudo']],
+    ['Uniformes',    ['torso','camisa']],
+    ['Jogadores',    ['rosto','montagem','jogador']],
+    ['Treinadores',  ['treinador']]
+  ];
+  const nomeados = new Set(GRUPOS_IA.flatMap(g=>g[1]));
+  const somaTipos = (tipos) => tipos.reduce((a,t) =>
+    ({ n:a.n + ((iaPorTipo[t]||{}).n||0), v:a.v + ((iaPorTipo[t]||{}).usd||0) }), { n:0, v:0 });
+  const grupos = GRUPOS_IA.map(([rot,ts]) => [rot, somaTipos(ts)])
+    .concat([['Outros', somaTipos(Object.keys(iaPorTipo).filter(t=>!nomeados.has(t)))]])
+    .filter(([,s]) => s.n > 0);
+  const iaTot = Object.values(iaPorTipo).reduce((a,t)=>a+t.usd, 0);
+  const iaN   = Object.values(iaPorTipo).reduce((a,t)=>a+t.n, 0);
+
+  const cot = await cotacaoUSD();
+  const usd  = v => 'US$ ' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const emRe = (v, c) => 'R$ ' + ((Number(v)||0)*(c||cot)).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
+  const mesRot = (m) => { const [a,b]=String(m).split('-'); return b+'/'+a; };
+  /* o número que a pergunta "quanto custa uma imagem?" pede — quatro casas,
+     porque a duas ou três ($0,06) some a diferença entre a camisa e o rosto */
+  const porImagem = (v, n) => n ? 'US$ ' + (v/n).toFixed(4) : '—';
+
+  /* a conciliação, mês a mês: o que o painel contou, o que a fatura diz, e a
+     diferença. É a linha que responde "posso confiar neste número?" */
+  const mesesIA = [...new Set([...Object.keys(iaPorMes), ...Object.keys(D.faturasIA)])].sort().reverse();
+  const linhaConcil = (m) => {
+    const est = (iaPorMes[m]||{}).usd || 0, n = (iaPorMes[m]||{}).n || 0;
+    const fat = D.faturasIA[m];
+    const vale = faturaFechada(m, fat);
+    const dif = fat ? Number(fat.usd) - est : 0;
+    const comoFoi = vale
+      ? `pela fatura, <b class="mono">${usd(fat.usd)}</b> × R$ ${Number(fat.cambio||cot).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+      : fat ? `fatura só até <b>${h(dmy(fat.ate))}</b> — vale a estimativa`
+      : m === mes ? 'mês em curso — vale a estimativa'
+      : 'ainda por conciliar';
+    return `<div class="row" style="grid-template-columns:86px 1fr 1fr 1fr 1.25fr">
+      <span class="mono" style="font-size:12.5px;font-weight:700">${h(mesRot(m))}</span>
+      <span class="mono" style="font-size:12px;color:var(--dim)">${usd(est)}
+        <small style="color:var(--dim3)">· ${num(n)} gerações</small></span>
+      <span class="mono" style="font-size:12px;color:${!fat?'var(--dim3)':vale?'var(--fg)':'var(--dim2)'}">
+        ${fat ? usd(fat.usd) : 'sem fatura'}${fat&&!vale?' <small style="color:var(--ambar)">parcial</small>':''}</span>
+      <span class="mono" style="font-size:12px;color:${!fat?'var(--dim3)':Math.abs(dif)<0.01?'var(--dim2)':'var(--ambar)'}">
+        ${fat ? (dif>=0?'+':'−')+usd(Math.abs(dif)).slice(4) : '—'}</span>
+      <span style="font-size:11.5px;color:var(--dim2);text-align:right">${comoFoi}</span>
+    </div>`;
+  };
+
+  /* O CARD DE CIMA MOSTRA O GASTO DO PERÍODO, e só isso. A conciliação com a
+     fatura — que é a parte que explica de onde vem cada número — saiu daqui:
+     empilhada sob os cartões, ela era uma tabela de cinco colunas mais dois
+     parágrafos no meio da página de finanças, e ninguém a lia. Virou um FAQ
+     recolhido no fim da página, que é onde se procura explicação quando se
+     tem a dúvida — não antes. */
   const iaCards = `
-    <div class="card card-p" style="margin-top:4px">
-      <div class="tt">Gastos com IA — Estúdio de imagens</div>
-      <div class="st" style="margin-bottom:12px">Registrado automaticamente a cada geração (contagem desde 25/08/2026). Pintura de molde e camadas não custam nada. Câmbio do dia: R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}.</div>
-      <div class="g4">
-        ${kpiHTML({l:'Escudos gerados', v:emRe(iaEsc.v), d:`${usd(iaEsc.v)} · ${num(iaEsc.n)} gerações`})}
-        ${kpiHTML({l:'Uniformes e moldes', v:emRe(iaUni.v), d:`${usd(iaUni.v)} · ${num(iaUni.n)} gerações`})}
-        ${kpiHTML({l:'Jogadores (rosto + costura)', v:emRe(iaJog.v), d:`${usd(iaJog.v)} · ${num(iaJog.n)} gerações`})}
-        ${kpiHTML({l:'Total gasto com IA', v:emRe(iaTot), d:`${usd(iaTot)} · ${num(iaEsc.n+iaUni.n+iaJog.n)} imagens`, c:'var(--ambar)'})}
+    <div class="card" style="margin-top:4px;overflow:hidden">
+      <div class="card-h" style="flex-wrap:wrap;gap:10px">
+        <b>Gastos com IA — ${h(rotuloPeriodo)}</b>
+        <span class="st" style="margin:0;flex:1">contagem desde 25/08/2026 ·
+          pintura de molde e camadas não custam nada</span>
       </div>
+      ${D.iaErro ? `<div class="erro" style="margin:16px 20px">Não deu para somar o gasto de IA: ${h(D.iaErro)}</div>` : `
+      ${/* os grupos variam (um tipo novo abre a caixa "Outros"), então a grade se
+           ajusta ao número deles em vez de fixar quatro e deixar o total órfão */''}
+      <div style="padding:16px 20px">
+        ${grupos.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px">
+          ${grupos.map(([rot,s]) => kpiHTML({ l:rot, v:emRe(s.v),
+            d:`${usd(s.v)} · ${num(s.n)} × ${porImagem(s.v,s.n)}` })).join('')}
+          ${kpiHTML({ l:'Total do período', v:emRe(iaTot),
+            d:`${usd(iaTot)} · ${num(iaN)} imagens a ${porImagem(iaTot,iaN)}`, c:'var(--ambar)' })}
+        </div>` : `<div class="vazio">Nenhuma imagem gerada em ${h(rotuloPeriodo)}.</div>`}
+      </div>`}
     </div>`;
 
+  /* ===== O FAQ DO FATURAMENTO =====
+     `<details>` nativo: abre e fecha no clique sem uma linha de JavaScript, e
+     nasce fechado — quem abre a página de finanças quer os números, não a
+     explicação deles. */
+  const tk = iaPorFonte.tokens || {usd:0,n:0}, tb = iaPorFonte.tabela || {usd:0,n:0};
+  const faqIA = `
+    <details class="card" style="margin-top:16px;overflow:hidden">
+      <summary style="padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;
+                      list-style:none;user-select:none">
+        <span style="font-size:13px;font-weight:700">Como funciona o gasto e o pagamento da OpenAI</span>
+        <span class="st" style="margin:0;flex:1">estimativa × fatura, o preço por imagem, o câmbio
+          e a conciliação mês a mês</span>
+        ${editar?`<span class="btn btn-sm btn-ghost" id="f-openai">Conciliar com a fatura</span>`:''}
+        <span style="color:var(--dim2);font-size:12px;display:flex;align-items:center;gap:5px;flex:0 0 auto">
+          detalhes <i class="faq-seta" style="display:inline-block;font-style:normal">▾</i></span>
+      </summary>
+
+      <div style="padding:0 20px 18px;font-size:12.5px;line-height:1.7;color:var(--dim);
+                  border-top:1px solid var(--bd);padding-top:16px">
+
+        <b style="color:var(--fg2)">A OpenAI cobra por TOKEN, não por imagem.</b>
+        Cada geração gasta tokens de texto (o prompt), às vezes tokens de imagem (quando o pedido
+        manda uma imagem junto) e sempre tokens de imagem na saída. Os preços por milhão são
+        US$ ${OPENAI_TOK_USD.texto_in} (texto de entrada), US$ ${OPENAI_TOK_USD.imagem_in}
+        (imagem de entrada) e US$ ${OPENAI_TOK_USD.imagem_out} (imagem de saída). Por isso duas
+        imagens do mesmo tamanho podem custar diferente: o que varia é o prompt e a entrada.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">O painel tem duas contas do mesmo dinheiro.</b>
+        A <b>estimativa</b> é escrita a cada geração, a partir do <code class="mono">usage</code> que a
+        própria OpenAI devolve na resposta. A <b>fatura</b> é o export de uso da plataforma
+        (<i>platform.openai.com → Usage → Export</i>), que é o que vai ser cobrado. Divergem quando a
+        geração é cobrada mas não chega a ser registrada: pedido que falha depois de a imagem sair,
+        tentativa repetida, ou chamada feita antes de o registro de custo existir.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">Parte da estimativa é um piso, não o preço.</b>
+        Quando a resposta não traz o <code class="mono">usage</code>, o custo cai numa tabela de preço por
+        imagem que cobre <b>só a imagem de saída</b> e ignora o prompt e a imagem de entrada —
+        subestima de 3% (rosto, prompt curto) a 10% (montagem, que manda imagem no pedido).
+        ${tb.n||tk.n ? `No período escolhido:
+          <b class="mono" style="color:var(--verde2)">${usd(tk.usd)}</b> medido pelos tokens
+          (${num(tk.n)} imagens a ${porImagem(tk.usd,tk.n)}) e
+          <b class="mono" style="color:var(--ambar)">${usd(tb.usd)}</b> estimado pela tabela
+          (${num(tb.n)} a ${porImagem(tb.usd,tb.n)}).` : ''}
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">A fatura só vira despesa quando cobre o mês inteiro.</b>
+        Um export baixado hoje leva o mês corrente pela metade; tomá-lo como fatura fecharia o mês
+        com os dias que ele tem. Export parcial fica guardado, marcado como tal, e não substitui
+        nada — até lá vale a estimativa, que é diária e está sempre em dia.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">O câmbio fica congelado.</b>
+        A conversão para real usa a cotação do dia em que a despesa foi lançada, e essa cotação
+        fica gravada junto da fatura: mês fechado não muda de valor porque o dólar mexeu hoje.
+        Cotação de agora: <b class="mono">R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</b>.
+
+        <div style="height:18px"></div>
+        <div class="tt" style="font-size:12.5px;margin-bottom:2px">Conciliação, mês a mês</div>
+        <div class="st" style="margin:0 0 10px">o que o painel contou, o que a fatura diz, e como cada mês foi lançado</div>
+      </div>
+
+      <div class="rowh" style="grid-template-columns:86px 1fr 1fr 1fr 1.25fr">
+        <span>Mês</span><span>Estimado (painel)</span><span>Fatura (OpenAI)</span>
+        <span>Diferença</span><span style="text-align:right">Como foi lançado</span>
+      </div>
+      ${mesesIA.map(linhaConcil).join('') || '<div class="vazio">Nenhum gasto de IA ainda.</div>'}
+    </details>`;
+
+  const plural = (n,s) => `${n} ${s}${n===1?'':'s'}`;
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
+    <div class="card card-p" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 20px">
+      <b style="font-size:13px">Período</b>
+      <select class="f" id="fin-ano" style="width:auto;font-size:12.5px">
+        ${anos.map(a=>`<option value="${h(a)}" ${a===ST.finAno?'selected':''}>${h(a)}</option>`).join('')}
+      </select>
+      <select class="f" id="fin-mes" style="width:auto;min-width:150px;font-size:12.5px">
+        <option value="" ${!ST.finMes?'selected':''}>Ano inteiro</option>
+        ${mesesDoAno.map(m=>`<option value="${h(m)}" ${m===ST.finMes?'selected':''}>${h(mesPorExtenso(m))}</option>`).join('')}
+      </select>
+      <span class="st" style="margin:0;flex:1">${h(rotuloPeriodo)} · ${plural(doMes.length,'lançamento')}
+        — manda nos números acima, nas receitas e no fechamento</span>
+    </div>
     <div class="g4">
-      ${kpiHTML({l:'Receita do mês', v:brl(tRec), d:`${rec.length} lançamentos`, c:'var(--verde2)'})}
-      ${kpiHTML({l:'Despesa do mês', v:brl(tDesp), d:`${desp.length} lançamentos`, c:'var(--vermelho)'})}
-      ${kpiHTML({l:'Lucro do mês', v:brl(lucro), d: tRec? `margem de ${pct(lucro,tRec)}%` : 'sem receita', c: lucro>=0?'var(--verde2)':'var(--vermelho)'})}
+      ${kpiHTML({l:'Receita', v:brl(tRec), d:`${usdDeCentavos(tRec)||plural(rec.length,'lançamento')} · ${plural(rec.length,'lançamento')}`.replace(/^ · /,''), c:'var(--verde2)'})}
+      ${kpiHTML({l:'Despesa', v:brl(tDesp), d:`${usdDeCentavos(tDesp)} · ${plural(desp.length,'lançamento')}`.replace(/^ · /,''), c:'var(--vermelho)'})}
+      ${kpiHTML({l:'Lucro', v:brl(lucro),
+                 d:`${usdDeCentavos(lucro)}${tRec?' · margem de '+pct(lucro,tRec)+'%':' · sem receita'}`.replace(/^ · /,''),
+                 c: lucro>=0?'var(--verde2)':'var(--vermelho)'})}
       ${kpiHTML({l:'Por usuário ativo', v: ativos? brl(Math.round(tDesp/ativos)) : '—',
-                 d: ativos? `receita ${brl(Math.round(tRec/ativos))} por ativo` : 'sem ativos no período'})}
+                 d: ativos? `${usdDeCentavos(Math.round(tDesp/ativos))} de custo · receita ${brl(Math.round(tRec/ativos))}` : 'sem ativos no período'})}
     </div>
     ${iaCards}
     <div class="card card-p">
-      <div class="tt" style="margin-bottom:16px">Lucro por mês</div>
+      ${/* ESTE BLOCO NÃO SEGUE O FILTRO, e isso é de propósito: ele é a TENDÊNCIA
+           dos últimos seis meses, que só existe se olhar vários meses de uma vez.
+           Mas parado ao lado de KPIs que mudam, ele parecia não ter atualizado —
+           então o alcance está escrito, e o mês escolhido acima fica marcado. */''}
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <div class="tt">Lucro por mês</div>
+        <div class="st" style="margin:0">últimos 6 meses — a tendência, não o período escolhido acima</div>
+      </div>
       <div style="height:130px;display:flex;align-items:flex-end;gap:16px">
-        ${meses.map(m=>`
-          <div class="chcol">
-            <div class="cap" style="color:var(--dim)">${brl(m.lucro)}</div>
+        ${meses.map(m=>{
+          const escolhido = ST.finMes && m.ym === ST.finMes;   // o overview devolve 'ym', não 'mes'
+          return `
+          <div class="chcol"${escolhido?' title="o período escolhido acima"':''}>
+            <div class="cap" style="color:${escolhido?'var(--fg)':'var(--dim)'};font-weight:${escolhido?'700':'500'}">${brl(m.lucro)}</div>
             <div style="width:46%;border-radius:6px 6px 0 0;height:${Math.round(Math.abs(m.lucro)*100/maxL)}%;
-                 background:${m.lucro>=0?'var(--verde)':'var(--vermelho)'}"></div>
-            <div style="font-size:12px;color:var(--dim);font-weight:600">${h(m.rotulo)}</div>
-          </div>`).join('')}
+                 background:${m.lucro>=0?'var(--verde)':'var(--vermelho)'};
+                 ${escolhido?'outline:2px solid var(--fg);outline-offset:2px':'opacity:.55'}"></div>
+            <div style="font-size:12px;color:${escolhido?'var(--fg)':'var(--dim)'};font-weight:${escolhido?'700':'600'}">${h(m.rotulo)}</div>
+          </div>`;}).join('')}
       </div>
     </div>
     <div class="g2">
       <div class="card" style="overflow:hidden">
-        <div class="card-h">
-          <b>Despesas do mês</b>
-          <span class="mono" style="font-size:13px;color:var(--vermelho)">${brl(tDesp)}</span>
+        <div class="card-h" style="flex-wrap:wrap;gap:8px">
+          <b>Despesas</b>
+          <span class="st" style="margin:0;font-size:11px">só esta lista:</span>
+          <select class="f" id="desp-filtro" style="width:auto;min-width:150px;font-size:12px;flex:1"
+                  title="filtra apenas esta lista — os números do topo seguem o período escolhido lá em cima">
+            ${Object.entries(DESP_FILTROS).map(([k,r]) =>
+              `<option value="${k}" ${ST.despFiltro===k?'selected':''}>${h(r)}${k==='periodo'?' ('+h(rotuloPeriodo)+')':''}</option>`).join('')}
+            <option value="${h(ST.finAno)}" ${ST.despFiltro===ST.finAno?'selected':''}>Ano de ${h(ST.finAno)}</option>
+            ${mesesComLanc.map(m=>`<option value="${h(m)}" ${ST.despFiltro===m?'selected':''}>${h(mesPorExtenso(m))}</option>`).join('')}
+          </select>
+          <span class="mono" style="font-size:13px;color:var(--vermelho);text-align:right;line-height:1.25">${brl(tDespVista)}
+            ${usdDeCentavos(tDespVista)?`<small style="display:block;font-size:10.5px;font-weight:500;color:var(--dim3)">${usdDeCentavos(tDespVista)}</small>`:''}</span>
           ${editar?'<button class="btn btn-sm" id="f-nova-desp">+ Despesa</button>':''}
         </div>
-        ${tabela(desp,'var(--vermelho)')}
+        ${ST.despFiltro==='recentes' && despVista.lista.length>=40
+          ? '<div class="st" style="padding:8px 20px 0;margin:0">as 40 mais recentes — escolha um mês para ver o resto</div>':''}
+        ${tabela(despVista.lista,'var(--vermelho)', despVista.comAno)}
       </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card" style="overflow:hidden">
           <div class="card-h">
-            <b>Receitas do mês</b>
-            <span class="mono" style="font-size:13px;color:var(--verde2)">${brl(tRec)}</span>
+            <b>Receitas · ${h(rotuloPeriodo)}</b>
+            <span class="mono" style="font-size:13px;color:var(--verde2);text-align:right;line-height:1.25">${brl(tRec)}
+              ${usdDeCentavos(tRec)?`<small style="display:block;font-size:10.5px;font-weight:500;color:var(--dim3)">${usdDeCentavos(tRec)}</small>`:''}</span>
             ${editar?'<button class="btn btn-sm" id="f-nova-rec">+ Receita</button>':''}
           </div>
-          ${tabela(rec,'var(--verde2)')}
+          ${tabela(rec,'var(--verde2)', !ST.finMes)}
         </div>
         <div class="card card-p">
-          <div class="tt" style="margin-bottom:12px">Fechamento do mês</div>
+          <div class="tt" style="margin-bottom:12px">Fechamento — ${h(rotuloPeriodo)}</div>
           <div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
-            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Receita</span><b class="mono" style="color:var(--verde2)">${brl(tRec)}</b></div>
-            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Despesa</span><b class="mono" style="color:var(--vermelho)">${brl(tDesp)}</b></div>
-            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:10px"><b>Lucro</b><b class="mono" style="font-size:16px">${brl(lucro)}</b></div>
+            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Receita</span>
+              <b class="mono" style="color:var(--verde2)">${brlEUsd(tRec)}</b></div>
+            <div style="display:flex;justify-content:space-between;color:var(--fg2)"><span>Despesa</span>
+              <b class="mono" style="color:var(--vermelho)">${brlEUsd(tDesp)}</b></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--bd);padding-top:10px">
+              <b>Lucro</b><b class="mono" style="font-size:16px">${brl(lucro)}
+                ${usdDeCentavos(lucro)?`<small style="font-size:11px;font-weight:500;color:var(--dim3)">${usdDeCentavos(lucro)}</small>`:''}</b></div>
             <div style="font-size:12px;color:var(--dim2);line-height:1.6;margin-top:2px">
-              Caixa do projeto: <b class="mono" style="color:var(--fg2)">${brl(caixa)}</b>
+              Caixa do projeto: <b class="mono" style="color:var(--fg2)">${brlEUsd(caixa)}</b>
               ${caixa? `— cobre ${Math.floor(caixa/custoFixo)} ${Math.floor(caixa/custoFixo)===1?'mês':'meses'} de custo no ritmo atual.` : '— ainda não informado.'}
               ${editar?' <span class="link" id="f-caixa">editar</span>':''}
             </div>
             <div style="font-size:12px;color:var(--dim2)">
-              Meta de lucro: <b class="mono" style="color:var(--fg2)">${brl(ov.data.meta_lucro)}</b>
+              Meta de lucro: <b class="mono" style="color:var(--fg2)">${brlEUsd(ov.data.meta_lucro)}</b>
               ${editar?' <span class="link" id="f-meta">editar</span>':''}
             </div>
           </div>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${faqIA}`;
+
+  /* os filtros valem para quem só lê também — conferir o fecho de agosto não é
+     escrita nenhuma, e prendê-los ao papel esconderia a página de metade da equipe */
+  el('fin-ano').onchange = () => { ST.finAno = el('fin-ano').value; ST.finMes = ''; redesenhar(pgFinancas); };
+  el('fin-mes').onchange = () => { ST.finMes = el('fin-mes').value; redesenhar(pgFinancas); };
+  el('desp-filtro').onchange = () => { ST.despFiltro = el('desp-filtro').value; redesenhar(pgFinancas); };
 
   if(editar){
+    if(el('f-openai')) el('f-openai').onclick = (ev) => {
+      /* mora dentro do <summary>: sem isto, o clique abriria/fecharia o FAQ
+         debaixo do modal que acabou de abrir */
+      ev.preventDefault(); ev.stopPropagation();
+      modalFaturaOpenAI(iaPorMes, cot);
+    };
     el('f-nova-desp').onclick = () => modalLancamento('despesa');
     el('f-nova-rec').onclick  = () => modalLancamento('receita');
     el('f-caixa').onclick = () => editarConfig('caixa_centavos','Caixa do projeto (R$)', caixa);
@@ -1808,10 +2278,133 @@ async function pgFinancas(){
       if(error) return toast(erroMsg(error), true);
       registrar('lancamento.apagar', b.dataset.delLanc,
                 { descricao: alvo.descricao, categoria: alvo.categoria, valor: alvo.valor_centavos });
-      toast('Lançamento apagado.'); pgFinancas();
+      toast('Lançamento apagado.'); redesenhar(pgFinancas);
     });
   }
 }
+/* CONCILIAR COM A FATURA. O sócio baixa o CSV em platform.openai.com → Usage →
+   Export e larga-o aqui. O painel calcula o custo a partir dos tokens (a fatura
+   não traz dólares), mostra a diferença face ao que ele próprio contou, e só
+   grava depois de a pessoa ver os dois números lado a lado.
+
+   O câmbio é congelado no momento da conciliação — daí a conversão aparecer na
+   prévia: é o valor que vai para o extrato, não uma estimativa que muda amanhã. */
+function modalFaturaOpenAI(iaPorMes, cot){
+  let lido = null;
+  abrirModal(`
+    <h3>Conciliar com a fatura da OpenAI</h3>
+    <div class="st" style="margin:-12px 0 16px;line-height:1.6">
+      Em <b>platform.openai.com → Usage → Export</b>, baixe o CSV do período e largue-o aqui.
+      O ficheiro traz tokens; o custo é calculado com a tabela do gpt-image-1
+      (US$ ${OPENAI_TOK_USD.texto_in}/${OPENAI_TOK_USD.imagem_in}/${OPENAI_TOK_USD.imagem_out} por milhão —
+      texto de entrada, imagem de entrada, imagem de saída).
+    </div>
+    <div class="erro hide" id="fo-erro"></div>
+    <div class="col">
+      <div class="drop" id="fo-drop">
+        <div class="t">Arraste o CSV de uso ou clique</div>
+        <div class="s" id="fo-sub">completions_usage_AAAAMMDD_AAAAMMDD.csv</div>
+        <input type="file" id="fo-file" accept=".csv,text/csv" style="display:none">
+      </div>
+      <div id="fo-previa"></div>
+      <div class="acoes">
+        <button class="btn" id="fo-ok" disabled>Gravar e lançar</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+      </div>
+    </div>`, 'lg');
+
+  const erro = el('fo-erro');
+  const falhar = (m) => { erro.textContent = m; erro.classList.remove('hide'); };
+  const mesRot = (m) => { const [a,b]=String(m).split('-'); return b+'/'+a; };
+  const usd = v => 'US$ ' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+
+  function previa(){
+    const ms = Object.keys(lido.meses).sort();
+    el('fo-previa').innerHTML = `
+      ${lido.desconhecidos.length ? `<div class="card card-p" style="margin-bottom:12px">
+        <div class="st" style="line-height:1.6">O ficheiro tem modelo fora da tabela de preços
+        (${h(lido.desconhecidos.join(', '))}). O custo dele foi calculado com os preços do
+        gpt-image-1, que pode não ser o dele — confira antes de gravar.</div></div>`:''}
+      <div class="rowh" style="grid-template-columns:80px 1fr 1fr 1fr 1fr">
+        <span>Mês</span><span>Período</span><span>Painel</span><span>Fatura</span>
+        <span style="text-align:right">Vai lançar</span>
+      </div>
+      ${ms.map(m => {
+        const f = lido.meses[m], est = (iaPorMes[m]||{}).usd || 0, dif = f.usd - est;
+        return `<div class="row" style="grid-template-columns:80px 1fr 1fr 1fr 1fr">
+          <span class="mono" style="font-size:12.5px;font-weight:700">${h(mesRot(m))}</span>
+          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${h(dmy(f.de))}–${h(dmy(f.ate))}
+            <small style="color:var(--dim3)">· ${num(f.requisicoes)} pedidos</small></span>
+          <span class="mono" style="font-size:12px;color:var(--dim)">${usd(est)}</span>
+          <span class="mono" style="font-size:12px">${usd(f.usd)}
+            <small style="color:${Math.abs(dif)<0.01?'var(--dim3)':'var(--ambar)'}">
+              ${dif>=0?'+':'−'}${usd(Math.abs(dif)).slice(4)}</small></span>
+          <span class="mono" style="font-size:12.5px;font-weight:700;text-align:right">
+            R$ ${(f.usd*cot).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+        </div>`;
+      }).join('')}
+      <div style="font-size:11.5px;color:var(--dim3);line-height:1.6;padding:10px 0 0">
+        ${lido.linhas} linha${lido.linhas===1?'':'s'} com uso · câmbio de agora
+        <b class="mono">R$ ${cot.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b>,
+        que fica gravado com a fatura. Um mês já conciliado é substituído pelo valor deste ficheiro.
+      </div>`;
+    el('fo-ok').disabled = false;
+  }
+
+  function receber(f){
+    erro.classList.add('hide');
+    if(!/\.csv$/i.test(f.name)) return falhar('Só CSV.');
+    const fr = new FileReader();
+    fr.onload = () => {
+      try{
+        lido = lerUsoOpenAI(fr.result);
+        el('fo-drop').classList.add('ok');
+        el('fo-sub').textContent = `${f.name} · ${Object.keys(lido.meses).length} mês(es)`;
+        previa();
+      }catch(e){ lido = null; el('fo-ok').disabled = true; el('fo-previa').innerHTML=''; falhar(erroMsg(e)); }
+    };
+    fr.onerror = () => falhar('Não deu para ler o ficheiro.');
+    fr.readAsText(f);
+  }
+
+  const drop = el('fo-drop'), input = el('fo-file');
+  drop.onclick = () => input.click();
+  input.onchange = () => { if(input.files[0]) receber(input.files[0]); };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('sobre'); };
+  drop.ondragleave = () => drop.classList.remove('sobre');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('sobre');
+    if(e.dataTransfer.files[0]) receber(e.dataTransfer.files[0]); };
+
+  el('fo-ok').onclick = async () => {
+    if(!lido) return;
+    const bt = el('fo-ok'); bt.disabled = true; bt.textContent = 'Gravando…';
+    try{
+      const faturas = Object.assign({}, D.faturasIA);
+      const agora = new Date().toISOString();
+      for(const [m, f] of Object.entries(lido.meses)){
+        /* mês que JÁ foi fechado por uma fatura mantém o câmbio com que entrou no
+           extrato: reimportar o mesmo período não pode mexer no valor em reais de
+           um mês encerrado só porque o dólar de hoje é outro. */
+        const antes = D.faturasIA[m];
+        const cambio = faturaFechada(m, antes) ? Number(antes.cambio)||cot : cot;
+        faturas[m] = { usd:f.usd, requisicoes:f.requisicoes, tokens:f.tokens,
+                       de:f.de, ate:f.ate, modelos:f.modelos,
+                       cambio, importado_em: agora };
+      }
+      const { error } = await sb.from('adm_config').upsert({ chave:'openai_faturas', valor: faturas });
+      if(error) throw error;
+      D.faturasIA = faturas;
+      registrar('openai.conciliar', Object.keys(lido.meses).sort().join(', '), {
+        meses: Object.fromEntries(Object.entries(lido.meses).map(([m,f]) =>
+          [m, { usd:f.usd, requisicoes:f.requisicoes, estimado: (iaPorMes[m]||{}).usd || 0 }])),
+        cambio: cot });
+      fecharModal();
+      toast('Fatura conciliada — a despesa do mês foi relançada.');
+      redesenhar(pgFinancas);
+    }catch(e){ falhar(erroMsg(e)); bt.disabled=false; bt.textContent='Gravar e lançar'; }
+  };
+}
+
 async function editarConfig(chave, rotulo, atual){
   const v = prompt(rotulo, String((atual||0)/100));
   if(v==null) return;
@@ -1819,7 +2412,8 @@ async function editarConfig(chave, rotulo, atual){
   if(isNaN(centavos)) return toast('Valor inválido.', true);
   const { error } = await sb.from('adm_config').upsert({ chave, valor: centavos });
   if(error) return toast(erroMsg(error), true);
-  toast('Salvo.'); pgFinancas();
+  registrar('config.editar', chave, { de: Number(atual)||0, para: centavos });
+  toast('Salvo.'); redesenhar(pgFinancas);
 }
 
 function modalLancamento(tipo){
@@ -1852,12 +2446,14 @@ function modalLancamento(tipo){
       valor_centavos: valor, recorrencia: el('l-rec').value, criado_por: (await sb.auth.getUser()).data.user.id
     });
     if(error) return toast(erroMsg(error), true);
-    fecharModal(); toast('Lançamento salvo.'); pgFinancas();
+    registrar('lancamento.criar', desc, { tipo, valor, categoria: el('l-cat').value,
+      data: el('l-data').value, recorrencia: el('l-rec').value });
+    fecharModal(); toast('Lançamento salvo.'); redesenhar(pgFinancas);
   };
 }
 
 /* ============================ PUBLICIDADE ============================ */
-async function pgPublicidade(){
+async function pgPublicidade(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('publicidade');
   if(error) throw error;
   D.pub = data;
@@ -1872,6 +2468,7 @@ async function pgPublicidade(){
   espacos.forEach(e => { if(e.criativo && e.criativo.patrocinador){
     (porPatro[e.criativo.patrocinador] = porPatro[e.criativo.patrocinador] || []).push(e.nome); } });
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Espaços ocupados', v:`${noAr}/${espacos.length}`, d:`${espacos.length-noAr} livres para vender`})}
@@ -2481,21 +3078,54 @@ function modalUpload(chave){
 }
 
 /* ============================ FUNCIONALIDADES (kanban) ============================ */
-async function pgFeatures(){
-  const [cols, feats] = await Promise.all([
+async function pgFeatures(forcar, senha = pedirDesenho()){
+  /* a equipe entra na consulta porque o card mostra QUEM o criou, e o banco só
+     guarda o uuid — sem isto o quadro mostraria um identificador a ninguém */
+  const [cols, feats, equipe] = await Promise.all([
     sb.from('adm_kanban_cols').select('*').order('ord'),
-    sb.from('adm_features').select('*').order('ord')
+    sb.from('adm_features').select('*').order('ord'),
+    sb.from('adm_users').select('user_id,nome,email')
   ]);
   if(cols.error) throw cols.error;
   if(feats.error) throw feats.error;
   D.cols = cols.data||[]; D.feats = feats.data||[];
+  D.pessoas = new Map((equipe.data||[]).map(a => [a.user_id, a]));
   const editar = podeEditar('produto');
   const total = D.feats.length, votos = D.feats.reduce((a,f)=>a+ +f.votos,0);
 
+  /* ===== FILTROS DO QUADRO =====
+     Filtram o que se VÊ, não o que existe: o card escondido continua na coluna
+     e na ordem dele. Por isso o contador diz quantos estão escondidos — um
+     quadro que parece vazio porque sobrou um filtro ligado é pior que nenhum
+     filtro. O corte por data é sobre a CRIAÇÃO do card, que é a pergunta real
+     ("o que entrou esta semana?"), não sobre a última mexida. */
+  const CORTES = { '':'Qualquer data', '7':'Criados nos últimos 7 dias',
+                   '30':'Últimos 30 dias', '90':'Últimos 90 dias', 'antigos':'Mais de 90 dias' };
+  const passaPri  = (f) => !ST.kbPri || (ST.kbPri === 'sem' ? !f.prioridade : f.prioridade === ST.kbPri);
+  const passaData = (f) => {
+    if(!ST.kbData) return true;
+    const d = dias(f.criada_em);
+    return ST.kbData === 'antigos' ? d > 90 : d <= Number(ST.kbData);
+  };
+  D.feitsVisiveis = new Set(D.feats.filter(f => passaPri(f) && passaData(f)).map(f => f.id));
+  const escondidos = D.feats.length - D.feitsVisiveis.size;
+
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <select class="f" id="kb-pri" style="width:auto;font-size:12.5px">
+        <option value="">Qualquer prioridade</option>
+        ${Object.entries(PRIORIDADES).map(([k,v]) =>
+          `<option value="${k}" ${ST.kbPri===k?'selected':''}>${h(v.n)} (${D.feats.filter(f=>f.prioridade===k).length})</option>`).join('')}
+        <option value="sem" ${ST.kbPri==='sem'?'selected':''}>Sem prioridade (${D.feats.filter(f=>!f.prioridade).length})</option>
+      </select>
+      <select class="f" id="kb-data" style="width:auto;font-size:12.5px">
+        ${Object.entries(CORTES).map(([k,r]) =>
+          `<option value="${k}" ${ST.kbData===k?'selected':''}>${h(r)}</option>`).join('')}
+      </select>
       <span style="font-size:12.5px;color:var(--dim2);flex:1">
-        ${total} funcionalidades · ${votos} votos${editar?' · arraste um card para mudar de coluna, ou o ⠿ para mudar a ordem das colunas':''}</span>
+        ${total} funcionalidades · ${votos} votos${escondidos?` · <b style="color:var(--ambar)">${escondidos} escondido${escondidos===1?'':'s'} pelo filtro</b>`:''}${editar?' · arraste um card para mudar de coluna, ou o ⠿ para mudar a ordem das colunas':''}</span>
+      ${(ST.kbPri||ST.kbData)?'<span class="link" id="kb-limpar" style="font-size:12px">limpar filtros</span>':''}
       ${editar?'<button class="btn btn-sm" id="kb-nova">+ Nova funcionalidade</button>':''}
     </div>
     <div class="kb" id="kb">
@@ -2506,7 +3136,15 @@ async function pgFeatures(){
       </div>`:''}
     </div>`;
 
+  /* os filtros e a abertura da ficha valem para quem só lê — o quadro serve
+     para consultar, e prendê-los ao papel deixaria metade da equipe sem eles */
+  el('kb-pri').onchange  = () => { ST.kbPri  = el('kb-pri').value;  redesenhar(pgFeatures); };
+  el('kb-data').onchange = () => { ST.kbData = el('kb-data').value; redesenhar(pgFeatures); };
+  if(el('kb-limpar')) el('kb-limpar').onclick = () => { ST.kbPri = ST.kbData = ''; redesenhar(pgFeatures); };
+
   if(editar) ligarKanban();
+  else document.querySelectorAll('.kbcard').forEach(c =>
+    c.onclick = () => abrirCardFeature(c.dataset.card));
 }
 function colunaHTML(c, editar){
   const cards = D.feats.filter(f=>f.coluna_id===c.id).sort((a,b)=>a.ord-b.ord);
@@ -2522,22 +3160,52 @@ function colunaHTML(c, editar){
     ${editar?`<span class="kbadd" data-add-card="${c.id}">+ Adicionar card</span>`:''}
   </div>`;
 }
+/* uuid -> pessoa. Card antigo (antes de 03/09/2026) e conta apagada não têm
+   autor: aí não se inventa nome nenhum, mostra-se o traço. */
+function pessoaAdm(id){ return (D.pessoas && D.pessoas.get(id)) || null; }
+function nomeAdm(id){
+  const p = pessoaAdm(id);
+  return p ? (p.nome || p.email) : (id ? 'conta removida' : '—');
+}
 function cardHTML(f, editar){
+  /* filtrado = escondido, não removido: `alvoDrop` e a gravação de ordem
+     contam com todos os cards da coluna no DOM (e já ignoram display:none) */
+  const oculto = D.feitsVisiveis && !D.feitsVisiveis.has(f.id);
   const quente = f.votos>=50;
-  return `<div class="kbcard" data-card="${f.id}">
+  const autor = f.criado_por ? nomeAdm(f.criado_por) : null;
+  const pri = prioridadeInfo(f.prioridade);
+  const feito = colunaFeito();
+  const jaFeito = !!(feito && f.coluna_id === feito.id);
+  return `<div class="kbcard" data-card="${f.id}" title="Clique para abrir a ficha"
+    style="${oculto?'display:none;':''}${jaFeito?'opacity:.72':''}">
     <div style="display:flex;align-items:flex-start;gap:8px">
-      <b>${h(f.titulo)}</b>
+      ${editar&&feito?`<input type="checkbox" data-feito="${f.id}" ${jaFeito?'checked':''}
+        title="${jaFeito?'Feito':'Marcar como feito — o card vai para '+h(feito.nome)}"
+        style="margin-top:3px;flex:0 0 auto;accent-color:#35c46a;cursor:pointer">`:''}
+      <b style="${jaFeito?'text-decoration:line-through;text-decoration-color:var(--dim3)':''}">${h(f.titulo)}</b>
       ${editar?`<span class="x" data-del-card="${f.id}" title="Apagar">✕</span>`:''}
     </div>
+    ${pri?`<div style="margin-top:6px"><span class="tag ${pri.tag}" style="font-size:10.5px">${h(pri.n)}</span></div>`:''}
     ${f.nota?`<div class="nota">${h(f.nota)}</div>`:''}
+    ${f.descricao?`<div class="nota" style="color:var(--dim3);font-style:italic">↳ tem conteúdo — abra o card</div>`:''}
     <div class="pe">
       <span class="tag ${f.origem==='usuario'?'t-azul':'t-dim'}" style="font-size:10.5px">${f.origem==='usuario'?'Usuário':'Equipe'}</span>
-      <span class="mono" style="font-size:11px;color:var(--dim3);flex:1">${dma(f.criada_em)}</span>
+      <span style="flex:1"></span>
       <span class="votos ${quente?'quente':''}">
         ${editar?`<span data-voto="-1" data-id="${f.id}" title="Remover voto">−</span>`:''}
         <b style="color:${quente?'var(--verde2)':'var(--fg)'}">${f.votos}</b>
         ${editar?`<span class="up" data-voto="1" data-id="${f.id}" title="Votar">▲</span>`:''}
       </span>
+    </div>
+    ${/* a autoria ganha linha própria: espremida ao lado da origem e dos votos,
+         o nome cabia em três letras e deixava de identificar alguém */''}
+    <div style="display:flex;align-items:center;gap:5px;margin-top:7px;padding-top:7px;
+                border-top:1px solid var(--bd);min-width:0">
+      ${autor?`<i class="av" style="width:16px;height:16px;flex:0 0 auto;background:${corAv(autor)};color:#0c1210;font-size:8px">${h(iniciais(autor))}</i>
+        <span style="font-size:10.5px;color:var(--dim2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1"
+              title="Criado por ${h(autor)}">${h(autor)}</span>`
+      :`<span style="font-size:10.5px;color:var(--dim3);flex:1">sem autor registrado</span>`}
+      <span class="mono" style="font-size:10.5px;color:var(--dim3);flex:0 0 auto">${dma(f.criada_em)}</span>
     </div>
   </div>`;
 }
@@ -2549,9 +3217,14 @@ function ligarKanban(){
 
   document.querySelectorAll('[data-add-card]').forEach(b => b.onclick = () => modalFeature(b.dataset.addCard));
   document.querySelectorAll('[data-rename]').forEach(i => {
+    /* o nome ANTIGO só existe antes da gravação — guardado aqui para o log poder
+       dizer "de X para Y", que é a única forma de a linha ser útil depois */
+    const antes = (D.cols.find(c=>c.id===i.dataset.rename)||{}).nome || '';
     i.onchange = async () => {
-      const { error } = await sb.from('adm_kanban_cols').update({ nome: i.value.trim()||'Sem nome' }).eq('id', i.dataset.rename);
+      const nome = i.value.trim()||'Sem nome';
+      const { error } = await sb.from('adm_kanban_cols').update({ nome }).eq('id', i.dataset.rename);
       if(error) return toast(erroMsg(error), true);
+      registrar('coluna.renomear', nome, { de: antes, para: nome });
       toast('Coluna renomeada.');
     };
   });
@@ -2559,25 +3232,56 @@ function ligarKanban(){
     const id = b.dataset.delCol;
     if(D.cols.length<2) return toast('Precisa sobrar pelo menos uma coluna.', true);
     if(!confirm('Apagar a coluna? Os cards vão para a primeira coluna.')) return;
+    const col = D.cols.find(c=>c.id===id) || {};
+    const mudados = D.feats.filter(f=>f.coluna_id===id).length;
     const destino = D.cols.find(c=>c.id!==id).id;
     await sb.from('adm_features').update({ coluna_id: destino }).eq('coluna_id', id);
     const { error } = await sb.from('adm_kanban_cols').delete().eq('id', id);
     if(error) return toast(erroMsg(error), true);
+    registrar('coluna.apagar', col.nome||id, { cards_movidos: mudados });
     toast('Coluna apagada.'); pgFeatures();
   });
   document.querySelectorAll('[data-del-card]').forEach(b => b.onclick = async ev => {
     ev.stopPropagation();
     if(!confirm('Apagar esta funcionalidade?')) return;
+    const f = D.feats.find(x=>x.id===b.dataset.delCard) || {};
     const { error } = await sb.from('adm_features').delete().eq('id', b.dataset.delCard);
     if(error) return toast(erroMsg(error), true);
+    registrar('feature.apagar', f.titulo||b.dataset.delCard,
+      { feature_id: b.dataset.delCard, votos: f.votos, origem: f.origem, prioridade: f.prioridade });
     pgFeatures();
   });
+  /* MARCAR COMO FEITO. Move para a coluna de conclusão e devolve à origem ao
+     desmarcar — desmarcar sem saber de onde veio deixaria o card preso em
+     "Feito", então a coluna anterior fica gravada no log e é de lá que ele
+     volta; sem registro, volta para a primeira coluna. */
+  document.querySelectorAll('[data-feito]').forEach(cx => cx.onchange = async ev => {
+    ev.stopPropagation();
+    const f = D.feats.find(x => x.id === cx.dataset.feito); if(!f) return;
+    const feito = colunaFeito(); if(!feito) return toast('Não há coluna de conclusão no quadro.', true);
+    const marcar = cx.checked;
+    const destino = marcar ? feito.id : (f.coluna_antes || (D.cols[0]||{}).id);
+    if(!destino) return;
+    const ord = D.feats.filter(x => x.coluna_id === destino).length;
+    const { error } = await sb.from('adm_features')
+      .update({ coluna_id: destino, ord, atualizado_em:new Date().toISOString(),
+                atualizado_por: ME && ME.user_id }).eq('id', f.id);
+    if(error){ cx.checked = !marcar; return toast(erroMsg(error), true); }
+    const nomeCol = (id) => (D.cols.find(c=>c.id===id)||{}).nome || '—';
+    registrar(marcar?'feature.feito':'feature.reabrir', f.titulo, {
+      feature_id: f.id, de: nomeCol(f.coluna_id), para: nomeCol(destino) });
+    if(marcar) f.coluna_antes = f.coluna_id;
+    toast(marcar ? `Marcado como feito — foi para ${feito.nome}.` : 'Card reaberto.');
+    redesenhar(pgFeatures);
+  });
+
   document.querySelectorAll('[data-voto]').forEach(b => b.onclick = async ev => {
     ev.stopPropagation();
     const f = D.feats.find(x=>x.id===b.dataset.id); if(!f) return;
     const novo = Math.max(0, f.votos + (+b.dataset.voto));
     const { error } = await sb.from('adm_features').update({ votos: novo }).eq('id', f.id);
     if(error) return toast(erroMsg(error), true);
+    registrar('feature.voto', f.titulo, { feature_id: f.id, de: f.votos, para: novo });
     f.votos = novo; pgFeatures();
   });
 
@@ -2647,7 +3351,7 @@ function ligarKanban(){
   // um espaço tracejado abre onde o card vai cair. Ao largar, grava col+ord da coluna.
   document.querySelectorAll('.kbcard').forEach(card => {
     card.addEventListener('pointerdown', ev => {
-      if(ev.button!==0 || ev.target.closest('[data-voto],[data-del-card]')) return;
+      if(ev.button!==0 || ev.target.closest('[data-voto],[data-del-card],[data-feito]')) return;
       const inicio = { x:ev.clientX, y:ev.clientY };
       const id = card.dataset.card;
       let ativo = false, ghost = null, slot = null;
@@ -2682,7 +3386,9 @@ function ligarKanban(){
         window.removeEventListener('pointermove', mover);
         window.removeEventListener('pointerup', largar);
         document.querySelectorAll('.kbcol').forEach(c=>c.classList.remove('alvo'));
-        if(!ativo) return;
+        /* pointerup sem arrasto = clique: é aqui que se sabe disso com
+           certeza, porque o limiar de 4px já foi avaliado */
+        if(!ativo){ abrirCardFeature(id); return; }
         if(ghost) ghost.remove();
         const lista = slot.parentElement;
         const colId = lista.dataset.cards;
@@ -2696,6 +3402,14 @@ function ligarKanban(){
         try{
           await Promise.all(ids.map((cid,i) =>
             sb.from('adm_features').update({ coluna_id: colId, ord: i }).eq('id', cid)));
+          /* só registra quando o card MUDA DE COLUNA: reordenar dentro da mesma
+             coluna acontece o tempo todo e encheria o log de linhas sem leitura */
+          const f = D.feats.find(x=>x.id===id) || {};
+          if(f.coluna_id !== colId){
+            const nomeCol = (c) => (D.cols.find(x=>x.id===c)||{}).nome || '—';
+            registrar('feature.mover', f.titulo||id,
+              { feature_id: id, de: nomeCol(f.coluna_id), para: nomeCol(colId) });
+          }
         }catch(err){ toast(erroMsg(err), true); }
         pgFeatures();
       };
@@ -2720,7 +3434,160 @@ async function criarColuna(){
   const { error } = await sb.from('adm_kanban_cols').insert({ nome, ord: D.cols.length,
     cor: CORES_AV[D.cols.length % CORES_AV.length] });
   if(error) return toast(erroMsg(error), true);
+  registrar('coluna.criar', nome);
   toast('Coluna criada.'); pgFeatures();
+}
+/* Link colado vira link clicável. Escapa PRIMEIRO e só depois envolve em <a>:
+   na ordem inversa, um "link" com aspas dentro fecharia o atributo href e
+   qualquer pessoa com acesso ao painel poderia injetar HTML no card de outra.
+   `rel="noopener noreferrer"` porque o destino é texto que alguém colou. */
+function linkificar(txt){
+  return h(txt).replace(/(https?:\/\/[^\s<]+)/g, u =>
+    `<a href="${u}" target="_blank" rel="noopener noreferrer" style="color:var(--verde2)">${u}</a>`);
+}
+
+/* Prioridade: quatro estados, e o quinto é NÃO TER — card recém-criado não é
+   "só ideia", é não triado, e pintar os dois igual esconderia a fila de triagem. */
+const PRIORIDADES = {
+  urgente:    { n:'Urgente',     tag:'t-bad',  ord:0 },
+  importante: { n:'Importante',  tag:'t-warn', ord:1 },
+  depois:     { n:'Para depois', tag:'t-azul', ord:2 },
+  ideia:      { n:'Só ideia',    tag:'t-dim',  ord:3 }
+};
+function prioridadeInfo(p){ return PRIORIDADES[p] || null; }
+/* a coluna de conclusão: por nome, com a última como reserva — um quadro pode
+   chamá-la "Concluído" ou "Done", e cair na última é melhor que não funcionar */
+function colunaFeito(){
+  const cols = D.cols || [];
+  return cols.find(c => /^(feito|conclu|pronto|done)/i.test(String(c.nome||'').trim()))
+      || cols[cols.length-1] || null;
+}
+
+/* ============================ FICHA DO CARD ============================
+   O quadro tem de continuar legível de relance — título, nota curta, votos —,
+   então tudo o que é comprido vive AQUI: a descrição com links, quem criou,
+   quem mexeu por último e o histórico do card.
+
+   O histórico não é uma tabela nova: sai de `adm_audit`, onde já mora o resto
+   do rastro do painel, filtrado por `detalhe->>'feature_id'`. Filtrar pelo
+   título não serviria — o título muda, e o histórico é justamente onde se vê
+   que ele mudou. Por isso as ações de feature gravam o id do card.
+
+   Só quem pode escrever em Produto edita; quem tem papel de leitura abre,
+   lê e vê o histórico, que é metade do valor da ficha. */
+async function abrirCardFeature(id){
+  const f = (D.feats||[]).find(x => x.id === id);
+  if(!f) return;
+  const editar = podeEditar('produto');
+  const col = (D.cols||[]).find(c => c.id === f.coluna_id) || {};
+  const autor = f.criado_por ? nomeAdm(f.criado_por) : null;
+  const ultimo = f.atualizado_por ? nomeAdm(f.atualizado_por) : null;
+
+  const linhaMeta = (rot, val) =>
+    `<div><span style="color:var(--dim2)">${rot}</span><b>${val}</b></div>`;
+
+  abrirModal(`
+    <h3>${editar ? 'Card da funcionalidade' : h(f.titulo)}</h3>
+    <div class="spec">
+      <div class="full">
+        <span class="tag ${f.origem==='usuario'?'t-azul':'t-dim'}">${f.origem==='usuario'?'Pedido de usuário':'Ideia da equipe'}</span>
+        <span style="color:var(--dim2);text-align:right">${
+          prioridadeInfo(f.prioridade)?`<span class="tag ${prioridadeInfo(f.prioridade).tag}">${h(prioridadeInfo(f.prioridade).n)}</span> · `:''
+        }${h(col.nome||'sem coluna')} · ${f.votos} voto${f.votos===1?'':'s'}</span>
+      </div>
+      ${linhaMeta('Criado por', autor ? h(autor) : '<span style="color:var(--dim3)">não registrado</span>')}
+      ${linhaMeta('Criado em', h(dmy(f.criada_em)))}
+      ${ultimo ? linhaMeta('Última edição', h(ultimo)) : ''}
+      ${ultimo ? linhaMeta('Editado em', h(dmy(f.atualizado_em))) : ''}
+    </div>
+
+    <div class="col" style="margin-top:14px">
+      ${editar ? `
+        <label class="f">Funcionalidade<input class="f" id="fc-tit" value="${h(f.titulo)}"></label>
+        <label class="f">Nota curta <small style="color:var(--dim3);font-weight:500">— é o que aparece no card fechado</small>
+          <input class="f" id="fc-nota" value="${h(f.nota||'')}" placeholder="Quem pediu, em que tela, porquê"></label>
+        <label class="f">Conteúdo <small style="color:var(--dim3);font-weight:500">— contexto, links, prints, decisões</small>
+          <textarea class="f" id="fc-desc" rows="8" placeholder="Cole aqui links, trechos de conversa, o que já foi decidido…"
+            style="resize:vertical;line-height:1.6">${h(f.descricao||'')}</textarea></label>
+        <div class="g2" style="gap:12px">
+          <label class="f">Prioridade<select class="f" id="fc-pri">
+            <option value="">Ainda não definida</option>
+            ${Object.entries(PRIORIDADES).map(([k,v]) =>
+              `<option value="${k}" ${f.prioridade===k?'selected':''}>${h(v.n)}</option>`).join('')}
+          </select></label>
+          <label class="f">Origem<select class="f" id="fc-origem">
+            <option value="usuario" ${f.origem==='usuario'?'selected':''}>Usuário</option>
+            <option value="equipa" ${f.origem==='equipa'?'selected':''}>Equipe</option></select></label>
+        </div>
+        <label class="f">Coluna<select class="f" id="fc-col">
+          ${(D.cols||[]).map(c=>`<option value="${c.id}" ${c.id===f.coluna_id?'selected':''}>${h(c.nome)}</option>`).join('')}
+        </select></label>`
+      : `
+        ${f.nota?`<div class="st" style="line-height:1.6;margin:0">${h(f.nota)}</div>`:''}
+        <div class="tt" style="font-size:12.5px;margin-top:6px">Conteúdo</div>
+        <div style="font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--fg2)">${
+          f.descricao ? linkificar(f.descricao) : '<span style="color:var(--dim3)">vazio</span>'}</div>`}
+
+      <div class="tt" style="font-size:12.5px;margin-top:8px">Histórico deste card</div>
+      <div id="fc-log"><div class="vazio" style="padding:14px">Carregando…</div></div>
+
+      <div class="acoes">
+        ${editar?'<button class="btn" id="fc-ok">Salvar</button>':''}
+        <button class="btn btn-ghost" data-fechar>Fechar</button>
+      </div>
+    </div>`, 'lg');
+
+  /* o histórico chega depois: a ficha abre já, e a lista preenche quando vier */
+  try{
+    const r = await sb.from('adm_audit').select('*')
+      .eq('detalhe->>feature_id', id)
+      .order('quando', { ascending:false }).limit(50);
+    const alvo = el('fc-log');
+    if(!alvo) return;                      // a pessoa fechou antes de chegar
+    const ls = r.error ? [] : (r.data||[]);
+    alvo.innerHTML = ls.length ? ls.map(a => `
+      <div class="row" style="grid-template-columns:118px 1fr 1.1fr;padding:8px 0">
+        <span class="mono" style="font-size:11px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
+        <span style="font-size:12px">${h(rotuloAcao(a.acao))}</span>
+        <span style="font-size:11.5px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">
+          ${h(a.quem_email||'—')}</span>
+      </div>`).join('')
+      : `<div class="vazio" style="padding:14px">${r.error
+          ? 'Não deu para ler o histórico: '+h(erroMsg(r.error))
+          : 'Sem movimento registrado — cards criados antes de 03/09/2026 só passam a ter histórico a partir da próxima mexida.'}</div>`;
+  }catch(e){
+    const alvo = el('fc-log');
+    if(alvo) alvo.innerHTML = `<div class="vazio" style="padding:14px">Não deu para ler o histórico.</div>`;
+  }
+
+  if(!editar) return;
+  el('fc-ok').onclick = async () => {
+    const titulo = el('fc-tit').value.trim();
+    if(!titulo) return toast('O card precisa de um título.', true);
+    const bt = el('fc-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
+    const antes = { titulo:f.titulo, nota:f.nota, descricao:f.descricao,
+                    origem:f.origem, coluna_id:f.coluna_id, prioridade:f.prioridade };
+    const linha = {
+      titulo,
+      nota: el('fc-nota').value.trim() || null,
+      descricao: el('fc-desc').value.trim() || null,
+      origem: el('fc-origem').value,
+      prioridade: el('fc-pri').value || null,
+      coluna_id: el('fc-col').value,
+      atualizado_em: new Date().toISOString(),
+      atualizado_por: ME && ME.user_id
+    };
+    const { error } = await sb.from('adm_features').update(linha).eq('id', f.id);
+    if(error){ bt.disabled=false; bt.textContent='Salvar'; return toast(erroMsg(error), true); }
+    /* o log diz O QUE mudou, não só que houve edição: "mexeu no card" sem
+       campos não responde nada a quem for ler daqui a um mês */
+    const mudou = Object.keys(antes).filter(k => (antes[k]||null) !== (linha[k]||null));
+    registrar('feature.editar', titulo, {
+      feature_id: f.id, campos: mudou,
+      titulo_antes: antes.titulo !== titulo ? antes.titulo : undefined,
+      coluna: (D.cols.find(c=>c.id===linha.coluna_id)||{}).nome });
+    fecharModal(); toast('Card salvo.'); redesenhar(pgFeatures);
+  };
 }
 function modalFeature(colunaId){
   abrirModal(`
@@ -2729,8 +3596,14 @@ function modalFeature(colunaId){
       <label class="f">Funcionalidade<input class="f" id="nf-tit" placeholder="Ex.: Renovar contratos em bloco"></label>
       <label class="f">Nota / contexto<input class="f" id="nf-nota" placeholder="Quem pediu, em que tela, porquê"></label>
       <div class="g2" style="gap:12px">
+        <label class="f">Prioridade<select class="f" id="nf-pri">
+          <option value="">Ainda não definida</option>
+          ${Object.entries(PRIORIDADES).map(([k,v])=>`<option value="${k}">${h(v.n)}</option>`).join('')}
+        </select></label>
         <label class="f">Origem<select class="f" id="nf-origem">
           <option value="usuario">Usuário</option><option value="equipa">Equipe</option></select></label>
+      </div>
+      <div class="g2" style="gap:12px">
         <label class="f">Coluna<select class="f" id="nf-col">
           ${D.cols.map(c=>`<option value="${c.id}" ${c.id===colunaId?'selected':''}>${h(c.nome)}</option>`).join('')}
         </select></label>
@@ -2745,33 +3618,186 @@ function modalFeature(colunaId){
     if(!titulo) return toast('Digite o título.', true);
     const col = el('nf-col').value;
     const ord = D.feats.filter(f=>f.coluna_id===col).length;
-    const { error } = await sb.from('adm_features').insert({
+    /* `.select().single()` para o log já sair com o id do card: sem ele a
+       criação ficaria de fora do histórico da própria ficha */
+    const { data, error } = await sb.from('adm_features').insert({
       titulo, nota: el('nf-nota').value.trim()||null, origem: el('nf-origem').value,
-      coluna_id: col, ord
-    });
+      prioridade: el('nf-pri').value || null,
+      coluna_id: col, ord, criado_por: ME && ME.user_id
+    }).select().single();
     if(error) return toast(erroMsg(error), true);
-    fecharModal(); toast('Funcionalidade registrada.'); pgFeatures();
+    registrar('feature.criar', titulo, { feature_id: data && data.id,
+      origem: el('nf-origem').value, prioridade: el('nf-pri').value || null,
+      coluna: (D.cols.find(c=>c.id===col)||{}).nome || null,
+      nota: el('nf-nota').value.trim()||null });
+    fecharModal(); toast('Funcionalidade registrada.'); redesenhar(pgFeatures);
   };
 }
 
-/* rótulos das ações do log — a coluna mostra a frase, não a chave técnica */
-const ACOES = {
-  'sala.apagar':'Apagou uma sala', 'convite.criar':'Criou convite',
-  'convite.aceitar':'Entrou no painel pela primeira vez', 'papel.mudar':'Mudou o papel de alguém',
-  'criativo.publicar':'Publicou criativo', 'criativo.tirar':'Tirou criativo do ar',
-  'patrocinador.criar':'Cadastrou patrocinador', 'patrocinador.apagar':'Apagou patrocinador',
-  'lancamento.apagar':'Apagou lançamento'
+/* ============================ CATÁLOGO DE AÇÕES ============================
+   Rótulos do log: a tela mostra a frase, não a chave técnica. Cada ação também
+   diz a que ÁREA pertence — é por área que se lê "o que esta pessoa anda a
+   mexer", e é ela que alimenta o filtro da página Registro.
+
+   AÇÃO NOVA ENTRA AQUI. Sem entrada no catálogo a linha ainda aparece (nada
+   fica escondido), mas com a chave crua e a área adivinhada pelo prefixo — que
+   é o suficiente para não perder nada e pouco para ler com conforto. */
+const AREAS = {
+  acesso:    'Acesso ao painel',
+  contas:    'Contas e salas',
+  financas:  'Finanças',
+  publicidade:'Publicidade',
+  produto:   'Funcionalidades',
+  conteudo:  'Conteúdo',
+  parceiros: 'Parceiros',
+  dados:     'Dados do jogo',
+  imagens:   'Imagens (IA)',
+  videos:    'Vídeos dos momentos',
+  outro:     'Outros'
 };
+const ACOES = {
+  /* acesso */
+  'convite.criar':'Criou convite de acesso',
+  'convite.apagar':'Cancelou convite de acesso',
+  'convite.aceitar':'Entrou no painel pela primeira vez',
+  'papel.mudar':'Mudou o papel de alguém',
+  /* contas e salas do jogo */
+  'sala.apagar':'Apagou uma sala',
+  'salas.apagar_massa':'Apagou salas em massa',
+  'saves.apagar_massa':'Apagou saves em massa',
+  'usuarios.apagar_massa':'Apagou contas de jogador',
+  'convites.apagar_massa':'Apagou convites de Resenha',
+  'senha.reenviar':'Reenviou link de senha',
+  /* finanças */
+  'lancamento.criar':'Criou lançamento',
+  'lancamento.apagar':'Apagou lançamento',
+  'config.editar':'Mudou caixa/meta',
+  'openai.conciliar':'Conciliou a fatura da OpenAI',
+  /* publicidade */
+  'criativo.publicar':'Publicou criativo',
+  'criativo.tirar':'Tirou criativo do ar',
+  'espaco.ligar':'Ligou espaço de anúncio',
+  'espaco.desligar':'Desligou espaço de anúncio',
+  'patrocinador.criar':'Cadastrou patrocinador',
+  'patrocinador.apagar':'Apagou patrocinador',
+  /* funcionalidades (kanban) */
+  'feature.criar':'Criou card de funcionalidade',
+  'feature.apagar':'Apagou card de funcionalidade',
+  'feature.editar':'Editou o card',
+  'feature.mover':'Moveu card de coluna',
+  'feature.feito':'Marcou como feito',
+  'feature.reabrir':'Reabriu o card',
+  'feature.voto':'Mudou votos de um card',
+  'coluna.criar':'Criou coluna do kanban',
+  'coluna.renomear':'Renomeou coluna do kanban',
+  'coluna.apagar':'Apagou coluna do kanban',
+  'kanban.ordem':'Reordenou as colunas',
+  /* conteúdo */
+  'conteudo.criar':'Criou pauta de conteúdo',
+  'conteudo.editar':'Editou pauta de conteúdo',
+  'conteudo.apagar':'Apagou pauta de conteúdo',
+  'conteudo.aprovar':'Aprovou conteúdo',
+  'conteudo.desaprovar':'Tirou a aprovação de um conteúdo',
+  /* parceiros */
+  'parceiro.criar':'Cadastrou parceiro',
+  'parceiro.editar':'Editou parceiro',
+  'parceiro.apagar':'Apagou parceiro',
+  'parceiro.status':'Mudou o status de um parceiro',
+  'parceiros.seguidores':'Atualizou seguidores dos canais',
+  'config.youtube_api_key':'Configurou a chave da API do YouTube',
+  /* dados do jogo */
+  'clube.criar':'Criou clube',
+  'clube.editar':'Editou clube e elenco',
+  'clube.reverter':'Reverteu as edições de um clube',
+  'pacote.criar':'Criou pacote de dados',
+  'pacote.importar':'Importou pacote de dados',
+  'competicoes.gravar':'Gravou competições',
+  'competicoes.arte':'Trocou a arte de uma competição',
+  'dados.csv_jogadores':'Exportou CSV de jogadores',
+  'dados.csv_economia':'Exportou CSV de economia',
+  /* vídeos dos momentos */
+  'momento.video':'Subiu vídeo de momento',
+  'momento.video_tirar':'Tirou o vídeo de um momento',
+  'momento.editar':'Editou um momento',
+  'momento.ligar':'Ligou um momento',
+  'momento.desligar':'Desligou um momento',
+  /* estúdio de imagens */
+  'estudio.escudo':'Gerou escudo por IA',
+  'estudio.escudo.lote.item':'Subiu escudo (lote)',
+  'estudio.foto':'Gerou foto de jogador',
+  'estudio.foto.lote':'Gerou fotos do elenco',
+  'estudio.fotos.reaproveitar':'Reaproveitou foto de jogador',
+  'estudio.fotos.recortar':'Recortou fotos',
+  'estudio.fotos.medir':'Remediu fotos',
+  'estudio.torso':'Gerou torso base',
+  'estudio.base.faces':'Gerou rostos base',
+  'estudio.treinador.refazer':'Refez avatar de treinador',
+  'estudio.treinadores.preparar':'Preparou avatares de treinador',
+  'estudio.estilos.preparar':'Preparou estilos de uniforme',
+  'estudio.molde.refazer':'Refez molde de uniforme',
+  'estudio.molde-mini.refazer':'Refez molde pequeno de uniforme',
+  'estudio.uniforme.aplicar':'Aplicou uniforme no clube',
+  'estudio.uniforme.rascunho':'Guardou rascunho de uniforme',
+  'estudio.uniforme.remover':'Removeu o uniforme do clube',
+  'estudio.uniformes.repintar':'Repintou uniformes',
+  'estudio.uniformes.repintar1':'Repintou o uniforme de um clube',
+  'estudio.elenco.remontar':'Remontou as fotos do elenco',
+  'estudio.camadas.pos':'Ajustou camadas do clube',
+  'estudio.camadas.pos.jogador':'Ajustou camadas de um jogador',
+  'estudio.patro.pos':'Ajustou o patrocínio na camisa',
+  'estudio.clube.cores':'Mudou as cores do clube'
+};
+/* prefixo → área, para a ação que ainda não está no catálogo acima */
+const AREA_POR_PREFIXO = {
+  convite:'acesso', papel:'acesso',
+  sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
+  lancamento:'financas', openai:'financas',
+  criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade',
+  feature:'produto', coluna:'produto', kanban:'produto',
+  conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
+  clube:'dados', pacote:'dados', competicoes:'dados', dados:'dados',
+  momento:'videos', estudio:'imagens', config:'financas'
+};
+function areaDaAcao(acao){
+  const pre = String(acao||'').split('.')[0];
+  return AREA_POR_PREFIXO[pre] || 'outro';
+}
+function rotuloAcao(acao){ return ACOES[acao] || acao || '—'; }
+/* a frase curta que fica ao lado do rótulo — o "o quê", com o número que importa */
 function resumoAcao(a){
   const d = a.detalhe || {};
+  const lista = (v) => Array.isArray(v) && v.length ? v.join(', ') : '';
   if(a.acao==='sala.apagar')  return `${a.alvo} · ${d.assentos||0} assentos, ${d.humanos||0} humano${d.humanos===1?'':'s'}`;
   if(a.acao==='lancamento.apagar') return `${d.descricao||a.alvo||''}${d.valor?' · '+brl(d.valor):''}`;
+  if(a.acao==='lancamento.criar')  return `${a.alvo||''}${d.valor?' · '+brl(d.valor):''}${d.tipo?' · '+d.tipo:''}`;
+  if(a.acao==='config.editar')     return `${a.alvo} · de ${brl(d.de)} para ${brl(d.para)}`;
+  if(a.acao==='openai.conciliar'){
+    const ms = Object.entries(d.meses||{});
+    return `${a.alvo} · ${ms.map(([m,v]) =>
+      `${m} US$ ${(+v.usd).toFixed(2)} (painel ${(+v.estimado).toFixed(2)})`).join(' · ')}`;
+  }
   if(a.acao==='criativo.publicar') return `${a.alvo}${d.bytes?' · '+Math.round(d.bytes/1024)+' KB':''}`;
+  if(a.acao==='clube.editar'){
+    const p = [];
+    if(d.novos)     p.push(`${d.novos} jogador${d.novos===1?'':'es'} novo${d.novos===1?'':'s'}${lista(d.nomes_novos)?' ('+lista(d.nomes_novos)+')':''}`);
+    if(d.jogadores) p.push(`${d.jogadores} alterado${d.jogadores===1?'':'s'}`);
+    if(d.removidos) p.push(`${d.removidos} removido${d.removidos===1?'':'s'}${lista(d.nomes_removidos)?' ('+lista(d.nomes_removidos)+')':''}`);
+    if(lista(d.campos)) p.push('campos: '+lista(d.campos));
+    return `${a.alvo} · ${p.join(' · ')||'sem mudança de elenco'}`;
+  }
+  if(a.acao==='feature.mover' || a.acao==='feature.feito' || a.acao==='feature.reabrir')
+    return `${a.alvo} · ${d.de||'?'} → ${d.para||'?'}`;
+  if(a.acao==='feature.editar')
+    return `${a.alvo}${Array.isArray(d.campos)&&d.campos.length?' · mexeu em '+d.campos.join(', '):' · sem mudança'}`;
+  if(a.acao==='feature.voto')      return `${a.alvo} · ${d.de} → ${d.para} votos`;
+  if(a.acao==='coluna.renomear')   return `${d.de||''} → ${d.para||a.alvo||''}`;
+  if(a.acao==='momento.video')     return `${d.nome||a.alvo}${d.bytes?' · '+Math.round(d.bytes/1048576*10)/10+' MB':''}`;
+  if(/^momento\./.test(a.acao||'')) return d.nome || a.alvo || '—';
   if(d.papel) return `${a.alvo} · ${d.papel}`;
   return a.alvo || '—';
 }
 /* ============================ EQUIPE ADMIN ============================ */
-async function pgEquipa(){
+async function pgEquipa(forcar, senha = pedirDesenho()){
   // A lista de contas do jogo alimenta o seletor do convite: quase sempre o convidado
   // já é jogador, e digitar o e-mail dele de novo é onde nasce o erro de digitação
   // (o convite fica preso a um endereço que ninguém usa).
@@ -2791,6 +3817,7 @@ async function pgEquipa(){
   // só o dono do painel convida e mexe em papéis (regra do banco: admin_rf98.dono())
   const dono = !!ME.dono;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start">
       <div class="card" style="overflow:hidden">
@@ -2858,16 +3885,19 @@ async function pgEquipa(){
     </div>
 
     <div class="card" style="overflow:hidden">
-      <div class="card-h"><b>Histórico de ações</b>
-        <span style="font-size:11.5px;color:var(--dim3)">quem mexeu em quê · o registro não pode ser editado nem apagado</span></div>
+      <div class="card-h"><b>Últimas ações</b>
+        <span style="font-size:11.5px;color:var(--dim3);flex:1">quem mexeu em quê · o registro não pode ser editado nem apagado</span>
+        <span class="link" id="eq-ver-registro" style="font-size:12px">Ver o registro completo →</span></div>
       ${(log.data||[]).length ? (log.data||[]).map(a=>`
         <div class="row" style="grid-template-columns:150px 1fr 1.2fr 130px;padding:10px 20px">
-          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${new Date(a.quando).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
-          <span style="font-size:12.5px">${h(ACOES[a.acao]||a.acao)}</span>
+          <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
+          <span style="font-size:12.5px">${h(rotuloAcao(a.acao))}</span>
           <span class="mono" style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">${h(resumoAcao(a))}</span>
           <span style="font-size:12px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">${h(a.quem_email||'—')}</span>
         </div>`).join('') : '<div class="vazio">Nenhuma ação registrada ainda.</div>'}
     </div>`;
+
+  el('eq-ver-registro').onclick = () => irPara('registro');
 
   if(dono){
     el('i-go').onclick = async () => {
@@ -2894,6 +3924,241 @@ async function pgEquipa(){
     });
   }
 }
+/* ============================ REGISTRO DE AÇÕES ============================
+   O log já existia — `adm_audit`, escrita pelo painel e pelas funções do banco,
+   sem UPDATE nem DELETE em RLS nenhuma (ninguém edita o próprio rastro). O que
+   faltava era a LEITURA: as últimas 40 linhas espremidas no fim da Equipe admin
+   não respondem "o que o Rafael andou a mexer esta semana?", que é a pergunta
+   dos sócios.
+
+   Esta página responde a isso por PESSOA e por ÁREA. O período é o do cabeçalho
+   (7 dias / 30 dias / Ano) — o mesmo seletor que o resto do painel usa, para
+   não haver duas noções de "período" na mesma tela.
+
+   TUDO É LIDO DO BANCO, nada é derivado da sessão: quem apareceu no log e já
+   saiu do painel continua a aparecer (marcado em âmbar), porque apagar a conta
+   não pode apagar o que ela fez. */
+const TETO_REGISTRO = 5000;   // linhas lidas por período; acima disto a tela avisa
+async function lerAuditoria(desdeISO){
+  const linhas = [];
+  for(let de = 0; de < TETO_REGISTRO; de += PAGINA_SB){
+    let q = sb.from('adm_audit').select('*').order('quando', { ascending:false });
+    if(desdeISO) q = q.gte('quando', desdeISO);
+    const r = await q.range(de, de + PAGINA_SB - 1);
+    if(r.error) throw r.error;
+    linhas.push.apply(linhas, r.data||[]);
+    if(!r.data || r.data.length < PAGINA_SB) break;
+  }
+  return linhas;
+}
+/* o que a busca livre varre: rótulo, chave, alvo e o detalhe inteiro em texto —
+   procurar "Palmeiras" tem de achar a edição de clube mesmo que o nome só exista
+   dentro do JSON do detalhe */
+function textoDaAcao(a){
+  return [a.acao, rotuloAcao(a.acao), a.alvo, a.quem_email, resumoAcao(a),
+          a.detalhe ? JSON.stringify(a.detalhe) : ''].join(' ').toLowerCase();
+}
+function regCSV(ls, nomeDe){
+  const cab = ['Quando','Quem','E-mail','Área','Ação','Chave da ação','Alvo','Detalhe'];
+  const linhas = ls.map(a => [
+    new Date(a.quando).toLocaleString('pt-BR'),
+    nomeDe(a), a.quem_email||'',
+    AREAS[areaDaAcao(a.acao)]||'', rotuloAcao(a.acao), a.acao, a.alvo||'',
+    a.detalhe ? JSON.stringify(a.detalhe) : ''
+  ].map(csvCampo).join(';'));
+  return '﻿' + cab.join(';') + '\r\n' + linhas.join('\r\n') + '\r\n';
+}
+async function pgRegistro(forcar, senha = pedirDesenho()){
+  const desde = new Date(Date.now() - ST.periodo*86400000).toISOString();
+  const [admins, log] = await Promise.all([
+    sb.from('adm_users').select('*').order('criado_em'),
+    lerAuditoria(desde)
+  ]);
+  if(admins.error) throw admins.error;
+  D.admins = admins.data || [];
+  D.registro = log;
+
+  /* Quem aparece no log e NÃO está mais em adm_users continua a contar: o
+     e-mail gravado na linha é a identidade que sobra. Sem isto, tirar o acesso
+     de alguém apagaria o histórico dele da tela — o oposto de auditoria. */
+  const porConta = new Map(D.admins.map(a => [a.user_id, a]));
+  const chaveDe = (a) => a.quem || ('email:'+(a.quem_email||'—'));
+  const nomeDe  = (a) => {
+    const u = porConta.get(a.quem);
+    return (u && (u.nome || u.email)) || a.quem_email || 'conta removida';
+  };
+
+  // ---- resumo por pessoa (do período inteiro, antes dos filtros da tabela) ----
+  const pessoas = new Map();
+  for(const a of log){
+    const k = chaveDe(a);
+    let p = pessoas.get(k);
+    if(!p){
+      const u = porConta.get(a.quem);
+      p = { chave:k, quem:a.quem, nome:nomeDe(a), email:a.quem_email||(u&&u.email)||'',
+            papel:(u&&u.papel)||null, fora:!u, n:0, areas:{}, ultima:a };
+      pessoas.set(k, p);
+    }
+    p.n++;
+    const ar = areaDaAcao(a.acao);
+    p.areas[ar] = (p.areas[ar]||0) + 1;
+    if(new Date(a.quando) > new Date(p.ultima.quando)) p.ultima = a;
+  }
+  const equipa = Array.from(pessoas.values()).sort((x,y) => y.n - x.n);
+
+  // ---- áreas presentes no período, para o filtro não oferecer o que não existe ----
+  const porArea = {};
+  log.forEach(a => { const ar = areaDaAcao(a.acao); porArea[ar] = (porArea[ar]||0)+1; });
+  const areasNoLog = Object.keys(porArea).sort((a,b) => porArea[b]-porArea[a]);
+  const areaTopo = areasNoLog[0];
+
+  // ---- filtros da tabela ----
+  const q = (ST.regBusca||'').trim().toLowerCase();
+  const visiveis = log.filter(a =>
+    (!ST.regQuem || chaveDe(a) === ST.regQuem) &&
+    (!ST.regArea || areaDaAcao(a.acao) === ST.regArea) &&
+    (!q || textoDaAcao(a).includes(q)));
+  D.registroVisivel = visiveis;
+
+  const linhaPessoa = (p) => {
+    const tops = Object.entries(p.areas).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const sel = ST.regQuem === p.chave;
+    return `<div class="row" data-pessoa="${h(p.chave)}" style="grid-template-columns:1.5fr 96px 1fr 110px 130px;cursor:pointer;${sel?'background:var(--card2,rgba(255,255,255,.04))':''}">
+      <span style="display:flex;align-items:center;gap:10px;min-width:0">
+        <i class="av" style="width:26px;height:26px;background:${corAv(p.nome)};color:#0c1210;font-size:11px">${h(iniciais(p.nome))}</i>
+        <span style="min-width:0">
+          <b style="display:block;font-size:13px;font-weight:600">${h(p.nome)}</b>
+          <small style="font-size:11.5px;color:${p.fora?'var(--ambar)':'var(--dim2)'}">
+            ${h(p.email||'—')}${p.fora?' · já não tem acesso':''}</small></span>
+      </span>
+      <span class="mono" style="font-size:13px;text-align:center;font-weight:700">${num(p.n)}</span>
+      <span style="font-size:11.5px;color:var(--dim2);display:flex;gap:6px;flex-wrap:wrap">
+        ${tops.map(([ar,n]) => `<span class="tag t-dim">${h(AREAS[ar]||ar)} ${n}</span>`).join('')}</span>
+      <span style="font-size:12px;color:var(--dim2);text-align:right">${h(ha(p.ultima.quando))}</span>
+      <span style="font-size:12px;color:var(--dim);text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
+            title="${h(rotuloAcao(p.ultima.acao))}">${h(rotuloAcao(p.ultima.acao))}</span>
+    </div>`;
+  };
+
+  const linhaAcao = (a, i) => `
+    <div class="row" data-acao="${i}" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr;cursor:pointer">
+      <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
+      <span style="font-size:12.5px;display:flex;align-items:center;gap:8px;min-width:0">
+        <i class="av" style="width:20px;height:20px;background:${corAv(nomeDe(a))};color:#0c1210;font-size:9px">${h(iniciais(nomeDe(a)))}</i>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(nomeDe(a))}</span></span>
+      <span><span class="tag t-dim">${h(AREAS[areaDaAcao(a.acao)]||'—')}</span></span>
+      <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${h(a.acao)}">${h(rotuloAcao(a.acao))}</span>
+      <span class="mono" style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${h(resumoAcao(a))}">${h(resumoAcao(a))}</span>
+    </div>`;
+
+  const filtrando = !!(ST.regQuem || ST.regArea || q);
+  const ultima = log[0];
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
+  el('page').innerHTML = `
+    <div class="g4">
+      ${kpiHTML({ l:'Ações no período', v:num(log.length),
+                  d: log.length>=TETO_REGISTRO ? `teto de ${num(TETO_REGISTRO)} — reduza o período` : `últimos ${ST.periodo} dias` })}
+      ${kpiHTML({ l:'Pessoas que mexeram', v:num(equipa.length),
+                  d:`${num(D.admins.length)} contas com acesso hoje` })}
+      ${/* nome de área é frase, não número: em corpo de KPI ele quebraria a linha */''}
+      ${kpiHTML({ l:'Área mais movimentada',
+                  v: `<span style="font-size:20px">${areaTopo ? h(AREAS[areaTopo]||areaTopo) : '—'}</span>`,
+                  d: areaTopo ? `${num(porArea[areaTopo])} de ${num(log.length)} ações` : 'nada registrado' })}
+      ${kpiHTML({ l:'Última ação', v: ultima ? h(ha(ultima.quando)) : '—',
+                  d: ultima ? `${nomeDe(ultima)} · ${rotuloAcao(ultima.acao)}` : 'nenhuma ainda' })}
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-h"><b>Quem fez o quê</b>
+        <span style="font-size:11.5px;color:var(--dim3);flex:1">clique numa pessoa para filtrar a lista abaixo</span></div>
+      <div class="rowh" style="grid-template-columns:1.5fr 96px 1fr 110px 130px">
+        <span>Pessoa</span><span style="text-align:center">Ações</span><span>Onde mexeu</span>
+        <span style="text-align:right">Última</span><span style="text-align:right">O que foi</span>
+      </div>
+      ${equipa.length ? equipa.map(linhaPessoa).join('')
+        : '<div class="vazio">Ninguém mexeu no painel neste período.</div>'}
+    </div>
+
+    <div class="card" style="overflow:hidden;margin-top:16px">
+      <div class="card-h" style="flex-wrap:wrap;gap:10px">
+        <b>Registro</b>
+        <select class="f" id="rg-quem" style="width:auto;min-width:170px;font-size:12.5px">
+          <option value="">Todas as pessoas</option>
+          ${equipa.map(p=>`<option value="${h(p.chave)}" ${ST.regQuem===p.chave?'selected':''}>${h(p.nome)} (${p.n})</option>`).join('')}
+        </select>
+        <select class="f" id="rg-area" style="width:auto;min-width:150px;font-size:12.5px">
+          <option value="">Todas as áreas</option>
+          ${areasNoLog.map(ar=>`<option value="${h(ar)}" ${ST.regArea===ar?'selected':''}>${h(AREAS[ar]||ar)} (${porArea[ar]})</option>`).join('')}
+        </select>
+        <input class="busca" id="rg-busca" placeholder="Procurar clube, jogador, e-mail, ação…" value="${h(ST.regBusca)}">
+        <span class="mono" style="font-size:12px;color:var(--dim2)">${num(visiveis.length)}${filtrando?' de '+num(log.length):''} ações</span>
+        <button class="btn btn-sm btn-ghost" id="rg-csv">Baixar CSV</button>
+        ${filtrando?'<span class="link" id="rg-limpar" style="font-size:12px">limpar filtros</span>':''}
+      </div>
+      <div class="rowh" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr">
+        <span>Quando</span><span>Quem</span><span>Área</span><span>Ação</span><span>O quê</span>
+      </div>
+      ${visiveis.length ? visiveis.map(linhaAcao).join('')
+        : `<div class="vazio">${filtrando?'Nenhuma ação bate com o filtro.':'Nenhuma ação registrada neste período.'}</div>`}
+      <div style="border-top:1px solid var(--bd);padding:12px 20px;font-size:11.5px;color:var(--dim3);line-height:1.6">
+        O registro é escrito pelo painel e pelas funções do banco, e não tem UPDATE nem DELETE em
+        política nenhuma: ninguém — sócio incluído — edita ou apaga o próprio rastro. Clique numa
+        linha para ver o detalhe completo do que foi gravado.</div>
+    </div>`;
+
+  document.querySelectorAll('[data-pessoa]').forEach(l => l.onclick = () => {
+    ST.regQuem = (ST.regQuem === l.dataset.pessoa) ? '' : l.dataset.pessoa;   // clicar de novo desmarca
+    redesenhar(pgRegistro);
+  });
+  el('rg-quem').onchange = () => { ST.regQuem = el('rg-quem').value; redesenhar(pgRegistro); };
+  el('rg-area').onchange = () => { ST.regArea = el('rg-area').value; redesenhar(pgRegistro); };
+  if(el('rg-limpar')) el('rg-limpar').onclick = () => {
+    ST.regQuem = ST.regArea = ST.regBusca = ''; redesenhar(pgRegistro);
+  };
+  el('rg-csv').onclick = () => {
+    if(!visiveis.length) return toast('Não há ações para exportar.', true);
+    baixarTexto(`retrofoot98-registro-${new Date().toISOString().slice(0,10)}.csv`,
+                regCSV(visiveis, nomeDe), 'text/csv;charset=utf-8');
+  };
+  /* a busca redesenha a página, e redesenhar tira o foco do campo — por isso o
+     cursor é devolvido à posição em que estava (mesmo padrão da tela Usuários) */
+  const b = el('rg-busca'); let t;
+  b.oninput = () => { clearTimeout(t); t = setTimeout(() => {
+    ST.regBusca = b.value; redesenhar(pgRegistro).then(() => {
+      const n = el('rg-busca'); if(!n) return;
+      n.focus(); n.setSelectionRange(n.value.length, n.value.length);
+    });
+  }, 300); };
+  document.querySelectorAll('[data-acao]').forEach(l =>
+    l.onclick = () => modalAcao(visiveis[+l.dataset.acao], nomeDe));
+}
+/* o detalhe é JSON de propósito: cada ação guarda o que faz sentido para ela, e
+   uma tabela de colunas fixas não teria como abrigar "nomes dos jogadores
+   criados" ao lado de "bytes do criativo". Aqui ele aparece cru, formatado. */
+function modalAcao(a, nomeDe){
+  if(!a) return;
+  abrirModal(`
+    <h3>${h(rotuloAcao(a.acao))}</h3>
+    <div class="spec">
+      <div class="full"><code class="mono" style="color:var(--verde2)">${h(a.acao)}</code>
+        <span style="color:var(--dim2);text-align:right">${h(AREAS[areaDaAcao(a.acao)]||'—')}</span></div>
+      <div><span style="color:var(--dim2)">Quem</span><b>${h(nomeDe(a))}</b></div>
+      <div><span style="color:var(--dim2)">Quando</span><b>${h(new Date(a.quando).toLocaleString('pt-BR'))}</b></div>
+      <div class="full"><span style="color:var(--dim2)">E-mail</span>
+        <span class="mono" style="text-align:right">${h(a.quem_email||'—')}</span></div>
+      <div class="full"><span style="color:var(--dim2)">Alvo</span>
+        <span class="mono" style="text-align:right">${h(a.alvo||'—')}</span></div>
+    </div>
+    <div class="col" style="margin-top:14px">
+      <div class="tt" style="font-size:12.5px">Detalhe gravado</div>
+      <pre class="mono" style="margin:0;padding:12px;border:1px solid var(--bd);border-radius:8px;
+           background:var(--card);font-size:11.5px;line-height:1.6;white-space:pre-wrap;
+           word-break:break-word;max-height:320px;overflow:auto">${h(a.detalhe ? JSON.stringify(a.detalhe, null, 2) : 'sem detalhe')}</pre>
+      <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>
+    </div>`);
+}
 /* quem é o dono do painel — só para explicar na tela a quem pedir acesso. Quem MANDA é o
    banco (admin_rf98.dono(), lido de adm_config['dono_email']); isto aqui é só o rótulo. */
 function donoEmail(){
@@ -2906,9 +4171,13 @@ function donoEmail(){
    não condição. */
 async function registrar(acao, alvo, detalhe){
   try{
-    const { data:{ user } } = await sb.auth.getUser();
-    await sb.from('adm_audit').insert({ quem:user.id, quem_email:user.email,
-      acao, alvo: alvo||null, detalhe: detalhe||null });
+    /* ME já traz a conta autenticada — getUser() é uma ida à rede por ação, e
+       registrar acontece no fim de todo salvamento. Só se ME ainda não existir
+       (registro logo depois de entrar) é que vale a pena perguntar. */
+    let id = ME && ME.user_id, email = ME && ME.email;
+    if(!id){ const { data:{ user } } = await sb.auth.getUser(); id = user.id; email = user.email; }
+    await sb.from('adm_audit').insert({ quem:id, quem_email:email,
+      acao, alvo: alvo==null?null:String(alvo), detalhe: detalhe||null });
   }catch(e){ console.warn('auditoria:', e && e.message); }
 }
 function copiarLink(token){
@@ -3178,10 +4447,13 @@ const CAMPOS_CLUBE_ADM = ['name','short','color','color2','crest','OS','MS','DS'
 
 }
 
-async function pgEditor(){
+async function pgEditor(forcar, senha = pedirDesenho()){
   const editar = podeEditar('dados');
   try{ await carregarCatalogo(); }
-  catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
+  catch(e){
+    if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
+    el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return;
+  }
 
   const packs = await jogo('data_packs').select('*').order('oficial', { ascending:false }).order('criado_em');
   if(packs.error) throw packs.error;
@@ -3189,6 +4461,7 @@ async function pgEditor(){
   if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
     ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
   const pack = D.packs.find(p=>p.id===ST.packId);
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const eds = await todasAsLinhas('pack_edits', pack.id, ['club_id']);
@@ -3208,6 +4481,7 @@ async function pgEditor(){
   D.catalogo = base;
 
   const aba = ST.abaEditor || 'clubes';
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     ${cabecalhoPatches(pack, editar)}
     <div class="per" style="gap:6px;margin-top:2px">
@@ -4067,10 +5341,16 @@ async function salvarClube(item){
   const { error } = await jogo('pack_edits').upsert(linha, { onConflict:'pack_id,club_id' });
   if(error) return toast(erroMsg(error), true);
   await jogo('data_packs').update({ atualizado_em:new Date().toISOString() }).eq('id', ST.packId);
-  registrar('clube.editar', String(c.id), {
-    pacote: ST.packId,
+  /* O log guarda os NOMES dos jogadores criados e removidos, não só a contagem:
+     "3 novos" não diz a ninguém o que entrou no elenco, e é justamente isso que
+     os sócios querem conferir depois. */
+  registrar('clube.editar', c.name || String(c.id), {
+    clube_id: String(c.id), pacote: ST.packId,
     campos: Object.keys(patch).filter(k=>!k.startsWith('squad')),
-    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length });
+    jogadores: Object.keys(squad).length, novos: novos.length, removidos: remover.length,
+    nomes_novos: novos.map(j=>j.n).filter(Boolean).slice(0,30),
+    nomes_alterados: Object.keys(squad).slice(0,30),
+    nomes_removidos: remover.slice(0,30) });
   fecharModal(); toast('Salvo no pacote.'); pgEditor();
 }
 
@@ -5247,7 +6527,7 @@ async function inscritosYoutube(handle, key){
   if(!item) return null;
   return Number(item.statistics && item.statistics.subscriberCount) || 0;
 }
-async function pgParceiros(){
+async function pgParceiros(forcar, senha = pedirDesenho()){
   const editar = podeEditar('publicidade');
   const { data, error } = await sb.rpc('parceiros');
   if(error) throw error;
@@ -5261,6 +6541,7 @@ async function pgParceiros(){
   const inscritos = ps.reduce((a,p)=>a+ +p.inscritos, 0);
   const pagantes = ps.reduce((a,p)=>a+ +p.pagantes, 0);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="kpis">
       ${kpiHTML({l:'Parceiros', v:num(ps.length), d:`${num(ps.filter(p=>p.estado==='ativo').length)} ativos`})}
@@ -5637,7 +6918,7 @@ const CANAIS = { youtube:['YouTube','#ff0033'], instagram:['Instagram','#c13584'
 const STATUS = { ideia:['Ideia','t-dim'], design:['Design','t-azul'], edicao:['Edição','t-warn'],
                  agendado:['Agendado','t-roxo'], publicado:['Publicado','t-ok'] };
 
-async function pgConteudo(){
+async function pgConteudo(forcar, senha = pedirDesenho()){
   const editar = podeEditar('publicidade') || podeEditar('produto');
   const { data, error } = await sb.from('adm_conteudo').select('*').order('data_prevista', { ascending:true, nullsFirst:false });
   if(error) throw error;
@@ -5648,6 +6929,7 @@ async function pgConteudo(){
   const semData = lista.filter(c => !c.data_prevista);
   const comData = lista.filter(c => c.data_prevista);
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Na pauta', v:num(cs.length), d:`${num(cs.filter(c=>c.status==='ideia').length)} ainda são ideia`})}
@@ -8636,9 +9918,12 @@ function blocoTreinadoresHTML(){
     </div>`;
 }
 
-async function pgEstudio(){
+async function pgEstudio(forcar, senha = pedirDesenho()){
   try{ await carregarCatalogo(); }
-  catch(e){ el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return; }
+  catch(e){
+    if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
+    el('page').innerHTML = `<div class="erro">${h(e.message)}</div>`; return;
+  }
 
   const packs = await jogo('data_packs').select('*').order('oficial', { ascending:false }).order('criado_em');
   if(packs.error) throw packs.error;
@@ -8646,6 +9931,7 @@ async function pgEstudio(){
   if(!ST.packId || !D.packs.some(p=>p.id===ST.packId))
     ST.packId = (D.packs.find(p=>p.oficial)||D.packs[0]||{}).id;
   const pack = D.packs.find(p=>p.id===ST.packId);
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   if(!pack){ el('page').innerHTML = '<div class="erro">Nenhum patch encontrado.</div>'; return; }
 
   const [eds, fotos] = await Promise.all([
@@ -8710,6 +9996,7 @@ async function pgEstudio(){
   const totalFotos = Object.keys(D.fotos).filter(k => !k.endsWith('|'+TORSO_KEY) && !k.endsWith('|'+TORSO_KEY_FEM) && !k.startsWith(MOLDE_KEY+'|')).length;
   const totalEscudosIA = base.filter(escudoIA).length;
 
+  if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="card card-p">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
