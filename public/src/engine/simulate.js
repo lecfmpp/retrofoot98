@@ -779,8 +779,15 @@ function ratePlayers(id, gf, ga, scorers, R, myPerf, oppPerf, caps, matchMinutes
   notas.forEach((nota,i)=>{
     const p=lista[i].p;
     const st=p.stats||(p.stats={r3:[],g3:[],apps:0,goals:0,cs:0});
+    /* A ASSISTENCIA CHEGAVA AQUI E ERA DEITADA FORA. `rateAppearances` devolve `assists` desde
+       26/08 (e ate' a usa na nota, 0,7 por passe), o motor sorteia quem deu o passe, e a ficha do
+       jogador tem o cartao a ler `st.assists` — so' que ESTA linha, por onde passam TODAS as
+       partidas do solo, nunca escrevia o campo. O cartao mostrava 0 para toda a gente, sempre.
+       O irmao deste caminho (mpRate, core.js) ja' o gravava; eram duas copias da mesma escrita e
+       so' uma estava completa. */
+    if(st.assists==null) st.assists=0;      // elenco anterior a esta correcao nao tem o campo
     st.r3.push(nota.r); if(st.r3.length>3)st.r3.shift();
     st.g3.push(nota.goals); if(st.g3.length>3)st.g3.shift();
-    st.apps++; st.goals+=nota.goals; if(nota.cs)st.cs++;
+    st.apps++; st.goals+=nota.goals; st.assists+=(nota.assists||0); if(nota.cs)st.cs++;
   });
 }

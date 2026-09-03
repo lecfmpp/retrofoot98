@@ -5261,7 +5261,7 @@ function repararMundoQuimera(){
     /* os RESULTADOS do mundo antigo ficam para tras: a temporada recomecou, e a rodada 0 velha
        do Brasil empatava com a rodada 0 nova da liga do clube na tela de pos-rodada. A
        artilharia da temporada tambem — era a da liga que ja nao e a dele. */
-    S.results=[]; S.scorers={};
+    S.results=[]; S.scorers={}; S.assists={};
     buildOtherDivisions();
     initBgLeagues();
     S.xi=(typeof autoXI==='function')?autoXI(S.clubId):S.xi;
@@ -5364,6 +5364,15 @@ function applyResult(h,a,hg,ag){
    Save antigo nao tem o mapa: quem le trata a ausencia como "nao sei", nunca como zero. */
 function recordScorers(scorers, comp){
   scorers.forEach(s=>{S.scorers[s.name]=(S.scorers[s.name]||0)+1;});
+  /* ===== O LIVRO DAS ASSISTENCIAS, AO LADO DO DA ARTILHARIA =====
+     `p.stats.assists` e' da TEMPORADA e vive no jogador — some quando ele sai do elenco e e'
+     zerado na virada, tal como os gols. O que faz a artilharia sobreviver a isso e' este pote por
+     NOME (S.scorers -> S.allTimeScorers), e as assistencias nao tinham o equivalente: nao havia
+     como perguntar quem mais assistiu na temporada, nem na carreira.
+     A fonte e' o proprio lance — `s.assist` e' o nome de quem deu o passe —, entao nao ha' segunda
+     contagem a divergir da primeira. */
+  S.assists=S.assists||{};
+  scorers.forEach(s=>{ if(s && s.assist) S.assists[s.assist]=(S.assists[s.assist]||0)+1; });
   if(!comp) return;
   S.scorersByComp=S.scorersByComp||{};
   const m=S.scorersByComp[comp]=S.scorersByComp[comp]||{};
@@ -5417,6 +5426,19 @@ function mpRatings(players){
   if(mor<50){OS*=0.85;MS*=0.85;DS*=0.85;}
   return {OS,MS,DS,mor};
 }
+/* quem deu o passe, para o simulador rapido da Resenha. E' o gemeo de assistFrom (simulate.js e
+   match-engine.js) com o rng deste caminho; a tabela de peso por papel e' a MESMA, de proposito —
+   tres sorteios diferentes com pesos diferentes dariam tres verdades sobre quem assiste. */
+function mpAssistFrom(R, players, sc){
+  if(R.random()>=0.68) return null;
+  const pool=(players||[]).filter(p=>p.s!=='GK' && p!==sc && p.pid!==sc.pid);
+  if(!pool.length) return null;
+  const TAB=(typeof PESO_PAPEL_ASSIST!=='undefined')?PESO_PAPEL_ASSIST:{MID:1.00,ATT:0.85,DEF:0.32,GK:0};
+  const w=p=>(p.f||55)*(TAB[p.s]||0.5);
+  let tot=pool.reduce((s,p)=>s+w(p),0), r=R.random()*tot;
+  for(const p of pool){ r-=w(p); if(r<=0) return p; }
+  return pool[0];
+}
 function mpSim(homeId,home,awayId,away,seed,log){
   const R=makeRng(seed>>>0);
   const betaH=TACTIC_BETA[home.tactic||'equilibrado'],betaA=TACTIC_BETA[away.tactic||'equilibrado'];
@@ -5437,7 +5459,15 @@ function mpSim(homeId,home,awayId,away,seed,log){
       const atkIdx=atkIndex(isH?H.OS:A.OS, isH?H.MS:A.MS), defIdx=defIndex(isH?A.DS:H.DS, isH?A.MS:H.MS);
       const sc=scorerFrom(isH?home.players:away.players); const conv=shotConv(atkIdx,defIdx,sc.moral);
       if(conv>=0.5) perf[hSide].big++;
-      if(R.random()<conv){if(isH)hg++;else ag++;perf[hSide].goals++;scorers.push({id:atkId,name:sc.n,min:minute});pos=isH?-0.15:0.15;if(log)log.push({min:minute,type:'gol',side:hSide,team:atkId,scorer:sc.n});}
+      if(R.random()<conv){if(isH)hg++;else ag++;perf[hSide].goals++;
+        /* O PASSE DO GOL TAMBEM NO FALLBACK. Sem isto o mpRate logo abaixo contava sempre ZERO
+           assistencias — ele le'-as de `s.assist`/`s.assistPid`, e este era o unico simulador que
+           empurrava o gol sem elas. Mesma regra dos outros dois sorteios (match-engine e
+           simulate): 68% dos gols sao assistidos, goleiro nao assiste, e o peso e' o do papel
+           (PESO_PAPEL_ASSIST, simulate.js — os tres caminhos partilham a tabela). */
+        const _as=mpAssistFrom(R, isH?home.players:away.players, sc);
+        scorers.push({id:atkId,name:sc.n,pid:sc.pid,min:minute,assist:_as?_as.n:null,assistPid:_as?_as.pid:null});
+        pos=isH?-0.15:0.15;if(log)log.push({min:minute,type:'gol',side:hSide,team:atkId,scorer:sc.n});}
       else {perf[hSide].chances++;if(log)log.push({min:minute,type:'chance',side:hSide,team:atkId,scorer:sc.n});}
     } else if(R.random()<0.028){if(log)log.push({min:minute,type:'card',side:isH?'A':'H',team:isH?awayId:homeId});}
   };
@@ -6425,6 +6455,9 @@ function endSeason(){
   // acumula artilharia histórica (nunca é apagada entre temporadas do mesmo save)
   S.allTimeScorers=S.allTimeScorers||{};
   Object.entries(S.scorers||{}).forEach(([n,g])=>{ S.allTimeScorers[n]=(S.allTimeScorers[n]||0)+g; });
+  // e as assistencias com ela — mesmo pote, mesma vida (ver recordScorers)
+  S.allTimeAssists=S.allTimeAssists||{};
+  Object.entries(S.assists||{}).forEach(([n,a])=>{ S.allTimeAssists[n]=(S.allTimeAssists[n]||0)+a; });
   // registra títulos conquistados pelo treinador na carreira (persiste com o save).
   // Além do que já existia (temporada + competição + frase), cada título agora carrega o CLUBE e
   // a DECISÃO (placar da final, nas copas; último jogo + pontos, nas ligas) — é o que a Sala de
@@ -6789,7 +6822,7 @@ function newSeasonReset(){
     buildOtherDivisions();
   }
   S.week=1; S.day=1; S.season++;
-  S.results=[]; S.scorers={}; S.scorersByComp={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
+  S.results=[]; S.scorers={}; S.assists={}; S.scorersByComp={}; S.negos=[]; S.finished=false; S.pendingEvent=null;
   S.finances=[]; S.roundNews=[];
   S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0}; // zera pra temporada nova
   // libera a cota de obras da nova temporada pro estádio do usuário (crescimento lento) — CPU já
@@ -6802,7 +6835,7 @@ function newSeasonReset(){
   }
   S.roundsSinceFired=null; // limpar contador de rodadas desde demissão na nova temporada
   S.pendingJobOffers=[]; // limpar ofertas pendentes
-  Object.values(S.squads).flat().forEach(p=>{p.moral=70;p.energy=100;p.suspended=0;p.injuredMatches=0;p.stats={r3:[],g3:[],apps:0,goals:0,cs:0,yellows:0,reds:0,injuries:0};});
+  Object.values(S.squads).flat().forEach(p=>{p.moral=70;p.energy=100;p.suspended=0;p.injuredMatches=0;p.stats={r3:[],g3:[],apps:0,goals:0,assists:0,cs:0,yellows:0,reds:0,injuries:0};});
   squad(S.clubId).forEach(p=>{ if(p.contract){p.contract.gotMatchesBonus=false;p.contract.benchStreak=0;} });
   applySeasonAgingAndRetirement(); // envelhece, aposenta quem for a hora, reancora f0/mv0, resincroniza overall
   autoManageSalaries();
