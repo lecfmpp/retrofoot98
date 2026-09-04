@@ -558,13 +558,13 @@ function rfLpMomentosHTML(){
 const RF_PLANOS=[
   { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
-    itens:['Começa até 3 carreiras por mês no Modo Solo','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
+    itens:['Começa até 3 carreiras por mês no Modo Solo','As quatro divisões brasileiras, com elenco completo','Modo Resenha por 7 dias, nas salas dos outros'],
     falta:['Apagar uma carreira não devolve a vaga do mês','Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
     cta:'Começar de graça' },
 
   { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
-    resumo:'Pra quem joga direto com a turma e quer o nome no ranking.',
-    itens:['Começa até 10 carreiras por mês no Modo Solo','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
+    resumo:'Pra quem joga direto com a turma e não quer os 7 dias acabando.',
+    itens:['Começa até 10 carreiras por mês no Modo Solo','Modo Resenha sem prazo: entra na sala de qualquer anfitrião'],
     falta:['Não abre sala como anfitrião'],
     cta:'Assinar o Resenha' },
 
@@ -574,7 +574,6 @@ const RF_PLANOS=[
     itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
            'Carreiras ilimitadas no Modo Solo, sem cota mensal',
            'Seu jogador na base de dados oficial, com avatar na sua cara',
-           'Seu nome no ranking oficial de treinadores',
            'Selo de Embaixador no seu perfil',
            'Código pra passar aos seus seguidores — e monetizar com ele (depois do Beta)'],
     cta:'Quero ser Embaixador' },
@@ -783,7 +782,7 @@ function rfLpPlanosHTML(){
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
       ${RF_BETA.on?`<div class="rf-lp-beta"><b>Fase Beta</b><span>${RF_BETA.pct}% de desconto em todos os planos pagos, nos ${RF_BETA.meses} primeiros meses</span></div>`:''}
-      <p class="rf-lp-p">O Modo Solo é de graça pra sempre. Os planos pagos existem pra quem quer manter o Modo Resenha depois dos 7 dias, abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
+      <p class="rf-lp-p">O Modo Solo é de graça pra sempre. Os planos pagos existem pra quem quer manter o Modo Resenha depois dos 7 dias, abrir a liga da turma, guardar mais carreiras e pôr o próprio nome num jogador da base.</p>
       <div class="rf-lp-ciclo" role="radiogroup" aria-label="Como você quer pagar"
            data-ciclo="${RF_LP_CICLO}">
         <span class="rf-lp-ciclo-pilula" aria-hidden="true"></span>
@@ -1073,7 +1072,7 @@ const RF_LP_EMBAIXADOR=[
   ['♾️','Saves ilimitados','Quantas carreiras você quiser, no solo e no Resenha. Sem ter de apagar uma pra começar outra.'],
   ['🧍','Seu jogador no jogo','Nome seu, rosto seu, ficha sua — dentro da base oficial, para todo mundo escalar.'],
   ['🏅','Selo de Embaixador','No seu perfil e ao lado do seu nome. Quem joga com você sabe quem você é.'],
-  ['📊','Ranking oficial','Sua campanha entra no ranking de treinadores do RetroFoot98.'],
+  ['📊','Campanha que conta em dobro','Sem cota mensal, cada carreira que você começa entra no ranking — e o ranking soma a campanha de todas elas.'],
   /* ===== O QUE AINDA NAO EXISTE VAI MARCADO =====
      O quarto elemento e' a etiqueta de "ainda nao". Vender seis coisas quando cinco estao no ar
      e' prometer a mais, e a que falta e' justamente a que envolve dinheiro do outro lado. O
@@ -1135,7 +1134,7 @@ function rfLandingHTML(){
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Jogue do seu jeito', titulo:'Da Série D ao topo, no seu ritmo.',
         prosa:'Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
-        itens:['Séries A, B, C e D com elencos reais','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
+        itens:['Séries A, B, C e D, com elenco completo em cada clube','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
         cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpFotoHTML('img/home/classificacao.webp','Classificação da Série D dentro do RetroFoot98')}
     </section>
@@ -1147,7 +1146,7 @@ function rfLandingHTML(){
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
         prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
-        itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria e sócios'],
+        itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria, TV e patrocínio'],
         cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpFotoHTML('img/home/leilao.webp','Leilão de jogadores dentro do RetroFoot98')}
     </section>
