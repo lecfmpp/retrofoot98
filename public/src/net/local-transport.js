@@ -820,7 +820,9 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
           Não é você? <b>Entrar com outra conta</b>
         </button>
       </div>`;
-    return rfWiz({passo:rfPasso(join?'Modo':'Sala','resenha'), trilha:'resenha', contexto:'Modo Resenha', corpo,
+    const papel=(typeof rfPapelResenha==='function')?rfPapelResenha():'resenha';
+    return rfWiz({passo:join?rfPasso('Entrar',papel):rfPasso('Sala','resenha'), trilha:papel,
+      contexto:join?'Convidado':'Modo Resenha', corpo,
       sobre:'Bem-vindo de volta', titulo:join?'Entrar na sala.':'Criar a sua sala.',
       sub:'Confirme o nome de treinador que a turma vai ver na Resenha.',
       nota:'Dá para trocar de conta a qualquer momento.',
@@ -847,7 +849,9 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
       </div>
       ${salaInfo}
     </div>`;
-  return rfWiz({passo:rfPasso('Entrar','resenha'), trilha:'resenha', contexto:'Modo Resenha', corpo,
+  const papel=(typeof rfPapelResenha==='function')?rfPapelResenha():'resenha';
+  return rfWiz({passo:rfPasso('Entrar',papel), trilha:papel,
+    contexto:papel==='convidado'?'Convidado':'Modo Resenha', corpo,
     sobre:join?'Entrar na sala':'Bem-vindo, treinador',
     titulo:isSignup?'Crie sua conta e entre na Resenha.':'Entre com a sua conta.',
     sub:'Seus jogos ficam na nuvem — dá para começar no computador e continuar no telefone.',
@@ -1297,7 +1301,7 @@ function scResenhaDraw(){
     const meuNome=String((typeof NET!=='undefined'&&NET.self&&NET.self.name)||CL.mgr||'').toUpperCase();
     const meuIdx=(d.list||[]).findIndex(x=>String(x&&x.name||'').toUpperCase()===meuNome);
     return rfCerimoniaSorteio({ lista:d.list||[], feitos:d.idx||0, poolById:d.poolById||{},
-      meuIdx:(meuIdx>=0?meuIdx:0), trilha:'resenha',
+      meuIdx:(meuIdx>=0?meuIdx:0), trilha:(typeof rfPapelResenha==='function')?rfPapelResenha():'resenha',
       cta:{ andando:'⏩ Pular', andandoOn:'clResenhaDrawSkip()',
             fim:'Entrando na Resenha…', fimNota:'Preparando a temporada…' } });
   }

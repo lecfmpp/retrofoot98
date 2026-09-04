@@ -750,7 +750,8 @@ function rfObCopiar(txt){
    ===================================================================== */
 function rfOb5(){
   const room=(typeof NET!=='undefined')?NET.room:null;
-  if(!room) return rfWiz({trilha:'resenha', passo:rfPasso('Sala','resenha'), contexto:'Modo Resenha',
+  const papel=(typeof rfPapelResenha==='function')?rfPapelResenha():'resenha';
+  if(!room) return rfWiz({trilha:papel, passo:rfPasso('Sala',papel), contexto:papel==='convidado'?'Convidado':'Modo Resenha',
     corpo:'<span class="rf-note">A ligar à sala</span>',
     titulo:'Sala', voltar:'clLobbyExit()', voltarLabel:'Sair da sala'});
   const anfitriao=NET.isHost;
@@ -879,7 +880,8 @@ function rfOb5(){
       </div>
     </div>`;
   const podeComecar=anfitriao && dentro>=2;
-  return rfWiz({trilha:'resenha', passo:rfPasso('Convites','resenha'), contexto:divLbl||'',
+  return rfWiz({trilha:papel, passo:(papel==='convidado')?rfPasso('Sala','convidado'):rfPasso('Convites','resenha'),
+    contexto:divLbl||'',
     corpo,
     titulo: room.name||'Sala aberta',
     sub:'Chame os treinadores. Quando você começar, cada um recebe um clube por sorteio — ninguém escolhe.',
@@ -971,8 +973,8 @@ function rfCerimoniaSorteio(o){
   const cta=o.cta||{};
   /* CLUBE é o passo 6 da régua. Estava em 4 — a régua acendia "Sala" durante o
      sorteio do clube, dois passos atrás de onde o jogador estava. */
-  return rfWiz({passo:rfPasso('Clube', o.trilha==='resenha'?'resenha':undefined), trilha:o.trilha, corpo,
-    contexto:o.trilha==='resenha'?'Modo Resenha':undefined,
+  return rfWiz({passo:rfPasso('Clube', o.trilha), trilha:o.trilha, corpo,
+    contexto:(o.trilha==='resenha')?'Modo Resenha':((o.trilha==='convidado')?'Convidado':undefined),
     sobre:'Cerimônia do sorteio',
     titulo: fim?'Times sorteados!':'Sorteando os clubes, boa sorte!',
     sub:'Cada treinador escolheu o país; o clube sai no sorteio. É a mesma cerimônia no solo e na resenha.',

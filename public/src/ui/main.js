@@ -2171,10 +2171,23 @@ const RF_TRILHAS={
      em "Resenha - Entrar com Codigo" ("PASSO 3 DE 4 · CONVIDADO"). */
   /* o convidado poe a cara DEPOIS do codigo: o codigo e' o que o traz aqui (ou o link, que ja'
      o traz preenchido), e so' faz sentido escolher a cara quando ja' se sabe que ha' sala. */
-  convidado:['Entrar','Modo','Código','Treinador','Sala'],
+  /* A REGUA DO CONVIDADO VAI ATE' AO FIM. Ela parava na 'Sala', mas o convidado nao para ai:
+     ele assiste a' cerimonia do sorteio e entra no clube, como toda a gente. Parando a meio, a
+     regua trocava de tamanho no meio do caminho — ele via seis degraus ate' a sala e nove a
+     partir dela, a do anfitriao. Regua e' promessa do que falta; ela tem de cobrir o caminho
+     todo de quem a le'. */
+  convidado:['Entrar','Modo','Código','Treinador','Sala','Clube','Jogar'],
 };
+/* ===== NA RESENHA HA' DOIS PAPEIS, E DUAS REGUAS =====
+   Anfitriao e convidado nao fazem o mesmo caminho: o convidado nao escolhe pais, nao poe nome
+   na sala e nao convida ninguem. Quem pergunta "que regua e' a minha" pergunta aqui, e nao
+   espalha `trilha:'resenha'` por dez telas — foi assim que a regua do convidado passou a
+   mostrar os degraus do anfitriao a meio do caminho. */
+function rfPapelResenha(){
+  return (typeof CL!=='undefined' && CL.net && CL.net.intent==='join') ? 'convidado' : 'resenha';
+}
 /* o modo ativo, quando quem desenha a tela não o diz */
-function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
+function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? rfPapelResenha() : 'solo'; }
 /* A REGUA GANHA UM PASSO SO' QUANDO O FEMININO EXISTE. Inserir 'Modalidade' aqui, e nao na
    constante, e' o que faz a trava desligar o passo INTEIRO: com RF_MODALIDADES.fem em false a
    regua volta a ter os seis itens de sempre e nenhuma tela precisa saber disso. Os numeros de
