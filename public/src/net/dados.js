@@ -253,6 +253,21 @@ function aplicar(edits){
           }
           for(const [p, dados] of alvos) renomear(p, dados);
         }
+        /* ===== O ELENCO FEMININO VEM DO PACOTE, COMO O MASCULINO =====
+           `squadFem` e' o irmao de `squad`, e a unica diferenca e' a CHAVE: id do jogador em
+           vez do nome. Nao e' inconsistencia — e' a razao pela qual o mapa feminino nasceu
+           assim: o pacote oficial renomeia 1.870 dos 1.900 nomes masculinos, entao uma chave
+           por nome apontaria para nomes que o jogo ja' nao usa (ver o cabecalho de
+           data/jogadoras-brasil.js). O ficheiro estatico continua a ser a primeira pintura e a
+           rede de quem esta' sem ligacao; o pacote manda quando chega, que e' exactamente a
+           relacao que o masculino ja' tem com o seu cache. */
+        if(e.patch.squadFem){
+          const F = window.JOGADORAS_BR || (window.JOGADORAS_BR = {});
+          for(const pid of Object.keys(e.patch.squadFem)){
+            const d = e.patch.squadFem[pid];
+            if(d && d.n) F[pid] = d.n;
+          }
+        }
         if(Array.isArray(e.patch.squad_remover)) for(const nome of e.patch.squad_remover){
           const i = sq.findIndex(x => x.n === nome); if(i>=0) sq.splice(i,1);
         }
