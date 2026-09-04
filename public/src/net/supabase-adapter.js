@@ -2008,7 +2008,7 @@ NET.deleteSoloSave = netDeleteSoloSave;
 async function netCoachAvatarGet(){
   if(!sb || !SB_AUTH_USER) return null;
   const { data, error } = await sb.from('coach_avatars')
-    .select('genero,preset,url,estilo,geracoes,termos_versao').maybeSingle();
+    .select('genero,preset,url,foto_url,fonte,estilo,geracoes,termos_versao').maybeSingle();
   if(error){ console.warn('avatar do treinador:', error.message); return null; }
   return data || null;
 }
@@ -2060,6 +2060,17 @@ async function netPerfilSemFoto(){
   try{ await sb.storage.from('perfil').remove([
     SB_AUTH_USER.id+'/avatar.jpg', SB_AUTH_USER.id+'/avatar.png', SB_AUTH_USER.id+'/avatar.webp' ]); }catch(e){}
   return { ok:true };
+}
+/* ===== O RANKING TEM DE VER A MESMA CARA =====
+   `netPerfilFoto` sobe um ficheiro; esta so' aponta `coach_profiles.foto_url` para um endereco
+   que JA' existe — a face desenhada que veio do acervo, ou o retrato gerado. E' o que faz a
+   escolha feita no assistente aparecer no ranking sem subir nada e sem apagar nada: trocar de
+   origem nunca destroi as outras duas. */
+async function netPerfilFotoUrl(url){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:String(url||''), p_no_ranking:null });
+  return r.error ? { error:r.error.message } : { ok:true };
 }
 async function netPerfilLer(){
   if(!sb || !SB_AUTH_USER) return null;
@@ -2203,6 +2214,7 @@ NET.vagaLargar = netVagaLargar;
 NET.vagaFoto = netVagaFoto;
 NET.vagaAvatarGerar = netVagaAvatarGerar;
 
+NET.perfilFotoUrl = netPerfilFotoUrl;
 NET.coachAvatarGet = netCoachAvatarGet;
 NET.coachAvatarSet = netCoachAvatarSet;
 NET.coachAvatarRef = netCoachAvatarRef;

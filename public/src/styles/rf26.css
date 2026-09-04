@@ -5171,6 +5171,33 @@
   display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:50%}
 .rf-av-foto .rf-av-face img{width:100%;height:100%;object-fit:cover}
 .rf-esc-grid.cinco{grid-template-columns:repeat(5,minmax(0,1fr))}
+/* ===== O CARTAO EM USO TEM CONTORNO AMARELO E DIZ O QUE E' =====
+   `.on` (borda azul do clube) marcava o cartao escolhido, e nao chegava: com tres origens
+   possiveis, o azul lia-se como "este esta' marcado" e nao como "esta' e' a cara que o jogo
+   usa" — e havia momentos com dois cartoes azuis ao mesmo tempo. O amarelo da marca, com anel
+   e etiqueta, e' inequivoco, e a etiqueta existe porque cor sozinha nao e' rotulo. */
+/* `.on.escolhido`, e nao so' `.escolhido`: a regra do azul (.rf-esc.on) vive mais abaixo na
+   folha e, com a mesma especificidade, ganhava — o cartao em uso saia com borda azul e um anel
+   amarelo por fora, que e' justamente a confusao que isto veio resolver. */
+.rf-esc.on.escolhido{border-color:#F2B90C;background:#fffaea;
+  box-shadow:0 0 0 3px rgba(242,185,12,.35)}
+.rf-esc.on.escolhido .rf-av-l{color:#8a6a00;font-weight:var(--fw-bold)}
+.rf-av-uso{position:absolute;top:-9px;left:50%;transform:translateX(-50%);z-index:2;
+  font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.1em;
+  padding:3px 9px;border-radius:99px;background:#F2B90C;color:#17458F;white-space:nowrap;
+  box-shadow:0 2px 6px rgba(0,0,0,.18)}
+/* trocar de ficheiro sem perder o clique de ESCOLHER: o cartao inteiro escolhe, este botao
+   pequeno troca a foto. Sem ele nao havia como voltar a' propria foto depois de experimentar
+   uma face desenhada — o clique no cartao reabria o seletor de ficheiros. */
+.rf-av-trocar{position:absolute;right:8px;bottom:8px;height:22px;padding:0 8px;border-radius:99px;
+  border:1px solid var(--line-2);background:var(--surface-card);color:var(--text-3);
+  font-size:10px;cursor:pointer}
+.rf-av-trocar:hover{background:var(--surface-sunken)}
+.rf-av-obr{margin-left:6px;font-family:var(--font-mono);font-size:9px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:99px;
+  background:#fdf1c8;color:#8a6a00;vertical-align:middle}
+/* enquanto falta escolher, a moldura do bloco chama a atencao — e' o que trava o botao */
+.rf-av-bloco.destaque.falta{border-color:#F2B90C;background:#fffdf6}
 /* o "ou" separa os dois blocos sem os empurrar: risco de cada lado, texto no meio */
 .rf-av-ou{display:flex;align-items:center;gap:10px;
   font-size:var(--fs-caption);color:var(--text-4);text-transform:lowercase}

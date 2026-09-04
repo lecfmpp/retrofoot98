@@ -196,10 +196,66 @@ const rfAvChave=(g,i)=>g+(i+1);
 function rfAvFaceUrl(chave){
   return (window.RF_TREINADORES&&window.RF_TREINADORES[chave])||null;
 }
-/* coachAvatar guarda DUAS coisas: uma chave de face padrao (m1..f5) ou a URL
-   do retrato gerado por IA. Distinguir os dois e' o que faz o retrato gerado
-   aparecer selecionado — sem isto ele era gravado e a tela nao mudava nada. */
 const rfAvEhUrl = v => typeof v==='string' && /^(https?:|data:|\/)/.test(v);
+
+/* =====================================================================
+   TRES ORIGENS, UMA ESCOLHA
+   ---------------------------------------------------------------------
+   A cara do treinador podia vir de tres sitios — uma face desenhada, uma foto
+   subida, um retrato gerado por IA — e o jogo resolvia por PRIORIDADE FIXA: a
+   foto de perfil ganhava sempre. Consequencia: depois de gerar por IA (ou de
+   subir foto e depois clicar numa face) ninguem sabia dizer qual estava em uso,
+   e dois cartoes apareciam acesos ao mesmo tempo.
+
+   Agora ha' uma ESCOLHA guardada — `CL.coachFonte` — e as tres origens vivem
+   lado a lado sem se destruirem:
+     · 'preset' -> CL.coachPreset  (m1..f5)
+     · 'foto'   -> CL.coachFotoUp  (bucket perfil)
+     · 'ia'     -> CL.coachFotoIA  (bucket treinadores, 1 por conta)
+   Trocar de origem nao apaga as outras: em especial o retrato por IA, que
+   custou dinheiro e nao se refaz.
+
+   A escolha viaja para o servidor em dois sitios, de proposito:
+     · coach_avatars   guarda as TRES origens e qual delas vale;
+     · coach_profiles.foto_url recebe o endereco da ESCOLHIDA — e' a coluna que
+       o ranking le', e e' o que faz a cara do ranking bater com a do jogo.
+   ===================================================================== */
+function rfAvatarUrlDe(fonte){
+  if(fonte==='foto') return CL.coachFotoUp||null;
+  if(fonte==='ia')   return CL.coachFotoIA||null;
+  if(fonte==='preset') return CL.coachPreset ? rfAvFaceUrl(CL.coachPreset) : null;
+  return null;
+}
+/* ha' escolha feita? E' isto que destranca o botao do assistente. */
+function rfAvatarEscolhido(){
+  const f=CL.coachFonte;
+  if(f==='preset') return !!CL.coachPreset;      // a face vale mesmo antes de a imagem chegar
+  if(f==='foto')   return !!CL.coachFotoUp;
+  if(f==='ia')     return !!CL.coachFotoIA;
+  return false;
+}
+function rfAvatarAplicar(fonte){
+  const url=rfAvatarUrlDe(fonte);
+  if(fonte==='preset' ? !CL.coachPreset : !url) return;
+  CL.coachFonte=fonte;
+  /* `coachAvatar` e' o que vai para o save (S.coachAvatar): chave para a face desenhada, URL
+     para as outras duas — o formato que rfCoachAvatarUrl sempre soube ler. */
+  CL.coachAvatar = (fonte==='preset') ? CL.coachPreset : url;
+  CL.coachFoto   = (fonte==='preset') ? url : url;   // a cara resolvida, para o jogo inteiro
+  CL._perfil=Object.assign({}, CL._perfil||{}, {foto_url:url||null});
+  CL._rank=null;                                     // o ranking mostra a foto: obriga-o a reler
+  cdraw();
+  if(typeof NET==='undefined') return;
+  if(NET.coachAvatarSet) NET.coachAvatarSet({
+    fonte, genero:rfAvGenero(),
+    preset: CL.coachPreset||null, foto_url: CL.coachFotoUp||null,
+  }).catch(()=>{});
+  /* SO' COM ENDERECO. A face desenhada pode ainda nao ter chegado da rede; nesse caso a escolha
+     fica gravada e o ranking apanha-a na proxima vez que a tela abrir com o acervo carregado
+     (ver rfAvatarCarregar) — melhor do que apagar a foto do ranking por causa de uma corrida. */
+  if(url && NET.perfilFotoUrl) NET.perfilFotoUrl(url).catch(()=>{});
+}
+
 /* ===== O RETRATO E' UMA PILHA, NAO UMA IMAGEM =====
    A IA gera a roupa LIMPA de proposito — ela nao reproduz logo nem texto, so'
    inventa um brasao ilegivel. O escudo e a marca entram por cima, como camada,
@@ -219,11 +275,15 @@ function rfAvCamadasHTML(chave){
   };
   return camada(m.escudoUrl,'escudo') + camada(m.marcaUrl,'marca');
 }
+/* o selo que so' o cartao EM USO leva — o contorno amarelo tem um rotulo, senao
+   "amarelo" seria mais uma cor a decifrar no meio de cinco cartoes */
+const rfAvSeloHTML = `<span class="rf-av-uso">EM USO</span>`;
 function rfAvCartaoHTML(g,i){
   const chave=rfAvChave(g,i), url=rfAvFaceUrl(chave);
-  const on=(CL.coachAvatar===chave);
-  return `<div class="rf-esc ${on?'on':''}" onclick="rfAvatarSel('${chave}')" role="button" tabindex="0"
+  const on=(CL.coachFonte==='preset' && CL.coachPreset===chave);
+  return `<div class="rf-esc ${on?'on escolhido':''}" onclick="rfAvatarSel('${chave}')" role="button" tabindex="0"
       aria-pressed="${on?'true':'false'}">
+    ${on?rfAvSeloHTML:''}
     <span class="rf-av-face">${url?`<img src="${escC(url)}" alt="">`+rfAvCamadasHTML(chave):'👤'}</span>
     <span class="rf-av-l">${escC(RF_AV_ESTILOS[i][1])}</span>
   </div>`;
@@ -241,19 +301,28 @@ function rfAvatarCarregar(){
   NET.coachAvatarGet().then(r=>{
     if(!r) return;
     if(r.genero && !CL.coachGender) CL.coachGender=r.genero;
-    if(!CL.coachAvatar && (r.url||r.preset)) CL.coachAvatar=r.url||r.preset;
-    if(CL.screen==='jogadores') cdraw();
+    /* as TRES origens voltam do servidor, e a escolha com elas */
+    if(r.preset && !CL.coachPreset) CL.coachPreset=r.preset;
+    if(r.foto_url && !CL.coachFotoUp) CL.coachFotoUp=r.foto_url;
+    if(r.url && !CL.coachFotoIA) CL.coachFotoIA=r.url;
+    CL.coachGeracoes=r.geracoes||0;
+    if(!CL.coachFonte && r.fonte) CL.coachFonte=r.fonte;
+    /* CONTA ANTIGA, SEM `fonte`: deduz-se pelo que existe, na ordem em que o jogo resolvia
+       antes — retrato gerado, depois foto, depois face. Sem isto quem ja' tinha cara abriria o
+       assistente com tudo apagado e teria de escolher outra vez. */
+    if(!CL.coachFonte) CL.coachFonte = r.url ? 'ia' : (r.foto_url ? 'foto' : (r.preset ? 'preset' : null));
+    const u=rfAvatarUrlDe(CL.coachFonte);
+    if(u){ CL.coachAvatar=(CL.coachFonte==='preset')?CL.coachPreset:u; CL.coachFoto=u; }
+    cdraw();
   }).catch(()=>{});
-  /* ===== A CARA E' UMA SO', E E' A DO PERFIL =====
-     Duas imagens viviam em paralelo: o retrato por IA (coach_avatars, do Embaixador) e a foto
-     de perfil (coach_profiles.foto_url, que qualquer um sobe). O jogo mostrava a primeira e o
-     ranking a segunda — quem subia uma foto continuava a ver a face padrao dentro do jogo, e
-     quem gerava o retrato aparecia no ranking com as iniciais.
-     `coach_profiles.foto_url` passa a ser a fonte unica (o gerador ja' escreve la', ver a edge
-     function coach-avatar); aqui buscamo-la uma vez por sessao para a pagina do Treinador e
-     tudo o mais poderem mostrar a MESMA cara que o ranking mostra. */
+  /* A FOTO DE PERFIL continua a ser lida: e' ela que o ranking mostra, e quem subiu foto pelas
+     Configuracoes (sem passar por aqui) so' tem essa. Ela alimenta a origem 'foto', nao
+     atropela mais a escolha. */
   if(NET.perfilLer) NET.perfilLer().then(p=>{
-    if(p && p.foto_url){ CL.coachFoto=p.foto_url; cdraw(); }
+    if(!p || !p.foto_url) return;
+    if(!CL.coachFotoUp) CL.coachFotoUp=p.foto_url;
+    if(!CL.coachFonte){ CL.coachFonte='foto'; CL.coachAvatar=p.foto_url; CL.coachFoto=p.foto_url; }
+    cdraw();
   }).catch(()=>{});
 }
 function rfAvatarBlocoHTML(){
@@ -264,38 +333,48 @@ function rfAvatarBlocoHTML(){
      coach-avatar confere antes de gerar seja o que for. */
   const pro=(typeof rfPodeAvatarIA==='function')?rfPodeAvatarIA()
     :!!((typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus().pro:false);
-  /* O RETRATO GERADO MORA NESTE CARTAO. Ele nasceu so' com um icone fixo, e o
-     resultado da geracao nao aparecia em lugar nenhum: o dialogo fechava e a
-     tela ficava igual — parecia que o botao nao tinha feito nada. */
-  const meu = rfAvEhUrl(CL.coachAvatar) ? CL.coachAvatar : null;
-  const cartaoIA=`<div class="rf-esc rf-av-ia ${meu?'on':''} ${pro?'':'off'}"
-      onclick="${pro?'rfAvatarIA()':`rfTrava('avatar')`}" role="button" tabindex="0"
-      aria-pressed="${meu?'true':'false'}"
-      title="${pro?(meu?'Refazer o seu retrato':'Crie o seu retrato com IA'):'O retrato por IA é do plano Embaixador'}">
+  const meu = CL.coachFotoIA || null;
+  const jaGerou = !!meu;
+  const usaIA = CL.coachFonte==='ia' && jaGerou;
+  /* DEPOIS DE GERAR, O CARTAO E' UM BOTAO DE ESCOLHA, nao de refazer: e' UMA geracao por conta
+     (ver TETO_GERACOES na coach-avatar), e um cartao que dissesse "refazer" prometeria o que o
+     servidor recusa com 429. */
+  const acaoIA = !pro ? `rfTrava('avatar')` : (jaGerou ? `rfAvatarAplicar('ia')` : `rfAvatarIA()`);
+  const cartaoIA=`<div class="rf-esc rf-av-ia ${usaIA?'on escolhido':''} ${pro?'':'off'}"
+      onclick="${acaoIA}" role="button" tabindex="0"
+      aria-pressed="${usaIA?'true':'false'}"
+      title="${pro?(jaGerou?'Usar o seu retrato gerado':'Crie o seu retrato com IA — uma geração por conta'):'O retrato por IA é do plano Embaixador'}">
+    ${usaIA?rfAvSeloHTML:''}
     ${pro?'':'<span class="rf-esc-tag">Embaixador</span>'}
     <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
-    <span class="rf-av-l">${meu?'A minha<br>(refazer)':'Criar a minha<br>com IA'}</span>
+    <span class="rf-av-l">${jaGerou?'O meu retrato<br>de IA':'Criar com IA<br>(1 por conta)'}</span>
   </div>`;
   /* ===== SUBIR A MINHA FOTO =====
-     Faltava o caminho mais obvio de todos: a propria foto. Havia cinco faces desenhadas e o
-     retrato por IA (do Embaixador) — e quem so' queria a sua cara nao tinha por onde.
-     A foto vai para `coach_profiles.foto_url`, que desde a unificacao e' a cara do treinador em
-     TODO o lado (ranking, ficha, jogo). E e' ela que a IA usa como referencia: subir primeiro
-     torna o botao da IA util em vez de pedir a foto outra vez la' dentro. */
-  const minhaFoto=(typeof CL!=='undefined')?CL.coachFoto:null;
+     O caminho mais obvio de todos: a propria foto, sem IA no meio. Vai para
+     `coach_profiles.foto_url` — a mesma coluna que o ranking le'. */
+  const minhaFoto=CL.coachFotoUp||null;
+  const usaFoto=CL.coachFonte==='foto' && !!minhaFoto;
   const enviando=!!CL._avUpEnviando;
-  const cartaoFoto=`<div class="rf-esc rf-av-foto ${minhaFoto?'on':''}"
-      onclick="${enviando?'':'rfAvatarSubirFoto()'}" role="button" tabindex="0"
-      aria-pressed="${minhaFoto?'true':'false'}"
-      title="${minhaFoto?'Trocar a minha foto':'Subir uma foto minha'}">
+  /* com foto ja' enviada, um clique ESCOLHE-A; trocar de ficheiro fica no botao proprio, senao
+     nao havia como voltar a ela depois de experimentar uma face desenhada. */
+  const acaoFoto = enviando ? '' : (minhaFoto && !usaFoto ? `rfAvatarAplicar('foto')` : `rfAvatarSubirFoto()`);
+  const cartaoFoto=`<div class="rf-esc rf-av-foto ${usaFoto?'on escolhido':''}"
+      onclick="${acaoFoto}" role="button" tabindex="0"
+      aria-pressed="${usaFoto?'true':'false'}"
+      title="${minhaFoto?(usaFoto?'Esta é a sua cara no jogo':'Usar a minha foto'):'Subir uma foto minha'}">
+    ${usaFoto?rfAvSeloHTML:''}
     <span class="rf-av-face">${minhaFoto?`<img src="${escC(minhaFoto)}" alt="">`:(enviando?'⏳':'📷')}</span>
-    <span class="rf-av-l">${enviando?'A enviar…':(minhaFoto?'A minha foto<br>(trocar)':'Subir a<br>minha foto')}</span>
+    <span class="rf-av-l">${enviando?'A enviar…':(minhaFoto?(usaFoto?'A minha foto':'Usar a<br>minha foto'):'Subir a<br>minha foto')}</span>
+    ${(minhaFoto&&!enviando)?`<button type="button" class="rf-av-trocar"
+      onclick="event.stopPropagation();rfAvatarSubirFoto()">trocar</button>`:''}
   </div>`;
-  return `<div class="rf-av-bloco destaque">
+  const feito=rfAvatarEscolhido();
+  return `<div class="rf-av-bloco destaque ${feito?'':'falta'}">
     <div class="rf-av-hd">
-      <b>A sua cara no jogo</b>
-      <span>Suba uma foto sua, deixe a IA fazer o retrato a partir dela, ou escolha uma das faces.
-        Dá para deixar para depois — a gente escolhe uma por você.</span>
+      <b>A sua cara no jogo <span class="rf-av-obr">obrigatório</span></b>
+      <span>${feito
+        ? 'É esta que vai aparecer na ficha do treinador, nas entrevistas e no ranking. Dá para trocar depois, em Configurações.'
+        : 'Escolha uma das três: suba uma foto sua, gere o retrato com IA ou fique com uma das faces desenhadas.'}</span>
     </div>
     <div class="rf-seg rf-av-seg">
       <button type="button" class="rf-seg-b ${g==='m'?'on':''}" onclick="rfAvatarGenero('m')">Treinador</button>
@@ -328,9 +407,8 @@ function rfAvatarSubirFoto(){
       CL._avUpEnviando=false;
       if(r && r.error){ if(typeof toastC==='function') toastC(r.error,'warn'); }
       else if(r && r.url){
-        CL.coachFoto=r.url;
-        CL._perfil=Object.assign({}, CL._perfil||{}, {foto_url:r.url});
-        CL._rank=null;                         // o ranking mostra a foto: obriga-o a reler
+        CL.coachFotoUp=r.url;
+        rfAvatarAplicar('foto');                 // subir E' escolher: era para isso que subiu
         if(typeof toastC==='function') toastC('Essa é a sua cara no jogo.');
       }
       cdraw();
@@ -345,16 +423,22 @@ function rfAvatarSubirFoto(){
 function rfAvatarGenero(g){
   if(rfAvGenero()===g) return;
   CL.coachGender=g;
-  /* so' larga FACE PADRAO: f3 nao existe do lado masculino. O retrato gerado
-     por IA fica — custou dinheiro e e' unico, nao se joga fora num clique. */
-  if(CL.coachAvatar && !rfAvEhUrl(CL.coachAvatar)) CL.coachAvatar=null;
+  /* so' larga FACE DESENHADA. A foto e o retrato gerado ficam — nao tem genero na chave, e o
+     retrato custou dinheiro. */
+  if(CL.coachPreset){
+    CL.coachPreset=null;
+    if(CL.coachFonte==='preset'){ CL.coachFonte=null; CL.coachAvatar=null; CL.coachFoto=null; }
+  }
   cdraw();
 }
 function rfAvatarSel(chave){
-  CL.coachAvatar=(CL.coachAvatar===chave)?null:chave;   // reclicar desmarca
-  cdraw();
+  /* SEM DESMARCAR. O passo e' obrigatorio: reclicar para ficar sem cara nenhuma so' criava um
+     estado que o botao seguinte recusa. Quem quer outra, clica noutra. */
+  CL.coachPreset=chave;
+  rfAvatarAplicar('preset');
 }
-/* face de reserva para quem pulou: sorteio honesto entre as cinco do genero */
+/* face de reserva para o save que chegou ao jogo sem escolha nenhuma — o passo agora e'
+   obrigatorio, mas um save antigo (ou um atalho de bancada) pode nao ter passado por ele */
 function rfAvatarSorteado(){
   const g=rfAvGenero();
   return rfAvChave(g, Math.floor(Math.random()*RF_AV_ESTILOS.length));
@@ -399,12 +483,19 @@ function rfTreinadoresHTML(){
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
     </div>`;
+  /* ===== A CARA DEIXOU DE SER OPCIONAL =====
+     O passo dizia "da' para deixar para depois — a gente escolhe uma por voce", e sortear a
+     cara de alguem e' decidir por ele exactamente aquilo que esta tela existe para perguntar.
+     Agora o botao so' abre com uma das tres origens escolhida, e o rotulo diz o que falta em
+     vez de ficar apagado sem explicacao. */
+  const temCara=(typeof rfAvatarEscolhido==='function') && rfAvatarEscolhido();
   return rfWiz({
     titulo:'Quem é você na beira do campo', sub:'O nome, a idade e a cara que vão aparecer na sua carreira, no ranking e na ficha do treinador.',
     passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
-    nota:'Dá para trocar a foto depois, em Configurações.',
+    nota:temCara?'Dá para trocar a foto depois, em Configurações.':'Escolha a sua cara para continuar.',
     voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
-    cta:'Continuar', ctaCurto:'Continuar', ctaOn:'clEscolherClubes()' });
+    cta:temCara?'Continuar':'Escolha a sua cara', ctaCurto:temCara?'Continuar':'Escolha a cara',
+    ctaOff:!temCara, ctaOn:'clEscolherClubes()' });
 }
 function rfTreinadoresSel(k){
   CL.names=CL.names||[];

@@ -68,7 +68,11 @@ const BUCKET_SAIDA = "treinadores";
 const BUCKET_REF   = "referencias-treinador";
 const TAMANHO = "1024x1024", FORMATO = "webp", CONTENT_TYPE = "image/webp", COMPRESSAO = 80;
 const QUALIDADE = "medium", CUSTO_USD = 0.042;   // tabela do gpt-image-1: 1024x1024 medium
-const TETO_GERACOES = 6;
+/* UMA GERACAO POR CONTA. Eram seis, e seis convidavam a refazer ate' gostar — cada tentativa
+   e' uma imagem paga na conta da OpenAI. Uma so' muda a natureza da coisa: quem gera, gera a
+   serio, com a foto boa. Quem nao gostar tem as outras duas origens (a propria foto e as cinco
+   faces desenhadas), que nao custam nada. */
+const TETO_GERACOES = 1;
 const REF_MAX_BYTES = 8 * 1024 * 1024;
 
 const ROUPA_LIMPA = "The garment is COMPLETELY CLEAN: no crest, no badge, no sponsor, no brand mark, "
@@ -281,7 +285,9 @@ Deno.serve(async (req) => {
 
     const { error: gravaErr } = await admin
       .schema("elifoot_v3").from("coach_avatars")
-      .update({ url: publica, estilo, genero }).eq("user_id", uid);
+      /* `fonte` fica carimbada aqui: gerar E' escolher. Sem isto a pessoa pagava a geracao, o
+         retrato aparecia e a tela continuava a mostrar a foto antiga como a escolhida. */
+      .update({ url: publica, estilo, genero, fonte: "ia" }).eq("user_id", uid);
     if (gravaErr) {
       console.error("gravar avatar falhou:", gravaErr.message);
       return resp(500, { error: "Retrato gerado, mas não consegui salvá-lo no seu perfil." });

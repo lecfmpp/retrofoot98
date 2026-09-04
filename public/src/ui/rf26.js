@@ -752,10 +752,18 @@ function rfTreinadorNome(){
    nome — o avatar é enfeite, nunca requisito. A face padrão pode ainda não ter
    chegado da rede: null aqui é 'ainda não', não 'nunca'. */
 function rfCoachAvatarUrl(){
-  /* A FOTO DO PERFIL VEM PRIMEIRO. E' a fonte unica da cara do treinador (a mesma que o ranking
-     mostra), e o retrato por IA ja' e' gravado la' pelo gerador — entao quem subiu foto e quem
-     gerou retrato veem, os dois, a mesma imagem aqui dentro. `S.coachAvatar` fica como o que
-     sempre foi para quem nao tem nenhuma das duas: a face padrao sorteada no assistente. */
+  /* ===== A ESCOLHA MANDA, NAO A PRIORIDADE =====
+     Aqui a foto de perfil vinha SEMPRE primeiro. Com tres origens possiveis (face desenhada,
+     foto subida, retrato por IA) isso queria dizer que quem subisse uma foto nunca mais via
+     outra coisa — clicar numa face nao mudava nada no jogo, e depois de gerar por IA nao havia
+     como saber o que estava em uso. Agora quem responde e' `CL.coachFonte`, escrita no momento
+     da escolha e guardada na conta (ver rfAvatarAplicar, ui/rf26-fluxo.js).
+     O caminho antigo fica logo abaixo como reserva: conta que nunca passou pelo passo novo,
+     save antigo, ou o acervo de faces ainda a chegar da rede. */
+  if(typeof CL!=='undefined' && CL.coachFonte && typeof rfAvatarUrlDe==='function'){
+    const escolhida=rfAvatarUrlDe(CL.coachFonte);
+    if(escolhida) return escolhida;
+  }
   const doPerfil=(typeof CL!=='undefined')?CL.coachFoto:null;
   if(doPerfil) return doPerfil;
   const a=(typeof S!=='undefined'&&S)?S.coachAvatar:null;

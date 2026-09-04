@@ -1258,7 +1258,10 @@ const RF_TERMOS_TEXTO=[
   'A imagem enviada é apagada dos nossos servidores logo após a geração do retrato.',
   'Não envie fotos de terceiros nem de menores de idade.'
 ];
-function rfAvIA(){ return (CL.avIA = CL.avIA || { estilo:'terno', arquivo:null, caminho:null, aceito:false, gerando:false, erro:null, usadas:0, teto:6 }); }
+function rfAvIA(){ return (CL.avIA = CL.avIA || { estilo:'terno', arquivo:null, caminho:null, aceito:false, gerando:false, erro:null, usadas:0,
+  /* UMA POR CONTA — o mesmo TETO_GERACOES da edge function coach-avatar. Se os dois numeros
+     discordarem, o dialogo promete uma geracao que o servidor recusa com 429. */
+  teto:1 }); }
 const rfAvTamanho = b => b<1024*1024 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1).replace('.',',')+' MB';
 
 /* abre o dialogo e carrega, de uma vez, cota e aceite ja' registados */
@@ -1340,7 +1343,13 @@ async function rfAvIAGerar(){
        rascunho local para nao reenviar a mesma foto sem querer. */
     a.arquivo=null; a.caminho=null;
     a.usadas=r.geracoes||(a.usadas+1);
-    CL.coachAvatar=r.url; CL.coachGender=(CL.coachGender==='f')?'f':'m';
+    CL.coachGender=(CL.coachGender==='f')?'f':'m';
+    /* GERAR E' ESCOLHER — e a escolha e' registada como tal (ver rfAvatarAplicar em
+       rf26-fluxo.js). Antes isto so' escrevia `coachAvatar`, e o cartao da foto continuava
+       aceso ao lado do da IA: dois cartoes marcados, nenhum deles a dizer qual estava em uso. */
+    CL.coachFotoIA=r.url;
+    if(typeof rfAvatarAplicar==='function') rfAvatarAplicar('ia');
+    else { CL.coachAvatar=r.url; CL.coachFoto=r.url; }
     /* NAO FECHA. Fechando, o retrato so' aparecia como miniatura de 90px la'
        atras na grade — quem acabou de pagar uma geracao quer VER o que saiu,
        grande, na mesma tela, e decidir se fica ou refaz. */
@@ -1362,7 +1371,7 @@ const RF_ACOES_AVATAR = {
 'avatarIA': ()=>{
   const a=rfAvIA();
   const restam=Math.max(0, a.teto-a.usadas);
-  const cota=`${a.usadas} de ${a.teto} gerações usadas`;
+  const cota=a.usadas>=a.teto ? 'geração já usada' : `${a.teto} geração por conta`;
   /* ===== PRONTO: o retrato grande, na mesma tela ===== */
   if(a.resultado){
     return rfAcao({ kicker:'TREINADOR', titulo:'Ficou assim', w:520,
@@ -1416,13 +1425,19 @@ const RF_ACOES_AVATAR = {
         ${RF_AV_ROUPAS.map(([k,l])=>`<div class="rf-esc ${a.estilo===k?'on':''}"
             onclick="rfAvIAEstilo('${k}')" role="button" tabindex="0"><span class="rf-esc-t">${escC(l)}</span></div>`).join('')}
       </div>
-      <div class="rf-label" style="margin-top:14px"><span class="rf-label-t">USAR UMA FOTO MINHA COMO REFERÊNCIA (OPCIONAL)</span></div>
+      ${/* ===== A FOTO DEIXOU DE SER OPCIONAL =====
+           Era "referencia (opcional)" enquanto havia seis geracoes: dava para experimentar sem
+           foto e refazer. Com UMA por conta, gerar sem referencia devolve um desconhecido — e
+           acabou a cota. O produto que a tela promete e' "a SUA cara"; sem foto ela nao entrega
+           isso, entao o botao espera pela foto. */''}
+      <div class="rf-label" style="margin-top:14px"><span class="rf-label-t">A SUA FOTO (OBRIGATÓRIA)</span></div>
       ${anexo}
-      <div class="rf-av-nota">A foto vai para um serviço de IA de terceiros e é apagada dos nossos servidores logo depois.</div>
+      <div class="rf-av-nota">A foto vai para um serviço de IA de terceiros e é apagada dos nossos servidores logo depois. É uma geração por conta — mande uma foto de frente, com boa luz.</div>
       ${a.erro?`<div class="rf-av-erro">${escC(a.erro)}</div>`:''}
       <div class="rf-av-rodape"><span class="rf-av-cota">${escC(cota)}</span></div>`,
     acoes:[{l:'Cancelar',tom:'fantasma'},
-           {l: restam?'Gerar retrato':'Sem gerações', on: restam?'rfAvIAGerar()':''}] });
+           {l: !restam?'Sem gerações':(a.arquivo?'Gerar retrato':'Envie a sua foto'),
+            on: (restam&&a.arquivo)?'rfAvIAGerar()':''}] });
 },
 
 'avatarTermos': ()=>rfAcao({ kicker:'ENVIO DE FOTO', titulo:'Termos de imagem', w:520,
