@@ -4135,6 +4135,7 @@ function saveMyFinances(){
   CL._myFin.finances=(S.finances||[]).slice(-200); CL._myFin.seasonTotals=S.seasonTotals||null;
   CL._myFin.prizeSeason=S._prevPrizesCreditedSeason||null;
   CL._myFin.settled=CL._myFin.settled||{};
+  CL._myFin.clubId=CL.clubId||null;                  // DE QUE CLUBE são estes livros (ver restoreMyFinances)
   CL._myFinKey=myFinKey();                           // marca de qual sala+clube é o store em memória
   /* FONTE ÚNICA É O SERVIDOR (regra do dono, 21/08): o blob viaja no assento via CAREER_KEYS
      (game_seats.career._myFin) — sobrevive a troca de aparelho e a limpeza de navegador.
@@ -4167,6 +4168,17 @@ function restoreMyFinances(){
   if(!doAssento){
     try{ const raw=localStorage.getItem(myFinKey()); if(raw) doAssento=JSON.parse(raw); }catch(e){}
     if(doAssento){ S._myFin=doAssento; if(typeof persistCareer==='function') persistCareer(); } // migra pro servidor
+  }
+  /* LIVROS DE OUTRO CLUBE NÃO SÃO DESTE CLUBE. O blob viaja no assento, e o assento acompanha o
+     treinador quando ele muda de clube — então, sem este carimbo, o extrato e os totais do clube
+     anterior voltavam por cima do clube novo a cada adoção, e não havia como sair disso (relato
+     de 03/09, troca de clube no meio da 1ª temporada). Blob sem `clubId` é anterior a este
+     carimbo: vale, e ganha o carimbo na primeira gravação. */
+  if(doAssento && doAssento.clubId && CL.clubId && doAssento.clubId!==CL.clubId){
+    console.warn('extrato guardado é do '+doAssento.clubId+' e eu agora sou o '+CL.clubId+' — começando os livros deste clube');
+    doAssento=null;
+    S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+    S._myFin=null;
   }
   CL._myFinKey=myFinKey();
   if(!doAssento){
@@ -11747,6 +11759,38 @@ function clAcceptResenhaOffer(){
       }
     }catch(e){ console.warn('mundo do país novo:', e && e.message); }
     if(CL.humans){ if(from!=null) delete CL.humans[from]; CL.humans[offer.clubId]=CL.mgr; }
+    /* ===== O CAIXA E O EXTRATO SÃO DO CLUBE, NÃO DO TREINADOR =====
+       O caminho do solo (applyManagerJobChange) já fazia isto; o da Resenha não, e o resultado
+       foi o relato de 03/09: assumir um clube da Série C com R$ 12,3M em caixa e, depois da
+       primeira rodada, ver o caixa e as transações do clube ANTIGO por cima — e assim ficar.
+       A causa são as duas gavetas do ASSENTO, que seguem o treinador quando ele muda de clube:
+         · `game_seats.budget` — o caixa do assento vence o do mundo (ver meuCaixaDoAssento). Com
+           o número do clube antigo lá dentro, o primeiro applyViewerDivision o escrevia por cima
+           do caixa real do clube novo, e o commit seguinte publicava o valor errado de volta.
+         · `game_seats.career._myFin` — o extrato e os totais da temporada. Sem carimbo de clube,
+           restoreMyFinances devolvia o histórico do clube anterior ao clube novo.
+       O caixa REAL do clube já existe e é do mundo: o servidor avança S.budgets[id] de TODO
+       clube a cada rodada (receita, folha, transferências, obras, premiação). É esse número —
+       o que o CPU deixou — que o treinador herda. Não há nada novo a persistir. */
+    const _caixaDoClube = (S.budgets && S.budgets[offer.clubId]!=null)
+      ? Number(S.budgets[offer.clubId])
+      : ((typeof REBAL!=='undefined' && REBAL.budget && typeof makeRng==='function')
+          ? REBAL.budget(offer.division||S.division, makeRng(hashSeed(S.seed,'budget',offer.clubId,S.season)))
+          : S.budget);
+    S.budgets=S.budgets||{}; S.budgets[offer.clubId]=_caixaDoClube; S.budget=_caixaDoClube;
+    if(typeof commitBudget==='function') commitBudget();  // o assento para de carregar o dinheiro do clube antigo
+    // livros novos: o extrato do clube anterior não é deste clube (o do solo já zerava)
+    S.finances=[]; S.seasonTotals={income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
+    S._myFin=null; CL._myFin=null;
+    /* A PRIMEIRA LINHA DO EXTRATO DIZ COM O QUE ELE PEGOU O CLUBE. Sem ela o extrato abria vazio
+       e o caixa parecia ter caído do céu — e é justamente o número que o convite prometeu. */
+    if(typeof pushFinanceEntry==='function'){
+      const _cn=(clubOf(offer.clubId)||{}).short||offer.clubId;
+      const _cx=(typeof spellMoney==='function')?spellMoney(_caixaDoClube)
+              :((typeof moneyDisp==='function')?moneyDisp(_caixaDoClube):_caixaDoClube);
+      pushFinanceEntry({ log:['Assumiu o '+_cn+' com '+_cx+' em caixa, deixados pela gestão anterior.'] });
+    }
+    if(typeof saveMyFinances==='function') saveMyFinances();
     if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
     S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
     CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; S.jobSecurity=55;
