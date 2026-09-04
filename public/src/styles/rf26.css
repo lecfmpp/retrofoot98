@@ -3102,8 +3102,18 @@
 }
 .rf-lp{min-height:100vh;background:var(--surface-desk);font-family:var(--font-sans);color:var(--text-1)}
 /* nav */
-.rf-lp-nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+/* ===== O CABECALHO E' UMA BARRA DE TRES ZONAS =====
+   Era um flex em fila: marca, links, espacador, accoes — e por isso o menu nascia colado ao
+   logotipo, todo a' esquerda, lendo-se como uma lista em vez de uma barra. A grelha
+   `1fr auto 1fr` centra o meio DE VERDADE: os links ficam no eixo da pagina mesmo quando o
+   lado direito e' mais largo do que o esquerdo (que e' o caso com a conta aberta). */
+.rf-lp-nav{position:sticky;top:0;z-index:40;
+  /* `minmax(0,auto)` no meio: com `auto` puro a caixa dos links nao encolhia e, num ecra
+     apertado, passava por baixo do botao da direita. Assim ela cede primeiro (e rola por
+     dentro, que ja' esta' previsto) em vez de colidir. */
+  display:grid;grid-template-columns:1fr minmax(0,auto) 1fr;align-items:center;gap:14px;
   padding:14px 28px;background:var(--surface-card);border-bottom:1px solid var(--line-1)}
+.rf-lp-acoes{display:flex;align-items:center;gap:10px;justify-self:end;min-width:0}
 .rf-lp-marca{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto}
 .rf-lp-marca img{width:32px;height:32px;object-fit:contain}
 /* A ASSINATURA TEM PROPORCAO PROPRIA: a altura manda e a largura segue. Uma classe
@@ -3133,12 +3143,22 @@
 }
 @media (max-width:520px){ .rf-lp-marca img.marca{height:22px} }
 .rf-lp-marca>span{font-size:16px;font-weight:var(--fw-bold);color:var(--text-1);letter-spacing:var(--ls-tight)}
-.rf-lp-links{display:flex;align-items:center;gap:2px;margin-left:14px;overflow-x:auto;scrollbar-width:none}
+/* os links vivem numa CAIXA, como os grupos de pilulas de dentro do jogo — sem a caixa eles
+   flutuavam no branco e nada dizia que sao um conjunto */
+.rf-lp-links{display:flex;align-items:center;gap:2px;justify-self:center;
+  padding:3px;border-radius:var(--r-pill);background:var(--surface-sunken);
+  overflow-x:auto;scrollbar-width:none;max-width:100%}
 .rf-lp-links::-webkit-scrollbar{display:none}
 .rf-lp-link{background:none;border:none;font-family:var(--font-sans);font-size:var(--fs-body-sm);
-  font-weight:var(--fw-medium);color:var(--text-3);padding:8px 10px;border-radius:var(--r-chip);
-  cursor:pointer;white-space:nowrap}
-.rf-lp-link:hover{background:var(--surface-sunken);color:var(--text-1)}
+  font-weight:var(--fw-medium);color:var(--text-3);padding:7px 13px;border-radius:var(--r-pill);
+  cursor:pointer;white-space:nowrap;transition:background var(--dur-fast) var(--ease),
+  color var(--dur-fast) var(--ease)}
+.rf-lp-link:hover{background:var(--surface-card);color:var(--text-1);
+  box-shadow:0 1px 3px -1px rgba(0,0,0,.18)}
+.rf-lp-link:focus-visible{outline:2px solid var(--club-primary);outline-offset:1px}
+/* entre 1100 e 1320px os sete rotulos ainda cabem, mas so' com menos folga: apertar o padding
+   evita que a barra comece a rolar num ecra de portatil, que e' o tamanho mais comum */
+@media (max-width:1320px){ .rf-lp-link{padding:7px 9px} .rf-lp-nav{padding:14px 18px} }
 .rf-lp-entrar{height:38px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
   background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
   font-weight:var(--fw-semibold);color:var(--text-2);cursor:pointer;white-space:nowrap}
@@ -3251,7 +3271,8 @@
   .rf-lp-fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:760px){
-  .rf-lp-nav{padding:10px 14px;gap:8px}
+  /* no telemóvel só há duas zonas: a marca e as ações. O menu vive na folha (rfLpMenu). */
+  .rf-lp-nav{padding:10px 14px;gap:8px;grid-template-columns:1fr auto}
   .rf-lp-links{display:none}
   .rf-lp-hero,.rf-lp-sec,.rf-lp-lista{padding:28px 16px}
   .rf-lp-h1{font-size:30px}

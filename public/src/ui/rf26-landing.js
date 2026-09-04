@@ -301,13 +301,21 @@ function rfLpNavHTML(extra){
     <a class="rf-lp-marca" href="/" aria-label="Retrofoot.com.br">
       <img class="marca" src="img/marca.svg" alt="Retrofoot.com.br" height="26">
     </a>
+    ${/* ===== TRES ZONAS, NAO UMA FILA =====
+         Era tudo a seguir ao logotipo, encostado a' esquerda, com um espacador a empurrar as
+         accoes para a direita — o menu ficava colado a' marca e o cabecalho lia-se como uma
+         lista, nao como uma barra. Agora sao tres zonas numa grelha `1fr auto 1fr`: a marca a'
+         esquerda, os links CENTRADOS (centrados de verdade — a grelha nao deixa o lado mais
+         largo puxar o meio) e as accoes a' direita. E' o mesmo esqueleto das barras de dentro
+         do jogo, e por isso o cabecalho passa a parecer parte da mesma peca. */''}
     <div class="rf-lp-links">
       ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
     </div>
-    <div class="rf-sp"></div>
-    ${extra||''}
-    ${extra==null ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('${RF_SO_LISTA?'lista':'planos'}')">${RF_SO_LISTA?'Entrar na lista':'Ver os planos'}</button>` : ''}
-    ${rfContaChipHTML()}
+    <div class="rf-lp-acoes">
+      ${extra||''}
+      ${extra==null ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('${RF_SO_LISTA?'lista':'planos'}')">${RF_SO_LISTA?'Entrar na lista':'Ver os planos'}</button>` : ''}
+      ${rfContaChipHTML()}
+    </div>
   </nav>`;
 }
 /* o cabecalho leva DIRETO ao modo: quem clica aqui ja esta logado e o passo 1
