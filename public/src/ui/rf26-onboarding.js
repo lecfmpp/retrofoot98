@@ -425,6 +425,43 @@ function rfObSaveJornada(sv){
    mercado). São dois estados diferentes no jogo (CL.playCountry e
    CL.countries) que antes esta tela juntava num grid só.
    ===================================================================== */
+/* ===== A PIRAMIDE — O DEGRAU DE ENTRADA NAO SE ESCOLHE =====
+   Durante os testes com os socios as quatro divisoes eram botoes (ver TESTING_FREE_DIVISION_PICK,
+   ui/main.js), para se poder provar a Serie A e as copas continentais sem subir a pe'. Isso era
+   bancada, nunca o jogo: no RetroFoot toda a gente comeca em baixo e sobe jogando, e uma escolha
+   que o jogo nao pretende honrar so' ensina que ela existe.
+   Entao o bloco deixa de ser escolha e passa a ser PROMESSA: a piramide inteira, de cima a baixo,
+   com o degrau de entrada aceso e os de cima por conquistar. Nada aqui e' clicavel — de proposito.
+   Serve aos dois modos (Solo e Resenha), que e' o que garante que contam a mesma historia. */
+function rfPiramideHTML(uniCfg, entrada){
+  const cfg=uniCfg||null;
+  const ordem=(cfg&&cfg.order)?cfg.order.slice():['A','B','C','D'];
+  /* de cima (a 1a divisao) para baixo: a piramide le-se como se sobe, e o degrau de entrada
+     fica no fundo, que e' onde ele esta' na vida real */
+  const linhas=ordem.map((d,i)=>{
+    const lbl=(cfg&&cfg.label&&cfg.label[d])||('Série '+d);
+    const qtd=(cfg&&cfg.size&&cfg.size[d])||0;
+    const aqui=(d===entrada);
+    /* a largura desenha a piramide: a 1a divisao e' a mais estreita porque e' onde cabe menos
+       gente — nao e' enfeite, e' a propria ideia da coisa */
+    const larg=58+i*14;
+    return `<div class="rf-pir-l ${aqui?'aqui':''}" style="--w:${larg}%">
+      <span class="rf-pir-t">${(typeof rfTrofeuHTML==='function')?rfTrofeuHTML('serie'+d,aqui?30:24):''}</span>
+      <span class="rf-pir-n">${escC(lbl)}</span>
+      <span class="rf-pir-q">${qtd?qtd+' clubes':''}</span>
+      ${aqui?'<span class="rf-pir-selo">VOCÊ COMEÇA AQUI</span>':''}
+    </div>`;
+  }).join('');
+  return `<div class="rf-pir">
+    ${linhas}
+    <div class="rf-pir-recado">
+      <b>Ninguém começa em cima.</b>
+      <span>Suba divisão por divisão até a ${escC((cfg&&cfg.label&&cfg.label[ordem[0]])||'Série A')},
+        ganhe o país, e aí o continente vem atrás. O mundo é o último degrau — e ele não cai no sorteio,
+        cai no trabalho.</span>
+    </div>
+  </div>`;
+}
 function rfOb3(){
   const lista=(typeof COUNTRY_LIST==='function')?COUNTRY_LIST():[];
   /* O UNIVERSO FEMININO SO' TEM O BRASIL. Mostrar os outros 14 daria uma escolha que a tela
@@ -472,16 +509,8 @@ function rfOb3(){
           </button>`;}).join('')}</div>
       </div>
       <div class="rf-ob3-bloco">
-        <span class="rf-label-t">Divisão em que você começa</span>
-        <div class="rf-ob3-divs">${divs.map(d=>{
-          const on=entrada===d, lbl=(cfg&&cfg.label&&cfg.label[d])||('Série '+d);
-          const qtd=(cfg&&cfg.size&&cfg.size[d])||0;
-          return `<button type="button" class="rf-ob3-div ${on?'on':''} ${livre?'':'travada'}"
-            ${livre?`onclick="rfObDivisao('${d}')"`:'disabled'}>
-            <span class="rf-ob3-dn">${escC(lbl)}</span>
-            <span class="rf-ob3-dq">${qtd?qtd+' clubes':''}</span>
-          </button>`;}).join('')}</div>
-        ${livre?'':'<span class="rf-note">No clássico todo mundo começa embaixo e sobe jogando.</span>'}
+        <span class="rf-label-t">Onde você entra na pirâmide</span>
+        ${rfPiramideHTML(cfg, entrada)}
       </div>
       ${soBrasil ? `
       <div class="rf-ob3-bloco">
@@ -501,7 +530,10 @@ function rfOb3(){
   const lblEntrada=(cfg&&cfg.label&&cfg.label[entrada])||('Série '+entrada);
   return rfWiz({passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
     sobre:'Onde você vai treinar', titulo:'Escolha o país. O clube é sempre sorteado.',
-    sub:'Você escolhe o país e a divisão em que quer começar; o clube sai no sorteio — é assim para todo mundo, inclusive na resenha.',
+    /* O SUBTITULO PROMETIA A ESCOLHA QUE SAIU. Dizia "voce escolhe o pais e a divisao em que
+       quer comecar" — com a piramide no lugar dos botoes, isso passou a ser mentira na mesma
+       tela que a desmente. O que se escolhe e' o pais; o degrau e a camisa vem do jogo. */
+    sub:'Você escolhe o país; o degrau é sempre o de baixo e o clube sai no sorteio — é assim para todo mundo, inclusive na resenha.',
     nota:`Clube sorteado: ${lblEntrada} · ${principal}${qtdEntrada?' · '+qtdEntrada+' clubes no pote':''}`,
     voltar:soBrasil||((typeof rfFemLigado==='function')&&rfFemLigado())?'clPaisesBack()':'clGoModo()',
     voltarLabel:((typeof rfFemLigado==='function')&&rfFemLigado())?'‹ Modalidade':'‹ Modo',
@@ -545,29 +577,15 @@ function rfOb4(){
   const pais=CL.playCountry||'Brasil';
   const uk=(typeof countryUniverseKey==='function')?countryUniverseKey(pais):null;
   const cfg=(typeof UNI_CONFIGS!=='undefined'&&uk)?UNI_CONFIGS[uk]:null;
-  const escolhida=(CL.testStartDiv&&CL.testStartDiv.brasil)||'D';
+  /* o degrau de entrada vem da regra, nao de uma escolha: com TESTING_FREE_DIVISION_PICK
+     desligado, computeStartDivision devolve sempre o ultimo da ordem do pais */
+  const escolhida=(typeof computeStartDivision==='function')?computeStartDivision()
+                  :(((cfg&&cfg.order)||['A','B','C','D']).slice(-1)[0]);
   const nome=n.roomName||'';
   const MAX=24;
-  /* AS QUATRO DIVISÕES COM O TROFÉU REAL. A Série D é a PADRÃO, não só a
-     pré-selecionada: é a única pronta. As outras três levam a etiqueta TESTE e
-     o troféu apagado — o cinza diz "isto ainda não está pronto" sem texto. */
-  const cards=['D','C','B','A'].map(d=>{
-    const lbl=(cfg&&cfg.label&&cfg.label[d])||('Série '+d);
-    const clubes=(cfg&&cfg.size&&cfg.size[d])||0;
-    // rodadas = turno e returno entre os clubes da divisão; o motor não guarda
-    // esse número, ele CAI da contagem de clubes (n-1 jogos, ida e volta)
-    const jorn=clubes?((clubes-1)*2):0;
-    const teste=d!=='D';
-    return `<button type="button" class="rf-sl-div ${escolhida===d?'on':''} ${teste?'teste':''}"
-        onclick="rfObDivisao('${d}')">
-      ${rfTrofeuHTML('serie'+d,42)}
-      <span class="rf-sl-div-id">
-        <span class="rf-sl-div-n">${escC(lbl)}</span>
-        <span class="rf-sl-div-s">${clubes?clubes+' clubes':'—'}${jorn?' · '+jorn+' semanas':''}</span>
-      </span>
-      <span class="rf-sl-selo ${teste?'teste':'padrao'}">${teste?'TESTE':'PADRÃO'}</span>
-    </button>`;
-  }).join('');
+  /* A DIVISAO DA SALA DEIXOU DE SER ESCOLHA (ver rfPiramideHTML). Eram quatro cartoes
+     clicaveis, tres deles com etiqueta TESTE — bancada dos socios, nao jogo. A sala comeca
+     sempre no degrau de baixo, como o Solo, e a piramide diz porque. */
   const corpo=`
     <div class="rf-sl">
       <label class="rf-sl-campo">
@@ -582,15 +600,10 @@ function rfOb4(){
 
       <div class="rf-sl-bloco">
         <div class="rf-sl-hd">
-          <span class="rf-sl-l">DIVISÃO INICIAL</span>
-          <span class="rf-sl-hd-s">Todos começam na mesma divisão</span>
+          <span class="rf-sl-l">ONDE A RESENHA COMEÇA</span>
+          <span class="rf-sl-hd-s">Todos entram no mesmo degrau</span>
         </div>
-        <div class="rf-sl-divs">${cards}</div>
-        ${escolhida!=='D'?`<div class="rf-sl-aviso">
-          ${rfIcone('aviso',16)}
-          <span>Série A, B e C ainda são <b>modo teste</b> — a temporada roda, mas o mercado e as
-            copas podem se comportar de forma estranha. A Série D é a que está pronta.</span>
-        </div>`:''}
+        ${rfPiramideHTML(cfg, escolhida)}
       </div>
 
       ${(function(){
@@ -641,7 +654,7 @@ function rfOb4(){
     </div>`;
   return rfWiz({trilha:'resenha', passo:rfPasso('Sala','resenha'), contexto:'Modo Resenha',
     titulo:'Abrir a sua sala',
-    sub:'Dê um nome e escolha onde a resenha começa. Você é o anfitrião: só você muda essas duas coisas.',
+    sub:'Dê um nome à sala. Todos entram no mesmo degrau da pirâmide, com clube sorteado — o anfitrião manda no ritmo, não no atalho.',
     corpo, nota:'A sala fica aberta por 7 dias sem ninguém entrar.',
     voltar:'clBackConta()', cta:'Abrir a sala', ctaOff:!n.roomName, ctaOn:'clOpenRoom()'});
 }

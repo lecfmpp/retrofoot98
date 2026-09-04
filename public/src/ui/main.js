@@ -9,13 +9,16 @@ const CL = { screen:'abertura', landingView:'home', save:'', currency:'Reais', c
              draw:[], clubId:null, tab:'jogo', selPlayer:null, menu:null, ticket:8, mgr:'', mobMenuOpen:false,
              divisionToggle:{A:true,B:true,C:true,D:true}, compToggle:{libertadores:true, copaBrasil:true, sulamericana:true},
              testStartDiv:{} };
-/* MODO TESTE (temporário, a pedido do usuário em 2026-08-03): libera escolher a divisão inicial
-   do Brasil no Modo Solo (countryCompSection) e no Modo Resenha (scSalaHost, net/local-transport.js),
-   pra dar pra testar tudo (Série A, copas continentais, promoção/rebaixamento...) antes do
-   lançamento sem precisar subir manualmente da Série D. Depois do lançamento, voltar esta flag
-   pra false — computeStartDivision() e o seletor da Resenha voltam a ignorar CL.testStartDiv e
-   sempre começar na Série D, a regra de sempre (todo mundo começa embaixo e sobe). */
-const TESTING_FREE_DIVISION_PICK = true;
+/* MODO TESTE (temporário, a pedido do usuário em 2026-08-03) — DESLIGADO em 2026-09-04.
+   Enquanto ligado, liberava escolher a divisão inicial do Brasil no Modo Solo e no Modo Resenha,
+   para se poder testar a Série A, as copas continentais e a promoção/rebaixamento sem subir a pé
+   desde a Série D. Era bancada dos sócios, e sempre teve data para acabar: com ele ligado, o
+   assistente oferecia uma escolha que o jogo não pretende honrar — e três das quatro opções
+   levavam etiqueta TESTE, o que é uma forma de admitir isso na cara do jogador.
+   Desligado, `computeStartDivision()` e a Resenha voltam a ignorar CL.testStartDiv e começam
+   sempre no último degrau do país: a regra de sempre, agora contada pela pirâmide do assistente
+   (ver rfPiramideHTML) em vez de por uma fila de botões desabilitados. */
+const TESTING_FREE_DIVISION_PICK = false;
 function clSetTestStartDiv(uniKey, d){
   CL.testStartDiv = CL.testStartDiv || {};
   CL.testStartDiv[uniKey] = d;

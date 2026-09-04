@@ -6927,6 +6927,35 @@
   font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
 .rf-crono b{font-variant-numeric:tabular-nums;color:var(--text-1);font-weight:var(--fw-bold)}
 .rf-crono i{font-style:normal;color:var(--text-4)}
+
+/* ===== A PIRÂMIDE DO ASSISTENTE (rfPiramideHTML) =====
+   Não é uma lista de opções desenhada em degrau: NÃO HÁ nada clicável aqui, e o desenho tem de
+   dizer isso sozinho — sem borda de botão, sem estado de hover, sem cursor de mão. A largura
+   decrescente é a informação principal (em cima cabe menos gente), e o único degrau aceso é
+   aquele em que se entra. */
+.rf-pir{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:4px}
+.rf-pir-l{--w:100%;width:var(--w);min-width:220px;
+  display:flex;align-items:center;gap:10px;padding:9px 14px;
+  border:1px solid var(--line-2);border-radius:var(--r-control);
+  background:var(--surface-sunken);color:var(--text-3);
+  transition:none}
+.rf-pir-t{display:flex;align-items:center;opacity:.45;flex:0 0 auto}
+.rf-pir-n{font-weight:var(--fw-semibold);font-size:var(--fs-body-sm);white-space:nowrap}
+.rf-pir-q{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
+.rf-pir-l.aqui{background:var(--surface-card);border-color:var(--club-primary);
+  color:var(--text-1);box-shadow:0 6px 18px -12px var(--club-primary)}
+.rf-pir-l.aqui .rf-pir-t{opacity:1}
+.rf-pir-selo{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-label);
+  letter-spacing:var(--ls-label);color:var(--club-primary);white-space:nowrap}
+.rf-pir-recado{margin-top:10px;max-width:52ch;text-align:center;
+  display:flex;flex-direction:column;gap:3px}
+.rf-pir-recado b{font-size:var(--fs-body-sm);color:var(--text-1)}
+.rf-pir-recado span{font-size:var(--fs-caption);color:var(--text-3);line-height:var(--lh-normal)}
+@media (max-width:560px){
+  /* no telemóvel a pirâmide achata: com 320px úteis, 58% da largura não cabe um rótulo */
+  .rf-pir-l{width:100% !important;min-width:0}
+  .rf-pir-q{display:none}
+}
 @media (max-width:760px){ .rf-crono i{display:none} }
 
 /* ----- a tabela ----- */
