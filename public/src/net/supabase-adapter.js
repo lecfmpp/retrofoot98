@@ -2066,17 +2066,27 @@ async function netPerfilSemFoto(){
    que JA' existe — a face desenhada que veio do acervo, ou o retrato gerado. E' o que faz a
    escolha feita no assistente aparecer no ranking sem subir nada e sem apagar nada: trocar de
    origem nunca destroi as outras duas. */
-async function netPerfilFotoUrl(url){
+async function netPerfilFotoUrl(url, pos){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
-  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:String(url||''), p_no_ranking:null });
+  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:String(url||''), p_no_ranking:null,
+    p_foto_pos:(pos==null?null:Number(pos)) });
+  return r.error ? { error:r.error.message } : { ok:true };
+}
+/* so' o ajuste, sem tocar na foto: e' o que o arrastar grava, e ele acontece muitas vezes
+   seguidas enquanto a pessoa procura o ponto certo. `null` no endereco quer dizer "nao mexe". */
+async function netPerfilFotoPos(pos){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const r = await sb.rpc('rf_perfil_gravar', { p_foto_url:null, p_no_ranking:null,
+    p_foto_pos:Number(pos)||0 });
   return r.error ? { error:r.error.message } : { ok:true };
 }
 async function netPerfilLer(){
   if(!sb || !SB_AUTH_USER) return null;
   const { data, error } = await sb.rpc('rf_perfil_meu');
   if(error) return null;
-  return (data && data[0]) || { foto_url:null, no_ranking:true };
+  return (data && data[0]) || { foto_url:null, no_ranking:true, foto_pos:0 };
 }
 async function netPerfilRanking(visivel){
   if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
@@ -2121,7 +2131,7 @@ async function netVagasDoClube(modalidade, clubId){
   if(!sb) await netInitSupabase();
   if(!sb) return [];
   const { data, error } = await sb.schema('elifoot_v3').from('player_slots_publicas')
-    .select('modalidade,club_id,player_id,divisao,clube_nome,nome_base,forca,posicao,status,nome')
+    .select('modalidade,club_id,player_id,divisao,clube_nome,nome_base,forca,posicao,status,nome,foto_url,foto_pos')
     .eq('modalidade', modalidade).eq('club_id', clubId)
     .order('forca', { ascending:false });
   if(error){ console.warn('vagas do clube:', error.message); return []; }
@@ -2151,11 +2161,14 @@ async function netVagaMinha(modalidade){
   if(error){ console.warn('minha vaga:', error.message); return null; }
   return (data && data[0]) || null;
 }
-async function netVagaPedir(modalidade, clubId, playerId, nome, fotoUrl){
+async function netVagaPedir(modalidade, clubId, playerId, nome, fotoUrl, pos){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return { error:'Entre na sua conta primeiro.' };
   const { data, error } = await sb.schema('elifoot_v3').rpc('vaga_pedir', {
-    p_modalidade:modalidade, p_club:clubId, p_player:playerId, p_nome:nome, p_foto:fotoUrl||null });
+    p_modalidade:modalidade, p_club:clubId, p_player:playerId, p_nome:nome, p_foto:fotoUrl||null,
+    /* o ajuste do enquadramento e' da MESMA decisao que a foto: quem arrasta a imagem no quadro
+       esta' a dizer como ela deve ser cortada em todo o jogo (ver RF_FOTOS_POS) */
+    p_pos:(pos==null?null:Number(pos)) });
   if(error) return { error: error.message };
   return { vaga: (data && data[0]) || data || null };
 }
@@ -2215,6 +2228,7 @@ NET.vagaFoto = netVagaFoto;
 NET.vagaAvatarGerar = netVagaAvatarGerar;
 
 NET.perfilFotoUrl = netPerfilFotoUrl;
+NET.perfilFotoPos = netPerfilFotoPos;
 NET.coachAvatarGet = netCoachAvatarGet;
 NET.coachAvatarSet = netCoachAvatarSet;
 NET.coachAvatarRef = netCoachAvatarRef;

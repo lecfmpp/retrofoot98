@@ -317,6 +317,8 @@ function buscarEdits(packId){
    Carrega SOLTO depois do boot — a UI usa quando estiver no ar e cai no retrato
    padrão enquanto isso; erro aqui não pode derrubar nada. */
 window.RF_FOTOS = window.RF_FOTOS || {};
+/* endereco da foto -> pontos percentuais a somar ao topo da moldura (ver rfFotoNumHTML) */
+window.RF_FOTOS_POS = window.RF_FOTOS_POS || {};
 window.RF_FOTOS_NOME = window.RF_FOTOS_NOME || {};
 window.RF_UNIFORMES = window.RF_UNIFORMES || {};
 /* A CABECA, guardada a' parte da foto costurada. E' ela que faz a camisa
@@ -474,7 +476,7 @@ function buscarFotos(packId){
    e ai ja' e' o nome novo, que e' o que o jogo vai mostrar.
    ===================================================================== */
 function buscarVagasAprovadas(){
-  fetch(REST + 'player_slots_publicas?select=modalidade,club_id,player_id,nome,foto_url&status=eq.aprovado',
+  fetch(REST + 'player_slots_publicas?select=modalidade,club_id,player_id,nome,foto_url,foto_pos&status=eq.aprovado',
         { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
     .then(r => r.ok ? r.json() : [])
     .then(rows => {
@@ -488,6 +490,12 @@ function buscarVagasAprovadas(){
         if(v.foto_url){
           window.RF_FOTOS[String(v.club_id)+'|'+v.nome] = v.foto_url;
           window.RF_FOTOS_NOME[v.nome] = v.foto_url;
+          /* ===== O AJUSTE DE ENQUADRAMENTO VIAJA COM A FOTO, INDEXADO PELO ENDERECO =====
+             A moldura do jogo e' quadrada e o retrato e' 2:3: o corte pode comer a cabeca, e
+             quem gerou a foto arrastou-a ate' ao ponto certo. Guardar o ajuste POR URL — e nao
+             por clube|nome — e' o que permite aplica'-lo dentro de rfFotoNumHTML, que so' recebe
+             o endereco: nenhuma das onze chamadas dela precisa de saber que isto existe. */
+          if(v.foto_pos!=null) window.RF_FOTOS_POS[v.foto_url] = Number(v.foto_pos)||0;
         }
       }
     })

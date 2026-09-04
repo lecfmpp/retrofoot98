@@ -43,6 +43,7 @@ function rfMjEstado(){
                              arquivo:null,  /* o File escolhido — fica so' na memoria desta aba */
                              previa:null,   /* objectURL da foto enviada, para a pessoa se ver */
                              gerada:null,   /* o retrato que a IA devolveu: E' ELE que vai para a base */
+                             pos:0,         /* ajuste do enquadramento, em pontos percentuais */
                              avatar:0,      /* 0 sem foto · 1 gerando · 2 pronto */
                              clubes:[], vagas:[], carregando:false, minha:null, erro:null });
 }
@@ -173,11 +174,43 @@ function rfMjGerar(){
     });
   }).then(g=>{
     if(g && g.error) throw new Error(g.error);
-    e.gerada=g.url; e.avatar=2; e.geracoes=g.geracoes||0; e.teto=g.teto||6;
+    e.gerada=g.url; e.avatar=2; e.pos=0; e.geracoes=g.geracoes||0; e.teto=g.teto||6;
     rfMjSyncRodape(); cdraw();
   }).catch(err=>{
     e.avatar=0; e.erro=(err&&err.message)||'Não consegui criar o jogador.'; cdraw();
   });
+}
+
+/* ===== ARRASTAR PARA ENQUADRAR =====
+   Um numero so' (pontos percentuais somados ao topo da moldura), o mesmo que viaja para o banco
+   e que rfFotoNumHTML aplica no jogo inteiro. Limitado a ±30: mais do que isso tira a cara do
+   quadro em vez de a centrar — e' o mesmo tecto que a RPC impoe, porque uma trava so' no
+   cliente nao e' trava. */
+const RF_MJ_AJ_MAX=30;
+let RF_MJ_AJ=null;
+function rfMjAjustarIni(ev){
+  const alvo=ev.currentTarget; if(!alvo) return;
+  ev.preventDefault();
+  const e=rfMjEstado();
+  RF_MJ_AJ={ y:ev.clientY, base:e.pos||0, alt:alvo.getBoundingClientRect().height||120, el:alvo };
+  try{ alvo.setPointerCapture(ev.pointerId); }catch(_e){}
+  alvo.classList.add('a-arrastar');
+  window.addEventListener('pointermove', rfMjAjustarMove);
+  window.addEventListener('pointerup', rfMjAjustarFim, { once:true });
+}
+function rfMjAjustarMove(ev){
+  if(!RF_MJ_AJ) return;
+  const d=(ev.clientY-RF_MJ_AJ.y)/RF_MJ_AJ.alt*100;
+  const v=Math.max(-RF_MJ_AJ_MAX, Math.min(RF_MJ_AJ_MAX, RF_MJ_AJ.base+d));
+  rfMjEstado().pos=v;
+  /* estilo direto, sem cdraw: redesenhar a cada movimento do dedo perderia o ponteiro e o
+     arrastar morria no primeiro pixel */
+  RF_MJ_AJ.el.style.setProperty('--rf-foto-topo','calc(-5.27% + '+v.toFixed(2)+'%)');
+}
+function rfMjAjustarFim(){
+  window.removeEventListener('pointermove', rfMjAjustarMove);
+  if(RF_MJ_AJ && RF_MJ_AJ.el) RF_MJ_AJ.el.classList.remove('a-arrastar');
+  RF_MJ_AJ=null;
 }
 
 /* ---- enviar ---- */
@@ -185,7 +218,7 @@ function rfMjEnviar(){
   const e=rfMjEstado();
   if(!rfMjPronto()) return;
   e.enviando=true; e.erro=null; cdraw();
-  NET.vagaPedir(rfMjModalidade(), e.clubId, e.playerId, e.nome.trim(), e.gerada).then(r=>{
+  NET.vagaPedir(rfMjModalidade(), e.clubId, e.playerId, e.nome.trim(), e.gerada, e.pos||0).then(r=>{
     e.enviando=false;
     if(r&&r.error){
       e.erro=r.error;
@@ -338,7 +371,19 @@ function rfMjCardMeuHTML(){
   return `<figure class="rf-mj-card entra ${e.gerada?'pronto':''}">
     <span class="rf-mj-card-rot">O SEU JOGADOR</span>
     <span class="rf-mj-card-foto">
-      ${img?`<img class="${e.gerada?'':'molde'}" src="${escC(img)}" alt="">`:'<span class="rf-mj-card-vazio">📷</span>'}
+      ${/* ===== O QUE SE ARRASTA E' A MOLDURA DO JOGO, NAO UMA PREVIA =====
+           Depois de gerado, o retrato aparece dentro da MESMA moldura que o elenco usa
+           (.rf-fotonum), com o mesmo corte quadrado de um retrato 2:3. E' por isso que o
+           ajuste feito aqui vale la': nao ha' duas contas, ha' uma. Arrastar muda o topo da
+           imagem dentro do quadro — e' o conserto de "a IA cortou a cabeca". */''}
+      ${e.gerada
+        ? `<span class="rf-fotonum mj rf-mj-ajusta" data-mj-frame
+             style="--rf-foto-topo:calc(-5.27% + ${(e.pos||0).toFixed(2)}%)"
+             onpointerdown="rfMjAjustarIni(event)" title="Arraste para enquadrar">
+             <img src="${escC(img)}" alt="" draggable="false">
+             <i class="rf-mj-ajusta-dica">↕ arraste para enquadrar</i>
+           </span>`
+        : (img?`<img class="molde" src="${escC(img)}" alt="">`:'<span class="rf-mj-card-vazio">📷</span>')}
       ${e.avatar===1?`<span class="rf-mj-proc"><i class="rf-mj-spin"></i>CRIANDO…</span>`:''}
       ${(e.previa&&!e.gerada&&e.avatar!==1)?'<span class="rf-mj-molde-tag">isto ainda é a sua foto</span>':''}
       ${e.gerada?`<b class="rf-mj-card-num">${escC(String(rfMjCamisa(v)))}</b>`:''}
@@ -377,7 +422,9 @@ function rfMjFigurinhaHTML(){
       ${e.previa?`<button type="button" class="rf-mj-bt-ia" ${e.avatar===1?'disabled':''} onclick="rfMjGerar()">
         ${e.avatar===1?'Criando…':(e.gerada?'↻ Criar de novo':'✨ Criar meu jogador')}</button>`:''}
     </div>
-    ${e.previa?'':'<span class="rf-note rf-mj-dica">Uma foto sua de frente, com boa luz. Ela é só o molde: sai daqui assim que o retrato fica pronto, e nunca vai para o jogo dos outros.</span>'}
+    ${e.previa
+      ? '<span class="rf-note rf-mj-dica">Depois de criar, <b>arraste o retrato</b> dentro do quadro para enquadrar a cabeça.</span>'
+      : '<span class="rf-note rf-mj-dica"><b>JPG, PNG ou WebP · até 4 MB.</b> Rosto de frente, bem iluminado e sozinho na foto — é dele que sai o seu jogador. Ela é só o molde: sai daqui assim que o retrato fica pronto, e nunca vai para o jogo dos outros.</span>'}
     <div class="rf-mj-nome-bl">
       <span class="rf-mj-rot">NOME NA CAMISA</span>
       <input class="rf-mj-nome" maxlength="${RF_MJ_NOME_MAX}" placeholder="Seu nome"

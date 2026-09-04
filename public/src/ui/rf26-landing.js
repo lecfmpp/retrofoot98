@@ -704,8 +704,25 @@ function rfPlanoCta(key, trava, ciclo){
   }
 
   if(typeof toastC==='function') toastC('Abrindo o pagamento…');
+  /* ===== DE DENTRO DO JOGO, O STRIPE ABRE NOUTRA JANELA =====
+     Da landing, trocar a pagina e' natural — a pessoa veio ler sobre planos e vai pagar. De
+     DENTRO do jogo (a aba do Treinador, uma trava de plano) nao e': o checkout comia a partida
+     e o unico caminho de volta era o botao do navegador.
+
+     A JANELA ABRE-SE AGORA, NAO DEPOIS. `window.open` fora do gesto do utilizador — e o
+     endereco do checkout so' chega umas centenas de ms mais tarde — e' exactamente o que os
+     bloqueadores de pop-up matam. Entao abre-se uma aba VAZIA no clique e so' se lhe da' o
+     endereco quando ele chega. Se mesmo assim vier bloqueada (`null`), cai no caminho de
+     sempre: melhor trocar de pagina do que nao pagar. */
+  const noJogo = (typeof CL!=='undefined') && !!CL.clubId && CL.screen!=='landing';
+  const aba = noJogo ? window.open('', '_blank') : null;
   NET.criarCheckout(key, ciclo||'mes').then(r=>{
-    if(r && r.url){ location.href = r.url; return; }
+    if(r && r.url){
+      if(aba && !aba.closed){ aba.location.href = r.url; aba.focus(); }
+      else location.href = r.url;
+      return;
+    }
+    if(aba && !aba.closed) aba.close();   // sem endereco, nao se deixa uma aba branca aberta
     /* AGORA O ERRO DIZ-SE. Antes qualquer falha caia na lista de espera, calada: quem tinha
        conta e queria pagar era mandado pedir uma vaga que já tinha. Se o pagamento não abre,
        isso é uma avaria e a pessoa tem de o saber para voltar a tentar. */
@@ -714,6 +731,7 @@ function rfPlanoCta(key, trava, ciclo){
       toastC('Não consegui abrir o pagamento agora. Tente de novo em instantes.','warn');
   }).catch(e=>{
     console.warn('checkout:', e);
+    if(aba && !aba.closed) aba.close();
     if(typeof toastC==='function') toastC('Não consegui abrir o pagamento agora. Tente de novo em instantes.','warn');
   });
 }

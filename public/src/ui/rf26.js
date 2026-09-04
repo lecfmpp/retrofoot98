@@ -440,14 +440,32 @@ function rfComporRetrato(p, clubId){
 
 /* `foto` pode ser a URL de sempre OU o HTML das camadas devolvido por
    rfComporRetrato — quem chama nao precisa saber qual dos dois veio. */
+/* ===== O AJUSTE, PARA QUEM DESENHA A FOTO A MAO =====
+   rfFotoNumHTML aplica-o sozinho na moldura do elenco. Mas o retrato do TREINADOR e' desenhado
+   com <img> directo em dois sitios (a ficha e a entrevista), e ali o corte e' `object-fit:cover`
+   — outro mecanismo, mesmo numero: deslocar a imagem N pontos para cima ou para baixo dentro do
+   quadro. Indexado pelo endereco, como o do jogador, para nao ser preciso passar nada. */
+function rfAjusteFoto(url){
+  const aj = (typeof url==='string' && window.RF_FOTOS_POS) ? window.RF_FOTOS_POS[url] : null;
+  if(!aj) return '';
+  return ` style="object-position:50% calc(50% + ${(Number(aj)||0).toFixed(2)}%)"`;
+}
 function rfFotoNumHTML(foto, num, cls){
   if(!foto) return null;
   const badge=(num!=null && String(num)!=='' && String(num)!=='—')
     ? `<b class="rf-fnum">${escC(String(num))}</b>` : '';
+  /* ===== O AJUSTE DO ENQUADRAMENTO ENTRA AQUI, E SO' AQUI =====
+     A moldura corta um QUADRADO de um retrato 2:3, e a cabeca nem sempre cai onde o gabarito
+     pede. Quem gerou o retrato pode arrasta'-lo para o ponto certo; o desvio fica guardado por
+     ENDERECO (RF_FOTOS_POS, ver net/dados.js) e some-se ao topo padrao da moldura.
+     Indexado pelo endereco de proposito: esta funcao so' recebe o endereco, entao as onze
+     chamadas dela ficam exactamente como estavam. */
+  const aj = (typeof foto==='string' && window.RF_FOTOS_POS) ? window.RF_FOTOS_POS[foto] : null;
+  const estilo = aj ? ` style="--rf-foto-topo:calc(-5.27% + ${(Number(aj)||0).toFixed(2)}%)"` : '';
   const miolo = (typeof foto==='string' && foto.charAt(0)==='<')
     ? foto
     : `<img src="${escC(foto)}" alt="" loading="lazy" draggable="false">`;
-  return `<span class="rf-fotonum ${cls||''}">${miolo}${badge}</span>`;
+  return `<span class="rf-fotonum ${cls||''}"${estilo}>${miolo}${badge}</span>`;
 }
 function rfVerFichaJogador(nome, clubId){
   const cid = clubId || ((typeof findPlayerClub==='function')?findPlayerClub(nome):null);

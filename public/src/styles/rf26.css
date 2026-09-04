@@ -5318,6 +5318,12 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
 .rf-av-hd{display:flex;flex-direction:column;gap:2px}
 .rf-av-hd b{font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-av-hd span{font-size:var(--fs-label);color:var(--text-faint);line-height:1.5}
+/* a dica do formato e do limite: quem sobe a foto errada so' descobre depois do erro */
+.rf-av-dica{font-size:var(--fs-label);color:var(--text-4);line-height:1.5}
+.rf-av-dica b{color:var(--text-3)}
+/* o retrato em uso arrasta-se dentro do quadro (ver rfAvatarAjustarIni) */
+.rf-av-face.rf-av-ajusta{cursor:grab;touch-action:none;user-select:none}
+.rf-av-face.rf-av-ajusta:active{cursor:grabbing}
 .rf-av-bloco{display:flex;flex-direction:column;gap:12px}
 .rf-av-seg{width:300px;max-width:100%}
 /* ===== O AVATAR PASSA A SER A DECISAO DA TELA =====
@@ -11044,6 +11050,13 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
    retrato do jogador que ainda nao existe */
 .rf-mj-card-foto>img.molde{filter:grayscale(.55) contrast(.92);opacity:.75}
 .rf-mj-card-vazio{font-size:34px;opacity:.45}
+/* ----- arrastar para enquadrar (a moldura do jogo, dentro do cartao) ----- */
+.rf-mj-ajusta{position:relative;cursor:grab;touch-action:none;user-select:none}
+.rf-mj-ajusta.a-arrastar{cursor:grabbing}
+.rf-mj-ajusta-dica{position:absolute;left:0;right:0;bottom:0;padding:4px 0;text-align:center;
+  font-family:var(--font-mono);font-size:8.5px;letter-spacing:.06em;color:#fff;font-style:normal;
+  background:rgba(9,18,13,.6);pointer-events:none;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+.rf-mj-ajusta:hover .rf-mj-ajusta-dica,.rf-mj-ajusta.a-arrastar .rf-mj-ajusta-dica{opacity:1}
 .rf-mj-molde-tag{position:absolute;left:6px;right:6px;bottom:6px;text-align:center;
   font-family:var(--font-mono);font-size:9px;letter-spacing:.04em;color:#fff;padding:3px 4px;
   border-radius:8px;background:rgba(18,32,26,.72)}

@@ -889,7 +889,7 @@ function rfEntBarraHTML(rot, valor, delta, origem, rotulo){
    uma foto, fica o monograma sobre o fundo escuro do design. */
 function rfEntRetratoHTML(cls, etiqueta, url, iniciais){
   return `<div class="rf-ent-foto ${cls}">
-    ${url?`<img src="${escC(url)}" alt="" draggable="false">`
+    ${url?`<img src="${escC(url)}" alt="" draggable="false"${(typeof rfAjusteFoto==='function')?rfAjusteFoto(url):''}>`
         :`<span class="rf-ent-mono-ini">${escC(iniciais||'—')}</span>`}
     <span class="rf-ent-foto-veu"></span>
     <span class="rf-ent-etq">${escC(etiqueta)}</span>

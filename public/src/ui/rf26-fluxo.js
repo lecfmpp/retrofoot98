@@ -321,9 +321,49 @@ function rfAvatarCarregar(){
   if(NET.perfilLer) NET.perfilLer().then(p=>{
     if(!p || !p.foto_url) return;
     if(!CL.coachFotoUp) CL.coachFotoUp=p.foto_url;
+    /* o enquadramento escolhido acompanha a cara em todo o lado (ficha, entrevista, ranking):
+       entra no mesmo mapa por endereco que o retrato do jogador usa (ver rfAjusteFoto) */
+    if(p.foto_pos!=null){ CL.coachFotoPos=Number(p.foto_pos)||0; rfAvatarPosAplicar(); }
     if(!CL.coachFonte){ CL.coachFonte='foto'; CL.coachAvatar=p.foto_url; CL.coachFoto=p.foto_url; }
     cdraw();
   }).catch(()=>{});
+}
+/* ===== ARRASTAR PARA ENQUADRAR — O RETRATO DO TREINADOR =====
+   Mesmo numero e mesmo tecto do retrato do jogador (±30 pontos): aqui o corte e' `object-fit`
+   em vez da moldura do elenco, mas o que se guarda e o que se ve' sao a mesma coisa.
+   Grava-se no FIM do arrastar, nao a cada pixel — sao dezenas de posicoes por gesto, e o
+   servidor so' precisa de saber onde a mao parou. */
+const RF_AV_AJ_MAX=30;
+let RF_AV_AJ=null;
+function rfAvatarPosAplicar(){
+  const u=(typeof rfAvatarUrlDe==='function')?rfAvatarUrlDe(CL.coachFonte):null;
+  if(!u) return;
+  window.RF_FOTOS_POS=window.RF_FOTOS_POS||{};
+  window.RF_FOTOS_POS[u]=Number(CL.coachFotoPos)||0;
+}
+function rfAvatarAjustarIni(ev){
+  const alvo=ev.currentTarget; if(!alvo) return;
+  ev.preventDefault(); ev.stopPropagation();          // nao deixa o clique escolher o cartao
+  RF_AV_AJ={ y:ev.clientY, base:Number(CL.coachFotoPos)||0,
+             alt:alvo.getBoundingClientRect().height||88, el:alvo.querySelector('img') };
+  if(!RF_AV_AJ.el){ RF_AV_AJ=null; return; }
+  try{ alvo.setPointerCapture(ev.pointerId); }catch(_e){}
+  window.addEventListener('pointermove', rfAvatarAjustarMove);
+  window.addEventListener('pointerup', rfAvatarAjustarFim, { once:true });
+}
+function rfAvatarAjustarMove(ev){
+  if(!RF_AV_AJ) return;
+  const d=(ev.clientY-RF_AV_AJ.y)/RF_AV_AJ.alt*100;
+  const v=Math.max(-RF_AV_AJ_MAX, Math.min(RF_AV_AJ_MAX, RF_AV_AJ.base+d));
+  CL.coachFotoPos=v;
+  RF_AV_AJ.el.style.objectPosition='50% calc(50% + '+v.toFixed(2)+'%)';
+}
+function rfAvatarAjustarFim(){
+  window.removeEventListener('pointermove', rfAvatarAjustarMove);
+  RF_AV_AJ=null;
+  rfAvatarPosAplicar();
+  if(typeof NET!=='undefined' && NET.perfilFotoPos) NET.perfilFotoPos(Number(CL.coachFotoPos)||0).catch(()=>{});
+  if(typeof cdraw==='function') cdraw();
 }
 function rfAvatarBlocoHTML(){
   rfAvatarCarregar();
@@ -346,7 +386,8 @@ function rfAvatarBlocoHTML(){
       title="${pro?(jaGerou?'Usar o seu retrato gerado':'Crie o seu retrato com IA — uma geração por conta'):'O retrato por IA é do plano Embaixador'}">
     ${usaIA?rfAvSeloHTML:''}
     ${pro?'':'<span class="rf-esc-tag">Embaixador</span>'}
-    <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
+    <span class="rf-av-face ${usaIA?'rf-av-ajusta':''}" ${usaIA?'onpointerdown="rfAvatarAjustarIni(event)" title="Arraste para enquadrar"':''}>${
+      meu?`<img src="${escC(meu)}" alt=""${(typeof rfAjusteFoto==='function')?rfAjusteFoto(meu):''}>`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
     <span class="rf-av-l">${jaGerou?'O meu retrato<br>de IA':'Criar com IA<br>(1 por conta)'}</span>
   </div>`;
   /* ===== SUBIR A MINHA FOTO =====
@@ -363,7 +404,8 @@ function rfAvatarBlocoHTML(){
       aria-pressed="${usaFoto?'true':'false'}"
       title="${minhaFoto?(usaFoto?'Esta é a sua cara no jogo':'Usar a minha foto'):'Subir uma foto minha'}">
     ${usaFoto?rfAvSeloHTML:''}
-    <span class="rf-av-face">${minhaFoto?`<img src="${escC(minhaFoto)}" alt="">`:(enviando?'⏳':'📷')}</span>
+    <span class="rf-av-face ${usaFoto?'rf-av-ajusta':''}" ${usaFoto?'onpointerdown="rfAvatarAjustarIni(event)" title="Arraste para enquadrar"':''}>${
+      minhaFoto?`<img src="${escC(minhaFoto)}" alt=""${(typeof rfAjusteFoto==='function')?rfAjusteFoto(minhaFoto):''}>`:(enviando?'⏳':'📷')}</span>
     <span class="rf-av-l">${enviando?'A enviar…':(minhaFoto?(usaFoto?'A minha foto':'Usar a<br>minha foto'):'Subir a<br>minha foto')}</span>
     ${(minhaFoto&&!enviando)?`<button type="button" class="rf-av-trocar"
       onclick="event.stopPropagation();rfAvatarSubirFoto()">trocar</button>`:''}
@@ -375,6 +417,8 @@ function rfAvatarBlocoHTML(){
       <span>${feito
         ? 'É esta que vai aparecer na ficha do treinador, nas entrevistas e no ranking. Dá para trocar depois, em Configurações.'
         : 'Escolha uma das três: suba uma foto sua, gere o retrato com IA ou fique com uma das faces desenhadas.'}</span>
+      <span class="rf-av-dica"><b>JPG, PNG ou WebP · até 2 MB.</b> Rosto de frente e bem iluminado.${
+        feito?' Arraste a foto dentro do quadro para enquadrar a cabeça.':''}</span>
     </div>
     <div class="rf-seg rf-av-seg">
       <button type="button" class="rf-seg-b ${g==='m'?'on':''}" onclick="rfAvatarGenero('m')">Treinador</button>

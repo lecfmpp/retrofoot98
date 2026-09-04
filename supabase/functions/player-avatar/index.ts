@@ -17,7 +17,8 @@
    A FOTO DE REFERENCIA E' OBRIGATORIA aqui, ao contrario do treinador. Nao e'
    capricho: o produto vendido e' "o SEU jogador na base", e sem referencia o
    resultado e' um desconhecido qualquer — que a pessoa nao ia reconhecer como
-   dela. Continua a ser INSPIRACAO, nunca copia (ver o prompt).
+   dela. E a semelhanca e' PARA SER FIEL: quem paga poe o proprio nome no
+   jogador, e um rosto so' parecido e' um rosto errado (ver INSPIRACAO).
 
    Tres travas, todas no servidor:
    · so' Embaixador gera (plano_limites.avatar_ia, conferido aqui);
@@ -90,15 +91,29 @@ const CAMISA_LIMPA = "The jersey is COMPLETELY CLEAN: no crest, no badge, no spo
   + "no text, no numbers and no logos anywhere — not on the chest, not on the sleeves, not on the "
   + "collar. Plain fabric only, because the crest and the shirt number are overlaid later.";
 
-/* ===== NINGUEM REAL, MESMO COM A FOTO NA MAO =====
-   A referencia e' de uma pessoa de verdade, e o resultado vai para a base de
-   TODOS os jogadores. Pedir "a mesma cara" faz o gpt-image-1 recusar a chamada
-   inteira, e sera' direito de imagem de terceiros no dia em que alguem mandar
-   a foto de outra pessoa. O contrato e' inspiracao: mesma familia de traco,
-   pessoa nova. */
-const INSPIRACAO = "Use the general facial structure, skin tone, hair and build of the input photo as "
-  + "LOOSE INSPIRATION ONLY. The result must be a NEW, clearly fictional person — do not reproduce "
-  + "the likeness of the person in the photo, and do not resemble any real footballer or public figure.";
+/* ===== A CARA TEM DE SER A DELE =====
+   Isto dizia "inspiracao solta, invente uma pessoa nova" — e o resultado era um desconhecido
+   qualquer com o nome do assinante por baixo. Para um retrato que a pessoa compra para pôr o
+   PROPRIO NOME num jogador da base, parecido-mas-nao-ele e' o mesmo que errado.
+
+   E' uma EDICAO (images/edits) da foto que a propria pessoa enviou, com consentimento — nao um
+   pedido para desenhar alguem famoso, que e' o que o modelo recusa. Entao o texto manda o
+   contrario do que mandava: preserva a identidade e muda so' a ROUPA, o ENQUADRAMENTO e o
+   FUNDO.
+
+   A trava contra foto de terceiros nao esta' aqui, e nem podia estar: nenhum prompt sabe de
+   quem e' a cara que chegou. Ela esta' na FILA DE MODERACAO — a vaga nasce `pendente` e um
+   humano aprova antes de o jogador entrar no pack de toda a gente (ver o painel). E' o
+   controlo certo para este risco, e ele ja' existe. */
+const INSPIRACAO = "CRITICAL — IDENTITY MUST BE PRESERVED: this is an edit of a photo the person "
+  + "supplied of themselves. Keep the SAME face as the input photo: same facial structure and "
+  + "proportions, same eyes, nose, mouth and jawline, same skin tone, same hair colour, length and "
+  + "style, same facial hair, same approximate age and build. Anyone who knows this person must "
+  + "recognise them instantly. Do NOT beautify, do NOT slim or reshape the face, do NOT change "
+  + "ethnicity, and do NOT invent a different person. "
+  + "What you DO change is only this: the clothing becomes the football kit described above, the "
+  + "framing becomes the studio portrait described above, and the background becomes the plain "
+  + "studio backdrop. Treat it as photographing this same person again, in a kit, in a studio.";
 
 /* cor em hexadecimal vira PALAVRA. O modelo entende "royal blue", nao "#17458F" — e mandar o
    hexadecimal cru costuma sair como uma cor vizinha aleatoria de imagem para imagem. */

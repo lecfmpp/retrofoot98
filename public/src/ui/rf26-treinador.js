@@ -82,8 +82,9 @@ function rfTrAvatarHTML(nome, cls){
   const url=(typeof rfCoachAvatarUrl==='function')?rfCoachAvatarUrl():null;
   const ini=escC(String(nome||'T').slice(0,1).toUpperCase());
   if(!url) return `<span class="${cls}">${ini}</span>`;
+  const aj=(typeof rfAjusteFoto==='function')?rfAjusteFoto(url):'';
   return `<span class="${cls} com-foto"><img src="${escC(url)}" alt="Retrato de ${escC(nome)}"
-    loading="lazy" draggable="false" onerror="this.parentNode.textContent='${ini}'"></span>`;
+    loading="lazy" draggable="false"${aj} onerror="this.parentNode.textContent='${ini}'"></span>`;
 }
 
 const RF_TR_CLUBES_COLS='22px minmax(0,1.2fr) minmax(0,1fr) 92px 62px 74px';
