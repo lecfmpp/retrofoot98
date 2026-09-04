@@ -117,10 +117,12 @@ function retrato() {
     grade.push(['clube', div, ovr, ap('budget', ovr, div), ap('income', ovr, div),
                 ap('stadiumCapForDivision', ovr, div)]);
   const rebalance = hash(grade);
+  /* os dois blocos separados, para a falha poder dizer QUAL deles mudou */
+  const rebalanceParte = [hash(grade.filter(g => g[0] !== 'clube')), hash(grade.filter(g => g[0] === 'clube'))];
 
   const totais = Object.values(catalogo).reduce((a, g) => ({ clubes: a.clubes + g.clubes, jogadores: a.jogadores + g.jogadores }), { clubes: 0, jogadores: 0 });
 
-  return { versao: 2, totais, catalogo, clubes: porClube, mercado, rebalance };
+  return { versao: 2, totais, catalogo, clubes: porClube, mercado, rebalance, rebalanceParte };
 }
 
 /* ---------- comparação ---------- */
@@ -190,7 +192,16 @@ if (base.mercado.ligas !== atual.mercado.ligas) reprova('MARKET.LEAGUES mudou');
 if (JSON.stringify(base.mercado.divisionToLeague) !== JSON.stringify(atual.mercado.divisionToLeague))
   reprova(`divisionToLeague mudou: ${JSON.stringify(base.mercado.divisionToLeague)} → ${JSON.stringify(atual.mercado.divisionToLeague)}`);
 if (base.mercado.premios !== atual.mercado.premios) reprova('PRIZES mudou');
-if (base.rebalance !== atual.rebalance) reprova('REBAL.force mudou (calibração de força)');
+/* A GRADE COBRE force, value, salary, wage, budget, income e capacidade — a mensagem dizia só
+   "REBAL.force", e mandou-me procurar uma mudança de calibração de força quando o que eu tinha
+   mexido era a tabela de RECEITA. Agora diz qual das sete divergiu. */
+if (base.rebalance !== atual.rebalance) {
+  const nomes = ['force/value/salary/wage', 'budget/income/capacidade'];
+  const qual = base.rebalanceParte && atual.rebalanceParte
+    ? base.rebalanceParte.map((h, i) => h === atual.rebalanceParte[i] ? null : nomes[i]).filter(Boolean).join(' e ')
+    : 'tabelas de economia';
+  reprova(`REBAL mudou — ${qual}. Se foi de propósito, regrave a baseline.`);
+}
 if (!falhas || falhas === 0) console.log('   mercado, prêmios e rebalanceamento idênticos');
 
 console.log();

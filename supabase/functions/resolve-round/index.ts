@@ -2526,20 +2526,34 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
      fatura. Essa meta foi revista pelo dono do jogo em favor da margem uniforme acima. */
   const INCOME_ANCHORS=[
     [3,30e3],[8,75e3],[11,130e3],[15,200e3],[21,375e3],[25,600e3],[30,1.05e6],
-    [34,1.35e6],[40,2.45e6],[45,3.37e6],[48,4.10e6],[52,5.30e6],[58,7.5e6],[70,14e6]
+    [34,1.35e6],[40,1.85e6],[45,2.55e6],[48,3.10e6],[52,4.00e6],[58,5.7e6],[70,10.6e6]
   ];
-  /* AS ÂNCORAS DE 40 PARA CIMA LEVARAM UM 1,32x A MAIS que a tabela do relatório, e o motivo é uma
-     premissa dele que não se confirma nos dados do jogo. O relatório calculou a Série A com o
-     overall DECLARADO de cada clube, remapeado (Palmeiras 58, Botafogo 48). O jogo não usa esse
-     número: recomputeClubOverall (core.js) sobrescreve club.overall pela MÉDIA DO ELENCO logo na
-     abertura do save, e aí Palmeiras é 51 e Botafogo é 44. Overall menor com a mesma folha =
-     receita real bem abaixo da que o relatório supôs.
+  /* O 1,32x ACIMA DE OVERALL 40 FOI REMOVIDO (2026-09-03). A tabela e' agora EXACTAMENTE a do
+     relatorio, nas catorze ancoras.
 
-     Medido nos 80 clubes reais deste repositório: com a tabela do relatório sem retoque, B/C/D
-     chegavam aos ~57% pretendidos mas a Série A parava em 75,5% (Palmeiras em 104%). O 1,32x
-     cobre exatamente a faixa de overall 40-51, que é onde só a Série A vive (B vai até 35), e leva
-     a elite a 57,8% sem mexer em nenhuma das outras três: B 53,7% · C 58,5% · D 56,9%.
-     Os valores estão arredondados — é a calibração aferida, não um fator aplicado às cegas. */
+     PORQUE ELE EXISTIU. O relatorio calculou a Serie A com o overall DECLARADO de cada clube
+     (Palmeiras 58, Botafogo 48), mas o jogo nao usa esse numero: recomputeClubOverall sobrescreve
+     club.overall pela MEDIA DO ELENCO na abertura do save. Com overall menor e a mesma folha, a
+     receita real ficava abaixo da que o relatorio supos — media da epoca: a elite parava em 75,5%
+     de folha/receita (Palmeiras em 104%) contra os ~57% pretendidos. O 1,32x cobria a faixa 40-51,
+     onde so' a Serie A vive, e levava-a a 57,8%.
+
+     PORQUE DEIXOU DE FAZER SENTIDO. Medido a 03/09/2026 nos mesmos 80 clubes: a Serie A tem hoje
+     overall medio 47,3 (nao ~44) e maximo 58 — os elencos ficaram mais fortes, e a receita subiu
+     pela propria curva. Nessa nova posicao, a tabela do relatorio CRUA entrega 56,6% de
+     folha/receita na Serie A, em cima da meta de 56,9%. O multiplicador passou a somar sobre uma
+     conta que ja' fechava: com ele, a elite caia para 42,9% (folha a pesar 14 pontos menos que o
+     desenhado) e a sobra por rodada era de 2,58 M contra os 692 mil projectados — 3,7x.
+
+     SO' A SERIE A MUDA. As ancoras abaixo de 40 nao foram tocadas, e nenhum clube de B, C ou D
+     chega a 40 (os maximos medidos: B 34, C 22, D 11). Medido depois da remocao: A 56,6% ·
+     B 59,4% · C 60,1% · D 60,5%.
+
+     O QUE ISTO CUSTA A' ELITE, e vale saber antes de mexer outra vez: o saldo recorrente por
+     rodada da Serie A (cota de TV + bilheteria - folha - OPEX, sem contar o patrocinio) cai de
+     +547 mil para +134 mil, e o numero de clubes com esse saldo negativo passa de 1 para 4. Esses
+     quatro passam a depender do patrocinio para fechar o ano — continua a dar, mas deixa de haver
+     folga para elenco caro sem venda a acompanhar. E' o aperto que o relatorio queria. */
   /* a curva crua, por overall — sem split de TV e sem modalidade. É o tijolo das duas metades. */
   function incomeTabela(overall){
     const ov=(typeof overall==='number' && isFinite(overall))?overall:30;
