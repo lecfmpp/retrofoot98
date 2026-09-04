@@ -112,7 +112,9 @@ function rfWiz(o){
      escolha dele; o que mantive foi tirar os CTAs "Entrar"/"Entrar na lista" do
      nav (extra:''), que dentro do assistente apontariam para o proprio sitio
      de onde a pessoa ja veio. */
-  const topo = (typeof rfLpNavHTML==='function') ? rfLpNavHTML(o.topoDir||'') : '';
+  /* CABECALHO MINIMO NO ASSISTENTE: so' a marca e a conta (ver rfLpNavHTML). Os oito links da
+     home eram oito saidas a competir com o passo em que a pessoa esta'. */
+  const topo = (typeof rfLpNavHTML==='function') ? rfLpNavHTML(o.topoDir||'', true) : '';
   const rodape = (typeof rfLpRodapeHTML==='function') ? rfLpRodapeHTML() : '';
   return `<div class="rf-wiz">
     ${topo}

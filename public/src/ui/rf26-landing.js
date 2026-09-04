@@ -230,7 +230,7 @@ function rfSoLista(){
   if(!RF_SO_LISTA) return false;
   try{ return localStorage.getItem('rf_acesso_teste') !== '1'; }catch(e){ return true; }
 }
-function rfContaChipHTML(){
+function rfContaChipHTML(minimo){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){
     if(rfSoLista()) return '';
@@ -259,7 +259,10 @@ function rfContaChipHTML(){
       <span class="rf-lp-pro">${escC(selo)}</span>
     </button>
     <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>
-    <button type="button" class="rf-lp-burger" onclick="rfLpMenu()" aria-label="Menu">
+    ${/* O BURGER FICA MESMO NO MODO MINIMO — e' onde o "Sair" vive no telemovel (a media query
+         esconde-o do cabecalho). Tirar o menu tiraria o logout do telefone; o que ele mostra e'
+         que encolhe (ver rfLpMenu). */''}
+    <button type="button" class="rf-lp-burger" onclick="rfLpMenu(${minimo?1:0})" aria-label="Menu">
       ${rfIcone('menu',18)}
     </button>`;
 }
@@ -268,18 +271,18 @@ function rfContaChipHTML(){
    hamburguer nenhum — por isso "Entrar na lista" desaparecia no telefone e o
    "Sair" tinha de ficar a vista, apertado ao lado do nome. Agora tudo o que
    nao cabe vive aqui, e no cabecalho fica so o nome. */
-function rfLpMenu(){
+function rfLpMenu(minimo){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
-  const links=RF_LP_NAV.map(([k,l])=>
+  const links=minimo?'':RF_LP_NAV.map(([k,l])=>
     `<button type="button" class="rf-sheet-i" onclick="clCloseOverlay();rfLpIr('${k}')">
       <span class="rf-nav-l">${escC(l)}</span></button>`).join('');
   /* na fase da lista este era o item em destaque do menu; com o pagamento no ar o destaque
      passa a ser o que a pessoa vem fazer — ver os planos e assinar. */
-  const lista=RF_SO_LISTA
+  const lista=minimo ? '' : (RF_SO_LISTA
     ? `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('lista')">
       <span class="rf-nav-l">Entrar na lista</span></button>`
     : `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('planos')">
-      <span class="rf-nav-l">Ver os planos</span></button>`;
+      <span class="rf-nav-l">Ver os planos</span></button>`);
   const conta = st.loggedIn ? `<div class="rf-sheet-sep"></div>
       <div class="rf-sheet-conta">
         <span class="rf-sheet-conta-ic" aria-hidden="true">👤</span>
@@ -299,8 +302,15 @@ function rfLpMenu(){
    mora o "‹ Voltar ao modo" do desenho, no lugar dos botões de entrar. Nas
    páginas públicas ele vem vazio e o cabeçalho é o de sempre.
    A CONTA VEM SEMPRE DEPOIS do extra — nunca é substituída por ele. */
-function rfLpNavHTML(extra){
-  return `<nav class="rf-lp-nav">
+/* ===== DENTRO DO ASSISTENTE O CABECALHO ENCOLHE =====
+   O assistente usava o cabecalho publico inteiro: oito links de seccao da home, o botao dos
+   planos e o menu. No meio de um fluxo de sete passos, cada um deles e' uma porta para fora —
+   e as portas estavam mais visiveis do que o passo. Fica o que serve a quem esta' a meio: a
+   marca (que leva a' home, para quem quer mesmo sair) e a conta (entrar ou sair).
+   `minimo` NAO desliga a zona dos links: ela fica vazia. A barra e' uma grelha de tres zonas
+   (1fr auto 1fr) e sem o meio a marca deixaria de estar na esquerda. */
+function rfLpNavHTML(extra, minimo){
+  return `<nav class="rf-lp-nav ${minimo?'minima':''}">
     <!-- A ASSINATURA E DESENHADA, nao montada. Era o simbolo mais a palavra escrita
          em texto ao lado; a marca nova tem um lockup proprio, com o espacamento e o
          peso da palavra definidos por quem a desenhou. Montar a mao nunca bate. -->
@@ -315,12 +325,12 @@ function rfLpNavHTML(extra){
          largo puxar o meio) e as accoes a' direita. E' o mesmo esqueleto das barras de dentro
          do jogo, e por isso o cabecalho passa a parecer parte da mesma peca. */''}
     <div class="rf-lp-links">
-      ${RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
+      ${minimo?'':RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
     </div>
     <div class="rf-lp-acoes">
       ${extra||''}
-      ${extra==null ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('${RF_SO_LISTA?'lista':'planos'}')">${RF_SO_LISTA?'Entrar na lista':'Ver os planos'}</button>` : ''}
-      ${rfContaChipHTML()}
+      ${(!minimo && extra==null) ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('${RF_SO_LISTA?'lista':'planos'}')">${RF_SO_LISTA?'Entrar na lista':'Ver os planos'}</button>` : ''}
+      ${rfContaChipHTML(minimo)}
     </div>
   </nav>`;
 }
