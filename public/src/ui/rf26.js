@@ -135,7 +135,11 @@ const RF_PAGES=[
            {k:'trofeus', l:()=>'Sala de Troféus', build:()=>rfTrTrofeusHTML()},
            {k:'ranking', l:()=>'Ranking',         build:()=>rfTrRankingHTML()},
            {k:'ofertas', l:()=>'Ofertas'+rfSufixo(rfLen(rfOfertas())), build:()=>rfTrOfertasHTML()},
-           {k:'perfil',  l:()=>'Perfil',          build:()=>rfTrPerfilHTML()} ] },
+           {k:'perfil',  l:()=>'Perfil',          build:()=>rfTrPerfilHTML()},
+           /* O JOGADOR NA BASE OFICIAL e' do TREINADOR, nao do clube: e' a pessoa que assina que
+              poe o nome dela num jogador, e ela leva-o consigo se mudar de clube. Por isso vive
+              aqui, ao lado da carreira, e nao em Elenco. Ver ui/rf26-meujogador.js. */
+           {k:'meujogador', l:()=>'Meu jogador',  build:()=>rfMjHTML()} ] },
 
   { key:'financas', ico:'financas', label:'Finanças', curto:'Finanças',
     titulo:'Finanças', sub:()=>rfFiSubHTML(),

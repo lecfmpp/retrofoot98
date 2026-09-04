@@ -106,6 +106,22 @@ Deno.serve(async (req) => {
     }, { onConflict: "user_id" });
     if (error) throw error;
     console.log(`plano ${plano} para ${uid} até ${until ?? "sem prazo"}`);
+
+    /* ===== CAIU DO EMBAIXADOR: A VAGA DO JOGADOR VOLTA PARA A FILA =====
+       Regra do dono (04/09): quem cancela larga o jogador — ele recupera o nome de base e a vaga
+       fica livre para outro Embaixador. Quem reassinar NAO a recupera: entra na fila e escolhe
+       outra livre, e por isso aqui nao se guarda reserva nenhuma.
+       Fica DENTRO do `gravar` de proposito: e' o unico sitio por onde um plano muda, entao nao
+       ha' caminho de cancelamento que escape — nem o `deleted`, nem o rebaixamento por
+       `updated`, nem um cancelamento feito a mao no painel do Stripe.
+       Nao derruba o webhook se falhar: o plano ja' foi gravado, e um erro aqui deixaria o Stripe
+       a repetir o evento e a regravar o plano em ciclo. O log fica. */
+    if (plano !== "embaixador") {
+      const { data: n, error: eVaga } = await admin.schema("elifoot_v3")
+        .rpc("vaga_liberar_do_usuario", { p_user: uid });
+      if (eVaga) console.error("libertar vaga de jogador:", eVaga.message);
+      else if (n) console.log(`vaga(s) de jogador libertada(s) para ${uid}: ${n}`);
+    }
   }
 
   try {

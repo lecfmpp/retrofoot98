@@ -458,6 +458,42 @@ function buscarFotos(packId){
     .catch(()=>{});
 }
 
+/* =====================================================================
+   OS JOGADORES DOS EMBAIXADORES
+   ---------------------------------------------------------------------
+   Quem assina o Embaixador poe o nome e a cara num jogador de verdade (ver player_slots e
+   ui/rf26-meujogador.js). Aqui entram os APROVADOS — e so' eles: a vista publica esconde os
+   pendentes de proposito, para nada entrar na base de todos antes de passar pela moderacao.
+
+   VEM DEPOIS DO PACOTE, e tem de vir: o pacote renomeia os 1.900 brasileiros para os nomes
+   ficticios, e o nome do embaixador ganha desse — e' ele que manda no fim.
+
+   A LIGACAO E' PELO ID, nao pelo nome. O `pack_edits.squad` renomeia por nome (e ja' precisou de
+   sufixo `##N` para homonimos); a vaga aponta para o id do ficheiro-fonte, que nao muda quando
+   alguem renomeia. O nome so' aparece do lado da FOTO, porque os mapas de foto sao por nome —
+   e ai ja' e' o nome novo, que e' o que o jogo vai mostrar.
+   ===================================================================== */
+function buscarVagasAprovadas(){
+  fetch(REST + 'player_slots_publicas?select=modalidade,club_id,player_id,nome,foto_url&status=eq.aprovado',
+        { headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Accept-Profile':'elifoot_v3' } })
+    .then(r => r.ok ? r.json() : [])
+    .then(rows => {
+      const m = (window.RF_VAGAS_APROVADAS = {});
+      for(const v of rows||[]){
+        if(!v || !v.nome || !v.player_id) continue;
+        const k = String(v.modalidade)+'|'+String(v.club_id);
+        (m[k] || (m[k] = {}))[v.player_id] = { nome:v.nome, foto:v.foto_url||null };
+        /* a foto entra nos mapas de sempre, sob o nome NOVO — e' por ele que a ficha e a lista
+           de elenco vao procurar depois da renomeacao */
+        if(v.foto_url){
+          window.RF_FOTOS[String(v.club_id)+'|'+v.nome] = v.foto_url;
+          window.RF_FOTOS_NOME[v.nome] = v.foto_url;
+        }
+      }
+    })
+    .catch(()=>{ /* sem rede o jogo segue com os nomes de base — nada quebra */ });
+}
+
 let PACOTE_OFICIAL = null;
 const aplicados = new Set();
 
@@ -477,6 +513,7 @@ fetch(REST + 'data_packs?select=id,codigo,nome&oficial=is.true&limit=1',
     if(!ps || !ps.length) return;
     PACOTE_OFICIAL = ps[0].id;
     buscarFotos(PACOTE_OFICIAL);
+    buscarVagasAprovadas();
     return buscarEdits(PACOTE_OFICIAL).then(edits => {
       aplicar(edits); aplicados.add('oficial');
       try{ localStorage.setItem(CACHE, JSON.stringify({ t:Date.now(), id:PACOTE_OFICIAL, v:edits })); }catch(e){}

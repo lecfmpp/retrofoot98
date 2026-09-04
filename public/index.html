@@ -915,6 +915,8 @@ function teamMorale(id,players){
 <script src="src/ui/rf26-campeonatos.js"></script>
 <!-- Leva 5: as seis abas de Treinador (ver src/ui/rf26-treinador.js) -->
 <script src="src/ui/rf26-treinador.js"></script>
+<script src="src/ui/rf26-meujogador.js"></script>
+<script src="src/ui/rf26-pagamento.js"></script>
 <!-- Leva 5: as cinco abas de Finanças (ver src/ui/rf26-financas.js) -->
 <script src="src/ui/rf26-financas.js"></script>
 <!-- Leva 5: E-mail (2 abas) e Configurações (3 abas) — ver src/ui/rf26-email-config.js -->
@@ -939,6 +941,9 @@ if(location.search.indexOf('harness=')>=0){ document.write('<script src="src/net
 <script>
 /* init online ao carregar */
 document.addEventListener('DOMContentLoaded',async ()=>{
+  /* VOLTA DO STRIPE: `?assinatura=ok` abre a tela de pagamento confirmado — que NAO festeja
+     pelo parametro, e sim depois de o plano pago aparecer de facto (ver rfPgVoltaDoStripe). */
+  try{ if(typeof rfPgVoltaDoStripe==='function') rfPgVoltaDoStripe(); }catch(e){}
   let sala=null; try{ sala=new URLSearchParams(location.search).get('sala'); }catch(e){}
   // link de patch compartilhado (?pacote=CODIGO): guarda na conta e já deixa escolhido
   try{ if(typeof clPatchPorLink==='function') clPatchPorLink(); }catch(e){}

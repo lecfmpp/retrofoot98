@@ -271,10 +271,10 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
    página que serve para CONFERIR a equipe, e quem está a ser conferido não
    precisa dela para trabalhar. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','equipa','registro'],
+  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','embaixadores','equipa','registro'],
   financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio'],
-  leitura:    ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio']
+  produto:    ['visao','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio','embaixadores'],
+  leitura:    ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','embaixadores']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -443,6 +443,9 @@ const NAV = [
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
   { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
   { id:'estudio',     ic:'❖', label:'Estúdio IA',     tit:'Estúdio de imagens',  sub:'Escudos fictícios e fotos de jogadores por IA' },
+  /* A FILA DA MODERACAO. O nome e a foto de um embaixador entram na base que TODOS os
+     treinadores veem — por isso passam por aqui antes, e nao no clique dele. */
+  { id:'embaixadores',ic:'☻', label:'Jogadores',      tit:'Jogadores dos embaixadores', sub:'Nome e foto que vão entrar na base oficial — aprove ou recuse' },
   { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' },
   { id:'registro',    ic:'⧉', label:'Registro',       tit:'Registro de ações',  sub:'O que cada sócio fez no painel, por pessoa e por área' }
 ];
@@ -512,7 +515,7 @@ function irPara(tab, forcar){
                espera:pgEspera,
                financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo, registro:pgRegistro,
-               editor:pgEditor, estudio:pgEstudio, equipa:pgEquipa }[tab];
+               editor:pgEditor, estudio:pgEstudio, embaixadores:pgEmbaixadores, equipa:pgEquipa }[tab];
   fn(forcar, senha).then(pronto, e => {
     pronto();
     if(!desenhoAtual(senha)) return;   // erro de página abandonada não vai à tela
@@ -3798,6 +3801,106 @@ function resumoAcao(a){
   return a.alvo || '—';
 }
 /* ============================ EQUIPE ADMIN ============================ */
+
+/* ======================= JOGADORES DOS EMBAIXADORES =======================
+   Quem assina o Embaixador escolhe um dos quatro jogadores de um clube e poe nele o seu nome e a
+   sua foto (ver public/src/ui/rf26-meujogador.js). ISSO NAO ENTRA SOZINHO: nome e foto passam a
+   aparecer no jogo de TODOS os treinadores, e uma foto impropria na base oficial e' um problema
+   que nasce no ecra de outra pessoa. Por isso a fila e' aqui.
+
+   RECUSAR EXIGE MOTIVO — a RPC recusa sem ele, e de proposito: uma recusa sem explicacao chega
+   ao embaixador como "nao" e nada mais, e ele nao sabe o que corrigir. Recusada, a vaga volta a
+   ficar LIVRE (nao fica presa a quem foi recusado) e o motivo fica gravado para ele ler. */
+async function pgEmbaixadores(forcar, senha = pedirDesenho()){
+  const r = await sb.schema(SCHEMA_JOGO).rpc('vagas_pendentes');
+  if(r.error) throw r.error;
+  const fila = r.data || [];
+  /* o historico do que ja' foi decidido: e' onde se confere uma aprovacao feita depressa, e onde
+     se ve' o que ja' esta' no ar. Vem da vista publica, que e' o que o jogo tambem le'. */
+  const ap = await sb.schema(SCHEMA_JOGO).from('player_slots_publicas')
+    .select('modalidade,club_id,clube_nome,divisao,posicao,forca,nome_base,nome,foto_url,status')
+    .eq('status','aprovado').limit(200);
+  const aprovados = ap.data || [];
+
+  if(!desenhoAtual(senha)) return;
+  const POS = { GK:'Goleiro', DEF:'Defesa', MID:'Meio', ATT:'Ataque' };
+  const linha = (v) => `
+    <div class="row" style="grid-template-columns:56px 1.4fr 1.2fr auto;padding:12px 20px;align-items:center">
+      <span style="width:44px;height:44px;border-radius:50%;overflow:hidden;background:#0002;display:flex;align-items:center;justify-content:center">
+        ${v.foto_url?`<img src="${h(v.foto_url)}" alt="" style="width:100%;height:100%;object-fit:cover">`:'—'}</span>
+      <span style="min-width:0">
+        <b style="display:block">${h(v.nome||'')}</b>
+        <span style="font-size:11.5px;color:var(--dim2)">entra no lugar de ${h(v.nome_base||'')}</span>
+      </span>
+      <span style="font-size:12px;color:var(--dim2)">
+        ${h(v.clube_nome||'')} · Série ${h(v.divisao||'')} · ${h(POS[v.posicao]||v.posicao||'')} · força ${v.forca}
+        <br>${v.modalidade==='fem'?'universo feminino':'universo masculino'}
+      </span>
+      <span style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="bt" onclick="vagaVer('${h(v.foto_url||'')}','${h(v.nome||'')}')">Ver foto</button>
+        <button class="bt" onclick="vagaRecusar('${h(v.modalidade)}','${h(v.club_id)}','${h(v.player_id)}','${h(v.nome||'')}')">Recusar</button>
+        <button class="bt bt-p" onclick="vagaAprovar('${h(v.modalidade)}','${h(v.club_id)}','${h(v.player_id)}')">Aprovar</button>
+      </span>
+    </div>`;
+
+  el('page').innerHTML = `
+    <div class="card" style="overflow:hidden;margin-bottom:16px">
+      <div class="card-h"><b>Na fila</b><span class="tag">${fila.length}</span></div>
+      ${fila.length ? fila.map(linha).join('')
+        : '<div class="vazio">Nada à espera. Quando um embaixador escolher o jogador dele, aparece aqui.</div>'}
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-h"><b>Já no ar</b><span class="tag">${aprovados.length}</span></div>
+      ${aprovados.length ? aprovados.map(v=>`
+        <div class="row" style="grid-template-columns:56px 1.4fr 1fr;padding:10px 20px;align-items:center">
+          <span style="width:36px;height:36px;border-radius:50%;overflow:hidden;background:#0002;display:flex;align-items:center;justify-content:center">
+            ${v.foto_url?`<img src="${h(v.foto_url)}" alt="" style="width:100%;height:100%;object-fit:cover">`:'—'}</span>
+          <span><b>${h(v.nome||'')}</b>
+            <span style="font-size:11.5px;color:var(--dim2)"> · no lugar de ${h(v.nome_base||'')}</span></span>
+          <span style="font-size:12px;color:var(--dim2);text-align:right">
+            ${h(v.clube_nome||'')} · ${v.modalidade==='fem'?'feminino':'masculino'}</span>
+        </div>`).join('')
+        : '<div class="vazio">Nenhum jogador de embaixador está na base ainda.</div>'}
+    </div>`;
+}
+function vagaVer(url, nome){
+  if(!url){ toast('Esta vaga não tem foto.', true); return; }
+  abrirModal(`<h3>${h(nome||'Foto')}</h3>
+    <div style="display:flex;justify-content:center;padding:8px">
+      <img src="${h(url)}" alt="" style="max-width:100%;max-height:60vh;border-radius:12px">
+    </div>
+    <div class="acoes"><button class="bt" onclick="fecharModal()">Fechar</button></div>`);
+}
+async function vagaAprovar(modalidade, club, player){
+  const r = await sb.schema(SCHEMA_JOGO).rpc('vaga_decidir',
+    { p_modalidade:modalidade, p_club:club, p_player:player, p_aprovar:true, p_motivo:null });
+  if(r.error){ toast(erroMsg(r.error), true); return; }
+  toast('Aprovado — já entra nos saves novos.');
+  irPara('embaixadores', true);
+}
+/* O MOTIVO E' O PRODUTO DESTA TELA. Sem ele a recusa nao ensina nada a quem foi recusado — e a
+   RPC recusa mesmo, entao o campo aqui nao e' cortesia: e' o que faz a accao passar. */
+function vagaRecusar(modalidade, club, player, nome){
+  abrirModal(`<h3>Recusar ${h(nome||'')}</h3>
+    <p style="color:var(--dim2);font-size:13px;margin:0 0 10px">
+      O texto abaixo é o que o embaixador vai ler. Diga o que está errado e o que ele pode fazer.</p>
+    <textarea id="vaga-motivo" rows="4" style="width:100%"
+      placeholder="Ex.: a foto está desfocada e não dá para ver o rosto. Mande uma de frente, com boa luz."></textarea>
+    <div class="acoes">
+      <button class="bt" onclick="fecharModal()">Cancelar</button>
+      <button class="bt bt-p" onclick="vagaRecusarOk('${h(modalidade)}','${h(club)}','${h(player)}')">Recusar</button>
+    </div>`);
+}
+async function vagaRecusarOk(modalidade, club, player){
+  const motivo = (el('vaga-motivo')||{}).value || '';
+  if(motivo.trim().length < 3){ toast('Escreva o motivo — é o que o embaixador vai ler.', true); return; }
+  const r = await sb.schema(SCHEMA_JOGO).rpc('vaga_decidir',
+    { p_modalidade:modalidade, p_club:club, p_player:player, p_aprovar:false, p_motivo:motivo.trim() });
+  if(r.error){ toast(erroMsg(r.error), true); return; }
+  fecharModal(); toast('Recusado. A vaga voltou a ficar livre.');
+  irPara('embaixadores', true);
+}
+
 async function pgEquipa(forcar, senha = pedirDesenho()){
   // A lista de contas do jogo alimenta o seletor do convite: quase sempre o convidado
   // já é jogador, e digitar o e-mail dele de novo é onde nasce o erro de digitação

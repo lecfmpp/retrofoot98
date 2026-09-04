@@ -2101,6 +2101,82 @@ async function netCoachAvatarGerar(corpo){
   if(!d.url) return { error: d.error || 'A função não devolveu retrato.' };
   return d;
 }
+/* ===== O MEU JOGADOR NA BASE OFICIAL (plano Embaixador) =====
+   Quatro vagas por clube, nas quatro divisoes, nas duas modalidades (640 no total). O cliente
+   LE' pela vista publica — que esconde o `motivo` da recusa e o dono de cada vaga — e ESCREVE
+   so' por RPC, onde moram as regras: ter o plano, a vaga estar livre, uma vaga por pessoa.
+   Ver a migracao player_slots_rpcs. */
+async function netVagasDoClube(modalidade, clubId){
+  if(!sb) await netInitSupabase();
+  if(!sb) return [];
+  const { data, error } = await sb.schema('elifoot_v3').from('player_slots_publicas')
+    .select('modalidade,club_id,player_id,divisao,clube_nome,nome_base,forca,posicao,status,nome')
+    .eq('modalidade', modalidade).eq('club_id', clubId)
+    .order('forca', { ascending:false });
+  if(error){ console.warn('vagas do clube:', error.message); return []; }
+  return data||[];
+}
+/* quantas vagas livres tem cada clube — e' o que o dropdown de clube mostra ao lado do nome,
+   para nao se escolher um clube e descobrir la' dentro que nao ha' nada */
+async function netVagasPorClube(modalidade, divisao){
+  if(!sb) await netInitSupabase();
+  if(!sb) return [];
+  const { data, error } = await sb.schema('elifoot_v3').from('player_slots_publicas')
+    .select('club_id,clube_nome,status')
+    .eq('modalidade', modalidade).eq('divisao', divisao);
+  if(error){ console.warn('vagas por clube:', error.message); return []; }
+  const m=new Map();
+  (data||[]).forEach(r=>{
+    const c=m.get(r.club_id)||{ club_id:r.club_id, clube_nome:r.clube_nome, livres:0, total:0 };
+    c.total++; if(r.status==='livre') c.livres++;
+    m.set(r.club_id, c);
+  });
+  return [...m.values()].sort((a,b)=>a.clube_nome.localeCompare(b.clube_nome,'pt-BR'));
+}
+async function netVagaMinha(modalidade){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return null;
+  const { data, error } = await sb.schema('elifoot_v3').rpc('vaga_minha', { p_modalidade: modalidade||null });
+  if(error){ console.warn('minha vaga:', error.message); return null; }
+  return (data && data[0]) || null;
+}
+async function netVagaPedir(modalidade, clubId, playerId, nome, fotoUrl){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { error:'Entre na sua conta primeiro.' };
+  const { data, error } = await sb.schema('elifoot_v3').rpc('vaga_pedir', {
+    p_modalidade:modalidade, p_club:clubId, p_player:playerId, p_nome:nome, p_foto:fotoUrl||null });
+  if(error) return { error: error.message };
+  return { vaga: (data && data[0]) || data || null };
+}
+async function netVagaLargar(modalidade){
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const { error } = await sb.schema('elifoot_v3').rpc('vaga_largar', { p_modalidade:modalidade });
+  return error ? { error:error.message } : {};
+}
+/* A FOTO DO JOGADOR VAI PARA O BUCKET DOS JOGADORES, nao para o do perfil: sao coisas
+   diferentes — uma e' a cara do treinador (so' dele), a outra entra na base que todos veem. */
+async function netVagaFoto(arquivo){
+  if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
+  const tipo=String(arquivo && arquivo.type||'');
+  if(!/^image\/(jpeg|png|webp)$/.test(tipo)) return { error:'A foto tem de ser JPG, PNG ou WebP.' };
+  if(arquivo.size > 4*1024*1024) return { error:'A foto passa de 4 MB. Escolha uma menor.' };
+  const ext = tipo.split('/')[1].replace('jpeg','jpg');
+  const caminho = `embaixadores/${SB_AUTH_USER.id}/jogador.${ext}`;
+  const up = await sb.storage.from('jogadores').upload(caminho, arquivo, { upsert:true, contentType:tipo });
+  if(up.error) return { error: up.error.message };
+  const { data } = sb.storage.from('jogadores').getPublicUrl(caminho);
+  return { url: (data && data.publicUrl ? data.publicUrl : '') + '?v=' + Date.now() };
+}
+/* a tela de pagamento confirmado repergunta o plano enquanto o webhook nao chega (ver
+   rf26-pagamento.js): sem isto ela ficaria a olhar para o plano que leu no arranque */
+NET.carregarPlano = netCarregarPlano;
+NET.vagasDoClube = netVagasDoClube;
+NET.vagasPorClube = netVagasPorClube;
+NET.vagaMinha = netVagaMinha;
+NET.vagaPedir = netVagaPedir;
+NET.vagaLargar = netVagaLargar;
+NET.vagaFoto = netVagaFoto;
+
 NET.coachAvatarGet = netCoachAvatarGet;
 NET.coachAvatarSet = netCoachAvatarSet;
 NET.coachAvatarRef = netCoachAvatarRef;

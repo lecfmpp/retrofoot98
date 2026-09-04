@@ -3840,13 +3840,35 @@ function mascSemearNomes(){
     if(p && p.n) PROC_USED_NAMES.add(p.n);
 }
 /* usado no lugar de `club.squad` nos pontos de materialização — garante os mínimos por posição antes de mapear */
+/* ===== O JOGADOR DO EMBAIXADOR ENTRA AQUI, NO FIM =====
+   Depois do pacote (que renomeia para os ficticios) e depois do mapa feminino — porque o nome de
+   quem paga e' o ultimo a falar. A ligacao e' pelo `id` do ficheiro-fonte, nao pelo nome: o nome
+   ja' mudou pelo menos uma vez antes de chegar aqui.
+   COPIA, NUNCA MUTACAO: no masculino o caminho de sempre devolve `club.squad`, o array partilhado
+   entre saves. Escrever nele contaminaria uma carreira com o embaixador de outra modalidade — e
+   contaminaria tambem o proprio catalogo em memoria. So' se copia quando ha' mesmo o que trocar,
+   entao o caminho comum (a esmagadora maioria dos clubes) fica intocado. */
+function aplicarVagasEmbaixador(club, arr, fem){
+  const mapa = (typeof window!=='undefined' && window.RF_VAGAS_APROVADAS) || null;
+  if(!mapa || !arr || !arr.length) return arr;
+  const doClube = mapa[(fem?'fem':'mas')+'|'+String(club.id)];
+  if(!doClube) return arr;
+  let mexeu=false;
+  const out = arr.map(p=>{
+    const v = (p && p.id!=null) ? doClube[p.id] : null;
+    if(!v) return p;
+    mexeu=true;
+    return {...p, n:v.nome, _embaixador:1};
+  });
+  return mexeu ? out : arr;
+}
 function gkSquad(club){
   const fem = modalidadeAtiva()==='fem';
   if(fem) femSemearNomes();                          // antes de ensureClubPositions: ver femSemearNomes
   else mascSemearNomes();                            // idem, pelo mesmo motivo — ver mascSemearNomes
   ensureClubPositions(club);
-  if(!fem) return club.squad;                        // caminho de hoje, intocado
-  return femSquad(club);
+  if(!fem) return aplicarVagasEmbaixador(club, club.squad, false);   // caminho de hoje + as vagas
+  return aplicarVagasEmbaixador(club, femSquad(club), true);
 }
 function proceduralDivisionClubs(division, n){
   const range=DIVISION_FORCE_RANGE[division]||[55,75];
