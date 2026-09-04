@@ -1225,6 +1225,11 @@
   font-weight:var(--fw-bold);background:var(--surface-sunken);color:var(--text-faint);
   border:1px solid var(--line-2)}
 .rf-trilha-l{font-size:var(--fs-body-sm);color:var(--text-faint);font-weight:var(--fw-medium)}
+.rf-trilha-i.ouro{padding:3px 10px 3px 3px;border-radius:var(--r-pill);
+  background:linear-gradient(120deg,#fdf1c8,#f7e08f);border:1px solid #e6c453}
+.rf-trilha-i.ouro .rf-trilha-n{background:linear-gradient(160deg,#F2B90C,#c9971a);color:#17458F;
+  border-color:transparent;font-size:12px}
+.rf-trilha-i.ouro .rf-trilha-l{color:#6b5000;font-weight:var(--fw-bold)}
 .rf-trilha-i.feito .rf-trilha-n{background:var(--ok);color:#fff;border-color:var(--ok)}
 .rf-trilha-i.feito .rf-trilha-l{color:var(--text-3)}
 .rf-trilha-i.atual .rf-trilha-n{background:var(--club-primary);color:var(--club-on-primary);
@@ -2130,6 +2135,15 @@
 .rf-wiz-p.feito .rf-wiz-n{background:var(--ok);color:#fff}
 .rf-wiz-p.feito .rf-wiz-l{color:var(--text-3)}
 .rf-wiz-liga{flex:0 0 auto;width:18px;height:1px;background:var(--line-1)}
+/* ----- o degrau do Embaixador: chip dourado com a coroa -----
+   O passo 'Seu jogador' so' existe na regua de quem tem o plano; o dourado e' o que diz isso
+   sem uma palavra a mais. Vale acesa ou apagada — e' identidade, nao estado. */
+.rf-wiz-p.ouro{padding:3px 10px 3px 3px;border-radius:var(--r-pill);
+  background:linear-gradient(120deg,#fdf1c8,#f7e08f);border:1px solid #e6c453}
+.rf-wiz-p.ouro .rf-wiz-n{background:linear-gradient(160deg,#F2B90C,#c9971a);color:#17458F;
+  font-size:11px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+.rf-wiz-p.ouro .rf-wiz-l{color:#6b5000;font-weight:var(--fw-bold)}
+.rf-wiz-p.ouro.atual{box-shadow:0 0 0 3px rgba(242,185,12,.3)}
 
 /* ----- card de conteúdo ----- */
 .rf-wiz-card{background:var(--surface-card);border:var(--border-hairline);border-radius:var(--r-card);
@@ -5171,6 +5185,14 @@
   display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:50%}
 .rf-av-foto .rf-av-face img{width:100%;height:100%;object-fit:cover}
 .rf-esc-grid.cinco{grid-template-columns:repeat(5,minmax(0,1fr))}
+/* o nome que nao se edita: na Resenha ele vem da conta (e' com ele que o assento e'
+   reclamado), entao aparece como texto e diz porque' — um campo desativado so' faria a pessoa
+   tentar clicar. */
+.rf-tr-fixo{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border-radius:var(--r-control);
+  border:1px dashed var(--line-2);background:var(--surface-sunken);
+  font-size:var(--fs-body);font-weight:var(--fw-bold);color:var(--text-1)}
+.rf-tr-fixo span{font-size:var(--fs-caption);font-weight:var(--fw-regular);color:var(--text-faint)}
+
 /* ===== O CARTAO EM USO TEM CONTORNO AMARELO E DIZ O QUE E' =====
    `.on` (borda azul do clube) marcava o cartao escolhido, e nao chegava: com tres origens
    possiveis, o azul lia-se como "este esta' marcado" e nao como "esta' e' a cara que o jogo
@@ -10891,7 +10913,10 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 
 /* ----- as 4 vagas, LARGAS E COM CARA, debaixo da imagem ----- */
 .rf-mj-bloco.larga{margin-top:16px}
-.rf-mj-vagas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+/* UMA COLUNA, e nao duas: as vagas passaram a viver na coluna estreita (no lugar da grelha de
+   clubes), e a duas colunas o nome do jogador saia cortado com reticencias — "Samuel Co…" nao
+   diz a quem se esta' a tirar o lugar. */
+.rf-mj-vagas{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
 .rf-mj-vaga{display:flex;align-items:center;gap:11px;padding:11px 12px;text-align:left;
   border:1px solid #e6ece4;border-radius:14px;background:#fff;cursor:pointer;min-width:0}
 .rf-mj-vaga.on{border-color:#17458F;background:#f4f7fb;box-shadow:0 0 0 2px rgba(23,69,143,.12)}
@@ -10906,7 +10931,6 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-mj-vaga-d .rf-mj-quad{width:18px;height:18px;border-radius:6px;font-size:10px}
 .rf-mj-vaga-s{font-size:11px;color:#78877c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:760px){
-  .rf-mj-vagas{grid-template-columns:minmax(0,1fr)}
   .rf-mj-troca{grid-template-columns:minmax(0,1fr);gap:6px}
   .rf-mj-seta{transform:rotate(90deg)}
 }
@@ -10959,9 +10983,22 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-mjp-cta{height:46px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;
   font-family:var(--font-sans);font-size:14px;font-weight:700;cursor:pointer}
 
+/* o clube escolhido, em uma linha, no lugar onde estavam os 20 cartoes */
+.rf-mj-clube-fixo{display:flex;align-items:center;gap:12px;padding:11px 12px;
+  border:1px solid #dbe4f2;border-radius:14px;background:#f4f7fb}
+.rf-mj-clube-fixo-id{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.rf-mj-clube-fixo-id b{font-size:15px;color:#12201a;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.rf-mj-clube-fixo .rf-mj-bt-br{flex:0 0 auto;height:36px}
+
 @media (max-width:900px){
   .rf-mj-wrap{grid-template-columns:minmax(0,1fr)}
   .rf-mj-clubes{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* NO TELEMOVEL A IMAGEM VEM PRIMEIRO. Empilhado, a coluna das escolhas ficaria por cima e a
+     troca (quem sai -> quem entra) so' apareceria depois de rolar — e e' ela que da' sentido
+     aos cartoes de jogador logo abaixo. */
+  .rf-mj-wrap .rf-mj-fig{order:1}
+  .rf-mj-wrap .rf-mj-col{order:2}
 }
 @media (max-width:760px){
   /* a divisao vira faixa rolavel, sangrando ate' a borda do cartao */

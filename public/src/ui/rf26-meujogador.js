@@ -358,7 +358,7 @@ function rfMjFigurinhaHTML(){
         <span class="rf-mj-seta" aria-hidden="true">→</span>
         ${rfMjCardMeuHTML()}
       </div>`
-      :`<div class="rf-mj-troca vazia"><span class="rf-note">Escolha o clube e a vaga abaixo para
+      :`<div class="rf-mj-troca vazia"><span class="rf-note">Escolha o clube e a vaga ao lado para
         ver quem você vai substituir.</span></div>`}
     <div class="rf-mj-fig-bts">
       <button type="button" class="rf-mj-bt-br" onclick="rfMjSubirFoto()">
@@ -417,7 +417,7 @@ function rfMjVagasHTML(){
       <span class="rf-mj-pill ${livre?'':'ocupada'}">${livre?(sel?'ESCOLHIDO':'#'+rfMjCamisa(v)):'OCUPADA'}</span>
     </button>`;
   }).join('');
-  return `<div class="rf-mj-bloco larga">
+  return `<div class="rf-mj-bloco">
     <div class="rf-mj-bloco-hd">
       <span class="rf-mj-rot">VAGA NO ELENCO — QUEM VOCÊ SUBSTITUI</span>
       <span class="rf-mj-mono">4 POR CLUBE · ${livres} ${livres===1?'LIVRE':'LIVRES'}</span>
@@ -425,6 +425,11 @@ function rfMjVagasHTML(){
     ${linhas?`<div class="rf-mj-vagas">${linhas}</div>`
       :`<span class="rf-note">${e.carregando?'Carregando…':'Sem vagas neste clube.'}</span>`}
   </div>`;
+}
+/* volta a' grelha de clubes — e larga a vaga marcada junto, que pertencia ao clube anterior */
+function rfMjTrocarClube(){
+  const e=rfMjEstado();
+  e.clubId=null; e.playerId=null; e.vagas=[]; cdraw();
 }
 function rfMjEscolhasHTML(){
   const e=rfMjEstado();
@@ -448,19 +453,39 @@ function rfMjEscolhasHTML(){
   }).join('');
 
   const cfgLbl=(cfg&&cfg.label&&cfg.label[e.divisao])||('Série '+e.divisao);
+  /* ===== OS CLUBES SAEM QUANDO UM DELES ENTRA =====
+     Eram 20 cartoes de clube fixos no alto e as quatro vagas la' em baixo: escolher o clube
+     era escolher no escuro, porque quem se ia substituir so' aparecia depois de rolar a
+     pagina. Agora a grelha de clubes DA' LUGAR aos jogadores daquele clube, no mesmo sitio —
+     um clique troca a lista, e o botao devolve a grelha. Nada a rolar entre a decisao e o que
+     ela mostra. */
+  const escolhido=e.clubId ? (e.clubes||[]).find(c=>c.club_id===e.clubId) : null;
+  const blocoClube = e.clubId
+    ? `<div class="rf-mj-bloco">
+        <div class="rf-mj-clube-fixo">
+          <span class="rf-mj-clube-e">${rfMjCrest(e.clubId)}</span>
+          <span class="rf-mj-clube-fixo-id">
+            <b>${escC(rfMjNomeClube(e.clubId, escolhido&&escolhido.clube_nome))}</b>
+            <span class="rf-mj-mono">${escC(cfgLbl.toUpperCase())}</span>
+          </span>
+          <button type="button" class="rf-mj-bt-br" onclick="rfMjTrocarClube()">Escolher outro time</button>
+        </div>
+      </div>
+      ${rfMjVagasHTML()}`
+    : `<div class="rf-mj-bloco">
+        <div class="rf-mj-bloco-hd">
+          <span class="rf-mj-rot">CLUBE</span>
+          <span class="rf-mj-mono">${escC(cfgLbl.toUpperCase())} · SÓ CLUBES COM VAGA</span>
+        </div>
+        ${clubes?`<div class="rf-mj-clubes">${clubes}</div>`
+          :`<span class="rf-note">${e.carregando?'Carregando os clubes…':'Escolha uma divisão.'}</span>`}
+      </div>`;
   return `<div class="rf-mj-col">
-    <div class="rf-mj-bloco">
+    ${e.clubId?'':`<div class="rf-mj-bloco">
       <span class="rf-mj-rot">DIVISÃO</span>
       <div class="rf-mj-divs">${divs}</div>
-    </div>
-    <div class="rf-mj-bloco">
-      <div class="rf-mj-bloco-hd">
-        <span class="rf-mj-rot">CLUBE</span>
-        <span class="rf-mj-mono">${escC(cfgLbl.toUpperCase())} · SÓ CLUBES COM VAGA</span>
-      </div>
-      ${clubes?`<div class="rf-mj-clubes">${clubes}</div>`
-        :`<span class="rf-note">${e.carregando?'Carregando os clubes…':'Escolha uma divisão.'}</span>`}
-    </div>
+    </div>`}
+    ${blocoClube}
   </div>`;
 }
 
@@ -473,7 +498,6 @@ function rfObMeuJogador(){
       ${rfMjEscolhasHTML()}
       ${rfMjFigurinhaHTML()}
     </div>
-    ${rfMjVagasHTML()}
     ${e.erro?`<div class="rf-mj-erro">${escC(e.erro)}</div>`:''}
     <div class="rf-mj-pe">
       <span class="rf-mj-pe-estado" data-mj-estado>${escC(rfMjFalta())}</span>
@@ -488,7 +512,11 @@ function rfObMeuJogador(){
     sobre:'BENEFÍCIO DE EMBAIXADOR',
     titulo:'Coloque o seu nome no pack oficial do jogo.',
     sub:'Escolha o clube e quem você substitui no elenco, mande a sua foto e crie o seu jogador. Depois da nossa revisão, ele entra no jogo de todo mundo.',
-    corpo, semAcao:true });
+    corpo, semAcao:true,
+    /* o degrau anterior e' o do treinador nos dois modos; na Resenha o assistente ja' passou
+       pela sala, entao o regresso e' para o lobby */
+    voltar: (typeof CL!=='undefined' && CL.online) ? "CL.net.step='lobby';cdraw()" : 'clGoJogadores()',
+    voltarLabel:'‹ Voltar' });
 }
 
 /* ---- a versao de dentro do jogo (Treinador > Meu jogador) ---- */
@@ -527,7 +555,6 @@ function rfMjHTML(){
   if(!e.clubes.length && !e.carregando) rfMjSetDivisao(e.divisao);
   return rfCol(rfCard('O seu jogador na base oficial', `
     <div class="rf-mj-wrap">${rfMjEscolhasHTML()}${rfMjFigurinhaHTML()}</div>
-    ${rfMjVagasHTML()}
     ${e.erro?`<div class="rf-mj-erro">${escC(e.erro)}</div>`:''}
     <div class="rf-mj-pe">
       <span class="rf-mj-pe-estado" data-mj-estado>${escC(rfMjFalta())}</span>

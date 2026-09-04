@@ -2157,15 +2157,19 @@ function wizShell(o){
    partilhadas pelos dois modos (sorteio, boas-vindas) só podiam acertar num.
    No telefone o CSS troca a régua por barra de progresso (ver .rf-trilha). */
 const RF_TRILHAS={
-  solo:     ['Entrar','Modo','Save','País e liga','Clube','Jogar'],
+  /* 'Treinador' PASSOU A SER UM DEGRAU COM NOME PROPRIO. A tela de "quem e' voce na beira do
+     campo" existia ha' muito, mas pedia emprestado o numero do passo de 'Pais e liga' — a
+     regua acendia o degrau errado enquanto se escolhia a cara. Agora que a escolha da cara e'
+     obrigatoria (e que a Resenha tambem a faz), ela e' um passo declarado nas tres reguas. */
+  solo:     ['Entrar','Modo','Save','País e liga','Treinador','Clube','Jogar'],
   /* "País e liga" no 3: quem cria a sala escolhe país e divisão nela (ver rfOb4).
      Eu tinha posto "Resenha" aqui; o pacote ("Onboarding 2c - Resenha Comecar")
      desenha a régua com "País e liga", e é a régua do desenho que manda. */
-  resenha:  ['Entrar','Modo','País e liga','Sala','Convites','Clube','Jogar'],
+  resenha:  ['Entrar','Modo','Treinador','País e liga','Sala','Convites','Clube','Jogar'],
   /* QUEM ENTRA POR CÓDIGO tem caminho próprio, e curto: não escolhe país nem
      convida ninguém — o anfitrião já fez isso. É a régua que o pacote desenha
      em "Resenha - Entrar com Codigo" ("PASSO 3 DE 4 · CONVIDADO"). */
-  convidado:['Entrar','Modo','Código','Sala'],
+  convidado:['Entrar','Modo','Treinador','Código','Sala'],
 };
 /* o modo ativo, quando quem desenha a tela não o diz */
 function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
@@ -2203,8 +2207,12 @@ function rfTrilhaHTML(passo, modo){
   const itens=[];
   for(let i=1;i<=n;i++){
     const feito=i<passo, atual=i===passo;
-    itens.push(`<span class="rf-trilha-i ${feito?'feito':''} ${atual?'atual':''}">
-      <span class="rf-trilha-n">${feito?'✓':i}</span>
+    /* o degrau do Embaixador vem dourado nas DUAS reguas do assistente (a outra e'
+       rfWizTrilhaHTML) — telas diferentes desenham reguas diferentes, e um passo que muda de
+       roupa conforme a tela deixaria de ser reconhecivel. */
+    const doPlano=(rotulos[i-1]==='Seu jogador');
+    itens.push(`<span class="rf-trilha-i ${feito?'feito':''} ${atual?'atual':''} ${doPlano?'ouro':''}">
+      <span class="rf-trilha-n">${doPlano?'👑':(feito?'✓':i)}</span>
       <span class="rf-trilha-l">${escC(rotulos[i-1]||('Passo '+i))}</span>
     </span>`);
   }
@@ -2273,7 +2281,12 @@ function clPickResenha(){
   if(DATA.clubsSerieA) DATA.clubs=DATA.clubsSerieA.slice();
   CL.intlUniverse=false; CL.bgCountries=[]; CL.playCountry='Brasil';
   CL.screen='online';
-  CL.net={ step:'escolha', intent:'host', authMode:'login', name:CL.mgr||st.name||'', email:st.email||'', roomName:'', phone:'', code:'', myRooms:null };
+  /* A CARA VEM ANTES DA SALA. No Solo a identidade do treinador (idade e retrato) e' um passo
+     do assistente; na Resenha nao havia passo nenhum — quem entrava por sala nunca escolhia a
+     cara, e ela e' justamente o que os OUTROS veem na sala, no chat e no ranking. O degrau e'
+     o mesmo do Solo, sem o campo do nome: aqui o nome e' o da conta (e' com ele que o assento
+     e' reclamado), entao um campo editavel ali seria um campo que nao muda nada. */
+  CL.net={ step:'treinador', intent:'host', authMode:'login', name:CL.mgr||st.name||'', email:st.email||'', roomName:'', phone:'', code:'', myRooms:null };
   wireNet(); cdraw();
   // busca em segundo plano as salas que o usuário já participa (pra oferecer reentrar)
   (async ()=>{ try{ CL.net.myRooms = await NET.listMyRooms(); if(CL.net&&CL.net.step==='escolha') cdraw(); }catch(e){} })();

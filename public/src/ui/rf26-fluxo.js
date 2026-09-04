@@ -455,6 +455,13 @@ function rfTreinadoresHTML(){
       ${off?'<span class="rf-esc-tag">Em breve</span>':''}
     </div>`;
   };
+  /* ===== O MESMO DEGRAU NOS DOIS MODOS =====
+     Na Resenha o nome do treinador e' o da conta — e' com ele que o assento e' reclamado e e'
+     ele que aparece na sala e no chat. Um campo de nome aqui seria um campo que nao muda nada,
+     entao ele fica de fora e o nome aparece so' como texto. Idade e retrato sao iguais nos dois
+     modos, e e' isso que este passo veio garantir. */
+  const naResenha=!!(CL.net && CL.net.step==='treinador');
+  const modo=naResenha?'resenha':'solo';
   const corpo=`
     <div class="rf-wiz-mid">
       ${/* ===== A SALA COM MAIS GENTE SAIU DAQUI =====
@@ -466,11 +473,15 @@ function rfTreinadoresHTML(){
            para tomar nesta tela. RF_HOTSEAT_LIGADO continua a existir: liga-lo repoe a grelha. */''}
       ${RF_HOTSEAT_LIGADO?`<div class="rf-esc-grid quatro">${[1,2,3,4].map(cartao).join('')}</div>
       <div class="rf-esc-grid quatro">${[5,6,7,8].map(cartao).join('')}</div>`:''}
-      <div class="rf-tr-nomes">
+      ${naResenha
+        ? rfCampo('O seu nome de treinador',
+            `<div class="rf-tr-fixo">${escC(String(CL.mgr||'Treinador').toUpperCase())}
+               <span>é o nome da sua conta — é com ele que os outros veem você na sala</span></div>`)
+        : `<div class="rf-tr-nomes">
         ${(CL.names||['']).slice(0,RF_HOTSEAT_LIGADO?n:1).map((nm,i)=>rfCampo(i===0?'O seu nome de treinador':'Treinador '+(i+1),
           `<input class="rf-campo-c maiuscula" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
              value="${escC(nm||'')}" oninput="rfNomeTreinador(${i},this.value)">`)).join('')}
-      </div>
+      </div>`}
       <!-- A IDADE DO TREINADOR DEIXA DE SER INVENTADA. A ficha em Treinador
            mostrava "36 anos" para toda a gente: o numero saia de uma conta fixa
            (36 + temporadas-1) porque o dado nao existia. Agora escolhe-se aqui,
@@ -479,7 +490,7 @@ function rfTreinadoresHTML(){
         `<input class="rf-campo-c" id="rf-ob-idade" inputmode="numeric" maxlength="2" placeholder="36"
            value="${escC(String(CL.coachAge||36))}" oninput="rfIdadeTreinador(this.value)">`)}
       ${rfAvatarBlocoHTML()}
-      ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
+      ${(RF_HOTSEAT_LIGADO||naResenha)?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
     </div>`;
@@ -490,12 +501,17 @@ function rfTreinadoresHTML(){
      vez de ficar apagado sem explicacao. */
   const temCara=(typeof rfAvatarEscolhido==='function') && rfAvatarEscolhido();
   return rfWiz({
-    titulo:'Quem é você na beira do campo', sub:'O nome, a idade e a cara que vão aparecer na sua carreira, no ranking e na ficha do treinador.',
-    passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
+    titulo:'Quem é você na beira do campo',
+    sub:naResenha
+      ? 'A idade e a cara que vão aparecer na sala, no chat da liga, no ranking e na ficha do treinador.'
+      : 'O nome, a idade e a cara que vão aparecer na sua carreira, no ranking e na ficha do treinador.',
+    passo:rfPasso('Treinador',modo), trilha:modo, contexto:naResenha?'Modo Resenha':undefined, corpo,
     nota:temCara?'Dá para trocar a foto depois, em Configurações.':'Escolha a sua cara para continuar.',
-    voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
+    voltar:naResenha?'clGoModo()':'clGoMoeda()',
+    voltarLabel:naResenha?'‹ Voltar ao modo':'‹ Voltar à moeda',
     cta:temCara?'Continuar':'Escolha a sua cara', ctaCurto:temCara?'Continuar':'Escolha a cara',
-    ctaOff:!temCara, ctaOn:'clEscolherClubes()' });
+    ctaOff:!temCara,
+    ctaOn:naResenha?"CL.net.step='escolha';cdraw()":'clEscolherClubes()' });
 }
 function rfTreinadoresSel(k){
   CL.names=CL.names||[];

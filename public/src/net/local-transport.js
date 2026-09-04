@@ -609,6 +609,9 @@ function onlineReconcileIfBehind(room){
    Onboarding 4 e `scLobby` devolve a Onboarding 5. As que ainda não têm desenho
    novo seguem com a tela antiga — feia, mas viva, que é melhor do que um beco. */
 function renderOnline(){ const n=CL.net||{};
+  /* o mesmo degrau do Solo (ui/rf26-fluxo.js), aqui dentro do Resenha: idade e retrato antes
+     de criar sala ou entrar por codigo */
+  if(n.step==='treinador') return (typeof rfTreinadoresHTML==='function') ? rfTreinadoresHTML() : scResenhaChoice();
   if(n.step==='escolha') return (typeof rfResenhaComecarHTML==='function') ? rfResenhaComecarHTML() : scResenhaChoice();
   /* PORTADAS (ver src/ui/rf26-resenha-entrada.js). As antigas ficam abaixo,
      sem chamador, ate o desenho novo passar pelo teste do usuario. */
@@ -1401,6 +1404,15 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   CL.humans={}; room.participants.forEach(p=>{ if(p.clubId) CL.humans[p.clubId]=p.name; });
   CL.online=true; CL._playedRound=null; CL._hostPendingCommit=null; CL._hostCloseSince=0; // zera controle de rodada do save novo
   CL.formation=null; CL.tacticChosen=false; S.coachHistory=[{season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(CL.clubId).short.toUpperCase()}`}];
+  /* ===== A IDENTIDADE DO TREINADOR TAMBEM ENTRA NO SAVE DA RESENHA =====
+     Isto so' acontecia no Solo (ver clEntrar): aqui a ficha mostrava a idade fixa de sempre e,
+     depois de um F5, a cara caia nas iniciais — porque nada do que se escolheu tinha ido parar
+     ao save. Agora que a Resenha tem o mesmo degrau de identidade, ela grava o mesmo que o Solo
+     grava, e pelas mesmas funcoes. */
+  S.coachAge0=(typeof rfIdadeTreinadorValida==='function')?rfIdadeTreinadorValida():36;
+  S.coachGender=(CL.coachGender==='f')?'f':'m';
+  S.coachAvatar=CL.coachAvatar
+    || ((typeof rfAvatarSorteado==='function')?rfAvatarSorteado():null);
   CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
   // entrada fresca (logo após o sorteio): mostra a Boas-vindas ao Clube antes da tela principal.
   // reconexão a jogo em andamento vai direto pra TELA PRINCIPAL do time, como sempre foi.

@@ -176,9 +176,15 @@ function rfWizTrilhaHTML(passo, trilha){
       role="progressbar" aria-valuenow="${passo}" aria-valuemin="1" aria-valuemax="${passos.length}"
       aria-label="Passo ${passo} de ${passos.length}: ${escC(passos[passo-1]||'')}">${passos.map((l,i)=>{
     const n=i+1, feito=n<passo, atual=n===passo;
+    /* ===== O DEGRAU DO EMBAIXADOR E' DOURADO =====
+       'Seu jogador' nao e' um passo como os outros: e' o beneficio de um plano pago, e so'
+       aparece na regua de quem o tem (ver rfTrilhaDe). Vestido igual aos outros, ele lia-se
+       como mais uma burocracia do assistente. O chip dourado com a coroa diz de quem ele e'
+       antes de a pessoa ler o rotulo. */
+    const doPlano = l==='Seu jogador';
     return `${i?'<span class="rf-wiz-liga"></span>':''}
-      <span class="rf-wiz-p ${feito?'feito':''} ${atual?'atual':''}">
-        <span class="rf-wiz-n">${feito?rfIcone('ok',14):n}</span>
+      <span class="rf-wiz-p ${feito?'feito':''} ${atual?'atual':''} ${doPlano?'ouro':''}">
+        <span class="rf-wiz-n">${doPlano?'👑':(feito?rfIcone('ok',14):n)}</span>
         <span class="rf-wiz-l">${escC(l)}</span>
       </span>`;
   }).join('')}</div>`;
@@ -240,6 +246,10 @@ function rfOb1(){
     sobre:'Bem-vindo, treinador', titulo:'Crie sua conta e entre no jogo.',
     sub:'Seus saves ficam na nuvem — dá para começar no computador e continuar no telefone.',
     nota:'A gente só usa seu e-mail para o save e para avisar da vaga.',
+    /* TODO PASSO TEM SAIDA PARA TRAS. Este era o unico degrau do assistente sem botao de
+       voltar: quem abrisse o formulario de conta ficava sem caminho de regresso a' abertura
+       a nao ser recarregando a pagina. */
+    voltar:'clGoAbertura()', voltarLabel:'‹ Voltar ao início',
     cta: criando?'Criar conta e continuar':'Entrar e continuar',
     ctaOff:!pronto, ctaOn: criando?'clLoginSignup()':'clLoginDo()'});
 }
@@ -263,6 +273,7 @@ function rfOb1Logado(st){
     sobre:'Bem-vindo de volta', titulo:'Continuar como '+nome+'.',
     sub:'Seus saves ficam na nuvem — dá para começar no computador e continuar no telefone.',
     nota:'Dá para trocar de conta a qualquer momento pelo cabeçalho.',
+    voltar:'clGoAbertura()', voltarLabel:'‹ Voltar ao início',
     cta:'Continuar', ctaOn:"CL.screen='modo';cdraw()"});
 }
 /* NAO desloga: so devolve o formulario, para quem se enganou nao perder a
