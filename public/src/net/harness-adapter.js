@@ -88,6 +88,25 @@
     NET.gameId=code; NET.code=code; NET.isHost=false;
     pushState(SRV.snapshot(code)); return true;
   };
+  /* ===== O PEDIDO DE ENTRADA, QUE FALTAVA =====
+     O atalho `__h.join` do runner chamava NET.joinRoom direto e saltava por cima da entrada de
+     produção — que é `clRequestOrJoin` -> NET.requestJoin -> routeAfterJoin. Sem esta peça, o
+     caminho REAL do convidado (o do link de convite) não podia ser exercitado aqui: ele morria
+     num NET.requestJoin inexistente.
+     Semântica: sala de harness é sempre "qualquer um com o código", então entra direto
+     (`entered:true`) — o mesmo que a produção devolve para quem está pré-aprovado. A fila de
+     aprovação do anfitrião é outro cenário, e este mock não a promete. */
+  NET.requestJoin=async function(code, me){
+    await NET.joinRoom(code);
+    return { entered:true, name:(me&&me.name)||myName };
+  };
+  /* vagas do Embaixador: o harness não tem base de vagas. Devolve UM clube com as quatro
+     posições livres — o bastante para o degrau existir de verdade e o fluxo seguir. */
+  NET.vagaMinha=async()=>null;
+  NET.vagasPorClube=async()=>[{ club_id:'1023', clube_nome:'Academia Palestra', livres:4, total:4 }];
+  NET.vagasDoClube=async(mod, club)=>['GK','DEF','MID','ATT'].map((pos,i)=>({
+    modalidade:mod, club_id:club, player_id:'jmh0000'+i, divisao:'A', clube_nome:'Academia Palestra',
+    nome_base:'Jogador '+(i+1), forca:80-i, posicao:pos, status:'livre', nome:null }));
   NET.confirm=function(me){ if(me&&me.name) SRV.rename(NET.gameId, uid, me.name); };
   NET.refreshRoom=async function(){ pushState(SRV.snapshot(NET.gameId)); };
   NET.listJoinRequests=async()=>[]; NET.approveJoin=async()=>{}; NET.kick=function(){};
@@ -129,6 +148,18 @@
     SRV.assignSeats(NET.gameId, pool);
   };
   NET.setMyClub=async function(clubId){ SRV.setClub(NET.gameId, uid, clubId); };
+  /* ===== O ASSENTO DO LOBBY PASSAVA AO LADO DO SERVIDOR =====
+     `clAutoSeatLobby` (o sorteio de clube de quem acaba de entrar) chama NET.assignClub, e este
+     adapter não a redefinia: caía na versão em memória do local-transport, que mexe em
+     `NET.room.participants` e nunca fala com o __HSRV. Resultado: o convidado entrava na sala e
+     o assento dele ficava sem clube no servidor — a marca que o anfitrião lê. Os quatro
+     primeiros cenários nunca viram isto porque o atalho `__h.join` salta o routeAfterJoin
+     inteiro; apareceu no primeiro teste que entra pela porta da frente.
+     A mesma trava da produção (netAssignClub): só o próprio assento, ou o anfitrião. */
+  NET.assignClub=async function(pid, clubId){
+    if(pid!==uid && !NET.isHost) return;
+    SRV.setClub(NET.gameId, pid, clubId);
+  };
   NET.mySeat=async function(){ const g=SRV.snapshot(NET.gameId); return (g&&g.seats[uid])?JSON.parse(JSON.stringify(g.seats[uid])):null; };
 
   /* máquina de fases — semântica idêntica às RPCs (ver runner) */

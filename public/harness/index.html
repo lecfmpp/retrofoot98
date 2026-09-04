@@ -22,6 +22,7 @@
   <button onclick="scenario2()">▶ Cenário 2: COPAS (Série A, quarta/sábado)</button>
   <button onclick="scenario3()">▶ Cenário 3: 365ZV (dois fora das copas, até a jornada 3)</button>
   <button onclick="scenario4()">▶ Cenário 4: LEILÃO (disputa entre os dois humanos)</button>
+  <button onclick="scenario5()">▶ Cenário 5: CONVIDADO (link → conta → cara → sala)</button>
   <button onclick="hz.timerMs=8000">timer 8s</button>
   <span id="st" class="info"></span>
 </div>
@@ -537,6 +538,92 @@ async function scenario4(){
   }catch(e){ log(String(e&&e.message||e),'fail'); }
   finally{ stopRecorder(); }
 }
+/* ===== CENÁRIO 5: A ENTRADA DO CONVIDADO, PELO CAMINHO REAL =====
+   Os quatro cenários acima começam com `__h.join`, um atalho que salta as telas de entrada e
+   larga o cliente no lobby. Ou seja: o caminho que o convidado percorre de verdade — link de
+   convite, tela de conta, degrau do treinador, degrau do Embaixador, pedido de entrada — nunca
+   tinha sido exercitado por ninguém a não ser à mão.
+
+   Aqui o B entra pela MESMA função que o index.html chama quando vê `?sala=CODIGO`, e o teste
+   clica nos botões que existem na tela, em vez de chamar as funções por baixo. O que ele prova,
+   em ordem: (1) o convidado vê a régua dele, não a do anfitrião; (2) NENHUM pedido de entrada
+   sai antes de a pessoa ter uma cara; (3) o botão fica travado até haver escolha; (4) só um
+   cartão fica marcado; (5) o degrau do Embaixador entra ANTES da sala e o "fazer isso depois"
+   leva à sala (e não ao sorteio do Solo, que é outro modo); (6) a régua não troca de tamanho na
+   cerimônia. */
+const dB=()=>B().document;
+const elB=sel=>dB().querySelector(sel);
+const fitaB=()=>{ const f=elB('.rf-wiz-fita-c'); return f?f.textContent.trim():'(sem fita)'; };
+const ctaB=()=>elB('.rf-wiz-cta');
+const clicaB=sel=>{ const e=elB(sel); if(!e) throw new Error('não achei na tela do B: '+sel); e.click(); };
+const botaoB=txt=>{ const b=[...dB().querySelectorAll('button')].find(x=>x.textContent.indexOf(txt)>=0);
+  if(!b) throw new Error('não achei o botão "'+txt+'" na tela do B'); b.click(); };
+const jogadores=c=>Object.keys((G(c)||{players:{}}).players).length;
+const reguaB=()=>[...dB().querySelectorAll('.rf-wiz-l, .rf-trilha-l')].map(x=>x.textContent.trim());
+
+async function scenario5(){
+  try{
+    hz.timerMs=8000; hz.games={}; CODE=null;
+    fA.src='/?harness=A&t='+Date.now(); fB.src='/?harness=B&t='+Date.now();
+    await sleep(1400);
+    await waitFor(()=>A().__h&&B().__h,'clientes carregados');
+    CODE=await A().__h.hostCreate('SALA CONVITE');
+    log('sala '+CODE+' aberta pelo anfitrião A','info'); st.textContent='sala '+CODE;
+
+    /* B CHEGA PELO LINK. clOnlineJoin é exatamente o que o index.html chama ao ver ?sala=.
+       O Supabase de verdade fica de fora: aqui o transporte é o mock. */
+    B().netInitSupabase=async()=>false;
+    /* O PLANO E' SABIDO ANTES DE COMECAR, como na produção (o cliente lê o plano da conta no
+       arranque). Fingi-lo aqui, e não a meio, é o que faz a régua ter o mesmo tamanho do
+       primeiro degrau ao último — que é justamente o que este cenário mede. */
+    B().rfMjEhEmbaixador=()=>true;
+    B().clOnlineJoin(CODE);
+    await waitFor(()=>stB().netStep==='conta','B cai na tela de conta, vindo do link');
+    assert(jogadores(CODE)===1,'ninguém entrou na sala ainda — o convite não é entrada');
+    /* a régua do convidado tem os degraus DELE: 'Código' existe, 'Convites' (do anfitrião) não */
+    assert(reguaB().indexOf('Código')>=0 && reguaB().indexOf('Convites')<0,
+      'B vê a régua do CONVIDADO: '+reguaB().join(' › '));
+    assert(/^1 de/.test(fitaB()),'o link já deixa os dois primeiros degraus para trás: '+fitaB());
+    const TOTAL=fitaB().split(' de ')[1];
+
+    clicaB('.rf-wiz-cta');                       // "Entrar" da tela de conta
+    await waitFor(()=>stB().netStep==='treinador','o degrau do treinador vem ANTES do pedido de entrada');
+    assert(jogadores(CODE)===1,'continua sem pedido de entrada: a cara vem primeiro');
+    assert(ctaB().disabled,'botão travado sem cara escolhida ("'+ctaB().textContent.trim().slice(0,20)+'")');
+    assert(!!elB('.rf-tr-fixo'),'o nome vem da conta, como texto — não como campo que não muda nada');
+
+    clicaB('.rf-av-cards .rf-esc');              // uma das faces desenhadas
+    await sleep(400);
+    assert(dB().querySelectorAll('.rf-esc.escolhido').length===1,'exatamente UM cartão marcado como em uso');
+    assert(!ctaB().disabled,'botão liberado com a cara escolhida');
+    assert(/Entrar na sala/.test(ctaB().textContent),'o botão do convidado diz "Entrar na sala"');
+
+    /* O DEGRAU DO EMBAIXADOR. Finge o plano no cliente B: quem decide de verdade é o servidor
+       (vaga_pedir confere o plano), e o que este cenário mede é a ROTA, não a permissão. */
+    clicaB('.rf-wiz-cta');
+    await waitFor(()=>stB().netStep==='meujogador','o degrau do Embaixador entra entre o treinador e a sala');
+    assert(jogadores(CODE)===1,'e ainda assim ninguém entrou na sala antes da hora');
+    assert(dB().body.textContent.indexOf('👑')>=0,'a régua marca o degrau dourado do Embaixador');
+
+    botaoB('Fazer isso depois');
+    await waitFor(()=>stB().netStep==='lobby','"fazer isso depois" leva à SALA (não ao sorteio do Solo)',20000);
+    assert(jogadores(CODE)===2,'agora sim: o servidor tem os dois jogadores');
+    /* o clube do CONVIDADO sai na hora em que ele entra (clAutoSeatLobby) — é o que o faz
+       aparecer com time na tela do anfitrião. O do anfitrião só sai no sorteio, ao começar. */
+    const meuAssento=G(CODE).seats[B().__h.uid]||{};
+    assert(!!meuAssento.club_id,'o convidado entra na sala JÁ com clube no servidor');
+
+    /* daqui para a frente é o caminho de sempre — o que se mede é a régua não trocar de dono */
+    start();
+    await waitFor(()=>stA().netStep==='reveal'&&stB().netStep==='reveal','os dois na cerimônia do sorteio');
+    assert(fitaB().split(' de ')[1]===TOTAL && reguaB().indexOf('Convites')<0,
+      'a régua do convidado não troca de dono nem de tamanho na cerimônia: '+fitaB()+' · '+reguaB().join(' › '));
+    await fastUntil(['main'],'os dois atravessam as cerimônias até a tela do clube',90000);
+    assert(stA().round===stB().round,'os dois na mesma rodada ao fim: '+stB().round);
+    log('=== CENÁRIO CONVIDADO: PASSOU ===','ok');
+  }catch(e){ log(String(e&&e.message||e),'fail'); }
+}
+
 async function scenario(){
   try{
     hz.timerMs=8000;
