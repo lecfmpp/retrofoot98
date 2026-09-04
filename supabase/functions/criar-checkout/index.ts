@@ -197,7 +197,13 @@ Deno.serve(async (req) => {
          cobranca e nao saberia de quem foi a segunda. */
       subscription_data: { metadata: { user_id: uid, plano } },
       metadata: { user_id: uid, plano, ciclo },
-      success_url: `${volta}/?assinatura=ok`,
+      /* O ENDERECO DE VOLTA DIZ O QUE FOI COMPRADO. Sem o `plano`, a tela de confirmacao so'
+         sabia perguntar "que plano esta' nesta conta agora?" — e festejava o que encontrasse.
+         Para quem sobe de Resenha para Embaixador isso e' a resposta errada: no segundo em que
+         a pessoa volta, o webhook ainda nao gravou nada e a conta ainda diz 'resenha', entao a
+         tela dava os parabens pelo plano ANTIGO, com o texto e o emoji errados. Com o plano no
+         endereco, ela espera o plano CERTO aparecer antes de festejar. */
+      success_url: `${volta}/?assinatura=ok&plano=${plano}`,
       cancel_url: `${volta}/?assinatura=cancelada`,
     });
 

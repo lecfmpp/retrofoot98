@@ -195,16 +195,47 @@ function rfPgNaoConfirmouHTML(){
     </div>`;
 }
 
-/* ===== O PORTAO: SO' FESTEJA COM O PLANO NA MAO =====
+/* a volta do Stripe sem sessao: nao ha' plano a que perguntar, e esperar 30 segundos por uma
+   resposta que nao pode chegar e' pior do que dizer o que falta */
+function rfPgSemSessaoHTML(){
+  return `<div class="rf-pg-topo plano-esperando">
+      <div class="rf-pg-topo-in">
+        <span class="rf-pg-selo" aria-hidden="true">🔑</span>
+        <span class="rf-pg-kicker">FALTA ENTRAR</span>
+        <h2 class="rf-pg-tit">Entre na conta que fez a assinatura.</h2>
+        <p class="rf-pg-sub">O plano fica guardado na conta, não neste aparelho. Assim que você
+          entrar, ele aparece — e o comprovante já está no e-mail.</p>
+      </div>
+    </div>
+    <div class="rf-pg-corpo">
+      <div class="rf-pg-rodape">
+        <button type="button" class="rf-pg-cta plano-resenha" onclick="rfPgFechar()">Entendi</button>
+      </div>
+    </div>`;
+}
+
+/* ===== O PORTAO: SO' FESTEJA COM O PLANO CERTO NA MAO =====
    `?assinatura=ok` diz apenas que o jogador voltou do Stripe. Quem concede o plano e' o webhook,
    e ele e' assincrono. Perguntamos ao servidor ate' 15 vezes, de 2 em 2 segundos — 30 segundos,
    que e' muito mais do que o webhook costuma levar e ainda assim um tempo que se espera olhando
-   para a tela. Passado isso, a tela diz a verdade em vez de fingir festa ou fingir erro. */
-let RF_PG_TENTATIVAS = 0;
+   para a tela. Passado isso, a tela diz a verdade em vez de fingir festa ou fingir erro.
+
+   O PLANO CERTO, NAO "UM PLANO PAGO". Isto perguntava so' "ha' plano pago nesta conta?" e
+   festejava o que encontrasse. Quem SOBE de Resenha para Embaixador ja' tinha um plano pago no
+   segundo em que voltou — e via os parabens pelo plano antigo, com o emoji e o texto errados,
+   antes mesmo de o webhook gravar a compra nova. Agora o alvo vem no proprio endereco de volta
+   (ver success_url em criar-checkout) e a festa espera por ELE.
+   Sem alvo — um link antigo, de antes desta mudanca — vale a regra de antes, que continua certa
+   para quem nao tinha plano nenhum. */
+let RF_PG_TENTATIVAS = 0, RF_PG_ALVO = null;
 function rfPgVerificar(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  /* SEM SESSAO NAO HA' A QUEM DAR PARABENS. O plano mora na conta: sem ela, nem o servidor
+     responde nem faria sentido festejar — podia ser o link de outra pessoa. */
+  if(st.loggedIn===false){ rfPgDesenhar(rfPgSemSessaoHTML()); return; }
   const plano = st.plan || st.plano;
-  if(plano==='resenha' || plano==='embaixador'){
+  const chegou = RF_PG_ALVO ? (plano===RF_PG_ALVO) : (plano==='resenha' || plano==='embaixador');
+  if(chegou){
     rfPgDesenhar(rfPgCorpoHTML(plano, st));
     return;
   }
@@ -212,21 +243,26 @@ function rfPgVerificar(){
   if(typeof NET!=='undefined' && NET.carregarPlano) { try{ NET.carregarPlano(); }catch(e){} }
   setTimeout(rfPgVerificar, 2000);
 }
-function rfPgAbrir(){
+function rfPgAbrir(alvo){
   RF_PG_TENTATIVAS=0;
+  RF_PG_ALVO=(alvo==='resenha'||alvo==='embaixador')?alvo:null;
   rfPgDesenhar(rfPgEsperandoHTML());
   rfPgVerificar();
 }
 /* chamado no arranque (ver index.html): so' com `?assinatura=ok` na volta do Stripe. O parametro
    e' limpo do endereco para um F5 nao repetir a festa. */
 function rfPgVoltaDoStripe(){
-  let ok=false;
-  try{ ok = new URLSearchParams(location.search).get('assinatura')==='ok'; }catch(e){}
+  let ok=false, alvo=null;
+  try{
+    const q=new URLSearchParams(location.search);
+    ok = q.get('assinatura')==='ok';
+    alvo = q.get('plano');            // que plano foi comprado — quem o escreve e' o success_url
+  }catch(e){}
   if(!ok) return false;
   try{
-    const u=new URL(location.href); u.searchParams.delete('assinatura');
+    const u=new URL(location.href); u.searchParams.delete('assinatura'); u.searchParams.delete('plano');
     history.replaceState({}, '', u.pathname + (u.search||'') + (u.hash||''));
   }catch(e){}
-  setTimeout(rfPgAbrir, 400);   // deixa a tela do jogo desenhar por baixo antes da festa
+  setTimeout(()=>rfPgAbrir(alvo), 400);   // deixa a tela do jogo desenhar por baixo antes da festa
   return true;
 }
