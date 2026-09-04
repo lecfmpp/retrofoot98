@@ -749,7 +749,9 @@ function rfPlanoIntencaoRetomar(){
 function rfLpPlanosHTML(){
   const cartoes=RF_PLANOS.map(p=>{
     const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
-    const falta=(p.falta||[]).map(i=>`<li class="nao"><span class="rf-lp-tick">—</span>${escC(i)}</li>`).join('');
+    /* o que NAO vem no plano leva um X, nao um travessao: o travessao lia-se como "nao se
+       aplica", e a lista de precos precisa dizer "isto voce nao tem" (ver .rf-lp-tick.nao) */
+    const falta=(p.falta||[]).map(i=>`<li class="nao"><span class="rf-lp-tick nao">✕</span>${escC(i)}</li>`).join('');
     const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
     return `<div class="rf-lp-plano ${p.destaque?'ouro':''}" data-plano="${p.key}">
       ${p.selo?`<span class="rf-lp-plano-selo">👑 ${escC(p.selo)}</span>`:''}

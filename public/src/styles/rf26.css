@@ -3506,12 +3506,20 @@
 .rf-lp-plano-l{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;
   gap:9px;flex:1}
 .rf-lp-plano-l li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);
-  color:var(--text-2);line-height:var(--lh-normal)}
-.rf-lp-plano-l li.nao{color:var(--text-4)}
-.rf-lp-tick{flex:0 0 auto;width:16px;text-align:center;font-size:12px;
-  color:var(--club-primary);line-height:1.5}
-.rf-lp-plano-l li.nao .rf-lp-tick{color:var(--text-faint)}
-.rf-lp-plano.ouro .rf-lp-tick{color:#C8901A}
+  font-weight:var(--fw-bold);color:var(--text-1);line-height:var(--lh-normal)}
+.rf-lp-plano-l li.nao{color:var(--text-4);font-weight:var(--fw-semibold)}
+/* ===== A MARCA DO ITEM E' UM SELO, E A COR DIZ O QUE ELA E' =====
+   Era um `✓` a' cor do PLANO (azul no Resenha, dourado no Embaixador) e um travessao para o que
+   falta. Dois problemas: o tique vestido da cor do plano lia-se como enfeite do cartao, nao
+   como "isto esta' incluido"; e o travessao dizia "nao se aplica" quando a lista precisa dizer
+   "isto voce NAO tem".
+   Agora a cor e' SEMANTICA e nao decorativa — verde inclui, vermelho nao inclui —, e por isso
+   ela deixa de mudar com o plano: os tres cartoes usam o mesmo par, que e' o que permite
+   compara'-los de relance. */
+.rf-lp-tick{flex:0 0 auto;width:18px;height:18px;margin-top:1px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:#2fbf5f;color:#fff;font-size:10.5px;font-weight:800;line-height:1}
+.rf-lp-tick.nao{background:#d64545}
 .rf-lp-plano-bt{margin-top:16px;height:46px;padding:0 18px;border:var(--border-control);
   border-radius:var(--r-control);background:var(--surface-card);font-family:var(--font-sans);
   font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--club-primary);
@@ -3632,8 +3640,6 @@
 .rf-trava-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
 .rf-trava-l li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);
   color:var(--text-2);line-height:var(--lh-normal)}
-.rf-trava-l .rf-lp-tick{color:var(--club-primary)}
-.rf-trava-plano.ouro .rf-lp-tick{color:#C8901A}
 .rf-trava-a{font-size:var(--fs-caption);color:var(--text-4)}
 .rf-trava-saida{font-size:var(--fs-body-sm);color:var(--text-3);
   line-height:var(--lh-normal)}
@@ -3834,7 +3840,6 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
   grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 22px;text-align:left;max-width:860px}
 .rf-lp-oficial-l li{display:flex;align-items:flex-start;gap:9px;font-size:var(--fs-body-sm);
   color:var(--text-2);line-height:var(--lh-normal)}
-.rf-lp-oficial-l .rf-lp-tick{color:#C8901A}
 
 /* ----- ganhar dinheiro com a resenha ----- */
 .rf-lp-grana{padding:56px 28px}
