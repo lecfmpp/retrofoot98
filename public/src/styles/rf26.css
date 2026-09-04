@@ -3325,6 +3325,18 @@
   padding-left:4px;box-sizing:border-box}
 .rf-lp-video-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:#fff}
 .rf-lp-video-s{font-size:var(--fs-caption);color:var(--text-on-dark-soft);line-height:1.5}
+/* ----- o vídeo do YouTube com fachada: cartaz nosso, player só no clique ----- */
+.rf-lp-video.yt{cursor:pointer;background:#0b1a2e;display:block}
+.rf-lp-video-cartaz{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.rf-lp-video-veu{position:absolute;inset:0;pointer-events:none;
+  /* o véu é para o play se destacar, não para esconder o cartaz: o quadro do vídeo já é
+     escuro, e a dose anterior apagava a imagem inteira */
+  background:radial-gradient(70% 70% at 50% 50%,rgba(4,12,24,0),rgba(4,12,24,.34))}
+.rf-lp-video.yt .rf-lp-video-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
+.rf-lp-video.yt:hover .rf-lp-video-play,.rf-lp-video.yt:focus-visible .rf-lp-video-play{
+  transform:translate(-50%,-50%) scale(1.08);box-shadow:0 10px 30px -8px rgba(0,0,0,.75)}
+.rf-lp-video iframe.rf-lp-video-el{position:absolute;inset:0;width:100%;height:100%;border:0}
 .rf-lp-video-tag{position:absolute;top:12px;right:12px;font-family:var(--font-mono);
   font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:#3a2a00;background:var(--brand-secondary);
@@ -3510,6 +3522,72 @@
 .rf-lp-plano[data-plano="resenha"] .rf-lp-plano-bt:hover{filter:brightness(1.05)}
 /* a pastilha do desconto tem de continuar legivel em cada fundo */
 .rf-lp-plano[data-plano="resenha"] .rf-lp-plano-bt-off{background:rgba(0,0,0,.22);color:#fff}
+
+/* =====================================================================
+   OS BOTÕES DA HOME: UMA LINGUAGEM SÓ
+   ---------------------------------------------------------------------
+   Duas regras, pedidas pelo dono, e as duas resolvem o mesmo problema — botão
+   que não parece botão:
+
+   1) HOVER É SEMPRE AZUL DA MARCA COM LETRA AMARELA. Cada CTA tinha o seu
+      hover: uns clareavam (filter:brightness), outros trocavam para um cinza
+      quase igual ao branco de origem. Do lado de quem passa o mouse, isso não
+      é identidade — é ruído: o mesmo gesto respondia de cinco maneiras. O
+      repouso continua a vestir a identidade de cada plano (é ele que se lê na
+      tabela de preços); o hover é a voz da marca, e é uma só.
+
+   2) NADA DE BOTÃO CLARO EM FUNDO CLARO. `.rf-lp-cta2` (o CTA de todas as
+      seções), o secundário do hero, o "Entrar" do cabeçalho e o secundário da
+      janela de trava eram brancos com fio de borda sobre um fundo quase
+      branco. O texto lia-se; o BOTÃO não. Passam a azul cheio (o de ação) ou a
+      contorno azul de 2px (os secundários), que é contraste de verdade sem
+      achatar a hierarquia.
+
+   Tudo aqui vive sob `.rf-lp` de propósito: as mesmas classes existem dentro
+   do jogo, onde as cores são as do CLUBE do jogador e não as da marca.
+   ===================================================================== */
+.rf-lp .rf-wiz-cta:hover:not(:disabled),
+.rf-lp .rf-wiz-b2:hover,
+.rf-lp .rf-lp-cta2:hover,
+.rf-lp .rf-lp-btlista:hover,
+.rf-lp .rf-lp-entrar:hover,
+.rf-lp .rf-lp-bt-ouro:hover,
+.rf-lp .rf-modo-cta:hover,
+.rf-lp .rf-trava-bt:hover,
+.rf-lp .rf-trava-bt-2:hover,
+.rf-lp .rf-lp-plano .rf-lp-plano-bt:hover,
+.rf-lp .rf-lp-plano.ouro .rf-lp-plano-bt:hover,
+.rf-lp .rf-lp-plano[data-plano] .rf-lp-plano-bt:hover{
+  background:var(--brand-primary);
+  color:var(--brand-secondary);
+  border-color:var(--brand-primary);
+  box-shadow:0 8px 20px -10px rgba(11,26,46,.85);
+  filter:none;
+}
+/* a pastilha do desconto viaja dentro do botão: no azul ela tem de continuar legível */
+.rf-lp .rf-lp-plano-bt:hover .rf-lp-plano-bt-off{
+  background:rgba(255,255,255,.14); color:var(--brand-secondary);
+}
+/* ---- repouso: contraste em fundo claro ---- */
+/* o CTA que fecha cada seção passa a ser sólido — é a ação da seção, não um rótulo */
+.rf-lp .rf-lp-cta2{
+  background:var(--brand-primary); border:1px solid var(--brand-primary);
+  color:#fff; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+}
+/* secundários: contorno azul de 2px em vez de fio cinza sobre branco */
+.rf-lp .rf-lp-ctas .rf-wiz-b2,
+.rf-lp .rf-lp-entrar,
+.rf-lp .rf-trava-bt-2,
+/* `:not([data-plano])` NÃO É ZELO A MAIS. Um seletor com atributo pesa o mesmo que um com
+   classe: `.rf-lp .rf-lp-plano .rf-lp-plano-bt` empata com
+   `.rf-lp-plano[data-plano="resenha"] .rf-lp-plano-bt` e, por vir depois na folha, GANHA — foi
+   assim que o botão prateado do Resenha apareceu branco no primeiro teste. O contorno azul é
+   só para um plano que venha a existir sem identidade própria. */
+.rf-lp .rf-lp-plano:not([data-plano]) .rf-lp-plano-bt{
+  border:2px solid var(--brand-primary); color:var(--brand-primary);
+  background:var(--surface-card);
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
+}
 
 /* ===== O CADEADO EXPLICADO (rfTrava, ui/rf26-landing.js) =====
    A janela que abre quando uma trava de plano barra alguém. O cartão do plano

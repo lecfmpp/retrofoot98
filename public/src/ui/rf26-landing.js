@@ -384,8 +384,40 @@ function rfLpFotoHTML(src, alt, cls){
    ===================================================================== */
 const RF_LP_HERO_VIDEO = null;         // ex.: 'video/apresentacao.mp4'
 const RF_LP_HERO_POSTER = 'img/home/camarote.webp';
+/* ===== O FILME CHEGOU, E VEIO DO YOUTUBE =====
+   O placeholder previa um mp4 nosso; o vídeo que existe é o da primeira Resenha, no canal.
+   Guardamos só o ID — a moldura, o play e o cartaz continuam sendo os desta página.
 
+   NÃO CARREGA O PLAYER DE ENTRADA. Um <iframe> do YouTube no topo da home custa centenas de
+   kB e cookies de terceiros a TODA visita, mesmo a de quem nunca aperta o play. O que se vê
+   é o cartaz do próprio vídeo com o botão desta casa; o player só nasce no clique — e aí já
+   entra tocando, que é o que quem clicou pediu. */
+const RF_LP_HERO_YT = 'Nj43fxhQ4pY';
+
+function rfLpVideoTocar(el){
+  if(!el || el.dataset.tocando) return;
+  el.dataset.tocando='1';
+  el.classList.remove('vazio');   // 'yt' fica: e' ela que da' o fundo escuro por tras do player
+  el.innerHTML=`<iframe class="rf-lp-video-el" src="https://www.youtube-nocookie.com/embed/${escC(RF_LP_HERO_YT)}?autoplay=1&rel=0&modestbranding=1"
+    title="Vídeo de apresentação do RetroFoot98" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture"
+    allowfullscreen></iframe>`;
+}
 function rfLpHeroVideoHTML(){
+  if(RF_LP_HERO_YT){
+    /* maxres não existe para todo vídeo; o hq existe sempre — daí a rede no onerror */
+    const cartaz=`https://i.ytimg.com/vi/${RF_LP_HERO_YT}/maxresdefault.jpg`;
+    const reserva=`https://i.ytimg.com/vi/${RF_LP_HERO_YT}/hqdefault.jpg`;
+    return `<div class="rf-lp-video yt" role="button" tabindex="0"
+        aria-label="Tocar o vídeo de apresentação do RetroFoot98"
+        onclick="rfLpVideoTocar(this)"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();rfLpVideoTocar(this)}">
+      <img class="rf-lp-video-cartaz" src="${escC(cartaz)}" alt="" loading="lazy"
+        onerror="this.onerror=null;this.src='${escC(reserva)}'">
+      <span class="rf-lp-video-veu"></span>
+      <span class="rf-lp-video-play">▶</span>
+      <span class="rf-lp-video-tag">Assista</span>
+    </div>`;
+  }
   if(RF_LP_HERO_VIDEO){
     return `<div class="rf-lp-video">
       <video class="rf-lp-video-el" controls preload="metadata"
