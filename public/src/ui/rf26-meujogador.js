@@ -325,6 +325,14 @@ function rfMjJogadorDaBase(v){
   const out={ p:null, club:null, nome:v&&(v.nome_base||v.nome)||'', idade:null,
               num:(RF_MJ_POS[v&&v.posicao]||{}).num||null, foto:null, forca:v&&v.forca||null };
   if(!v || !v.club_id) return out;
+  /* ===== VAGA APROVADA JA' E' OUTRA PESSOA =====
+     A lista mostrava sempre o nome e a cara da BASE, mesmo depois de a vaga ter dono aprovado:
+     quem chegava depois via "Rodrigo Lima · ocupada por Bruno Pinheiro", como se o Rodrigo ainda
+     estivesse la'. Ele nao esta' — no jogo de toda a gente aquele numero e' o Bruno agora.
+     A vista publica so' devolve `nome`/`foto_url` quando o status e' 'aprovado' (o pendente sai
+     nulo, de proposito), entao a presenca do nome E' o carimbo de que ja' vale. */
+  const aprovado = !!(v.nome && v.nome!==v.nome_base);
+  if(aprovado){ out.nome=v.nome; out.foto=v.foto_url||null; }
   try{
     const c=rfMjClube(v.club_id);
     out.club=c||null;
@@ -337,8 +345,12 @@ function rfMjJogadorDaBase(v){
       const mapa=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
       const nome=(fem ? (p.id!=null && mapa[p.id]) : p.n) || v.nome_base || p.n || '';
       out.p=fem ? Object.assign({}, p, { n:nome }) : p;
-      out.nome=nome; out.idade=p.age||null; out.num=p.num||out.num;
-      if(typeof rfFotoDe==='function') out.foto=rfFotoDe(out.p, v.club_id);
+      out.idade=p.age||null; out.num=p.num||out.num;
+      /* o catalogo do save conhece o nome da BASE; para a vaga aprovada quem manda e' o banco */
+      if(!aprovado){
+        out.nome=nome;
+        if(typeof rfFotoDe==='function') out.foto=rfFotoDe(out.p, v.club_id);
+      }
     }
   }catch(_e){}
   return out;
@@ -479,7 +491,7 @@ function rfMjVagasHTML(){
           <i class="rf-mj-quad" style="background:${P.cor}">${P.letra}</i>
           ${escC(P.nome)}${b.idade?' · '+b.idade+' anos':''}${b.forca?' · força '+b.forca:''}
         </span>
-        <span class="rf-mj-vaga-s">${escC(livre?P.nota:('ocupada por '+(v.nome||'outro embaixador')))}</span>
+        <span class="rf-mj-vaga-s">${escC(livre?P.nota:(v.nome?('é o jogador de um Embaixador'):'ocupada por outro Embaixador'))}</span>
       </span>
       <span class="rf-mj-pill ${livre?'':'ocupada'}">${livre?(sel?'ESCOLHIDO':'#'+rfMjCamisa(v)):'OCUPADA'}</span>
     </button>`;

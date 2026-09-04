@@ -87,9 +87,11 @@ function textoEnquadramento() {
    INVENTA um brasao ilegivel e um patrocinador que nao existe. A camisa nasce
    nas cores do clube e vazia; o escudo e o numero entram por cima, como camada
    do proprio jogo (rfFotoNumHTML). */
-const CAMISA_LIMPA = "The jersey is COMPLETELY CLEAN: no crest, no badge, no sponsor, no brand mark, "
-  + "no text, no numbers and no logos anywhere — not on the chest, not on the sleeves, not on the "
-  + "collar. Plain fabric only, because the crest and the shirt number are overlaid later.";
+const CAMISA_LIMPA = "The shirt is COMPLETELY CLEAN: no crest, no badge, no sponsor, no brand mark, "
+  + "no text, NO NUMBERS and no logos anywhere — not on the chest, not on the sleeves, not on the "
+  + "collar. Plain fabric only, because the crest and the shirt number are drawn by the game on top. "
+  + "NOTHING else may appear in the image: no watermark, no caption, no border, no frame, no second "
+  + "person, no props — only the player against the plain backdrop.";
 
 /* ===== A CARA TEM DE SER A DELE =====
    Isto dizia "inspiracao solta, invente uma pessoa nova" — e o resultado era um desconhecido
@@ -115,28 +117,8 @@ const INSPIRACAO = "CRITICAL — IDENTITY MUST BE PRESERVED: this is an edit of 
   + "framing becomes the studio portrait described above, and the background becomes the plain "
   + "studio backdrop. Treat it as photographing this same person again, in a kit, in a studio.";
 
-/* cor em hexadecimal vira PALAVRA. O modelo entende "royal blue", nao "#17458F" — e mandar o
-   hexadecimal cru costuma sair como uma cor vizinha aleatoria de imagem para imagem. */
-const CORES: [number, number, number, string][] = [
-  [255, 255, 255, "white"], [0, 0, 0, "black"], [128, 128, 128, "grey"],
-  [200, 30, 30, "red"], [130, 20, 30, "dark crimson red"], [255, 120, 0, "orange"],
-  [245, 200, 20, "golden yellow"], [30, 120, 60, "green"], [10, 70, 40, "dark bottle green"],
-  [30, 70, 160, "royal blue"], [15, 35, 90, "navy blue"], [60, 160, 220, "sky blue"],
-  [90, 30, 130, "purple"], [120, 70, 30, "brown"], [230, 130, 170, "pink"],
-];
-function nomeDaCor(hex: string | undefined, padrao: string): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ""));
-  if (!m) return padrao;
-  const n = parseInt(m[1], 16);
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  let melhor = padrao, dist = Infinity;
-  for (const [cr, cg, cb, nome] of CORES) {
-    const d = (cr - r) ** 2 + (cg - g) ** 2 + (cb - b) ** 2;
-    if (d < dist) { dist = d; melhor = nome; }
-  }
-  return melhor;
-}
-
+/* a tabela de cores saiu com a camisa do clube: a camisa e' neutra para todos, entao nao ha'
+   hexadecimal nenhum para traduzir. */
 function faixaEtaria(idade: number): string {
   if (idade < 21) return "a very young player, late teens";
   if (idade < 26) return "in their early twenties";
@@ -144,20 +126,25 @@ function faixaEtaria(idade: number): string {
   return "in their thirties, visibly experienced";
 }
 
-function montarPrompt(o: {
-  fem: boolean; posicao: string; corA: string; corB: string; idade: number;
-}) {
+function montarPrompt(o: { fem: boolean; posicao: string; idade: number }) {
   const quem = o.fem
     ? "female professional football player (a woman)"
     : "male professional football player";
-  /* O GOLEIRO NAO VESTE A CAMISA DO CLUBE — no jogo tambem nao. Sair de verde
-     fluorescente ao lado dos outros e' o que a Escalacao mostra, e e' o que
-     torna a ficha dele reconhecivel de relance. */
-  const camisa = o.posicao === "GK"
-    ? "a plain goalkeeper jersey in fluorescent lime green with long sleeves"
-    : `a plain football jersey in ${o.corA} with the collar and both sleeve cuffs in ${o.corB}`;
+  /* ===== A CAMISA E' NEUTRA, NAO E' A DO CLUBE =====
+     Ela era gerada nas cores do clube da vaga — dai o retrato do Embaixador sair de azul
+     enquanto todos os outros jogadores da base usam a MESMA camisa neutra (o Estudio do painel
+     gera a cabeca e compoe a camisa por cima, como camada). Duas consequencias, ambas ruins: o
+     retrato destoava do elenco inteiro, e ficava preso ao clube — no dia em que a pessoa trocar
+     de vaga, ou o clube mudar de cor, a foto mentia.
+     Bege liso, sem gola de cor, sem nada: e' o molde que o resto da base usa. */
+  const camisa = "a plain, unbranded beige football training shirt (soft warm sand colour), "
+    + "short sleeves, plain round collar in the SAME beige, no contrasting trim of any kind";
   return [
-    `Hyper-realistic studio photograph of a fictional ${quem}, a ${POSICOES[o.posicao]}, ${faixaEtaria(o.idade)}, wearing ${camisa}.`,
+    /* "FICTIONAL" SAIU DAQUI. Ele sobrou da versao antiga, que mandava inventar uma pessoa — e
+       brigava de frente com o bloco de fidelidade logo abaixo: um pedia rosto novo, o outro pedia
+       o rosto da foto. Dois pedidos opostos no mesmo texto e' como o modelo acaba por escolher
+       sozinho, que foi o que se viu. Agora a frase descreve a PESSOA DA FOTO. */
+    `Hyper-realistic studio photograph of the person in the input photo, as a ${quem}, a ${POSICOES[o.posicao]}, ${faixaEtaria(o.idade)}, wearing ${camisa}.`,
     "Facing the camera directly, official club media day photo style, confident and composed expression,",
     "soft professional studio lighting, sharp focus, DSLR photo quality.",
     CAMISA_LIMPA,
@@ -210,8 +197,8 @@ Deno.serve(async (req) => {
   if (!POSICOES[posicao]) return resp(400, { error: "posicao tem que ser GK, DEF, MID ou ATT." });
   const idadeBruta = Number(body.idade);
   const idade = Number.isFinite(idadeBruta) ? Math.min(42, Math.max(16, Math.round(idadeBruta))) : 25;
-  const corA = nomeDaCor(body.corA, "royal blue");
-  const corB = nomeDaCor(body.corB, "white");
+  /* corA/corB continuam a ser aceites no body — o cliente antigo em cache ainda os manda — e
+     sao IGNORADOS: a camisa e' neutra para todos (ver montarPrompt). */
 
   /* PORTA DO EMBAIXADOR, no servidor — a mesma pergunta que a vaga_pedir faz.
      Esconder o botao no cliente e' desenho, nao controle de acesso. */
@@ -244,7 +231,7 @@ Deno.serve(async (req) => {
     const blob = baixada.data;
     if (blob.size > REF_MAX_BYTES) return resp(400, { error: "A foto é grande demais (máx. 8 MB)." });
 
-    const prompt = montarPrompt({ fem, posicao, corA, corB, idade });
+    const prompt = montarPrompt({ fem, posicao, idade });
     const form = new FormData();
     form.append("model", "gpt-image-1");
     form.append("prompt", prompt);
