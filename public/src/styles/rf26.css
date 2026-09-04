@@ -3746,7 +3746,16 @@
 .rf-lp-album-q.depois.jogadora .rf-lp-album-media{aspect-ratio:4/5;background:transparent;
   overflow:visible;border-radius:0}
 .rf-lp-album-q.depois.jogadora .rf-mod-frame{width:100%;height:100%;max-height:none}
-.rf-lp-album-media img{width:100%;height:100%;object-fit:cover;display:block}
+/* ===== O `>` NAO E' DETALHE: E' O QUE TIRA O ESCUDO DA CARA DELA =====
+   Esta regra valia para QUALQUER <img> dentro da moldura do album — e a ficha da jogadora nao e'
+   uma imagem, e' o card inteiro (.rf-mod-frame), com a foto, o escudo e o nome cada um no seu
+   sitio. Com o seletor solto (0,1,1) ela ganhava de `.rf-mod-crest` (0,1,0) e esticava o ESCUDO
+   para 100%×100% com object-fit:cover: em vez de um selo de 54px no canto de baixo, um brasao
+   do tamanho do quadro por cima do rosto.
+   Filho DIRETO cobre exactamente os dois casos para que a regra foi escrita — a polaroide do
+   'antes' e o retrato masculino, ambos <img> soltos dentro da moldura — e nao entra dentro de
+   um card que ja' sabe vestir-se sozinho. */
+.rf-lp-album-media > img{width:100%;height:100%;object-fit:cover;display:block}
 .rf-lp-album-q figcaption{font-size:var(--fs-caption);color:var(--text-3);text-align:center;
   line-height:1.4}
 /* moldura vazia: tem de LER como lugar reservado, não como imagem que não carregou */
