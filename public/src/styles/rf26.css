@@ -3153,8 +3153,10 @@
   font-weight:var(--fw-medium);color:var(--text-3);padding:7px 13px;border-radius:var(--r-pill);
   cursor:pointer;white-space:nowrap;transition:background var(--dur-fast) var(--ease),
   color var(--dur-fast) var(--ease)}
-.rf-lp-link:hover{background:var(--surface-card);color:var(--text-1);
-  box-shadow:0 1px 3px -1px rgba(0,0,0,.18)}
+/* o hover veste as cores da marca: fundo azul, letra amarela — as mesmas do botão Pro e do
+   selo de Embaixador. A pílula deixa de ser um realce neutro e passa a ser um gesto do jogo. */
+.rf-lp-link:hover{background:var(--brand-primary,#17458F);color:var(--brand-secondary,#F2B90C);
+  box-shadow:0 2px 8px -3px rgba(23,69,143,.55)}
 .rf-lp-link:focus-visible{outline:2px solid var(--club-primary);outline-offset:1px}
 /* entre 1100 e 1320px os sete rotulos ainda cabem, mas so' com menos folga: apertar o padding
    evita que a barra comece a rolar num ecra de portatil, que e' o tamanho mais comum */
