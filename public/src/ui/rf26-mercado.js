@@ -432,11 +432,21 @@ function rfMktMercado(){
       /* PERFORMANCE MEXE NO PREÇO (item 4): os gols da temporada na liga de fundo encarecem
          o jogador — artilheiro custa mais, apagado custa o de tabela. O mesmo fator entra no
          mv na materialização (ensureForeignClub), então a negociação cobra o que a lista diz. */
+      /* ===== OS GOLS SAO DE TODOS, NAO SO' DOS DE FORA =====
+         `gols` so' era lido para o mercado estrangeiro (a artilharia da liga de fundo), entao
+         no meu proprio campeonato ele era SEMPRE zero: a marca "⚽N" nunca aparecia e ordenar
+         por gols nao mexia uma linha. Em casa o numero existe no proprio jogador — as estatiscas
+         da temporada (p.stats.goals), as mesmas que a artilharia da tabela usa.
+         O PRECO nao muda em casa: la' fora o acrescimo compensa a falta de historico do clube
+         nao materializado (e o mesmo factor entra na materializacao); aqui `playerAsk` ja' ve
+         o jogador inteiro, e somar por cima seria cobrar duas vezes pela mesma campanha. */
       let gols=0;
       if(fora){
         const L=(S.bgLeagues||{})[f.pais];
         gols=(L&&L.scorers&&L.scorers[p.n])||0;
         if(gols>0) ask=Math.round(ask*(1+Math.min(0.5,gols*0.04)));
+      } else {
+        gols=(p.stats&&p.stats.goals)||0;
       }
       if(f.preco==='caixa' && ask>teto) return;
       if(f.preco==='meio'  && ask>teto/2) return;
@@ -521,8 +531,12 @@ function rfMktComprarTabelaHTML(){
     const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
     const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
     return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(clubId))}'${pais?`,'${escC(String(pais))}'`:''})" title="Ver a ficha de ${escC(p.n)}">
-    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}${gols?` <em class="rf-mkt-gols" title="${gols} gols nesta temporada — a performance encarece o passe">⚽${gols}</em>`:''}</span>
+    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}</span>
     <span class="rf-mkt-f">${p.f}</span>
+    ${/* GOLS TEM COLUNA PROPRIA. Era uma marca "⚽N" colada ao nome, e so' quando havia gols —
+         entao ordenar por gols mexia a lista sem que se visse porque: a coluna que explica a
+         ordem tem de estar la', inclusive quando o numero e' zero. */''}
+    <span class="rf-mkt-x rf-mkt-gols ${gols?'tem':''}" title="${gols} ${gols===1?'gol':'gols'} nesta temporada">${gols||'—'}</span>
     ${rfMkPos(p)}
     ${nac}
     <span class="rf-mkt-x">${p.age||'—'}</span>
@@ -531,7 +545,7 @@ function rfMktComprarTabelaHTML(){
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
     ${rfMkBt('Propor',propor)}
   </div>`;});
-  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">POS</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">GOLS</span><span class="dir">POS</span>
     <span class="dir">NAC</span><span class="dir">IDA</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   const vazio=(rfMktF().q||'').trim()
@@ -539,7 +553,7 @@ function rfMktComprarTabelaHTML(){
     : `${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Nenhum')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} com esses filtros.`;
   /* GRADE LITERAL DO PACOTE (Mercado - Abas): duas colunas flexiveis (1.3fr e
      1fr) repartem nome e clube. */
-  return rfMkTabela('minmax(0,1.3fr) 28px 34px 34px 34px minmax(0,1fr) 96px 84px 74px',
+  return rfMkTabela('minmax(0,1.3fr) 28px 40px 34px 34px 34px minmax(0,1fr) 96px 84px 74px',
     cabecalho, linhas, vazio, 'mkt-mercado');
 }
 function rfMktConta(){
