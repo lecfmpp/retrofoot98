@@ -39,7 +39,10 @@ const RF_MJ_POS = {
 const RF_MJ_ORDEM = ['GK','DEF','MID','ATT'];
 
 function rfMjEstado(){
-  return CL.mj || (CL.mj = { divisao:'A', clubId:null, playerId:null, nome:'', foto:null,
+  return CL.mj || (CL.mj = { divisao:'A', clubId:null, playerId:null, nome:'',
+                             arquivo:null,  /* o File escolhido — fica so' na memoria desta aba */
+                             previa:null,   /* objectURL da foto enviada, para a pessoa se ver */
+                             gerada:null,   /* o retrato que a IA devolveu: E' ELE que vai para a base */
                              avatar:0,      /* 0 sem foto · 1 gerando · 2 pronto */
                              clubes:[], vagas:[], carregando:false, minha:null, erro:null });
 }
@@ -103,56 +106,78 @@ function rfMjSyncRodape(){
 }
 function rfMjPronto(){
   const e=rfMjEstado();
-  return !!(e.playerId && (e.nome||'').trim().length>=2 && e.avatar===2 && !e.enviando);
+  return !!(e.playerId && (e.nome||'').trim().length>=2 && e.gerada && !e.enviando);
 }
-/* a linha de estado diz O QUE FALTA, na ordem em que se faz — nao "preencha os campos" */
+/* a linha de estado diz O QUE FALTA, NA ORDEM EM QUE SE FAZ — e a ordem agora e' outra: a foto
+   vem antes do botao de criar, porque sem ela nao ha' o que gerar. */
 function rfMjFalta(){
   const e=rfMjEstado();
   if(!e.clubId) return 'Escolha o clube para continuar.';
-  if(!e.playerId) return 'Escolha a vaga no elenco para continuar.';
-  if(e.avatar!==2) return 'Envie a foto e gere o avatar para liberar o envio.';
+  if(!e.playerId) return 'Escolha quem você vai substituir no elenco.';
+  if(!e.arquivo) return 'Mande uma foto sua — é dela que sai o seu jogador.';
+  if(e.avatar===1) return 'Criando o seu jogador…';
+  if(!e.gerada) return 'Toque em "Criar meu jogador" para gerar o retrato.';
   if((e.nome||'').trim().length<2) return 'Escreva o nome que vai na camisa.';
   const v=(e.vagas||[]).find(x=>x.player_id===e.playerId)||{};
   return `${e.nome.trim()} · ${rfMjNomeClube(v.club_id, v.clube_nome)} · ${(RF_MJ_POS[v.posicao]||{}).nome||''} — pronto para enviar.`;
 }
 
-/* ---- a foto e o avatar ---- */
+/* ---- a foto e a geracao ---- */
+/* ===== A FOTO E' OBRIGATORIA, E E' MOLDE — NAO E' O RETRATO =====
+   O arquivo fica na memoria desta aba e so' sobe (para um bucket privado) no momento de gerar;
+   a propria funcao o apaga assim que termina. Quem vai para a base de todos e' a imagem que a
+   IA devolve. Assim a foto de familia de quem assinou nunca chega a existir num endereco
+   publico — e isso vale a viagem extra de a subir na hora de gerar. */
 function rfMjSubirFoto(){
   const e=rfMjEstado();
   const inp=document.createElement('input');
   inp.type='file'; inp.accept='image/jpeg,image/png,image/webp';
   inp.onchange=()=>{
     const f=inp.files&&inp.files[0]; if(!f) return;
-    e.enviandoFoto=true; e.erro=null; cdraw();
-    Promise.resolve(NET.vagaFoto(f)).then(r=>{
-      e.enviandoFoto=false;
-      if(r&&r.error){ e.erro=r.error; }
-      else if(r&&r.url){ e.foto=r.url; e.avatar=0; }   /* foto nova pede avatar novo */
-      cdraw();
-    }).catch(err=>{ e.enviandoFoto=false; e.erro=(err&&err.message)||'Não consegui enviar.'; cdraw(); });
+    if(!/^image\/(jpeg|png|webp)$/.test(String(f.type||''))){
+      e.erro='A foto tem de ser JPG, PNG ou WebP.'; cdraw(); return; }
+    if(f.size > 4*1024*1024){ e.erro='A foto passa de 4 MB. Escolha uma menor.'; cdraw(); return; }
+    try{ if(e.previa) URL.revokeObjectURL(e.previa); }catch(_e){}
+    e.arquivo=f; e.previa=URL.createObjectURL(f); e.erro=null;
+    /* foto nova invalida o retrato antigo: seria estranho trocar a foto e continuar a ver o
+       jogador que saiu da anterior */
+    e.gerada=null; e.avatar=0;
+    cdraw();
   };
   inp.click();
 }
-/* O AVATAR E' GERADO PELO MESMO SERVICO DO RETRATO DO TREINADOR — mesma cota, mesmos termos,
-   mesmo tratamento de erro. Abrir um segundo gerador so' para esta tela seria uma segunda cota
-   para controlar e uma segunda forma de falhar. Enquanto ele nao existir para o jogador, a foto
-   enviada VALE como avatar: e' melhor deixar entrar a foto real do que travar a etapa. */
+/* O RETRATO DO JOGADOR TEM FUNCAO PROPRIA (player-avatar), e nao a do treinador.
+   Aqui morava um remendo: esta tela abria o dialogo do RETRATO DO TREINADOR e ficava a espiar
+   `CL.coachFoto` de 700 em 700 ms para ver se tinha mudado. O resultado era o que se viu na
+   tela — "estilo da roupa: terno de beira de campo" para quem estava a criar um atacante, e a
+   cara saia de tecnico, sem camisa de clube e no enquadramento errado. Sao dois moldes
+   diferentes e agora sao duas funcoes diferentes; a cota tambem e' separada, para a etapa do
+   Embaixador nao comer as geracoes do avatar de perfil. */
 function rfMjGerar(){
   const e=rfMjEstado();
-  if(!e.foto){ e.erro='Mande uma foto primeiro — é dela que sai o avatar.'; cdraw(); return; }
+  if(!e.arquivo){ e.erro='Mande uma foto primeiro — é dela que sai o seu jogador.'; cdraw(); return; }
+  if(!e.playerId){ e.erro='Escolha primeiro quem você vai substituir.'; cdraw(); return; }
+  const v=(e.vagas||[]).find(x=>x.player_id===e.playerId)||{};
+  const base=rfMjJogadorDaBase(v);
+  const club=base.club||{};
   e.avatar=1; e.erro=null; cdraw();
-  /* o retrato por IA vive no dialogo que ja' existe; quando ele devolve, CL.coachFoto muda */
-  const antes=CL.coachFoto;
-  if(typeof rfAvatarIA==='function'){
-    rfAvatarIA();
-    const t=setInterval(()=>{
-      if(CL.coachFoto && CL.coachFoto!==antes){ clearInterval(t); e.foto=CL.coachFoto; e.avatar=2; cdraw(); }
-    }, 700);
-    /* teto: se a pessoa fechar o dialogo sem gerar, a foto que ela ja' mandou fica valendo */
-    setTimeout(()=>{ clearInterval(t); if(e.avatar===1){ e.avatar=2; cdraw(); } }, 60000);
-    return;
-  }
-  setTimeout(()=>{ e.avatar=2; cdraw(); }, 900);
+  Promise.resolve(NET.vagaFoto(e.arquivo)).then(r=>{
+    if(!r || r.error) throw new Error((r&&r.error)||'Não consegui enviar a foto.');
+    return NET.vagaAvatarGerar({
+      modalidade: rfMjModalidade(), posicao: v.posicao||'ATT',
+      /* as cores saem do clube da vaga: o retrato nasce com a camisa de quem ele vai vestir */
+      corA: club.col||null, corB: club.col2||null,
+      /* a idade do jogador da base — o substituto entra com a idade de quem sai */
+      idade: base.idade||null,
+      referencia: r.caminho,
+    });
+  }).then(g=>{
+    if(g && g.error) throw new Error(g.error);
+    e.gerada=g.url; e.avatar=2; e.geracoes=g.geracoes||0; e.teto=g.teto||6;
+    rfMjSyncRodape(); cdraw();
+  }).catch(err=>{
+    e.avatar=0; e.erro=(err&&err.message)||'Não consegui criar o jogador.'; cdraw();
+  });
 }
 
 /* ---- enviar ---- */
@@ -160,7 +185,7 @@ function rfMjEnviar(){
   const e=rfMjEstado();
   if(!rfMjPronto()) return;
   e.enviando=true; e.erro=null; cdraw();
-  NET.vagaPedir(rfMjModalidade(), e.clubId, e.playerId, e.nome.trim(), e.foto).then(r=>{
+  NET.vagaPedir(rfMjModalidade(), e.clubId, e.playerId, e.nome.trim(), e.gerada).then(r=>{
     e.enviando=false;
     if(r&&r.error){
       e.erro=r.error;
@@ -238,6 +263,33 @@ function rfMjNomeClube(clubId, doBanco){
   }catch(e){}
   return doBanco||clubId||'';
 }
+/* ===== QUEM SAI TEM CARA, NOME E IDADE =====
+   A linha da vaga dizia so' "Zagueiro · #4". Nao dava para perceber que ali havia uma PESSOA
+   do elenco — com foto, idade e forca — que ia deixar de existir com aquele nome. A vista
+   publica das vagas traz nome de base, posicao e forca; a idade, o numero e a FOTO so' o
+   catalogo do jogo tem, e e' ele que manda quando esta' carregado. */
+function rfMjJogadorDaBase(v){
+  const out={ p:null, club:null, nome:v&&(v.nome_base||v.nome)||'', idade:null,
+              num:(RF_MJ_POS[v&&v.posicao]||{}).num||null, foto:null, forca:v&&v.forca||null };
+  if(!v || !v.club_id) return out;
+  try{
+    const c=(typeof anyClubOf==='function')?anyClubOf(v.club_id):null;
+    out.club=c||null;
+    const p=c && (c.squad||[]).find(x=>String(x.id)===String(v.player_id));
+    if(p){
+      /* NO FEMININO O NOME NAO ESTA' NO ELENCO. O catalogo guarda o jogador masculino e o nome
+         dela vem do mapa por id (JOGADORAS_BR) — e' assim que a ficha da modalidade faz, e a
+         chave da foto tambem e' pelo nome dela. */
+      const fem=rfMjModalidade()==='fem';
+      const mapa=(typeof window!=='undefined' && window.JOGADORAS_BR) || {};
+      const nome=(fem ? (p.id!=null && mapa[p.id]) : p.n) || v.nome_base || p.n || '';
+      out.p=fem ? Object.assign({}, p, { n:nome }) : p;
+      out.nome=nome; out.idade=p.age||null; out.num=p.num||out.num;
+      if(typeof rfFotoDe==='function') out.foto=rfFotoDe(out.p, v.club_id);
+    }
+  }catch(_e){}
+  return out;
+}
 function rfMjCrest(clubId){
   try{
     const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null;
@@ -245,33 +297,78 @@ function rfMjCrest(clubId){
   }catch(e){}
   return '';
 }
-function rfMjFigurinhaHTML(){
+/* ===== O CARD DE QUEM SAI =====
+   O mesmo formato do card de quem entra, de proposito: e' uma TROCA, e duas molduras iguais
+   lado a lado leem-se como troca sem precisar de legenda. */
+function rfMjCardBaseHTML(v){
+  const b=rfMjJogadorDaBase(v);
+  const pos=(RF_MJ_POS[v&&v.posicao]||{});
+  const foto=b.foto?((typeof rfFotoNumHTML==='function')?rfFotoNumHTML(b.foto, b.num, 'mj'):`<img src="${escC(b.foto)}" alt="">`):'';
+  return `<figure class="rf-mj-card sai">
+    <span class="rf-mj-card-rot">HOJE NA BASE</span>
+    <span class="rf-mj-card-foto">${foto||'<span class="rf-mj-card-vazio">👤</span>'}</span>
+    <figcaption class="rf-mj-card-id">
+      <b class="rf-mj-card-n">${escC(b.nome||'—')}</b>
+      <span class="rf-mj-card-d">
+        <i class="rf-mj-quad" style="background:${pos.cor||'#888'}">${escC(pos.letra||'?')}</i>
+        ${escC(pos.nome||'')}${b.idade?' · '+b.idade+' anos':''}${b.forca?' · força '+b.forca:''}
+      </span>
+      <span class="rf-mj-mono">${escC(rfMjNomeClube(v&&v.club_id, v&&v.clube_nome).toUpperCase())}</span>
+    </figcaption>
+  </figure>`;
+}
+/* ===== O CARD DE QUEM ENTRA =====
+   Antes de haver retrato ele mostra a PREVIA da foto enviada, esmaecida: e' o que faz a pessoa
+   perceber que aquela foto ainda nao e' o jogador, e' o molde dele. */
+function rfMjCardMeuHTML(){
   const e=rfMjEstado();
   const v=(e.vagas||[]).find(x=>x.player_id===e.playerId)||{};
   const pos=(RF_MJ_POS[v.posicao]||{});
-  const estado = e.avatar===2 ? 'AVATAR PRONTO' : (e.avatar===1 ? 'PROCESSANDO' : (e.foto?'FALTA GERAR':'FALTA A FOTO'));
+  const img=e.gerada||e.previa||null;
+  const estado = e.avatar===1 ? 'CRIANDO…' : (e.gerada ? 'RETRATO PRONTO' : (e.previa ? 'FOTO RECEBIDA' : 'FALTA A FOTO'));
+  return `<figure class="rf-mj-card entra ${e.gerada?'pronto':''}">
+    <span class="rf-mj-card-rot">O SEU JOGADOR</span>
+    <span class="rf-mj-card-foto">
+      ${img?`<img class="${e.gerada?'':'molde'}" src="${escC(img)}" alt="">`:'<span class="rf-mj-card-vazio">📷</span>'}
+      ${e.avatar===1?`<span class="rf-mj-proc"><i class="rf-mj-spin"></i>CRIANDO…</span>`:''}
+      ${(e.previa&&!e.gerada&&e.avatar!==1)?'<span class="rf-mj-molde-tag">isto ainda é a sua foto</span>':''}
+      ${e.gerada?`<b class="rf-mj-card-num">${escC(String(rfMjCamisa(v)))}</b>`:''}
+    </span>
+    <figcaption class="rf-mj-card-id">
+      <b class="rf-mj-card-n" data-mj-camisa-nome>${escC(e.nome||'SEU NOME')}</b>
+      <span class="rf-mj-card-d">
+        <i class="rf-mj-quad" style="background:${pos.cor||'#888'}">${escC(pos.letra||'?')}</i>
+        ${escC(pos.nome||'escolha a vaga')}
+      </span>
+      <span class="rf-mj-mono ouro">${escC(estado)}</span>
+    </figcaption>
+  </figure>`;
+}
+function rfMjFigurinhaHTML(){
+  const e=rfMjEstado();
+  const v=(e.vagas||[]).find(x=>x.player_id===e.playerId)||null;
+  const cota=(e.teto&&e.geracoes)?`${e.geracoes} de ${e.teto} gerações usadas`:'';
   return `<div class="rf-mj-fig">
     <div class="rf-mj-fig-hd">
-      <span class="rf-mj-rot">A SUA FIGURINHA</span>
-      <span class="rf-mj-mono">${escC(estado)}</span>
+      <span class="rf-mj-rot">A TROCA</span>
+      <span class="rf-mj-mono">${escC(cota||'6 GERAÇÕES POR CONTA')}</span>
     </div>
-    <div class="rf-mj-prev">
-      ${e.foto?`<img src="${escC(e.foto)}" alt="">`:'<span class="rf-mj-prev-vazio">📷</span>'}
-      <span class="rf-mj-veu"></span>
-      ${e.avatar===1?`<span class="rf-mj-proc"><i class="rf-mj-spin"></i>GERANDO O AVATAR…</span>`:''}
-      <span class="rf-mj-prev-in">
-        <span class="rf-mj-num">${escC(String(e.playerId?rfMjCamisa(v):'—'))}</span>
-        <span class="rf-mj-mono ouro">${escC((pos.nome||'POSIÇÃO').toUpperCase())}</span>
-        <span class="rf-mj-camisa" data-mj-camisa-nome>${escC(e.nome||'SEU NOME')}</span>
-        <span class="rf-mj-mono">${escC(((e.playerId?rfMjNomeClube(v.club_id, v.clube_nome):'CLUBE')+' · SÉRIE '+(v.divisao||e.divisao)+' · PACK OFICIAL').toUpperCase())}</span>
-      </span>
-    </div>
+    ${v?`<div class="rf-mj-troca">
+        ${rfMjCardBaseHTML(v)}
+        <span class="rf-mj-seta" aria-hidden="true">→</span>
+        ${rfMjCardMeuHTML()}
+      </div>`
+      :`<div class="rf-mj-troca vazia"><span class="rf-note">Escolha o clube e a vaga abaixo para
+        ver quem você vai substituir.</span></div>`}
     <div class="rf-mj-fig-bts">
-      <button type="button" class="rf-mj-bt-ia" ${e.avatar===1?'disabled':''} onclick="rfMjGerar()">
-        ${e.avatar===1?'Gerando…':(e.avatar===2?'↻ Gerar de novo':'✨ Gerar avatar com IA')}</button>
       <button type="button" class="rf-mj-bt-br" onclick="rfMjSubirFoto()">
-        ${e.enviandoFoto?'Enviando…':(e.foto?'Trocar a foto':'Enviar a foto')}</button>
+        ${e.previa?'Trocar a foto':'📷 Enviar a minha foto'}</button>
+      ${/* O BOTAO SO' NASCE DEPOIS DA FOTO. Mostra-lo antes seria oferecer uma acao que nao pode
+           acontecer — e a etapa inteira depende de a pessoa perceber a ordem: foto primeiro. */''}
+      ${e.previa?`<button type="button" class="rf-mj-bt-ia" ${e.avatar===1?'disabled':''} onclick="rfMjGerar()">
+        ${e.avatar===1?'Criando…':(e.gerada?'↻ Criar de novo':'✨ Criar meu jogador')}</button>`:''}
     </div>
+    ${e.previa?'':'<span class="rf-note rf-mj-dica">Uma foto sua de frente, com boa luz. Ela é só o molde: sai daqui assim que o retrato fica pronto, e nunca vai para o jogo dos outros.</span>'}
     <div class="rf-mj-nome-bl">
       <span class="rf-mj-rot">NOME NA CAMISA</span>
       <input class="rf-mj-nome" maxlength="${RF_MJ_NOME_MAX}" placeholder="Seu nome"
@@ -288,6 +385,45 @@ function rfMjFigurinhaHTML(){
     <div class="rf-mj-aviso">⚠ <span>Ele entra no <b>pack oficial</b> e passa a aparecer para todos
       os treinadores — e continua lá <b>enquanto você for Embaixador</b>. Se o plano acabar, ele
       volta ao nome de base e a vaga fica livre para outra pessoa.</span></div>
+  </div>`;
+}
+/* ===== A VAGA NO ELENCO, DEBAIXO DA IMAGEM =====
+   Ela morava na coluna da esquerda, colada nos seletores, e por isso a pessoa escolhia um nome
+   sem ver a cara de ninguem. Aqui em baixo, larga, cada vaga e' o CARD do jogador que sai —
+   foto, idade, posicao e forca — e o card grande la' em cima mostra em detalhe o que foi
+   escolhido. */
+function rfMjVagasHTML(){
+  const e=rfMjEstado();
+  if(!e.clubId) return '';
+  const porPos={}; (e.vagas||[]).forEach(v=>{ porPos[v.posicao]=v; });
+  const livres=(e.vagas||[]).filter(v=>v.status==='livre').length;
+  const linhas=RF_MJ_ORDEM.map(k=>{
+    const v=porPos[k]; const P=RF_MJ_POS[k];
+    if(!v) return '';
+    const livre=v.status==='livre', sel=e.playerId===v.player_id;
+    const b=rfMjJogadorDaBase(v);
+    const foto=b.foto?((typeof rfFotoNumHTML==='function')?rfFotoNumHTML(b.foto, b.num, 'mjs'):`<img src="${escC(b.foto)}" alt="">`):'';
+    return `<button type="button" class="rf-mj-vaga ${sel?'on':''} ${livre?'':'off'}"
+        ${livre?`onclick="rfMjSetJogador('${escC(v.player_id)}')"`:'disabled'}>
+      <span class="rf-mj-vaga-foto">${foto||'<span class="rf-mj-card-vazio">👤</span>'}</span>
+      <span class="rf-mj-vaga-id">
+        <span class="rf-mj-vaga-n">${escC(b.nome||P.nome)}</span>
+        <span class="rf-mj-vaga-d">
+          <i class="rf-mj-quad" style="background:${P.cor}">${P.letra}</i>
+          ${escC(P.nome)}${b.idade?' · '+b.idade+' anos':''}${b.forca?' · força '+b.forca:''}
+        </span>
+        <span class="rf-mj-vaga-s">${escC(livre?P.nota:('ocupada por '+(v.nome||'outro embaixador')))}</span>
+      </span>
+      <span class="rf-mj-pill ${livre?'':'ocupada'}">${livre?(sel?'ESCOLHIDO':'#'+rfMjCamisa(v)):'OCUPADA'}</span>
+    </button>`;
+  }).join('');
+  return `<div class="rf-mj-bloco larga">
+    <div class="rf-mj-bloco-hd">
+      <span class="rf-mj-rot">VAGA NO ELENCO — QUEM VOCÊ SUBSTITUI</span>
+      <span class="rf-mj-mono">4 POR CLUBE · ${livres} ${livres===1?'LIVRE':'LIVRES'}</span>
+    </div>
+    ${linhas?`<div class="rf-mj-vagas">${linhas}</div>`
+      :`<span class="rf-note">${e.carregando?'Carregando…':'Sem vagas neste clube.'}</span>`}
   </div>`;
 }
 function rfMjEscolhasHTML(){
@@ -311,24 +447,6 @@ function rfMjEscolhasHTML(){
     </button>`;
   }).join('');
 
-  const porPos={}; (e.vagas||[]).forEach(v=>{ porPos[v.posicao]=v; });
-  const livres=(e.vagas||[]).filter(v=>v.status==='livre').length;
-  const vagas=RF_MJ_ORDEM.map(k=>{
-    const v=porPos[k]; const P=RF_MJ_POS[k];
-    if(!v) return '';
-    const livre=v.status==='livre', sel=e.playerId===v.player_id;
-    return `<button type="button" class="rf-mj-linha ${sel?'on':''} ${livre?'':'off'}"
-        ${livre?`onclick="rfMjSetJogador('${escC(v.player_id)}')"`:'disabled'}>
-      <span class="rf-mj-radio ${sel?'on':''}"></span>
-      <span class="rf-mj-quad" style="background:${P.cor}">${P.letra}</span>
-      <span class="rf-mj-linha-id">
-        <span class="rf-mj-linha-t">${escC(P.nome)}</span>
-        <span class="rf-mj-linha-s">${escC(livre?P.nota:('ocupada por '+(v.nome||'outro embaixador')))}</span>
-      </span>
-      <span class="rf-mj-pill ${livre?'':'ocupada'}">${livre?('#'+rfMjCamisa(v)):'OCUPADA'}</span>
-    </button>`;
-  }).join('');
-
   const cfgLbl=(cfg&&cfg.label&&cfg.label[e.divisao])||('Série '+e.divisao);
   return `<div class="rf-mj-col">
     <div class="rf-mj-bloco">
@@ -343,14 +461,6 @@ function rfMjEscolhasHTML(){
       ${clubes?`<div class="rf-mj-clubes">${clubes}</div>`
         :`<span class="rf-note">${e.carregando?'Carregando os clubes…':'Escolha uma divisão.'}</span>`}
     </div>
-    ${e.clubId?`<div class="rf-mj-bloco">
-      <div class="rf-mj-bloco-hd">
-        <span class="rf-mj-rot">VAGA NO ELENCO</span>
-        <span class="rf-mj-mono">4 POR CLUBE · ${livres} ${livres===1?'LIVRE':'LIVRES'}</span>
-      </div>
-      ${vagas?`<div class="rf-mj-linhas">${vagas}</div>`
-        :`<span class="rf-note">${e.carregando?'Carregando…':'Sem vagas neste clube.'}</span>`}
-    </div>`:''}
   </div>`;
 }
 
@@ -363,6 +473,7 @@ function rfObMeuJogador(){
       ${rfMjEscolhasHTML()}
       ${rfMjFigurinhaHTML()}
     </div>
+    ${rfMjVagasHTML()}
     ${e.erro?`<div class="rf-mj-erro">${escC(e.erro)}</div>`:''}
     <div class="rf-mj-pe">
       <span class="rf-mj-pe-estado" data-mj-estado>${escC(rfMjFalta())}</span>
@@ -376,7 +487,7 @@ function rfObMeuJogador(){
     topoDir:'<span class="rf-mj-emb">🏅 EMBAIXADOR</span>',
     sobre:'BENEFÍCIO DE EMBAIXADOR',
     titulo:'Coloque o seu nome no pack oficial do jogo.',
-    sub:'Escolha o clube e a vaga no elenco, mande a sua foto e escreva o nome que vai na camisa. Depois da nossa revisão, ele entra no jogo de todo mundo.',
+    sub:'Escolha o clube e quem você substitui no elenco, mande a sua foto e crie o seu jogador. Depois da nossa revisão, ele entra no jogo de todo mundo.',
     corpo, semAcao:true });
 }
 
@@ -416,6 +527,7 @@ function rfMjHTML(){
   if(!e.clubes.length && !e.carregando) rfMjSetDivisao(e.divisao);
   return rfCol(rfCard('O seu jogador na base oficial', `
     <div class="rf-mj-wrap">${rfMjEscolhasHTML()}${rfMjFigurinhaHTML()}</div>
+    ${rfMjVagasHTML()}
     ${e.erro?`<div class="rf-mj-erro">${escC(e.erro)}</div>`:''}
     <div class="rf-mj-pe">
       <span class="rf-mj-pe-estado" data-mj-estado>${escC(rfMjFalta())}</span>

@@ -2153,19 +2153,44 @@ async function netVagaLargar(modalidade){
   const { error } = await sb.schema('elifoot_v3').rpc('vaga_largar', { p_modalidade:modalidade });
   return error ? { error:error.message } : {};
 }
-/* A FOTO DO JOGADOR VAI PARA O BUCKET DOS JOGADORES, nao para o do perfil: sao coisas
-   diferentes — uma e' a cara do treinador (so' dele), a outra entra na base que todos veem. */
+/* ===== A FOTO PESSOAL E' REFERENCIA, NAO E' O RETRATO =====
+   Antes esta funcao subia a foto da pessoa para o bucket PUBLICO e mandava esse endereco como
+   `foto_url` da vaga — ou seja, a foto de familia de quem assinou ia parar no elenco de todos
+   os outros treinadores. Agora ela sobe para o bucket PRIVADO das referencias (a mesma pasta
+   por uid do retrato do treinador, com a mesma politica) e serve so' de molde: quem vai para a
+   base e' a imagem que a player-avatar gera, e a referencia e' apagada la' assim que a geracao
+   termina, dando certo ou dando errado. */
 async function netVagaFoto(arquivo){
+  if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return { error:'sem sessão' };
   const tipo=String(arquivo && arquivo.type||'');
   if(!/^image\/(jpeg|png|webp)$/.test(tipo)) return { error:'A foto tem de ser JPG, PNG ou WebP.' };
   if(arquivo.size > 4*1024*1024) return { error:'A foto passa de 4 MB. Escolha uma menor.' };
   const ext = tipo.split('/')[1].replace('jpeg','jpg');
-  const caminho = `embaixadores/${SB_AUTH_USER.id}/jogador.${ext}`;
-  const up = await sb.storage.from('jogadores').upload(caminho, arquivo, { upsert:true, contentType:tipo });
+  /* CAMINHO NOVO A CADA ENVIO. A geracao apaga a referencia no fim, entao um caminho fixo com
+     upsert deixaria a pessoa que troca de foto duas vezes a apontar para um ficheiro que a
+     geracao anterior ja' levou. */
+  const caminho = `${SB_AUTH_USER.id}/jogador-${Date.now()}.${ext}`;
+  const up = await sb.storage.from('referencias-treinador')
+    .upload(caminho, arquivo, { upsert:false, contentType:tipo });
   if(up.error) return { error: up.error.message };
-  const { data } = sb.storage.from('jogadores').getPublicUrl(caminho);
-  return { url: (data && data.publicUrl ? data.publicUrl : '') + '?v=' + Date.now() };
+  return { caminho };
+}
+/* GERAR O RETRATO DO JOGADOR — irma da coachAvatarGerar, funcao propria (player-avatar), porque
+   os moldes sao outros: retrato 2:3 no gabarito do jogo, camisa do clube, sem terno de tecnico. */
+async function netVagaAvatarGerar(corpo){
+  const res = await netInvokeFn('player-avatar', corpo);
+  if(res.error){
+    let msg = res.error.message || 'Não consegui criar o jogador.';
+    let motivo = null;
+    /* o texto util vem no CORPO, nao em error.message — sem desembrulhar, o jogador leria
+       "Edge Function returned a non-2xx status code" no lugar do motivo. */
+    try{ const j = await res.error.context.json(); if(j){ msg = j.error||msg; motivo = j.motivo||null; } }catch(_e){}
+    return { error: msg, motivo };
+  }
+  const d = res.data||{};
+  if(!d.url) return { error: d.error || 'A função não devolveu o retrato.' };
+  return d;
 }
 /* a tela de pagamento confirmado repergunta o plano enquanto o webhook nao chega (ver
    rf26-pagamento.js): sem isto ela ficaria a olhar para o plano que leu no arranque */
@@ -2176,6 +2201,7 @@ NET.vagaMinha = netVagaMinha;
 NET.vagaPedir = netVagaPedir;
 NET.vagaLargar = netVagaLargar;
 NET.vagaFoto = netVagaFoto;
+NET.vagaAvatarGerar = netVagaAvatarGerar;
 
 NET.coachAvatarGet = netCoachAvatarGet;
 NET.coachAvatarSet = netCoachAvatarSet;

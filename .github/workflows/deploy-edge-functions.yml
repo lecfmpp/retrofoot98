@@ -85,6 +85,7 @@ jobs:
           npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/generate-image/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/coach-avatar/index.ts --outfile=/dev/null --platform=neutral --format=esm
+          npx esbuild supabase/functions/player-avatar/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/criar-checkout/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/stripe-webhook/index.ts --outfile=/dev/null --platform=neutral --format=esm
 
@@ -107,6 +108,7 @@ jobs:
         run: |
           deno check --config scripts/deno-check.json \
             supabase/functions/coach-avatar/index.ts \
+            supabase/functions/player-avatar/index.ts \
             supabase/functions/criar-checkout/index.ts \
             supabase/functions/stripe-webhook/index.ts
 
@@ -132,6 +134,7 @@ jobs:
           supabase functions deploy kickoff-round --project-ref "$PROJECT_REF"
           supabase functions deploy generate-image --project-ref "$PROJECT_REF"
           supabase functions deploy coach-avatar --project-ref "$PROJECT_REF"
+          supabase functions deploy player-avatar --project-ref "$PROJECT_REF"
           supabase functions deploy criar-checkout --project-ref "$PROJECT_REF"
 
       # send-password-reset é a EXCEÇÃO e vai sozinha: quem esqueceu a senha não tem
@@ -159,7 +162,7 @@ jobs:
       # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
       - name: Verificar que as funções sobem
         run: |
-          for fn in resolve-round kickoff-round generate-image coach-avatar criar-checkout; do
+          for fn in resolve-round kickoff-round generate-image coach-avatar player-avatar criar-checkout; do
             ok=0
             for i in 1 2 3; do
               code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \

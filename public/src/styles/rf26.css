@@ -10822,6 +10822,68 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-mj-erro{margin-top:12px;padding:10px 12px;border-radius:12px;background:#f4dcd9;color:#9d2f26;
   font-size:13px}
 
+/* ----- A TROCA: quem sai ao lado de quem entra -----
+   Duas molduras iguais e uma seta no meio. Sao IGUAIS de proposito: a etapa e' uma
+   substituicao, e o desenho tem de dizer isso sozinho, antes de qualquer texto. */
+.rf-mj-troca{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);align-items:center;
+  gap:8px}
+.rf-mj-troca.vazia{display:flex;min-height:150px;align-items:center;justify-content:center;
+  text-align:center;padding:14px;border:1px dashed #d3ded1;border-radius:16px;background:#fff}
+.rf-mj-seta{font-size:17px;color:#9aa79e;text-align:center}
+.rf-mj-card{margin:0;display:flex;flex-direction:column;gap:8px;padding:12px;background:#fff;
+  border:1px solid #e6ece4;border-radius:16px;min-width:0}
+.rf-mj-card.entra{border-color:#dbe4f2;background:#f7f9fd}
+.rf-mj-card.entra.pronto{border-color:#F2B90C;box-shadow:0 0 0 3px rgba(242,185,12,.16)}
+.rf-mj-card-rot{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.12em;
+  color:#9aa79e;text-transform:uppercase}
+.rf-mj-card.entra .rf-mj-card-rot{color:#17458F}
+.rf-mj-card-foto{position:relative;align-self:center;display:flex;align-items:center;
+  justify-content:center;width:120px;height:120px;border-radius:16px;overflow:hidden;
+  background:#eef1ee}
+.rf-mj-card-foto>img{width:100%;height:100%;object-fit:cover;display:block}
+/* a foto AINDA E' A FOTO DA PESSOA: esmaecida e com etiqueta, para nao se confundir com o
+   retrato do jogador que ainda nao existe */
+.rf-mj-card-foto>img.molde{filter:grayscale(.55) contrast(.92);opacity:.75}
+.rf-mj-card-vazio{font-size:34px;opacity:.45}
+.rf-mj-molde-tag{position:absolute;left:6px;right:6px;bottom:6px;text-align:center;
+  font-family:var(--font-mono);font-size:9px;letter-spacing:.04em;color:#fff;padding:3px 4px;
+  border-radius:8px;background:rgba(18,32,26,.72)}
+.rf-mj-card-num{position:absolute;right:6px;top:6px;min-width:22px;height:22px;padding:0 6px;
+  border-radius:8px;background:#F2B90C;color:#17458F;font-size:12px;font-weight:800;line-height:22px;
+  text-align:center}
+.rf-mj-card-id{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rf-mj-card-n{font-size:15px;font-weight:700;color:#12201a;line-height:1.2;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.rf-mj-card-d{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#5d6c62;min-width:0}
+.rf-mj-card-d .rf-mj-quad{width:18px;height:18px;border-radius:6px;font-size:10px}
+.rf-mj-dica{margin-top:-4px}
+.rf-fotonum.mj{width:120px;height:120px;border-radius:16px}
+.rf-fotonum.mj .rf-fnum{min-width:22px;height:22px;line-height:22px;font-size:12px;right:6px;bottom:6px}
+.rf-fotonum.mjs{width:52px;height:52px;border-radius:12px}
+.rf-fotonum.mjs .rf-fnum{min-width:16px;height:16px;line-height:16px;font-size:10px;right:3px;bottom:3px}
+
+/* ----- as 4 vagas, LARGAS E COM CARA, debaixo da imagem ----- */
+.rf-mj-bloco.larga{margin-top:16px}
+.rf-mj-vagas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rf-mj-vaga{display:flex;align-items:center;gap:11px;padding:11px 12px;text-align:left;
+  border:1px solid #e6ece4;border-radius:14px;background:#fff;cursor:pointer;min-width:0}
+.rf-mj-vaga.on{border-color:#17458F;background:#f4f7fb;box-shadow:0 0 0 2px rgba(23,69,143,.12)}
+.rf-mj-vaga.off{opacity:.55;background:#f6f8f5;cursor:not-allowed}
+.rf-mj-vaga-foto{width:52px;height:52px;flex:0 0 auto;border-radius:12px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;background:#eef1ee}
+.rf-mj-vaga-foto>img{width:100%;height:100%;object-fit:cover}
+.rf-mj-vaga-id{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.rf-mj-vaga-n{font-size:14px;font-weight:700;color:#12201a;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.rf-mj-vaga-d{display:flex;align-items:center;gap:6px;font-size:11px;color:#5d6c62}
+.rf-mj-vaga-d .rf-mj-quad{width:18px;height:18px;border-radius:6px;font-size:10px}
+.rf-mj-vaga-s{font-size:11px;color:#78877c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:760px){
+  .rf-mj-vagas{grid-template-columns:minmax(0,1fr)}
+  .rf-mj-troca{grid-template-columns:minmax(0,1fr);gap:6px}
+  .rf-mj-seta{transform:rotate(90deg)}
+}
+
 /* ----- a vaga que ja' e' minha (aba do Treinador) ----- */
 .rf-mj-minha{display:flex;align-items:center;gap:14px}
 .rf-mj-minha-foto{width:76px;height:76px;border-radius:50%;overflow:hidden;flex:0 0 auto;
