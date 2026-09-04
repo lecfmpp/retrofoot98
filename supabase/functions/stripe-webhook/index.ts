@@ -124,6 +124,24 @@ Deno.serve(async (req) => {
     }
   }
 
+  /* ===== O FIM DO PERIODO MUDOU DE SITIO =====
+     Ate' a versao 2025-02-24 da API, `current_period_end` vivia na ASSINATURA. Agora vive no
+     ITEM dela — e o objeto que o Stripe manda ja' nao traz o campo em cima. `new Date(undefined *
+     1000)` da' Invalid Date, e `.toISOString()` sobre ele ATIRA: era o "RangeError: Invalid time
+     value" que derrubava o `customer.subscription.updated` inteiro, com o plano por gravar.
+     Le'-se o item primeiro, a assinatura como reserva, e devolve-se null quando nao ha' nenhum
+     dos dois — nunca uma data invalida. Sem prazo e' um estado que `plano_limites` sabe ler
+     ("plano pago nao tem prazo"); uma excepcao a meio do webhook nao e'. */
+  function fimDoPeriodo(sub: Stripe.Subscription): string | null {
+    const it: any = (sub as any)?.items?.data?.[0];
+    const seg = Number(it?.current_period_end ?? (sub as any)?.current_period_end);
+    if (!Number.isFinite(seg) || seg <= 0) {
+      console.error("assinatura sem fim de periodo:", sub.id);
+      return null;
+    }
+    return new Date(seg * 1000 + FOLGA_MS).toISOString();
+  }
+
   try {
     switch (evento.type) {
       /* A sessao completa nao traz os itens da assinatura — so' o id dela.
@@ -136,7 +154,7 @@ Deno.serve(async (req) => {
         const uid = (s.client_reference_id as string) || await donoDa(sub);
         const plano = planoDaAssinatura(sub);
         if (!uid || !plano) { console.error("checkout sem dono ou sem plano", s.id); break; }
-        await gravar(uid, plano, new Date(sub.current_period_end * 1000 + FOLGA_MS).toISOString());
+        await gravar(uid, plano, fimDoPeriodo(sub));
         break;
       }
 
@@ -146,7 +164,7 @@ Deno.serve(async (req) => {
         const plano = planoDaAssinatura(sub);
         if (!uid) { console.error("assinatura sem dono", sub.id); break; }
         if (VIVOS.has(sub.status) && plano) {
-          await gravar(uid, plano, new Date(sub.current_period_end * 1000 + FOLGA_MS).toISOString());
+          await gravar(uid, plano, fimDoPeriodo(sub));
         } else {
           /* Nao apaga a linha: deixa o registo de que ja' foi assinante, com o
              plano rebaixado. `free` e' o que plano_limites le'. */
