@@ -458,19 +458,12 @@ function rfClubesHTML(){
             ${paises.map(c=>`<option value="${escC(c)}" ${p.country===c?'selected':''}>${escC(c)}</option>`).join('')}
           </select>
         </div>`).join('')}
-        ${(typeof rfTesteAcesso==='function' && rfTesteAcesso())?(()=>{
-          const poolMeu=(((CL._pickPool||{})[(pick[0]||{}).country]||[]).slice()
-            .sort((a,b)=>String(a.short||a.name).localeCompare(String(b.short||b.name),'pt-BR')));
-          return `<div class="rf-cb-lin" style="border:1px dashed #b8862c;border-radius:10px;padding:10px">
-            <span class="rf-cb-n">🧪 TESTE <i>(escolher o SEU clube e pular o sorteio)</i></span>
-            <select class="rf-campo-c" onchange="CL.pickTeste=this.value">
-              <option value="">— sortear normalmente —</option>
-              ${poolMeu.map(c=>`<option value="${escC(String(c.id))}" ${String(CL.pickTeste||'')===String(c.id)?'selected':''}>${escC(c.short||c.name)}</option>`).join('')}
-            </select>
-          </div>
-          <button type="button" class="rf-btn rf-btn-secondary" style="align-self:flex-start"
-            onclick="rfTesteComecar()">⚡ Começar com este clube (teste)</button>`;
-        })():''}
+        ${/* A PORTA DE TESTE QUE ESCOLHIA O CLUBE SAIU (04/09). Ela existia para a bancada dos
+             socios provarem um clube concreto sem depender do sorteio, e a propria tela dizia,
+             uma linha acima, que "o clube e' sempre sorteado — ninguem escolhe o proprio time".
+             Duas frases opostas na mesma tela: uma delas tinha de sair, e sai a que contradiz a
+             regra do jogo. `rfTesteComecar` fica em main.js, sem quem o chame — se um dia a
+             bancada voltar a precisar, volta por ali e nao por um botao a' vista. */''}
       </div>`;
     return rfWiz({ corpo, passo:rfPasso('Clube'), titulo:'De onde sai cada clube?',
       sub:'Cada treinador escolhe o país. O clube é sempre sorteado — ninguém escolhe o próprio time.',
