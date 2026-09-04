@@ -146,15 +146,34 @@ Deno.serve(async (req) => {
     switch (evento.type) {
       /* A sessao completa nao traz os itens da assinatura — so' o id dela.
          Buscar a assinatura e' o que da' acesso ao preco vendido (e ao plano). */
+      /* ===== A SESSAO JA' TRAZ QUEM E' E O QUE COMPROU =====
+         Esta ramificacao comecava por ir buscar a assinatura ao Stripe — e ficava refem de uma
+         permissao (`subscription_read`) que a chave restrita pode nao ter: sem ela, 500, o
+         Stripe reenvia sem parar e acaba por desligar o endpoint. Mas nada disso e' preciso para
+         o essencial: a `criar-checkout` carimba `user_id` e `plano` na propria sessao, e o
+         `client_reference_id` traz o dono. So' o FIM DO PERIODO exige a assinatura — e esse, se
+         nao vier, chega depois no `customer.subscription.updated`, que traz o objeto inteiro.
+         Entao: concede-se o plano com o que ha', e a data e' um extra. Um evento nao pode falhar
+         inteiro por causa da parte opcional. */
       case "checkout.session.completed": {
         const s = evento.data.object as Stripe.Checkout.Session;
         if (s.mode !== "subscription" || !s.subscription) break;
         const subId = typeof s.subscription === "string" ? s.subscription : s.subscription.id;
-        const sub = await stripe.subscriptions.retrieve(subId);
-        const uid = (s.client_reference_id as string) || await donoDa(sub);
-        const plano = planoDaAssinatura(sub);
+        const uid = (s.client_reference_id as string) || (s.metadata?.user_id as string) || null;
+        const pm = String(s.metadata?.plano || "");
+        const plano = (pm === "resenha" || pm === "embaixador") ? pm : null;
         if (!uid || !plano) { console.error("checkout sem dono ou sem plano", s.id); break; }
-        await gravar(uid, plano, fimDoPeriodo(sub));
+
+        let until: string | null = null;
+        try {
+          const sub = await stripe.subscriptions.retrieve(subId);
+          until = fimDoPeriodo(sub);
+        } catch (e) {
+          /* tipicamente falta `subscription_read` na chave. NAO e' motivo para recusar o evento:
+             o plano entra na mesma e o prazo vem no evento seguinte. */
+          console.error("sem ler a assinatura (segue sem prazo):", (e as Error)?.message);
+        }
+        await gravar(uid, plano, until);
         break;
       }
 
