@@ -723,7 +723,20 @@ const RF_SB_PRODUTOS=[
     href:'https://modaec.com.br/produtos/flamengo-1993-lubrax-4vhj0/?utm=retrofoot-sidebar-proxima-partida',
     preco:'R$ 132,33' },
 ];
+/* ===== ESTE LUGAR PASSOU A SER INVENTARIO, NAO CODIGO =====
+   A vitrine estava escrita aqui dentro: um parceiro fixo, sem chave, fora do painel — nao dava
+   para publicar imagem nova, trocar o link nem ver uma impressao. Agora ela tem chave
+   (`rf98.sidebar.vitrine`, em elifoot_v3.ad_spaces) e obedece a's mesmas tres regras dos outros
+   espacos: o painel pode DESLIGAR o lugar, o criativo publicado MANDA, e a impressao e o clique
+   sao contados por ADS (scan/clique).
+
+   A Moda EC nao sai: ela vira o criativo DE CASA — ocupa o lugar enquanto ninguem comprou, que
+   e' melhor do que um retangulo cinzento a dizer "Publicidade". */
+const RF_SB_AD_CHAVE='rf98.sidebar.vitrine';
 function rfSbAnuncioHTML(){
+  if(window.ADS && ADS.ligado && !ADS.ligado(RF_SB_AD_CHAVE)) return '';
+  const real=window.ADS?ADS.html(RF_SB_AD_CHAVE,{cls:'rf-sb-ad-slot'}):'';
+  if(real) return `<div class="rf-sb-ad"><span class="rf-sb-ad-tag">Publicidade</span>${real}</div>`;
   const p=RF_SB_PRODUTOS[(CL._sbAdIdx||0)%RF_SB_PRODUTOS.length];
   return `<div class="rf-sb-ad">
     <span class="rf-sb-ad-tag">Publicidade</span>

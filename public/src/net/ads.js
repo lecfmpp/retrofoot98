@@ -20,6 +20,9 @@
      rf98.camarote.logo1..5 · os cinco lugares da banda do Camarote. Cada criativo
                            leva o SEU botão (cta_texto/cta_bg/cta_fg), e o botão à direita da
                            banda é o do lugar em destaque — o destaque gira com o relógio.
+     rf98.sidebar.vitrine · caixa quadrada na barra lateral, abaixo do menu. Sem criativo
+                           publicado, o lugar mostra a vitrine da Moda EC (criativo de casa,
+                           ver rfSbAnuncioHTML em ui/rf26.js).
      rf98.pausa.barra    · patrocínio de apresentação (pausa da Resenha e rodada de copa).
                            No Camarote ele cobre o 1º lugar enquanto logo1 estiver vazio.
 
