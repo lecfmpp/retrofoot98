@@ -3192,9 +3192,22 @@
 .rf-lp-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;
   align-items:center;max-width:1180px;margin:0 auto;padding:56px 28px}
 .rf-lp-hero-txt{display:flex;flex-direction:column;gap:16px;min-width:0}
-.rf-lp-pill{align-self:flex-start;display:flex;align-items:center;gap:7px;font-size:var(--fs-caption);
-  font-weight:var(--fw-semibold);color:var(--ok);background:#e9f6ee;border:1px solid #cfe8d9;
-  border-radius:var(--r-pill);padding:6px 13px;white-space:nowrap}
+/* ===== A ANATOMIA DO CHIP E' UMA SO' =====
+   Este era o unico que tinha ficado de fora da arrumacao: sans-serif, tamanho de legenda e
+   semibold, enquanto os outros dois (o selo de plano e o "ainda nao") ja' tinham passado a
+   mono em caixa alta, com fundo lavado e fio de 1px. Tres chips com tres anatomias fazem a
+   pagina parecer montada por pessoas diferentes.
+   O QUE MUDA ENTRE ELES E' A COR, e so' ela — porque a cor e' a unica coisa que diz de que
+   tipo de chip se trata: dourado = beneficio do plano, cinza = ainda nao existe, verde = um
+   facto bom sobre o produto. A forma, o tipo e o peso sao partilhados. */
+.rf-lp-pill{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label);text-transform:uppercase;
+  color:#2b7a4b;background:#eaf6ee;border:1px solid #cfe8d9;
+  border-radius:var(--r-pill);padding:4px 12px;white-space:nowrap}
+/* o ponto verde e' DESENHO, nao texto: escrito na frase ele entrava na leitura de ecra como um
+   caractere solto e o `gap` do chip nao tinha o que separar. */
+.rf-lp-pill-dot{width:7px;height:7px;border-radius:50%;background:#2fbf5f;flex:0 0 auto}
 .rf-lp-h1{margin:0;font-size:42px;font-weight:var(--fw-bold);letter-spacing:var(--ls-tight);
   line-height:1.12;color:var(--text-1)}
 .rf-lp-p{margin:0;font-size:var(--fs-subhead);color:var(--text-3);line-height:1.6;max-width:60ch}
@@ -3694,8 +3707,10 @@
    lavado e no fio, e o peso volta para o botao, que e' quem tem accao. Os tres
    selos partilham os mesmos tokens para nao voltarem a divergir um do outro. */
 :root{ --rf-chip-bg:#fdf4dc; --rf-chip-line:#eddfae; --rf-chip-fg:#6b5000; }
-.rf-lp-selo-emb{align-self:center;display:inline-flex;align-items:center;gap:7px;
-  height:28px;padding:0 14px;border-radius:var(--r-pill);
+/* MESMA MEDIDA DOS OUTROS DOIS: era o unico com altura fixa (28px) e um padding proprio, e
+   ficava meio ponto maior que o chip neutro que aparece logo abaixo dele na mesma coluna. */
+.rf-lp-selo-emb{align-self:center;display:inline-flex;align-items:center;gap:6px;
+  padding:4px 12px;border-radius:var(--r-pill);
   background:var(--rf-chip-bg);border:1px solid var(--rf-chip-line);color:var(--rf-chip-fg);
   font-family:var(--font-mono);font-size:var(--fs-label);
   font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}

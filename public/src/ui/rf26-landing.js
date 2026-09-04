@@ -1089,7 +1089,7 @@ function rfLandingHTML(){
 
     <header class="rf-lp-hero" id="rf-lp-jogo">
       <div class="rf-lp-hero-txt">
-        <span class="rf-lp-pill">● 100% online — nada pra instalar</span>
+        <span class="rf-lp-pill"><i class="rf-lp-pill-dot" aria-hidden="true"></i>100% online — nada pra instalar</span>
         <h1 class="rf-lp-h1">O clássico da sua infância,<br>agora online e com os amigos.</h1>
         <p class="rf-lp-p">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com a turma toda na mesma liga.</p>
         ${/* ===== UM BOTAO SO' NO HERO =====
