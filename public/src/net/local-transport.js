@@ -764,8 +764,8 @@ function renderOnlineInto(){ const r=document.querySelector('#c-root'); if(!r) r
 /* DESIGN NOVO (pedido do dono, 20/08): este passo desenhava o cartao da pele antiga
    (cl-conta-logged / cl-authfield) dentro da regua nova — era a tela denunciada no print.
    Agora usa as MESMAS pecas do onboarding novo (rf-ob-sessao, rfCampo/rfInput, rf-seg),
-   com os manipuladores da Resenha (CL.net + netContaSync). A caixa alta do nome e por CSS
-   (classe maiuscula) — nunca this.value=, que mata o cursor. */
+   com os manipuladores da Resenha (CL.net + netContaSync). O nome do treinador NAO leva mais
+   caixa alta forcada: ele fica como a pessoa escreveu (ver rfNomeTreinador). */
 function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   const salaInfo=(join && typeof NET!=='undefined' && NET.room)
     ? `<div class="rf-conta-sala">Sala: <b>${escC(NET.room.name||n.code)}</b> · código <b>${escC(n.code)}</b></div>` : '';
@@ -783,8 +783,8 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
           </span>
         </div>
         <div class="rf-wiz-form">
-          ${rfCampo('Nome do treinador', `<input class="rf-campo-c maiuscula" id="cl-focus" maxlength="14"
-            value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();netContaSync()">`)}
+          ${rfCampo('Nome do treinador', `<input class="rf-campo-c" id="cl-focus" maxlength="14"
+            value="${escC(n.name)}" oninput="CL.net.name=this.value;netContaSync()">`)}
         </div>
         ${salaInfo}
         <button type="button" class="rf-ob-trocar" onclick="clAuthSwitchAccount()">
@@ -808,8 +808,8 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
           <button type="button" class="rf-seg-b ${isSignup?'on':''}" onclick="CL.net.authMode='signup';cdraw()">Criar conta</button>
           <button type="button" class="rf-seg-b ${isSignup?'':'on'}" onclick="CL.net.authMode='login';cdraw()">Entrar</button>
         </div>
-        ${isSignup?rfCampo('Nome do treinador', `<input class="rf-campo-c maiuscula" id="cl-focus" maxlength="14"
-          placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value.toUpperCase();netContaSync()">`):''}
+        ${isSignup?rfCampo('Nome do treinador', `<input class="rf-campo-c" id="cl-focus" maxlength="14"
+          placeholder="Como quer ser chamado" value="${escC(n.name)}" oninput="CL.net.name=this.value;netContaSync()">`):''}
         ${rfCampo('E-mail', `<input class="rf-campo-c" ${isSignup?'':'id="cl-focus"'} type="email"
           placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()">`)}
         ${rfCampo('Senha', `<input class="rf-campo-c" type="password" minlength="6" placeholder="••••••••"

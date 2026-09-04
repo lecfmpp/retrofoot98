@@ -1922,7 +1922,7 @@ function scLogin(){ const a=CL.auth||(CL.auth={mode:'login',name:'',email:'',pas
       </div>
       <div class="cl-wiz-authsub">${isSignup?'Crie sua conta pra salvar seus jogos na nuvem e continuar em qualquer aparelho.':'Entre pra acessar seus jogos salvos na nuvem.'}</div>
       <div class="cl-authform">
-        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" class="maiuscula" maxlength="14" placeholder="Como quer ser chamado" value="${escC(a.name)}" oninput="CL.auth.name=this.value.toUpperCase();clLoginSync()"></div>`:''}
+        ${isSignup?`<div class="cl-authfield"><label>Nome de treinador</label><input id="cl-focus" maxlength="14" placeholder="Como quer ser chamado" value="${escC(a.name)}" oninput="CL.auth.name=this.value;clLoginSync()"></div>`:''}
         <div class="cl-authfield"><label>E-mail</label><input ${isSignup?'':'id="cl-focus"'} type="email" inputmode="email" autocomplete="email" placeholder="voce@exemplo.com" value="${escC(a.email)}" oninput="CL.auth.email=this.value;clLoginSync()"></div>
         <div class="cl-authfield">
           <div class="cl-wiz-fieldhd2"><label>Senha</label>${isSignup?'':'<span class="cl-forgot-link" onclick="clForgotPassword()">Esqueci minha senha</span>'}</div>

@@ -475,11 +475,11 @@ function rfTreinadoresHTML(){
       <div class="rf-esc-grid quatro">${[5,6,7,8].map(cartao).join('')}</div>`:''}
       ${naResenha
         ? rfCampo('O seu nome de treinador',
-            `<div class="rf-tr-fixo">${escC(String(CL.mgr||'Treinador').toUpperCase())}
+            `<div class="rf-tr-fixo">${escC(String(CL.mgr||'Treinador'))}
                <span>é o nome da sua conta — é com ele que os outros veem você na sala</span></div>`)
         : `<div class="rf-tr-nomes">
         ${(CL.names||['']).slice(0,RF_HOTSEAT_LIGADO?n:1).map((nm,i)=>rfCampo(i===0?'O seu nome de treinador':'Treinador '+(i+1),
-          `<input class="rf-campo-c maiuscula" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
+          `<input class="rf-campo-c" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="Treinador"
              value="${escC(nm||'')}" oninput="rfNomeTreinador(${i},this.value)">`)).join('')}
       </div>`}
       <!-- A IDADE DO TREINADOR DEIXA DE SER INVENTADA. A ficha em Treinador
@@ -517,16 +517,21 @@ function rfTreinadoresSel(k){
   CL.names=CL.names||[];
   while(CL.names.length<k) CL.names.push('TREINADOR '+(CL.names.length+1));
   CL.names=CL.names.slice(0,k);
-  if(!CL.names[0]) CL.names[0]=(CL.mgr||'TREINADOR').toUpperCase();
+  if(!CL.names[0]) CL.names[0]=CL.mgr||'Treinador';
   cdraw();
 }
 /* NÃO redesenha. Com `cdraw()` aqui o campo era destruído e reconstruído a cada
    tecla: o cursor voltava para a posição 0 e o texto saía ao contrário, letra
    nova sempre na frente, e o Delete apagava o caractere errado. Nada nesta tela
    depende do nome digitado (o grid é de contagem, o CTA diz "Continuar com N"),
-   então guardar no estado basta. O MAIÚSCULO agora é do CSS (.maiuscula): mexer
-   em `this.value` empurraria o cursor pro fim no meio de uma edição. */
-function rfNomeTreinador(i,v){ CL.names[i]=String(v||'').toUpperCase(); }
+   então guardar no estado basta.
+
+   O MAIÚSCULO FORÇADO SAIU. O campo escrevia sempre em caixa alta — por CSS na tela e por
+   `.toUpperCase()` no estado — e isso decidia por quem digita: quem se chama "Zé Maria" não
+   tinha como se chamar assim. O nome vai para o save, para a sala e para o ranking como foi
+   escrito. Onde o desenho pede caixa alta (a faixa do clube, por exemplo), ela continua a ser
+   do CSS daquela peça, que é o sítio certo para uma decisão de desenho. */
+function rfNomeTreinador(i,v){ CL.names[i]=String(v||''); }
 /* SEM cdraw(): redesenhar por tecla devolve o cursor ao inicio do campo e o
    numero sai invertido (a mesma armadilha do nome do treinador). */
 function rfIdadeTreinador(v){
