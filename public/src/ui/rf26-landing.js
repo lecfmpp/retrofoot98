@@ -1029,7 +1029,11 @@ function rfLpGranaHTML(){
         ${quem('🍻','O cara que junta a galera','Não precisa ter canal. Precisa ter gente querendo jogar com você.')}
       </div>
 
-      <a class="rf-lp-cta2" href="mailto:suporte@retrofoot.com.br?subject=Quero%20um%20dos%2010%20links%20de%20Embaixador">Falar com o time</a>
+      ${/* WHATSAPP, e nao e-mail: sao 10 vagas e a conversa e' de ida e volta — quem chega por
+           aqui quer resposta hoje, nao um assunto na caixa de entrada. A mensagem vai pronta,
+           entao a pessoa so' carrega em enviar. */''}
+      <a class="rf-lp-cta2" target="_blank" rel="noopener"
+        href="https://wa.me/16478623292?text=${encodeURIComponent('Olá! Vi no site do RetroFoot98 que serão liberados 10 links de Embaixador no primeiro lançamento. Quero um deles — como faço?')}">Falar com o time</a>
       <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada.</span>
     </div>
   </section>`;

@@ -86,20 +86,34 @@ function rfPgCiclo(until){
   if(!isFinite(dias)) return null;
   return dias > 200 ? 'ano' : 'mes';
 }
+/* ===== "INVALID DATE" NAO E' UMA DATA =====
+   `new Date(undefined)` NAO estoura — devolve um objeto invalido, e `toLocaleDateString` sobre
+   ele devolve a string "Invalid Date". O try/catch nunca disparava, e o cartao do plano dizia
+   "RENOVA EM INVALID DATE" ao jogador. Sem data valida nao se escreve nada: a linha do prazo
+   simplesmente nao aparece. */
 function rfPgData(until){
-  try{ return new Date(until).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}); }
+  if(!until) return null;
+  const d=new Date(until);
+  if(isNaN(d.getTime())) return null;
+  try{ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'}); }
   catch(e){ return null; }
 }
 
 function rfPgCorpoHTML(plano, st){
   const c = RF_PG_CONTEUDO[plano] || RF_PG_CONTEUDO.embaixador;
   const def = (typeof RF_PLANOS!=='undefined' && RF_PLANOS.find(p=>p.key===plano)) || {};
-  const ciclo = rfPgCiclo(st && st.until);
+  /* ===== O CAMPO CHAMA-SE `proAte`, NAO `until` =====
+     `netAuthStatus` devolve { plan, pro, proAte, ... }; `until` e' o nome da COLUNA no banco,
+     que nunca chega ao cliente. Lendo o nome errado, o prazo vinha sempre indefinido: o ciclo
+     caia no mensal por omissao (mesmo para quem pagou o anual) e a data saia invalida.
+     O `|| st.until` fica como rede para um adaptador que um dia devolva o nome do banco. */
+  const ate = st && (st.proAte || st.until);
+  const ciclo = rfPgCiclo(ate);
   const cent = ciclo==='ano' ? def.ano : def.mes;
   const beta = (typeof rfBetaVale==='function') && rfBetaVale(def);
   const pago = (beta && typeof rfBetaCent==='function' && cent) ? rfBetaCent(cent) : cent;
   const valor = (cent && typeof rfBRL==='function') ? rfBRL(pago) : '';
-  const renova = rfPgData(st && st.until);
+  const renova = rfPgData(ate);
   const itens = (def.itens||[]).slice(0,4);
   const email = (st && st.email) || '';
 
@@ -114,7 +128,7 @@ function rfPgCorpoHTML(plano, st){
         <p class="rf-pg-sub">${escC(c.sub)}</p>
       </div>
     </div>
-    <div class="rf-pg-corpo">
+    <div class="rf-pg-corpo plano-${escC(plano)}">
       <div class="rf-pg-resumo">
         <span class="rf-pg-tile">${c.emoji}</span>
         <span class="rf-pg-resumo-id">
@@ -137,7 +151,6 @@ function rfPgCorpoHTML(plano, st){
         <button type="button" class="rf-pg-cta plano-${escC(plano)}" onclick="rfPgSeguir('${escC(plano)}')">
           ${escC(c.cta)}</button>
       </div>
-      <span class="rf-pg-legal">${escC(c.legal)}</span>
     </div>`;
 }
 
@@ -154,7 +167,9 @@ function rfPgSeguir(plano){
   try{ c.acao(); }catch(e){}
   if(typeof cdraw==='function') cdraw();
 }
-function rfPgDesenhar(html){
+/* `legal` fica FORA do cartao, centrada por baixo — e' o que o handoff pede, e faz sentido: e'
+   letra da lei sobre a cobranca, nao conteudo da confirmacao. */
+function rfPgDesenhar(html, legal){
   let f=document.querySelector('.rf-pg-fundo');
   if(!f){
     f=document.createElement('div');
@@ -164,7 +179,8 @@ function rfPgDesenhar(html){
     document.body.appendChild(f);
     document.addEventListener('keydown', rfPgEsc, true);
   }
-  f.innerHTML=`<div class="rf-pg-modal" role="dialog" aria-modal="true">${html}</div>`;
+  f.innerHTML=`<div class="rf-pg-modal" role="dialog" aria-modal="true">${html}</div>`
+    + (legal?`<span class="rf-pg-legal">${escC(legal)}</span>`:'');
 }
 function rfPgEsperandoHTML(){
   return `<div class="rf-pg-topo plano-esperando">
@@ -236,7 +252,7 @@ function rfPgVerificar(){
   const plano = st.plan || st.plano;
   const chegou = RF_PG_ALVO ? (plano===RF_PG_ALVO) : (plano==='resenha' || plano==='embaixador');
   if(chegou){
-    rfPgDesenhar(rfPgCorpoHTML(plano, st));
+    rfPgDesenhar(rfPgCorpoHTML(plano, st), (RF_PG_CONTEUDO[plano]||{}).legal);
     return;
   }
   if(++RF_PG_TENTATIVAS > 15){ rfPgDesenhar(rfPgNaoConfirmouHTML()); return; }

@@ -11133,6 +11133,151 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-mjp-cta{height:46px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;
   font-family:var(--font-sans);font-size:14px;font-weight:700;cursor:pointer}
 
+/* =====================================================================
+   PAGAMENTO CONFIRMADO — a folha que faltava
+   ---------------------------------------------------------------------
+   O componente existia inteiro em JS (ui/rf26-pagamento.js) e NENHUMA destas
+   classes tinha regra: o modal caia no fim da pagina como texto corrido, por
+   baixo da tela do jogo. Foi assim que ele apareceu no meio do sorteio da
+   Libertadores — nao era um erro de momento, era ausencia de folha.
+
+   Medidas, cores e tempos saem do handoff (design_handoff_pagamento_confirmado):
+   modal de 640px raio 22, topo com gradiente por plano, selo de 76px, confete a
+   cair 640px uma vez so', beneficios em duas colunas, e no telemovel a folha
+   inteira com barra fixa em baixo.
+
+   DUAS COISAS DO PROTOTIPO QUE NAO ENTRAM, e ja' estavam decididas no JS: o
+   "Ver o recibo" (nao ha' URL de recibo do gateway) e o meio de pagamento
+   (cartao/PIX, que o cliente nao recebe). Onde o dado nao existe, a tela nao
+   finge — e' a regra do resto do jogo.
+   ===================================================================== */
+.rf-pg-fundo{position:fixed;inset:0;z-index:9200;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;padding:20px;background:rgba(9,18,13,.62)}
+.rf-pg-modal{width:640px;max-width:100%;max-height:92vh;overflow:auto;background:#fff;
+  border:1px solid #dde7db;border-radius:22px;
+  box-shadow:0 40px 80px -40px rgba(20,33,26,.6);animation:rfPgSobe .28s ease}
+@keyframes rfPgSobe{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
+
+/* ----- o topo comemorativo ----- */
+.rf-pg-topo{position:relative;overflow:hidden;text-align:center}
+.rf-pg-topo.plano-resenha{background:linear-gradient(120deg,#06112b,#0e2f66 52%,#17458F)}
+.rf-pg-topo.plano-embaixador{background:linear-gradient(120deg,#2a1e02,#6b5000 46%,#a37800)}
+.rf-pg-topo.plano-esperando{background:linear-gradient(120deg,#1b2620,#2c3a31 60%,#3a4a3f)}
+.rf-pg-topo-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
+  gap:10px;padding:30px 30px 26px}
+/* o halo por cima do confete e por baixo do conteudo; unico laco permitido, quase impercetivel */
+.rf-pg-halo{position:absolute;inset:0;z-index:1;pointer-events:none;
+  animation:rfPgBrilho 3.4s ease-in-out infinite}
+.rf-pg-topo.plano-resenha .rf-pg-halo{
+  background:radial-gradient(110% 130% at 50% -10%,rgba(242,185,12,.24),transparent 60%)}
+.rf-pg-topo.plano-embaixador .rf-pg-halo{
+  background:radial-gradient(120% 140% at 50% -10%,rgba(255,224,120,.34),transparent 62%)}
+.rf-pg-topo.plano-esperando .rf-pg-halo{
+  background:radial-gradient(120% 140% at 50% -10%,rgba(255,255,255,.16),transparent 62%)}
+@keyframes rfPgBrilho{0%,100%{opacity:.55}50%{opacity:1}}
+.rf-pg-selo{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:34px;
+  box-shadow:0 14px 30px -12px rgba(0,0,0,.7), inset 0 0 0 4px rgba(255,255,255,.22);
+  animation:rfPgSelo .5s cubic-bezier(.2,1.4,.4,1) both}
+.rf-pg-topo.plano-resenha .rf-pg-selo{background:linear-gradient(160deg,#F2B90C,#d99f00)}
+.rf-pg-topo.plano-embaixador .rf-pg-selo{background:linear-gradient(160deg,#F2B90C,#c9971a)}
+.rf-pg-topo.plano-esperando .rf-pg-selo{background:rgba(255,255,255,.16)}
+@keyframes rfPgSelo{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.12)}
+  100%{opacity:1;transform:scale(1)}}
+.rf-pg-kicker{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.18em;
+  color:rgba(255,255,255,.82)}
+.rf-pg-topo.plano-resenha .rf-pg-kicker{color:#F2B90C}
+.rf-pg-topo.plano-embaixador .rf-pg-kicker{color:#ffe07a}
+.rf-pg-tit{margin:0;font-size:29px;font-weight:700;letter-spacing:-.025em;color:#fff;
+  text-wrap:balance;line-height:1.14}
+.rf-pg-sub{margin:0;max-width:430px;font-size:14.5px;color:rgba(255,255,255,.84);line-height:1.45}
+
+/* ----- o confete: pecas absolutas, uma queda so' ----- */
+.rf-pg-confete{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.rf-pg-confete>span{position:absolute;top:-24px;display:block;opacity:0}
+@keyframes rfPgCai{
+  0%{opacity:0;transform:translate3d(0,-40px,0) rotate(0deg)}
+  8%{opacity:1}
+  100%{opacity:0;transform:translate3d(var(--dx,0),640px,0) rotate(var(--rot,720deg))}}
+@media (prefers-reduced-motion:reduce){
+  .rf-pg-confete,[data-confete]{display:none}
+  .rf-pg-modal,.rf-pg-selo,.rf-pg-halo{animation:none}
+}
+
+/* ----- o corpo ----- */
+.rf-pg-corpo{padding:20px;display:flex;flex-direction:column;gap:16px}
+.rf-pg-resumo{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f6f8f5;
+  border:1px solid #e6ece4;border-radius:16px}
+.rf-pg-tile{width:44px;height:44px;border-radius:12px;flex:0 0 auto;display:flex;
+  align-items:center;justify-content:center;font-size:20px;
+  background:linear-gradient(150deg,#fff4d1,#f6e2a4)}
+.rf-pg-resumo-id{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.rf-pg-resumo-id b{font-size:15px;font-weight:700;color:#12201a}
+.rf-pg-mono{font-family:var(--font-mono);font-size:11px;color:#9aa79e;letter-spacing:.04em;
+  line-height:1.4}
+.rf-pg-valor{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+.rf-pg-valor b{font-family:var(--font-mono);font-size:20px;font-weight:700;color:#12201a}
+.rf-pg-valor .rf-pg-mono{font-size:10px}
+.rf-pg-rot{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.12em;
+  color:#8b978d;text-transform:uppercase}
+/* DUAS COLUNAS no desktop, uma abaixo de 900px — os beneficios sao frases curtas e em coluna
+   unica a lista ficava com o dobro da altura do resumo que esta' por cima. */
+.rf-pg-bens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rf-pg-bem{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #eef1ee;
+  border-radius:14px;font-size:13.5px;font-weight:700;color:#12201a;line-height:1.35}
+.rf-pg-tick{width:20px;height:20px;border-radius:50%;flex:0 0 auto;display:flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  background:#17458F;color:#fff}
+.rf-pg-modal .plano-embaixador~.rf-pg-corpo .rf-pg-tick,
+.rf-pg-corpo.plano-embaixador .rf-pg-tick{background:#F2B90C;color:#6b5000}
+.rf-pg-rodape{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:14px;
+  border-top:1px solid #eef1ee}
+.rf-pg-recibo{display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px;
+  font-size:12px;color:#78877c;line-height:1.4}
+.rf-pg-recibo b{color:#3a473f}
+.rf-pg-cta{height:44px;padding:0 22px;border:none;border-radius:12px;cursor:pointer;flex:0 0 auto;
+  font-family:var(--font-sans);font-size:14px;font-weight:700;
+  background:#F2B90C;color:#17458F;box-shadow:0 10px 22px -12px rgba(18,32,26,.6);
+  transition:filter var(--dur-fast) var(--ease)}
+.rf-pg-cta.plano-resenha{background:#17458F;color:#fff}
+.rf-pg-cta:hover{filter:brightness(1.06)}
+/* a nota legal vive FORA do cartao, centrada por baixo dele — e' letra da lei, nao conteudo */
+.rf-pg-legal{max-width:640px;text-align:center;font-size:12px;color:#dfe6e0;line-height:1.45}
+
+/* ----- telemovel: folha inteira, com barra fixa em baixo ----- */
+@media (max-width:760px){
+  .rf-pg-fundo{padding:0;gap:0;justify-content:flex-end}
+  .rf-pg-modal{width:100%;max-width:100%;max-height:100vh;height:100%;border:none;border-radius:0;
+    padding-bottom:96px;animation-name:rfPgSobeM}
+  @keyframes rfPgSobeM{from{opacity:0;transform:translate3d(0,18px,0)}to{opacity:1;transform:none}}
+  /* a alca: afordancia de arrastar, mesmo que quem fecha seja o Esc ou o CTA */
+  .rf-pg-topo::before{content:'';position:absolute;left:50%;top:8px;transform:translateX(-50%);
+    width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.32);z-index:3}
+  .rf-pg-topo-in{padding:18px 18px 22px}
+  .rf-pg-selo{width:64px;height:64px;font-size:29px}
+  .rf-pg-kicker{font-size:9.5px}
+  .rf-pg-tit{font-size:24px}
+  .rf-pg-sub{font-size:13.5px}
+  .rf-pg-confete>span{animation-name:rfPgCaiM}
+  @keyframes rfPgCaiM{
+    0%{opacity:0;transform:translate3d(0,-40px,0) rotate(0deg)}
+    8%{opacity:1}
+    100%{opacity:0;transform:translate3d(var(--dx,0),560px,0) rotate(var(--rot,720deg))}}
+  .rf-pg-corpo{padding:14px}
+  .rf-pg-tile{width:40px;height:40px}
+  .rf-pg-resumo-id b{font-size:14.5px}
+  .rf-pg-valor b{font-size:18px}
+  .rf-pg-bens{grid-template-columns:minmax(0,1fr)}
+  .rf-pg-rodape{flex-direction:column;align-items:stretch;gap:10px}
+  /* o CTA sai do fluxo e vira barra fixa — o unico botao fixo da folha */
+  .rf-pg-cta{position:fixed;left:0;right:0;bottom:0;z-index:3;width:auto;height:50px;
+    margin:12px;border-radius:14px}
+  .rf-pg-legal{padding:0 14px 12px;color:#9aa79e}
+}
+@media (max-width:900px) and (min-width:761px){
+  .rf-pg-bens{grid-template-columns:minmax(0,1fr)}
+}
+
 /* o clube escolhido, em uma linha, no lugar onde estavam os 20 cartoes */
 .rf-mj-clube-fixo{display:flex;align-items:center;gap:12px;padding:11px 12px;
   border:1px solid #dbe4f2;border-radius:14px;background:#f4f7fb}
