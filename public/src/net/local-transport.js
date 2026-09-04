@@ -439,6 +439,21 @@ function syncDivisionClubsFromTables(){
 function meuCaixaDoAssento(clubId){
   if(typeof NET==='undefined' || !NET.uid || !NET._claimed) return null;
   const me=NET._claimed[NET.uid]; if(!me || me.clubId!==clubId) return null;
+  /* ===== O ASSENTO ANDA COM O TREINADOR; O DINHEIRO NÃO =====
+     `game_seats.budget` é uma coluna só, sem dizer de que clube é aquele número — e o assento
+     acompanha o treinador quando ele muda de clube. Enquanto essa coluna ainda tiver o dinheiro
+     do clube ANTERIOR, esta função o devolve como se fosse do clube novo, e o caixa real (que o
+     mundo tem, e que o convite prometeu) é escrito por cima. Foi o relato de 03/09.
+     A troca de clube na Resenha já publica o caixa certo na hora (ver clAcceptResenhaOffer), mas
+     isso conserta os caminhos que EU conheço. Esta trava é estrutural: o único carimbo de clube
+     que viaja no assento é o dos livros (`_myFin.clubId`); se ele discorda do clube que estou a
+     ver, o número da coluna é de outro clube — e aí quem manda é o mundo, que sabe o caixa de
+     todos. Vale para qualquer caminho de troca de clube, inclusive os que ainda não existem. */
+  const livros = (typeof S!=='undefined' && S && S._myFin && typeof S._myFin==='object') ? S._myFin : null;
+  if(livros && livros.clubId && livros.clubId!==clubId){
+    console.warn('caixa do assento é do '+livros.clubId+' e eu sou o '+clubId+' — usando o caixa do clube (do mundo)');
+    return null;
+  }
   return (me.budget!=null && isFinite(me.budget)) ? Number(me.budget) : null;
 }
 function applyViewerDivision(clubId){
