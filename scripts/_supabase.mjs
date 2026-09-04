@@ -74,6 +74,44 @@ export async function contar(tabela, { privilegiado = false } = {}) {
   return Number((res.headers.get('content-range') || '/0').split('/')[1] || 0);
 }
 
+/* ATUALIZA LINHAS QUE JÁ EXISTEM, uma a uma, pelas colunas-chave.
+   ---------------------------------------------------------------------------
+   POR QUE NÃO USAR `upsert` PARA ISTO. O upsert do PostgREST é um
+   `INSERT ... ON CONFLICT`, e o Postgres valida NOT NULL na linha PROPOSTA antes
+   de olhar para o conflito: mandar só a chave e o campo a mudar faz o banco
+   recusar o lote inteiro por causa de colunas que a linha real já tem
+   preenchidas. Aconteceu duas vezes seguidas na migração das jogadoras
+   (`divisao`, depois `clube_nome`) — e ia continuar a acontecer a cada coluna
+   NOT NULL nova, porque o modo de falha é estrutural, não uma coluna esquecida.
+   O PATCH não constrói linha nenhuma: ele só toca no que se manda, e nunca cria
+   registo por engano — que para uma correção de dados é a semântica certa.
+
+   Uma requisição por linha, com concorrência pequena: são operações curtas e o
+   objetivo aqui é não abrir centenas de ligações ao mesmo tempo. */
+export async function atualizar(tabela, linhas, chaves, simultaneas = 8) {
+  let feitas = 0;
+  for (let i = 0; i < linhas.length; i += simultaneas) {
+    await Promise.all(linhas.slice(i, i + simultaneas).map(async (linha) => {
+      const q = new URLSearchParams();
+      const campos = {};
+      for (const [k, v] of Object.entries(linha)) {
+        if (chaves.includes(k)) q.set(k, `eq.${v}`);
+        else campos[k] = v;
+      }
+      const res = await fetch(`${SB_URL}/rest/v1/${tabela}?${q}`, {
+        method: 'PATCH',
+        headers: cabecalhos({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }, { escrita: true }),
+        body: JSON.stringify(campos),
+      });
+      if (!res.ok) throw new Error(`PATCH ${tabela} (${q}) → HTTP ${res.status}: ${await res.text()}`);
+      feitas++;
+    }));
+    process.stdout.write(`\r   ${tabela}: ${feitas}/${linhas.length}`);
+  }
+  if (linhas.length) process.stdout.write('\n');
+  return feitas;
+}
+
 /* Upsert em lotes. `conflito` são as colunas da unique key, como o PostgREST espera. */
 export async function upsert(tabela, linhas, conflito, tamanho = 200) {
   let feitas = 0;

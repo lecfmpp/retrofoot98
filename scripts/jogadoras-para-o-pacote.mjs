@@ -33,7 +33,7 @@
    ============================================================================ */
 import fs from 'node:fs';
 import path from 'node:path';
-import { ler, upsert, SCHEMA } from './_supabase.mjs';
+import { ler, upsert, atualizar, SCHEMA } from './_supabase.mjs';
 
 const APLICAR = process.argv.includes('--aplicar');
 const RAIZ = path.join(process.cwd(), 'public', 'src', 'data');
@@ -103,21 +103,16 @@ async function vagasFemininas() {
   /* pela VISTA PUBLICA, e nao pela tabela: o ensaio tem de correr sem credencial nenhuma —
      um `--dry` que exige a service_role e' um ensaio que ninguem faz. A vista expoe
      modalidade, club_id, player_id e nome_base, que e' tudo o que este conserto precisa. */
-  const slots = await ler('player_slots_publicas', { select: 'modalidade,club_id,player_id,divisao,nome_base' });
+  const slots = await ler('player_slots_publicas', { select: 'modalidade,club_id,player_id,nome_base' });
   const fem = (slots || []).filter(s => s.modalidade === 'fem');
   const trocar = [];
   const semNome = [];
   for (const s of fem) {
     const nome = FEM[s.player_id];
     if (!nome) { semNome.push(s.player_id); continue; }
-    /* ===== `divisao` VAI JUNTO, E NAO E' REDUNDANCIA =====
-       O upsert do PostgREST e' um INSERT ... ON CONFLICT, e o Postgres confere NOT NULL na
-       linha PROPOSTA antes de olhar para o conflito. Mandando so' as tres chaves e o nome, a
-       linha proposta nascia com `divisao` nula e o banco recusava o lote inteiro — mesmo com
-       as 320 linhas ja' existindo. Repetir o valor que ja' la' esta' custa nada e faz o
-       caminho do INSERT ser valido. */
-    if (s.nome_base !== nome) trocar.push({ modalidade: 'fem', club_id: s.club_id, player_id: s.player_id,
-                                            divisao: s.divisao, nome_base: nome });
+    /* so' a chave e o campo a mudar: quem escreve e' um PATCH, que nao constroi linha nenhuma
+       (ver `atualizar` em _supabase.mjs — foi por isto que o upsert nao servia aqui) */
+    if (s.nome_base !== nome) trocar.push({ modalidade: 'fem', club_id: s.club_id, player_id: s.player_id, nome_base: nome });
   }
   return { total: fem.length, trocar, semNome };
 }
@@ -125,7 +120,7 @@ async function consertarVagas() {
   const { total, trocar, semNome } = await vagasFemininas();
   if (semNome.length) console.warn(`aviso: ${semNome.length} vagas femininas sem nome no mapa — ficam como estao`);
   if (!trocar.length) { console.log(`vagas femininas: ${total}, nenhuma para corrigir.`); return; }
-  await upsert('player_slots', trocar, 'modalidade,club_id,player_id');
+  await atualizar('player_slots', trocar, ['modalidade','club_id','player_id']);
   console.log(`vagas femininas: ${trocar.length} de ${total} com nome_base corrigido (era o nome masculino).`);
 }
 
