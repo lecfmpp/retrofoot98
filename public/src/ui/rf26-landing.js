@@ -154,10 +154,10 @@ const RF_TRAVAS={
      nenhuma. Mandar alguem apagar uma carreira para destrancar o jogo, e o
      jogo continuar trancado depois, e' o pior desfecho possivel desta janela. */
   saves:{ tier:'resenha', titulo:'A sua cota de carreiras acabou',
-    texto:(n)=>`O plano Peladeiro começa ${n?`até <b>${n}</b> carreira${n>1?'s':''}`:'um número limitado de carreiras'} por mês, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga — a carreira já foi começada.`,
+    texto:(n)=>`O plano Peladeiro começa ${n?`até <b>${n}</b> carreira${n>1?'s':''}`:'um número limitado de carreiras'} por mês <b>no Modo Solo</b>, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga — a carreira já foi começada.`,
     saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
   savesResenha:{ tier:'embaixador', titulo:'A sua cota de carreiras acabou',
-    texto:(n)=>`O plano Resenha começa ${n?`até <b>${n}</b> carreiras`:'um número limitado de carreiras'} por mês, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga. No Embaixador não há cota.`,
+    texto:(n)=>`O plano Resenha começa ${n?`até <b>${n}</b> carreiras`:'um número limitado de carreiras'} por mês <b>no Modo Solo</b>, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga. No Embaixador não há cota.`,
     saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
   hospedar:{ tier:'embaixador', titulo:'Abrir a sala é do Embaixador',
     texto:()=>'Entrar na resenha dos outros dá em qualquer plano, inclusive no grátis. <b>Abrir a sua</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é do plano Embaixador.',
@@ -494,13 +494,13 @@ function rfLpMomentosHTML(){
 const RF_PLANOS=[
   { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
-    itens:['Começa até 3 carreiras por mês','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
+    itens:['Começa até 3 carreiras por mês no Modo Solo','Séries A, B, C e D com elencos reais','Modo Resenha por 7 dias, nas salas dos outros'],
     falta:['Apagar uma carreira não devolve a vaga do mês','Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
     cta:'Começar de graça' },
 
   { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
     resumo:'Pra quem joga direto com a turma e quer o nome no ranking.',
-    itens:['Começa até 10 carreiras por mês','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
+    itens:['Começa até 10 carreiras por mês no Modo Solo','Entra em qualquer sala do Modo Resenha','Seu nome no ranking oficial de treinadores RetroFoot'],
     falta:['Não abre sala como anfitrião'],
     cta:'Assinar o Resenha' },
 
@@ -508,7 +508,7 @@ const RF_PLANOS=[
     destaque:true, selo:'O mais completo',
     resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
     itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
-           'Carreiras ilimitadas, sem cota mensal',
+           'Carreiras ilimitadas no Modo Solo, sem cota mensal',
            'Seu jogador na base de dados oficial, com avatar na sua cara',
            'Seu nome no ranking oficial de treinadores',
            'Selo de Embaixador no seu perfil',
@@ -671,6 +671,10 @@ function rfLpPlanosHTML(){
           <span class="rf-lp-ciclo-selo">economize ${pct}%</span></button>
       </div>
       <div class="rf-lp-plano-grade">${cartoes}</div>
+      ${/* A COTA E' DE CARREIRAS DO SOLO, e a lista dos cartoes agora di-lo em cada plano.
+           Esta linha diz a outra metade: entrar numa Resenha nao gasta cota nenhuma — que e' a
+           pergunta que a cota levanta e que a lista, sozinha, deixava por responder. */''}
+      <span class="rf-lp-nota">A cota mensal conta só as carreiras que você <b>começa no Modo Solo</b> — entrar numa sala do Modo Resenha não gasta cota.</span>
       <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus — o Modo Solo não tem prazo em nenhum plano.</span>
     </div>
   </section>`;
