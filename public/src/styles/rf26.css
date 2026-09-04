@@ -10711,171 +10711,187 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 
 
 /* =====================================================================
-   O MEU JOGADOR NA BASE OFICIAL (ui/rf26-meujogador.js)
-   Formulario de tres escolhas + nome + foto. Nada aqui inventa componente novo:
-   reaproveita a pilula de filtro (.rf-mkf-p) para o dropdown de clube e os
-   botoes de overlay (.rf-ov-cta/.rf-ov-b2) para as accoes, porque sao os
-   mesmos gestos que o jogo ja' tem noutras telas.
+   SEU JOGADOR OFICIAL (ui/rf26-meujogador.js) — passo do Embaixador
+   Tokens do handoff: casca e cartoes do onboarding, seleccao em 2px #17458F,
+   CTA amarelo, ouro do embaixador no selo e no popup. Duas colunas no desktop
+   (escolhas | figurinha), uma no telemovel, com o CTA na barra fixa.
    ===================================================================== */
-.rf-mj-passo{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.rf-mj-emb{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;
+  border-radius:99px;background:linear-gradient(150deg,#fff4d1,#f6e2a4);border:1px solid #f0dca6;
+  font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.1em;color:#6b5000}
+.rf-mj-wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;
+  align-items:start}
+.rf-mj-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.rf-mj-bloco{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rf-mj-bloco-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-mj-rot{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.12em;
+  color:#8b978d}
+.rf-mj-mono{font-family:var(--font-mono);font-size:10px;color:#9aa79e;letter-spacing:.04em}
+.rf-mj-mono.bom{color:#2fbf5f}
+.rf-mj-mono.ruim{color:#c0392b}
+.rf-mj-mono.ouro{color:#F2B90C}
+
+/* ----- divisao ----- */
 .rf-mj-divs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.rf-mj-div{height:42px;border:1px solid var(--line-2);border-radius:var(--r-control);
-  background:var(--surface-card);font-family:inherit;font-size:var(--fs-body-sm);
-  font-weight:var(--fw-semibold);color:var(--text-2);cursor:pointer}
-.rf-mj-div.on{border-color:var(--club-primary);background:var(--club-primary-soft);
-  color:var(--club-primary)}
-.rf-mj-sel{width:100%}
-/* as quatro vagas: uma por setor, o melhor de cada — por isso a forca fica a' direita, que e'
-   o numero que decide entre elas */
-.rf-mj-vagas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.rf-mj-vaga{display:flex;align-items:center;gap:10px;padding:10px 12px;text-align:left;
-  border:1px solid var(--line-2);border-radius:var(--r-control);background:var(--surface-card);
-  font-family:inherit;cursor:pointer}
-.rf-mj-vaga.on{border-color:var(--club-primary);background:var(--club-primary-soft)}
-.rf-mj-vaga.off{opacity:.5;cursor:not-allowed}
-.rf-mj-vaga-pos{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--text-4);flex:0 0 58px}
-.rf-mj-vaga-id{display:flex;flex-direction:column;min-width:0;flex:1}
-.rf-mj-vaga-n{font-size:var(--fs-body-sm);font-weight:var(--fw-semibold);color:var(--text-1);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rf-mj-vaga-s{font-size:var(--fs-caption);color:var(--text-4)}
-.rf-mj-vaga-f{font-family:var(--font-mono);font-size:16px;font-weight:var(--fw-bold);
-  font-variant-numeric:tabular-nums;color:var(--text-1)}
-.rf-mj-foto-l{display:flex;align-items:center;gap:14px}
-.rf-mj-foto{width:92px;height:92px;border-radius:50%;overflow:hidden;flex:0 0 auto;
-  display:flex;align-items:center;justify-content:center;font-size:30px;
-  background:var(--surface-sunken);border:1px dashed var(--line-2)}
-.rf-mj-foto img{width:100%;height:100%;object-fit:cover}
-.rf-mj-foto-b{display:flex;flex-direction:column;gap:8px}
-.rf-mj-bts{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
-.rf-mj-erro{margin-top:12px;padding:10px 12px;border-radius:var(--r-control);
-  background:var(--falta-soft,#f4dcd9);color:#9d2f26;font-size:var(--fs-body-sm)}
-/* a vaga que ja' e' minha: deixa de ser formulario e passa a ser estado */
+.rf-mj-divc{display:flex;flex-direction:column;gap:3px;padding:10px;text-align:left;
+  border:2px solid #dde7db;border-radius:13px;background:#fff;cursor:pointer;font-family:inherit}
+.rf-mj-divc-n{font-size:14px;color:#12201a}
+.rf-mj-divc.on{border-color:#17458F;background:#eef3fa}
+.rf-mj-divc.on .rf-mj-divc-n{font-weight:700}
+
+/* ----- clube ----- */
+.rf-mj-clubes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rf-mj-clube{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 8px;
+  border:2px solid #dde7db;border-radius:13px;background:#fff;cursor:pointer;font-family:inherit;
+  text-align:center;min-width:0}
+.rf-mj-clube-e{height:26px;display:flex;align-items:center;justify-content:center}
+.rf-mj-clube-e img,.rf-mj-clube-e svg{width:26px;height:26px;object-fit:contain}
+.rf-mj-clube-n{font-size:13px;color:#12201a;line-height:1.2;overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.rf-mj-clube.on{border-color:#17458F;background:#eef3fa}
+.rf-mj-clube.on .rf-mj-clube-n{font-weight:700}
+/* clube lotado NAO e' so' mais palido: nao seleciona, e o cursor tem de dizer isso antes do clique */
+.rf-mj-clube.off{opacity:.55;background:#f6f8f5;cursor:not-allowed}
+
+/* ----- as quatro vagas ----- */
+.rf-mj-linhas{display:flex;flex-direction:column;gap:8px}
+.rf-mj-linha{display:flex;align-items:center;gap:10px;padding:11px 12px;text-align:left;
+  border:2px solid #dde7db;border-radius:13px;background:#fff;cursor:pointer;font-family:inherit}
+.rf-mj-linha.on{border-color:#17458F;background:#f4f7fb}
+.rf-mj-linha.off{opacity:.55;background:#f6f8f5;cursor:not-allowed}
+.rf-mj-radio{width:16px;height:16px;border-radius:50%;border:2px solid #c8d4c6;flex:0 0 auto}
+.rf-mj-radio.on{border-color:#17458F;box-shadow:inset 0 0 0 3px #fff;background:#17458F}
+.rf-mj-quad{width:26px;height:26px;border-radius:8px;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-family:var(--font-mono);font-size:12px;font-weight:700}
+.rf-mj-linha-id{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.rf-mj-linha-t{font-size:13.5px;font-weight:700;color:#12201a}
+.rf-mj-linha-s{font-size:11px;color:#78877c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rf-mj-pill{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:3px 8px;
+  border-radius:99px;background:#F2B90C;color:#17458F;flex:0 0 auto}
+.rf-mj-pill.ocupada{background:#f0f2f0;color:#9aa79e}
+
+/* ----- a figurinha ----- */
+.rf-mj-fig{display:flex;flex-direction:column;gap:12px;padding:16px;background:#f6f8f5;
+  border:1px solid #e6ece4;border-radius:18px;min-width:0}
+.rf-mj-fig-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rf-mj-prev{position:relative;height:280px;border-radius:16px;overflow:hidden;background:#dfe4e0;
+  display:flex;align-items:center;justify-content:center}
+.rf-mj-prev img{width:100%;height:100%;object-fit:cover}
+.rf-mj-prev-vazio{font-size:40px;opacity:.5}
+.rf-mj-veu{position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(0deg,rgba(6,14,9,.94),rgba(6,14,9,.25) 58%,transparent)}
+.rf-mj-prev-in{position:absolute;left:14px;right:14px;bottom:12px;display:flex;flex-direction:column;
+  gap:3px;align-items:flex-start}
+.rf-mj-num{width:30px;height:30px;border-radius:8px;background:#F2B90C;color:#17458F;
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
+  font-size:14px;font-weight:700}
+.rf-mj-camisa{font-size:22px;font-weight:700;color:#fff;line-height:1.1}
+.rf-mj-prev-in .rf-mj-mono{color:rgba(255,255,255,.8);font-size:10.5px}
+/* o estado a gerar cobre o preview: e' um processo, nao um enfeite por cima da foto */
+.rf-mj-proc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;background:rgba(6,14,9,.72);color:#fff;
+  font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em}
+.rf-mj-spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(255,255,255,.28);
+  border-top-color:#F2B90C;animation:rfMjGira .8s linear infinite}
+@keyframes rfMjGira{to{transform:rotate(360deg)}}
+.rf-mj-fig-bts{display:flex;gap:8px}
+.rf-mj-bt-ia{flex:1;height:40px;border:none;border-radius:12px;background:#17458F;color:#fff;
+  font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:pointer}
+.rf-mj-bt-ia[disabled]{opacity:.6;cursor:default}
+.rf-mj-bt-br{height:40px;padding:0 14px;border:1px solid #d8e2d6;border-radius:12px;background:#fff;
+  font-family:var(--font-sans);font-size:13px;font-weight:600;color:#3a473f;cursor:pointer}
+.rf-mj-nome-bl{display:flex;flex-direction:column;gap:6px}
+.rf-mj-nome{height:44px;padding:0 12px;border:2px solid #dde7db;border-radius:12px;
+  font-family:var(--font-sans);font-size:15px;font-weight:600;color:#12201a;background:#fff}
+.rf-mj-nome:focus{outline:none;border-color:#17458F}
+.rf-mj-nome-r{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+  font-size:11px;color:#78877c;line-height:1.35}
+.rf-mj-aviso{display:flex;gap:8px;padding:10px 12px;border-radius:12px;background:#fdf1c8;
+  color:#5c4a00;font-size:11.5px;line-height:1.4}
+
+/* ----- rodape do passo ----- */
+.rf-mj-pe{display:flex;align-items:center;gap:10px;margin-top:18px;padding-top:14px;
+  border-top:1px solid #eef1ee;flex-wrap:wrap}
+.rf-mj-pe-estado{flex:1;min-width:180px;font-size:12.5px;color:#5d6c62}
+.rf-mj-bt-cta{height:44px;padding:0 20px;border:none;border-radius:12px;cursor:pointer;
+  font-family:var(--font-sans);font-size:14px;font-weight:700;background:#F2B90C;color:#17458F;
+  animation:rfMjPulso 2.4s ease-in-out infinite}
+.rf-mj-bt-cta.travado{background:#f4f6f4;color:#9aa79e;cursor:default;animation:none}
+@keyframes rfMjPulso{0%,100%{box-shadow:0 0 0 0 rgba(242,185,12,.5)}
+  50%{box-shadow:0 0 0 8px rgba(242,185,12,0)}}
+.rf-mj-erro{margin-top:12px;padding:10px 12px;border-radius:12px;background:#f4dcd9;color:#9d2f26;
+  font-size:13px}
+
+/* ----- a vaga que ja' e' minha (aba do Treinador) ----- */
 .rf-mj-minha{display:flex;align-items:center;gap:14px}
 .rf-mj-minha-foto{width:76px;height:76px;border-radius:50%;overflow:hidden;flex:0 0 auto;
-  display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--surface-sunken)}
+  display:flex;align-items:center;justify-content:center;font-size:28px;background:#eef1ee}
 .rf-mj-minha-foto img{width:100%;height:100%;object-fit:cover}
 .rf-mj-minha-id{display:flex;flex-direction:column;gap:3px;min-width:0}
-.rf-mj-minha-n{font-size:19px;font-weight:var(--fw-bold);color:var(--text-1)}
-.rf-mj-minha-c{font-size:var(--fs-body-sm);color:var(--text-3)}
-.rf-mj-selo{align-self:flex-start;margin-top:4px;font-family:var(--font-mono);
-  font-size:var(--fs-label);letter-spacing:var(--ls-label);text-transform:uppercase;
-  padding:3px 9px;border-radius:var(--r-pill)}
-.rf-mj-selo.pendente{background:#f3e7cd;color:#9a6a12}
+.rf-mj-minha-n{font-size:19px;font-weight:700;color:#12201a}
+.rf-mj-minha-c{font-size:13px;color:#5d6c62}
+.rf-mj-selo{align-self:flex-start;margin-top:4px;font-family:var(--font-mono);font-size:9.5px;
+  letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px}
+.rf-mj-selo.pendente{background:#fdf1c8;color:#8a6a00}
 .rf-mj-selo.aprovado{background:#dcece3;color:#146b46}
 .rf-mj-selo.rejeitado{background:#f4dcd9;color:#9d2f26}
-@media (max-width:640px){
-  .rf-mj-vagas{grid-template-columns:minmax(0,1fr)}
-  .rf-mj-divs{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
 
-
-/* =====================================================================
-   PAGAMENTO CONFIRMADO (ui/rf26-pagamento.js)
-   Desktop: card centrado de 640px. Telemovel: folha inteira, com o CTA numa
-   barra fixa em baixo. As cores do topo sao as do handoff; as do SELO e do CTA
-   sao as do PLANO tal como ja' vivem no cracha do cabecalho e nos botoes da
-   pagina de precos — Resenha prateado, Embaixador dourado —, para a pessoa
-   reconhecer o que comprou sem ler.
-   ===================================================================== */
-.rf-pg-fundo{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;
-  justify-content:center;padding:20px;background:rgba(10,16,13,.62);
-  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
-.rf-pg-modal{width:640px;max-width:100%;max-height:96vh;overflow:auto;background:#fff;
-  border:1px solid #dde7db;border-radius:22px;box-shadow:0 40px 80px -40px rgba(20,33,26,.6);
-  animation:rfPgSobe .28s ease}
-@keyframes rfPgSobe{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
-
-.rf-pg-topo{position:relative;overflow:hidden;text-align:center}
-.rf-pg-topo.plano-resenha{background:linear-gradient(120deg,#06112b,#0e2f66 52%,#17458F)}
-.rf-pg-topo.plano-embaixador{background:linear-gradient(120deg,#2a1e02,#6b5000 46%,#a37800)}
-.rf-pg-topo.plano-esperando{background:linear-gradient(120deg,#12201a,#24382c 52%,#3a5a46)}
-.rf-pg-halo{position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(120% 140% at 50% -10%,rgba(255,224,120,.3),transparent 62%);
-  animation:rfPgBrilho 3.4s ease-in-out infinite}
-@keyframes rfPgBrilho{0%,100%{opacity:.55}50%{opacity:1}}
-.rf-pg-topo-in{position:relative;z-index:2;padding:30px 30px 26px;
-  display:flex;flex-direction:column;align-items:center;gap:10px}
-/* o SELO e' o carimbo da confirmacao: entra com um salto curto e para */
-.rf-pg-selo{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:34px;
+/* ----- popup de confirmacao: SEM CONFETE (a festa e' do pagamento) ----- */
+.rf-mjp-fundo{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;
+  justify-content:center;padding:20px;background:rgba(9,18,13,.62)}
+.rf-mjp-modal{width:520px;max-width:100%;max-height:96vh;overflow:auto;background:#fff;
+  border-radius:20px;overflow:hidden;animation:rfMjpSobe .26s ease}
+@keyframes rfMjpSobe{from{opacity:0;transform:translate3d(0,12px,0)}to{opacity:1;transform:none}}
+.rf-mjp-topo{background:linear-gradient(120deg,#2a1e02,#6b5000 46%,#a37800);text-align:center;
+  padding:26px 24px 22px;display:flex;flex-direction:column;align-items:center;gap:9px}
+.rf-mjp-selo{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:30px;background:linear-gradient(160deg,#F2B90C,#c9971a);
   box-shadow:0 14px 30px -12px rgba(0,0,0,.7), inset 0 0 0 4px rgba(255,255,255,.22);
-  animation:rfPgSelo .5s cubic-bezier(.2,1.4,.4,1) both}
-.plano-resenha .rf-pg-selo{background:linear-gradient(160deg,#dfe4e9,#8c949c)}
-.plano-embaixador .rf-pg-selo{background:linear-gradient(160deg,#F2B90C,#c9971a)}
-.plano-esperando .rf-pg-selo{background:linear-gradient(160deg,#e6ece4,#b8c6bc)}
-@keyframes rfPgSelo{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.12)}
+  animation:rfMjpSelo .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes rfMjpSelo{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.12)}
   100%{opacity:1;transform:scale(1)}}
-.rf-pg-kicker{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.18em}
-.plano-resenha .rf-pg-kicker{color:#dfe4e9}
-.plano-embaixador .rf-pg-kicker{color:#ffe07a}
-.plano-esperando .rf-pg-kicker{color:#cfe0d4}
-.rf-pg-tit{margin:0;font-size:29px;font-weight:700;letter-spacing:-.025em;color:#fff;
-  text-wrap:balance;line-height:1.12}
-.rf-pg-sub{margin:0;max-width:430px;font-size:14.5px;color:rgba(255,255,255,.84);line-height:1.45}
+.rf-mjp-kicker{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.16em;
+  color:#ffe07a}
+.rf-mjp-tit{margin:0;font-size:22px;font-weight:700;color:#fff;text-wrap:balance;line-height:1.15}
+.rf-mjp-sub{margin:0;max-width:400px;font-size:13.5px;color:rgba(255,255,255,.84);line-height:1.45}
+.rf-mjp-sub b{color:#ffe07a}
+.rf-mjp-corpo{padding:18px;display:flex;flex-direction:column;gap:14px}
+.rf-mjp-resumo{display:flex;align-items:center;gap:12px;padding:14px;background:#f6f8f5;
+  border:1px solid #e6ece4;border-radius:16px}
+.rf-mjp-num{width:38px;height:38px;border-radius:10px;background:#F2B90C;color:#17458F;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);
+  font-size:16px;font-weight:700}
+.rf-mjp-id{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.rf-mjp-id b{font-size:15px;color:#12201a}
+.rf-mjp-mono{font-family:var(--font-mono);font-size:10.5px;color:#9aa79e;letter-spacing:.04em}
+.rf-mjp-pill{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.08em;
+  padding:4px 8px;border-radius:99px;background:#fdf1c8;color:#8a6a00;flex:0 0 auto}
+.rf-mjp-nota{font-size:12px;color:#78877c;line-height:1.45}
+.rf-mjp-cta{height:46px;border:none;border-radius:12px;background:#F2B90C;color:#17458F;
+  font-family:var(--font-sans);font-size:14px;font-weight:700;cursor:pointer}
 
-/* ----- o confete ----- */
-.rf-pg-confete{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
-.rf-pg-confete span{position:absolute;top:-24px;opacity:0;display:block}
-@keyframes rfPgCai{
-  0%  {transform:translate3d(0,-40px,0) rotate(0deg);opacity:0}
-  8%  {opacity:1}
-  100%{transform:translate3d(var(--dx),640px,0) rotate(var(--rot));opacity:0}
+@media (max-width:900px){
+  .rf-mj-wrap{grid-template-columns:minmax(0,1fr)}
+  .rf-mj-clubes{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-@media (prefers-reduced-motion:reduce){
-  [data-confete]{display:none}
-  .rf-pg-selo,.rf-pg-halo,.rf-pg-modal{animation:none}
-}
-
-.rf-pg-corpo{padding:20px;display:flex;flex-direction:column;gap:16px}
-.rf-pg-resumo{display:flex;align-items:center;gap:12px;padding:14px 16px;
-  background:#f6f8f5;border:1px solid #e6ece4;border-radius:16px}
-.rf-pg-tile{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;
-  justify-content:center;font-size:22px;background:#e8eef8;flex:0 0 auto}
-.plano-embaixador .rf-pg-tile{background:linear-gradient(150deg,#fff4d1,#f6e2a4)}
-.rf-pg-resumo-id{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
-.rf-pg-resumo-id b{font-size:15px;font-weight:700;color:#12201a}
-.rf-pg-mono{font-family:var(--font-mono);font-size:11px;color:#9aa79e;letter-spacing:.04em}
-.rf-pg-valor{text-align:right;display:flex;flex-direction:column;gap:2px;flex:0 0 auto}
-.rf-pg-valor b{font-family:var(--font-mono);font-size:20px;font-weight:700;color:#12201a}
-.rf-pg-rot{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:#8b978d}
-.rf-pg-bens{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.rf-pg-bem{display:flex;align-items:flex-start;gap:9px;padding:12px;
-  border:1px solid #eef1ee;border-radius:14px;font-size:13.5px;font-weight:700;color:#12201a;
-  line-height:1.3}
-.rf-pg-tick{width:20px;height:20px;border-radius:50%;flex:0 0 auto;display:flex;
-  align-items:center;justify-content:center;font-size:12px}
-.plano-resenha .rf-pg-tick,.rf-pg-bens .rf-pg-tick{background:#17458F;color:#fff}
-.rf-pg-rodape{display:flex;align-items:center;gap:14px;padding-top:14px;
-  border-top:1px solid #eef1ee;flex-wrap:wrap}
-.rf-pg-recibo{display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px;
-  font-size:12px;color:#78877c}
-.rf-pg-cta{height:44px;padding:0 20px;border:none;border-radius:12px;cursor:pointer;
-  font-family:var(--font-sans);font-size:var(--fs-body-sm);font-weight:700;
-  box-shadow:0 10px 22px -12px rgba(18,32,26,.6)}
-.rf-pg-cta.plano-resenha{background:linear-gradient(100deg,#8c949c,#dfe4e9 46%,#aab2ba);color:#22282d}
-.rf-pg-cta.plano-embaixador{background:linear-gradient(100deg,#C8901A,#F2B90C 62%);color:#3a2a00}
-.rf-pg-cta:hover{filter:brightness(1.05)}
-.rf-pg-legal{font-size:12px;color:#9aa79e;text-align:center}
-
-@media (max-width:900px){ .rf-pg-bens{grid-template-columns:minmax(0,1fr)} }
-/* ----- telemovel: folha inteira, CTA fixo em baixo ----- */
 @media (max-width:760px){
-  .rf-pg-fundo{padding:0;align-items:stretch}
-  .rf-pg-modal{width:100%;max-width:100%;max-height:100%;border-radius:0;border:none}
-  .rf-pg-topo-in{padding:18px 18px 22px}
-  .rf-pg-selo{width:64px;height:64px;font-size:29px}
-  .rf-pg-kicker{font-size:9.5px}
-  .rf-pg-tit{font-size:24px}
-  .rf-pg-sub{font-size:13.5px}
-  .rf-pg-corpo{padding:14px 14px 96px}
-  .rf-pg-rodape{position:fixed;left:0;right:0;bottom:0;padding:12px 14px;border-top:none;
-    background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.97) 38%)}
-  .rf-pg-recibo{display:none}   /* fica no fluxo, acima — a barra e' so' do CTA */
-  .rf-pg-cta{width:100%;height:50px;border-radius:14px}
-  @keyframes rfPgCai{
-    0%  {transform:translate3d(0,-40px,0) rotate(0deg);opacity:0}
-    8%  {opacity:1}
-    100%{transform:translate3d(var(--dx),560px,0) rotate(var(--rot));opacity:0}
-  }
+  /* a divisao vira faixa rolavel, sangrando ate' a borda do cartao */
+  .rf-mj-divs{display:flex;overflow-x:auto;scrollbar-width:none;gap:8px;
+    margin:0 -14px;padding:0 14px}
+  .rf-mj-divs::-webkit-scrollbar{display:none}
+  .rf-mj-divc{flex:0 0 128px}
+  .rf-mj-prev{height:250px}
+  .rf-mj-fig-bts{flex-direction:column}
+  .rf-mj-bt-ia,.rf-mj-bt-br{height:46px;width:100%}
+  /* 16px no input evita o zoom automatico do iOS ao focar */
+  .rf-mj-nome{height:48px;font-size:16px}
+  .rf-mj-pe{position:sticky;bottom:0;background:linear-gradient(180deg,rgba(238,240,238,0),
+    rgba(238,240,238,.97) 38%);padding:12px 0;border-top:none}
+  .rf-mj-pe-estado{order:-1;flex:1 1 100%}
+  .rf-mj-bt-cta{width:100%;height:50px;border-radius:14px}
+  .rf-mj-bt-br{width:100%}
+  .rf-mjp-fundo{padding:0;align-items:flex-end}
+  .rf-mjp-modal{width:100%;max-width:100%;border-radius:20px 20px 0 0}
+  .rf-mjp-selo{width:56px;height:56px;font-size:26px}
+  .rf-mjp-cta{height:50px}
 }

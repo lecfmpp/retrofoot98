@@ -908,6 +908,8 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
     case 'moeda':     html=scMoeda(); break;
     case 'loading':   html=scLoading(); break;
     case 'jogadores': html=scJogadores(); break;
+    /* passo do Embaixador — ver rfObMeuJogador (ui/rf26-meujogador.js) */
+    case 'meujogador': html=(typeof rfObMeuJogador==='function')?rfObMeuJogador():''; break;
     case 'escolhaclubes': html=scEscolhaClubes(); break;
     case 'sorteio':   html=rfOb6(); break;   // 6 · sorteio do clube
     case 'boasvindas':html=rfOb7(); break;
@@ -2172,10 +2174,20 @@ function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha
    regua volta a ter os seis itens de sempre e nenhuma tela precisa saber disso. Os numeros de
    passo saem de rfPasso(nome), entao nada mais se desloca a mao. */
 function rfTrilhaDe(modo){
-  const base = RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo;
-  if(typeof rfFemLigado!=='function' || !rfFemLigado()) return base;
-  const i = base.indexOf('País e liga');
-  return i<0 ? base : base.slice(0,i).concat('Modalidade', base.slice(i));
+  let base = RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo;
+  if(typeof rfFemLigado==='function' && rfFemLigado()){
+    const i = base.indexOf('País e liga');
+    if(i>=0) base = base.slice(0,i).concat('Modalidade', base.slice(i));
+  }
+  /* PASSO CONDICIONAL DO EMBAIXADOR (ver ui/rf26-meujogador.js). Ele entra antes do sorteio do
+     clube e SO' para quem tem o plano e ainda nao usou a vaga — para todos os outros a regua
+     encolhe sozinha, em vez de mostrar um degrau que eles nunca vao pisar. A regua e' a fonte
+     do "PASSO N DE M": acrescentar aqui e' o que faz o numero continuar certo. */
+  if(typeof rfMjPassoVale==='function' && rfMjPassoVale()){
+    const j = base.indexOf('Clube');
+    if(j>0) base = base.slice(0,j).concat('Seu jogador', base.slice(j));
+  }
+  return base;
 }
 /* O PASSO PELO NOME. Devolve a posição 1-based do passo na régua do modo, ou 0
    quando aquele modo não tem esse passo (Solo não tem 'Convites') — 0 apaga a
@@ -3240,6 +3252,13 @@ function buildPickPool(){
 function clEscolherClubes(){
   const names=CL.names.map(n=>(n||'').trim()).filter(Boolean);
   if(!names.length){ CL.names[0]='JOGADOR'; return cdraw(); }
+  /* O PASSO DO EMBAIXADOR ENTRA AQUI, uma vez. Quem tem o plano e ainda nao usou a vaga passa
+     por ele antes do sorteio; quem nao tem nem sabe que ele existe. O `_mjVisto` e' o que impede
+     o laco: sair de la' chama esta mesma funcao, e sem a marca ela devolveria a pessoa ao passo
+     que ela acabou de completar (ou de dispensar). */
+  if(!CL._mjVisto && typeof rfMjPassoVale==='function' && rfMjPassoVale()){
+    CL._mjVisto=true; CL.screen='meujogador'; return cdraw();
+  }
   toastC('Carregando clubes...');
   (async ()=>{
     // pré-carrega do Supabase a divisão inicial de CADA país jogável (Brasil B/C/D E Europa),
