@@ -147,6 +147,9 @@ function rfMkFotoMini(p, clubId){
 /* =====================================================================
    1 · COMPRAR
    ===================================================================== */
+/* por que ordenar a lista — cada um vale nas duas direccoes (ver rfMktVirar) */
+const RF_MKT_ORD=[['forca','Força'],['preco','Preço'],['idade','Idade'],
+                  ['gols','Gols na temporada'],['nome','Nome'],['clube','Clube']];
 const RF_MKT_FILTROS=[
   /* ===== O MERCADO ABRE O MUNDO (regra do dono, 21/08) =====
      O primeiro filtro é o PAÍS: "o meu campeonato" é o mercado de sempre, e cada país com
@@ -162,8 +165,16 @@ const RF_MKT_FILTROS=[
      34, o percentil 90 e 43 e SO 17 jogadores passam de 70. Ou seja, os tres degraus filtravam
      praticamente tudo — o jogador abria a caixa, escolhia 70+ e a lista esvaziava.
      Agora os degraus cobrem a faixa onde os jogadores de facto estao, sem perder o topo. */
-  { k:'forca', l:'Força',   op:[['all','qualquer'],['20','20+'],['30','30+'],['40','40+'],
-                                ['50','50+'],['60','60+'],['70','70+'],['80','80+'],['90','90+']] },
+  /* ===== FAIXAS, NAO SO' O "A PARTIR DE" =====
+     Os degraus eram todos `20+`, `30+`... — abertos para cima e sem nada abaixo de 20, entao
+     nao havia como pedir "os baratos": o inicio da tabela (0 a 20) era invisivel, e cada
+     degrau continha todos os de cima. Agora sao FAIXAS fechadas, que e' o que se procura no
+     mercado ("um de 30 a 40 que eu consiga pagar"), com o topo aberto onde ele de facto
+     acaba (medido: mediana 34, percentil 90 em 43, so' 17 jogadores acima de 70). */
+  { k:'forca', l:'Força',   op:[['all','qualquer'],
+                                ['0-10','0 a 10'],['11-20','11 a 20'],['21-30','21 a 30'],
+                                ['31-40','31 a 40'],['41-50','41 a 50'],['51-60','51 a 60'],
+                                ['61-70','61 a 70'],['71-','71 ou mais']] },
   { k:'idade', l:'Idade',   op:[['all','qualquer'],['23','até 23'],['27','até 27'],['30','até 30']] },
   { k:'preco', l:'Preço',   op:[['all','qualquer'],['caixa','o que cabe no caixa'],['meio','até metade do caixa']] },
   /* ===== NACIONALIDADE (regra do dono, 22/08) =====
@@ -179,44 +190,139 @@ const RF_MKT_FILTROS=[
 /* Os clubes vêm de DATA.clubs, NÃO do mercado já filtrado: se saíssem da lista
    filtrada, escolher um clube deixaria só ele na própria caixa de selecção e não
    haveria como voltar a outro. */
+/* ===== O PAIS PRIMEIRO, A DIVISAO DEBAIXO DELE =====
+   "o meu campeonato" nao dizia QUAL campeonato — quem abria a caixa via um rotulo que so'
+   faz sentido para quem ja' sabe a resposta. Agora cada pais e' um grupo: a primeira linha
+   e' o pais inteiro (o padrao, com TODOS os jogadores dele) e debaixo vem uma linha por
+   divisao, para quem procura na segunda da Espanha sem varrer a primeira.
+
+   O valor viaja como `pais` ou `pais|LIGA` e e' partido em rfMktSetF: `f.pais` continua a
+   ser so' o pais (e' dele que dependem o mercado, o filtro de clube e a cota), e a divisao
+   fica em `f.div`. Assim nada do que ja' existia precisa de saber que a divisao existe. */
+function rfMktDivisoesDe(pais){
+  /* as divisoes saem dos proprios jogadores (`lg`): e' o unico sitio onde a segunda divisao
+     de um pais esta' escrita, e sai de graca porque a lista ja' foi lida. */
+  const clubes=(typeof foreignClubsOf==='function')?foreignClubsOf(pais):[];
+  const set=new Set();
+  clubes.forEach(c=>{ ((c.squad)||[]).forEach(p=>{ if(p&&p.lg) set.add(p.lg); }); });
+  return [...set].sort();
+}
+function rfMktDivLabel(lg){
+  /* dois formatos convivem: 'ESP-2' (numero) e 'BRA-D' (letra da serie). Sem tratar a letra,
+     a caixa mostrava o codigo cru — 'BRA-D' em vez de 'Série D'. */
+  const t=String(lg||'');
+  const num=t.match(/-(\d+)$/);
+  if(num) return num[1]+'ª divisão';
+  const letra=t.match(/-([A-Z])$/);
+  if(letra){
+    const rot=(typeof DIV_LABEL_FULL!=='undefined')?DIV_LABEL_FULL:{};
+    return rot[letra[1]] || ('Série '+letra[1]);
+  }
+  return t;
+}
 function rfMktPaisesOp(){
   const paises=(typeof foreignMarketCountries==='function')?foreignMarketCountries():[];
-  return [['meu','o meu campeonato']].concat(paises.map(p=>[p,p]));
+  const meuPais=(typeof activeUniCfg==='function' && activeUniCfg() && activeUniCfg().country) || 'Brasil';
+  const op=[['meu', meuPais+' — todo o país']];
+  /* o meu campeonato tem as divisoes do JOGO (Serie A..D), que nao vivem no `lg` dos
+     jogadores da base domestica — vem do rotulo do universo activo */
+  const meusRot=(typeof DIV_LABEL_FULL!=='undefined')?DIV_LABEL_FULL:{};
+  Object.keys(meusRot).forEach(d=>op.push(['meu|'+d, '   '+meusRot[d]]));
+  paises.forEach(pais=>{
+    /* O MEU PAIS NAO ENTRA DUAS VEZES. A lista do exterior inclui o proprio pais do save
+       (foreignClubsOf('Brasil') devolve a Serie A), e a caixa abria com 'Brasil — todo o país'
+       repetido: uma vez como o meu campeonato, outra como prateleira estrangeira. */
+    if(pais===meuPais) return;
+    op.push([pais, pais+' — todo o país']);
+    rfMktDivisoesDe(pais).forEach(lg=>op.push([pais+'|'+lg, '   '+rfMktDivLabel(lg)]));
+  });
+  return op;
 }
 /* nacionalidades que de facto existem no mercado escolhido — da MESMA fonte crua que o
    filtro de clube (nunca da lista já filtrada, senão escolher uma prende a caixa nela) */
 function rfMktNacOp(){
   const f=rfMktF();
   const fora = f.pais && f.pais!=='meu';
-  const clubes = (fora && typeof foreignClubsOf==='function') ? foreignClubsOf(f.pais) : (DATA.clubs||[]);
+  const clubes = fora ? ((typeof foreignClubsOf==='function')?foreignClubsOf(f.pais):[])
+                      : rfMktClubesDoMeuPais(f.div);
   const set=new Set();
   clubes.forEach(c=>{
     if(c.id===CL.clubId) return;
     const elenco = fora ? ((S.squads&&S.squads[c.id]) || c.squad || []) : (squad(c.id)||[]);
     (elenco||[]).forEach(p=>{ if(p&&p.nat) set.add(p.nat); });
   });
-  const lista=[...set].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR')).map(n=>[n,n]);
+  /* uma linha por nacionalidade JA' EM PORTUGUES: 'Brasil' e 'Brazil' colapsam na mesma. */
+  const porPT=new Map();
+  set.forEach(n=>{ const pt=rfNacPT(n); if(!porPT.has(pt)) porPT.set(pt,pt); });
+  const lista=[...porPT.keys()].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(n=>[n,n]);
   return [['all','qualquer'],['nac','nacionais (fora da cota)'],['estr','estrangeiros (contam na cota)']].concat(lista);
 }
 function rfMktClubesOp(){
   const f=rfMktF();
   const fonte = (f.pais && f.pais!=='meu' && typeof foreignClubsOf==='function')
     ? foreignClubsOf(f.pais)
-    : (DATA.clubs||[]);
+    : rfMktClubesDoMeuPais(f.div);
   const lista=fonte
     .filter(c=>c.id!==CL.clubId)
     .map(c=>[String(c.id), c.short||c.name||String(c.id)])
     .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'));
   return [['all','qualquer']].concat(lista);
 }
-function rfMktF(){ const f=CL.mktF||(CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',q:''}); if(f.nac==null) f.nac='all'; return f; }
+/* "31-40" -> 31 a 40 (inclusive); "71-" -> 71 para cima */
+function rfMktNaFaixa(v, faixa){
+  const [lo,hi]=String(faixa).split('-');
+  const n=Number(v)||0;
+  if(n < Number(lo)) return false;
+  return (hi==='' || hi==null) ? true : n <= Number(hi);
+}
+/* ===== UMA NACIONALIDADE, UM NOME =====
+   A base domestica escreve em portugues ('Brasil') e os pacotes do exterior em ingles
+   ('Brazil', 'Spain', 'Germany'...). A caixa listava os dois lados como se fossem paises
+   diferentes — e o caso que se via era 'Brasil' e 'Brazil', porque so' ai ha gente dos dois
+   lados (os 1406 da base + os 273 brasileiros que jogam fora).
+
+   NAO SE APAGA O MENOR: os 273 sao brasileiros de verdade, a jogar no estrangeiro; apaga-los
+   tirava-os do mercado. O que estava errado era o ROTULO, e e' o rotulo que se corrige — o
+   motor ja' tratava os dois como domesticos (UNI_CONFIGS.brasil.nat = ['Brasil','Brazil']),
+   entao a cota de estrangeiros nunca se enganou; so' a lista e' que mostrava duas linhas. */
+const RF_NAC_PT={
+  Brazil:'Brasil', Spain:'Espanha', Italy:'Itália', Germany:'Alemanha', England:'Inglaterra',
+  France:'França', Netherlands:'Holanda', Belgium:'Bélgica', Switzerland:'Suíça',
+  Austria:'Áustria', Croatia:'Croácia', Serbia:'Sérvia', Denmark:'Dinamarca',
+  Sweden:'Suécia', Norway:'Noruega', Poland:'Polónia', Turkey:'Turquia', Greece:'Grécia',
+  Russia:'Rússia', Ukraine:'Ucrânia', 'Czech Republic':'Chéquia', Hungary:'Hungria',
+  Romania:'Roménia', Ireland:'Irlanda', Scotland:'Escócia', Wales:'País de Gales',
+  'Northern Ireland':'Irlanda do Norte', Morocco:'Marrocos', Algeria:'Argélia',
+  Senegal:'Senegal', Nigeria:'Nigéria', Ghana:'Gana', Cameroon:'Camarões',
+  'Ivory Coast':'Costa do Marfim', Egypt:'Egito', Japan:'Japão', 'South Korea':'Coreia do Sul',
+  Australia:'Austrália', 'United States':'Estados Unidos', Canada:'Canadá', Mexico:'México',
+  Argentina:'Argentina', Uruguay:'Uruguai', Colombia:'Colômbia', Chile:'Chile', Peru:'Peru',
+  Ecuador:'Equador', Paraguay:'Paraguai', Venezuela:'Venezuela', Bolivia:'Bolívia',
+  Panama:'Panamá', 'Dominican Republic':'República Dominicana', Syria:'Síria',
+  Armenia:'Arménia', Portugal:'Portugal'
+};
+function rfNacPT(n){ return RF_NAC_PT[n] || n || ''; }
+function rfMktF(){ const f=CL.mktF||(CL.mktF={pais:'meu',div:'all',pos:'all',forca:'all',idade:'all',preco:'all',clube:'all',ord:'forca',dir:'desc',q:''}); if(f.nac==null) f.nac='all'; if(f.div==null) f.div='all'; if(f.ord==null) f.ord='forca'; if(f.dir==null) f.dir='desc'; return f; }
 function rfMktSetF(k,v){
-  const f=rfMktF(); f[k]=v;
-  if(k==='pais'){ f.clube='all'; f.nac='all'; }  // clube e nacionalidade são DO país escolhido — trocar de país os zera
+  const f=rfMktF();
+  if(k==='pais'){
+    /* o valor traz pais e divisao juntos (ver rfMktPaisesOp) */
+    const [pais,div]=String(v).split('|');
+    f.pais=pais; f.div=div||'all';
+    f.clube='all'; f.nac='all';   // clube e nacionalidade são DO país escolhido — trocar de país os zera
+  } else f[k]=v;
   if(f.pais==null) f.pais='meu';  // filtro salvo antes do país existir
   CL._mktCache2=null; cdraw();
 }
-function rfMktLimpar(){ CL.mktF={pais:'meu',pos:'all',forca:'all',idade:'all',preco:'all',nac:'all',clube:'all',q:''}; CL._mktCache2=null; cdraw(); }
+/* a mesma caixa mostra pais e divisao: o valor seleccionado tem de ser reconstruido */
+function rfMktPaisVal(){ const f=rfMktF(); return f.div && f.div!=='all' ? (f.pais+'|'+f.div) : f.pais; }
+function rfMktSetOrd(v){ const f=rfMktF(); f.ord=v; CL._mktCache2=null; cdraw(); }
+/* ===== SUBIR OU DESCER =====
+   A lista saia sempre da forca, do maior para o menor — nao havia como pedir "o mais barato
+   primeiro" nem "o mais novo". O criterio e a direccao sao duas escolhas separadas de
+   proposito: trocar a direccao nao pode obrigar a reescolher o criterio. */
+function rfMktVirar(){ const f=rfMktF(); f.dir = f.dir==='desc' ? 'asc' : 'desc'; CL._mktCache2=null; cdraw(); }
+function rfMktLimpar(){ CL.mktF={pais:'meu',div:'all',pos:'all',forca:'all',idade:'all',preco:'all',nac:'all',clube:'all',ord:'forca',dir:'desc',q:''}; CL._mktCache2=null; cdraw(); }
 /* ===== BUSCA POR NOME =====
    "Buscar jogador", no Resumo, levava para a aba Comprar e mais nada: nao havia
    campo nenhum onde escrever um nome. Quem procura alguem em concreto tinha de
@@ -272,6 +378,22 @@ function rfMktCalibPreview(p){
   if(behavior && typeof BEHAVIOR_MV_MULT!=='undefined') mv=Math.round(mv*(BEHAVIOR_MV_MULT[behavior]||1));
   return {...p, rawF, f, mv, behavior};
 }
+/* ===== O MEU PAIS SAO AS QUATRO DIVISOES, NAO SO' A MINHA =====
+   A prateleira domestica era `DATA.clubs` — os 20 clubes da MINHA divisao — e a Serie A
+   entrava por um atalho: `foreignClubsOf('Brasil')` devolve `DATA.clubsSerieA`, e por isso o
+   Brasil aparecia na lista do estrangeiro. Resultado: quem estava na Serie D via a propria
+   divisao e a Serie A, e as Series B e C nao existiam no mercado.
+   O mundo tem as quatro (S.divisionClubs, com elenco em S.squads), entao a lista pode ser
+   honesta: "todo o país" e' o país inteiro, e cada divisao e' uma prateleira. */
+function rfMktClubesDoMeuPais(div){
+  const dc=(S&&S.divisionClubs)||null;
+  const resolve=id=>(typeof anyClubOf==='function'?anyClubOf(id):(typeof clubOf==='function'?clubOf(id):null));
+  if(!dc || !Object.keys(dc).length) return DATA.clubs||[];   // save antigo: o de sempre
+  const ids = (div && div!=='all') ? (dc[div]||[]) : Object.keys(dc).reduce((a,d)=>a.concat(dc[d]||[]),[]);
+  const out=[]; const visto=new Set();
+  ids.forEach(id=>{ if(visto.has(id)) return; visto.add(id); const c=resolve(id); if(c) out.push(c); });
+  return out.length?out:(DATA.clubs||[]);
+}
 function rfMktMercado(){
   const f=rfMktF();
   const teto=S.budget||0;
@@ -280,7 +402,8 @@ function rfMktMercado(){
   /* no exterior a fonte é o BUNDLE do país (clubes+elencos reais); um clube já materializado
      no mundo (compra anterior, copa continental) usa o elenco VIVO do S.squads — é nele que
      as vendas já feitas aparecem */
-  const clubes = (fora && typeof foreignClubsOf==='function') ? foreignClubsOf(f.pais) : (DATA.clubs||[]);
+  const clubes = fora ? ((typeof foreignClubsOf==='function')?foreignClubsOf(f.pais):[])
+                      : rfMktClubesDoMeuPais(f.div);
   clubes.forEach(c=>{
     if(c.id===CL.clubId) return;
     const jaMaterializado = !!(S.squads&&S.squads[c.id]);
@@ -297,9 +420,12 @@ function rfMktMercado(){
         const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
         if(f.nac==='nac' && estr) return;
         else if(f.nac==='estr' && !estr) return;
-        else if(f.nac!=='nac' && f.nac!=='estr' && p.nat!==f.nac) return;
+        else if(f.nac!=='nac' && f.nac!=='estr' && rfNacPT(p.nat)!==f.nac) return;
       }
-      if(f.forca!=='all' && (p.f||0)<Number(f.forca)) return;
+      if(f.forca!=='all' && !rfMktNaFaixa(p.f||0, f.forca)) return;
+      /* no exterior a divisao esta' no `lg` do jogador; no meu pais a fonte de clubes ja'
+         veio filtrada por divisao (rfMktClubesDoMeuPais), entao aqui nao ha o que fazer */
+      if(fora && f.div && f.div!=='all' && p.lg!==f.div) return;
       if(f.idade!=='all' && (p.age||0)>Number(f.idade)) return;
       let ask=p.mv||0;
       try{ if(typeof playerAsk==='function') ask=playerAsk(p,c.id); }catch(e){}
@@ -319,7 +445,20 @@ function rfMktMercado(){
       out.push({p,clubId:c.id,ask,pais:fora?f.pais:null,clube:c,gols});
     });
   });
-  out.sort((a,b)=>(b.p.f||0)-(a.p.f||0));
+  const dir = f.dir==='asc' ? 1 : -1;
+  const chave = {
+    forca: r=>r.p.f||0,
+    idade: r=>r.p.age||0,
+    preco: r=>r.ask||0,
+    gols:  r=>r.gols||0,
+    nome:  r=>rfMktNorm(r.p.n),
+    clube: r=>rfMktNorm((r.clube&&(r.clube.short||r.clube.name))||''),
+  }[f.ord] || (r=>r.p.f||0);
+  out.sort((a,b)=>{
+    const x=chave(a), y=chave(b);
+    if(typeof x==='string') return dir * x.localeCompare(y,'pt-BR');
+    return dir * (x-y);
+  });
   return out;
 }
 /* FILTRO = PÍLULA, não caixa de selecção do sistema. O <select> nativo é o
@@ -332,16 +471,35 @@ function rfMktFiltrosHTML(){
       /* as opções podem ser LISTA ou FUNÇÃO: o filtro de clube só sabe quais
          clubes existem depois de montar o mercado, e a lista muda a cada save */
       const ff={...ff0, op:(typeof ff0.op==='function')?ff0.op():ff0.op};
-      const at=(ff.op.find(o=>o[0]===f[ff.k])||ff.op[0])[1];
+      /* o filtro de país guarda DUAS coisas (país e divisão) numa caixa só */
+      const val = ff.k==='pais' ? rfMktPaisVal() : f[ff.k];
+      const at=(ff.op.find(o=>o[0]===val)||ff.op[0])[1];
       return `<label class="rf-mkf-p">
         <span class="rf-mkf-l">${escC(ff.l)}</span>
-        <span class="rf-mkf-v">${escC(at)}</span>
+        <span class="rf-mkf-v">${escC(String(at).trim())}</span>
         <span class="rf-mkf-c">▾</span>
         <select onchange="rfMktSetF('${ff.k}',this.value)">
-          ${ff.op.map(([v,l])=>`<option value="${v}" ${f[ff.k]===v?'selected':''}>${escC(l)}</option>`).join('')}
+          ${ff.op.map(([v,l])=>`<option value="${v}" ${val===v?'selected':''}>${escC(l)}</option>`).join('')}
         </select>
       </label>`;
     }).join('')}
+    ${/* ===== ORDENAR: O CRITERIO E A DIRECCAO =====
+         A pilula escolhe POR QUE ordenar; o botao ao lado vira a direccao. Sao dois controlos
+         porque sao duas perguntas — e virar a ordem e' o gesto mais repetido dos dois. */''}
+    <label class="rf-mkf-p">
+      <span class="rf-mkf-l">Ordenar por</span>
+      <span class="rf-mkf-v">${escC((RF_MKT_ORD.find(o=>o[0]===f.ord)||RF_MKT_ORD[0])[1])}</span>
+      <span class="rf-mkf-c">▾</span>
+      <select onchange="rfMktSetOrd(this.value)">
+        ${RF_MKT_ORD.map(([v,l])=>`<option value="${v}" ${f.ord===v?'selected':''}>${escC(l)}</option>`).join('')}
+      </select>
+    </label>
+    <button type="button" class="rf-mkf-dir" onclick="rfMktVirar()"
+      title="${f.dir==='desc'?'Do maior para o menor — clique para inverter':'Do menor para o maior — clique para inverter'}"
+      aria-label="${f.dir==='desc'?'Ordem decrescente':'Ordem crescente'}">
+      <span aria-hidden="true">${f.dir==='desc'?'↓':'↑'}</span>
+      <b>${f.dir==='desc'?'maior primeiro':'menor primeiro'}</b>
+    </button>
     <label class="rf-mkf-busca">
       <span class="rf-mkf-busca-i">${rfIcone('buscar',15)}</span>
       <input id="rf-mkt-q" type="search" placeholder="Buscar jogador pelo nome"

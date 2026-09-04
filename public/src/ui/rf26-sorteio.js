@@ -94,20 +94,26 @@ function rfSrtVaga(club, opts){
   opts=opts||{};
   if(!club) return `<div class="rf-srt-vaga vazia"><span class="rf-srt-bolha"></span>
     <span class="rf-srt-cn">a definir</span></div>`;
-  return `<div class="rf-srt-vaga caiu ${opts.meu?'meu':''}">
+  /* SO' A BOLA QUE ACABOU DE CAIR E' QUE CAI. `caiu` marca "ja' foi sorteado" e
+     levava tambem a animacao ballDrop — mas a cerimonia redesenha a tela inteira
+     a cada revelacao (cdraw de 2 em 2 segundos), e nesse instante TODOS os clubes
+     ja' sorteados voltavam a cair ao mesmo tempo. Com 32 clubes na Libertadores
+     eram 30 caixas a saltar de duas em duas segundos: era o "sorteio piscando".
+     A animacao passa para `.novo`, que so' o clube desta revelacao leva. */
+  return `<div class="rf-srt-vaga caiu ${opts.novo?'novo':''} ${opts.meu?'meu':''}">
     <span class="rf-srt-crest">${rfCrest(club,19)}</span>
     <span class="rf-srt-cn">${escC(club.short||club.name||'')}</span></div>`;
 }
 const rfSrtClube = id => id!=null ? (anyClubOf(id)||{short:String(id)}) : null;
 
 /* ---- ABA 1 · grupos ---- */
-function rfSrtGruposHTML(grupos, meuId, letras){
+function rfSrtGruposHTML(grupos, meuId, letras, novoId){
   return `<div class="rf-srt-grupos">${grupos.map((g,i)=>{
     const L=(letras&&letras[i])||String.fromCharCode(65+i);
     return `<div class="rf-srt-grupo">
       <div class="rf-srt-ghd"><span class="rf-srt-gb">${escC(L)}</span>
         <span class="rf-srt-gt">Grupo ${escC(L)}</span></div>
-      ${g.map(id=>rfSrtVaga(rfSrtClube(id),{meu:id===meuId})).join('')}
+      ${g.map(id=>rfSrtVaga(rfSrtClube(id),{meu:id===meuId, novo:novoId!=null&&id===novoId})).join('')}
     </div>`;}).join('')}</div>`;
 }
 
@@ -248,6 +254,10 @@ function rfSorteioHTML(key, dr){
   const letras=gobj?Object.keys(gobj).sort():[];
   const porGrupo=letras.length?((gobj[letras[0]].teams||[]).length||4):4;
   const sorteados=new Set((dr?dr.reveal.slice(0,feito):[]).map(r=>r.id));
+  /* quem caiu AGORA: a ultima revelacao consumida (ver rfSrtVaga). Sorteio ja'
+     terminado nao tem "agora" — a chave fica quieta. */
+  const novoId=(dr && feito>0 && feito<=dr.reveal.length && dr.reveal[feito-1])
+    ? dr.reveal[feito-1].id : null;
   const grupos=letras.map(L=>(gobj[L].teams||[]).slice()
     .map(id=>(!dr||dr.idx>=dr.reveal.length||sorteados.has(id))?id:null));
   const temGrupos=grupos.length>0;
@@ -288,7 +298,7 @@ function rfSorteioHTML(key, dr){
   const nConf=listaConf.length;
   if(aba==='chave' && pares.length<8) aba = temGrupos?'grupos':'confrontos';
 
-  const corpo = aba==='grupos' ? rfSrtGruposHTML(grupos,meu,letras)
+  const corpo = aba==='grupos' ? rfSrtGruposHTML(grupos,meu,letras,novoId)
     : aba==='chave' ? rfSrtChaveHTML(rfSrtChaveDe(pares),key,fim)
     : rfSrtConfrontosHTML(listaConf,meu,!temGrupos,
         temGrupos?listaConf.map(j=>j[4]):null, fim);

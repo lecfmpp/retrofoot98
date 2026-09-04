@@ -2490,7 +2490,12 @@
 
 /* ---- vaga de clube (grupos e chave) ---- */
 .rf-srt-vaga{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:8px;min-width:0}
-.rf-srt-vaga.caiu{background:rgba(255,255,255,.05);animation:ballDrop .3s ease}
+.rf-srt-vaga.caiu{background:rgba(255,255,255,.05)}
+/* a queda e' do clube que ACABOU de sair da urna, nao de todos os que ja' sairam:
+   a cerimonia redesenha a tela a cada revelacao e sem isto a chave inteira
+   saltava de dois em dois segundos (ver rfSrtVaga) */
+.rf-srt-vaga.caiu.novo{animation:ballDrop .3s ease}
+@media (prefers-reduced-motion:reduce){.rf-srt-vaga.caiu.novo{animation:none}}
 .rf-srt-vaga.meu{box-shadow:inset 0 0 0 1px var(--sa)}
 .rf-srt-vaga .rf-srt-cn{flex:1;min-width:0;font-size:11.5px;font-weight:600;color:#eef2f6;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -6902,6 +6907,17 @@
   background:var(--surface-card);font-family:inherit;font-size:var(--fs-body-sm);
   font-weight:var(--fw-semibold);color:var(--text-1);cursor:pointer}
 .rf-mkf-x:hover{background:var(--surface-sunken)}
+/* ----- virar a ordem: mesma altura das pilulas, mas e' um BOTAO e tem de parecer um -----
+   A seta sozinha nao diz o que faz; o rotulo ao lado diz, e e' ele que muda quando se
+   carrega. Cor de marca porque este e' o unico controlo da barra que age de imediato. */
+.rf-mkf-dir{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 16px;
+  border:1px solid var(--club-primary);border-radius:var(--r-pill);
+  background:var(--surface-card);color:var(--club-primary);
+  font-family:inherit;font-size:var(--fs-body-sm);cursor:pointer;white-space:nowrap}
+.rf-mkf-dir span{font-size:16px;line-height:1}
+.rf-mkf-dir b{font-weight:var(--fw-semibold)}
+.rf-mkf-dir:hover{background:var(--surface-sunken)}
+.rf-mkf-dir:focus-visible{outline:2px solid var(--club-primary);outline-offset:2px}
 
 /* ----- a tabela ----- */
 .rf-mkt{display:flex;flex-direction:column;min-width:0}
