@@ -18,6 +18,12 @@
    masculino tem com o seu cache. Quando o pacote estiver a servir isto em
    producao ha' uns dias, apagar o ficheiro e' um commit de uma linha.
 
+   O MESMO SCRIPT CONSERTA AS VAGAS FEMININAS. `player_slots.nome_base` foi semeado
+   a partir da base masculina tambem nas 320 linhas femininas — a tela de escolher
+   a vaga mostrava nome de homem no universo feminino. E' aqui que se conserta
+   porque este e' o unico sitio que sabe, ao mesmo tempo, o id da vaga e o nome
+   feminino daquele id.
+
    COMO RODAR
      node scripts/jogadoras-para-o-pacote.mjs            # so' conta, nao escreve
      SUPABASE_SERVICE_KEY=... node scripts/jogadoras-para-o-pacote.mjs --aplicar
@@ -88,7 +94,38 @@ const escrever = clubes.map(cid => {
 const novos = escrever.filter(l => !atual.has(l.club_id)).length;
 console.log(`pacote oficial ${oficial.id}: ${escrever.length} clubes a escrever (${novos} sem linha hoje)`);
 
+/* ===== AS VAGAS FEMININAS TINHAM NOME DE HOMEM =====
+   `player_slots.nome_base` foi semeado a partir da base MASCULINA, tambem nas 320 linhas
+   femininas: na tela de escolher a vaga, o universo feminino mostrava "quem voce substitui"
+   com nome de homem. Aqui e' o sitio certo para consertar porque este script e' o unico que
+   sabe, ao mesmo tempo, o id da vaga e o nome feminino daquele id. */
+async function vagasFemininas() {
+  /* pela VISTA PUBLICA, e nao pela tabela: o ensaio tem de correr sem credencial nenhuma —
+     um `--dry` que exige a service_role e' um ensaio que ninguem faz. A vista expoe
+     modalidade, club_id, player_id e nome_base, que e' tudo o que este conserto precisa. */
+  const slots = await ler('player_slots_publicas', { select: 'modalidade,club_id,player_id,nome_base' });
+  const fem = (slots || []).filter(s => s.modalidade === 'fem');
+  const trocar = [];
+  const semNome = [];
+  for (const s of fem) {
+    const nome = FEM[s.player_id];
+    if (!nome) { semNome.push(s.player_id); continue; }
+    if (s.nome_base !== nome) trocar.push({ modalidade: 'fem', club_id: s.club_id, player_id: s.player_id, nome_base: nome });
+  }
+  return { total: fem.length, trocar, semNome };
+}
+async function consertarVagas() {
+  const { total, trocar, semNome } = await vagasFemininas();
+  if (semNome.length) console.warn(`aviso: ${semNome.length} vagas femininas sem nome no mapa — ficam como estao`);
+  if (!trocar.length) { console.log(`vagas femininas: ${total}, nenhuma para corrigir.`); return; }
+  await upsert('player_slots', trocar, 'modalidade,club_id,player_id');
+  console.log(`vagas femininas: ${trocar.length} de ${total} com nome_base corrigido (era o nome masculino).`);
+}
+
 if (!APLICAR) {
+  const { total, trocar, semNome } = await vagasFemininas();
+  console.log(`vagas femininas: ${total} · a corrigir: ${trocar.length}${semNome.length ? ` · sem nome no mapa: ${semNome.length}` : ''}`);
+  if (trocar[0]) console.log('   ex.:', trocar[0].player_id, '→', trocar[0].nome_base);
   const [ex] = escrever;
   console.log('amostra:', ex.club_id, '→', Object.keys(ex.patch.squadFem).length, 'jogadoras',
               '| outras chaves do patch preservadas:', Object.keys(ex.patch).filter(k => k !== 'squadFem').join(', ') || '(nenhuma)');
@@ -98,3 +135,5 @@ if (!APLICAR) {
 
 await upsert('pack_edits', escrever, 'pack_id,club_id');
 console.log(`escrito. ${escrever.length} clubes com squadFem no ${SCHEMA}.pack_edits.`);
+
+await consertarVagas();
