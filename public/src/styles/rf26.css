@@ -8676,6 +8676,25 @@
 .rf-lp-conta.pro{background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
   border-color:#C8901A;color:#3a2a00;box-shadow:0 2px 10px -4px rgba(200,144,26,.7)}
 .rf-lp-conta.pro:hover{filter:brightness(1.05)}
+
+/* ===== UMA COR POR PLANO =====
+   Vem DEPOIS de `.pro` de proposito: a mesma especificidade, e quem esta' mais abaixo ganha —
+   e' assim que o Resenha deixa de herdar o dourado do Embaixador sem precisar de `!important`.
+     · Peladeiro — o amarelo da marca com letra azul, que e' o par de sempre do RetroFoot;
+     · Resenha   — prateado, a cor da segunda taca, com o chopp do modo;
+     · Embaixador— dourado com a coroa (nao muda: e' a promessa que ja' estava no ar). */
+.rf-lp-conta.plano-peladeiro{background:var(--brand-secondary,#F2B90C);
+  border-color:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F);box-shadow:none}
+.rf-lp-conta.plano-peladeiro .rf-lp-pro{background:var(--brand-primary,#17458F);color:#fff}
+.rf-lp-conta.plano-resenha{background:linear-gradient(100deg,#8c949c,#dfe4e9 46%,#aab2ba);
+  border-color:#9aa2aa;color:#22282d;box-shadow:0 2px 10px -4px rgba(120,132,144,.75)}
+.rf-lp-conta.plano-resenha .rf-lp-pro{background:rgba(0,0,0,.3);color:#fff}
+/* no telemovel o cracha fica transparente (ver a media query acima): as cores de plano nao
+   podem reintroduzir o fundo que aquela regra tirou de proposito */
+@media (max-width:760px){
+  .rf-lp-conta.plano-peladeiro,.rf-lp-conta.plano-resenha{
+    background:transparent;border-color:transparent;color:var(--text-3);box-shadow:none}
+}
 .rf-lp-coroa{font-size:13px;line-height:1;flex:0 0 auto}
 .rf-lp-pro{font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-bold);
   letter-spacing:.08em;text-transform:uppercase;padding:2px 5px;border-radius:99px;

@@ -238,19 +238,25 @@ function rfContaChipHTML(){
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
   const pro=rfContaEhPro();
-  /* O CRACHA DIZ O PLANO, NAO "Pro". Havia um plano pago so', e o cracha dizia
-     o nome dele; agora ha dois, e "Pro" nao distingue um Resenha de um
-     Embaixador — logo nao diz nada a quem paga o de cima. O nome sai de
-     RF_PLANOS, a mesma lista que a pagina de precos usa. */
-  const selo=pro?((RF_PLANOS.find(p=>p.key===rfPlanoCartao())||{}).nome||'Pro'):'';
+  /* ===== O CRACHA E' DE TODOS OS PLANOS, NAO SO' DO DE CIMA =====
+     Ele dizia o plano apenas a quem paga; quem esta' no gratis via um botao neutro, sem nome
+     nenhum. Isso escondia justamente o que o cabecalho pode dizer de mais util a quem ainda
+     nao assinou: em que plano voce esta'. Agora os tres tem cracha, cada um com a sua cor —
+     Peladeiro no amarelo da marca, Resenha em prateado com o chopp (o mesmo simbolo do modo,
+     na barra lateral), Embaixador no dourado com a coroa, como sempre foi.
+     O nome sai de RF_PLANOS, a mesma lista que a pagina de precos usa: um plano novo entra
+     aqui sozinho, e so' a cor precisa de uma linha de CSS. */
+  const chave=rfPlanoCartao();                       // 'peladeiro' | 'resenha' | 'embaixador'
+  const selo=(RF_PLANOS.find(p=>p.key===chave)||{}).nome||'Peladeiro';
+  const glifo={ resenha:'🍺', embaixador:'👑' }[chave]||'';
   /* O NOME E O BOTAO DE JOGAR. Com sessao aberta o cabecalho ficava sem
      nenhuma porta de entrada: o "Entrar" some (ja esta dentro) e sobrava um
      cracha passivo com o nome. */
-  return `<button type="button" class="rf-lp-conta ${pro?'pro':''}" onclick="rfIrParaModo()"
-      title="Jogar como ${escC(st.email||nome)}">
-      ${pro?'<span class="rf-lp-coroa" aria-hidden="true">👑</span>':rfIcone('jogar',16)}
+  return `<button type="button" class="rf-lp-conta ${pro?'pro':''} plano-${escC(chave)}" onclick="rfIrParaModo()"
+      title="Jogar como ${escC(st.email||nome)} · plano ${escC(selo)}">
+      ${glifo?`<span class="rf-lp-coroa" aria-hidden="true">${glifo}</span>`:rfIcone('jogar',16)}
       <span class="rf-lp-conta-n">${escC(nome)}</span>
-      ${pro?`<span class="rf-lp-pro">${escC(selo)}</span>`:''}
+      <span class="rf-lp-pro">${escC(selo)}</span>
     </button>
     <button type="button" class="rf-lp-sair" onclick="rfAcSairConta()">Sair</button>
     <button type="button" class="rf-lp-burger" onclick="rfLpMenu()" aria-label="Menu">
