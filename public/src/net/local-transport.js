@@ -1676,7 +1676,15 @@ function onlineTimerLoop(){
   // assistiu, e isso nunca pode ser o caminho normal. Só vale pro save que já quebrou — atrasado
   // ROUND_LAG_MAX rodadas, aquelas partidas não existem mais em lugar nenhum e ficar parado não
   // traz nenhuma de volta; a escolha passa a ser entre um save inutilizado e um save que continua.
+  /* ENTRAR NA SALA NÃO É ESTAR ATRASADO. Antes de baixar o estado, esta aba está na rodada 0 por
+     não ter nada — e numa sala na rodada 20 isso acionava o socorro do save quebrado, com um aviso
+     alarmante ("atrasado 20 rodada(s)") a cada refresh. O efeito era inofensivo (puxar o estado é
+     o que a entrada faz de qualquer forma), mas um aviso que grita em situação normal ensina a
+     ignorar os avisos — que é exatamente o que não pode acontecer com este console durante um
+     teste. `NET._loadedVersion` só existe depois do primeiro loadGame: até lá, não há atraso a
+     diagnosticar. */
   if(CL.online && room && typeof S!=='undefined' && S && typeof onlineReconcileIfBehind==='function'
+     && (typeof NET!=='undefined' && NET._loadedVersion)
      && (room.round||0) - (S.round||0) >= ROUND_LAG_MAX){
     const k=(room.round||0)+':'+(S.round||0);
     if(CL._lagForced!==k){
@@ -1996,8 +2004,12 @@ function roomDayTick(){
      && typeof NET.seedDayPlan==='function' && typeof S!=='undefined' && S && Array.isArray(S.sched) && S.sched.length){
     if(Date.now()-(CL._replantioSemPlanoT||0)>30000){
       CL._replantioSemPlanoT=Date.now();
-      console.warn('sem ponteiro nesta aba — semeando (não sobrescreve calendário existente)');
-      try{ NET.seedDayPlan(); }catch(e){ console.warn('semeadura sem plano:', e&&e.message); }
+      /* O AVISO SÓ SAI SE ALGO FOI FEITO. Este caminho corre em toda entrada do anfitrião (a aba
+         ainda não tem o plano em cache) e, na esmagadora maioria das vezes, não faz nada — o
+         servidor já tem calendário. Avisar mesmo assim seria alarme falso a cada refresh. */
+      try{ Promise.resolve(NET.seedDayPlan()).then(semeou=>{
+        if(semeou) console.warn('sala sem calendário de dias — plano semeado agora');
+      }).catch(()=>{}); }catch(e){ console.warn('semeadura sem plano:', e&&e.message); }
     }
   }
   if(!d) return;                                               // sala sem plano (save antigo)

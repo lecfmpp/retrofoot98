@@ -963,12 +963,12 @@ async function netSetReady(ready, clubId){
    reinício jogaria a sala de volta pro primeiro dia. */
 async function netSeedDayPlan(force){
   try{
-    if(typeof WORLD_RULES==='undefined' || !WORLD_RULES.buildDayPlan) return;
+    if(typeof WORLD_RULES==='undefined' || !WORLD_RULES.buildDayPlan) return false;
     const { data: g } = await sb.from('games').select('day_plan').eq('id', NET.gameId).single();
     // `force` é a VIRADA DE TEMPORADA: aí o calendário TEM que ser refeito, e o ponteiro voltar
     // ao dia 0. Sem isso o plano da temporada velha continuava valendo e o ponteiro ficava preso
     // na última rodada dela, enquanto os clientes já estavam na rodada 0 da temporada nova.
-    if(g && g.day_plan && !force) return;             // sala já tem o seu calendário
+    if(g && g.day_plan && !force) return false;       // sala já tem o seu calendário — nada a fazer
     const tog = (typeof S!=='undefined' && S && S.compToggle) || {};
     const epoch = (typeof seasonEpoch==='function') ? seasonEpoch() : null;
     /* A ANCORA E A DO MUNDO DA SALA, NUNCA A DA ABA. netStart roda ANTES de o mundo novo existir:
@@ -1023,7 +1023,7 @@ async function netSeedDayPlan(force){
 
     const plan = WORLD_RULES.buildDayPlanMulti(vivos, epoch, totaisPorPais,
       { cups:cupsPorPais, jornadasLiga:jornadasPorPais });
-    if(!plan || !plan.length) return;
+    if(!plan || !plan.length) return false;
     /* REPLANTAR NUNCA PODE REBOBINAR UMA TEMPORADA EM ANDAMENTO.
        Este `day_idx: 0` era incondicional, e foi o que travou a TR9LF: o replantio existe para a
        VIRADA (aí o dia 0 é o certo, porque a rodada também é 0), mas ele é chamado por outro
@@ -1043,7 +1043,8 @@ async function netSeedDayPlan(force){
       console.warn('replantio a meio da temporada — ponteiro para o dia '+alvo+' (rodada '+rodadaAtual+'), não para o dia 0');
     }
     await sb.from('games').update({ day_plan: plan, day_idx: alvo, day_moment: 'escalando' }).eq('id', NET.gameId);
-  }catch(e){ console.warn('seedDayPlan:', e && e.message); }
+    return true;
+  }catch(e){ console.warn('seedDayPlan:', e && e.message); return false; }
 }
 
 /* o dia que a sala está vivendo agora, direto do servidor: {idx, momento, rodada, competicao,
