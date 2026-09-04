@@ -276,20 +276,69 @@ function rfAvatarBlocoHTML(){
     <span class="rf-av-face">${meu?`<img src="${escC(meu)}" alt="">`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
     <span class="rf-av-l">${meu?'A minha<br>(refazer)':'Criar a minha<br>com IA'}</span>
   </div>`;
-  return `<div class="rf-av-bloco">
+  /* ===== SUBIR A MINHA FOTO =====
+     Faltava o caminho mais obvio de todos: a propria foto. Havia cinco faces desenhadas e o
+     retrato por IA (do Embaixador) — e quem so' queria a sua cara nao tinha por onde.
+     A foto vai para `coach_profiles.foto_url`, que desde a unificacao e' a cara do treinador em
+     TODO o lado (ranking, ficha, jogo). E e' ela que a IA usa como referencia: subir primeiro
+     torna o botao da IA util em vez de pedir a foto outra vez la' dentro. */
+  const minhaFoto=(typeof CL!=='undefined')?CL.coachFoto:null;
+  const enviando=!!CL._avUpEnviando;
+  const cartaoFoto=`<div class="rf-esc rf-av-foto ${minhaFoto?'on':''}"
+      onclick="${enviando?'':'rfAvatarSubirFoto()'}" role="button" tabindex="0"
+      aria-pressed="${minhaFoto?'true':'false'}"
+      title="${minhaFoto?'Trocar a minha foto':'Subir uma foto minha'}">
+    <span class="rf-av-face">${minhaFoto?`<img src="${escC(minhaFoto)}" alt="">`:(enviando?'⏳':'📷')}</span>
+    <span class="rf-av-l">${enviando?'A enviar…':(minhaFoto?'A minha foto<br>(trocar)':'Subir a<br>minha foto')}</span>
+  </div>`;
+  return `<div class="rf-av-bloco destaque">
     <div class="rf-av-hd">
-      <b>Quem é você na beira do campo</b>
-      <span>Pode deixar para depois; a gente escolhe uma por você.</span>
+      <b>A sua cara no jogo</b>
+      <span>Suba uma foto sua, deixe a IA fazer o retrato a partir dela, ou escolha uma das faces.
+        Dá para deixar para depois — a gente escolhe uma por você.</span>
     </div>
     <div class="rf-seg rf-av-seg">
       <button type="button" class="rf-seg-b ${g==='m'?'on':''}" onclick="rfAvatarGenero('m')">Treinador</button>
       <button type="button" class="rf-seg-b ${g==='f'?'on':''}" onclick="rfAvatarGenero('f')">Treinadora</button>
     </div>
-    <div class="rf-esc-grid seis rf-av-cards">
-      ${RF_AV_ESTILOS.map((_e,i)=>rfAvCartaoHTML(g,i)).join('')}
+    ${/* os dois caminhos que sao MEUS ficam juntos e a' frente das faces desenhadas */''}
+    <div class="rf-esc-grid rf-av-meus">
+      ${cartaoFoto}
       ${cartaoIA}
     </div>
+    <span class="rf-av-ou">ou escolha uma face</span>
+    <div class="rf-esc-grid cinco rf-av-cards">
+      ${RF_AV_ESTILOS.map((_e,i)=>rfAvCartaoHTML(g,i)).join('')}
+    </div>
   </div>`;
+}
+/* abre o seletor de ficheiros e envia — o mesmo caminho de Configuracoes (NET.perfilFoto), que
+   ja' valida tipo e tamanho, grava no bucket `perfil` e carimba coach_profiles.foto_url. */
+function rfAvatarSubirFoto(){
+  if(typeof NET==='undefined' || !NET.perfilFoto){
+    if(typeof toastC==='function') toastC('Entre na sua conta para subir uma foto.','warn');
+    return;
+  }
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/jpeg,image/png,image/webp';
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0]; if(!f) return;
+    CL._avUpEnviando=true; cdraw();
+    Promise.resolve(NET.perfilFoto(f)).then(r=>{
+      CL._avUpEnviando=false;
+      if(r && r.error){ if(typeof toastC==='function') toastC(r.error,'warn'); }
+      else if(r && r.url){
+        CL.coachFoto=r.url;
+        CL._perfil=Object.assign({}, CL._perfil||{}, {foto_url:r.url});
+        CL._rank=null;                         // o ranking mostra a foto: obriga-o a reler
+        if(typeof toastC==='function') toastC('Essa é a sua cara no jogo.');
+      }
+      cdraw();
+    }).catch(e=>{ CL._avUpEnviando=false;
+      if(typeof toastC==='function') toastC((e&&e.message)||'Não consegui enviar.','warn');
+      cdraw(); });
+  };
+  inp.click();
 }
 /* trocar de genero LARGA a face escolhida: f3 nao existe do lado masculino, e
    manter a chave deixaria o cartao marcado num rosto que nao esta' na grade. */
@@ -324,10 +373,17 @@ function rfTreinadoresHTML(){
   };
   const corpo=`
     <div class="rf-wiz-mid">
-      <div class="rf-esc-grid quatro">${[1,2,3,4].map(cartao).join('')}</div>
-      <div class="rf-esc-grid quatro">${[5,6,7,8].map(cartao).join('')}</div>
+      ${/* ===== A SALA COM MAIS GENTE SAIU DAQUI =====
+           Eram oito cartoes (1 a 8 treinadores) com sete deles marcados "Em breve": uma grelha
+           inteira a oferecer o que o jogo nao faz, e o aviso por baixo a explicar que o caminho
+           e' outro (o Modo Resenha). Escolher entre uma opcao so' nao e' escolher.
+           O Solo e' de um treinador; quem quer mais gente vai a' Resenha, e e' o aviso — que
+           fica — quem o diz. O espaco que sobrou e' do avatar, que e' a decisao que ha' mesmo
+           para tomar nesta tela. RF_HOTSEAT_LIGADO continua a existir: liga-lo repoe a grelha. */''}
+      ${RF_HOTSEAT_LIGADO?`<div class="rf-esc-grid quatro">${[1,2,3,4].map(cartao).join('')}</div>
+      <div class="rf-esc-grid quatro">${[5,6,7,8].map(cartao).join('')}</div>`:''}
       <div class="rf-tr-nomes">
-        ${(CL.names||['']).slice(0,n).map((nm,i)=>rfCampo(i===0?'Treinador 1 (você)':'Treinador '+(i+1),
+        ${(CL.names||['']).slice(0,RF_HOTSEAT_LIGADO?n:1).map((nm,i)=>rfCampo(i===0?'O seu nome de treinador':'Treinador '+(i+1),
           `<input class="rf-campo-c maiuscula" ${i===0?'id="cl-focus"':''} maxlength="12" placeholder="TREINADOR"
              value="${escC(nm||'')}" oninput="rfNomeTreinador(${i},this.value)">`)).join('')}
       </div>
@@ -342,20 +398,13 @@ function rfTreinadoresHTML(){
       ${RF_HOTSEAT_LIGADO?'':`<div class="rf-aviso"><span class="rf-aviso-i">${rfIcone('elenco',16)}</span>
         <span>Jogar com mais gente é o <b>Modo Resenha</b>: cada um no seu aparelho, online,
         com tabela e chat da liga.</span></div>`}
-      <div class="rf-ft-grid tres">
-        <div class="rf-ft-b"><span class="rf-ov-res-t">Semana</span>
-          <span class="rf-ft-bv sm">1 por sessão</span></div>
-        <div class="rf-ft-b"><span class="rf-ov-res-t">Clubes humanos</span>
-          <span class="rf-ft-bv sm">${n} de ${rfClubesNaDivisao()}</span></div>
-        <div class="rf-ft-b"><span class="rf-ov-res-t">Os outros</span>
-          <span class="rf-ft-bv sm">máquina</span></div>
-      </div>
     </div>`;
   return rfWiz({
-    titulo:'Quantos treinadores na sala?', sub:'Cada treinador comanda um clube. Os outros ficam com a máquina.', passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
-    nota:'Os clubes que sobram ficam com a máquina.',
+    titulo:'Quem é você na beira do campo', sub:'O nome, a idade e a cara que vão aparecer na sua carreira, no ranking e na ficha do treinador.',
+    passo:rfPasso('País e liga','solo'), trilha:'solo', corpo,
+    nota:'Dá para trocar a foto depois, em Configurações.',
     voltar:'clGoMoeda()', voltarLabel:'‹ Voltar à moeda',
-    cta:`Continuar com ${n}`, ctaCurto:'Continuar', ctaOn:'clEscolherClubes()' });
+    cta:'Continuar', ctaCurto:'Continuar', ctaOn:'clEscolherClubes()' });
 }
 function rfTreinadoresSel(k){
   CL.names=CL.names||[];
