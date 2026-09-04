@@ -1,0 +1,27 @@
+-- ============================================================================
+-- A VAGA APROVADA ALTERA A BASE (e sabe voltar atras)
+-- Aplicado em 2026-09-05. Registo do que corre no banco — a fonte e' a migracao
+-- `vaga_aprovada_altera_o_pack`; este ficheiro existe para quem procurar no repo.
+-- ============================================================================
+-- O PROBLEMA. O jogador do Embaixador vivia so' em `player_slots`: o jogo aplicava-o por cima
+-- do elenco em tempo de desenho e o pacote nunca sabia dele. Os editores do painel leem o
+-- PACOTE, entao para eles o jogador nao existia.
+--
+-- O QUE MUDOU. A aprovacao escreve em `pack_edits.patch.squad`, o mapa
+-- `nome original -> {n: nome novo}` onde os outros nomes ficticios ja' moram.
+--
+-- A VOLTA, que e' o que importa: guardam-se `pack_chave` (o nome original, onde o mapa pendura
+-- o valor) e `pack_nome_anterior` (o ficticio do pacote). Saindo de 'aprovado', repoe-se
+-- exactamente aquilo — o jogador de base nunca fica sem nome. A foto do embaixador e' apagada;
+-- a dele, indexada pelo nome DELE, nunca foi tocada e volta junto com o nome.
+--
+-- POR QUE UMA TRIGGER: a vaga sai de 'aprovado' por tres caminhos (o largar do jogador, o
+-- webhook do Stripe quando o plano acaba, e um UPDATE a mao). Tres sitios para lembrar de
+-- reverter e' tres sitios para esquecer; a trigger olha a TRANSICAO e cobre todos.
+--
+-- SO' NO MASCULINO: o mapa do pacote e' a base masculina. Uma vaga feminina escrita aqui
+-- renomearia o jogador HOMEM correspondente — o feminino continua aplicado no cliente.
+--
+-- Objectos: elifoot_v3.vaga_pack_sync(player_slots, boolean)
+--           elifoot_v3.player_slots_pack_trg() + trigger player_slots_pack
+--           player_slots.pack_chave, player_slots.pack_nome_anterior

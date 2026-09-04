@@ -3848,6 +3848,15 @@ function mascSemearNomes(){
    entre saves. Escrever nele contaminaria uma carreira com o embaixador de outra modalidade — e
    contaminaria tambem o proprio catalogo em memoria. So' se copia quando ha' mesmo o que trocar,
    entao o caminho comum (a esmagadora maioria dos clubes) fica intocado. */
+/* ===== ISTO DEIXOU DE SER O MECANISMO E VIROU REDE =====
+   Desde que a aprovacao passou a escrever no PACOTE (ver a trigger player_slots_pack, no
+   banco), o nome do embaixador ja' chega no catalogo — este desenho por cima devolve o mesmo
+   nome que o catalogo ja' tem, e por isso ficou idempotente.
+   Continua aqui por duas razoes, e as duas sao reais:
+     · o FEMININO nao passa pelo pacote (o mapa dele e' a base masculina), entao no universo
+       feminino este e' o unico caminho;
+     · entre a aprovacao e o proximo arranque do cliente, o pacote em cache ainda e' o velho —
+       aqui a vaga ja' vale. */
 function aplicarVagasEmbaixador(club, arr, fem){
   const mapa = (typeof window!=='undefined' && window.RF_VAGAS_APROVADAS) || null;
   if(!mapa || !arr || !arr.length) return arr;
