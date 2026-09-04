@@ -115,6 +115,46 @@ function rfEmailIr(key){
    decide —, e cada opção diz o seu preço ANTES do clique.
    `efeito` é o gancho para o que muda no jogo além dos números (hoje só o
    convite recusado, que sai mesmo da mesa). */
+/* =====================================================================
+   O APORTE DA DIRETORIA — dinheiro de verdade, e ele custa
+   ---------------------------------------------------------------------
+   "Preciso de aporte da diretoria" era UMA opcao que nao trazia dinheiro
+   nenhum: mexia na moral (+3) e na confianca (-5) e acabava ai. A pessoa pedia,
+   a tela dizia que tinha pedido, e o caixa continuava igual — a promessa mais
+   cara do jogo era a unica que nao se cumpria.
+
+   Agora sao TRES FAIXAS e o dinheiro entra (ver rfMailResponderGo). O preco
+   sobe com a pedida, nos dois eixos:
+
+     · CONFIANCA DA DIRETORIA — quem pede socorro admite que nao fecha a conta,
+       e sao eles que pagam. E' o eixo que mais dói: -4, -9, -16 num numero que
+       vai a 100 e onde abaixo de 15 a demissao passa a ser sorteada a cada
+       rodada.
+     · MORAL DO ELENCO — menor, mas existe, e nao e' capricho: um clube que
+       precisa de socorro publico e' um clube que pode atrasar salario. -2, -4,
+       -7.
+
+   O CUSTO VAI ESCRITO NA PROPRIA OPCAO, nao no rodape: quem escolhe tem de ver
+   o que aquilo custa ANTES de escolher, ao lado do valor, e nao depois no
+   toast. Por isso `t` e `s` sao funcoes aqui — o valor sai em rfDin, na moeda
+   do save (a mesma opcao vale em reais, euros ou dolares).
+
+   NAO E' TORNEIRA ABERTA. Uma resposta por mensagem (e.reply, ja' existia) e o
+   e-mail que a abre e' o `caixa-<temporada>`, que so' nasce com o caixa no
+   vermelho: no maximo um aporte por temporada, e so' quando ha' rombo. */
+const RF_APORTES = [500000, 1000000, 3000000].map((v,i)=>{
+  const c=[-4,-9,-16][i], m=[-2,-4,-7][i];
+  return {
+    verba:v,
+    t:()=>'Pedir aporte de '+rfDin(v),
+    s:()=>'entra no caixa hoje · confiança da diretoria '+c+' · moral do elenco '+m,
+    m, c, r:0,
+    /* tardia de proposito: rfDin le' a moeda do SAVE, e no arranque do ficheiro ela ainda nao
+       se sabe — congelar aqui daria a moeda errada a quem joga em euros. */
+    fala:()=>'pediu um aporte de '+rfDin(v)+' à diretoria',
+  };
+});
+
 const RF_EMAIL_RESP = {
   offer: {
     kicker:'E-MAIL · RESPOSTA AO DIRETOR DE FUTEBOL',
@@ -158,8 +198,8 @@ const RF_EMAIL_RESP = {
     ops:[
       { t:'Vou vender quem estiver sobrando',     s:'a diretoria aprova · o elenco fica em alerta',          m:-3, c:+5, r: 0, fala:'prometeu vendas para equilibrar o caixa' },
       { t:'Corto custos sem mexer no elenco',     s:'ninguém se assusta; a conta continua apertada',         m:+1, c:+1, r: 0, fala:'prometeu cortar custos sem vender ninguém' },
-      { t:'Preciso de aporte da diretoria',       s:'o grupo aprova · a diretoria não gostou do recado',     m:+3, c:-5, r: 0, fala:'pediu aporte à diretoria em público' } ],
-    nota:'O jogo não deixa o caixa financiar compras no vermelho — vender é o caminho mais rápido.' },
+      ...RF_APORTES ],
+    nota:'O aporte entra no caixa na hora e sai do bolso da diretoria — quanto maior a pedida, mais cara ela sai em confiança e no humor do vestiário. Uma vez por temporada: o pedido nasce com o e-mail do caixa no vermelho.' },
 };
 
 /* A LEITURA: assunto em serifa, bloco do remetente com escudo, corpo, e a
@@ -970,19 +1010,41 @@ function rfMailResponderGo(key){
   if(dRep)   S.coachRep   =lim((S.coachRep==null?50:S.coachRep)+dRep,0,100);
   if(o.efeito==='recusarConvite') rfEmailRecusarConvite(e);
 
+  /* ===== O APORTE ENTRA NO CAIXA — E FICA LA' =====
+     Duas linhas que faltavam, e sem elas a opcao era so' texto:
+       · `commitBudget()` PUBLICA o caixa. Na Resenha o dinheiro mora no assento (game_seats),
+         e o que nao e' publicado e' desfeito na adocao da rodada seguinte — o mesmo cuidado que
+         a venda de jogador ja' tem no motor.
+       · `pushFinanceEntry` poe o lancamento no extrato e nos totais da temporada. Dinheiro que
+         entra sem aparecer no extrato e' dinheiro que a pessoa nao consegue explicar depois. */
+  const verba=o.verba||0;
+  if(verba>0){
+    S.budget=(S.budget||0)+verba;
+    try{ if(typeof commitBudget==='function') commitBudget(); }catch(err){ console.warn('aporte/commitBudget:', err&&err.message); }
+    try{ if(typeof pushFinanceEntry==='function')
+      pushFinanceEntry({ income:verba, log:['Aporte da diretoria: '+rfDin(verba)] }); }
+    catch(err){ console.warn('aporte/extrato:', err&&err.message); }
+  }
+
   const partes=[];
+  if(verba>0) partes.push('caixa +'+rfDin(verba)+' (agora '+rfDin(S.budget||0)+')');
   if(dMoral) partes.push('moral do elenco '+(dMoral>0?'+':'')+dMoral);
   if(dCargo) partes.push('cargo '+(dCargo>0?'+':'')+dCargo+' (agora '+S.jobSecurity+'/100)');
   if(dRep)   partes.push('reputação '+(dRep>0?'+':'')+dRep+' (agora '+S.coachRep+'/100)');
   const efeitoTxt=partes.length?partes.join(' · '):'sem efeito';
 
   const txt=document.querySelector('#rf-ac-msg');
-  e.reply={ opcao:o.t, nota:((txt&&txt.value)||'').slice(0,140), at:Date.now(), efeitoTxt };
+  /* `t` PODE SER FUNCAO (as faixas do aporte escrevem o valor na moeda do save). Guardando a
+     funcao, o painel do "voce ja' respondeu" citava uma aspa vazia — a mensagem lembrava-se de
+     que houve resposta e nao de qual. */
+  const rot=(typeof o.t==='function')?o.t():o.t;
+  e.reply={ opcao:rot, nota:((txt&&txt.value)||'').slice(0,140), at:Date.now(), efeitoTxt };
   e.read=true;
   if(typeof saveInbox==='function') saveInbox();
 
   S.roundNews=S.roundNews||[];
-  S.roundNews.push('✉️ '+(o.fala?('Você '+o.fala):('Você respondeu a "'+(e.subject||'')+'"'))
+  const fala=(typeof o.fala==='function')?o.fala():o.fala;
+  S.roundNews.push('✉️ '+(fala?('Você '+fala):('Você respondeu a "'+(e.subject||'')+'"'))
     + (partes.length?(' — '+efeitoTxt+'.'):'.'));
   try{ if(typeof persistCareer==='function') persistCareer(); }catch(err){}
   try{ if(typeof rfGravar==='function') rfGravar(); else if(typeof saveV3==='function') saveV3(); }catch(err){}

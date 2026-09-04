@@ -3850,6 +3850,14 @@
   width:100%;margin-top:10px}
 /* forma e cor do Embaixador vivem no bloco do cartao padrao, mais acima —
    duplicar aqui sobrescrevia o padrao, porque esta regra vem depois */
+/* o cartao do que ainda nao existe: etiqueta NEUTRA (o dourado aqui e' identidade de plano, e
+   isto nao e' um beneficio a mais — e' um "ainda nao") e o conteudo um tom abaixo */
+.rf-lp-embc.breve{position:relative}
+.rf-lp-embc.breve .rf-lp-embc-ic,.rf-lp-embc.breve .rf-lp-embc-t,.rf-lp-embc.breve .rf-lp-embc-d{opacity:.72}
+.rf-lp-embc-breve{position:absolute;top:10px;right:10px;font-family:var(--font-mono);
+  font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
+  text-transform:uppercase;color:var(--text-3);background:var(--surface-sunken);
+  border:1px solid var(--line-2);border-radius:var(--r-pill);padding:3px 9px}
 .rf-lp-embc-ic{font-size:24px;line-height:1}
 .rf-lp-embc-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:#8a6210}
 .rf-lp-embc-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}

@@ -643,7 +643,11 @@ const RF_ACOES = {
     corpo:
       (abertura?rfAcAvisoHTML(abertura):'')
       + `<span class="rf-ac-l">O que responder</span>`
-      + rfAcOpcoesHTML('resp', def.ops.map(o=>({t:o.t, s:o.s})), d.resp)
+      /* `t` e `s` podem ser FUNCOES (ver RF_APORTES): a opcao do aporte escreve o valor na
+         moeda do save, e o rotulo so' se resolve na hora de desenhar. */
+      + rfAcOpcoesHTML('resp', def.ops.map(o=>({
+          t:(typeof o.t==='function')?o.t():o.t,
+          s:(typeof o.s==='function')?o.s():o.s })), d.resp)
       + rfAcCampoHTML('rf-ac-msg','Acrescentar algo (opcional)','', '', {tipo:'texto',puro:true,ph:'até 140 caracteres'})
       + rfAcLinhaHTML('Segurança no cargo agora', seg+'/100', seg>=60?'ok':(seg<=25?'ruim':''), true)
       + rfAcNotaHTML(def.nota||'O que você responde pesa no vestiário e na sala da diretoria.'),

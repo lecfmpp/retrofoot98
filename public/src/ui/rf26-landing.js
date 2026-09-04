@@ -576,7 +576,7 @@ const RF_PLANOS=[
            'Seu jogador na base de dados oficial, com avatar na sua cara',
            'Seu nome no ranking oficial de treinadores',
            'Selo de Embaixador no seu perfil',
-           'Código pra passar aos seus seguidores — e monetizar com ele'],
+           'Código pra passar aos seus seguidores — e monetizar com ele (depois do Beta)'],
     cta:'Quero ser Embaixador' },
 ];
 
@@ -1014,7 +1014,11 @@ const RF_LP_EMBAIXADOR=[
   ['🧍','Seu jogador no jogo','Nome seu, rosto seu, ficha sua — dentro da base oficial, para todo mundo escalar.'],
   ['🏅','Selo de Embaixador','No seu perfil e ao lado do seu nome. Quem joga com você sabe quem você é.'],
   ['📊','Ranking oficial','Sua campanha entra no ranking de treinadores do RetroFoot98.'],
-  ['💰','Código pra monetizar','Um código só seu pra passar aos seus seguidores — e ganhar com quem entrar por ele.'],
+  /* ===== O QUE AINDA NAO EXISTE VAI MARCADO =====
+     O quarto elemento e' a etiqueta de "ainda nao". Vender seis coisas quando cinco estao no ar
+     e' prometer a mais, e a que falta e' justamente a que envolve dinheiro do outro lado. O
+     cartao fica — a promessa e' verdadeira, so' nao e' de hoje —, mas diz quando. */
+  ['💰','Código pra monetizar','Um código só seu pra passar aos seus seguidores — e ganhar com quem entrar por ele.','Ainda não no Beta'],
 ];
 /* o preço sai de RF_PLANOS — digitado outra vez aqui, um dia os dois discordam */
 function rfPlanoPreco(key){
@@ -1023,7 +1027,8 @@ function rfPlanoPreco(key){
   return q.v+'/'+q.c.replace('por ','');
 }
 function rfLpLigasHTML(){
-  const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d])=>`<div class="rf-lp-embc">
+  const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d,breve])=>`<div class="rf-lp-embc ${breve?'breve':''}">
+    ${breve?`<span class="rf-lp-embc-breve">${escC(breve)}</span>`:''}
     <span class="rf-lp-embc-ic" aria-hidden="true">${ic}</span>
     <span class="rf-lp-embc-t">${escC(t)}</span>
     <span class="rf-lp-embc-d">${escC(d)}</span>
@@ -1032,7 +1037,7 @@ function rfLpLigasHTML(){
     <div class="rf-lp-ligas-in">
       <span class="rf-lp-selo-emb">👑 Plano Embaixador</span>
       <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
-      <p class="rf-lp-p">Seis coisas que só existem no plano de cima — e nenhuma delas é enfeite.</p>
+      <p class="rf-lp-p">Seis coisas que só existem no plano de cima — e nenhuma delas é enfeite. Cinco já estão no ar; o código de monetização entra depois do Beta.</p>
       <div class="rf-lp-embc-grade">${cartoes}</div>
       <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador',null,RF_LP_CICLO)">
         👑 Ser Embaixador — ${escC(rfPlanoPreco('embaixador'))}</button>
