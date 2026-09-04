@@ -108,7 +108,9 @@ function rfPodeHospedar(){
    dele — é o que RF_SALA_HUMANOS serve, e só quando não dá para perguntar. A
    autoridade continua a ser sala_max, no banco, que é o número por que o
    claim_seat recusa. */
-const RF_SALA_HUMANOS = 8;
+/* reserva para quando o plano ainda nao chegou do servidor — tem de acompanhar o `sala_max`
+   de elifoot_v3.plano_limites (10 no Beta), senao a tela promete um numero e o assento nega */
+const RF_SALA_HUMANOS = 10;
 function rfTetoHumanos(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return Number(st.salaMax||0) || RF_SALA_HUMANOS;
@@ -559,19 +561,29 @@ const RF_PLANOS=[
   { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
     itens:['Começa até 3 carreiras por mês no Modo Solo','As quatro divisões brasileiras, com elenco completo','Modo Resenha por 7 dias, nas salas dos outros'],
-    falta:['Apagar uma carreira não devolve a vaga do mês','Depois dos 7 dias, o Resenha sai','Não abre sala como anfitrião'],
+    falta:['Não abre sala como anfitrião'],
+    /* ===== RESSALVA NAO E' ITEM DE LISTA =====
+       "Apagar uma carreira nao devolve a vaga do mes" e "Depois dos 7 dias o Resenha sai" nao
+       sao coisas que o plano NAO TEM — sao a letra miuda de duas coisas que ele TEM (a cota
+       mensal e os 7 dias). Como item de lista, com um X vermelho ao lado, liam-se como tres
+       ausencias e faziam o cartao gratuito parecer pior do que e'. */
+    nota:'A vaga do mês não volta se você apagar a carreira, e o Resenha sai depois dos 7 dias.',
     cta:'Começar de graça' },
 
   { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
     resumo:'Pra quem joga direto com a turma e não quer os 7 dias acabando.',
-    itens:['Começa até 10 carreiras por mês no Modo Solo','Modo Resenha sem prazo: entra na sala de qualquer anfitrião'],
+    /* O PRIMEIRO ITEM E' O PLANO DE BAIXO INTEIRO: sem ele, cada cartao parecia uma lista
+       solta e quem lia tinha de comparar linha a linha para perceber que os planos se
+       empilham. */
+    itens:['Tudo do Peladeiro','Começa até 10 carreiras por mês no Modo Solo','Modo Resenha sem prazo: entra na sala de qualquer anfitrião'],
     falta:['Não abre sala como anfitrião'],
     cta:'Assinar o Resenha' },
 
   { key:'embaixador', nome:'Embaixador', mes:4990, ano:39900,
     destaque:true, selo:'O mais completo',
     resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
-    itens:['Você é o anfitrião: abre salas de 3 a 8 treinadores',
+    itens:['Tudo do Resenha',
+           'Você é o anfitrião: abre salas de 2 a 10 treinadores (no Beta)',
            'Carreiras ilimitadas no Modo Solo, sem cota mensal',
            'Seu jogador na base de dados oficial, com avatar na sua cara',
            'Selo de Embaixador no seu perfil',
@@ -763,6 +775,7 @@ function rfLpPlanosHTML(){
       </div>
       <span class="rf-lp-plano-a">${escC(q.nota)}</span>
       <ul class="rf-lp-plano-l">${itens}${falta}</ul>
+      ${p.nota?`<span class="rf-lp-plano-nota">${escC(p.nota)}</span>`:''}
       <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}',null,RF_LP_CICLO)">${escC(p.cta)}${
         rfBetaVale(p)?`<i class="rf-lp-plano-bt-off">−${RF_BETA.pct}% no Beta</i>`:''}</button>
     </div>`;
@@ -934,7 +947,10 @@ const RF_LP_ALBUM_ANTES = null;   // ex.: 'img/home/album-crianca.webp'
    no mesmo lugar e' o Kevin Viveros), o clube e' o Furacao do Sul da divisao A, e a foto e' a
    mesma que a ficha dela mostra dentro do jogo. Nada inventado para a pagina de vendas. */
 const RF_LP_JOGADORA = {
-  nome:'Aline Lima', pos:'Atacante', age:28,
+  /* idade e forca saem da ficha dela no catalogo (jm001780, Serie D): o cartao do lado mostra
+     "11 DE FORCA" para o jogador, e o dela nao mostrava nada — dois cartoes a dizer coisas
+     diferentes sobre o mesmo tipo de jogador. */
+  nome:'Aline Lima', pos:'Atacante', age:29, forca:11,
   clube:'Furacão do Sul',
   cor:'#D62828', cor2:'#14171a',
   foto:'https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/furacaodosul/jogadores/alinelima-cartao-1788453766060-19dc73.webp',
@@ -951,6 +967,7 @@ function rfLpFichaJogadoraHTML(){
       <img class="rf-mod-crest" src="${escC(j.crest)}" alt="${escC(j.clube)}" loading="lazy">
       <span class="rf-mod-pos">${escC(linha)}</span>
       <span class="rf-mod-nome">${escC(j.nome)}</span>
+      ${j.forca?`<span class="rf-mod-forca"><b>${escC(String(j.forca))}</b> de força</span>`:''}
     </span>
   </span>`;
 }
@@ -1134,7 +1151,14 @@ function rfLandingHTML(){
     <section class="rf-lp-sec">
       ${rfLpSecaoHTML({eyebrow:'Jogue do seu jeito', titulo:'Da Série D ao topo, no seu ritmo.',
         prosa:'Pega um clube pequeno e sobe até a elite. Mercado de transferências, finanças do clube e o calendário completo de copas — sem depender de ninguém entrar na sala.',
-        itens:['Séries A, B, C e D, com elenco completo em cada clube','Copa do Brasil, Libertadores e Sul-Americana','Partida ao vivo com narração lance a lance'],
+        itens:['Séries A, B, C e D, com elenco completo em cada clube',
+               /* OS NOMES SAEM DO PACOTE, nao daqui: `rfNomeComp` le' COMPETICOES, que o pacote
+                  oficial renomeia no arranque. Escritos a mao, a pagina e o jogo divergiam no
+                  dia seguinte a qualquer renomeacao — foi assim que a home ficou a prometer
+                  "Copa do Brasil" enquanto o jogo ja' dizia outra coisa. */
+               `${rfNomeComp('copaBrasil','Copa Nacional')}, ${rfNomeComp('libertadores','Liberta Cup')} e ${rfNomeComp('sulamericana','Sula Cup')}`,
+               'Masculino e feminino, nas mesmas divisões e nas mesmas copas',
+               'Partida ao vivo com narração lance a lance'],
         cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
       ${rfLpFotoHTML('img/home/classificacao.webp','Classificação da Série D dentro do RetroFoot98')}
     </section>
