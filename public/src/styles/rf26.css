@@ -3451,10 +3451,9 @@
 .rf-lp-plano.ouro .rf-lp-plano-n{color:#8a6210}
 .rf-lp-plano-selo{position:absolute;top:-13px;left:22px;display:flex;align-items:center;gap:6px;
   height:26px;padding:0 12px;border-radius:var(--r-pill);
-  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
-  color:#3a2a00;font-family:var(--font-mono);font-size:var(--fs-label);
-  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
-  box-shadow:0 2px 10px -4px rgba(200,144,26,.7)}
+  background:var(--rf-chip-bg);border:1px solid var(--rf-chip-line);color:var(--rf-chip-fg);
+  font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}
 .rf-lp-plano-n{font-size:22px;font-weight:var(--fw-bold);color:var(--text-1);
   letter-spacing:var(--ls-tight)}
 .rf-lp-plano-r{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal);
@@ -3575,7 +3574,6 @@
   color:#fff; transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease);
 }
 /* secundários: contorno azul de 2px em vez de fio cinza sobre branco */
-.rf-lp .rf-lp-ctas .rf-wiz-b2,
 .rf-lp .rf-lp-entrar,
 .rf-lp .rf-trava-bt-2,
 /* `:not([data-plano])` NÃO É ZELO A MAIS. Um seletor com atributo pesa o mesmo que um com
@@ -3646,8 +3644,8 @@
 .rf-travado>.rf-selo-plano{opacity:1}
 .rf-selo-plano{position:absolute;top:10px;right:10px;z-index:2;display:flex;
   align-items:center;gap:5px;height:22px;padding:0 10px;border-radius:var(--r-pill);
-  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
-  color:#3a2a00;font-family:var(--font-mono);font-size:var(--fs-label);
+  background:var(--rf-chip-bg);border:1px solid var(--rf-chip-line);color:var(--rf-chip-fg);
+  font-family:var(--font-mono);font-size:var(--fs-label);
   font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}
 
 @media (max-width:1024px){
@@ -3686,12 +3684,21 @@
 .rf-lp-foto.retrato img{max-width:300px;margin:0 auto;border:none;box-shadow:none;background:none}
 
 /* ----- selo dourado "só no Embaixador" ----- */
+/* =====================================================================
+   OS CHIPS DE PLANO SAO ETIQUETAS, NAO BOTOES
+   ---------------------------------------------------------------------
+   Vestiam o MESMO dourado dos CTAs do Embaixador — gradiente, letra escura e
+   sombra. Lado a lado com o botao "Quero ser Embaixador", logo abaixo, o olho
+   lia dois botoes: um pequeno e um grande. Chip nao se clica; ele nomeia.
+   A identidade nova diz a mesma coisa com menos voz: o dourado fica no fundo
+   lavado e no fio, e o peso volta para o botao, que e' quem tem accao. Os tres
+   selos partilham os mesmos tokens para nao voltarem a divergir um do outro. */
+:root{ --rf-chip-bg:#fdf4dc; --rf-chip-line:#eddfae; --rf-chip-fg:#6b5000; }
 .rf-lp-selo-emb{align-self:center;display:inline-flex;align-items:center;gap:7px;
   height:28px;padding:0 14px;border-radius:var(--r-pill);
-  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
-  color:#3a2a00;font-family:var(--font-mono);font-size:var(--fs-label);
-  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase;
-  box-shadow:0 2px 10px -4px rgba(200,144,26,.7)}
+  background:var(--rf-chip-bg);border:1px solid var(--rf-chip-line);color:var(--rf-chip-fg);
+  font-family:var(--font-mono);font-size:var(--fs-label);
+  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}
 .rf-lp-bt-ouro{align-self:center;margin-top:8px;height:50px;padding:0 26px;border:none;
   border-radius:var(--r-control);cursor:pointer;font-family:var(--font-sans);
   font-size:var(--fs-body);font-weight:var(--fw-bold);color:#3a2a00;

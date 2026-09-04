@@ -1041,9 +1041,14 @@ function rfLandingHTML(){
         <span class="rf-lp-pill">● 100% online — nada pra instalar</span>
         <h1 class="rf-lp-h1">O clássico da sua infância,<br>agora online e com os amigos.</h1>
         <p class="rf-lp-p">Você é o técnico. Escala o time, negocia jogadores, cuida do caixa e briga por acesso da Série D ao topo — sozinho contra a máquina ou na resenha com a turma toda na mesma liga.</p>
+        ${/* ===== UM BOTAO SO' NO HERO =====
+             Eram dois lado a lado — "Ver os planos" e "Jogar de graça" — e disputavam a mesma
+             atencao no primeiro ecra. Quem chega aqui ainda nao sabe o que e' o jogo; mandar
+             escolher entre a tabela de precos e o jogo, antes de ver qualquer coisa, e' pedir
+             uma decisao que ninguem tem como tomar. Fica o que nao custa nada: jogar. Os planos
+             continuam a um toque no cabecalho e ganham a seccao inteira mais abaixo. */''}
         <div class="rf-lp-ctas">
-          <button type="button" class="rf-wiz-cta" onclick="rfLpIr('planos')">👑 Ver os planos</button>
-          <button type="button" class="rf-wiz-b2" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar de graça</button>
+          <button type="button" class="rf-wiz-cta" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar de graça</button>
         </div>
         <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>: Modo Solo pra sempre e 7 dias de Resenha. Sem instalar nada, sem cartão.</span>
       </div>
