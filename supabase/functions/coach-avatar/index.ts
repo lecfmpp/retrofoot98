@@ -287,6 +287,23 @@ Deno.serve(async (req) => {
       return resp(500, { error: "Retrato gerado, mas não consegui salvá-lo no seu perfil." });
     }
 
+    /* ===== UMA CARA SO', EM TODO O LADO =====
+       Havia duas imagens independentes: esta (retrato por IA, do Embaixador) e a foto de perfil
+       (`coach_profiles.foto_url`, que qualquer um sobe). O jogo mostrava a de IA na pagina do
+       Treinador e o RANKING mostrava a outra — entao quem pagou, gerou o retrato e nunca subiu
+       uma foto aparecia no ranking com as INICIAIS: o recurso pago nao se via justamente no
+       lugar mais publico.
+       A partir daqui `coach_profiles.foto_url` e' a fonte unica de "a cara deste treinador", e
+       gerar por IA e' UMA das formas de a preencher (a outra continua a ser subir uma foto).
+       Esta tabela continua a existir pelo que ela e' de facto: o registo da geracao — estilo,
+       quantas ja' foram, os termos aceites.
+       Nao falha a resposta se isto falhar: o retrato foi gerado e pago, e a pagina do Treinador
+       ja' o mostra; o ranking apanha-o na proxima geracao ou quando a pessoa subir uma foto. */
+    const { error: perfErr } = await admin
+      .schema("elifoot_v3").from("coach_profiles")
+      .upsert({ user_id: uid, foto_url: publica }, { onConflict: "user_id" });
+    if (perfErr) console.error("espelhar retrato no perfil falhou:", perfErr.message);
+
     /* custo REGISTRADO na mesma tabela do Estudio — os cards de Financas do
        painel ja' somam ia_custos, entao o gasto do jogador aparece la' sem
        nenhum trabalho a mais. */

@@ -244,6 +244,17 @@ function rfAvatarCarregar(){
     if(!CL.coachAvatar && (r.url||r.preset)) CL.coachAvatar=r.url||r.preset;
     if(CL.screen==='jogadores') cdraw();
   }).catch(()=>{});
+  /* ===== A CARA E' UMA SO', E E' A DO PERFIL =====
+     Duas imagens viviam em paralelo: o retrato por IA (coach_avatars, do Embaixador) e a foto
+     de perfil (coach_profiles.foto_url, que qualquer um sobe). O jogo mostrava a primeira e o
+     ranking a segunda — quem subia uma foto continuava a ver a face padrao dentro do jogo, e
+     quem gerava o retrato aparecia no ranking com as iniciais.
+     `coach_profiles.foto_url` passa a ser a fonte unica (o gerador ja' escreve la', ver a edge
+     function coach-avatar); aqui buscamo-la uma vez por sessao para a pagina do Treinador e
+     tudo o mais poderem mostrar a MESMA cara que o ranking mostra. */
+  if(NET.perfilLer) NET.perfilLer().then(p=>{
+    if(p && p.foto_url){ CL.coachFoto=p.foto_url; cdraw(); }
+  }).catch(()=>{});
 }
 function rfAvatarBlocoHTML(){
   rfAvatarCarregar();

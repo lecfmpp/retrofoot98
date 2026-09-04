@@ -343,6 +343,9 @@ function rfPerfilFicheiro(input){
     if(r && r.error){ CL._perfilErro=r.error; }
     else { CL._perfil = Object.assign({}, CL._perfil||{}, {foto_url:r.url}); CL._perfilErro=null;
            CL._rank=null;   /* o ranking mostra a foto: obriga-o a reler */
+           CL.coachFoto=r.url;  /* e o JOGO mostra a mesma (ver rfCoachAvatarUrl) — sem isto a
+                                   foto nova aparecia no ranking e a pagina do Treinador ficava
+                                   com a cara velha ate' recarregar */
            if(typeof toastC==='function') toastC('Foto enviada.'); }
     cdraw();
   }).catch(e=>{ CL._perfilEnviando=false; CL._perfilErro=(e&&e.message)||'Não consegui enviar.'; cdraw(); });
@@ -352,6 +355,7 @@ function rfPerfilIniciais(){
   Promise.resolve(NET.perfilSemFoto()).then(()=>{
     CL._perfilEnviando=false;
     CL._perfil=Object.assign({}, CL._perfil||{}, {foto_url:null}); CL._rank=null;
+    CL.coachFoto=null;   /* volta para a face padrao do assistente, dentro do jogo tambem */
     if(typeof toastC==='function') toastC('Voltou às iniciais.');
     cdraw();
   }).catch(()=>{ CL._perfilEnviando=false; cdraw(); });

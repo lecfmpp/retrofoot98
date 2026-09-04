@@ -748,6 +748,12 @@ function rfTreinadorNome(){
    nome — o avatar é enfeite, nunca requisito. A face padrão pode ainda não ter
    chegado da rede: null aqui é 'ainda não', não 'nunca'. */
 function rfCoachAvatarUrl(){
+  /* A FOTO DO PERFIL VEM PRIMEIRO. E' a fonte unica da cara do treinador (a mesma que o ranking
+     mostra), e o retrato por IA ja' e' gravado la' pelo gerador — entao quem subiu foto e quem
+     gerou retrato veem, os dois, a mesma imagem aqui dentro. `S.coachAvatar` fica como o que
+     sempre foi para quem nao tem nenhuma das duas: a face padrao sorteada no assistente. */
+  const doPerfil=(typeof CL!=='undefined')?CL.coachFoto:null;
+  if(doPerfil) return doPerfil;
   const a=(typeof S!=='undefined'&&S)?S.coachAvatar:null;
   if(!a) return null;
   if(/^(https?:|data:|\/)/.test(a)) return a;
