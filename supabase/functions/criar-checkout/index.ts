@@ -102,7 +102,31 @@ Deno.serve(async (req) => {
         p.metadata?.plano === plano && p.metadata?.ciclo === ciclo
       );
     }
-    if (!preco) return resp(500, { error: "Preço deste plano não está publicado no Stripe." });
+    if (!preco) {
+      /* ===== O ERRO TEM DE DIZER O QUE FOI PROCURADO E O QUE HA' LA' =====
+         "Preco deste plano nao esta' publicado" era verdade e nao servia de nada: nao dizia se
+         faltava o preco, se o metadata estava no PRODUTO em vez de no PRECO, ou se a chave e' de
+         um modo (live/test) e os precos do outro — as tres avarias dao exactamente este 500.
+         Agora o log lista o que a conta TEM, e a resposta diz em que modo a chave esta'. */
+      let inventario = "";
+      let modo = "?";
+      try {
+        const todos = await stripe.prices.list({ active: true, limit: 100, expand: ["data.product"] });
+        modo = STRIPE_KEY.startsWith("sk_live") ? "live" : "test";
+        inventario = todos.data.map((x) => {
+          const prod: any = x.product;
+          const mp = prod && typeof prod === "object" ? (prod.metadata || {}) : {};
+          return `${x.id} preco.metadata=${JSON.stringify(x.metadata || {})}` +
+                 ` produto.metadata=${JSON.stringify(mp)}`;
+        }).join(" | ") || "(nenhum preco activo nesta conta/modo)";
+      } catch (e) { inventario = "falhou a listar: " + ((e as Error)?.message || "?"); }
+      console.error(`criar-checkout: sem preco para plano='${plano}' ciclo='${ciclo}' (chave ${modo}). Precos activos: ${inventario}`);
+      return resp(500, {
+        error: "Preço deste plano não está publicado no Stripe.",
+        motivo: "sem_preco", plano, ciclo, modo,
+        dica: "O metadata plano/ciclo tem de estar no PREÇO (não no produto), e os preços têm de estar no mesmo modo (live/test) da chave.",
+      });
+    }
 
     /* ===== O DESCONTO DA FASE BETA =====
        Mesmo principio do preco: o cupom e' encontrado por METADATA, nao por um
