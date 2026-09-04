@@ -192,6 +192,32 @@
      no resolve-round). world-config.js lê UNIVERSOS preguiçosamente, então basta estar na página
      antes do primeiro uso — mas vem primeiro de propósito, porque rebalance.js consulta a banda
      de divisão logo abaixo. -->
+<script>
+/* MODO DETALHADO (EF_DEBUG) — ligado por link, e fica ligado.
+   Antes só existia digitando `window.EF_DEBUG = true` no console, o que morria em cada F5: no
+   teste da Resenha, onde recarregar é parte do roteiro, o rastro [postround] sumia justamente
+   quando ele era preciso. Agora:
+     ?debug=1  liga e GRAVA a escolha (sobrevive a reload, "Sincronizar sala" e reentrada)
+     ?debug=0  desliga e apaga a marca
+   Fica aqui em cima, antes de qualquer script do jogo, para que os primeiros logs da carga já
+   saiam. O localStorage é por navegador, então cada sócio liga o seu — e um sócio com o link
+   ligado não muda nada para os outros. */
+(function(){
+  var K='rf98:debug';
+  try{
+    var q=new URLSearchParams(location.search).get('debug');
+    if(q!=null){
+      var on=(q!=='0' && q!=='false' && q!=='');
+      if(on) localStorage.setItem(K,'1'); else localStorage.removeItem(K);
+    }
+    window.EF_DEBUG = localStorage.getItem(K)==='1';
+  }catch(e){ /* navegador sem storage (aba privada): vale só esta sessão */
+    try{ window.EF_DEBUG = new URLSearchParams(location.search).get('debug')==='1'; }catch(e2){}
+  }
+  if(window.EF_DEBUG) console.log('%c[debug] modo detalhado LIGADO','color:#e2a41c;font-weight:bold',
+    '— o rastro [postround] sai a cada passo do pós-rodada. Desligue com ?debug=0');
+})();
+</script>
 <script src="src/engine/world-config.js"></script>
 <script src="src/data/match-config.js"></script>
 <script src="src/data/trophies.js"></script>

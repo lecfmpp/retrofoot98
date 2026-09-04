@@ -1985,12 +1985,19 @@ function roomDayTick(){
      semeador falhando (ver netSeedDayPlan/netRefreshDay) — sem isto ela ficava para sempre sem
      ponteiro. Throttle de 30s e so fora do lobby; o semeador e idempotente (sai se o plano
      existir). */
+  /* SEMEAR, NUNCA REPLANTAR. Este caminho chamava `reseedDayPlan` (force), que reescreve o plano
+     E devolve o ponteiro ao dia 0. Mas a condição que o dispara — `!NET.room.dayPlan` — fala do
+     CACHE DESTE CLIENTE, não do servidor: um refresh do anfitrião, ou um timeout do banco na
+     leitura da sala, bastava para uma sala inteira, a meio da temporada, ser rebobinada ao
+     primeiro dia. Foi o que travou a TR9LF na rodada 20.
+     `seedDayPlan` (sem force) sai calado se o servidor já tiver calendário — o autorreparo da
+     sala que nasceu sem ponteiro continua existindo, sem poder estragar as que têm. */
   if(!d && NET.isHost && NET.room.phase && NET.room.phase!=='lobby' && !NET.room.dayPlan
-     && typeof NET.reseedDayPlan==='function' && typeof S!=='undefined' && S && Array.isArray(S.sched) && S.sched.length){
+     && typeof NET.seedDayPlan==='function' && typeof S!=='undefined' && S && Array.isArray(S.sched) && S.sched.length){
     if(Date.now()-(CL._replantioSemPlanoT||0)>30000){
       CL._replantioSemPlanoT=Date.now();
-      console.warn('sala sem calendário de dias — replantando');
-      try{ NET.reseedDayPlan(); }catch(e){ console.warn('replantio sem plano:', e&&e.message); }
+      console.warn('sem ponteiro nesta aba — semeando (não sobrescreve calendário existente)');
+      try{ NET.seedDayPlan(); }catch(e){ console.warn('semeadura sem plano:', e&&e.message); }
     }
   }
   if(!d) return;                                               // sala sem plano (save antigo)
@@ -2136,6 +2143,20 @@ function dayRoundWatch(){
     CL._replantioTemporada=(S.season||0);
     console.warn('calendário da sala é da temporada passada — replantando (jornada 0)');
     try{ NET.reseedDayPlan(); }catch(e){ console.warn('replantio:', e&&e.message); }
+  }
+  /* PONTEIRO REBOBINADO A MEIO DA TEMPORADA: o socorro da sala que já ficou presa.
+     O ponteiro atrás do mundo por UMA rodada é normal — a 'classificacao' do dia de liga acontece
+     depois de a rodada fechar, quando o meu S.round já é o seguinte. Duas ou mais é outra coisa:
+     o ponteiro foi parar num dia que a sala já viveu e ninguém alcança o mundo carimbando (foram
+     ~20 dias de atraso na TR9LF, com o mundo na rodada 20 e o ponteiro na 9). Nesse caso o
+     anfitrião realinha o ponteiro com a rodada do mundo — `rewindDayPointer` já sabe achar o dia
+     e limpa os carimbos, para todos recomeçarem o dia certo juntos.
+     Só o anfitrião escreve, e uma vez por rodada: realinhar em laço rebobinaria a sala. */
+  if(pt!=null && (S.round||0)-pt >= 2 && typeof NET!=='undefined' && NET.isHost
+     && typeof NET.rewindDayPointer==='function' && CL._realinhouRodada!==(S.round||0)){
+    CL._realinhouRodada=(S.round||0);
+    console.warn('ponteiro '+((S.round||0)-pt)+' rodadas atrás do mundo — realinhando com a rodada '+(S.round||0));
+    try{ NET.rewindDayPointer(S.round||0); }catch(e){ console.warn('realinhamento:', e&&e.message); }
   }
 }
 

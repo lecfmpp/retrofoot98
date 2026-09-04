@@ -1024,7 +1024,25 @@ async function netSeedDayPlan(force){
     const plan = WORLD_RULES.buildDayPlanMulti(vivos, epoch, totaisPorPais,
       { cups:cupsPorPais, jornadasLiga:jornadasPorPais });
     if(!plan || !plan.length) return;
-    await sb.from('games').update({ day_plan: plan, day_idx: 0, day_moment: 'escalando' }).eq('id', NET.gameId);
+    /* REPLANTAR NUNCA PODE REBOBINAR UMA TEMPORADA EM ANDAMENTO.
+       Este `day_idx: 0` era incondicional, e foi o que travou a TR9LF: o replantio existe para a
+       VIRADA (aí o dia 0 é o certo, porque a rodada também é 0), mas ele é chamado por outro
+       caminho — o autorreparo "sala sem calendário" — que dispara pelo cache VAZIO do cliente, e
+       não por o servidor estar mesmo sem plano. Bastou um refresh do anfitrião (ou um timeout do
+       banco, que houve) para uma sala saudável na rodada 20 voltar ao dia 0 e ficar rastejando
+       dia a dia, sem nunca alcançar o mundo — a sala parecia congelada e nem reload, nem
+       "Sincronizar sala", nem logout resolviam, porque o estrago estava no servidor.
+       Agora o alvo sai do MUNDO: se já havia plano e a temporada está em curso, o ponteiro vai
+       para o primeiro dia da rodada atual; a virada (rodada 0) continua indo para o dia 0. */
+    const jaHaviaPlano = !!(g && g.day_plan);
+    const rodadaAtual = (typeof S!=='undefined' && S && S.round) || 0;
+    let alvo = 0;
+    if(jaHaviaPlano && rodadaAtual>0){
+      const i = plan.findIndex(d=>d && d.r===rodadaAtual);
+      alvo = i<0 ? 0 : i;
+      console.warn('replantio a meio da temporada — ponteiro para o dia '+alvo+' (rodada '+rodadaAtual+'), não para o dia 0');
+    }
+    await sb.from('games').update({ day_plan: plan, day_idx: alvo, day_moment: 'escalando' }).eq('id', NET.gameId);
   }catch(e){ console.warn('seedDayPlan:', e && e.message); }
 }
 
@@ -1940,6 +1958,9 @@ async function netRewindDayPointer(round){
 }
 NET.rewindDayPointer = netRewindDayPointer;
 NET.reseedDayPlan = ()=>netSeedDayPlan(true);
+/* SEMEAR SEM FORÇAR: para o autorreparo da sala que nasceu sem plano. Sai calado se o servidor já
+   tiver calendário — o cache vazio deste cliente nunca é prova de que a sala está sem ponteiro. */
+NET.seedDayPlan = ()=>netSeedDayPlan(false);
 NET.listMyRooms = netListMyRooms;
 NET.deleteRoom = netDeleteRoom;
 NET.sendEmailInvite = netSendEmailInvite;
