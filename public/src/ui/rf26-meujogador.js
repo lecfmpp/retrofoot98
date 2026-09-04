@@ -286,7 +286,7 @@ function rfMjDepois(){
 function rfMjCamisa(v){
   /* o numero da camisa e' o do jogador na base; sem ele, o padrao da posicao */
   try{
-    const c=(typeof anyClubOf==='function')?anyClubOf(v.club_id):null;
+    const c=rfMjClube(v.club_id);
     const p=c && (c.squad||[]).find(x=>x.id===v.player_id);
     if(p && p.num) return p.num;
   }catch(e){}
@@ -298,11 +298,22 @@ function rfMjCamisa(v){
    quem sabe o nome de agora e' o proprio catalogo. Preferir o catalogo evita a tela mostrar
    "Bahia" ao lado de jogadores chamados "Wesley Peixoto" — foi exatamente o que aconteceu
    quando a coluna, semeada do ficheiro-fonte, ficou com os nomes reais. */
+/* ===== ACHAR O CLUBE FORA DA DIVISAO CARREGADA =====
+   `anyClubOf` so' alcanca o catalogo do save em curso: a Serie A que o index guarda e os clubes
+   do mundo do jogador. Esta tela lista as QUATRO divisoes, entao para B, C e D ela devolvia
+   null — e o escudo nem chegava a ser procurado (o nome escapava porque cai no da base).
+   `rfClubeDoCartaz` (ui/rf26-modalidade.js) ja' sabe varrer as tres listas, incluindo
+   `BRASIL_LOWER`. O escudo em si nunca faltou: clubCrestUrl le' CLUB_CREST_BRASIL_LOWER pelo id.
+   Faltava chegar la'. */
+function rfMjClube(clubId){
+  if(clubId==null) return null;
+  try{ const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null; if(c) return c; }catch(e){}
+  try{ if(typeof rfClubeDoCartaz==='function') return rfClubeDoCartaz(clubId); }catch(e){}
+  return null;
+}
 function rfMjNomeClube(clubId, doBanco){
-  try{
-    const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null;
-    if(c && (c.short||c.name)) return c.short||c.name;
-  }catch(e){}
+  const c=rfMjClube(clubId);
+  if(c && (c.short||c.name)) return c.short||c.name;
   return doBanco||clubId||'';
 }
 /* ===== QUEM SAI TEM CARA, NOME E IDADE =====
@@ -315,7 +326,7 @@ function rfMjJogadorDaBase(v){
               num:(RF_MJ_POS[v&&v.posicao]||{}).num||null, foto:null, forca:v&&v.forca||null };
   if(!v || !v.club_id) return out;
   try{
-    const c=(typeof anyClubOf==='function')?anyClubOf(v.club_id):null;
+    const c=rfMjClube(v.club_id);
     out.club=c||null;
     const p=c && (c.squad||[]).find(x=>String(x.id)===String(v.player_id));
     if(p){
@@ -334,7 +345,7 @@ function rfMjJogadorDaBase(v){
 }
 function rfMjCrest(clubId){
   try{
-    const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null;
+    const c=rfMjClube(clubId);
     if(c && typeof rfCrest==='function') return rfCrest(c,26);
   }catch(e){}
   return '';
