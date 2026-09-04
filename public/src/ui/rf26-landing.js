@@ -1002,23 +1002,26 @@ function rfLpGranaHTML(){
     <span class="rf-lp-quem-ic" aria-hidden="true">${ic}</span>
     <span class="rf-lp-quem-t">${escC(t)}</span>
     <span class="rf-lp-quem-d">${escC(d)}</span></div>`;
+  /* ===== UM FORMATO SO', E O CONTEUDO CABE NELE =====
+     A seccao tinha TRES formatos a disputar o mesmo assunto: uma caixa branca com o aviso, uma
+     grelha de tres cartoes e uma lista numerada de tres passos — e os tres diziam a mesma coisa
+     por outras palavras. "Passa o codigo pra sua galera" (passo 2) e' o cartao do Influencer;
+     "abre a sala e acompanha quem entrou" (passo 3) e' a frase de abertura. O e-mail aparecia
+     duas vezes, no botao e no rodape.
+
+     Fica o CARTAO, que e' o formato que o resto da pagina ja' usa (ver a seccao da coroa), e o
+     conteudo foi ajustado a ele:
+       · o aviso de "ainda nao existe" vira uma etiqueta debaixo do titulo — uma linha, nao uma
+         caixa: e' um ESTADO, e estado nao merece a mesma moldura que o conteudo;
+       · a mecanica cabe num paragrafo, no futuro, com os 10 links dentro;
+       · os tres cartoes ficam — sao a unica parte que diz algo que as outras nao dizem;
+       · uma accao so' no fim, e o e-mail vive nela. */
   return `<section class="rf-lp-grana rf-lp-f-creme" id="rf-lp-grana">
     <div class="rf-lp-grana-in">
       <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
       <h2 class="rf-lp-h2">Monte a sua resenha. E ganhe com ela.</h2>
-      ${/* ===== O QUE AINDA NAO ESTA' NO AR DIZ-SE ANTES DE SE DESCREVER =====
-           A seccao inteira estava escrita no presente — "todo Embaixador recebe um codigo" —
-           e o codigo ainda nao existe. Quem lia isto e assinava, assinava por uma coisa que a
-           versao Beta nao entrega. A tarja vem ANTES da descricao, e nao no rodape em letra
-           pequena: e' a primeira coisa que se le' depois do titulo. O resto do texto passa para
-           o futuro, que e' o tempo verbal certo. */''}
-      <div class="rf-lp-obra">
-        <span class="rf-lp-obra-t">🚧 Em desenvolvimento — ainda não disponível no Beta</span>
-        <span class="rf-lp-obra-d">No primeiro lançamento serão liberados <b>apenas 10 links</b>.
-          Se você quer um deles, fale com o nosso time.</span>
-        <a class="rf-lp-obra-bt" href="mailto:suporte@retrofoot.com.br?subject=Quero%20um%20dos%2010%20links%20de%20Embaixador">Falar com o time</a>
-      </div>
-      <p class="rf-lp-p">Cada Embaixador vai receber um código próprio pra passar pra galera dele. Quem entrar pelo seu código conta como seu — e isso vira dinheiro no seu bolso, não só audiência.</p>
+      <span class="rf-lp-chip-neutro">🚧 Em desenvolvimento — ainda não no Beta</span>
+      <p class="rf-lp-p">Cada Embaixador vai receber um código próprio pra passar pra galera dele: quem entrar por ele conta como seu, e isso vira dinheiro no seu bolso — não só audiência. <b>No primeiro lançamento serão apenas 10 links.</b></p>
 
       <div class="rf-lp-quem-grade">
         ${quem('🎥','Criador de conteúdo','Transmite a semana ao vivo no Modo Camarote e joga a liga com a audiência.')}
@@ -1026,17 +1029,8 @@ function rfLpGranaHTML(){
         ${quem('🍻','O cara que junta a galera','Não precisa ter canal. Precisa ter gente querendo jogar com você.')}
       </div>
 
-      <div class="rf-lp-grana-como">
-        <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">1</span>
-          <span>Você vira Embaixador e recebe o seu código — quando o programa abrir.</span></div>
-        <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">2</span>
-          <span>Passa o código pra sua galera, pro canal, pro grupo.</span></div>
-        <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">3</span>
-          <span>Abre a sala, joga com eles e acompanha quem entrou pelo seu código.</span></div>
-      </div>
-
-      <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada — por
-        <a href="mailto:suporte@retrofoot.com.br">suporte@retrofoot.com.br</a>.</span>
+      <a class="rf-lp-cta2" href="mailto:suporte@retrofoot.com.br?subject=Quero%20um%20dos%2010%20links%20de%20Embaixador">Falar com o time</a>
+      <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada.</span>
     </div>
   </section>`;
 }
@@ -1070,7 +1064,7 @@ function rfPlanoPreco(key){
 }
 function rfLpLigasHTML(){
   const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d,breve])=>`<div class="rf-lp-embc ${breve?'breve':''}">
-    ${breve?`<span class="rf-lp-embc-breve">${escC(breve)}</span>`:''}
+    ${breve?`<span class="rf-lp-chip-neutro rf-lp-embc-breve">${escC(breve)}</span>`:''}
     <span class="rf-lp-embc-ic" aria-hidden="true">${ic}</span>
     <span class="rf-lp-embc-t">${escC(t)}</span>
     <span class="rf-lp-embc-d">${escC(d)}</span>

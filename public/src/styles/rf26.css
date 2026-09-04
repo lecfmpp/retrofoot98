@@ -3748,20 +3748,19 @@
   .rf-lp-resenha-cols{grid-template-columns:minmax(0,1fr)}
 }
 
-/* ----- a tarja de "ainda nao existe" (seccao da monetizacao) -----
-   Fundo neutro e fita listrada de obra: nao usa o dourado do plano de proposito — dourado aqui
-   diz "beneficio", e isto diz "ainda nao". */
-.rf-lp-obra{width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
-  gap:8px;text-align:center;padding:16px 18px;border-radius:var(--r-card);
-  background:var(--surface-card);border:1px dashed var(--line-2)}
-.rf-lp-obra-t{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
-  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-2)}
-.rf-lp-obra-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
-.rf-lp-obra-bt{margin-top:4px;height:40px;padding:0 18px;display:inline-flex;align-items:center;
-  border-radius:var(--r-control);background:var(--brand-primary);color:#fff;text-decoration:none;
-  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
-  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
-.rf-lp-obra-bt:hover{background:var(--brand-primary);color:var(--brand-secondary)}
+/* ----- ETIQUETA NEUTRA DE "AINDA NAO" -----
+   Uma so' para os dois sitios que precisam dela (o cartao do codigo na seccao da coroa e o
+   estado da seccao da monetizacao). NEUTRA de proposito: o dourado desta pagina quer dizer
+   "beneficio do plano", e isto quer dizer o contrario — que ainda nao ha'. */
+/* o CTA da seccao pode ser um <a> (mailto): mesma pele do botao, sem sublinhado, e centrado —
+   a coluna desta seccao alinha tudo ao centro, e `.rf-lp-cta2` nasce a' esquerda. */
+a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.rf-lp-grana-in .rf-lp-cta2{align-self:center;margin-top:4px}
+.rf-lp-chip-neutro{display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-3);
+  background:var(--surface-sunken);border:1px solid var(--line-2);
+  border-radius:var(--r-pill);padding:4px 12px}
 
 /* ----- seja um jogador oficial ----- */
 .rf-lp-oficial{padding:56px 28px}
@@ -3832,10 +3831,6 @@
 .rf-lp-quem-ic{font-size:26px;line-height:1}
 .rf-lp-quem-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-lp-quem-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
-.rf-lp-grana-como{display:flex;flex-direction:column;gap:10px;width:100%;max-width:660px;
-  margin-top:12px;text-align:left}
-.rf-lp-grana-p{display:flex;align-items:center;gap:12px;font-size:var(--fs-body-sm);
-  color:var(--text-2)}
 
 /* ----- os cartões do Embaixador ----- */
 /* ===== O RITMO DE FUNDOS DA HOME =====
@@ -3894,10 +3889,8 @@
    isto nao e' um beneficio a mais — e' um "ainda nao") e o conteudo um tom abaixo */
 .rf-lp-embc.breve{position:relative}
 .rf-lp-embc.breve .rf-lp-embc-ic,.rf-lp-embc.breve .rf-lp-embc-t,.rf-lp-embc.breve .rf-lp-embc-d{opacity:.72}
-.rf-lp-embc-breve{position:absolute;top:10px;right:10px;font-family:var(--font-mono);
-  font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
-  text-transform:uppercase;color:var(--text-3);background:var(--surface-sunken);
-  border:1px solid var(--line-2);border-radius:var(--r-pill);padding:3px 9px}
+/* so' a POSICAO: a pele vem de .rf-lp-chip-neutro, que os dois sitios partilham */
+.rf-lp-embc-breve{position:absolute;top:10px;right:10px;padding:3px 9px}
 .rf-lp-embc-ic{font-size:24px;line-height:1}
 .rf-lp-embc-t{font-size:var(--fs-subhead);font-weight:var(--fw-bold);color:#8a6210}
 .rf-lp-embc-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
