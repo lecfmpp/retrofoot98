@@ -104,6 +104,39 @@ Deno.serve(async (req) => {
     }
     if (!preco) return resp(500, { error: "Preço deste plano não está publicado no Stripe." });
 
+    /* ===== O DESCONTO DA FASE BETA =====
+       Mesmo principio do preco: o cupom e' encontrado por METADATA, nao por um
+       id escrito aqui. Um cupom activo com metadata.beta='true' vale para os
+       dois planos; se tiver tambem metadata.ciclo ('mes'/'ano'), so' vale para
+       aquele ciclo — e' assim que o anual pode levar uma percentagem diferente
+       da mensal sem tocar neste ficheiro.
+
+       ACABAR O BETA E' ARQUIVAR O CUPOM NO STRIPE. Sem cupom activo, esta busca
+       nao encontra nada, o checkout volta a abrir no preco cheio e a caixa de
+       codigo promocional reaparece — nenhum deploy, nenhuma linha de codigo.
+       (Do lado do site, `RF_BETA.on=false` tira o riscado e a etiqueta; os dois
+       interruptores existem porque as duas pontas podem ser desligadas em
+       momentos diferentes, mas a ordem certa e' site primeiro, cupom depois.)
+
+       `coupons.list` e' a unica via: cupons nao entram no `search` do Stripe.
+       Sao poucos por conta, entao uma pagina chega. */
+    let cupomBeta: string | undefined;
+    try {
+      const cupons = await stripe.coupons.list({ limit: 100 });
+      const bom = cupons.data.filter((c) =>
+        c.valid && c.metadata?.beta === "true" &&
+        (!c.metadata?.ciclo || c.metadata.ciclo === ciclo)
+      );
+      /* o mais especifico ganha: um cupom com ciclo carimbado vence o cupom
+         geral, senao o geral atropelaria a regra escrita para o anual. */
+      const escolhido = bom.find((c) => c.metadata?.ciclo === ciclo) || bom[0];
+      cupomBeta = escolhido?.id;
+    } catch (e) {
+      /* o desconto nao pode impedir a venda: falhou a busca, vende-se pelo
+         preco cheio e o erro fica no log. */
+      console.error("cupom beta:", (e as Error)?.message);
+    }
+
     /* UM CLIENTE POR CONTA, para sempre. Sem isto, cada compra abriria um
        cliente novo para a mesma pessoa: historico partido e o portal de gerir
        assinatura sem ter o que mostrar. */
@@ -125,7 +158,15 @@ Deno.serve(async (req) => {
       line_items: [{ price: preco.id, quantity: 1 }],
       client_reference_id: uid,
       locale: "pt-BR",
-      allow_promotion_codes: true,
+      /* OS DOIS NAO CABEM NA MESMA SESSAO: o Stripe recusa `discounts` junto de
+         `allow_promotion_codes`. Com o beta a correr, o desconto vem aplicado
+         (ninguem tem de digitar nada, e o Stripe mostra o preco cheio riscado e
+         a linha do desconto na propria pagina de pagamento); sem beta, volta a
+         caixa de codigo promocional, que e' por onde os codigos de Embaixador
+         hao-de entrar. */
+      ...(cupomBeta
+        ? { discounts: [{ coupon: cupomBeta }] }
+        : { allow_promotion_codes: true }),
       /* O CARIMBO QUE O WEBHOOK LE'. Fica na ASSINATURA, nao so' na sessao: a
          sessao acontece uma vez, a assinatura volta todo mes na renovacao e em
          todo cancelamento. Sem isto, o webhook saberia de quem foi a primeira

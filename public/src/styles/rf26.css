@@ -3409,6 +3409,30 @@
 .rf-lp-plano-v{font-size:34px;font-weight:var(--fw-bold);color:var(--text-1);
   letter-spacing:var(--ls-tight);line-height:1}
 .rf-lp-plano-c{font-size:var(--fs-body-sm);color:var(--text-4)}
+/* ===== O PREÇO CHEIO, RISCADO, AO LADO DO QUE SE PAGA =====
+   Fica ANTES do número grande e menor do que ele: o desconto só se lê se os dois
+   estiverem no mesmo golpe de vista, e quem manda na linha é o valor que vai ser
+   cobrado. `hidden` (e não display:none em CSS) porque a troca mensal/anual
+   liga e desliga este nó pelo JS. */
+.rf-lp-plano-cheio{font-size:17px;color:var(--text-4);text-decoration:line-through;
+  text-decoration-thickness:1.5px;line-height:1}
+/* A ETIQUETA DA FASE BETA. Uma faixa, não um selo flutuante: ela vale para a
+   secção inteira (os dois planos pagos), e um selo por cartão repetiria a mesma
+   informação duas vezes e brigaria com o selo "O mais completo" do Embaixador. */
+.rf-lp-beta{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:2px 0 4px;padding:9px 16px;border-radius:var(--r-pill);
+  background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
+  color:#3a2a00;box-shadow:0 2px 12px -5px rgba(200,144,26,.8)}
+.rf-lp-beta b{font-family:var(--font-mono);font-size:var(--fs-label);
+  letter-spacing:var(--ls-label);text-transform:uppercase}
+.rf-lp-beta span{font-size:var(--fs-body-sm);font-weight:var(--fw-bold)}
+/* o desconto repetido no botão: some no fim do beta junto com o resto */
+.rf-lp-plano-bt-off{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:var(--r-pill);
+  background:rgba(200,144,26,.16);color:#8a6210;font-style:normal;
+  font-size:var(--fs-caption);font-weight:var(--fw-bold)}
+.rf-lp-plano.ouro .rf-lp-plano-bt-off{background:rgba(58,42,0,.14)}
+/* o mesmo riscado na janela de trava, dentro do jogo */
+.rf-trava-cheio{margin-right:8px;font-size:.62em;color:var(--text-4);font-weight:var(--fw-regular)}
 .rf-lp-plano-a{font-size:var(--fs-caption);color:var(--text-4);min-height:1.6em}
 .rf-lp-plano-l{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;
   gap:9px;flex:1}

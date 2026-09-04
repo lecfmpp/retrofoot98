@@ -194,7 +194,7 @@ function rfTrava(chave){
     <div class="rf-trava-plano ${p.destaque?'ouro':''}">
       <div class="rf-trava-hd">
         <span class="rf-trava-n">${p.destaque?'<i class="rf-trava-coroa">👑</i>':''}${escC(p.nome||'')}</span>
-        <span class="rf-trava-v">${escC(q.v)}<i>${escC(q.c)}</i></span>
+        <span class="rf-trava-v">${q.cheio?`<s class="rf-trava-cheio">${escC(q.cheio)}</s>`:''}${escC(q.v)}<i>${escC(q.c)}</i></span>
       </div>
       <ul class="rf-trava-l">${itens}</ul>
       <span class="rf-trava-a">${escC(q.nota)}</span>
@@ -525,6 +525,18 @@ const RF_PLANOS=[
 
    Os centavos são os MESMOS do Stripe (metadata plano+ciclo) — 1990, 19900,
    4990, 39900. Se um dia divergirem, o site mente sobre o que a cobrança faz. */
+/* ===== A FASE BETA E O DESCONTO =====
+   Um objeto só manda no desconto inteiro: o número grande dos cartões, o preço
+   cheio riscado, a etiqueta da secção, o texto dos botões e a janela das travas
+   saem todos daqui. Desligar o beta é `on:false` — e nada mais.
+
+   `pct` e `meses` TÊM de bater com o cupom do Stripe (ver criar-checkout: o
+   cupom é procurado por metadata `beta`). Se divergirem, a página promete um
+   desconto que a cobrança não faz — e é a mesma regra que já vale para os
+   centavos dos preços, logo abaixo. */
+const RF_BETA = { on:true, pct:50, meses:3 };
+function rfBetaVale(p){ return !!(RF_BETA.on && p && p.mes); }   // o grátis não entra
+function rfBetaCent(cent){ return Math.round(cent * (100-RF_BETA.pct) / 100); }
 function rfBRL(cent, comCentavos){
   const v = cent/100;
   return 'R$ ' + v.toLocaleString('pt-BR', {
@@ -551,15 +563,29 @@ function rfPlanoPrecoPartes(p, ciclo){
      era verdade quando o Peladeiro não tinha prazo nenhum; com o Resenha
      limitado, essa frase passa a esconder justamente a pegadinha que ela nega.
      O Solo é que é para sempre, e é isso que ela diz agora. */
-  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre',
+  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre', cheio:null,
                       nota:'Solo pra sempre · Resenha por 7 dias · sem cartão' };
   const e = rfPlanoEconomia(p);
+  /* NO BETA, O NÚMERO GRANDE É O QUE SE PAGA. O preço cheio não desaparece — vai
+     ao lado, riscado, porque é ele que dá tamanho ao desconto. Mostrar só o
+     valor com desconto esconde a oferta; mostrar só o cheio mente sobre a
+     cobrança. Os dois, e a nota diz por quanto tempo. */
+  const beta = rfBetaVale(p);
   if(ciclo === 'ano' && e){
-    return { v:rfBRL(e.porMes), c:'por mês',
-             nota:`${rfBRL(p.ano,false)} cobrados uma vez por ano · você economiza ${rfBRL(e.poupa)}` };
+    const anoCheio=p.ano, anoPaga=beta?rfBetaCent(anoCheio):anoCheio;
+    const porMes=Math.round(anoPaga/12);
+    return { v:rfBRL(porMes), c:'por mês',
+             cheio: beta ? rfBRL(e.porMes) : null,
+             nota: beta
+               ? `${rfBRL(anoPaga,false)} no primeiro ano em vez de ${rfBRL(anoCheio,false)} · preço de Beta`
+               : `${rfBRL(anoCheio,false)} cobrados uma vez por ano · você economiza ${rfBRL(e.poupa)}` };
   }
-  return { v:rfBRL(p.mes), c:'por mês',
-           nota: e ? `no anual sai ${rfBRL(e.porMes)}/mês — ${e.pct}% mais barato` : 'sem fidelidade' };
+  const mesPaga = beta ? rfBetaCent(p.mes) : p.mes;
+  return { v:rfBRL(mesPaga), c:'por mês',
+           cheio: beta ? rfBRL(p.mes) : null,
+           nota: beta
+             ? `${RF_BETA.pct}% de desconto nos ${RF_BETA.meses} primeiros meses · depois ${rfBRL(p.mes)}/mês`
+             : (e ? `no anual sai ${rfBRL(e.porMes)}/mês — ${e.pct}% mais barato` : 'sem fidelidade') };
 }
 /* ===== O BOTÃO DE ASSINAR =====
    Tem DOIS destinos, e o certo é escolhido na hora:
@@ -609,12 +635,14 @@ function rfLpPlanosHTML(){
       <span class="rf-lp-plano-n">${escC(p.nome)}</span>
       <span class="rf-lp-plano-r">${escC(p.resumo)}</span>
       <div class="rf-lp-plano-preco">
+        <span class="rf-lp-plano-cheio"${q.cheio?'':' hidden'}>${escC(q.cheio||'')}</span>
         <span class="rf-lp-plano-v">${escC(q.v)}</span>
         <span class="rf-lp-plano-c">${escC(q.c)}</span>
       </div>
       <span class="rf-lp-plano-a">${escC(q.nota)}</span>
       <ul class="rf-lp-plano-l">${itens}${falta}</ul>
-      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}',null,RF_LP_CICLO)">${escC(p.cta)}</button>
+      <button type="button" class="rf-lp-plano-bt" onclick="rfPlanoCta('${p.key}',null,RF_LP_CICLO)">${escC(p.cta)}${
+        rfBetaVale(p)?`<i class="rf-lp-plano-bt-off">−${RF_BETA.pct}% no Beta</i>`:''}</button>
     </div>`;
   }).join('');
   const pct=rfEconomiaMaxima();
@@ -631,6 +659,7 @@ function rfLpPlanosHTML(){
     <div class="rf-lp-planos-in">
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
+      ${RF_BETA.on?`<div class="rf-lp-beta"><b>Fase Beta</b><span>${RF_BETA.pct}% de desconto em todos os planos pagos, nos ${RF_BETA.meses} primeiros meses</span></div>`:''}
       <p class="rf-lp-p">O Modo Solo é de graça pra sempre. Os planos pagos existem pra quem quer manter o Modo Resenha depois dos 7 dias, abrir a liga da turma, guardar mais carreiras e aparecer no ranking oficial.</p>
       <div class="rf-lp-ciclo" role="radiogroup" aria-label="Como você quer pagar"
            data-ciclo="${RF_LP_CICLO}">
@@ -665,9 +694,13 @@ function rfCicloTrocar(c){
     const v=cartao.querySelector('.rf-lp-plano-v');
     const l=cartao.querySelector('.rf-lp-plano-c');
     const n=cartao.querySelector('.rf-lp-plano-a');
+    const ch=cartao.querySelector('.rf-lp-plano-cheio');
     if(v){ v.textContent=q.v; v.classList.remove('troca'); void v.offsetWidth; v.classList.add('troca'); }
     if(l) l.textContent=q.c;
     if(n) n.textContent=q.nota;
+    /* o preço cheio riscado troca junto — deixá-lo para trás mostraria o valor
+       mensal riscado ao lado do anual, que é a comparação errada */
+    if(ch){ ch.textContent=q.cheio||''; ch.hidden=!q.cheio; }
   });
   /* o botão de ouro lá embaixo repete o preço do Embaixador */
   const ouro=document.querySelector('.rf-lp-bt-ouro');
