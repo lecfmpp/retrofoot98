@@ -612,6 +612,9 @@ function renderOnline(){ const n=CL.net||{};
   /* o mesmo degrau do Solo (ui/rf26-fluxo.js), aqui dentro do Resenha: idade e retrato antes
      de criar sala ou entrar por codigo */
   if(n.step==='treinador') return (typeof rfTreinadoresHTML==='function') ? rfTreinadoresHTML() : scResenhaChoice();
+  /* o degrau do Embaixador (ui/rf26-meujogador.js) tambem existe aqui: ele era so' do Solo, e a
+     regua da Resenha ja' o prometia sem que houvesse rota nenhuma para ele */
+  if(n.step==='meujogador') return (typeof rfObMeuJogador==='function') ? rfObMeuJogador() : scResenhaChoice();
   if(n.step==='escolha') return (typeof rfResenhaComecarHTML==='function') ? rfResenhaComecarHTML() : scResenhaChoice();
   /* PORTADAS (ver src/ui/rf26-resenha-entrada.js). As antigas ficam abaixo,
      sem chamador, ate o desenho novo passar pelo teste do usuario. */
@@ -700,7 +703,33 @@ function scJoinCode(){ const n=CL.net;
 function clJoinCodeSync(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled=!((CL.net.code||'').length>=4); }
 function clJoinCodeGo(){ const n=CL.net; if(!(n.code&&n.code.length>=4)) return;
   CL.mgr = CL.mgr || n.name;
-  clRequestOrJoin(n.code);
+  clTreinadorAntesDeEntrar(n.code);
+}
+/* ===== A CARA VEM ANTES DE ENTRAR NA SALA =====
+   Quem chega por convite (link ou codigo) caia direto no pedido de entrada: o degrau do
+   treinador — idade e retrato — existia para quem CRIA sala e nao para quem e' convidado, e o
+   convidado e' justamente quem chega a uma sala cheia de gente que vai ver a cara dele.
+
+   NAO ENTRA NA RECONEXAO. `clResenhaResume` e `clJoinMyRoom` continuam a chamar clRequestOrJoin
+   direto: ali a pessoa ja' esta' dentro da sala (as vezes com a partida a meio) e uma tela de
+   escolha no caminho seria uma interrupcao, nao um passo.
+
+   E nao repete: quem ja' escolheu a cara segue direto. O passo e' obrigatorio uma vez, nao uma
+   vez por entrada. */
+function clTreinadorAntesDeEntrar(code){
+  CL.net = CL.net || {};
+  if(code) CL.net.code = code;
+  CL.net.intent = 'join';
+  if(typeof rfAvatarEscolhido==='function' && rfAvatarEscolhido()){ clDepoisDoTreinador(); return; }
+  CL.screen='online'; CL.net.step='treinador'; cdraw();
+}
+/* o que vem depois do degrau do treinador, nos dois papeis da Resenha: o beneficio do
+   Embaixador (se ele tem plano e ainda nao usou a vaga) e, so' depois, a sala. */
+function clDepoisDoTreinador(){
+  const n=CL.net||{};
+  if(typeof rfMjPassoVale==='function' && rfMjPassoVale()){ n.step='meujogador'; CL.screen='online'; cdraw(); return; }
+  if(n.intent==='join' && n.code){ clRequestOrJoin(n.code); return; }
+  n.step='escolha'; cdraw();
 }
 /* pede pra entrar por código: pré-aprovado (host, já tem assento, convite interno ou pedido já
    aprovado) entra direto; senão cria um pedido pendente e vai pra tela de espera. */
@@ -875,7 +904,7 @@ function clSegueEntradaPorLink(){
   const st=(typeof NET!=='undefined' && NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn) return false;
   CL.mgr = CL.net.name || st.name || CL.mgr;
-  clRequestOrJoin(n.code);
+  clTreinadorAntesDeEntrar(n.code);
   return true;
 }
 function clContaHost(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.name) return;
@@ -889,7 +918,7 @@ function clContaHost(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.na
 }
 function clContaJoin(){ const st=NET.authStatus(); if(!st.loggedIn || !CL.net.name) return;
   CL.mgr = CL.net.name;
-  clRequestOrJoin(CL.net.code);
+  clTreinadorAntesDeEntrar(CL.net.code);
 }
 /* decide pra onde ir depois de entrar numa sala: lobby (pré-temporada),
    direto pro jogo (já tem clube) ou escolher um clube livre (temporada já rolando) */

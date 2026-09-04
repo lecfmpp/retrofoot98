@@ -461,7 +461,11 @@ function rfTreinadoresHTML(){
      entao ele fica de fora e o nome aparece so' como texto. Idade e retrato sao iguais nos dois
      modos, e e' isso que este passo veio garantir. */
   const naResenha=!!(CL.net && CL.net.step==='treinador');
-  const modo=naResenha?'resenha':'solo';
+  /* CONVIDADO E' OUTRA REGUA. Quem chega por convite nao cria sala nem escolhe pais — a regua
+     dele tem quatro degraus, e mostrar-lhe a do anfitriao (oito) seria prometer telas que ele
+     nunca vai ver. E o botao dele nao continua o assistente: entra na sala. */
+  const convidado=naResenha && CL.net.intent==='join' && !!CL.net.code;
+  const modo=convidado?'convidado':(naResenha?'resenha':'solo');
   const corpo=`
     <div class="rf-wiz-mid">
       ${/* ===== A SALA COM MAIS GENTE SAIU DAQUI =====
@@ -503,15 +507,20 @@ function rfTreinadoresHTML(){
   return rfWiz({
     titulo:'Quem é você na beira do campo',
     sub:naResenha
-      ? 'A idade e a cara que vão aparecer na sala, no chat da liga, no ranking e na ficha do treinador.'
+      ? (convidado
+        ? 'Antes de entrar na sala: a idade e a cara que a turma vai ver ao lado do seu nome.'
+        : 'A idade e a cara que vão aparecer na sala, no chat da liga, no ranking e na ficha do treinador.')
       : 'O nome, a idade e a cara que vão aparecer na sua carreira, no ranking e na ficha do treinador.',
-    passo:rfPasso('Treinador',modo), trilha:modo, contexto:naResenha?'Modo Resenha':undefined, corpo,
+    passo:rfPasso('Treinador',modo), trilha:modo, contexto:convidado?'Convidado':(naResenha?'Modo Resenha':undefined), corpo,
     nota:temCara?'Dá para trocar a foto depois, em Configurações.':'Escolha a sua cara para continuar.',
-    voltar:naResenha?'clGoModo()':'clGoMoeda()',
-    voltarLabel:naResenha?'‹ Voltar ao modo':'‹ Voltar à moeda',
-    cta:temCara?'Continuar':'Escolha a sua cara', ctaCurto:temCara?'Continuar':'Escolha a cara',
+    voltar:convidado?'clResenhaBackChoice()':(naResenha?'clGoModo()':'clGoMoeda()'),
+    voltarLabel:convidado?'‹ Voltar':(naResenha?'‹ Voltar ao modo':'‹ Voltar à moeda'),
+    ctaCurto:temCara?'Continuar':'Escolha a cara',
     ctaOff:!temCara,
-    ctaOn:naResenha?"CL.net.step='escolha';cdraw()":'clEscolherClubes()' });
+    cta:temCara?(convidado?'Entrar na sala':'Continuar'):'Escolha a sua cara',
+    /* na Resenha o proximo degrau pode ser o do Embaixador — quem decide e' clDepoisDoTreinador,
+       para os dois papeis (anfitriao e convidado) passarem pela mesma regra */
+    ctaOn:naResenha?'clDepoisDoTreinador()':'clEscolherClubes()' });
 }
 function rfTreinadoresSel(k){
   CL.names=CL.names||[];

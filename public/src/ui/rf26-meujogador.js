@@ -224,7 +224,8 @@ function rfMjPopupHTML(v){
       </div>
       <span class="rf-mjp-nota">O aviso sai por e-mail. Se algo não passar, a vaga volta para a
         fila e você pode tentar de novo.</span>
-      <button type="button" class="rf-mjp-cta" onclick="rfMjPopupFechar()">Continuar para o sorteio</button>
+      <button type="button" class="rf-mjp-cta" onclick="rfMjPopupFechar()">${
+        (CL.net && CL.net.step==='meujogador') ? 'Continuar para a sala' : 'Continuar para o sorteio'}</button>
     </div>`;
   let f=document.querySelector('.rf-mjp-fundo');
   if(!f){ f=document.createElement('div'); f.className='rf-mjp-fundo'; document.body.appendChild(f); }
@@ -234,8 +235,16 @@ function rfMjPopupFechar(){
   const f=document.querySelector('.rf-mjp-fundo'); if(f) f.remove();
   rfMjDepois();
 }
-/* segue o assistente — e' o mesmo destino do "Fazer isso depois" */
+/* segue o assistente — e' o mesmo destino do "Fazer isso depois".
+   O DESTINO DEPENDE DO MODO: no Solo o passo seguinte e' o sorteio do clube; na Resenha ele
+   nasce dentro do fluxo da sala, e a seguir vem escolher/criar sala (anfitriao) ou entrar de
+   facto (convidado). Sem este ramo, quem chegasse aqui pela Resenha era despejado no sorteio do
+   Solo — outro modo, outro jogo. */
 function rfMjDepois(){
+  if(CL.net && CL.net.step==='meujogador'){
+    if(CL.net.intent==='join' && CL.net.code && typeof clRequestOrJoin==='function'){ clRequestOrJoin(CL.net.code); return; }
+    CL.net.step='escolha'; cdraw(); return;
+  }
   if(typeof clEscolherClubes==='function') clEscolherClubes();
   else { CL.screen='main'; cdraw(); }
 }
@@ -506,8 +515,11 @@ function rfObMeuJogador(){
         ${rfMjPronto()?'':'disabled'} onclick="rfMjEnviar()">
         ${rfMjPronto()?'Criar meu jogador':'Complete os passos'}</button>
     </div>`;
+  /* a mesma tela nas tres reguas: Solo, anfitriao da Resenha e convidado */
+  const naSala=!!(CL.net && CL.net.step==='meujogador');
+  const modo=naSala ? ((CL.net.intent==='join'&&CL.net.code)?'convidado':'resenha') : 'solo';
   return rfWiz({
-    trilha:'solo', passo:rfPasso('Seu jogador','solo'),
+    trilha:modo, passo:rfPasso('Seu jogador',modo),
     topoDir:'<span class="rf-mj-emb">🏅 EMBAIXADOR</span>',
     sobre:'BENEFÍCIO DE EMBAIXADOR',
     titulo:'Coloque o seu nome no pack oficial do jogo.',
@@ -515,7 +527,7 @@ function rfObMeuJogador(){
     corpo, semAcao:true,
     /* o degrau anterior e' o do treinador nos dois modos; na Resenha o assistente ja' passou
        pela sala, entao o regresso e' para o lobby */
-    voltar: (typeof CL!=='undefined' && CL.online) ? "CL.net.step='lobby';cdraw()" : 'clGoJogadores()',
+    voltar: naSala ? "CL.net.step='treinador';cdraw()" : 'clGoJogadores()',
     voltarLabel:'‹ Voltar' });
 }
 

@@ -2169,7 +2169,9 @@ const RF_TRILHAS={
   /* QUEM ENTRA POR CÓDIGO tem caminho próprio, e curto: não escolhe país nem
      convida ninguém — o anfitrião já fez isso. É a régua que o pacote desenha
      em "Resenha - Entrar com Codigo" ("PASSO 3 DE 4 · CONVIDADO"). */
-  convidado:['Entrar','Modo','Treinador','Código','Sala'],
+  /* o convidado poe a cara DEPOIS do codigo: o codigo e' o que o traz aqui (ou o link, que ja'
+     o traz preenchido), e so' faz sentido escolher a cara quando ja' se sabe que ha' sala. */
+  convidado:['Entrar','Modo','Código','Treinador','Sala'],
 };
 /* o modo ativo, quando quem desenha a tela não o diz */
 function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha' : 'solo'; }
@@ -2178,8 +2180,14 @@ function rfModoAtual(){ return (typeof CL!=='undefined' && CL.online) ? 'resenha
    regua volta a ter os seis itens de sempre e nenhuma tela precisa saber disso. Os numeros de
    passo saem de rfPasso(nome), entao nada mais se desloca a mao. */
 function rfTrilhaDe(modo){
-  let base = RF_TRILHAS[modo] || RF_TRILHAS[rfModoAtual()] || RF_TRILHAS.solo;
-  if(typeof rfFemLigado==='function' && rfFemLigado()){
+  const qual = RF_TRILHAS[modo] ? modo : (RF_TRILHAS[rfModoAtual()] ? rfModoAtual() : 'solo');
+  let base = RF_TRILHAS[qual];
+  /* ===== 'MODALIDADE' SO' ONDE ELA E' PERGUNTADA =====
+     Esta insercao valia para QUALQUER regua, e a Resenha nao tem tela de modalidade nenhuma —
+     `clPickResenha` forca o universo brasileiro masculino antes de comecar. O anfitriao via uma
+     regua de nove degraus com um que nunca chegava, e o convidado idem. Enquanto a sala for
+     sempre masculina, o degrau e' so' do Solo. */
+  if(qual==='solo' && typeof rfFemLigado==='function' && rfFemLigado()){
     const i = base.indexOf('País e liga');
     if(i>=0) base = base.slice(0,i).concat('Modalidade', base.slice(i));
   }
@@ -2188,7 +2196,12 @@ function rfTrilhaDe(modo){
      encolhe sozinha, em vez de mostrar um degrau que eles nunca vao pisar. A regua e' a fonte
      do "PASSO N DE M": acrescentar aqui e' o que faz o numero continuar certo. */
   if(typeof rfMjPassoVale==='function' && rfMjPassoVale()){
-    const j = base.indexOf('Clube');
+    /* ===== A ANCORA E' ONDE O PASSO CORRE, NAO ONDE ELE FICA BONITO =====
+       No Solo ele corre imediatamente antes do sorteio do clube, e e' ai que entra. Nos dois
+       papeis da Resenha ele corre logo a seguir ao degrau do treinador (ver clDepoisDoTreinador)
+       — ancora'-lo no 'Clube' faria a fita dizer "7 de 9" com a pessoa parada no terceiro. */
+    const daResenha = qual==='resenha' || qual==='convidado';
+    const j = daResenha ? base.indexOf('Treinador')+1 : base.indexOf('Clube');
     if(j>0) base = base.slice(0,j).concat('Seu jogador', base.slice(j));
   }
   return base;
