@@ -3719,9 +3719,49 @@
   font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);flex:0 0 auto}
 .rf-lp-passo-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-lp-passo-d{font-size:var(--fs-caption);color:var(--text-3);line-height:var(--lh-normal)}
-/* a sala (paisagem) e o chat (retrato) lado a lado; o chat pede menos largura */
-.rf-lp-resenha-par{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);
-  gap:18px;width:100%;margin-top:10px;align-items:center;text-align:left}
+/* ----- duas colunas: a foto (a alternar) e os passos empilhados ----- */
+.rf-lp-resenha-cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  gap:26px;width:100%;margin-top:10px;align-items:start;text-align:left}
+/* OS PASSOS EM COLUNA. Em fila de quatro, cada cartao ficava com 200px e a descricao quebrava
+   em cinco linhas; empilhados, a sequencia le'-se como sequencia. */
+.rf-lp-passos.coluna{grid-template-columns:minmax(0,1fr);gap:10px;margin-top:0}
+.rf-lp-resfotos{position:relative;width:100%;border-radius:var(--r-card);overflow:hidden;
+  background:var(--surface-sunken)}
+/* as figuras ocupam o MESMO lugar; so' a `.on` aparece. Sem posicionamento absoluto a
+   moldura saltaria de altura a cada troca. */
+.rf-lp-resfoto{margin:0;display:none}
+.rf-lp-resfoto.on{display:block}
+.rf-lp-resfoto img{width:100%;height:auto;display:block}
+.rf-lp-resfoto figcaption{padding:10px 14px 34px;font-size:var(--fs-caption);color:var(--text-3);
+  background:var(--surface-card);line-height:var(--lh-normal)}
+.rf-lp-resseta{position:absolute;top:38%;transform:translateY(-50%);width:38px;height:38px;
+  display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;
+  background:rgba(9,18,13,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease)}
+.rf-lp-resseta:hover{background:var(--brand-primary)}
+.rf-lp-resseta.esq{left:10px}
+.rf-lp-resseta.dir{right:10px}
+.rf-lp-resdots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px}
+.rf-lp-resdot{width:7px;height:7px;border-radius:50%;background:var(--line-2);display:block}
+.rf-lp-resdot.on{background:var(--brand-primary);transform:scale(1.25)}
+@media (max-width:900px){
+  .rf-lp-resenha-cols{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ----- a tarja de "ainda nao existe" (seccao da monetizacao) -----
+   Fundo neutro e fita listrada de obra: nao usa o dourado do plano de proposito — dourado aqui
+   diz "beneficio", e isto diz "ainda nao". */
+.rf-lp-obra{width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;
+  gap:8px;text-align:center;padding:16px 18px;border-radius:var(--r-card);
+  background:var(--surface-card);border:1px dashed var(--line-2)}
+.rf-lp-obra-t{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--text-2)}
+.rf-lp-obra-d{font-size:var(--fs-body-sm);color:var(--text-3);line-height:var(--lh-normal)}
+.rf-lp-obra-bt{margin-top:4px;height:40px;padding:0 18px;display:inline-flex;align-items:center;
+  border-radius:var(--r-control);background:var(--brand-primary);color:#fff;text-decoration:none;
+  font-size:var(--fs-body-sm);font-weight:var(--fw-bold);
+  transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.rf-lp-obra-bt:hover{background:var(--brand-primary);color:var(--brand-secondary)}
 
 /* ----- seja um jogador oficial ----- */
 .rf-lp-oficial{padding:56px 28px}

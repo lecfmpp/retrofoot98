@@ -829,37 +829,66 @@ function rfCicloTrocar(c){
    entrega. A foto do sorteio é tirada com 8 treinadores pelo mesmo motivo
    (ver RF_TURMA em scripts/capture-home.mjs).
    ===================================================================== */
+/* ===== AS FOTOS DA RESENHA, LADO A LADO NO TEMPO =====
+   Eram tres: o sorteio a toda a largura, e por baixo a sala e o CHAT. O chat saiu — a tela
+   existe no jogo, mas a foto prometia um chat que a versao publica ainda nao mostra assim, e
+   pagina de vendas nao mostra o que nao ha'.
+   As duas que ficam contam a mesma historia em dois momentos (a sala a encher, o sorteio a
+   correr), e por isso passam a alternar no mesmo lugar em vez de competirem por espaco. */
+const RF_LP_RESENHA_FOTOS=[
+  ['img/home/sorteio-resenha.webp','Cerimônia do sorteio com oito treinadores e seus clubes',
+   'O sorteio roda para todo mundo ao mesmo tempo — ninguém escolhe clube.'],
+  ['img/home/sala-resenha.webp','Sala do Modo Resenha com oito treinadores dentro',
+   'A sala enchendo: link, convite por WhatsApp e quem já está dentro.'],
+];
+/* troca a foto SEM redesenhar a pagina — o mesmo caminho das abas de "Por dentro do jogo"
+   (rfLpTela): um cdraw() aqui reconstruiria a landing inteira e levava a rolagem junto. */
+function rfLpResenhaFoto(passo){
+  const figs=[...document.querySelectorAll('[data-resfoto]')];
+  if(!figs.length) return;
+  const i=Math.max(0, figs.findIndex(f=>f.classList.contains('on')));
+  const n=((i+passo)%figs.length+figs.length)%figs.length;
+  figs.forEach((f,k)=>f.classList.toggle('on', k===n));
+  document.querySelectorAll('[data-resdot]').forEach((d,k)=>d.classList.toggle('on', k===n));
+}
 function rfLpResenhaHTML(){
   const passo=(n,t,d)=>`<div class="rf-lp-passo">
     <span class="rf-lp-passo-n">${n}</span>
     <span class="rf-lp-passo-t">${escC(t)}</span>
     <span class="rf-lp-passo-d">${escC(d)}</span></div>`;
+  const figs=RF_LP_RESENHA_FOTOS.map(([src,alt,leg],i)=>
+    `<figure class="rf-lp-resfoto ${i===0?'on':''}" data-resfoto="${i}">
+      <img src="${escC(src)}" alt="${escC(alt)}" loading="lazy" width="1600" height="1000">
+      <figcaption>${escC(leg)}</figcaption>
+    </figure>`).join('');
+  const bolas=RF_LP_RESENHA_FOTOS.map((_x,i)=>
+    `<i class="rf-lp-resdot ${i===0?'on':''}" data-resdot="${i}"></i>`).join('');
   return `<section class="rf-lp-resenha rf-lp-f-creme" id="rf-lp-resenha">
     <div class="rf-lp-resenha-in">
       <span class="rf-lp-eyebrow">Modo Resenha</span>
       <h2 class="rf-lp-h2">A liga é sua. A zoeira é do grupo.</h2>
       <p class="rf-lp-p">Você abre a sala, manda o link no grupo e cada um pega um clube no sorteio — ninguém escolhe, ninguém reclama. Daí em diante todo mundo joga a mesma semana, na mesma tabela, com o mesmo mercado.</p>
 
-      ${rfLpFotoHTML('img/home/sorteio-resenha.webp','Cerimônia do sorteio com oito treinadores e seus clubes','grande')}
-
-      <div class="rf-lp-passos">
-        ${passo(1,'Abre a sala','Dá um nome e pronto. Salas de 3 a 8 treinadores.')}
-        ${passo(2,'Manda o link','No grupo do WhatsApp, por e-mail ou pelo nome de quem já tem conta.')}
-        ${passo(3,'Sorteia os clubes','A cerimônia roda pra todo mundo ao mesmo tempo. Choro é grátis.')}
-        ${passo(4,'Joga a semana','Rodada ao vivo, tabela única e o chat da sala rolando junto.')}
-      </div>
-
-      <div class="rf-lp-resenha-par">
-        <figure class="rf-lp-foto">
-          <img src="img/home/sala-resenha.webp" alt="Sala do Modo Resenha com oito treinadores dentro"
-            loading="lazy" width="1600" height="1000">
-          <figcaption>A sala enchendo: link, convite por WhatsApp e quem já está dentro.</figcaption>
-        </figure>
-        <figure class="rf-lp-foto retrato">
-          <img src="img/home/chat-resenha.webp" alt="Chat da sala do Modo Resenha"
-            loading="lazy" width="600" height="682">
-          <figcaption>O chat da sala fica no canto e cala a boca sozinho durante a partida.</figcaption>
-        </figure>
+      ${/* ===== DUAS COLUNAS: A FOTO MANDA, OS PASSOS ACOMPANHAM =====
+           Era tudo empilhado ao centro — foto larga, quatro passos em fila, mais duas fotos —
+           e a seccao lia-se como tres blocos sem relacao. A esquerda fica a imagem, grande, a
+           alternar; a' direita os quatro passos um debaixo do outro, que e' como se le' uma
+           sequencia. */''}
+      <div class="rf-lp-resenha-cols">
+        <div class="rf-lp-resfotos">
+          ${figs}
+          <button type="button" class="rf-lp-resseta esq" onclick="rfLpResenhaFoto(-1)"
+            aria-label="Foto anterior">‹</button>
+          <button type="button" class="rf-lp-resseta dir" onclick="rfLpResenhaFoto(1)"
+            aria-label="Próxima foto">›</button>
+          <span class="rf-lp-resdots">${bolas}</span>
+        </div>
+        <div class="rf-lp-passos coluna">
+          ${passo(1,'Abre a sala','Dá um nome e pronto. Salas de 3 a 8 treinadores.')}
+          ${passo(2,'Manda o link','No grupo do WhatsApp, por e-mail ou pelo nome de quem já tem conta.')}
+          ${passo(3,'Sorteia os clubes','A cerimônia roda pra todo mundo ao mesmo tempo. Choro é grátis.')}
+          ${passo(4,'Joga a semana','Rodada ao vivo, tabela única e o chat da sala rolando junto.')}
+        </div>
       </div>
 
       <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — no grátis, por 7 dias. <b>Abrir a sua</b> é do Embaixador.</span>
@@ -977,7 +1006,19 @@ function rfLpGranaHTML(){
     <div class="rf-lp-grana-in">
       <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
       <h2 class="rf-lp-h2">Monte a sua resenha. E ganhe com ela.</h2>
-      <p class="rf-lp-p">Todo Embaixador recebe um código próprio pra passar pra galera dele. Quem entrar pelo seu código conta como seu — e isso vira dinheiro no seu bolso, não só audiência.</p>
+      ${/* ===== O QUE AINDA NAO ESTA' NO AR DIZ-SE ANTES DE SE DESCREVER =====
+           A seccao inteira estava escrita no presente — "todo Embaixador recebe um codigo" —
+           e o codigo ainda nao existe. Quem lia isto e assinava, assinava por uma coisa que a
+           versao Beta nao entrega. A tarja vem ANTES da descricao, e nao no rodape em letra
+           pequena: e' a primeira coisa que se le' depois do titulo. O resto do texto passa para
+           o futuro, que e' o tempo verbal certo. */''}
+      <div class="rf-lp-obra">
+        <span class="rf-lp-obra-t">🚧 Em desenvolvimento — ainda não disponível no Beta</span>
+        <span class="rf-lp-obra-d">No primeiro lançamento serão liberados <b>apenas 10 links</b>.
+          Se você quer um deles, fale com o nosso time.</span>
+        <a class="rf-lp-obra-bt" href="mailto:suporte@retrofoot.com.br?subject=Quero%20um%20dos%2010%20links%20de%20Embaixador">Falar com o time</a>
+      </div>
+      <p class="rf-lp-p">Cada Embaixador vai receber um código próprio pra passar pra galera dele. Quem entrar pelo seu código conta como seu — e isso vira dinheiro no seu bolso, não só audiência.</p>
 
       <div class="rf-lp-quem-grade">
         ${quem('🎥','Criador de conteúdo','Transmite a semana ao vivo no Modo Camarote e joga a liga com a audiência.')}
@@ -987,14 +1028,15 @@ function rfLpGranaHTML(){
 
       <div class="rf-lp-grana-como">
         <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">1</span>
-          <span>Você vira Embaixador e recebe o seu código.</span></div>
+          <span>Você vira Embaixador e recebe o seu código — quando o programa abrir.</span></div>
         <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">2</span>
           <span>Passa o código pra sua galera, pro canal, pro grupo.</span></div>
         <div class="rf-lp-grana-p"><span class="rf-lp-passo-n">3</span>
           <span>Abre a sala, joga com eles e acompanha quem entrou pelo seu código.</span></div>
       </div>
 
-      <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada.</span>
+      <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada — por
+        <a href="mailto:suporte@retrofoot.com.br">suporte@retrofoot.com.br</a>.</span>
     </div>
   </section>`;
 }
