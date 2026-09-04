@@ -873,28 +873,41 @@ const RF_LP_RESENHA_FOTOS=[
   ['img/home/sala-resenha.webp','Sala do Modo Resenha com oito treinadores dentro',
    'A sala enchendo: link, convite por WhatsApp e quem já está dentro.'],
 ];
-/* troca a foto SEM redesenhar a pagina — o mesmo caminho das abas de "Por dentro do jogo"
-   (rfLpTela): um cdraw() aqui reconstruiria a landing inteira e levava a rolagem junto. */
-function rfLpResenhaFoto(passo){
-  const figs=[...document.querySelectorAll('[data-resfoto]')];
+/* ===== UM CARROSSEL, DOIS SITIOS =====
+   A seccao da Resenha ja' tinha um; a do jogador oficial precisava do mesmo. Duas copias da
+   mesma peca divergem na primeira correccao — entao ela e' uma so', identificada por `id`, e
+   cada seccao passa as suas fotos.
+   Troca SEM redesenhar a pagina, como as abas de "Por dentro do jogo": um cdraw() aqui
+   reconstruiria a landing inteira e levaria a rolagem junto. */
+function rfLpCarrossel(id, passo){
+  const figs=[...document.querySelectorAll(`[data-carfoto="${id}"]`)];
   if(!figs.length) return;
   const i=Math.max(0, figs.findIndex(f=>f.classList.contains('on')));
   const n=((i+passo)%figs.length+figs.length)%figs.length;
   figs.forEach((f,k)=>f.classList.toggle('on', k===n));
-  document.querySelectorAll('[data-resdot]').forEach((d,k)=>d.classList.toggle('on', k===n));
+  document.querySelectorAll(`[data-cardot="${id}"]`).forEach((d,k)=>d.classList.toggle('on', k===n));
+}
+function rfLpCarrosselHTML(id, fotos){
+  const figs=fotos.map(([src,alt,leg],i)=>
+    `<figure class="rf-lp-carfoto ${i===0?'on':''}" data-carfoto="${escC(id)}">
+      <img src="${escC(src)}" alt="${escC(alt)}" loading="lazy" width="1600" height="1000">
+      ${leg?`<figcaption>${escC(leg)}</figcaption>`:''}
+    </figure>`).join('');
+  const bolas=fotos.map((_x,i)=>
+    `<i class="rf-lp-cardot ${i===0?'on':''}" data-cardot="${escC(id)}"></i>`).join('');
+  const setas=fotos.length>1
+    ? `<button type="button" class="rf-lp-carseta esq" onclick="rfLpCarrossel('${escC(id)}',-1)"
+         aria-label="Foto anterior">‹</button>
+       <button type="button" class="rf-lp-carseta dir" onclick="rfLpCarrossel('${escC(id)}',1)"
+         aria-label="Próxima foto">›</button>
+       <span class="rf-lp-cardots">${bolas}</span>` : '';
+  return `<div class="rf-lp-carrossel">${figs}${setas}</div>`;
 }
 function rfLpResenhaHTML(){
   const passo=(n,t,d)=>`<div class="rf-lp-passo">
     <span class="rf-lp-passo-n">${n}</span>
     <span class="rf-lp-passo-t">${escC(t)}</span>
     <span class="rf-lp-passo-d">${escC(d)}</span></div>`;
-  const figs=RF_LP_RESENHA_FOTOS.map(([src,alt,leg],i)=>
-    `<figure class="rf-lp-resfoto ${i===0?'on':''}" data-resfoto="${i}">
-      <img src="${escC(src)}" alt="${escC(alt)}" loading="lazy" width="1600" height="1000">
-      <figcaption>${escC(leg)}</figcaption>
-    </figure>`).join('');
-  const bolas=RF_LP_RESENHA_FOTOS.map((_x,i)=>
-    `<i class="rf-lp-resdot ${i===0?'on':''}" data-resdot="${i}"></i>`).join('');
   return `<section class="rf-lp-resenha rf-lp-f-creme" id="rf-lp-resenha">
     <div class="rf-lp-resenha-in">
       <span class="rf-lp-eyebrow">Modo Resenha</span>
@@ -907,14 +920,7 @@ function rfLpResenhaHTML(){
            alternar; a' direita os quatro passos um debaixo do outro, que e' como se le' uma
            sequencia. */''}
       <div class="rf-lp-resenha-cols">
-        <div class="rf-lp-resfotos">
-          ${figs}
-          <button type="button" class="rf-lp-resseta esq" onclick="rfLpResenhaFoto(-1)"
-            aria-label="Foto anterior">‹</button>
-          <button type="button" class="rf-lp-resseta dir" onclick="rfLpResenhaFoto(1)"
-            aria-label="Próxima foto">›</button>
-          <span class="rf-lp-resdots">${bolas}</span>
-        </div>
+        ${rfLpCarrosselHTML('resenha', RF_LP_RESENHA_FOTOS)}
         <div class="rf-lp-passos coluna">
           ${passo(1,'Abre a sala','Dá um nome e pronto. Salas de 3 a 8 treinadores.')}
           ${passo(2,'Manda o link','No grupo do WhatsApp, por e-mail ou pelo nome de quem já tem conta.')}
@@ -971,6 +977,14 @@ function rfLpFichaJogadoraHTML(){
     </span>
   </span>`;
 }
+/* as telas onde o jogador do Embaixador aparece depois de aprovado — e' o que prova a promessa
+   da seccao: ele nao e' um cartaz, e' uma linha do elenco e uma ficha como as outras */
+const RF_LP_OFICIAL_FOTOS=[
+  ['img/home/ficha-jogador.webp','Ficha do jogador dentro do RetroFoot98',
+   'A ficha dele, igual à de qualquer outro: características, ponto forte e valor de mercado.'],
+  ['img/home/elenco.webp','Elenco do clube dentro do RetroFoot98',
+   'E no elenco, entre os outros — escalado, com energia, moral e salário.'],
+];
 function rfLpJogadorOficialHTML(){
   const antes = RF_LP_ALBUM_ANTES
     ? `<img src="${escC(RF_LP_ALBUM_ANTES)}" alt="Foto de infância" loading="lazy">`
@@ -985,54 +999,48 @@ function rfLpJogadorOficialHTML(){
       <h2 class="rf-lp-h2">Você não virou jogador — nem jogadora. Mas ainda dá tempo.</h2>
       <p class="rf-lp-p">O Embaixador entra na base de dados oficial do RetroFoot98 como <b>jogador</b> ou <b>jogadora</b> — nome seu, rosto seu, ficha sua, no universo que você escolher. Ele nasce nos elencos, é escalado, leva cartão, faz gol e aparece na artilharia dos outros treinadores. Enquanto você jogar, ele joga.</p>
 
-      <div class="rf-lp-album">
-        <figure class="rf-lp-album-q antes">
-          <div class="rf-lp-album-media">${antes}</div>
-          <figcaption>Você, quando ainda ia ser jogador</figcaption>
-        </figure>
-        <span class="rf-lp-album-seta" aria-hidden="true">→</span>
-        ${/* ===== DOIS UNIVERSOS, DUAS FICHAS, DUAS MOLDURAS =====
-             A seccao mostrava um retrato so', masculino, enquanto a promessa vale para os dois —
-             o feminino tem os mesmos clubes e fichas iguais. As duas fotos dentro da MESMA
-             polaroide liam-se como uma foto partida ao meio; cada ficha tem de ter a sua moldura,
-             que e' o que faz o par parecer duas cartas e nao uma colagem.
-             A jogadora e' montada AQUI, com a mesma moldura do card de modalidade (rf-mod-frame):
-             a foto e' a da nossa base, o nome e' o dela no universo feminino, e o escudo e as
-             listras sao os do clube — nao a marca, porque aqui o clube e' o assunto. */''}
-        <figure class="rf-lp-album-q depois">
-          <div class="rf-lp-album-media">
-            <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot98"
-              loading="lazy" width="400" height="828">
+      ${/* ===== DUAS COLUNAS, COMO A SECCAO DA RESENHA =====
+           Era tudo empilhado ao centro: as tres polaroides, a lista de quatro itens e, por
+           baixo, uma captura de tela larga. Tres blocos sem relacao, e a captura — que e' a
+           PROVA da promessa — ficava tao longe do texto que ninguem ligava uma coisa a' outra.
+           A' esquerda as telas do jogo, a alternar; a' direita as polaroides e o que elas
+           significam. E' o mesmo esqueleto do Modo Resenha, e a pagina passa a ter um so'
+           jeito de mostrar "veja com os seus olhos". */''}
+      <div class="rf-lp-oficial-cols">
+        ${rfLpCarrosselHTML('oficial', RF_LP_OFICIAL_FOTOS)}
+
+        <div class="rf-lp-oficial-dir">
+          <div class="rf-lp-album">
+            <figure class="rf-lp-album-q antes">
+              <div class="rf-lp-album-media">${antes}</div>
+              <figcaption>Você, quando ainda ia ser jogador</figcaption>
+            </figure>
+            <span class="rf-lp-album-seta" aria-hidden="true">→</span>
+            <figure class="rf-lp-album-q depois">
+              <div class="rf-lp-album-media">
+                <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot98"
+                  loading="lazy" width="400" height="828">
+              </div>
+              <figcaption>Você, na ficha — como <b>jogador</b></figcaption>
+            </figure>
+            <figure class="rf-lp-album-q depois jogadora">
+              <div class="rf-lp-album-media">${rfLpFichaJogadoraHTML()}</div>
+              <figcaption>E você, na ficha — como <b>jogadora</b></figcaption>
+            </figure>
           </div>
-          <figcaption>Você, na ficha — como <b>jogador</b></figcaption>
-        </figure>
-        <figure class="rf-lp-album-q depois jogadora">
-          <div class="rf-lp-album-media">${rfLpFichaJogadoraHTML()}</div>
-          <figcaption>E você, na ficha — como <b>jogadora</b></figcaption>
-        </figure>
+
+          <ul class="rf-lp-oficial-l">
+            <li><span class="rf-lp-tick">✓</span>Seu nome e o seu rosto na base oficial, para todos os treinadores — no universo masculino ou no feminino</li>
+            <li><span class="rf-lp-tick">✓</span>Ficha completa: características, ponto forte, ponto fraco e valor de mercado</li>
+            <li><span class="rf-lp-tick">✓</span>Pode ser comprado, vendido e disputado no leilão como qualquer outro</li>
+            <li><span class="rf-lp-tick">✓</span>Fica no jogo enquanto você for Embaixador</li>
+          </ul>
+        </div>
       </div>
-
-      <ul class="rf-lp-oficial-l">
-        <li><span class="rf-lp-tick">✓</span>Seu nome e o seu rosto na base oficial, para todos os treinadores — no universo masculino ou no feminino</li>
-        <li><span class="rf-lp-tick">✓</span>Ficha completa: características, ponto forte, ponto fraco e valor de mercado</li>
-        <li><span class="rf-lp-tick">✓</span>Pode ser comprado, vendido e disputado no leilão como qualquer outro</li>
-        <li><span class="rf-lp-tick">✓</span>Fica no jogo enquanto você for Embaixador</li>
-      </ul>
-
-      ${rfLpFotoHTML('img/home/ficha-jogador.webp','Ficha do jogador dentro do RetroFoot98','grande')}
-
     </div>
   </section>`;
 }
 
-/* =====================================================================
-   O EMBAIXADOR PODE GANHAR DINHEIRO COM ISSO
-   ---------------------------------------------------------------------
-   O plano dá um CÓDIGO para o Embaixador passar aos seguidores. Esta seção
-   é sobre isso e só sobre isso — sem número de comissão, porque nenhum
-   número foi definido. Percentagem inventada numa página de vendas é
-   promessa que alguém vai cobrar depois.
-   ===================================================================== */
 function rfLpGranaHTML(){
   const quem=(ic,t,d)=>`<div class="rf-lp-quem">
     <span class="rf-lp-quem-ic" aria-hidden="true">${ic}</span>

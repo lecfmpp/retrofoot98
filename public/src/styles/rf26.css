@@ -3516,10 +3516,20 @@
    Agora a cor e' SEMANTICA e nao decorativa — verde inclui, vermelho nao inclui —, e por isso
    ela deixa de mudar com o plano: os tres cartoes usam o mesmo par, que e' o que permite
    compara'-los de relance. */
+/* ===== O SINAL E' DESENHADO, NAO E' UM CARACTERE =====
+   Eram os glifos ✓ e ✕ centrados por flex. Glifo nao se centra: cada um ocupa a sua caixa
+   dentro da fonte, com folgas diferentes em cima e em baixo — e por isso uns ficavam no meio e
+   outros nao, no mesmo cartao. Agora sao dois desenhos vetoriais no fundo, centrados pela
+   geometria do proprio viewBox; o caractere continua no HTML (leitor de ecra e copiar/colar)
+   mas com tamanho zero. */
 .rf-lp-tick{flex:0 0 auto;width:18px;height:18px;margin-top:1px;border-radius:50%;
-  display:inline-flex;align-items:center;justify-content:center;
-  background:#2fbf5f;color:#fff;font-size:10.5px;font-weight:800;line-height:1}
-.rf-lp-tick.nao{background:#d64545}
+  display:inline-block;font-size:0;line-height:0;color:transparent;
+  background-color:#2fbf5f;background-repeat:no-repeat;background-position:50% 50%;
+  background-size:11px 11px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.8l4.6 4.6L19 6.6'/%3E%3C/svg%3E")}
+.rf-lp-tick.nao{background-color:#d64545;
+  background-size:10px 10px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.6' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6L6 18'/%3E%3C/svg%3E")}
 /* a letra miuda do plano: e' ressalva do que ele TEM, entao vive fora da lista e sem selo */
 .rf-lp-plano-nota{margin-top:10px;font-size:var(--fs-caption);color:var(--text-4);
   line-height:var(--lh-normal)}
@@ -3746,31 +3756,33 @@
   font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);flex:0 0 auto}
 .rf-lp-passo-t{font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--text-1)}
 .rf-lp-passo-d{font-size:var(--fs-caption);color:var(--text-3);line-height:var(--lh-normal)}
-/* ----- duas colunas: a foto (a alternar) e os passos empilhados ----- */
+/* ----- O CARROSSEL DA PAGINA (Modo Resenha e jogador oficial) -----
+   Era so' da seccao da Resenha; passou a ser peca comum quando a seccao do jogador oficial
+   ganhou o mesmo desenho. As classes perderam o "res" do nome por isso. ----- */
 .rf-lp-resenha-cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
   gap:26px;width:100%;margin-top:10px;align-items:start;text-align:left}
 /* OS PASSOS EM COLUNA. Em fila de quatro, cada cartao ficava com 200px e a descricao quebrava
    em cinco linhas; empilhados, a sequencia le'-se como sequencia. */
 .rf-lp-passos.coluna{grid-template-columns:minmax(0,1fr);gap:10px;margin-top:0}
-.rf-lp-resfotos{position:relative;width:100%;border-radius:var(--r-card);overflow:hidden;
+.rf-lp-carrossel{position:relative;width:100%;border-radius:var(--r-card);overflow:hidden;
   background:var(--surface-sunken)}
 /* as figuras ocupam o MESMO lugar; so' a `.on` aparece. Sem posicionamento absoluto a
    moldura saltaria de altura a cada troca. */
-.rf-lp-resfoto{margin:0;display:none}
-.rf-lp-resfoto.on{display:block}
-.rf-lp-resfoto img{width:100%;height:auto;display:block}
-.rf-lp-resfoto figcaption{padding:10px 14px 34px;font-size:var(--fs-caption);color:var(--text-3);
+.rf-lp-carfoto{margin:0;display:none}
+.rf-lp-carfoto.on{display:block}
+.rf-lp-carfoto img{width:100%;height:auto;display:block}
+.rf-lp-carfoto figcaption{padding:10px 14px 34px;font-size:var(--fs-caption);color:var(--text-3);
   background:var(--surface-card);line-height:var(--lh-normal)}
-.rf-lp-resseta{position:absolute;top:38%;transform:translateY(-50%);width:38px;height:38px;
+.rf-lp-carseta{position:absolute;top:38%;transform:translateY(-50%);width:38px;height:38px;
   display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;
   background:rgba(9,18,13,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer;
   transition:background var(--dur-fast) var(--ease)}
 .rf-lp-resseta:hover{background:var(--brand-primary)}
-.rf-lp-resseta.esq{left:10px}
-.rf-lp-resseta.dir{right:10px}
-.rf-lp-resdots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px}
-.rf-lp-resdot{width:7px;height:7px;border-radius:50%;background:var(--line-2);display:block}
-.rf-lp-resdot.on{background:var(--brand-primary);transform:scale(1.25)}
+.rf-lp-carseta.esq{left:10px}
+.rf-lp-carseta.dir{right:10px}
+.rf-lp-cardots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px}
+.rf-lp-cardot{width:7px;height:7px;border-radius:50%;background:var(--line-2);display:block}
+.rf-lp-cardot.on{background:var(--brand-primary);transform:scale(1.25)}
 @media (max-width:900px){
   .rf-lp-resenha-cols{grid-template-columns:minmax(0,1fr)}
 }
@@ -3790,6 +3802,23 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
   border-radius:var(--r-pill);padding:4px 12px}
 
 /* ----- seja um jogador oficial ----- */
+/* MESMO ESQUELETO DO MODO RESENHA: telas do jogo a' esquerda, o que elas significam a' direita.
+   Empilhado ao centro, como era, a captura de tela ficava tao longe do texto que ninguem ligava
+   uma coisa a' outra — e ela e' a PROVA da promessa da seccao. */
+.rf-lp-oficial-cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  gap:26px;width:100%;margin-top:10px;align-items:start;text-align:left}
+.rf-lp-oficial-dir{display:flex;flex-direction:column;gap:18px;min-width:0}
+/* na coluna estreita as tres polaroides encolhem para caberem lado a lado, que e' o que
+   conta a historia (voce -> jogador -> jogadora); empilhadas, ela deixa de se ler */
+.rf-lp-oficial-dir .rf-lp-album{gap:10px}
+.rf-lp-oficial-dir .rf-lp-album-q{width:132px}
+.rf-lp-oficial-dir .rf-lp-album-q.depois{width:132px}
+.rf-lp-oficial-dir .rf-lp-album-seta{font-size:20px}
+.rf-lp-oficial-dir .rf-lp-oficial-l{margin:0}
+@media (max-width:900px){
+  .rf-lp-oficial-cols{grid-template-columns:minmax(0,1fr)}
+  .rf-lp-oficial-dir .rf-lp-album-q,.rf-lp-oficial-dir .rf-lp-album-q.depois{width:150px}
+}
 .rf-lp-oficial{padding:56px 28px}
 .rf-lp-oficial-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;
   gap:14px;align-items:center;text-align:center}
