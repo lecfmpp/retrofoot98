@@ -3475,11 +3475,27 @@
   border-radius:var(--r-control);background:var(--surface-card);font-family:var(--font-sans);
   font-size:var(--fs-body-sm);font-weight:var(--fw-bold);color:var(--club-primary);
   cursor:pointer;transition:background var(--dur-fast) var(--ease)}
-.rf-lp-plano-bt:hover{background:var(--surface-sunken)}
+.rf-lp-plano-bt:hover{background:var(--surface-sunken)}   /* so' vale para plano sem cor propria */
 .rf-lp-plano.ouro .rf-lp-plano-bt{border:none;color:#3a2a00;
   background:linear-gradient(100deg,#C8901A,var(--brand-secondary,#F2B90C) 62%);
   box-shadow:0 2px 12px -4px rgba(200,144,26,.8)}
 .rf-lp-plano.ouro .rf-lp-plano-bt:hover{filter:brightness(1.05)}
+/* ===== CADA BOTAO VESTE O SEU PLANO =====
+   As mesmas cores do cracha do cabecalho (ver .rf-lp-conta.plano-*): quem ve' o botao amarelo
+   aqui e depois o cracha amarelo la' em cima sabe, sem ler, que sao a mesma coisa. O Embaixador
+   ja' estava dourado pela classe `.ouro` do cartao; faltavam os outros dois.
+   Alvo por `data-plano` (o mesmo atributo que o cartao ja' carrega para a troca mensal/anual),
+   e nao por uma classe nova — a identidade do plano ja' esta' escrita no HTML. */
+.rf-lp-plano[data-plano="peladeiro"] .rf-lp-plano-bt{border:none;
+  background:var(--brand-secondary,#F2B90C);color:var(--brand-primary,#17458F);
+  box-shadow:0 2px 12px -6px rgba(242,185,12,.9)}
+.rf-lp-plano[data-plano="resenha"] .rf-lp-plano-bt{border:none;color:#22282d;
+  background:linear-gradient(100deg,#8c949c,#dfe4e9 46%,#aab2ba);
+  box-shadow:0 2px 12px -5px rgba(120,132,144,.85)}
+.rf-lp-plano[data-plano="peladeiro"] .rf-lp-plano-bt:hover,
+.rf-lp-plano[data-plano="resenha"] .rf-lp-plano-bt:hover{filter:brightness(1.05)}
+/* a pastilha do desconto tem de continuar legivel em cada fundo */
+.rf-lp-plano[data-plano="resenha"] .rf-lp-plano-bt-off{background:rgba(0,0,0,.22);color:#fff}
 
 /* ===== O CADEADO EXPLICADO (rfTrava, ui/rf26-landing.js) =====
    A janela que abre quando uma trava de plano barra alguém. O cartão do plano
@@ -3629,17 +3645,15 @@
    força, que é o que a seção está a prometer. A polaroide do "depois" fica
    estreita e alta, com a do "antes" no formato de foto de álbum — e é essa
    diferença que faz o par parecer álbum, e não duas imagens iguais. */
-/* dois retratos lado a lado: a polaroide do "depois" alarga para caber os dois universos */
 .rf-lp-album-q.depois{width:212px}
-.rf-lp-album-q.depois:has(.dupla){width:340px}
 .rf-lp-album-q.depois .rf-lp-album-media{aspect-ratio:400/828}
-/* a moldura deixa de recortar: sao DUAS fichas, cada uma com o seu formato, e o que importa
-   e' que se leia o nome e a forca nas duas — nao que fiquem geometricamente iguais */
-.rf-lp-album-media.dupla{aspect-ratio:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;
-  background:transparent;overflow:visible}
-.rf-lp-album-media.dupla img{width:100%;height:auto;object-fit:contain;border-radius:3px;
-  background:var(--surface-sunken)}
-@media (max-width:560px){ .rf-lp-album-q.depois:has(.dupla){width:100%;max-width:320px} }
+/* ----- a polaroide da JOGADORA -----
+   Mesma largura da do jogador, para o par ler como duas cartas do mesmo baralho. A ficha dela e'
+   montada em HTML (rf-mod-frame) em vez de ser uma imagem pronta, entao a moldura so' precisa de
+   lhe dar o espaco e deixar os cantos arredondados aparecerem. */
+.rf-lp-album-q.depois.jogadora .rf-lp-album-media{aspect-ratio:4/5;background:transparent;
+  overflow:visible;border-radius:0}
+.rf-lp-album-q.depois.jogadora .rf-mod-frame{width:100%;height:100%;max-height:none}
 .rf-lp-album-media img{width:100%;height:100%;object-fit:cover;display:block}
 .rf-lp-album-q figcaption{font-size:var(--fs-caption);color:var(--text-3);text-align:center;
   line-height:1.4}
@@ -10031,7 +10045,7 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-mod-card:focus-visible{ outline:3px solid #17458F; outline-offset:2px; }
 
 .rf-mod-frame{ position:relative; width:100%; aspect-ratio:4/5; border-radius:14px;
-  overflow:hidden; background:#0A3C9F; display:flex; align-items:flex-end; }
+  overflow:hidden; background:var(--lst-a,#0A3C9F); display:flex; align-items:flex-end; }
 /* AS CORES SAO AS DA MARCA, e agora as de verdade: #0A3C9F e #FFBF01, os valores declarados no
    proprio img/logo.svg. Estavam #17458F e #F2B90C — o azul e o amarelo da PELE do jogo, parecidos
    o bastante para ninguem reparar lado a lado, mas o simbolo da marca fica por cima deles. */
@@ -10044,8 +10058,11 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    que na ficha e' listra aqui virava bloco de cor. Quinze devolve a espessura ao valor da
    referencia: o assistente tem 980px de largura util, o que da' ~429px de moldura, e 429/15
    sao os mesmos ~29px por faixa que o card da ficha mostra nos seus 200px. */
+/* as listras sao da MARCA por omissao (o card de modalidade ilustra o jogo, nao um clube) e
+   aceitam as cores de um clube quando a ficha e' de alguem concreto — ver rfLpFichaJogadoraHTML */
 .rf-mod-listras{ position:absolute; inset:0; pointer-events:none;
-  background:repeating-linear-gradient(90deg,#0A3C9F 0 6.6667%,#FFBF01 6.6667% 13.3333%); }
+  background:repeating-linear-gradient(90deg,var(--lst-a,#0A3C9F) 0 6.6667%,
+                                              var(--lst-b,#FFBF01) 6.6667% 13.3333%); }
 /* O MESMO ENQUADRAMENTO DO RETRATO DO ELENCO, e por um motivo medido: estas fotos sao VAZADAS
    (fundo transparente, e' o que deixa as listras aparecerem atras), 2:3, com a pessoa ocupando
    quase todo o quadro. `50% 12%` poe o rosto no terco superior, que e' o que a ficha pede. */

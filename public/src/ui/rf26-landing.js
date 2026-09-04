@@ -836,6 +836,34 @@ function rfLpResenhaHTML(){
    ===================================================================== */
 const RF_LP_ALBUM_ANTES = null;   // ex.: 'img/home/album-crianca.webp'
 
+/* ===== A FICHA DA JOGADORA, MONTADA COM DADOS REAIS =====
+   Mesma moldura do card de modalidade (rf-mod-frame, ui/rf26-modalidade.js) — a diferenca e' o
+   que entra nela: la' o card ILUSTRA a modalidade e por isso leva a marca no canto; aqui a ficha
+   e' de uma jogadora concreta do jogo, e por isso leva o ESCUDO e as cores do clube dela.
+   Tudo o que esta' aqui sai da base: Aline Lima e' o nome dela no universo feminino (o masculino
+   no mesmo lugar e' o Kevin Viveros), o clube e' o Furacao do Sul da divisao A, e a foto e' a
+   mesma que a ficha dela mostra dentro do jogo. Nada inventado para a pagina de vendas. */
+const RF_LP_JOGADORA = {
+  nome:'Aline Lima', pos:'Atacante', age:28,
+  clube:'Furacão do Sul',
+  cor:'#D62828', cor2:'#14171a',
+  foto:'https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/furacaodosul/jogadores/alinelima-cartao-1788453766060-19dc73.webp',
+  crest:'https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/escudos/brasil/divisao-a/athleticopr/escudo-semfundo-1787709223709.webp',
+};
+function rfLpFichaJogadoraHTML(){
+  const j=RF_LP_JOGADORA;
+  const linha=[j.pos, j.age?j.age+' anos':''].filter(Boolean).join(' · ');
+  return `<span class="rf-mod-frame" style="--lst-a:${escC(j.cor)};--lst-b:${escC(j.cor2)}">
+    <span class="rf-mod-listras"></span>
+    <img class="rf-mod-foto" src="${escC(j.foto)}" alt="Ficha de ${escC(j.nome)}, do ${escC(j.clube)}" loading="lazy">
+    <span class="rf-mod-veu"></span>
+    <span class="rf-mod-ficha">
+      <img class="rf-mod-crest" src="${escC(j.crest)}" alt="${escC(j.clube)}" loading="lazy">
+      <span class="rf-mod-pos">${escC(linha)}</span>
+      <span class="rf-mod-nome">${escC(j.nome)}</span>
+    </span>
+  </span>`;
+}
 function rfLpJogadorOficialHTML(){
   const antes = RF_LP_ALBUM_ANTES
     ? `<img src="${escC(RF_LP_ALBUM_ANTES)}" alt="Foto de infância" loading="lazy">`
@@ -856,20 +884,24 @@ function rfLpJogadorOficialHTML(){
           <figcaption>Você, quando ainda ia ser jogador</figcaption>
         </figure>
         <span class="rf-lp-album-seta" aria-hidden="true">→</span>
-        ${/* ===== OS DOIS UNIVERSOS, LADO A LADO =====
-             A secao mostrava um retrato so', masculino, enquanto a promessa vale para os dois
-             universos — e o feminino tem clubes, elencos e fichas iguais. Um retrato so' fazia a
-             pagina prometer menos do que o jogo entrega, e para metade das pessoas prometia outra
-             coisa. A jogadora e' da NOSSA base (Furacao do Sul, divisao A), nao um banco de
-             imagens: e' a mesma foto que aparece na ficha dela dentro do jogo. */''}
+        ${/* ===== DOIS UNIVERSOS, DUAS FICHAS, DUAS MOLDURAS =====
+             A seccao mostrava um retrato so', masculino, enquanto a promessa vale para os dois —
+             o feminino tem os mesmos clubes e fichas iguais. As duas fotos dentro da MESMA
+             polaroide liam-se como uma foto partida ao meio; cada ficha tem de ter a sua moldura,
+             que e' o que faz o par parecer duas cartas e nao uma colagem.
+             A jogadora e' montada AQUI, com a mesma moldura do card de modalidade (rf-mod-frame):
+             a foto e' a da nossa base, o nome e' o dela no universo feminino, e o escudo e as
+             listras sao os do clube — nao a marca, porque aqui o clube e' o assunto. */''}
         <figure class="rf-lp-album-q depois">
-          <div class="rf-lp-album-media dupla">
+          <div class="rf-lp-album-media">
             <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot98"
               loading="lazy" width="400" height="828">
-            <img src="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/furacaodosul/jogadores/alinelima-cartao-1788453766060-19dc73.webp"
-              alt="Retrato de uma jogadora na ficha do RetroFoot98" loading="lazy">
           </div>
-          <figcaption>Você, na ficha — como jogador ou como jogadora, com a torcida no seu nome</figcaption>
+          <figcaption>Você, na ficha — como <b>jogador</b></figcaption>
+        </figure>
+        <figure class="rf-lp-album-q depois jogadora">
+          <div class="rf-lp-album-media">${rfLpFichaJogadoraHTML()}</div>
+          <figcaption>E você, na ficha — como <b>jogadora</b></figcaption>
         </figure>
       </div>
 
