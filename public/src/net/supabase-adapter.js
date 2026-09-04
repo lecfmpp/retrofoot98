@@ -65,7 +65,13 @@ async function netInitSupabase(){
         SB_AUTH_USER = session.user;
         /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
            cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
-        netCarregarPlano().then(()=>{ try{ cdraw(); }catch(e){} });
+        netCarregarPlano().then(()=>{
+          try{ cdraw(); }catch(e){}
+          /* QUEM VEIO PARA ASSINAR VOLTA AO PAGAMENTO. O botao do plano guarda a intencao
+             antes de mandar criar a conta (ver rfPlanoCta); sem esta chamada a pessoa
+             criava a conta e caia na tela do jogo, sem nunca ter chegado ao checkout. */
+          try{ if(typeof rfPlanoIntencaoRetomar==='function') rfPlanoIntencaoRetomar(); }catch(e){}
+        });
       }
     });
     const { data:{ session } } = await sb.auth.getSession();

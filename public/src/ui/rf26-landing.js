@@ -209,10 +209,13 @@ function rfTrava(chave){
     overlayC(dlg(t.titulo, corpo, {w:520, tone:'marca', glyph:'🔒'}));
   else if(typeof toastC==='function') toastC(t.titulo);
 }
-/* FASE LISTA DE ESPERA: com a flag ligada, quem NÃO tem sessão não vê o
-   "Entrar" — a única porta é a lista de espera. Quem já tem conta (sessão
-   aberta) continua entrando normalmente. Desligar = voltar o login. */
-const RF_SO_LISTA = true;
+/* FASE LISTA DE ESPERA — DESLIGADA em 2026-09-04, quando o pagamento entrou no ar.
+   Com a flag ligada, quem NÃO tinha sessão não via o "Entrar": a única porta era a lista de
+   espera, porque não havia como assinar. Agora há — o Stripe está ligado e os botões dos
+   planos abrem o checkout —, e manter a lista seria pedir o e-mail a quem já podia pagar.
+   A flag fica (não se apaga uma porta que se pode precisar de reabrir num lançamento
+   futuro), e com ela ficam os dois caminhos: `true` volta tudo à lista. */
+const RF_SO_LISTA = false;
 /* PORTA DE TESTE dos admins: abrir /?acesso=embaixador98 UMA vez libera o
    "Entrar" neste navegador (fica no localStorage). É trava de fase, não
    segurança — serve para o público não ver porta de cadastro; quem tem o
@@ -264,8 +267,13 @@ function rfLpMenu(){
   const links=RF_LP_NAV.map(([k,l])=>
     `<button type="button" class="rf-sheet-i" onclick="clCloseOverlay();rfLpIr('${k}')">
       <span class="rf-nav-l">${escC(l)}</span></button>`).join('');
-  const lista=`<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('lista')">
-      <span class="rf-nav-l">Entrar na lista</span></button>`;
+  /* na fase da lista este era o item em destaque do menu; com o pagamento no ar o destaque
+     passa a ser o que a pessoa vem fazer — ver os planos e assinar. */
+  const lista=RF_SO_LISTA
+    ? `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('lista')">
+      <span class="rf-nav-l">Entrar na lista</span></button>`
+    : `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('planos')">
+      <span class="rf-nav-l">Ver os planos</span></button>`;
   const conta = st.loggedIn ? `<div class="rf-sheet-sep"></div>
       <div class="rf-sheet-conta">
         <span class="rf-sheet-conta-ic" aria-hidden="true">👤</span>
@@ -298,7 +306,7 @@ function rfLpNavHTML(extra){
     </div>
     <div class="rf-sp"></div>
     ${extra||''}
-    ${extra==null ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('lista')">Entrar na lista</button>` : ''}
+    ${extra==null ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('${RF_SO_LISTA?'lista':'planos'}')">${RF_SO_LISTA?'Entrar na lista':'Ver os planos'}</button>` : ''}
     ${rfContaChipHTML()}
   </nav>`;
 }
@@ -607,23 +615,62 @@ function rfPlanoCta(key, trava, ciclo){
      jogo e' um cadeado, e ai o nome da trava vai junto — e' assim que se sabe
      qual delas de facto empurra alguem para a lista. */
   const origem = trava ? ('jogo · '+trava+' · plano '+nome) : ('landing · plano '+nome);
+  /* O CHÃO DEIXOU DE SER A LISTA. Enquanto não havia como pagar, todo botão acabava a pedir
+     o e-mail — era o único destino honesto. Com o Stripe no ar o chão passa a ser a CONTA:
+     quem não tem sessão entra primeiro (é preciso uma conta para haver assinatura), e volta
+     à mesma decisão com o plano guardado. Guardar a intenção importa: sem isso a pessoa
+     escolhe o plano, cria a conta e cai na tela do jogo sem nunca ter chegado ao pagamento. */
   const paraLista = () => {
-    if(typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
-    rfLpIr('lista');
+    if(RF_SO_LISTA && typeof clWaitlistOpen==='function') return clWaitlistOpen(origem);
+    if(RF_SO_LISTA) return rfLpIr('lista');
+    rfLpIr('planos');
   };
 
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
-  if(key==='peladeiro' || !st.loggedIn || !(typeof NET!=='undefined'&&NET.criarCheckout))
+
+  /* o grátis não tem o que comprar: leva a jogar (ou a criar a conta, que é o mesmo caminho) */
+  if(key==='peladeiro'){
+    if(typeof clGoModo==='function') return clGoModo('solo');
     return paraLista();
+  }
+
+  if(!st.loggedIn){
+    /* a intenção sobrevive ao login: rfPlanoIntencaoRetomar() a consome quando a sessão abre */
+    try{ sessionStorage.setItem('rf98:planoIntencao', JSON.stringify({key, ciclo:ciclo||'mes'})); }catch(e){}
+    if(typeof toastC==='function') toastC('Crie a sua conta (ou entre) para assinar o '+nome+'.');
+    if(typeof clGoModo==='function') return clGoModo('solo');
+    return paraLista();
+  }
+
+  if(!(typeof NET!=='undefined' && NET.criarCheckout)){
+    if(typeof toastC==='function') toastC('O pagamento não carregou nesta aba. Recarregue a página e tente de novo.','warn');
+    return;
+  }
 
   if(typeof toastC==='function') toastC('Abrindo o pagamento…');
   NET.criarCheckout(key, ciclo||'mes').then(r=>{
     if(r && r.url){ location.href = r.url; return; }
-    /* sem_chave / sem_sessao / falhou: o caminho de sempre, sem alarde. O que
-       NÃO se faz aqui é mostrar erro técnico a quem só queria assinar. */
+    /* AGORA O ERRO DIZ-SE. Antes qualquer falha caia na lista de espera, calada: quem tinha
+       conta e queria pagar era mandado pedir uma vaga que já tinha. Se o pagamento não abre,
+       isso é uma avaria e a pessoa tem de o saber para voltar a tentar. */
     console.warn('checkout indisponível:', r && r.erro);
-    paraLista();
-  }).catch(e=>{ console.warn('checkout:', e); paraLista(); });
+    if(typeof toastC==='function')
+      toastC('Não consegui abrir o pagamento agora. Tente de novo em instantes.','warn');
+  }).catch(e=>{
+    console.warn('checkout:', e);
+    if(typeof toastC==='function') toastC('Não consegui abrir o pagamento agora. Tente de novo em instantes.','warn');
+  });
+}
+/* A INTENÇÃO GUARDADA ANTES DO LOGIN. Chamado quando a sessão abre (ver netAuthStatus):
+   quem clicou em "Assinar o Resenha" sem conta volta ao checkout desse plano, em vez de ficar
+   na tela do jogo a perguntar-se o que aconteceu ao botão que carregou. */
+function rfPlanoIntencaoRetomar(){
+  let alvo=null;
+  try{ const raw=sessionStorage.getItem('rf98:planoIntencao');
+       if(raw){ alvo=JSON.parse(raw); sessionStorage.removeItem('rf98:planoIntencao'); } }catch(e){}
+  if(!alvo || !alvo.key) return false;
+  setTimeout(()=>{ try{ rfPlanoCta(alvo.key, null, alvo.ciclo||'mes'); }catch(e){} }, 400);
+  return true;
 }
 function rfLpPlanosHTML(){
   const cartoes=RF_PLANOS.map(p=>{
@@ -949,7 +996,11 @@ function rfLandingHTML(){
 
     ${rfLpLigasHTML()}
 
-    ${rfLpListaHTML()}
+    ${/* A LISTA DE ESPERA SAI DA PAGINA COM A FASE. O bloco continua escrito (RF_SO_LISTA=true
+         repoe-o inteiro, contador de vagas incluido), mas com o pagamento no ar ele nao pode
+         ficar la': pedir o e-mail a quem ja' pode assinar e' mandar a pessoa esperar por uma
+         coisa que ja' aconteceu. */''}
+    ${RF_SO_LISTA ? rfLpListaHTML() : ''}
 
     ${rfLpRodapeHTML()}
     ${typeof rfAcaoHTML==='function'?rfAcaoHTML():''}
