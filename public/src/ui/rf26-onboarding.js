@@ -433,12 +433,65 @@ function rfObSaveJornada(sv){
    Entao o bloco deixa de ser escolha e passa a ser PROMESSA: a piramide inteira, de cima a baixo,
    com o degrau de entrada aceso e os de cima por conquistar. Nada aqui e' clicavel — de proposito.
    Serve aos dois modos (Solo e Resenha), que e' o que garante que contam a mesma historia. */
+/* o nome de uma competicao como o JOGO a chama (o pacote oficial renomeia COMP_DEFS; ver
+   aplicarCompeticoes em net/dados.js). O segundo argumento e' o que ha' hoje no pacote — serve
+   de rede para o caso de o pacote ainda nao ter chegado quando a tela desenha. */
+function rfNomeComp(key, seFaltar){
+  try{
+    /* `name` e nao `short`: o curto e' a etiqueta de tabela ("Clubes da América", "Série A") e
+       numa frase corrida sai torto — "a Clubes da América". O nome inteiro e' o que se diz. */
+    const d=(typeof COMP_DEFS!=='undefined')?COMP_DEFS[key]:null;
+    if(d && (d.name||d.short)) return d.name||d.short;
+  }catch(e){}
+  return seFaltar||key;
+}
+/* ===== OS PAISES QUE VEM A SEGUIR =====
+   Cartoes DESLIGADOS, de proposito: dizer "em breve" e deixar clicar seria prometer duas vezes.
+   O nome da liga sai do pacote (as ligas ja' estao renomeadas la': Crown League, Liga Lusitana,
+   Liga Hispanica, Lega Suprema, Meisterliga, Liga Albiceleste) — assim a lista nao inventa nomes
+   que a tela do jogo depois desmente. */
+const RF_PAISES_EM_BREVE=[
+  ['Inglaterra','🏴󠁧󠁢󠁥󠁮󠁧󠁿','premier','Crown League'],
+  ['Portugal','🇵🇹','liga:Portugal:PT','Liga Lusitana'],
+  ['Espanha','🇪🇸','liga:Espanha:ES','Liga Hispânica'],
+  ['Itália','🇮🇹','liga:Itália:IT','Lega Suprema'],
+  ['Alemanha','🇩🇪','liga:Alemanha:DE','Meisterliga'],
+  ['Argentina','🇦🇷','liga:Argentina:ARG','Liga Albiceleste'],
+];
+function rfPaisesEmBreveHTML(){
+  const cartoes=RF_PAISES_EM_BREVE.map(([pais,bandeira,chave,liga])=>`
+    <div class="rf-pais-breve" aria-disabled="true">
+      <span class="rf-pais-breve-f">${bandeira}</span>
+      <span class="rf-pais-breve-id">
+        <span class="rf-pais-breve-n">${escC(pais)}</span>
+        <span class="rf-pais-breve-l">${escC(rfNomeComp(chave, liga))}</span>
+      </span>
+      <span class="rf-pais-breve-selo">EM BREVE</span>
+    </div>`).join('');
+  return `<div class="rf-pais-breve-g">${cartoes}</div>
+    <span class="rf-note">Estas ligas já existem no mundo do jogo — dá para comprar e vender nelas,
+      e elas podem te sondar como treinador. Sentar no banco delas é o próximo passo.</span>`;
+}
 function rfPiramideHTML(uniCfg, entrada){
   const cfg=uniCfg||null;
   const ordem=(cfg&&cfg.order)?cfg.order.slice():['A','B','C','D'];
   /* de cima (a 1a divisao) para baixo: a piramide le-se como se sobe, e o degrau de entrada
      fica no fundo, que e' onde ele esta' na vida real */
+  /* O NOME QUE O JOGO USA, NAO O ROTULO CURTO. "Série A" e' a etiqueta da divisao; a competicao
+     chama-se Liga Soberana — e' esse o nome que o jogador vai ver na tabela, na taca e na
+     carreira. Sai de COMP_DEFS, que o pacote oficial renomeia (ver aplicarCompeticoes em
+     net/dados.js), entao trocar o nome no painel troca-o aqui sem tocar em codigo. */
+  const uniKey=(cfg&&cfg.key)||((typeof activeUniverseKey==='function')?activeUniverseKey():'brasil');
+  const nomeDaDivisao=(d)=>{
+    try{
+      const k=(typeof COMP_CHAVE_DIVISAO==='function')?COMP_CHAVE_DIVISAO(uniKey,d):null;
+      const def=(k && typeof COMP_DEFS!=='undefined')?COMP_DEFS[k]:null;
+      if(def && def.name) return def.name;
+    }catch(e){}
+    return (cfg&&cfg.label&&cfg.label[d])||('Série '+d);
+  };
   const linhas=ordem.map((d,i)=>{
+    const nome=nomeDaDivisao(d);
     const lbl=(cfg&&cfg.label&&cfg.label[d])||('Série '+d);
     const qtd=(cfg&&cfg.size&&cfg.size[d])||0;
     const aqui=(d===entrada);
@@ -446,9 +499,13 @@ function rfPiramideHTML(uniCfg, entrada){
        gente — nao e' enfeite, e' a propria ideia da coisa */
     const larg=58+i*14;
     return `<div class="rf-pir-l ${aqui?'aqui':''}" style="--w:${larg}%">
-      <span class="rf-pir-t">${(typeof rfTrofeuHTML==='function')?rfTrofeuHTML('serie'+d,aqui?30:24):''}</span>
-      <span class="rf-pir-n">${escC(lbl)}</span>
-      <span class="rf-pir-q">${qtd?qtd+' clubes':''}</span>
+      <span class="rf-pir-c">
+        <span class="rf-pir-t">${(typeof rfTrofeuHTML==='function')?rfTrofeuHTML('serie'+d,aqui?60:48):''}</span>
+        <span class="rf-pir-id">
+          <span class="rf-pir-n">${escC(nome)}</span>
+          <span class="rf-pir-q">${escC(lbl)}${qtd?' · '+qtd+' clubes':''}</span>
+        </span>
+      </span>
       ${aqui?'<span class="rf-pir-selo">VOCÊ COMEÇA AQUI</span>':''}
     </div>`;
   }).join('');
@@ -456,7 +513,7 @@ function rfPiramideHTML(uniCfg, entrada){
     ${linhas}
     <div class="rf-pir-recado">
       <b>Ninguém começa em cima.</b>
-      <span>Suba divisão por divisão até a ${escC((cfg&&cfg.label&&cfg.label[ordem[0]])||'Série A')},
+      <span>Suba divisão por divisão até a ${escC(nomeDaDivisao(ordem[0]))},
         ganhe o país, e aí o continente vem atrás. O mundo é o último degrau — e ele não cai no sorteio,
         cai no trabalho.</span>
     </div>
@@ -515,9 +572,14 @@ function rfOb3(){
       ${soBrasil ? `
       <div class="rf-ob3-bloco">
         <span class="rf-label-t">Outros países</span>
+        ${/* AS COMPETICOES CHAMAM-SE PELO NOME DO JOGO. Esta frase dizia "a Copa do Brasil, a
+             Libertadores e a Sul-Americana" — os nomes REAIS, que o jogo nao usa em lado nenhum:
+             no pacote oficial elas sao a Copa da Federacao, a Liberta Cup e a Copa de Clubes da
+             America. Sai de COMP_DEFS, que o pacote renomeia, entao a frase acompanha o painel. */''}
         <span class="rf-note">${soFem
-          ? 'O futebol feminino começa pelo Brasil, com as quatro divisões, a Copa do Brasil e a Libertadores. Os outros países chegam depois.'
-          : 'Por agora o jogo é só no Brasil — as quatro divisões, a Copa do Brasil, a Libertadores e a Sul-Americana. As ligas de fora voltam quando os elencos delas estiverem prontos.'}</span>
+          ? `O futebol feminino começa pelo Brasil, com as quatro divisões, a ${escC(rfNomeComp('copaBrasil','Copa da Federação'))} e a ${escC(rfNomeComp('libertadores','Liberta Cup'))}. Os outros países chegam depois.`
+          : `Por agora o jogo é só no Brasil — as quatro divisões, a ${escC(rfNomeComp('copaBrasil','Copa da Federação'))}, a ${escC(rfNomeComp('libertadores','Liberta Cup'))} e a ${escC(rfNomeComp('sulamericana','Copa de Clubes da América'))}.`}</span>
+        ${rfPaisesEmBreveHTML()}
       </div>` : `
       <div class="rf-ob3-bloco">
         <span class="rf-label-t">Ligas de fundo <i class="rf-ob3-leve">— aparecem em Campeonatos e no mercado</i></span>

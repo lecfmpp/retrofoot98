@@ -6934,26 +6934,52 @@
    decrescente é a informação principal (em cima cabe menos gente), e o único degrau aceso é
    aquele em que se entra. */
 .rf-pir{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:4px}
-.rf-pir-l{--w:100%;width:var(--w);min-width:220px;
-  display:flex;align-items:center;gap:10px;padding:9px 14px;
+.rf-pir-l{--w:100%;width:var(--w);min-width:260px;position:relative;
+  display:flex;align-items:center;justify-content:center;padding:12px 14px;
   border:1px solid var(--line-2);border-radius:var(--r-control);
   background:var(--surface-sunken);color:var(--text-3);
   transition:none}
-.rf-pir-t{display:flex;align-items:center;opacity:.45;flex:0 0 auto}
-.rf-pir-n{font-weight:var(--fw-semibold);font-size:var(--fs-body-sm);white-space:nowrap}
+/* taça + nome viajam JUNTOS e centrados: são a identidade do degrau, e ler o
+   nome longe da taça obriga a fazer a ligação com os olhos a cada linha */
+.rf-pir-c{display:flex;align-items:center;gap:12px;min-width:0}
+.rf-pir-t{display:flex;align-items:center;opacity:.5;flex:0 0 auto}
+.rf-pir-id{display:flex;flex-direction:column;min-width:0}
+.rf-pir-n{font-weight:var(--fw-bold);font-size:var(--fs-body);color:inherit;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rf-pir-q{font-size:var(--fs-caption);color:var(--text-4);white-space:nowrap}
 .rf-pir-l.aqui{background:var(--surface-card);border-color:var(--club-primary);
   color:var(--text-1);box-shadow:0 6px 18px -12px var(--club-primary)}
 .rf-pir-l.aqui .rf-pir-t{opacity:1}
-.rf-pir-selo{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-label);
+/* o selo sai do fluxo para não empurrar o par taça+nome do centro */
+.rf-pir-selo{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-family:var(--font-mono);font-size:var(--fs-label);
   letter-spacing:var(--ls-label);color:var(--club-primary);white-space:nowrap}
+/* ----- países que ainda não abriram: cartão desligado, e que PAREÇA desligado -----
+   Sem cursor de mão, sem hover, sem borda de botão. O selo faz o trabalho que o clique não vai
+   fazer. Grelha que cabe em duas colunas no telemóvel e três no computador. */
+.rf-pais-breve-g{display:grid;gap:8px;margin-top:10px;
+  grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.rf-pais-breve{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1px dashed var(--line-2);border-radius:var(--r-control);
+  background:var(--surface-sunken);opacity:.72;user-select:none}
+.rf-pais-breve-f{font-size:20px;line-height:1;flex:0 0 auto}
+.rf-pais-breve-id{display:flex;flex-direction:column;min-width:0}
+.rf-pais-breve-n{font-weight:var(--fw-semibold);font-size:var(--fs-body-sm);color:var(--text-2);
+  white-space:nowrap}
+/* o nome da liga NAO se corta: e' a coisa que o cartão existe para mostrar. Se não couber numa
+   linha, desce para a segunda — reticências aqui esconderiam justamente o que interessa. */
+.rf-pais-breve-l{font-size:var(--fs-caption);color:var(--text-4);line-height:1.25}
+.rf-pais-breve-selo{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-label);
+  letter-spacing:var(--ls-label);color:var(--text-4);white-space:nowrap}
+
 .rf-pir-recado{margin-top:10px;max-width:52ch;text-align:center;
   display:flex;flex-direction:column;gap:3px}
 .rf-pir-recado b{font-size:var(--fs-body-sm);color:var(--text-1)}
 .rf-pir-recado span{font-size:var(--fs-caption);color:var(--text-3);line-height:var(--lh-normal)}
 @media (max-width:560px){
   /* no telemóvel a pirâmide achata: com 320px úteis, 58% da largura não cabe um rótulo */
-  .rf-pir-l{width:100% !important;min-width:0}
+  .rf-pir-l{width:100% !important;min-width:0;justify-content:flex-start}
+  .rf-pir-selo{position:static;transform:none;margin-left:auto}
   .rf-pir-q{display:none}
 }
 @media (max-width:760px){ .rf-crono i{display:none} }
