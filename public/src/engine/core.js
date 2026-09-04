@@ -3871,6 +3871,71 @@ function aplicarVagasEmbaixador(club, arr, fem){
   });
   return mexeu ? out : arr;
 }
+/* =====================================================================
+   AS VAGAS APROVADAS TAMBEM ENTRAM NO SAVE EM ANDAMENTO
+   ---------------------------------------------------------------------
+   O elenco fica CONGELADO dentro do save (S.squads) no dia em que a carreira
+   nasce — e' o que faz uma temporada em curso nao mudar debaixo dos pes de
+   quem joga. Mas isso deixava o jogador do Embaixador de fora de todas as
+   carreiras ja' abertas: ele so' aparecia na proxima.
+
+   RENOMEAR NAO E' TROCAR UMA STRING. Gols, assistencias, artilharia por
+   competicao e os cartoes da rodada sao guardados POR NOME (S.scorers[nome],
+   S.assists[nome], S.scorersByComp[comp][nome], S._roundIncidents[nome]).
+   Trocar so' o `n` do jogador deixaria os gols dele orfaos no nome antigo e
+   ele recomecaria do zero — silenciosamente, no meio da temporada. Por isso a
+   troca leva as chaves junto, somando quando o destino ja' existe.
+
+   IDEMPOTENTE: correr duas vezes nao faz nada na segunda (o nome ja' e' o novo).
+   ===================================================================== */
+function rfVagaMigrarChave(velho, novo){
+  const mover=(obj)=>{
+    if(!obj || obj[velho]==null) return;
+    obj[novo]=(obj[novo]||0)+obj[velho];
+    delete obj[velho];
+  };
+  mover(S.scorers); mover(S.assists);
+  try{ Object.keys(S.scorersByComp||{}).forEach(k=>mover(S.scorersByComp[k])); }catch(e){}
+  try{ Object.keys(S.bgLeagues||{}).forEach(k=>mover((S.bgLeagues[k]||{}).scorers)); }catch(e){}
+  /* incidentes da rodada guardam um objeto, nao um numero: aqui e' mudanca de chave, nao soma */
+  try{
+    const inc=S._roundIncidents;
+    if(inc && inc[velho]!=null){ inc[novo]=inc[velho]; delete inc[velho]; }
+  }catch(e){}
+}
+function rfVagasNoSave(){
+  if(typeof S==='undefined' || !S || !S.squads) return 0;
+  const mapa=(typeof window!=='undefined' && window.RF_VAGAS_APROVADAS)||null;
+  if(!mapa) return 0;
+  const fem=(typeof modalidadeAtiva==='function') && modalidadeAtiva()==='fem';
+  const pref=(fem?'fem':'mas')+'|';
+  let n=0;
+  Object.keys(S.squads).forEach(clubId=>{
+    const doClube=mapa[pref+String(clubId)];
+    if(!doClube) return;
+    (S.squads[clubId]||[]).forEach(p=>{
+      const v=(p && p.id!=null) ? doClube[p.id] : null;
+      if(!v || !v.nome || p.n===v.nome) return;
+      const velho=p.n;
+      p.n=v.nome; p._embaixador=1;
+      rfVagaMigrarChave(velho, v.nome);
+      n++;
+    });
+  });
+  return n;
+}
+/* CHAMADA A CADA DESENHO, e barata: a marca muda quando o SAVE muda ou quando as vagas chegam
+   da rede (RF_VAGAS_VERSAO, ver net/dados.js). Fora esses dois momentos, isto e' uma comparacao
+   de strings. Sem o gancho no desenho, a vaga que chega DEPOIS do save carregar so' entraria no
+   arranque seguinte — que e' metade do problema que isto veio resolver. */
+let RF_VAGAS_MARCA=null;
+function rfVagasNoSaveSeMudou(){
+  if(typeof S==='undefined' || !S) return;
+  const marca=String(S.seed||'')+'|'+String((typeof window!=='undefined'&&window.RF_VAGAS_VERSAO)||0);
+  if(marca===RF_VAGAS_MARCA) return;
+  RF_VAGAS_MARCA=marca;
+  try{ rfVagasNoSave(); }catch(e){ console.warn('vagas no save:', e&&e.message); }
+}
 function gkSquad(club){
   const fem = modalidadeAtiva()==='fem';
   if(fem) femSemearNomes();                          // antes de ensureClubPositions: ver femSemearNomes

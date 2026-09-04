@@ -498,6 +498,10 @@ function buscarVagasAprovadas(){
           if(v.foto_pos!=null) window.RF_FOTOS_POS[v.foto_url] = Number(v.foto_pos)||0;
         }
       }
+      /* AVISA QUEM JA' ESTA' A JOGAR. O save em andamento tem o elenco congelado; esta marca e'
+         o que faz `rfVagasNoSaveSeMudou` reparar nele assim que as vagas chegam da rede, em vez
+         de so' no arranque seguinte. */
+      window.RF_VAGAS_VERSAO=(window.RF_VAGAS_VERSAO||0)+1;
     })
     .catch(()=>{ /* sem rede o jogo segue com os nomes de base — nada quebra */ });
 }

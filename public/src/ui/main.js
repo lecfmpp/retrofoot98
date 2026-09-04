@@ -853,6 +853,10 @@ function devolveRolagem(m){
   try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  /* as vagas aprovadas entram tambem no save JA' ABERTO — comparacao de strings quando nada
+     mudou; so' varre os elencos quando o save troca ou quando as vagas chegam da rede
+     (ver rfVagasNoSaveSeMudou, engine/core.js) */
+  try{ if(typeof rfVagasNoSaveSeMudou==='function') rfVagasNoSaveSeMudou(); }catch(e){}
   /* O PISCA-PISCA A CADA CLIQUE. Todo cdraw() recria a tela por innerHTML, e os
      blocos com `animation: ds-fade-up` (painel de aba, grades, diálogos) tocam a
      entrada DE NOVO — a cada clique de botão, filtro ou aba, a página parecia
