@@ -113,7 +113,7 @@ function rfMjFalta(){
   if(e.avatar!==2) return 'Envie a foto e gere o avatar para liberar o envio.';
   if((e.nome||'').trim().length<2) return 'Escreva o nome que vai na camisa.';
   const v=(e.vagas||[]).find(x=>x.player_id===e.playerId)||{};
-  return `${e.nome.trim()} · ${v.clube_nome||''} · ${(RF_MJ_POS[v.posicao]||{}).nome||''} — pronto para enviar.`;
+  return `${e.nome.trim()} · ${rfMjNomeClube(v.club_id, v.clube_nome)} · ${(RF_MJ_POS[v.posicao]||{}).nome||''} — pronto para enviar.`;
 }
 
 /* ---- a foto e o avatar ---- */
@@ -193,7 +193,7 @@ function rfMjPopupHTML(v){
         <span class="rf-mjp-num">${escC(String(rfMjCamisa(v)))}</span>
         <span class="rf-mjp-id">
           <b>${escC(v.nome||'')}</b>
-          <span class="rf-mjp-mono">${escC((v.clube_nome||'').toUpperCase())} · SÉRIE ${escC(v.divisao||'')} · PACK OFICIAL</span>
+          <span class="rf-mjp-mono">${escC(rfMjNomeClube(v.club_id, v.clube_nome).toUpperCase())} · SÉRIE ${escC(v.divisao||'')} · PACK OFICIAL</span>
         </span>
         <span class="rf-mjp-pill">EM ANÁLISE</span>
       </div>
@@ -225,6 +225,19 @@ function rfMjCamisa(v){
   }catch(e){}
   return (RF_MJ_POS[v.posicao]||{}).num || 9;
 }
+/* ===== O NOME DO CLUBE VEM DO JOGO, EM TEMPO DE DESENHO =====
+   A coluna `clube_nome` da vaga e' util para o painel (que nao carrega os pacotes do jogo), mas
+   aqui dentro ela e' a segunda melhor fonte: o pacote oficial renomeia os clubes no arranque, e
+   quem sabe o nome de agora e' o proprio catalogo. Preferir o catalogo evita a tela mostrar
+   "Bahia" ao lado de jogadores chamados "Wesley Peixoto" — foi exatamente o que aconteceu
+   quando a coluna, semeada do ficheiro-fonte, ficou com os nomes reais. */
+function rfMjNomeClube(clubId, doBanco){
+  try{
+    const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null;
+    if(c && (c.short||c.name)) return c.short||c.name;
+  }catch(e){}
+  return doBanco||clubId||'';
+}
 function rfMjCrest(clubId){
   try{
     const c=(typeof anyClubOf==='function')?anyClubOf(clubId):null;
@@ -250,7 +263,7 @@ function rfMjFigurinhaHTML(){
         <span class="rf-mj-num">${escC(String(e.playerId?rfMjCamisa(v):'—'))}</span>
         <span class="rf-mj-mono ouro">${escC((pos.nome||'POSIÇÃO').toUpperCase())}</span>
         <span class="rf-mj-camisa" data-mj-camisa-nome>${escC(e.nome||'SEU NOME')}</span>
-        <span class="rf-mj-mono">${escC(((v.clube_nome||'CLUBE')+' · SÉRIE '+(v.divisao||e.divisao)+' · PACK OFICIAL').toUpperCase())}</span>
+        <span class="rf-mj-mono">${escC(((e.playerId?rfMjNomeClube(v.club_id, v.clube_nome):'CLUBE')+' · SÉRIE '+(v.divisao||e.divisao)+' · PACK OFICIAL').toUpperCase())}</span>
       </span>
     </div>
     <div class="rf-mj-fig-bts">
@@ -293,7 +306,7 @@ function rfMjEscolhasHTML(){
     return `<button type="button" class="rf-mj-clube ${e.clubId===c.club_id?'on':''} ${cheio?'off':''}"
         ${cheio?'disabled':`onclick="rfMjSetClube('${escC(c.club_id)}')"`}>
       <span class="rf-mj-clube-e">${rfMjCrest(c.club_id)}</span>
-      <span class="rf-mj-clube-n">${escC(c.clube_nome)}</span>
+      <span class="rf-mj-clube-n">${escC(rfMjNomeClube(c.club_id, c.clube_nome))}</span>
       <span class="rf-mj-mono ${cheio?'ruim':'bom'}">${cheio?'sem vaga':(c.livres+(c.livres>1?' vagas':' vaga'))}</span>
     </button>`;
   }).join('');
@@ -389,7 +402,7 @@ function rfMjHTML(){
         <div class="rf-mj-minha-foto">${m.foto_url?`<img src="${escC(m.foto_url)}" alt="">`:'👤'}</div>
         <div class="rf-mj-minha-id">
           <span class="rf-mj-minha-n">${escC(m.nome||m.nome_base||'')}</span>
-          <span class="rf-mj-minha-c">${escC(m.clube_nome||'')} · ${escC((RF_MJ_POS[m.posicao]||{}).nome||'')} · força ${m.forca}</span>
+          <span class="rf-mj-minha-c">${escC(rfMjNomeClube(m.club_id, m.clube_nome))} · ${escC((RF_MJ_POS[m.posicao]||{}).nome||'')} · força ${m.forca}</span>
           <span class="rf-mj-selo ${escC(m.status)}">${escC(st[0])}</span>
         </div>
       </div>
