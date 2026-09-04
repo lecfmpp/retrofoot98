@@ -841,8 +841,8 @@ function rfLpJogadorOficialHTML(){
   return `<section class="rf-lp-oficial rf-lp-f-branco" id="rf-lp-oficial">
     <div class="rf-lp-oficial-in">
       <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
-      <h2 class="rf-lp-h2">Você não virou jogador. Mas ainda dá tempo.</h2>
-      <p class="rf-lp-p">O Embaixador entra na base de dados oficial do RetroFoot98 como jogador — nome seu, rosto seu, ficha sua. Ele nasce nos elencos, é escalado, leva cartão, faz gol e aparece na artilharia dos outros treinadores. Enquanto você jogar, ele joga.</p>
+      <h2 class="rf-lp-h2">Você não virou jogador — nem jogadora. Mas ainda dá tempo.</h2>
+      <p class="rf-lp-p">O Embaixador entra na base de dados oficial do RetroFoot98 como <b>jogador</b> ou <b>jogadora</b> — nome seu, rosto seu, ficha sua, no universo que você escolher. Ele nasce nos elencos, é escalado, leva cartão, faz gol e aparece na artilharia dos outros treinadores. Enquanto você jogar, ele joga.</p>
 
       <div class="rf-lp-album">
         <figure class="rf-lp-album-q antes">
@@ -850,17 +850,25 @@ function rfLpJogadorOficialHTML(){
           <figcaption>Você, quando ainda ia ser jogador</figcaption>
         </figure>
         <span class="rf-lp-album-seta" aria-hidden="true">→</span>
+        ${/* ===== OS DOIS UNIVERSOS, LADO A LADO =====
+             A secao mostrava um retrato so', masculino, enquanto a promessa vale para os dois
+             universos — e o feminino tem clubes, elencos e fichas iguais. Um retrato so' fazia a
+             pagina prometer menos do que o jogo entrega, e para metade das pessoas prometia outra
+             coisa. A jogadora e' da NOSSA base (Furacao do Sul, divisao A), nao um banco de
+             imagens: e' a mesma foto que aparece na ficha dela dentro do jogo. */''}
         <figure class="rf-lp-album-q depois">
-          <div class="rf-lp-album-media">
+          <div class="rf-lp-album-media dupla">
             <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot98"
               loading="lazy" width="400" height="828">
+            <img src="https://alxwgqvjmetjbbqtjkhx.supabase.co/storage/v1/object/public/jogadores/brasil/divisao-a/furacaodosul/jogadores/alinelima-cartao-1788453766060-19dc73.webp"
+              alt="Retrato de uma jogadora na ficha do RetroFoot98" loading="lazy">
           </div>
-          <figcaption>Você, na ficha, com força 11 e a torcida no seu nome</figcaption>
+          <figcaption>Você, na ficha — como jogador ou como jogadora, com a torcida no seu nome</figcaption>
         </figure>
       </div>
 
       <ul class="rf-lp-oficial-l">
-        <li><span class="rf-lp-tick">✓</span>Seu nome e o seu rosto na base oficial, para todos os treinadores</li>
+        <li><span class="rf-lp-tick">✓</span>Seu nome e o seu rosto na base oficial, para todos os treinadores — no universo masculino ou no feminino</li>
         <li><span class="rf-lp-tick">✓</span>Ficha completa: características, ponto forte, ponto fraco e valor de mercado</li>
         <li><span class="rf-lp-tick">✓</span>Pode ser comprado, vendido e disputado no leilão como qualquer outro</li>
         <li><span class="rf-lp-tick">✓</span>Fica no jogo enquanto você for Embaixador</li>

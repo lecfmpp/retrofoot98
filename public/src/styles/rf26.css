@@ -3629,8 +3629,17 @@
    força, que é o que a seção está a prometer. A polaroide do "depois" fica
    estreita e alta, com a do "antes" no formato de foto de álbum — e é essa
    diferença que faz o par parecer álbum, e não duas imagens iguais. */
+/* dois retratos lado a lado: a polaroide do "depois" alarga para caber os dois universos */
 .rf-lp-album-q.depois{width:212px}
+.rf-lp-album-q.depois:has(.dupla){width:340px}
 .rf-lp-album-q.depois .rf-lp-album-media{aspect-ratio:400/828}
+/* a moldura deixa de recortar: sao DUAS fichas, cada uma com o seu formato, e o que importa
+   e' que se leia o nome e a forca nas duas — nao que fiquem geometricamente iguais */
+.rf-lp-album-media.dupla{aspect-ratio:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  background:transparent;overflow:visible}
+.rf-lp-album-media.dupla img{width:100%;height:auto;object-fit:contain;border-radius:3px;
+  background:var(--surface-sunken)}
+@media (max-width:560px){ .rf-lp-album-q.depois:has(.dupla){width:100%;max-width:320px} }
 .rf-lp-album-media img{width:100%;height:100%;object-fit:cover;display:block}
 .rf-lp-album-q figcaption{font-size:var(--fs-caption);color:var(--text-3);text-align:center;
   line-height:1.4}
