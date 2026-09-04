@@ -6919,6 +6919,16 @@
 .rf-mkf-dir:hover{background:var(--surface-sunken)}
 .rf-mkf-dir:focus-visible{outline:2px solid var(--club-primary);outline-offset:2px}
 
+/* ----- cronómetro dos modais que pausam a partida (intervalo, lesão, expulsão) -----
+   Fica no rodapé, à ESQUERDA dos botões: é informação, não ação — quem já decidiu carrega
+   no botão e não olha para aqui. O "— ou decida agora" é o que faltava dizer: o relógio
+   existe para a sala não parar, não para apressar quem está a pensar. */
+.rf-crono{display:inline-flex;align-items:center;gap:7px;
+  font-size:var(--fs-caption);color:var(--text-3);white-space:nowrap}
+.rf-crono b{font-variant-numeric:tabular-nums;color:var(--text-1);font-weight:var(--fw-bold)}
+.rf-crono i{font-style:normal;color:var(--text-4)}
+@media (max-width:760px){ .rf-crono i{display:none} }
+
 /* ----- a tabela ----- */
 .rf-mkt{display:flex;flex-direction:column;min-width:0}
 .rf-mkt-head,.rf-mkt-row{display:grid;grid-template-columns:var(--rf-mkt-cols);

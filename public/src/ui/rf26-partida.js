@@ -223,7 +223,10 @@ function rfSubHTML(m){
        Agora "Continuar para o jogo" e o amarelo, na direita, e "Fazer substituicao" fica ao
        lado dele, em branco: quem quer trocar carrega no branco primeiro; quem so veio olhar
        carrega no amarelo e volta. */
-    acoes:`<div class="rf-sp"></div>
+    acoes:`${(CL.online && CL.live && CL.live.paused)
+        ? rfCronoHTML('cl-ht-count-b', (CL.live.halftimeLeft!=null?CL.live.halftimeLeft:20), 'a sala segue')
+        : ''}
+      <div class="rf-sp"></div>
       <button type="button" class="rf-ov-b2" ${pronto?'':'disabled'} onclick="rfSubConfirmar()">
         <span class="rf-so-desktop">Fazer substituição</span><span class="rf-so-mobile">Substituir</span></button>
       <button type="button" class="rf-ov-cta" onclick="rfSubFechar()">
@@ -333,6 +336,18 @@ function rfSubConfirmar(){
   }
 }
 
+/* ===== O RELOGIO TEM DE SE VER =====
+   Os tres modais que pausam a partida (intervalo, lesao, expulsao) sempre tiveram prazo — e
+   nenhum o mostrava na pele nova: o contador so' existia no HTML antigo, entao o painel
+   fechava-se sozinho sem nunca ter avisado que havia relogio. Era o "parece muito rapido".
+   O id e' o MESMO que os tiques ja' escrevem (injuryTick, redCardTick, o intervalo da
+   Resenha), entao basta o elemento existir para o numero andar.
+   A frase diz as duas coisas: que anda sozinho, e que ninguem tem de esperar por isso. */
+function rfCronoHTML(id, segs, oQueFaz){
+  return `<span class="rf-crono">${(typeof rfIcone==='function')?rfIcone('relogio',14):'⏱'}
+    <span>${escC(oQueFaz)} em <b id="${escC(id)}">${Math.max(0,Math.ceil(segs))}s</b></span>
+    <i>— ou decida agora</i></span>`;
+}
 /* =====================================================================
    2 · LESÃO — substitui injurySubHTML()
    ===================================================================== */
@@ -373,7 +388,8 @@ function rfLesaoHTML(m,e){
   return rfOverlay({
     w:760, cls:'rf-ov-grave', contexto:rfCtxPartida(m), titulo:'Lesão em campo',
     hdDir:'<span class="rf-ov-glyph">🩹</span>', corpo,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfInjSeguir()">Seguir com 10</button>
+    acoes:`${rfCronoHTML('cl-inj-count', ((CL.injDeadline||0)-Date.now())/1000, alvo?'entra sozinho':'segue com 10')}
+      <button type="button" class="rf-ov-b2" onclick="rfInjSeguir()">Seguir com 10</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" ${alvo?'':'disabled'} onclick="rfInjConfirmar()">Colocar ${escC(alvo?alvo.n.split(' ')[0]:'')}</button>`
   });
@@ -453,7 +469,8 @@ function rfExpulsaoHTML(m,e){
   return rfOverlay({
     w:760, cls:'rf-ov-grave', contexto:rfCtxPartida(m), titulo:'Expulsão',
     hdDir:'<span class="rf-ov-vermelho" aria-label="cartão vermelho"></span>', corpo,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="rfRedManter()">Manter a formação</button>
+    acoes:`${rfCronoHTML('cl-red-count', ((CL.redDeadline||0)-Date.now())/1000, 'segue sozinho')}
+      <button type="button" class="rf-ov-b2" onclick="rfRedManter()">Manter a formação</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="rfRedAplicar()">Aplicar ${escC(sel)}</button>`
   });

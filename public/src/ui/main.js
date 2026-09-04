@@ -7992,18 +7992,26 @@ function liveRowClick(i){ CL.live.sel=i; CL.subOut=CL.subIn=null; cdraw(); }
 function liveContinue(){ const RL=CL.live; if(!RL) return;
   if(RL.paused){ clearHalftimeCountdown(); RL.paused=false; RL.halftimeLeft=null; RL.sel=null; cdraw(); CL._liveTimer=setTimeout(liveTick,320); return; }
   RL.sel=null; cdraw(); }
-/* INTERVALO na Resenha: no máximo 10s para fazer a substituição — se o usuário não apertar
-   Continuar, avança sozinho ao fim do tempo (mantém todos os treinadores sincronizados no tempo). */
+/* INTERVALO na Resenha: 20s para fazer a substituição — se o usuário não apertar Continuar,
+   avança sozinho ao fim do tempo (mantém todos os treinadores sincronizados no tempo).
+   ERAM 10s, e eram poucos: dá para confirmar uma troca já decidida, não para ler o banco —
+   e o relógio corria SEM CONTADOR na tela, então o painel fechava sozinho sem nunca ter
+   avisado que havia relógio. O prazo continua a existir porque ele segura a sala inteira;
+   quem já decidiu não espera por ele (o botão "Continuar para o jogo" avança na hora). */
 let HALFTIME_TIMER=null;
+const HALFTIME_SEG=20;
 function startHalftimeCountdown(){
   clearHalftimeCountdown();
   const RL=CL.live; if(!RL) return;
-  RL.halftimeLeft=10;
+  RL.halftimeLeft=HALFTIME_SEG;
   HALFTIME_TIMER=setInterval(()=>{
     const rl=CL.live;
     if(!rl || !rl.paused){ clearHalftimeCountdown(); return; }
-    rl.halftimeLeft=(rl.halftimeLeft!=null?rl.halftimeLeft:10)-1;
-    const el=document.querySelector('.cl-ht-count'); if(el) el.textContent=Math.max(0,rl.halftimeLeft);
+    rl.halftimeLeft=(rl.halftimeLeft!=null?rl.halftimeLeft:HALFTIME_SEG)-1;
+    /* a pele nova desenha o contador no rodape do painel (#cl-ht-count-b, ver rfCronoHTML);
+       a antiga usa a classe. O selector cobre as duas sem as obrigar a saber uma da outra. */
+    document.querySelectorAll('.cl-ht-count, #cl-ht-count-b').forEach(el=>{
+      el.textContent=Math.max(0,rl.halftimeLeft)+(el.id?'s':''); });
     if(rl.halftimeLeft<=0){ clearHalftimeCountdown(); liveContinue(); }
   }, 1000);
 }
@@ -8012,15 +8020,19 @@ function clearHalftimeCountdown(){ if(HALFTIME_TIMER){ clearInterval(HALFTIME_TI
    entra no lugar, filtrando pela MESMA posição do lesionado (com reserva de emergência
    se não sobrar ninguém daquela posição no banco). Modal clássico: barra de título com
    o nome do clube, fundo vinho, lista de opções, botão OK. ---- */
+/* 15s: escolher quem entra é ler o banco, não confirmar uma decisão já tomada (eram 10s).
+   A expulsão fica nos 12s de propósito — lá a decisão por omissão (seguir com dez) é quase
+   sempre a certa, e o modal não pede leitura nenhuma. */
+const INJ_SEG=15;
 function openInjuryModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.injMatch=m; RL.injEvent=e; RL.sel=RL.matches.indexOf(m);
-  // PRÉ-SELEÇÃO + AUTO-AVANÇO (10s), igual ao modal de pênalti: este modal PAUSA a partida, e na
+  // PRÉ-SELEÇÃO + AUTO-AVANÇO (15s), igual ao modal de pênalti: este modal PAUSA a partida, e na
   // Resenha isso segurava todo mundo esperando um clique. Já vem com o 1º sugerido (mesma posição
   // do lesionado, topo da lista) marcado, então se o treinador não decidir a troca acontece sozinha
   // com uma escolha sensata em vez de travar o jogo. Sem reservas -> segue com 10 (resolveInjuryNoSub).
   const opts=injurySubOptions(e);
   CL.injSel = opts.length ? opts[0].pid : null;
-  CL.injDeadline = Date.now()+10000;
+  CL.injDeadline = Date.now()+INJ_SEG*1000;
   sfx('lesao'); cdraw();
   if(CL._injTimer) clearInterval(CL._injTimer);
   CL._injTimer=setInterval(injuryTick, 200);
@@ -9347,7 +9359,7 @@ function liveModalHTML(m){ const RL=CL.live; const hc=clubOf(m.h),ac=clubOf(m.a)
       </div>`;
   // contador do intervalo (Resenha): linha própria, FORA do botão — btn() escapa o label, então
   // HTML no rótulo apareceria como texto quebrado. Atualizado a cada segundo por startHalftimeCountdown.
-  const halftimeTimerHTML=(halftime && CL.online)?`<div class="cl-ht-timer">⏱ Avança sozinho em <span class="cl-ht-count">${Math.max(0,RL.halftimeLeft!=null?RL.halftimeLeft:10)}</span>s se você não substituir</div>`:'';
+  const halftimeTimerHTML=(halftime && CL.online)?`<div class="cl-ht-timer">⏱ Avança sozinho em <span class="cl-ht-count">${Math.max(0,RL.halftimeLeft!=null?RL.halftimeLeft:HALFTIME_SEG)}</span>s se você não substituir</div>`:'';
   // FASE 3B (mandante): a sessão está pausada esperando a decisão do VISITANTE (pênalti/lesão/
   // expulsão dele) — aviso com o teto de 15s (depois a decisão padrão é aplicada sozinha).
   const remoteWaitHTML=(m.sim && m.sim.pending && m.sim.pending.ev && m.sim.pending.ev.side!==(m.h===CL.clubId?'H':'A'))
