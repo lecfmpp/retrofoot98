@@ -1231,12 +1231,29 @@ function rfLpListaHTML(){
     </div>
   </section>`;
 }
+/* ===== O RODAPE SO' MOSTRA O QUE LEVA A ALGUM SITIO (05/09/2026) =====
+   Metade dos itens daqui eram `<span>`: texto com cara de link que nao clicava em lado nenhum.
+   "Blog", "Canais oficiais", "Cotas de patrocinio", "Parceria de canal" e "Media kit" nao tinham
+   pagina, ancora nem URL — nunca tiveram. E a base dizia "© 2026 RetroFoot98 · Termos ·
+   Privacidade" como TEXTO CORRIDO, o que e' pior do que nao ter: um rodape que anuncia termos e
+   nao os entrega.
+   Agora todo item e' um destino de verdade — ancora da propria landing (rfLpIr) ou pagina —, e a
+   forma de `<span>` some junto com o ultimo item morto que a usava. Item novo aqui so' entra com
+   destino: e' essa a regra que faltava.
+   A coluna "Para marcas" saiu inteira e volta quando a pagina do media kit existir. Nao ha' coluna
+   "Conteudo" porque seria a duplicata das tres primeiras de "Paginas", que ja' lista as dez. */
 function rfLpRodapeHTML(){
+  /* destino que parece CHAMADA de funcao vira botao; o resto e' href. A regex tem de aceitar
+     maiuscula: `rfLpIr(` nao passava por `^[a-z]+\(` e os cinco itens da coluna saiam como
+     <a href="rfLpIr('jogo')"> — link para um endereco que nao existe, que e' exatamente o
+     defeito que este rodape veio corrigir. */
   const col=(t,itens)=>`<div class="rf-lp-fcol"><span class="rf-lp-ft">${escC(t)}</span>
-    ${itens.map(i=>Array.isArray(i)
-      ? `<a class="rf-lp-fl" href="${i[1]}">${escC(i[0])}</a>`
-      : `<span class="rf-lp-fl">${escC(i)}</span>`).join('')}</div>`;
+    ${itens.map(([label,destino])=>/^[A-Za-z_$][\w$]*\(/.test(destino)
+      ? `<button type="button" class="rf-lp-fl" onclick="${destino}">${escC(label)}</button>`
+      : `<a class="rf-lp-fl" href="${destino}">${escC(label)}</a>`).join('')}</div>`;
   const paginas=(typeof LANDING_PAGINAS!=='undefined'?LANDING_PAGINAS:[]).map(([slug,label])=>[label,'/'+slug+'/']);
+  const legais=(typeof LANDING_LEGAIS!=='undefined'?LANDING_LEGAIS:[])
+    .map(([slug,label])=>`<a class="rf-lp-fbl" href="/${slug}/">${escC(label)}</a>`).join('<span class="rf-lp-fbsep">·</span>');
   return `<footer class="rf-lp-rodape">
     <div class="rf-lp-fgrid">
       <div class="rf-lp-fmarca">
@@ -1245,13 +1262,18 @@ function rfLpRodapeHTML(){
           <img class="marca" src="img/marca-clara.svg" alt="Retrofoot.com.br" height="26"></a>
         <p class="rf-lp-fp">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador.</p>
       </div>
-      ${col('O jogo',['Jogar agora','Modo Resenha','Ranking','Ligas Oficiais'])}
-      ${col('Para marcas',['Cotas de patrocínio','Media kit','Parceria de canal'])}
-      ${col('Conteúdo',['Blog','Guia do jogo','Canais oficiais'])}
+      ${col('O jogo',[
+        ['Jogar agora',"rfLpIr('jogo')"],
+        ['Modo Resenha',"rfLpIr('resenha')"],
+        ['Por dentro do jogo',"rfLpIr('telas')"],
+        ['Planos',"rfLpIr('planos')"],
+        ['Embaixadores',"rfLpIr('ligas')"],
+      ])}
       ${col('Páginas',paginas)}
     </div>
     <div class="rf-lp-fbase">
-      <span>© 2026 RetroFoot98 · Termos · Privacidade</span>
+      <span>© 2026 RetroFoot98</span>
+      <span class="rf-lp-fbleg">${legais}</span>
       <div class="rf-sp"></div>
       <span class="rf-lp-fv">v2026.01 — feito por quem cresceu jogando Elifoot.</span>
     </div>

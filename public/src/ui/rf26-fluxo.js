@@ -752,15 +752,27 @@ function rfNovaSenhaHTML(){
 /* =====================================================================
    8 · PÁGINAS INSTITUCIONAIS — rfStage com índice à esquerda
    ===================================================================== */
+/* ===== OS DOCUMENTOS LEGAIS NAO TEM UMA SEGUNDA VERSAO AQUI DENTRO (05/09/2026) =====
+   'termos' e 'privacidade' eram telas com tres paragrafos cada, escritas a mao neste ficheiro.
+   Com as paginas legais de verdade no ar (/termos/, /privacidade/, /cookies/, geradas de
+   seo/legal.mjs), manter estas seria ter DUAS versoes dos termos do mesmo servico — e as duas
+   ja' discordavam: a de Privacidade daqui prometia "sem rastreio pra fora do jogo" com o Google
+   Analytics a carregar em toda visita.
+   Agora sao links para o documento unico. `href` marca a entrada como saida do jogo. */
 const RF_INSTITUCIONAIS=[
   { k:'sobre',     t:'Sobre o RetroFoot98' },
   { k:'ajuda',     t:'Ajuda' },
   { k:'contato',   t:'Contato' },
-  { k:'termos',    t:'Termos de uso' },
-  { k:'privacidade',t:'Privacidade' },
+  { k:'termos',    t:'Termos de uso',  href:'/termos/' },
+  { k:'privacidade',t:'Privacidade',   href:'/privacidade/' },
+  { k:'cookies',   t:'Cookies',        href:'/cookies/' },
 ];
 function rfInstitucionalHTML(view){
   view=view||CL.landingView||'sobre';
+  /* pedido por um dos legais (o rodape antigo ainda manda 'priv'): a pagina de verdade e' outra,
+     e quem cai aqui e' levado para la' em vez de ver o 'Sobre' por engano */
+  const legal=RF_INSTITUCIONAIS.find(x=>x.href && (x.k===view || (view==='priv' && x.k==='privacidade')));
+  if(legal && typeof location!=='undefined'){ location.href=legal.href; return ''; }
   const def=RF_INSTITUCIONAIS.find(x=>x.k===view)||RF_INSTITUCIONAIS[0];
   return rfStage({
     w:1020, semEscudo:true,
@@ -768,8 +780,10 @@ function rfInstitucionalHTML(view){
     titulo:def.t,
     corpo:`<div class="rf-in-cols">
       <div class="rf-card rf-in-nav">
-        ${RF_INSTITUCIONAIS.map(x=>`<button type="button" class="rf-in-l ${x.k===view?'on':''}"
-          onclick="clLandingGo('${x.k}')">${escC(x.t)}</button>`).join('')}
+        ${RF_INSTITUCIONAIS.map(x=>x.href
+          ? `<a class="rf-in-l" href="${x.href}">${escC(x.t)}</a>`
+          : `<button type="button" class="rf-in-l ${x.k===view?'on':''}"
+              onclick="clLandingGo('${x.k}')">${escC(x.t)}</button>`).join('')}
       </div>
       <div class="rf-card rf-in-corpo">
         <span class="rf-in-h">${escC(def.t)}</span>
@@ -802,16 +816,8 @@ function rfInstitucionalCorpo(view){
     </div>`).join('');
   }
   if(view==='contato') return p('Achou um bug, tem uma ideia ou quer chamar pra resenha? Fala com a gente:')
-    +`<div class="rf-in-ct"><span>${rfIcone('email',16)}</span><span class="rf-in-mono">contato@retrofoot98.com</span></div>
+    +`<div class="rf-in-ct"><span>${rfIcone('email',16)}</span><span class="rf-in-mono">suporte@retrofoot.com.br</span></div>
       <div class="rf-in-ct"><span>🐦</span><b>@retrofoot98</b><span class="rf-in-mudo">— novidades e updates</span></div>`;
-  if(view==='termos') return p('<b>1. O jogo.</b> O RetroFoot98 é gratuito para jogar. Você é responsável pela sua conta e pelo que faz nas ligas em que entra.')
-    +p('<b>2. Fair play.</b> Nada de trapaça, bots ou ofensa na resenha. Contas fora da linha podem ser suspensas.')
-    +p('<b>3. Marcas.</b> Nomes de clubes e jogadores pertencem aos seus donos e são usados apenas para fins de simulação.')
-    +`<span class="rf-in-fine">Versão v2026.01</span>`;
-  if(view==='privacidade') return p('<b>O que guardamos.</b> Só o essencial pra você jogar: e-mail, apelido de treinador e o progresso do seu clube, gravado na nuvem.')
-    +p('<b>O que não fazemos.</b> A gente não vende os seus dados. Sem rastreio pra fora do jogo.')
-    +p('<b>Os seus direitos.</b> Você pode pedir os seus dados ou apagar a conta quando quiser — é só falar com a gente no Contato.')
-    +`<span class="rf-in-fine">Versão v2026.01</span>`;
   return p('O RetroFoot98 é um jogo de gestão de futebol jogado no navegador, na linhagem dos gestores clássicos. Você é o treinador: escolhe a tática, negocia jogadores, cuida do caixa e briga por acesso nas Séries A, B, C e D e nas copas.')
     +p('Feito por quem cresceu jogando gestor de futebol no computador da família. Roda em qualquer navegador, sem instalar nada, e o save fica na nuvem.')
     +`<div class="rf-ft-grid">

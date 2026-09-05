@@ -3290,8 +3290,16 @@
 .rf-lp-fcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 .rf-lp-ft{font-size:var(--fs-label);font-weight:var(--fw-bold);letter-spacing:var(--ls-label);
   text-transform:uppercase;color:var(--club-secondary);margin-bottom:2px}
-.rf-lp-fl{font-size:var(--fs-caption);color:var(--text-on-dark-soft);text-decoration:none;cursor:pointer}
+/* O ITEM DO RODAPE E' <a> OU <button> conforme o destino seja pagina ou ancora da propria
+   landing — o botao precisa de perder a pele de botao para ficar igual ao link ao lado. */
+.rf-lp-fl{font-size:var(--fs-caption);color:var(--text-on-dark-soft);text-decoration:none;cursor:pointer;
+  background:none;border:0;padding:0;margin:0;font-family:inherit;text-align:left;width:fit-content}
 .rf-lp-fl:hover{color:#fff}
+/* os legais na base: separados por ponto, discretos, mas clicaveis de verdade */
+.rf-lp-fbleg{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rf-lp-fbl{color:var(--text-on-dark-soft);text-decoration:none}
+.rf-lp-fbl:hover{color:#fff;text-decoration:underline}
+.rf-lp-fbsep{color:var(--text-on-dark-faint)}
 .rf-lp-fbase{max-width:1180px;margin:0 auto;padding:16px 28px 28px;display:flex;align-items:center;
   gap:12px;border-top:1px solid rgba(255,255,255,.1);font-size:var(--fs-caption)}
 .rf-lp-fv{font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-on-dark-faint)}

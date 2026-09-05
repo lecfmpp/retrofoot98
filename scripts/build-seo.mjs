@@ -8,6 +8,11 @@
 // Domínio: troque SEO_SITE por env var, ou edite SITE abaixo (canonical de produção).
 // ============================================================================
 import { pages } from '../seo/pages.mjs';
+/* AS LEGAIS SAO OUTRA LISTA. Mesmo gerador, mesma casca — mas nao sao conteudo de marketing:
+   nao levam resumo, FAQ nem cartao de referencia, nao entram na grelha "Conheca o RetroFoot98"
+   da home e vao ao fundo do sitemap. Misturar as duas listas em pages.mjs faria os Termos
+   aparecerem como sugestao de leitura no rodape de um artigo. */
+import { legal } from '../seo/legal.mjs';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,9 +119,12 @@ function pageHtml(p){
         acceptedAnswer:{ '@type':'Answer', text:String(f.a).replace(/<[^>]+>/g,'') } })) });
   }
   const jsonld = { '@context':'https://schema.org', '@graph': nodes };
-  // links internos (rodapé) — só páginas prontas, exceto a atual
+  // links internos (rodapé) — só páginas de CONTEÚDO prontas, exceto a atual. As legais nunca
+  // entram aqui: elas têm o seu próprio lugar, na base do rodapé.
   const nav = pages.filter(x=>x.ready && x.slug!==p.slug)
     .map(x=>`<a href="/${x.slug}/">${esc(x.h1||x.title)}</a>`).join('');
+  const navLegal = legal.filter(x=>x.ready)
+    .map(x=>`<a href="/${x.slug}/">${esc(x.h1||x.title)}</a>`).join(' · ');
   return `<!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8">
@@ -125,12 +133,12 @@ function pageHtml(p){
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');</script>
 <title>${esc(p.title)} | RetroFoot98</title>
 <meta name="description" content="${esc(p.description)}">
-<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="robots" content="${p.legal?'index, follow':'index, follow, max-image-preview:large'}">
 ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link rel="canonical" href="${url}">
 <meta name="theme-color" content="#2f8f2f">
 <link rel="icon" type="image/webp" href="/img/logo.webp">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
-<meta property="og:type" content="article">
+<meta property="og:type" content="${p.legal?'website':'article'}">
 <meta property="og:site_name" content="RetroFoot98">
 <meta property="og:title" content="${esc(p.title)}">
 <meta property="og:description" content="${esc(p.description)}">
@@ -245,6 +253,19 @@ figcaption{font-size:13px;color:#5a6b58;text-align:center;margin-top:8px}
 .faq-a{padding:0 16px 14px;font-size:15px;line-height:1.6}
 .faq-a p{margin:.3em 0}
 @media (max-width:640px){ .indice ol{columns:1} main h2{margin-top:1.4em} }
+/* ===== PAGINAS LEGAIS =====
+   Documento, nao artigo: sem figura, sem cartao, sem caixa de destaque. O que estas paginas
+   precisam e' de linha confortavel e de hierarquia clara para se percorrer atras de uma clausula.
+   Os H2 ficam mais discretos que num artigo — sao secoes de um texto, nao manchetes. */
+.legal-data{font-size:13.5px;color:#5a6b58;margin:0 0 18px;padding-bottom:14px;border-bottom:1px solid #e2e8e0}
+article.legal p{max-width:74ch;font-size:15.5px}
+article.legal h2{font-size:clamp(18px,2vw,21px);border-top-color:#eef1ed;margin-top:1.6em}
+article.legal strong{color:#14210f}
+.legal-ver{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:34px 0 8px;
+  padding:16px 18px;background:#fff;border:1px solid #d7ddd5;border-radius:8px}
+.legal-ver-t{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#5a6b58;font-weight:800}
+.legal-ver a{font-weight:700;font-size:14.5px}
+.foot-legal a{color:#b9c2e8}
 footer{background:#00005c;border-top:3px solid #1a1aa8;margin-top:34px;color:#dfe4f7;font-size:14px}
 .foot-in{max-width:1180px;margin:0 auto;padding:32px 20px 20px}
 .foot-marca{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px;color:#fff;margin-bottom:8px}
@@ -274,12 +295,12 @@ footer a:hover{text-decoration:underline;color:#ffff00}
 <main>
   <nav class="migalhas" aria-label="Você está em"><a href="/">Início</a> › <span>${esc(p.h1)}</span></nav>
   <h1>${esc(p.h1)}</h1>
-  ${resumoHtml(p)}
+  ${p.legal?'':resumoHtml(p)}
   ${indiceHtml(p.body||'')}
-  <article>${envolveTabelas(ancoraH2(stripMissingFigures(p.body||'')))}</article>
-  ${refsHtml(p)}
-  ${faqHtml(p)}
-  <div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>
+  <article${p.legal?' class="legal"':''}>${envolveTabelas(ancoraH2(stripMissingFigures(p.body||'')))}</article>
+  ${p.legal?'':refsHtml(p)}
+  ${p.legal?'':faqHtml(p)}
+  ${p.legal?'':'<div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>'}
 </main>
 <footer>
   <div class="foot-in">
@@ -289,6 +310,7 @@ footer a:hover{text-decoration:underline;color:#ffff00}
     <div class="links">${nav}</div>
     <div class="foot-fim">
       <span>© 2026 RetroFoot98. Todos os direitos reservados.</span>
+      <span class="foot-legal">${navLegal}</span>
       <span><a href="/">▶ Voltar ao jogo</a></span>
     </div>
   </div>
@@ -297,20 +319,22 @@ footer a:hover{text-decoration:underline;color:#ffff00}
 }
 
 function sitemapXml(ready){
-  const url = (loc, pr, mod) => `  <url>\n    <loc>${loc}</loc>\n${mod?`    <lastmod>${mod}</lastmod>\n`:''}    <changefreq>weekly</changefreq>\n    <priority>${pr}</priority>\n  </url>`;
+  /* changefreq POR PAGINA: um artigo pode mudar toda semana, os Termos nao. Dizer "weekly" numa
+     pagina legal e' pedir ao robo que volte sempre para nada. */
+  const url = (loc, pr, mod, freq) => `  <url>\n    <loc>${loc}</loc>\n${mod?`    <lastmod>${mod}</lastmod>\n`:''}    <changefreq>${freq||'weekly'}</changefreq>\n    <priority>${pr}</priority>\n  </url>`;
   const rows = [ url(SITE + '/', '1.0', '2026-07-25') ];
-  for(const p of ready) rows.push(url(SITE + '/' + p.slug + '/', String(p.priority ?? 0.7), p.lastmod));
+  for(const p of ready) rows.push(url(SITE + '/' + p.slug + '/', String(p.priority ?? 0.7), p.lastmod, p.legal?'yearly':'weekly'));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>\n`;
 }
 
 // ---- build ----
 if(!existsSync(DIST)){ console.error('dist/ não existe — rode `vite build` antes.'); process.exit(1); }
-const ready = pages.filter(p=>p.ready);
+const ready = [...pages, ...legal].filter(p=>p.ready);
 for(const p of ready){
   const dir = resolve(DIST, p.slug);
   mkdirSync(dir, { recursive:true });
   writeFileSync(resolve(dir, 'index.html'), pageHtml(p));
-  console.log('SEO  ✓ /' + p.slug + '/');
+  console.log((p.legal?'LEGAL':'SEO  ') + ' ✓ /' + p.slug + '/');
 }
 writeFileSync(resolve(DIST, 'sitemap.xml'), sitemapXml(ready));
 // mantém public/sitemap.xml em sincronia (fonte que o Vite copia em builds futuros)

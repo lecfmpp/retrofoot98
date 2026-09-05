@@ -986,6 +986,21 @@ const LANDING_PAGINAS=[
   ['jogos-parecidos-com-elifoot','Jogos parecidos com o Elifoot','Alternativas para quem procura aquela mesma pegada.'],
   ['elifoot-vs-brasfoot','Elifoot vs Brasfoot','Um comparativo honesto entre os dois clássicos.'],
 ];
+/* ===== AS PAGINAS LEGAIS SAO OUTRA LISTA =====
+   Nao entram em LANDING_PAGINAS de proposito: aquela lista alimenta TAMBEM a grelha "Conheca o
+   RetroFoot98" da home, e os Termos nao sao cartao de leitura sugerida. Estas vivem na base do
+   rodape, que e' onde se procura por elas.
+   O conteudo esta' em seo/legal.mjs e sai como pagina estatica em /termos/, /privacidade/ e
+   /cookies/ (ver scripts/build-seo.mjs). Os slugs tem de bater com os de la': o gerador avisa
+   no build se uma pagina ficar sem link no rodape. */
+const LANDING_LEGAIS=[
+  ['termos','Termos de uso'],
+  ['privacidade','Privacidade'],
+  ['cookies','Cookies'],
+];
+function rodapeLegaisHTML(sep){
+  return LANDING_LEGAIS.map(([slug,label])=>`<a href="/${slug}/">${escC(label)}</a>`).join(sep||' · ');
+}
 function rodapePaginasHTML(){
   return LANDING_PAGINAS.map(([slug,label])=>`<a class="cl-home-foot" href="/${slug}/">${escC(label)}</a>`).join('');
 }
@@ -1142,7 +1157,7 @@ function landingRodapeHTML(){
         ${col('COMUNIDADE', bt('Para criadores',"clLpIr('criadores')")+bt('Lista de espera','clWaitlistOpen()')
           +bt('Como jogar',"clLandingGo('ajuda')")+bt('Sobre nós',"clLandingGo('sobre')")+bt('Contato',"clLandingGo('contato')"))}
         ${col('PROJETO', bt('Apoie o projeto',"clLandingGo('apoie')")
-          +lk('Contato','mailto:contato@retrofoot98.com')
+          +lk('Contato','mailto:suporte@retrofoot.com.br')
           +bt('Termos de uso',"clLandingGo('termos')")+bt('Privacidade',"clLandingGo('priv')"))}
       </div>
       <div class="cl-lp-foot-paginas">${rodapePaginasHTML()}</div>
@@ -1250,7 +1265,7 @@ async function clWaitlistSubmit(){
     } else CL.waitlistSent=true;
   }catch(e){
     console.warn('lista de espera:', e&&e.message);
-    CL.waitlistErr='Não deu pra gravar agora. Tenta de novo em instantes ou manda um e-mail pra contato@retrofoot98.com.';
+    CL.waitlistErr='Não deu pra gravar agora. Tenta de novo em instantes ou manda um e-mail pra suporte@retrofoot.com.br.';
   }
   CL.waitlistBusy=false; rfWaitlistDraw(); clWaitlistCount();
 }
@@ -1843,7 +1858,7 @@ function landingContatoHTML(){
   return landingPageHTML('Contato', `
     <p>Achou um bug, tem uma ideia ou quer chamar pra resenha? Fala com a gente:</p>
     <div class="cl-home-contact-list">
-      <div class="cl-home-contact-row"><span>✉️</span><span class="cl-home-mono">contato@retrofoot98.com</span></div>
+      <div class="cl-home-contact-row"><span>✉️</span><span class="cl-home-mono">suporte@retrofoot.com.br</span></div>
       <div class="cl-home-contact-row"><span>🐦</span><b>@retrofoot98</b><span class="cl-home-muted">&nbsp;— novidades e updates</span></div>
     </div>
     <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
