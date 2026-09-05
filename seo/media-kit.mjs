@@ -69,26 +69,36 @@ const shot = (arq, alt, w, h, urgente) =>
     urgente ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
 
 /* ---- a tabela de mídia -------------------------------------------------- */
-/* Uma linha por espaço. No telefone as colunas de impressão e CPM saem, e por isso o número de
-   impressões é escrito TAMBÉM na linha de apoio — senão ele desapareceria no tamanho pequeno. */
+/* ===== A IMPRESSAO E' MEDIDA, NAO ESCRITA A MAO (05/09/2026) =====
+   Cada linha tinha um numero fixo ("420.000/mes") que era PROJECAO — e estava 60x acima do que
+   o jogo regista. Agora a coluna vem de elifoot_v3.rf_ad_audiencia(), a mesma contagem de
+   ad_events que o painel mostra, lida a cada carregamento da pagina: nunca mais desatualiza.
+   A CHAVE E' O QUE LIGA os dois lados. Renomear uma chave em ad_spaces sem mexer aqui deixa a
+   linha sem numero (e, por isso, escondida) — nao parte a pagina, mas some da tabela.
+   A COLUNA DE CPM SAIU. A tabela dizia "todos ao mesmo CPM de R$ 4,17"; com a audiencia real
+   essa conta deixou de fechar, e um CPM afirmado que os proprios numeros da pagina desmentem e'
+   pior do que nenhum. Fica o preco, que e' o que o dono vende. */
 const LINHAS = [
-  ['Leaderboard de topo — Centroavante', 'Leaderboard de topo', '970×90 · 320×100 · páginas principais', '420.000', 'R$ 4,17', 'R$ 1.750'],
-  ['Vitrine da barra lateral — Volante', 'Vitrine da barra lateral', '300×300 · áreas centrais', '220.000', 'R$ 4,16', 'R$ 915'],
-  ['Skyscraper esquerdo', 'Skyscraper esquerdo', '160×600 · partida ao vivo', '150.000', 'R$ 4,17', 'R$ 625'],
-  ['Skyscraper direito', 'Skyscraper direito', '160×600 · partida ao vivo', '95.000', 'R$ 4,16', 'R$ 395'],
-  ['Placas — linha de fundo', 'Placas — linha de fundo', '340×44 · 3 placas · 6 aparições', '130.000', 'R$ 4,15', 'R$ 540'],
-  ['Placas — corredor do gramado', 'Placas — corredor', '40×384 · 3 placas · 6 aparições', '130.000', 'R$ 4,15', 'R$ 540'],
-  ['Modo Resenha — cota exclusiva', 'Modo Resenha — cota', '1 marca por temporada', '55.000', 'R$ 4,27', 'R$ 235'],
+  ['rf98.top.970x90',    'Leaderboard de topo — Centroavante', 'Leaderboard de topo',      '970×90 · 320×100 · páginas principais', 'R$ 1.750'],
+  ['rf98.sidebar.vitrine','Vitrine da barra lateral — Volante', 'Vitrine da barra lateral', '300×300 · áreas centrais',              'R$ 915'],
+  ['rf98.rail.esq',      'Skyscraper esquerdo',                'Skyscraper esquerdo',      '160×600 · partida ao vivo',             'R$ 625'],
+  ['rf98.rail.dir',      'Skyscraper direito',                 'Skyscraper direito',       '160×600 · partida ao vivo',             'R$ 395'],
+  ['rf98.campo.deitada', 'Placas — linha de fundo',            'Placas — linha de fundo',  '340×44 · 3 placas · 6 aparições',       'R$ 540'],
+  ['rf98.campo.empe',    'Placas — corredor do gramado',       'Placas — corredor',        '40×384 · 3 placas · 6 aparições',       'R$ 540'],
+  ['rf98.pausa.barra',   'Modo Resenha — cota exclusiva',      'Modo Resenha — cota',      '1 marca por temporada',                 'R$ 235'],
 ];
 
-const linhaTabela = ([nome, curto, apoio, imp, cpm, valor], i) =>
-  `<div class="mk-tl${i % 2 === 0 ? ' zebra' : ''}">
+/* A LINHA NASCE ESCONDIDA e so' aparece quando a audiencia chega. Regra do dono: espaco sem
+   medicao nao entra na tabela — "0 impressoes" ao lado de um preco afasta o anunciante, e o
+   que falta fica sob consulta (ver a nota no pe' da tabela). Se a rede falhar, o script
+   mostra todas as linhas com "sob consulta" no lugar do numero: a tabela nunca fica vazia. */
+const linhaTabela = ([chave, nome, curto, apoio, valor], i) =>
+  `<div class="mk-tl${i % 2 === 0 ? ' zebra' : ''}" data-mk-chave="${chave}" hidden>
     <span class="mk-tl-id">
       <span class="mk-tl-n"><span class="mk-so-desk">${nome}</span><span class="mk-so-mob">${curto}</span></span>
-      <span class="mk-tl-a">${apoio}<span class="mk-so-mob"> · ${imp}/mês</span></span>
+      <span class="mk-tl-a">${apoio}<span class="mk-so-mob" data-mk-apoio></span></span>
     </span>
-    <span class="mk-tl-imp">${imp}</span>
-    <span class="mk-tl-cpm">${cpm}</span>
+    <span class="mk-tl-imp" data-mk-imp>—</span>
     <span class="mk-tl-v">${valor}</span>
   </div>`;
 
@@ -152,6 +162,45 @@ const script = `
   var kit=document.getElementById('mk-kit'), precos=document.getElementById('mk-precos');
   var f=document.getElementById('mk-form'), erro=document.getElementById('mk-erro'),
       btn=document.getElementById('mk-enviar');
+
+  /* ===== A AUDIENCIA VEM DO JOGO, A CADA VISITA =====
+     Le' elifoot_v3.rf_ad_audiencia() — a mesma contagem de ad_events que o painel mostra — e
+     preenche a coluna de impressoes. A linha so' aparece com numero: espaco sem medicao fica
+     de fora, e o que falta esta' coberto pela nota de "sob consulta" no pe' da tabela.
+     REDE FORA DO AR NAO DEIXA A TABELA VAZIA: no erro, mostram-se todas as linhas com
+     "sob consulta" no lugar do numero. O preco, que e' o que a pagina vende, esta' no HTML e
+     nao depende de rede nenhuma. */
+  var fmt=new Intl.NumberFormat('pt-BR');
+  async function audiencia(){
+    var linhas=[].slice.call(document.querySelectorAll('[data-mk-chave]'));
+    if(!linhas.length) return;
+    function mostrarTudo(txt){
+      linhas.forEach(function(l){ l.hidden=false;
+        l.querySelector('[data-mk-imp]').textContent=txt;
+        l.querySelector('[data-mk-apoio]').textContent=''; });
+      var t=document.querySelector('[data-mk-total]'); if(t) t.textContent=txt;
+    }
+    try{
+      var r=await fetch(SB.replace('/retrofoot_media_kit','/rpc/rf_ad_audiencia'),{
+        method:'POST', headers:{ apikey:KEY, Authorization:'Bearer '+KEY,
+          'Content-Type':'application/json', 'Content-Profile':'elifoot_v3' }, body:'{}' });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      var dados=await r.json(), por={};
+      dados.forEach(function(d){ por[d.chave]=d.impressoes|0; });
+      var soma=0;
+      linhas.forEach(function(l){
+        var n=por[l.getAttribute('data-mk-chave')]|0;
+        if(!n) return;                       /* sem medicao nao entra na tabela */
+        soma+=n; l.hidden=false;
+        l.querySelector('[data-mk-imp]').textContent=fmt.format(n);
+        l.querySelector('[data-mk-apoio]').textContent=' · '+fmt.format(n)+' impressões';
+      });
+      var t=document.querySelector('[data-mk-total]');
+      if(t) t.textContent = soma ? fmt.format(soma) : 'sob consulta';
+      if(!soma) mostrarTudo('sob consulta');
+    }catch(e){ mostrarTudo('sob consulta'); }
+  }
+  audiencia();
 
   document.addEventListener('click', function(ev){
     var b=ev.target.closest('[data-mk-ir]');
@@ -471,20 +520,19 @@ export const mediaKit = [{
         <div class="mk-tab">
           <div class="mk-tl cabeca">
             <span class="mk-tl-h">ESPAÇO</span>
-            <span class="mk-tl-h imp">IMPRESSÕES/MÊS</span>
-            <span class="mk-tl-h cpm">CPM</span>
+            <span class="mk-tl-h imp">IMPRESSÕES · 30 DIAS</span>
             <span class="mk-tl-h val">VALOR/MÊS</span>
           </div>
           ${LINHAS.map(linhaTabela).join('')}
           <div class="mk-tl total">
             <span class="mk-tl-n forte">Inventário completo</span>
-            <span class="mk-tl-imp forte">1.200.000</span>
-            <span class="mk-tl-cpm">R$ 4,17</span>
+            <span class="mk-tl-imp forte" data-mk-total>—</span>
             <span class="mk-tl-v grande">R$ 5.000</span>
           </div>
-          <span class="mk-tab-nota">Todos os espaços são vendidos ao mesmo CPM de R$ 4,17 — o valor
-            de cada um segue a projeção de impressões da temporada. As impressões são projeções e
-            podem variar com o volume de partidas.</span>
+          <span class="mk-tab-nota">As impressões são as <b>medidas no próprio jogo</b>, e esta
+            tabela lê o número atualizado a cada visita. O inventário completo cobre todos os
+            espaços, inclusive os que ainda não estão listados acima — esses ficam
+            <b>sob consulta</b> com o comercial.</span>
         </div>
       </div>
     </div>
@@ -725,21 +773,21 @@ select.mk-in{padding:0 11px}
 
 /* tabela de mídia */
 .mk-tab{padding:8px 14px 18px}
-.mk-tl{display:grid;grid-template-columns:minmax(0,1fr) 130px 118px 116px;gap:0 12px;
+.mk-tl{display:grid;grid-template-columns:minmax(0,1fr) 150px 116px;gap:0 12px;
   align-items:center;padding:13px 10px;border-radius:10px}
+.mk-tl[hidden]{display:none}
 .mk-tl.zebra{background:#f6f8f5}
 .mk-tl.cabeca{padding:12px 10px 8px;border-bottom:1px solid var(--mk-bd);border-radius:0;background:none}
 .mk-tl.total{padding:16px 10px 6px;margin-top:6px;border-top:2px solid var(--mk-tinta);
   border-radius:0;background:none}
 .mk-tl-h{font-size:10px;font-weight:700;color:var(--mk-cinza2);letter-spacing:.12em}
-.mk-tl-h.imp,.mk-tl-h.cpm,.mk-tl-h.val{text-align:right}
+.mk-tl-h.imp,.mk-tl-h.val{text-align:right}
 .mk-tl-id{min-width:0;display:flex;flex-direction:column;gap:2px}
 .mk-tl-n{font-size:14px;font-weight:600;color:var(--mk-tinta)}
 .mk-tl-n.forte{font-weight:700}
 .mk-tl-a{font-family:var(--mk-mono);font-size:11px;color:var(--mk-cinza)}
 .mk-tl-imp{font-family:var(--mk-mono);font-size:13px;color:#5d6c62;text-align:right}
 .mk-tl-imp.forte{font-weight:600;color:var(--mk-tinta)}
-.mk-tl-cpm{font-family:var(--mk-mono);font-size:13px;color:var(--mk-cinza2);text-align:right}
 .mk-tl-v{font-family:var(--mk-mono);font-size:15px;font-weight:600;color:var(--mk-tinta);
   text-align:right;white-space:nowrap}
 .mk-tl-v.grande{font-size:18px;color:var(--mk-az)}
@@ -784,7 +832,7 @@ select.mk-in{padding:0 11px}
   .mk-h1{font-size:34px}
   .mk-h2{font-size:27px}
   .mk-tl{grid-template-columns:minmax(0,1fr) 96px}
-  .mk-tl-imp,.mk-tl-cpm,.mk-tl-h.imp,.mk-tl-h.cpm{display:none}
+  .mk-tl-imp,.mk-tl-h.imp{display:none}
   .mk-so-desk{display:none}
   .mk-so-mob{display:inline}
 }
