@@ -58,8 +58,12 @@ const capa = (titulo, direita) => `<div class="mk-capa">
   ${direita ? `<span class="mk-capa-d">${direita}</span>` : ''}
 </div>`;
 
-const shot = (arq, alt, w, h, cls) =>
-  `<img class="mk-img ${cls || ''}" src="/img/mediakit/${arq}" alt="${alt}" width="${w}" height="${h}" loading="lazy" decoding="async">`;
+/* A CAPTURA DO HERO NAO E' LAZY. Ela e' o maior elemento da primeira dobra — e' o LCP da
+   pagina —, e adiar o pedido dela e' adiar a unica coisa que o visitante veio ver. As de baixo
+   continuam lazy, que e' onde o lazy serve para alguma coisa. */
+const shot = (arq, alt, w, h, urgente) =>
+  `<img class="mk-img" src="/img/mediakit/${arq}" alt="${alt}" width="${w}" height="${h}" ${
+    urgente ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"'} decoding="async">`;
 
 /* ---- a tabela de mídia -------------------------------------------------- */
 /* Uma linha por espaço. No telefone as colunas de impressão e CPM saem, e por isso o número de
@@ -229,7 +233,7 @@ export const mediaKit = [{
       <div class="mk-col">
         <div class="mk-cart sombra">
           ${capa('O espaço de topo no jogo a correr', '970 × 90')}
-          ${shot('topo.jpg', 'O jogo aberto com a faixa de topo destacada em amarelo', 1600, 1055)}
+          ${shot('topo.jpg', 'O jogo aberto com a faixa de topo destacada em amarelo', 1600, 1055, true)}
         </div>
       </div>
     </div>
