@@ -998,6 +998,12 @@ const LANDING_LEGAIS=[
   ['privacidade','Privacidade'],
   ['cookies','Cookies'],
 ];
+/* O MEDIA KIT tambem nao entra em LANDING_PAGINAS: nao e' conteudo para o jogador, e' a pagina
+   comercial. Fica aqui para o rodape a poder linkar e para o build a reconhecer como ligada —
+   o gerador avisa quando uma pagina nasce sem porta nenhuma (ver o fim de scripts/build-seo.mjs). */
+const LANDING_COMERCIAL=[
+  ['media-kit','Media kit'],
+];
 function rodapeLegaisHTML(sep){
   return LANDING_LEGAIS.map(([slug,label])=>`<a href="/${slug}/">${escC(label)}</a>`).join(sep||' · ');
 }

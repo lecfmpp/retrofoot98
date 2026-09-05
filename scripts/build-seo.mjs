@@ -13,6 +13,10 @@ import { pages } from '../seo/pages.mjs';
    da home e vao ao fundo do sitemap. Misturar as duas listas em pages.mjs faria os Termos
    aparecerem como sugestao de leitura no rodape de um artigo. */
 import { legal } from '../seo/legal.mjs';
+/* O MEDIA KIT E' UMA TERCEIRA CATEGORIA: nem artigo, nem documento legal. E' uma pagina
+   comercial de largura inteira, com desenho proprio (`css`) e sem a barra branca do site
+   (`semCabecalho`) — o desenho tem a sua propria abertura, com a marca la' dentro. */
+import { mediaKit } from '../seo/media-kit.mjs';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -278,9 +282,10 @@ footer a{color:#dfe4f7;text-decoration:none;font-weight:700;font-size:13px}
 footer a:hover{text-decoration:underline;color:#ffff00}
 .foot-fim{padding-top:14px;border-top:1px solid #2a2a7a;display:flex;flex-wrap:wrap;gap:10px;
   justify-content:space-between;font-size:12px;color:#9aa3d0}
+${p.css||''}
 </style>
 </head><body>
-<header>
+${p.semCabecalho?'':`<header>
   <div class="hdr-in">
     <a class="brand" href="/"><img src="/img/logo.webp" alt="RetroFoot98" width="40" height="40">RetroFoot<i>98</i></a>
     <nav>
@@ -291,12 +296,15 @@ footer a:hover{text-decoration:underline;color:#ffff00}
     </nav>
     <a class="cta" href="/">📋 Entrar na lista</a>
   </div>
-</header>
+</header>`}
 <main>
-  <nav class="migalhas" aria-label="Você está em"><a href="/">Início</a> › <span>${esc(p.h1)}</span></nav>
-  <h1>${esc(p.h1)}</h1>
+  ${p.semCabecalho?'':`<nav class="migalhas" aria-label="Você está em"><a href="/">Início</a> › <span>${esc(p.h1)}</span></nav>
+  <h1>${esc(p.h1)}</h1>`}
   ${p.legal?'':resumoHtml(p)}
-  ${indiceHtml(p.body||'')}
+  <!-- O INDICE E' MOBILIA DE ARTIGO. Numa pagina com desenho proprio (o media kit) ele
+       aparecia ACIMA da abertura, antes de o visitante ver o que a pagina e' — um sumario
+       de acordeoes por cima de uma capa. Quem traz semCabecalho traz o seu proprio topo. -->
+  ${p.semCabecalho?'':indiceHtml(p.body||'')}
   <article${p.legal?' class="legal"':''}>${envolveTabelas(ancoraH2(stripMissingFigures(p.body||'')))}</article>
   ${p.legal?'':refsHtml(p)}
   ${p.legal?'':faqHtml(p)}
@@ -315,6 +323,7 @@ footer a:hover{text-decoration:underline;color:#ffff00}
     </div>
   </div>
 </footer>
+${p.script?`<script>${p.script}</script>`:''}
 </body></html>`;
 }
 
@@ -329,12 +338,12 @@ function sitemapXml(ready){
 
 // ---- build ----
 if(!existsSync(DIST)){ console.error('dist/ não existe — rode `vite build` antes.'); process.exit(1); }
-const ready = [...pages, ...legal].filter(p=>p.ready);
+const ready = [...pages, ...legal, ...mediaKit].filter(p=>p.ready);
 for(const p of ready){
   const dir = resolve(DIST, p.slug);
   mkdirSync(dir, { recursive:true });
   writeFileSync(resolve(dir, 'index.html'), pageHtml(p));
-  console.log((p.legal?'LEGAL':'SEO  ') + ' ✓ /' + p.slug + '/');
+  console.log((p.legal?'LEGAL':p.css?'PAGINA':'SEO  ') + ' ✓ /' + p.slug + '/');
 }
 writeFileSync(resolve(DIST, 'sitemap.xml'), sitemapXml(ready));
 // mantém public/sitemap.xml em sincronia (fonte que o Vite copia em builds futuros)

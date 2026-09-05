@@ -1240,8 +1240,10 @@ function rfLpListaHTML(){
    Agora todo item e' um destino de verdade — ancora da propria landing (rfLpIr) ou pagina —, e a
    forma de `<span>` some junto com o ultimo item morto que a usava. Item novo aqui so' entra com
    destino: e' essa a regra que faltava.
-   A coluna "Para marcas" saiu inteira e volta quando a pagina do media kit existir. Nao ha' coluna
-   "Conteudo" porque seria a duplicata das tres primeiras de "Paginas", que ja' lista as dez. */
+   A coluna "Para marcas" tinha tres itens mortos ("Cotas de patrocinio", "Media kit", "Parceria
+   de canal") e chegou a sair inteira; voltou em 05/09 com a pagina /media-kit/ a existir de
+   verdade. Nao ha' coluna "Conteudo" porque seria a duplicata das tres primeiras de "Paginas",
+   que ja' lista as dez. */
 function rfLpRodapeHTML(){
   /* destino que parece CHAMADA de funcao vira botao; o resto e' href. A regex tem de aceitar
      maiuscula: `rfLpIr(` nao passava por `^[a-z]+\(` e os cinco itens da coluna saiam como
@@ -1268,6 +1270,10 @@ function rfLpRodapeHTML(){
         ['Por dentro do jogo',"rfLpIr('telas')"],
         ['Planos',"rfLpIr('planos')"],
         ['Embaixadores',"rfLpIr('ligas')"],
+      ])}
+      ${col('Para marcas',[
+        ['Media kit','/media-kit/'],
+        ['Falar com o comercial','/media-kit/#falar'],
       ])}
       ${col('Páginas',paginas)}
     </div>

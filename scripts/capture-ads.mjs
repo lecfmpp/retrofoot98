@@ -46,6 +46,12 @@ await run(()=>{ rfGo('hub'); });
 await tira('01-topo-970x90','.rf-ad-top');
 await run(()=>{ const a=document.querySelector('[data-ad-vazio="rf98.hub.sidebar"]'); if(a) a.scrollIntoView({block:'center'}); },600);
 await tira('03-hub-300x250','[data-ad-vazio="rf98.hub.sidebar"]');
+/* A VITRINE DA BARRA LATERAL (rf98.sidebar.vitrine) — faltava na lista desde que o espaco
+   passou a ser inventario, e por isso o media kit nao tinha imagem dele. O seletor e' o do
+   cartao inteiro (.rf-sb-ad), nao o do marcador de vazio: este lugar nunca fica vazio — sem
+   criativo publicado ele mostra a arte de casa (ver rfSbAnuncioHTML em ui/rf26.js). */
+await run(()=>{ const a=document.querySelector('.rf-sb-ad'); if(a) a.scrollIntoView({block:'center'}); },600);
+await tira('18-vitrine-300x300','.rf-sb-ad');
 
 /* A ENTRADA NO CLUBE (rf98.entrada.sorteio) — a tela de boas-vindas do pos-sorteio.
    Chega-se a ela pelo roteador (CL.screen='boasvindas' -> rfOb7), sem refazer o
