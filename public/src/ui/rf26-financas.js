@@ -376,9 +376,21 @@ function rfFiEstadioHTML(){
    REPARTEM esse valor (a soma é o total exacto, o último leva o resto), então
    o que está escrito nos contratos é dinheiro que entra mesmo no caixa.
 
-   NÃO HÁ CONTRATO NO MOTOR — não há marca com vencimento nem negociação. As
-   marcas de AD_SPONSORS são publicidade da tela e entram só como a arte do
-   espaço; o vencimento fica em traço porque não existe.
+   NÃO HÁ CONTRATO NO MOTOR — não há marca com vencimento nem negociação, e por
+   isso o vencimento fica em traço.
+
+   ===== AS MARCAS INVENTADAS SAÍRAM (04/09/2026) =====
+   Estes três contratos vinham carimbados com Betano, CazéTV e iFood, tiradas de
+   AD_SPONSORS. Nenhuma existia: não havia contrato com elas, não estavam no painel
+   (elifoot_v3.ad_spaces) e o jogo nem sequer tinha link para onde as mandar. Lidas
+   nesta tela ao lado de um valor em reais, pareciam patrocínio real do clube.
+
+   O DINHEIRO CONTINUA. Só a marca saiu. Onde havia logo há agora "Em breve", que é a
+   verdade: o espaço existe no jogo, a receita entra, e a marca é o que ainda falta.
+
+   A EXCEÇÃO É O PATROCINADOR DA CAMISA quando o clube TEM um: esse vem do uniforme
+   (Estúdio do painel -> RF_UNIFORMES), é escolhido por quem administra o jogo e é o
+   mesmo que está estampado na camisa — real, e por isso fica.
 
    OS "ESPAÇOS LIVRES" SAÍRAM. Ofereciam calção e boné "a partir de X/temporada"
    numa venda que o jogo não sabe fazer: nenhum clique, nenhuma receita. Pela
@@ -394,10 +406,9 @@ function rfFiPatrocinioHTML(){
      contrato se lê, e a divisão por rodada continua à vista na etiqueta do cartão. */
   const rodadas=((S.sched||[]).length)||38;
   const total=porRodada*rodadas;
-  const marcas=(typeof AD_SPONSORS!=='undefined')?AD_SPONSORS:[];
   /* SINCRONIA COM O UNIFORME: o patrocinador da CAMISA é o mesmo que está estampado no uniforme
      do clube (Estúdio do painel -> RF_UNIFORMES). Trocou o logo no uniforme, troca aqui — uma
-     fonte só. Sem uniforme com patrocinador, cai no rodízio de sempre (AD_SPONSORS). */
+     fonte só. Sem uniforme com patrocinador, o espaço fica em "Em breve". */
   const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)]||{};
   const quota=[0.55,0.27,0.18];                    // camisa · manga · placas
   const v0=Math.round(total*quota[0]), v1=Math.round(total*quota[1]);
@@ -411,24 +422,29 @@ function rfFiPatrocinioHTML(){
   return `<div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">CONTRATOS ATIVOS</span>
         <span class="rf-label-r">${escC(fmt(total))}/temporada · ${escC(fmt(porRodada))} por rodada</span></div>
-      ${ativos.map((e,i)=>{
-        const m=marcas[i%Math.max(1,marcas.length)];
-        const src=e.marcaSrc||(m&&m.src)||null;
-        const nomeMarca=e.marcaNome||(e.marcaSrc?'Patrocinador do clube':(m?m.nome:e.nome));
-        return `<div class="rf-fi-contrato">
-          <span class="rf-fi-marca">${src?`<img src="${escC(src)}" alt="${escC(nomeMarca)}">`:'—'}</span>
+      ${ativos.map(e=>{
+        /* SEM MARCA, O LUGAR DIZ O QUE E'. O selo tambem muda: "ATIVO" ao lado de "Em breve"
+           era contraditorio — o que esta' ativo e' a RECEITA, e ela aparece no valor. */
+        const src=e.marcaSrc||null;
+        const temMarca=!!src;
+        const nomeMarca=temMarca?(e.marcaNome||'Patrocinador do clube'):'Em breve';
+        return `<div class="rf-fi-contrato${temMarca?'':' rf-fi-contrato-vago'}">
+          <span class="rf-fi-marca">${temMarca?`<img src="${escC(src)}" alt="${escC(nomeMarca)}">`:'—'}</span>
           <span class="rf-fi-contrato-id">
             <span class="rf-fi-contrato-n">${escC(nomeMarca)}</span>
             <span class="rf-fi-contrato-p">${escC(e.papel)}</span>
           </span>
           <span class="rf-fi-contrato-v">${escC(fmt(e.valor))}/temp.</span>
           <span class="rf-fi-contrato-d">—</span>
-          <span class="rf-fi-selo ativo">ATIVO</span>
+          <span class="rf-fi-selo ${temMarca?'ativo':'vago'}">${temMarca?'ATIVO':'EM BREVE'}</span>
         </div>`;
       }).join('')}
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COMO AUMENTAR O PATROCÍNIO</span></div>
+      <span class="rf-fi-texto">O espaço já rende: <b>o dinheiro destes três contratos entra
+        no caixa</b> mesmo sem marca nenhuma estampada — a marca é o que ainda falta, e é isso
+        que o <b>Em breve</b> diz.</span>
       <span class="rf-fi-texto">O valor do ano inteiro entra <b>de uma vez</b>, na primeira rodada
         da temporada — é caixa para o mercado logo na abertura, e não volta a entrar. Depois disso o
         clube vive de cota de TV e bilheteria. O contrato sobe com a força do elenco, e subir de

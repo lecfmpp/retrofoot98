@@ -6799,6 +6799,14 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
   border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap;justify-self:end;
   color:#fff;background:var(--ok)}
 .rf-fi-selo.renovar{color:var(--club-on-secondary);background:var(--club-secondary)}
+/* CONTRATO SEM MARCA: o lugar existe e a receita entra, so' falta quem o assine. Borda
+   tracejada e selo neutro — o verde de "ATIVO" ao lado de "Em breve" dizia duas coisas
+   contrarias na mesma linha. */
+.rf-fi-contrato-vago{border-style:dashed;border-color:var(--line-2)}
+.rf-fi-contrato-vago .rf-fi-marca{border-style:dashed;background:transparent;
+  color:var(--text-faint);font-family:var(--font-mono);font-size:12px}
+.rf-fi-contrato-vago .rf-fi-contrato-n{color:var(--text-4)}
+.rf-fi-selo.vago{color:var(--text-4);background:transparent;border:1px dashed var(--line-2)}
 .rf-fi-livre{display:flex;align-items:center;gap:12px;padding:10px;
   border:1px dashed var(--line-2);border-radius:12px}
 .rf-fi-livre-i{font-size:16px;color:var(--text-faint);line-height:1}

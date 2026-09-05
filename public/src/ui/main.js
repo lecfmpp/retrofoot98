@@ -380,15 +380,25 @@ function menuSairHTML(){
    UM slot por janela, no rodapé do corpo e logo acima da barra de ação. A moldura de bisel
    invertido + o rótulo "PUBLICIDADE" (que vem do CSS, não do HTML) fazem o bloco ler como área
    reservada do jogo, e não como arte solta colada por cima.
-   A "arte" vem do MESMO inventário de patrocinadores que a faixa do Camarote e a pausa já usam
-   (AD_SPONSORS): logo, chamada e cores por marca, num lugar só. Sem entrega de anunciante, o
-   slot cai no anúncio-casa — que é a própria marca do jogo, não um cartaz inventado.
    `slot` é a chave do espaço no ad server: nunca repetir o mesmo id em telas diferentes.
 
    ENTREGA REAL (painel dos sócios): quando existe criativo publicado para esta chave
    (ver public/src/net/ads.js e a tabela elifoot_v3.ad_spaces), é ELE que aparece — a
-   arte enviada pelo anunciante, com o link dele. O anúncio-casa abaixo continua sendo
-   o que preenche o espaço enquanto ninguém comprou aquela chave. */
+   arte enviada pelo anunciante, com o link dele.
+
+   ===== NAO HA MAIS MARCA DE CASA INVENTADA (04/09/2026) =====
+   Sem criativo, isto desenhava uma faixa da Betano, da CazeTV ou do iFood, com chamada
+   ("Faca a sua primeira aposta...") e botao SAIBA MAIS. Nao havia contrato com nenhuma
+   das tres, o `url` estava vazio de proposito e o botao so' abria um toast a dizer que o
+   link nao estava configurado — publicidade que nao vende, nao paga e nao leva a lado
+   nenhum, com marca de terceiros por cima. Pela regra do dono (funcionalidade que nao
+   existe nao se anuncia) saiu inteira.
+
+   O QUE FICA NO LUGAR depende de o espaco ser INVENTARIO A SERIO. Chave `rf98.*` esta' em
+   elifoot_v3.ad_spaces e pode ser vendida: mostra-se o lugar reservado, com a medida, que
+   e' o que deixa conferir o inventario. Qualquer outro id (os `modal-*-728x90` dos nove
+   modais) nao existe no painel e nunca podera' ser comprado: nao se desenha nada, em vez
+   de reservar espaco na tela para uma venda que ninguem sabe fazer. */
 function adSlotHTML(slot, opts){
   opts = typeof opts==='string' ? {cls:opts} : (opts||{});
   // espaco desligado no painel: a janela fecha sem a faixa, e sem sobra de margem
@@ -398,23 +408,7 @@ function adSlotHTML(slot, opts){
      inventario que o painel vende, e ele tem de ser visivel para se poder conferir */
   if(/^rf98\./.test(String(slot||'')) && typeof rfAdEspaco==='function')
     return rfAdEspaco(slot, {cls:'cl-ad '+(opts.cls||''), formato:opts.formato||'728×90'});
-  const i=Math.abs(hashC(String(slot||'')))%AD_SPONSORS.length;
-  const s=AD_SPONSORS[i];
-  return `<div class="cl-ad ${opts.cls||''}" data-ad-slot="${escC(slot||'')}">
-    <div class="cl-ad-in" style="background:${s.bg};color:${s.fg}">
-      <img class="cl-ad-logo" src="${s.src}" alt="${escC(s.nome)}">
-      <span class="cl-ad-txt">${escC(s.cta)}</span>
-      <button type="button" class="cl-ad-cta" style="${camCtaStyle(i)}" onclick="adSlotClick('${escC(slot||'')}',${i})">SAIBA MAIS</button>
-    </div>
-  </div>`;
-}
-/* mesma mecânica do botão do Camarote (camAdClick) e da faixa de copa: abre em aba nova, sem
-   handle da janela do jogo, e registra o clique por marca — aqui com o id do slot. */
-function adSlotClick(slot, i){
-  const s=AD_SPONSORS[i]; if(!s) return;
-  try{ if(typeof gtag==='function') gtag('event','sponsor_click',{sponsor:s.nome, placement:slot||'modal'}); }catch(e){}
-  if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
-  window.open(s.url,'_blank','noopener,noreferrer');
+  return '';
 }
 /* ===== DIALOG (rebranding 2026, telas/Popups e Toasts.html) =====
    Uma peça só pra todo popup do jogo. A anatomia é a da referência:
@@ -508,26 +502,19 @@ const PAUSA_JOKES=[
   'O meio-campo era pelado. Ninguém reclamava: era tática.',
   'Contratação saía no jornal de domingo. Chegava na quarta.',
 ];
-/* ---- PATROCINADORES ----
-   Fonte ÚNICA: logo, chamada e cores do botão de cada marca. A faixa do Modo Camarote destaca uma
-   marca por vez e mostra O BOTÃO DELA ao lado (é o clique que vale pro patrocinador — ver
-   camAdClick); o marquee da pausa usa só os logos.
+/* ===== AS TRES MARCAS DE CASA SAIRAM (04/09/2026) =====
+   Aqui vivia `AD_SPONSORS`: Betano, CazeTV e iFood, com logo, chamada e cores, e um
+   `url` vazio "para preencher depois". Nunca houve contrato com nenhuma das tres, elas
+   nao estavam em elifoot_v3.ad_spaces (logo, o painel nao as podia ligar, desligar,
+   precificar nem medir) e o botao delas so' abria um toast a dizer que o link nao estava
+   configurado. Eram cartaz, nao inventario — e cartaz com marca de terceiros.
 
-   `url` está VAZIO de propósito: não invento link de patrocinador. Preencha aqui com a URL real
-   (ou de afiliado) de cada marca e o botão passa a abrir sozinho — enquanto estiver vazio ele
-   avisa no toast em vez de abrir uma página quebrada. */
-const AD_SPONSORS=[
-  { nome:'Betano', src:'img/sponsors/betano.png', url:'',
-    cta:'Faça a sua primeira aposta e ganhe R$ 30 de volta',
-    bg:'#cc0000', fg:'#ffffff', bevel:'#ff6b6b #6a0000 #6a0000 #ff6b6b' },
-  { nome:'CazéTV', src:'img/sponsors/cazetv.webp', url:'',
-    cta:'Assista à Premier League de graça',
-    bg:'#000080', fg:'#ffff00', bevel:'#4040c0 #000030 #000030 #4040c0' },
-  { nome:'iFood', src:'img/sponsors/ifood.svg', url:'',
-    cta:'Pegue o cupom RetroFoot98 de 30%',
-    bg:'#0b7a2f', fg:'#eaffea', bevel:'#3fcf6a #063d18 #063d18 #3fcf6a' },
-];
-const AD_LOGOS=AD_SPONSORS.map(s=>s.src);
+   NAO CONFUNDIR COM O DINHEIRO DO PATROCINIO, que e' de verdade: metade da receita-base
+   do clube entra como patrocinio todas as temporadas (REBAL.receitaPartes, creditado por
+   processFinances). O que saiu foi a MARCA colada por cima desse numero, nao o numero.
+
+   Quem quiser vender qualquer um destes lugares publica na chave `rf98.*` pelo painel —
+   e' esse o caminho, e ja' funciona (ver public/src/net/ads.js). */
 /* Piso da pausa técnica — a ÚNICA espera que sobrou por opção, não por proteção: é a janela em
    que o patrocinador aparece (ver .rf-sponsor em scWaitRound) e em que o clipe/piada giram (a
    cada 5s, ou seja, uma troca por pausa). Tudo o mais no fechamento da rodada foi cortado pro
@@ -592,10 +579,6 @@ function pausaChecklist(){
     +it((sincronizou||outros)?'ok':'wait','Resultados dos outros treinadores')
     +it(sincronizou?'ok':'wait','Fechamento da semana no servidor')
     +it(sincronizou?'ok':'dim','Tabela, finanças e propostas');
-}
-function adTilesHTML(){        // 6 ladrilhos (3 marcas repetidas) — marquee do handoff
-  const seq=[0,1,2,0,1,2];
-  return seq.map(i=>`<span class="rf-tile"><img src="${AD_LOGOS[i]}" alt="patrocinador"></span>`).join('');
 }
 /* GATE DE PUBLICIDADE: quando a rodada sincroniza, a continuação (classificação -> time novo)
    NÃO roda na hora — fica presa aqui até (a) completar os 10s da pausa, que aí segue sozinha, ou
@@ -9215,19 +9198,9 @@ function camaroteHTML(m){
   // alcançável — a sobreposição inteira vem de rfCamHTML.
   return rfCamHTML(CL.live||{matches:[m]});
 }
-function camAdIdx(){ const RL=CL.live; return Math.floor(((RL&&RL.minute)||0)/8)%AD_SPONSORS.length; }
-/* o botão veste as cores da marca em destaque (o relevo 98 vem do bevel de cada uma) */
-function camCtaStyle(i){ const s=AD_SPONSORS[i!=null?i:camAdIdx()]; if(!s) return '';
-  return `background:${s.bg};color:${s.fg};border-color:${s.bevel}`; }
-/* clique no botão da marca em destaque — é o que converte pro patrocinador. Abre em aba nova
-   (noopener: a página do anunciante nunca ganha handle da janela do jogo) e registra o evento no
-   gtag já presente na página, pra dar número de cliques por marca. */
-function camAdClick(){
-  const s=AD_SPONSORS[camAdIdx()]; if(!s) return;
-  try{ if(typeof gtag==='function') gtag('event','sponsor_click',{sponsor:s.nome, placement:'camarote'}); }catch(e){}
-  if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
-  window.open(s.url,'_blank','noopener,noreferrer');
-}
+/* camAdIdx/camCtaStyle/camAdClick sairam com as marcas de casa. A banda do Camarote ja'
+   nao passava por aqui ha' muito: os cinco lugares sao chaves do painel (RF_CAM_LOGOS em
+   ui/rf26-live.js) e o botao veste as cores que vem com o criativo. */
 /* tudo que muda a cada minuto vive aqui dentro (um innerHTML só em camUpdate).
    O DESENHO é o da leva nova, em rf26-live.js — aqui fica só a ponte, porque é
    este nome que camUpdate chama. */
@@ -9275,10 +9248,10 @@ function camUpdate(){
     const st=host.querySelector('.rf-cam-stats'); // sem animação: redesenho aqui não pisca
     if(st) st.outerHTML=camStatsHTML(m);
   }
-  /* O RODÍZIO CONTA OS LUGARES QUE ESTÃO NA TELA, não os logos de casa: a banda
-     do Camarote passou a ter cinco lugares vendáveis (ver RF_CAM_LOGOS em
-     rf26-live.js) e AD_SPONSORS tem três — com o índice preso ao tamanho da
-     lista de casa, os dois últimos lugares nunca ganhavam o destaque. */
+  /* O RODÍZIO CONTA OS LUGARES QUE ESTÃO NA TELA: a banda do Camarote tem cinco
+     lugares vendáveis (ver RF_CAM_LOGOS em rf26-live.js). O índice já esteve preso
+     ao tamanho da antiga lista de marcas de casa, que tinha três — e assim os dois
+     últimos lugares nunca ganhavam o destaque. */
   const ads=document.querySelectorAll('.rf-cam-ad');
   const i=ads.length?Math.floor((((CL.live&&CL.live.minute)||0))/8)%ads.length:0;
   ads.forEach((el,k)=>el.classList.toggle('on',k===i));
@@ -10162,10 +10135,6 @@ function scWaitRoundLegado(){
            nem saber disso. Agora o caminho é o certo: sincronizar de verdade com a sala. -->
       <div id="cl-wait-escape" class="rf-skiprow" style="display:${pausaStuck()?'':'none'}">${btn('Sincronizar a Resenha','clResenhaSync()',{icon:'🔄',cls:'cl-btn-ok'})}</div>
     </div>
-    <div class="rf-sponsor">
-      <div class="rf-sponlabel"><b>Patrocínio oficial</b><span>Quem banca a resenha</span></div>
-      <div class="rf-spontrack"><div class="rf-sponrun">${adTilesHTML()}${adTilesHTML()}</div></div>
-    </div>
   </div>`;
 }
 /* clWaitRoundSkip saiu junto com o botão "Voltar ao meu time" (ver scWaitRound): a única coisa
@@ -10999,10 +10968,9 @@ const CUP_IDLE_DICAS=[
 ];
 function cupIdleIdx(){ return ((S&&S.season||1)*7 + (S&&S.round||0)); }
 function cupIdleDica(){ return CUP_IDLE_DICAS[cupIdleIdx()%CUP_IDLE_DICAS.length]; }
-function cupIdleSponsorIdx(){ return cupIdleIdx()%AD_SPONSORS.length; }
 function cupIdlePanelHTML(key){
   const nome=(COMP_DEFS[key]&&COMP_DEFS[key].name)||'competição';
-  const d=cupIdleDica(), si=cupIdleSponsorIdx(), s=AD_SPONSORS[si];
+  const d=cupIdleDica();
   return `<div class="cl-cupidle">
     <div class="cl-cupidle-tip">
       <div class="cl-cupidle-hd">Hoje é dia de ${escC(nome)} — o seu clube não disputa esta rodada</div>
@@ -11011,33 +10979,19 @@ function cupIdlePanelHTML(key){
     </div>
     ${(function(){
       /* MESMO PATROCINIO DAS OUTRAS FAIXAS (rf98.pausa.barra): quem compra a apresentacao leva
-         o Camarote, a pausa e esta tela. Sem criativo, ficam as marcas de casa. */
+         o Camarote, a pausa e esta tela. SEM CRIATIVO NAO HA FAIXA: aqui giravam as marcas de
+         casa (Betano/CazeTV/iFood) com um botao que nao abria nada. "Rodada apresentada por"
+         so' se pode escrever quando alguem apresenta mesmo. */
       const c=(typeof ADS!=='undefined'&&window.ADS)?ADS.get('rf98.pausa.barra'):null;
-      if(c && c.ficheiro_url) return `<div class="cl-cupidle-ad"
+      if(!c || !c.ficheiro_url) return '';
+      return `<div class="cl-cupidle-ad"
         data-ad-chave="rf98.pausa.barra" data-ad-id="${escC(c.id)}">
         <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
         <img class="cl-cupidle-logo" src="${escC(c.ficheiro_url)}" alt="Patrocinador">
         ${c.link_destino?`<button class="cl-cupidle-cta" onclick="ADS.clique('rf98.pausa.barra')">Conhecer o patrocinador</button>`:''}
       </div>`;
-      return `<div class="cl-cupidle-ad">
-        <span class="cl-cupidle-lbl">RODADA APRESENTADA POR</span>
-        <img class="cl-cupidle-logo" src="${s.src}" alt="${escC(s.nome)}">
-        <button class="cl-cupidle-cta" style="${camCtaStyle(si)}" onclick="cupIdleAdClick()">${escC(s.cta)}</button>
-      </div>`;
     })()}
-    <div class="cl-cupidle-ad2" data-ad-slot="tela-${escC(key)}-apresenta-300x90">
-      <b>${escC(s.nome)}</b>
-      <span>${escC(s.cta)}</span>
-    </div>
   </div>`;
-}
-/* mesma mecânica do botão do Camarote (ver camAdClick): abre em aba nova, sem handle da janela
-   do jogo, e registra o clique por marca — aqui com o `placement` desta tela. */
-function cupIdleAdClick(){
-  const s=AD_SPONSORS[cupIdleSponsorIdx()]; if(!s) return;
-  try{ if(typeof gtag==='function') gtag('event','sponsor_click',{sponsor:s.nome, placement:'classificacao-copa'}); }catch(e){}
-  if(!s.url){ toastC('Link do patrocinador ainda não configurado ('+s.nome+').'); return; }
-  window.open(s.url,'_blank','noopener,noreferrer');
 }
 function updateLive(){ const RL=CL.live; if(!RL) return;
   const clk=document.querySelector('#cl-liveclock'); if(clk) clk.style.setProperty('--pct', liveClockPct(RL));

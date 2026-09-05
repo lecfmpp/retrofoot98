@@ -3,10 +3,6 @@
    Portado de telas/Resenha - Pausa Patrocinada · A Espera da Rodada ·
    Passe o Aparelho · Classificacao do Assento · Entrega do Aparelho.
 
-   O CTA DO PATROCINADOR É SÓ TEXTO. O logo entra nos ladrilhos brancos
-   do trilho; sobre o fundo da marca ele some (o logo da Betano é vermelho
-   escuro e o fundo dela é #cc0000). Quem quiser mudar isso, olhe o
-   camCtaStyle() antes.
    ===================================================================== */
 
 /* ---------------------------------------------------------------------
@@ -80,13 +76,11 @@ function rfSalaAssentos(){
   return out;
 }
 
-/* trilho de patrocinadores: ladrilhos brancos com o logo, duplicados pra
-   a animação emendar sem salto. Mesmo inventário AD_SPONSORS do Camarote. */
-/* ===== A BARRA DE PATROCINIO TAMBEM E VENDAVEL =====
-   O trilho de logos e o botao da marca vinham de AD_SPONSORS, a lista fixa dentro do jogo:
-   ninguem conseguia comprar este lugar. Com criativo publicado em rf98.pausa.barra, a barra
-   passa a ser DAQUELA marca -- um logo, o botao com o link dela -- que e o que uma compra de
-   patrocinio deve parecer. Sem criativo, as marcas de casa continuam a girar como antes. */
+/* ===== A BARRA DE PATROCINIO E' VENDAVEL, E SO' MOSTRA QUEM COMPROU =====
+   O trilho de logos e o botao da marca vinham de AD_SPONSORS, a lista fixa dentro do jogo
+   (Betano/CazeTV/iFood): ninguem conseguia comprar este lugar, e o que la' estava era
+   cartaz. Com criativo publicado em rf98.pausa.barra a barra e' DAQUELA marca -- um logo,
+   o botao com o link dela. Sem criativo, nao ha' barra nenhuma. */
 function rfPatroCompradoHTML(rotulo, direita){
   if(typeof ADS==='undefined' || !window.ADS) return '';
   const c=ADS.get('rf98.pausa.barra');
@@ -101,23 +95,12 @@ function rfPatroCompradoHTML(rotulo, direita){
     </button>`:''}
   </div>`;
 }
+/* SEM PATROCINADOR NAO HA CARTAO. O trilho girava as tres marcas de casa
+   (Betano/CazeTV/iFood) sob o rotulo "Quem banca a resenha" — ninguem bancava, e o botao
+   nao abria nada. Com criativo publicado em rf98.pausa.barra o cartao volta, agora daquela
+   marca, com o link dela. */
 function rfSponsorHTML(){
-  const comprado=rfPatroCompradoHTML('Patrocínio oficial','Quem banca a resenha');
-  if(comprado) return comprado;
-  if(typeof AD_SPONSORS==='undefined') return '';
-  const tiles=()=>AD_SPONSORS.map(s=>
-    `<span class="rf-spon-tile"><img src="${escC(s.src)}" alt="${escC(s.nome)}"></span>`).join('');
-  const i=Math.abs((S.round||0))%AD_SPONSORS.length;
-  const s=AD_SPONSORS[i];
-  return `<div class="rf-card rf-spon">
-    <div class="rf-label"><span class="rf-label-t">Patrocínio oficial</span>
-      <span class="rf-label-r">Quem banca a resenha</span></div>
-    <div class="rf-spon-trilho"><div class="rf-spon-run">${tiles()}${tiles()}</div></div>
-    <button type="button" class="rf-spon-cta" style="background:${s.bg};color:${s.fg}"
-      onclick="adSlotClick('resenha-pausa',${i})">
-      <span class="rf-spon-ctat">${escC(s.cta)}</span><span class="rf-spon-seta">→</span>
-    </button>
-  </div>`;
+  return rfPatroCompradoHTML('Patrocínio oficial','Quem banca a resenha');
 }
 
 /* =====================================================================
