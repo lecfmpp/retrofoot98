@@ -34,10 +34,13 @@
 // ============================================================================
 
 const CONTATO = 'suporte@retrofoot.com.br';
-/* O NUMERO DO WHATSAPP FICOU EM ABERTO no handoff. Enquanto nao houver um, o botao NAO fica
-   morto nem aponta para uma conversa que nao existe: vira o contato por e-mail, que funciona.
-   Assim que houver numero, e' so' escrever aqui (so' digitos, com o 55 na frente). */
-const WHATSAPP = '';
+/* O WHATSAPP COMERCIAL. So' digitos e com o codigo do pais, que e' o formato que o wa.me pede:
+   +1 647 862 3292 -> 16478623292. Um numero do Canada, o mesmo que ja' estava no PDF do media
+   kit (ver docs/media-kit/LEIA-ME.md).
+   Vazio aqui, o botao NAO fica morto nem aponta para uma conversa que nao existe: vira o
+   contato por e-mail. E' a mesma regra do resto do site — nada de botao que nao leva a lado
+   nenhum. */
+const WHATSAPP = '16478623292';
 const VALIDADE = '31 de dezembro de 2026';
 
 /* ---- peças ------------------------------------------------------------- */
@@ -189,8 +192,12 @@ const script = `
   });
 })();`;
 
+/* A MENSAGEM JA' VAI ESCRITA. Quem chega aqui acabou de ver a tabela de midia, e o comercial
+   precisa de saber isso de partida — sem o texto, chega um "oi" sem contexto e a conversa
+   comeca do zero. */
+const ZAP_TEXTO = encodeURIComponent('Olá! Vi o media kit do RetroFoot98 e quero falar sobre anunciar no jogo.');
 const zap = WHATSAPP
-  ? `<a class="mk-b amarelo" href="https://wa.me/${WHATSAPP}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>`
+  ? `<a class="mk-b amarelo" href="https://wa.me/${WHATSAPP}?text=${ZAP_TEXTO}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>`
   : `<a class="mk-b amarelo" href="mailto:${CONTATO}?subject=Media%20kit%20RetroFoot98">✉ Falar com o comercial</a>`;
 
 /* ---- a página ---------------------------------------------------------- */
