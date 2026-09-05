@@ -738,7 +738,7 @@ function rfSbAnuncioHTML(){
   const real=window.ADS?ADS.html(RF_SB_AD_CHAVE,{cls:'rf-sb-ad-slot'}):'';
   if(real) return `<div class="rf-sb-ad"><span class="rf-sb-ad-tag">Publicidade</span>${real}</div>`;
   const p=RF_SB_PRODUTOS[(CL._sbAdIdx||0)%RF_SB_PRODUTOS.length];
-  return `<div class="rf-sb-ad">
+  return `<div class="rf-sb-ad" data-ad-chave="${escC(RF_SB_AD_CHAVE)}">
     <span class="rf-sb-ad-tag">Publicidade</span>
     <div class="rf-sb-ad-media">
       <span class="rf-sb-ad-face logo"><img src="img/sponsors/moda-esporte-logo.webp" alt="Moda Esporte Clube" loading="lazy" draggable="false"></span>
@@ -1067,6 +1067,15 @@ function rfIrEscolherTatica(){
    `formato` é só rótulo (o tamanho vem do CSS da classe), e serve para quem
    está a montar a campanha saber o que aquele lugar pede.
    ===================================================================== */
+/* ===== O ESPACO CONTA MESMO SEM ESTAR VENDIDO (05/09/2026) =====
+   `data-ad-chave` era escrito SO' pelo criativo publicado (ver ADS.html), entao o observador
+   de impressoes so' via espaco vendido. O efeito: um espaco a' venda media ZERO para sempre —
+   e e' justamente dele que o anunciante quer saber "quanta gente ve' isto?". A vitrine da
+   barra lateral, que nunca teve criativo, nao tinha uma unica impressao registada.
+   Agora o marcador vai TAMBEM no lugar reservado e no criativo de casa: o que se conta e'
+   quantas vezes o ESPACO foi visto, vendido ou nao. E' a mesma medida nos dois casos, entao a
+   serie do painel nao parte ao meio quando o espaco e' comprado — so' passa a ter dono.
+   O media kit publica estes numeros (ver seo/media-kit.mjs). */
 function rfAdEspaco(chave, opts){
   opts=opts||{};
   /* ESPACO DESLIGADO NAO DESENHA NADA -- nem criativo, nem marcador, nem o criativo
@@ -1083,10 +1092,12 @@ function rfAdEspaco(chave, opts){
   /* CRIATIVO DE CASA: um patrocinador fixo pode ocupar o espaco enquanto o painel nao publica
      nada naquela chave — o criativo do painel continua a mandar quando existe. */
   if(opts.padrao) return `<a class="rf-ad-fixo ${opts.cls||''}" href="${escC(opts.padrao.href)}"
-      target="_blank" rel="noopener sponsored" data-ad-fixo="${escC(chave)}">
+      target="_blank" rel="noopener sponsored" data-ad-fixo="${escC(chave)}"
+      data-ad-chave="${escC(chave)}">
       <img src="${escC(opts.padrao.img)}" alt="${escC(opts.padrao.alt||'Publicidade')}" loading="lazy" draggable="false">
     </a>`;
-  return `<div class="rf-adph ${opts.cls||''}" data-ad-vazio="${escC(chave)}">
+  return `<div class="rf-adph ${opts.cls||''}" data-ad-vazio="${escC(chave)}"
+    data-ad-chave="${escC(chave)}">
     <span class="rf-adph-l">Publicidade</span>
     ${opts.formato?`<span class="rf-adph-f">${escC(opts.formato)}</span>`:''}
   </div>`;
