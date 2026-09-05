@@ -2550,6 +2550,42 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
   }
 }
 
+/* ============================================================================
+   CRIATIVO DE CASA — o que esta' na tela quando ninguem comprou o lugar
+   ----------------------------------------------------------------------------
+   Dois espacos nao ficam vazios enquanto nao ha' criativo publicado: o jogo desenha
+   arte de casa neles (`opts.padrao` em rfAdEspaco e a vitrine em rfSbAnuncioHTML,
+   ambos em public/src/ui/rf26.js). O painel dizia "Espaco livre" nos dois, com um
+   retangulo cinzento — e por isso nao dava para RECONHECER o lugar pela imagem nem
+   perceber que ja' ha' alguma coisa no ar ali. Agora a previa mostra a MESMA arte que
+   o jogador ve', com o rotulo a dizer que e' de casa e nao venda: o lugar continua a
+   contar como livre no KPI de ocupacao, porque ninguem o pagou.
+
+   AS ARTES VIVEM NO SITE DO JOGO, nao no do painel — sao dois sites Firebase
+   diferentes (ver firebase.json), e `img/sponsors/...` relativo daqui daria 404.
+   Dai o caminho absoluto. NAO e' o JOGO_URL: esse e' o dominio de ENTRADA
+   (retrofoot98.com.br) e responde 301 para retrofoot.com.br — bom para um link que a
+   pessoa clica, desperdicio numa grelha que carrega varias imagens de uma vez.
+
+   A vitrine da barra lateral reveza produtos no jogo (logo -> camisa -> logo, ver
+   RF_SB_PRODUTOS): aqui as pecas aparecem lado a lado, que e' o que serve para
+   identificar o lugar de relance — animar a miniatura so' daria ruido na grelha. */
+const CASA_ART_BASE = 'https://retrofoot.com.br';
+const CASA_ART = {
+  'rf98.sidebar.vitrine': { marca:'Moda Esporte Clube', imgs:[
+    'img/sponsors/moda-esporte-logo.webp',
+    'img/sponsors/moda-fluminense-2004.webp',
+    'img/sponsors/moda-flamengo-1993.webp' ] },
+  'rf98.top.970x90':      { marca:'Moda Esporte Clube', imgs:[
+    'img/sponsors/moda-banner-970x90.webp' ] },
+};
+function casaHTML(chave){
+  const k = CASA_ART[chave]; if(!k) return null;
+  return `<div class="prev casa" title="Arte de casa: ${h(k.marca)}">
+    ${k.imgs.map(u=>`<img src="${h(CASA_ART_BASE)}/${h(u)}" alt="${h(k.marca)}">`).join('')}
+  </div>`;
+}
+
 function slotHTML(e, editar){
   const c = e.criativo;
   const video = c && /video|mp4/i.test(c.mime||'');
@@ -2567,10 +2603,14 @@ function slotHTML(e, editar){
         background:#0d1a12;border:1px dashed var(--linha,#243028);border-radius:4px;overflow:hidden;min-height:22px">${x}</div>`).join('')}
     </div>`;
   })() : null;
+  /* o lugar com arte de casa mostra a arte, nao o retangulo de "livre" — ver CASA_ART */
+  const casa = (!c && !placas) ? casaHTML(e.chave) : null;
   const prev = placas ? placas : (c
     ? `<div class="prev tem">${video
         ? `<video src="${h(c.ficheiro_url)}" muted autoplay loop playsinline></video>`
         : `<img src="${h(c.ficheiro_url)}" alt="">`}</div>`
+    : casa
+    ? casa
     : `<div class="prev"><span style="font-size:12.5px;font-weight:600;color:var(--dim2)">Espaço livre</span>
         <span class="mono" style="font-size:11px;color:var(--dim3)">${e.w}×${e.h}</span></div>`);
   const off = e.ligado === false;
@@ -2605,7 +2645,8 @@ function slotHTML(e, editar){
       <span style="flex:1;font-size:12px;color:${(e.placas?(e.criativos||[]).length:c)?'var(--verde2)':'var(--dim2)'}">
         ${e.placas
           ? ((e.criativos||[]).length ? (e.criativos||[]).map(x=>h(x.patrocinador||('Placa '+x.posicao))).join(' · ') : 'Nenhuma placa vendida')
-          : (c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '') : 'Sem criativo')}
+          : (c ? h(c.patrocinador||'Sem marca') + (c.no_ar_ate? ' · até '+dmy(c.no_ar_ate) : '')
+               : (CASA_ART[e.chave] ? 'Arte de casa · '+h(CASA_ART[e.chave].marca) : 'Sem criativo'))}
       </span>
       ${editar ? `<button class="btn btn-sm btn-ghost" data-ligar="${h(e.chave)}"
         data-ligado="${off?'0':'1'}" title="${off

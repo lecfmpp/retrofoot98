@@ -163,6 +163,21 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .slot .prev{border:1px dashed var(--bd2);background:var(--bg);border-radius:10px;height:110px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;overflow:hidden}
 .slot .prev.tem{border-style:solid;border-color:var(--verde-bd);padding:6px}
+/* ===== LUGAR COM ARTE DE CASA =====
+   Nem "livre" (tracejado vazio) nem "no ar" (verde de venda): a borda fica cheia mas
+   neutra, porque o lugar CONTINUA a' venda — o que ali esta' e' arte nossa a ocupar o
+   espaco. As pecas entram lado a lado e encolhem para caber (a vitrine tem tres), com
+   a fatia maior para a primeira, que e' a logo pela qual se reconhece a marca. */
+.slot .prev.casa{flex-direction:row;align-items:stretch;border-style:solid;
+  border-color:var(--bd2);gap:6px;padding:6px}
+/* ALTURA EXPLICITA, e nao so' um max-height: a `.prev` e' um flex e o `align-items:center`
+   herdado deixava cada imagem com a altura do seu conteudo — zero enquanto nao carregasse.
+   Caixa de altura zero nunca entra no viewport, o `loading=lazy` nunca disparava e a arte
+   ficava por carregar para sempre. Por isso tambem nao se pede lazy nestas (sao 3 ou 4
+   miniaturas pequenas, como as dos criativos publicados ao lado). */
+.slot .prev.casa img{flex:1 1 0;min-width:0;height:100%;max-height:none;
+  object-fit:contain;border-radius:6px}
+.slot .prev.casa img:first-child{flex:1.4 1 0}
 .slot .prev img,.slot .prev video{max-width:100%;max-height:96px;object-fit:contain;display:block}
 /* ===== O VIDEO DO MOMENTO E' PARA SE VER, NAO PARA SE ADIVINHAR =====
    A miniatura de 110px serve a publicidade, onde o criativo e' uma imagem e o
