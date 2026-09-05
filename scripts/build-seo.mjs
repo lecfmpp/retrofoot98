@@ -15,7 +15,7 @@ import { pages } from '../seo/pages.mjs';
 import { legal } from '../seo/legal.mjs';
 /* O MEDIA KIT E' UMA TERCEIRA CATEGORIA: nem artigo, nem documento legal. E' uma pagina
    comercial de largura inteira, com desenho proprio (`css`) e sem a barra branca do site
-   (`semCabecalho`) — o desenho tem a sua propria abertura, com a marca la' dentro. */
+   (soMiolo) — mantem a casca do site e corta so' a mobilia de artigo. */
 import { mediaKit } from '../seo/media-kit.mjs';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -29,6 +29,16 @@ const SITE = process.env.SEO_SITE || 'https://retrofoot98.com.br';
 const GA_ID = 'G-YE7PT01DGY';
 const LOGO = SITE + '/img/logo.webp';
 
+/* rotulos curtos do rodape, iguais aos de LANDING_PAGINAS em public/src/ui/main.js */
+const CURTO = {
+  'guia':'Guia do jogo', 'ranking':'Ranking de treinadores',
+  'historia-do-elifoot':'História do Elifoot', 'elifoot-online':'Elifoot online',
+  'jogar-com-amigos':'Jogar com amigos', 'manager-futebol-brasileiro':'Futebol brasileiro',
+  'jogo-treinador-futebol-online':'Jogo de treinador',
+  'melhores-jogos-treinador-futebol':'Melhores jogos de treinador',
+  'jogos-parecidos-com-elifoot':'Jogos parecidos com o Elifoot',
+  'elifoot-vs-brasfoot':'Elifoot vs Brasfoot',
+};
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // Remove <figure> cuja imagem real ainda NÃO existe em public/img/seo/. Assim nunca sai imagem
@@ -125,8 +135,12 @@ function pageHtml(p){
   const jsonld = { '@context':'https://schema.org', '@graph': nodes };
   // links internos (rodapé) — só páginas de CONTEÚDO prontas, exceto a atual. As legais nunca
   // entram aqui: elas têm o seu próprio lugar, na base do rodapé.
+  // O RODAPE USA O ROTULO CURTO, nao o H1. O H1 e' a manchete da pagina ("A historia do
+  // Elifoot: do disquete a' resenha online") e numa coluna de rodape ele vira um paragrafo:
+  // a coluna "Paginas" ficava com o dobro da altura das outras. Os rotulos sao os mesmos de
+  // LANDING_PAGINAS (public/src/ui/main.js) — o rodape do site e o do jogo dizem o mesmo.
   const nav = pages.filter(x=>x.ready && x.slug!==p.slug)
-    .map(x=>`<a href="/${x.slug}/">${esc(x.h1||x.title)}</a>`).join('');
+    .map(x=>`<a href="/${x.slug}/">${esc(CURTO[x.slug]||x.h1||x.title)}</a>`).join('');
   const navLegal = legal.filter(x=>x.ready)
     .map(x=>`<a href="/${x.slug}/">${esc(x.h1||x.title)}</a>`).join(' · ');
   return `<!doctype html>
@@ -142,6 +156,7 @@ ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link re
 <meta name="theme-color" content="#2f8f2f">
 <link rel="icon" type="image/webp" href="/img/logo.webp">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+${p.head||''}
 <meta property="og:type" content="${p.legal?'website':'article'}">
 <meta property="og:site_name" content="RetroFoot98">
 <meta property="og:title" content="${esc(p.title)}">
@@ -155,172 +170,241 @@ ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link re
 <meta name="twitter:image" content="${img}">
 <script type="application/ld+json">${JSON.stringify(jsonld)}</script>
 <style>
-:root{--felt:#2f8f2f;--navy:#0b2a4a;--yellow:#ffd23f;--ink:#14210f}
+/* ===== A CASCA DAS PAGINAS ESTATICAS ==================================
+   Estas paginas sao HTML puro, servido solto: nao carregam o CSS do jogo. Por
+   isso os tokens sao COPIADOS aqui, com os mesmos valores de
+   public/src/styles/tokens/*.css — se a marca mudar la', muda aqui a seguir.
+   Era um desenho proprio (barra verde, rodape #00005c, tipos de sistema) que
+   nao era o de lugar nenhum: quem chega pelo Google caia numa pagina que nao
+   parecia o site. Agora o cabecalho e o rodape sao os da home, e o corpo usa a
+   mesma linguagem do media kit — cartao branco de 18-20px, capa azul com a
+   barra amarela, Space Grotesk no texto e IBM Plex Mono nos numeros. */
+:root{
+  --az:#17458F; --az2:#0e2f66; --az-soft:#e9eff8; --az-line:#d6e1f1;
+  --am:#F2B90C; --am2:#ffcb2e;
+  --marca:#0A3C9F; --marca-am:#FFBF01;
+  --desk:#e8f0e7; --card:#ffffff; --sunken:#f2f7f1; --escuro:#12201a;
+  --l1:#dde7db; --l2:#d8e2d6; --l3:#eef1ee;
+  --t1:#12201a; --t2:#3a473f; --t3:#5d6c62; --t4:#78877c;
+  --mudo:#8b978d; --faint:#9aa79e; --claro:#c3d3ec; --claro2:#a9bfe0;
+  --vd:#1a8f3c;
+  --sans:'Space Grotesk',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace;
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);background:#f4f6f2;line-height:1.6}
-/* CABEÇALHO E RODAPÉ NO PADRÃO DA HOME. As dez páginas de conteúdo tinham uma barra verde e um
-   rodapé de duas linhas — desenho próprio, que não era o de lugar nenhum. Quem chega pelo Google
-   cai aqui primeiro: se a página não parece o site, ela parece um clone. Agora é a mesma casca
-   da home (barra branca com o logo à esquerda, bisel de 2px nos botões, rodapé navy com as
-   colunas) — sem depender do CSS do jogo, porque estas páginas são HTML puro e servidas soltas. */
-header{background:#fff;border-bottom:2px solid #707070;box-shadow:0 4px 14px rgba(0,0,0,.18);
-  padding:0;position:sticky;top:0;z-index:20}
-.hdr-in{max-width:1180px;margin:0 auto;min-height:66px;display:flex;align-items:center;gap:16px;padding:8px 20px;flex-wrap:wrap}
-header img{height:40px;width:40px;object-fit:contain;border-radius:0}
-header .brand{font-weight:900;font-size:19px;color:#000080;text-decoration:none;letter-spacing:.4px;display:flex;align-items:center;gap:10px}
-header .brand i{font-style:normal;color:#a8791a;margin-left:-4px}
-header nav{display:flex;gap:2px;flex-wrap:wrap;margin-right:auto}
-header nav a{font-weight:700;font-size:13.5px;color:#000080;text-decoration:none;padding:10px 8px}
-header nav a:hover{background:#000080;color:#fff}
-/* mesmo CTA amarelo da home: sobre o verde do site, amarelo é o que salta */
-.cta{display:inline-flex;align-items:center;gap:8px;background:#ffd23f;color:#111;font-weight:800;
-  text-decoration:none;padding:0 20px;height:44px;border:2px solid;border-color:#ffe89a #a8791a #a8791a #ffe89a;
-  border-radius:0;box-shadow:0 4px 0 rgba(0,0,0,.22)}
-.cta:hover{background:#ffdf6b}
-.cta:active{border-color:#a8791a #ffe89a #ffe89a #a8791a;box-shadow:none;transform:translateY(3px)}
-main{max-width:760px;margin:0 auto;padding:28px 20px 8px}
-main h1{font-size:30px;line-height:1.15;color:var(--navy);margin:.2em 0 .5em}
-main h2{font-size:22px;color:var(--navy);margin:1.4em 0 .4em}
-main p{margin:.7em 0}
-main a{color:#1668c1}
-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:15px}
-th,td{border:1px solid #cdd6cd;padding:8px 10px;text-align:left;vertical-align:top}
-th{background:#e7efe7}
-img{max-width:100%;height:auto;border-radius:8px;display:block}
-figure{margin:20px 0}
-figure img{border:1px solid #cdd6cd;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-figcaption{font-size:13px;color:#5a6b58;text-align:center;margin-top:6px}
-.lead{font-size:18px;color:#33422f}
-ul,ol{margin:.6em 0;padding-left:1.3em}li{margin:.3em 0}
-.playbar{text-align:center;margin:26px 0}
-.playbar .cta{padding:13px 26px;font-size:17px}
+body{margin:0;background:var(--desk);color:var(--t2);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+img{max-width:100%;height:auto;display:block}
 
-/* ===== HIERARQUIA E ELEMENTOS VISUAIS =====
-   O texto corrido era uma parede: H1, H2 e parágrafo, e nada mais. Quem lê na busca escaneia —
-   e o robô também. Aqui a hierarquia é explícita (H1 > H2 com filete > H3), e o conteúdo ganha
-   peças: resumo em bullets, índice ancorado, tabela zebrada, figuras com legenda, cartões de
-   referência e as perguntas em acordeão nativo. */
-main h1{font-size:clamp(28px,4.2vw,38px);line-height:1.12;color:var(--navy);margin:.1em 0 .35em;letter-spacing:-.01em}
-main h2{font-size:clamp(21px,2.6vw,26px);line-height:1.2;color:var(--navy);margin:1.8em 0 .5em;
-  padding-top:.5em;border-top:2px solid #e2e8e0;scroll-margin-top:80px}
-main h3{font-size:18px;line-height:1.25;color:#1d3a5c;margin:1.4em 0 .35em}
-main p{margin:.75em 0;max-width:68ch}
-.lead{font-size:19px;line-height:1.55;color:#33422f;max-width:64ch}
-.migalhas{font-size:13px;color:#5a6b58;margin-bottom:10px}
-.migalhas a{color:var(--navy)}
-/* resumo (resposta curta pro buscador e pro leitor apressado) */
-.resumo{background:#eef6ec;border:1px solid #cddfc9;border-left:5px solid var(--felt);
-  padding:14px 18px;margin:18px 0 22px;border-radius:6px}
-.resumo-h{font-size:13px!important;letter-spacing:1.2px;text-transform:uppercase;color:#3c6b3c!important;
-  margin:0 0 8px!important;border:0!important;padding:0!important}
+/* ---------- CABECALHO (o mesmo da home: tres zonas, links em pilula) ------- */
+header{position:sticky;top:0;z-index:40;background:var(--card);
+  border-bottom:1px solid var(--l1)}
+.hdr-in{max-width:1180px;margin:0 auto;padding:14px 24px;display:grid;
+  grid-template-columns:1fr minmax(0,auto) 1fr;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;flex:0 0 auto;justify-self:start}
+.brand img{width:auto;height:26px;max-width:186px;object-fit:contain}
+header nav{display:flex;align-items:center;gap:2px;justify-self:center;padding:3px;
+  border-radius:999px;background:var(--sunken);overflow-x:auto;scrollbar-width:none;max-width:100%}
+header nav::-webkit-scrollbar{display:none}
+header nav a{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--t3);
+  padding:7px 13px;border-radius:999px;text-decoration:none;white-space:nowrap;
+  transition:background .15s ease,color .15s ease}
+header nav a:hover{background:var(--az);color:var(--am);
+  box-shadow:0 2px 8px -3px rgba(23,69,143,.55)}
+header nav a[aria-current="page"]{background:var(--card);color:var(--t1);font-weight:600}
+.cta{justify-self:end;height:38px;padding:0 16px;border:none;border-radius:12px;
+  background:var(--az);color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap;
+  transition:background .15s ease}
+.cta:hover{background:var(--az2);color:#fff}
+@media (max-width:860px){
+  .hdr-in{grid-template-columns:1fr auto;padding:12px 16px}
+  header nav{display:none}
+}
+
+/* ---------- MIOLO DE ARTIGO ---------- */
+main{max-width:820px;margin:0 auto;padding:36px 24px 8px}
+.migalhas{font-size:13px;color:var(--t4);margin-bottom:12px;font-family:var(--mono)}
+.migalhas a{color:var(--az);text-decoration:none}
+.migalhas a:hover{text-decoration:underline}
+main h1{font-size:clamp(30px,4.6vw,44px);line-height:1.08;letter-spacing:-.03em;color:var(--t1);
+  font-weight:700;margin:.1em 0 .45em;text-wrap:pretty}
+main h2{font-size:clamp(22px,2.8vw,28px);line-height:1.18;letter-spacing:-.02em;color:var(--t1);
+  font-weight:700;margin:1.7em 0 .5em;padding-top:.6em;border-top:1px solid var(--l1);
+  scroll-margin-top:86px;text-wrap:pretty}
+main h3{font-size:19px;line-height:1.25;color:var(--t1);font-weight:700;margin:1.5em 0 .4em}
+main p{margin:.8em 0;max-width:70ch;color:var(--t2)}
+main a{color:var(--az)}
+main a:hover{color:var(--az2)}
+.lead{font-size:18.5px;line-height:1.6;color:var(--t2);max-width:64ch}
+main ul,main ol{margin:.7em 0;padding-left:1.3em}
+main li{margin:.4em 0;color:var(--t2)}
+main li::marker{color:var(--az)}
+main strong,main b{color:var(--t1)}
+code,.mono{font-family:var(--mono)}
+
+/* resumo — o cartao de resposta curta */
+.resumo{background:var(--card);border:1px solid var(--l1);border-left:5px solid var(--am);
+  border-radius:16px;padding:18px 22px;margin:20px 0 24px}
+.resumo-h{font-family:var(--mono)!important;font-size:11px!important;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--az)!important;font-weight:600!important;
+  margin:0 0 10px!important;border:0!important;padding:0!important}
 .resumo ul{margin:0;padding-left:20px}
-.resumo li{margin:.35em 0;font-size:15.5px;line-height:1.5}
-/* índice */
-.indice{background:#fff;border:1px solid #d7ddd5;border-radius:6px;padding:14px 18px;margin:0 0 26px}
-.indice-h{font-size:13px!important;letter-spacing:1.2px;text-transform:uppercase;color:#5a6b58!important;
-  margin:0 0 8px!important;border:0!important;padding:0!important}
-.indice ol{margin:0;padding-left:20px;columns:2;column-gap:26px}
-.indice li{margin:.3em 0;font-size:14.5px;break-inside:avoid}
-.indice a{color:var(--navy);text-decoration:none}
-.indice a:hover{text-decoration:underline}
-/* listas com marcador de verdade */
-main ul li::marker{color:var(--felt)}
-main ol li::marker{color:var(--felt);font-weight:700}
-main li{margin:.4em 0}
-/* tabela de comparação */
-.tabela-wrap{overflow-x:auto;margin:14px 0;-webkit-overflow-scrolling:touch}
-.tabela-wrap table{margin:0;min-width:520px}
-table{border:1px solid #cdd6cd;border-radius:6px;overflow:hidden}
-thead th{background:var(--navy);color:#fff;font-size:14px;letter-spacing:.3px}
-tbody tr:nth-child(odd){background:#f7faf6}
-tbody td:first-child{font-weight:700;color:#1d3a5c;width:32%}
+.resumo li{margin:.4em 0;font-size:15.5px;line-height:1.55}
+
+/* indice */
+.indice{background:var(--card);border:1px solid var(--l1);border-radius:16px;padding:18px 22px;margin:0 0 28px}
+.indice-h{font-family:var(--mono)!important;font-size:11px!important;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--t4)!important;font-weight:600!important;
+  margin:0 0 10px!important;border:0!important;padding:0!important}
+.indice ol{margin:0;padding-left:20px;columns:2;column-gap:28px}
+.indice li{margin:.32em 0;font-size:14.5px;break-inside:avoid}
+.indice a{color:var(--t2);text-decoration:none}
+.indice a:hover{color:var(--az);text-decoration:underline}
+
+/* tabelas */
+.tabela-wrap{overflow-x:auto;margin:18px 0;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--l1);border-radius:16px;background:var(--card)}
+.tabela-wrap table{margin:0;min-width:520px;border:0}
+table{width:100%;border-collapse:collapse;font-size:15px;background:var(--card);
+  border:1px solid var(--l1);border-radius:16px;overflow:hidden;margin:18px 0}
+thead th{background:var(--az);color:#fff;font-size:12px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;text-align:left;padding:11px 14px}
+th,td{border-bottom:1px solid var(--l3);padding:11px 14px;text-align:left;vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:nth-child(even){background:#f6f8f5}
+tbody td:first-child{font-weight:600;color:var(--t1)}
+
 /* figuras */
-figure{margin:22px 0;background:#fff;border:1px solid #d7ddd5;border-radius:8px;padding:10px}
-figure img{border:1px solid #e2e8e0;border-radius:4px;box-shadow:none}
-figcaption{font-size:13px;color:#5a6b58;text-align:center;margin-top:8px}
-/* cartões de referência externa */
-.refgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:14px 0}
-.refcard{display:flex;flex-direction:column;gap:4px;background:#fff;border:1px solid #d7ddd5;border-radius:8px;
-  padding:14px 16px;text-decoration:none;color:var(--ink);transition:border-color .15s}
-.refcard:hover{border-color:var(--felt)}
-.refcard-n{font-weight:800;font-size:16px;color:var(--navy)}
-.refcard-d{font-size:13.5px;line-height:1.45;color:#3f4d3d}
-.refcard-u{font-size:12.5px;color:#1668c1;word-break:break-all}
-/* perguntas em acordeão */
-.faq-i{background:#fff;border:1px solid #d7ddd5;border-radius:6px;margin:8px 0;overflow:hidden}
-.faq-i[open]{border-color:var(--felt)}
-.faq-i summary{cursor:pointer;padding:13px 16px;font-weight:700;font-size:15.5px;color:var(--navy);list-style:none}
+figure{margin:24px 0;background:var(--card);border:1px solid var(--l1);border-radius:18px;padding:10px}
+figure img{border-radius:12px}
+figcaption{font-size:13px;color:var(--t4);text-align:center;margin-top:10px}
+
+/* cartoes de referencia */
+.refs{margin-top:30px}
+.refgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.refcard{display:flex;flex-direction:column;gap:5px;background:var(--card);border:1px solid var(--l1);
+  border-radius:18px;padding:18px 20px;text-decoration:none;color:var(--t2);transition:border-color .15s,transform .15s}
+.refcard:hover{border-color:var(--az);transform:translateY(-1px)}
+.refcard-n{font-weight:700;font-size:16px;color:var(--t1)}
+.refcard-d{font-size:13.5px;line-height:1.5;color:var(--t3)}
+.refcard-u{font-family:var(--mono);font-size:12px;color:var(--az);word-break:break-all}
+
+/* perguntas */
+.faq{margin-top:30px}
+.faq-i{background:var(--card);border:1px solid var(--l1);border-radius:16px;margin:10px 0;overflow:hidden}
+.faq-i[open]{border-color:var(--az)}
+.faq-i summary{cursor:pointer;padding:15px 18px;font-weight:700;font-size:15.5px;color:var(--t1);list-style:none}
 .faq-i summary::-webkit-details-marker{display:none}
-.faq-i summary::after{content:'+';float:right;font-weight:800;color:var(--felt)}
+.faq-i summary::after{content:'+';float:right;font-weight:700;color:var(--az)}
 .faq-i[open] summary::after{content:'–'}
-.faq-i summary:hover{background:#f4f8f3}
-.faq-a{padding:0 16px 14px;font-size:15px;line-height:1.6}
-.faq-a p{margin:.3em 0}
-@media (max-width:640px){ .indice ol{columns:1} main h2{margin-top:1.4em} }
-/* ===== PAGINAS LEGAIS =====
-   Documento, nao artigo: sem figura, sem cartao, sem caixa de destaque. O que estas paginas
-   precisam e' de linha confortavel e de hierarquia clara para se percorrer atras de uma clausula.
-   Os H2 ficam mais discretos que num artigo — sao secoes de um texto, nao manchetes. */
-.legal-data{font-size:13.5px;color:#5a6b58;margin:0 0 18px;padding-bottom:14px;border-bottom:1px solid #e2e8e0}
+.faq-i summary:hover{background:var(--sunken)}
+.faq-a{padding:0 18px 16px;font-size:15px;line-height:1.6;color:var(--t2)}
+.faq-a p{margin:.35em 0}
+
+/* barra de jogar */
+.playbar{text-align:center;margin:36px 0 8px}
+.playbar .cta{height:52px;padding:0 26px;font-size:15px;border-radius:14px;
+  background:var(--am);color:var(--az)}
+.playbar .cta:hover{background:var(--am2);color:var(--az)}
+
+/* ---------- PAGINAS LEGAIS ---------- */
+.legal-data{font-family:var(--mono);font-size:13px;color:var(--t4);margin:0 0 20px;
+  padding-bottom:16px;border-bottom:1px solid var(--l1)}
 article.legal p{max-width:74ch;font-size:15.5px}
-article.legal h2{font-size:clamp(18px,2vw,21px);border-top-color:#eef1ed;margin-top:1.6em}
-article.legal strong{color:#14210f}
-.legal-ver{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:34px 0 8px;
-  padding:16px 18px;background:#fff;border:1px solid #d7ddd5;border-radius:8px}
-.legal-ver-t{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:#5a6b58;font-weight:800}
-.legal-ver a{font-weight:700;font-size:14.5px}
-.foot-legal a{color:#b9c2e8}
-footer{background:#00005c;border-top:3px solid #1a1aa8;margin-top:34px;color:#dfe4f7;font-size:14px}
-.foot-in{max-width:1180px;margin:0 auto;padding:32px 20px 20px}
-.foot-marca{display:flex;align-items:center;gap:10px;font-weight:900;font-size:17px;color:#fff;margin-bottom:8px}
-.foot-marca img{height:34px;width:34px}
-.foot-marca i{font-style:normal;color:#e0b23a;margin-left:-3px}
-.foot-sobre{margin:0 0 18px;color:#b9c2e8;max-width:52ch;line-height:1.55;font-size:13px}
-.foot-h{font-weight:800;font-size:12px;color:#ffff00;letter-spacing:1.2px;margin:0 0 10px}
-footer .links{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 18px}
-footer a{color:#dfe4f7;text-decoration:none;font-weight:700;font-size:13px}
-footer a:hover{text-decoration:underline;color:#ffff00}
-.foot-fim{padding-top:14px;border-top:1px solid #2a2a7a;display:flex;flex-wrap:wrap;gap:10px;
-  justify-content:space-between;font-size:12px;color:#9aa3d0}
+article.legal h2{font-size:clamp(18px,2.1vw,22px);border-top-color:var(--l3);margin-top:1.7em}
+.legal-ver{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:36px 0 8px;
+  padding:18px 20px;background:var(--card);border:1px solid var(--l1);border-radius:18px}
+.legal-ver-t{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--t4);font-weight:600}
+.legal-ver a{font-weight:700;font-size:14.5px;text-decoration:none}
+.legal-ver a:hover{text-decoration:underline}
+
+@media (max-width:640px){
+  main{padding:24px 16px 8px}
+  .indice ol{columns:1}
+  main h2{margin-top:1.5em}
+}
+
+/* ---------- RODAPE (o mesmo da home: escuro, colunas, legais na base) ------ */
+footer{background:var(--escuro);color:var(--claro);margin-top:44px;font-family:var(--sans)}
+.foot-in{max-width:1180px;margin:0 auto;padding:44px 24px 0}
+.foot-grid{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:32px}
+.foot-marca img{width:auto;height:24px;max-width:180px;margin-bottom:12px}
+.foot-sobre{margin:0;color:var(--claro2);max-width:34ch;line-height:1.55;font-size:13.5px}
+.foot-col{display:flex;flex-direction:column;gap:9px;min-width:0}
+.foot-h{font-family:var(--mono);font-weight:600;font-size:11px;color:var(--am);
+  letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}
+footer a{color:var(--claro);text-decoration:none;font-size:13.5px;transition:color .15s ease}
+footer a:hover{color:#fff;text-decoration:underline}
+.foot-fim{max-width:1180px;margin:0 auto;padding:18px 24px 26px;margin-top:26px;
+  border-top:1px solid rgba(255,255,255,.1);display:flex;flex-wrap:wrap;align-items:center;
+  gap:12px;font-size:12.5px;color:var(--claro2)}
+.foot-legal{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.foot-legal a{font-size:12.5px}
+.foot-sp{flex:1}
+.foot-v{font-family:var(--mono);font-size:11px;color:#7d90a8}
+@media (max-width:860px){
+  .foot-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:26px}
+  .foot-in{padding:32px 16px 0}
+  .foot-fim{padding:16px 16px 24px}
+}
+@media (max-width:520px){ .foot-grid{grid-template-columns:minmax(0,1fr)} }
 ${p.css||''}
 </style>
 </head><body>
-${p.semCabecalho?'':`<header>
+<header>
   <div class="hdr-in">
-    <a class="brand" href="/"><img src="/img/logo.webp" alt="RetroFoot98" width="40" height="40">RetroFoot<i>98</i></a>
+    <a class="brand" href="/"><img src="/img/marca.svg" alt="Retrofoot.com.br" height="26"></a>
     <nav>
-      <a href="/guia/">Como jogar</a>
-      <a href="/ranking/">Ranking</a>
-      <a href="/historia-do-elifoot/">História</a>
-      <a href="/jogar-com-amigos/">Jogar com amigos</a>
+      <a href="/guia/"${p.slug==='guia'?' aria-current="page"':''}>Como jogar</a>
+      <a href="/ranking/"${p.slug==='ranking'?' aria-current="page"':''}>Ranking</a>
+      <a href="/historia-do-elifoot/"${p.slug==='historia-do-elifoot'?' aria-current="page"':''}>História</a>
+      <a href="/jogar-com-amigos/"${p.slug==='jogar-com-amigos'?' aria-current="page"':''}>Jogar com amigos</a>
+      <a href="/media-kit/"${p.slug==='media-kit'?' aria-current="page"':''}>Anuncie</a>
     </nav>
-    <a class="cta" href="/">📋 Entrar na lista</a>
+    <a class="cta" href="/">▶ Jogar de graça</a>
   </div>
-</header>`}
+</header>
 <main>
-  ${p.semCabecalho?'':`<nav class="migalhas" aria-label="Você está em"><a href="/">Início</a> › <span>${esc(p.h1)}</span></nav>
+  ${p.soMiolo?'':`<nav class="migalhas" aria-label="Você está em"><a href="/">Início</a> › <span>${esc(p.h1)}</span></nav>
   <h1>${esc(p.h1)}</h1>`}
-  ${p.legal?'':resumoHtml(p)}
+  ${(p.legal||p.soMiolo)?'':resumoHtml(p)}
   <!-- O INDICE E' MOBILIA DE ARTIGO. Numa pagina com desenho proprio (o media kit) ele
        aparecia ACIMA da abertura, antes de o visitante ver o que a pagina e' — um sumario
-       de acordeoes por cima de uma capa. Quem traz semCabecalho traz o seu proprio topo. -->
-  ${p.semCabecalho?'':indiceHtml(p.body||'')}
+       de acordeoes por cima de uma capa. Quem traz soMiolo desenha o seu proprio topo. -->
+  ${p.soMiolo?'':indiceHtml(p.body||'')}
   <article${p.legal?' class="legal"':''}>${envolveTabelas(ancoraH2(stripMissingFigures(p.body||'')))}</article>
-  ${p.legal?'':refsHtml(p)}
-  ${p.legal?'':faqHtml(p)}
-  ${p.legal?'':'<div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>'}
+  ${(p.legal||p.soMiolo)?'':refsHtml(p)}
+  ${(p.legal||p.soMiolo)?'':faqHtml(p)}
+  ${(p.legal||p.soMiolo)?'':'<div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>'}
 </main>
 <footer>
   <div class="foot-in">
-    <div class="foot-marca"><img src="/img/logo.webp" alt="" width="34" height="34">RetroFoot<i>98</i></div>
-    <p class="foot-sobre">O jogo de gerenciamento de futebol que você jogava na escola — agora online, com os amigos e no navegador. Grátis, sem instalar nada.</p>
-    <div class="foot-h">CONHEÇA O RETROFOOT98</div>
-    <div class="links">${nav}</div>
-    <div class="foot-fim">
-      <span>© 2026 RetroFoot98. Todos os direitos reservados.</span>
-      <span class="foot-legal">${navLegal}</span>
-      <span><a href="/">▶ Voltar ao jogo</a></span>
+    <div class="foot-grid">
+      <div>
+        <div class="foot-marca"><img src="/img/marca-clara.svg" alt="Retrofoot.com.br" height="24"></div>
+        <p class="foot-sobre">O jogo de gerenciamento de futebol que você jogava na escola — agora
+          online, com os amigos e no navegador. Grátis, sem instalar nada.</p>
+      </div>
+      <div class="foot-col"><span class="foot-h">O jogo</span>
+        <a href="/">Jogar agora</a>
+        <a href="/jogar-com-amigos/">Modo Resenha</a>
+        <a href="/guia/">Guia do jogo</a>
+        <a href="/ranking/">Ranking de treinadores</a>
+      </div>
+      <div class="foot-col"><span class="foot-h">Para marcas</span>
+        <a href="/media-kit/">Media kit</a>
+        <a href="/media-kit/#mk-falar">Falar com o comercial</a>
+      </div>
+      <div class="foot-col"><span class="foot-h">Páginas</span>${nav}</div>
     </div>
+  </div>
+  <div class="foot-fim">
+    <span>© 2026 RetroFoot98</span>
+    <span class="foot-legal">${navLegal}</span>
+    <span class="foot-sp"></span>
+    <span class="foot-v">v2026.01 — feito por quem cresceu jogando Elifoot.</span>
   </div>
 </footer>
 ${p.script?`<script>${p.script}</script>`:''}
