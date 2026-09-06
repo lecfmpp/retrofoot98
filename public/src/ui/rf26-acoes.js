@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — AS AÇÕES INTERNAS
+   RetroFoot — AS AÇÕES INTERNAS
    Portado de telas/Acoes - Mercado, Acoes - Elenco e E-mail e
    Acoes - Sistema e Conta (pacote "Ações Internas").
 
@@ -1258,7 +1258,7 @@ const RF_AV_ROUPAS=[['terno','Terno de beira de campo'],['agasalho','Agasalho do
 const RF_TERMOS_TEXTO=[
   'Enviar uma imagem pessoal é de responsabilidade única e exclusiva do usuário.',
   'A PB Games não se responsabiliza por essa ação.',
-  'A imagem é enviada a um serviço de inteligência artificial de terceiros, sem nenhuma relação com o RetroFoot98, e o tratamento que essas empresas dão às imagens não está sob nosso controle nem é de nossa responsabilidade.',
+  'A imagem é enviada a um serviço de inteligência artificial de terceiros, sem nenhuma relação com o RetroFoot, e o tratamento que essas empresas dão às imagens não está sob nosso controle nem é de nossa responsabilidade.',
   'A imagem enviada é apagada dos nossos servidores logo após a geração do retrato.',
   'Não envie fotos de terceiros nem de menores de idade.'
 ];
@@ -1474,7 +1474,7 @@ Object.keys(RF_ACOES_AVATAR).forEach(k=>{ RF_ACOES[k]=RF_ACOES_AVATAR[k]; });
    main.js, entao `typeof === 'function'` e' verdade e o override entra. `clOptions` nao existe em
    lado nenhum — foi-se algures no rebranding —, a guarda dava falso, o override NUNCA era
    instalado, e todos os botoes que a chamam ficaram mortos sem um erro visivel: Configuracoes
-   (Tempo de jogo, Moeda, Modo), "Abrir opcoes", o menu RetroFoot98 > Opcoes e o "Abrir opcoes do
+   (Tempo de jogo, Moeda, Modo), "Abrir opcoes", o menu RetroFoot > Opcoes e o "Abrir opcoes do
    jogo" da pagina de E-mail. Um `onclick` para funcao inexistente nao rebenta nada — nao acontece
    nada, que e' o pior modo de falhar.
 

@@ -1,6 +1,6 @@
 /* ================================================================
    ELIFOOT MODERNO v3 — pele "Clássico" sobre o motor v2 (app.js)
-   Recria a estética/fluxo do RetroFoot98 com assets e textos próprios.
+   Recria a estética/fluxo do RetroFoot com assets e textos próprios.
    Telas na ordem: 01 abertura · 02 modo · 03 países · 04 moeda ·
    05 loading · 06 jogadores · 07 sorteio · 08-13 tela principal.
    ================================================================ */
@@ -339,8 +339,8 @@ const COACHES_C=['Arnaldo Lira','Renato Bianchi','Vanderlei Souza','Paulo Meira'
 
 /* ---- chrome Win3.1 ---- */
 function deskWrap(inner,opts){ opts=opts||{};
-  const logoImg=`<img class="cl-desk-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot98" draggable="false">`;
-  const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot98.com.br/" aria-label="RetroFoot98 — página inicial">${logoImg}</a>`:logoImg):'';
+  const logoImg=`<img class="cl-desk-logo" src="img/logo.webp" width="500" height="500" alt="RetroFoot" draggable="false">`;
+  const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot.com.br/" aria-label="RetroFoot — página inicial">${logoImg}</a>`:logoImg):'';
   return `<div class="cl-desk">${logo}${inner}</div>`; }
 function topbarAuth(){
   if(typeof NET==='undefined' || !NET.authStatus) return '';
@@ -361,7 +361,7 @@ async function clAuthLogout(){
    cinza vira só ruído em cima da janela do clube. */
 function titleBarTop(t,opts){ opts=opts||{};
   const logoImg=`<img class="cl-topbar-logo" src="img/logo.webp" width="500" height="500" alt="">`;
-  const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot98.com.br/" aria-label="RetroFoot98 — página inicial">${logoImg}</a>`:logoImg):'';
+  const logo=opts.logo?(opts.linkHome?`<a class="cl-logo-link" href="https://retrofoot.com.br/" aria-label="RetroFoot — página inicial">${logoImg}</a>`:logoImg):'';
   return `<div class="cl-topbar${opts.phoneHide?' cl-topbar-nophone':''}">${logo}${escC(t)}${topbarAuth()}</div>`; }
 /* "Sair" (da CONTA, mesmo clAuthLogout da barra cinza) como último item da gaveta no telefone.
    Só aparece logado — deslogado a barra cinza também não mostrava nada. */
@@ -960,7 +960,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
    Termos/Privacidade). O protótipo original usa um canvas de tamanho fixo (1100×632)
    escalado por JS — truque específico da ferramenta de design pra caber num iframe de
    preview. Aqui adaptado pro padrão responsivo real do resto do app: 100vh fluido,
-   único breakpoint em 760px (ver .cl-home-* no CSS), igual todo o resto do RetroFoot98. */
+   único breakpoint em 760px (ver .cl-home-* no CSS), igual todo o resto do RetroFoot. */
 const LANDING_NAV=[['home','Início'],['sobre','Sobre nós'],['ajuda','Como jogar'],['contato','Contato']];
 const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Termos'],['priv','Privacidade']];
 /* ===== AS PÁGINAS DE CONTEÚDO NO RODAPÉ =====
@@ -988,7 +988,7 @@ const LANDING_PAGINAS=[
 ];
 /* ===== AS PAGINAS LEGAIS SAO OUTRA LISTA =====
    Nao entram em LANDING_PAGINAS de proposito: aquela lista alimenta TAMBEM a grelha "Conheca o
-   RetroFoot98" da home, e os Termos nao sao cartao de leitura sugerida. Estas vivem na base do
+   RetroFoot" da home, e os Termos nao sao cartao de leitura sugerida. Estas vivem na base do
    rodape, que e' onde se procura por elas.
    O conteudo esta' em seo/legal.mjs e sai como pagina estatica em /termos/, /privacidade/ e
    /cookies/ (ver scripts/build-seo.mjs). Os slugs tem de bater com os de la': o gerador avisa
@@ -1021,7 +1021,7 @@ function landingPaginasHTML(){
         <span class="cl-pg-d">${escC(desc)}</span>
       </a>`).join('');
   return `<section class="cl-pg-sec">
-      <h2 class="cl-pg-h">Conheça o RetroFoot98</h2>
+      <h2 class="cl-pg-h">Conheça o RetroFoot</h2>
       <div class="cl-pg-grid">${cards}</div>
     </section>`;
 }
@@ -1168,7 +1168,7 @@ function landingRodapeHTML(){
       </div>
       <div class="cl-lp-foot-paginas">${rodapePaginasHTML()}</div>
       <div class="cl-lp-foot-fim">
-        <span>© 2026 RetroFoot98. Todos os direitos reservados.</span>
+        <span>© 2026 RetroFoot. Todos os direitos reservados.</span>
         <span class="cl-lp-mono">v2026.01 — feito por quem cresceu jogando Elifoot.</span>
       </div>
     </div>
@@ -1277,7 +1277,7 @@ async function clWaitlistSubmit(){
 }
 function waitlistZapHref(){
   const num=String((CL.waitlist&&CL.waitlist.zap)||'').replace(/\D/g,'');
-  const msg=encodeURIComponent('Bora montar nossa liga no RetroFoot98? Entra na lista de espera — só '+WAITLIST_VAGAS+' treinadores na primeira versão: https://retrofoot98.com.br');
+  const msg=encodeURIComponent('Bora montar nossa liga no RetroFoot? Entra na lista de espera — só '+WAITLIST_VAGAS+' treinadores na primeira versão: https://retrofoot.com.br');
   return num ? 'https://wa.me/'+(num.length>11?num:'55'+num)+'?text='+msg : 'https://wa.me/?text='+msg;
 }
 /* ===== O FORMULÁRIO EM DOIS PASSOS =====
@@ -1347,7 +1347,7 @@ async function clMediaKitEnviar(){
    pra a conversa começar do meio e não do "oi" */
 function mkZapHref(){
   const m=CL.mk||{}, r=m.respostas||{};
-  const linhas=['Olá! Tenho interesse em patrocinar o RetroFoot98.'];
+  const linhas=['Olá! Tenho interesse em patrocinar o RetroFoot.'];
   if((m.empresa||'').trim()) linhas.push('Empresa: '+m.empresa.trim());
   if(r.segmento) linhas.push('Ramo: '+r.segmento);
   if(r.publico)  linhas.push('Público: '+r.publico);
@@ -1418,7 +1418,7 @@ function mediaKitModalHTML(){
     </div>`;
   }
   return `<div class="cl-lp-modal" onclick="if(event.target===this)clMediaKitClose()">
-    ${janelaHTML('📈 Media kit — RetroFoot98', corpo, 'cl-lp-win-modal', acoes)}
+    ${janelaHTML('📈 Media kit — RetroFoot', corpo, 'cl-lp-win-modal', acoes)}
   </div>`;
 }
 /* MORTAS com a portagem do formulário (ver rfWaitlistHTML em rf26-fluxo.js):
@@ -1429,7 +1429,7 @@ function waitlistModalHTMLLegado(){
   const cls='cl-lp-win-modal'+(CL.waitlistMax?' larga':'');
   const corpo = CL.waitlistSent ? waitlistPasso2HTMLLegado(w) : waitlistPasso1HTMLLegado(w);
   return `<div class="cl-lp-modal" onclick="if(event.target===this)clWaitlistClose()">
-    ${janelaHTML('📋 Lista de espera — RetroFoot98', corpo, cls, acoes)}
+    ${janelaHTML('📋 Lista de espera — RetroFoot', corpo, cls, acoes)}
   </div>`;
 }
 function waitlistPasso1HTMLLegado(w){
@@ -1567,7 +1567,7 @@ function lpZoomHTML(){
 function landingHeroHTML(){
   const vid=LANDING_VIDEO_ID||'';
   const video = vid
-    ? `<iframe src="https://www.youtube-nocookie.com/embed/${escC(vid)}" title="Vídeo de lançamento RetroFoot98"
+    ? `<iframe src="https://www.youtube-nocookie.com/embed/${escC(vid)}" title="Vídeo de lançamento RetroFoot"
          allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`
     : `<div class="cl-lp-video-vazio">
          <div class="cl-lp-play">▶</div>
@@ -1683,7 +1683,7 @@ function landingCriadoresHTML(){
       <div class="cl-lp-col-txt">
         <div class="cl-lp-kicker">PARA CANAIS E COMUNIDADES</div>
         <h2 class="cl-lp-h2">Jogue ao vivo com a sua audiência.</h2>
-        <p class="cl-lp-p">Se você tem canal no YouTube ou live na Twitch, o RetroFoot98 é feito pra isso: abre a sala, chama a comunidade e roda a liga inteira ao vivo, com o chat comentando cada rodada.</p>
+        <p class="cl-lp-p">Se você tem canal no YouTube ou live na Twitch, o RetroFoot é feito pra isso: abre a sala, chama a comunidade e roda a liga inteira ao vivo, com o chat comentando cada rodada.</p>
         <div class="cl-lp-passos">${passos}</div>
         <button class="cl-lp-btn" onclick="clLandingGo('apoie')">Falar sobre parceria de canal</button>
       </div>
@@ -1704,7 +1704,7 @@ function landingListaHTML(){
   return `<section class="cl-lp-wrap cl-lp-sec" id="lp-lista">
     ${janelaHTML('📋 Lista de espera — primeira versão', `<div class="cl-lp-lista">
       <h2 class="cl-lp-h2">Só ${WAITLIST_VAGAS} treinadores entram na primeira versão.</h2>
-      <p class="cl-lp-p">A primeira versão do RetroFoot98 abre para ${WAITLIST_VAGAS} pessoas testarem o jogo online e os recursos beta. Entre na lista, responda uma pergunta rápida e indique os amigos que você quer na sua liga.</p>
+      <p class="cl-lp-p">A primeira versão do RetroFoot abre para ${WAITLIST_VAGAS} pessoas testarem o jogo online e os recursos beta. Entre na lista, responda uma pergunta rápida e indique os amigos que você quer na sua liga.</p>
       <div class="cl-lp-barra-wrap">
         <div class="cl-lp-barra-lbl"><span>Vagas preenchidas</span><b>${n==null?'—':n} / ${WAITLIST_VAGAS}</b></div>
         <div class="cl-lp-barra"><div class="cl-lp-barra-in" style="width:${pct}%"></div></div>
@@ -1792,7 +1792,7 @@ function landingApoieHTML(){
       <button class="cl-lp-btn" onclick="clLandingGo('home')">↩ Voltar ao início</button>
       <div class="cl-lp-kicker" style="margin-top:20px">APOIE O RETROFOOT98</div>
       <h1 class="cl-lp-h2">Um projeto independente, tocado por quem cresceu jogando.</h1>
-      <p class="cl-lp-p cl-lp-p-larga">O RetroFoot98 é gratuito para jogar e vive de apoio: patrocínio de marcas, parceria com canais e a torcida da comunidade. Se você quer colocar a sua marca no jogo ou apoiar o desenvolvimento, o material está aqui embaixo.</p>
+      <p class="cl-lp-p cl-lp-p-larga">O RetroFoot é gratuito para jogar e vive de apoio: patrocínio de marcas, parceria com canais e a torcida da comunidade. Se você quer colocar a sua marca no jogo ou apoiar o desenvolvimento, o material está aqui embaixo.</p>
       <div class="cl-lp-2col cl-lp-2col-igual">
         ${janelaHTML('Cotas de patrocínio', `<div class="cl-lp-cotas">${cotas}
           <p class="cl-lp-cotas-nota">Cotas anuais, com contrapartida dentro do jogo, nas Ligas Oficiais e nos canais.</p></div>`)}
@@ -1837,7 +1837,7 @@ function landingPageHTML(title, bodyHTML, opts){ opts=opts||{};
 function landingSobreHTML(){
   return landingPageHTML('Sobre nós', `
     <div class="cl-home-h2">Feito por quem cresceu jogando Elifoot.</div>
-    <p>O RetroFoot98 é o jogo de gerenciamento de futebol que você jogava na escola — a mesma pegada raiz de janelinha e placar em mono — só que agora online e com os amigos. Você comanda o clube: escolhe a tática, negocia jogadores, cuida do caixa e briga por acesso da Série D até o topo.</p>
+    <p>O RetroFoot é o jogo de gerenciamento de futebol que você jogava na escola — a mesma pegada raiz de janelinha e placar em mono — só que agora online e com os amigos. Você comanda o clube: escolhe a tática, negocia jogadores, cuida do caixa e briga por acesso da Série D até o topo.</p>
     <p class="cl-home-p2">É um projeto independente, tocado por gente apaixonada por futebol e pelos clássicos de PC. Sem tela de energia, sem pay-to-win: só o jogo que a gente sempre quis ter de volta.</p>
     <button class="cl-home-mini cl-home-back" onclick="clLandingGo('home')">↩ Voltar ao início</button>
   `, {w:620});
@@ -1872,7 +1872,7 @@ function landingContatoHTML(){
 }
 function landingTermosHTML(){
   return landingPageHTML('Termos de uso', `
-    <p><b>1. O jogo.</b> O RetroFoot98 é gratuito para jogar. Você é responsável pela sua conta e pelo que faz nas ligas em que entra.</p>
+    <p><b>1. O jogo.</b> O RetroFoot é gratuito para jogar. Você é responsável pela sua conta e pelo que faz nas ligas em que entra.</p>
     <p><b>2. Fair play.</b> Nada de trapaça, bots ou ofensa na resenha. Contas fora da linha podem ser suspensas.</p>
     <p><b>3. Marcas.</b> Nomes de clubes e jogadores pertencem aos seus donos e são usados apenas para fins de simulação.</p>
     <p class="cl-home-fine">Versão v2026.01 — última atualização em julho de 2026.</p>
@@ -2111,7 +2111,7 @@ function wizShell(o){
   const trilha = o.step ? rfTrilhaHTML(o.step, o.modo) : '';
   return `<div class="cl-home cl-wiz ${o.rootCls||''}">
     <div class="cl-home-titlebar">
-      <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot98</div>
+      <div class="cl-home-tb-l"><img src="img/logo.webp" width="500" height="500" alt="">RetroFoot</div>
       <div class="cl-home-tb-r"><span>_</span><span>□</span><span>✕</span></div>
     </div>
     ${homeNavbar(
@@ -2131,7 +2131,7 @@ function wizShell(o){
     <div class="cl-home-footer">
       <div class="cl-home-foot-paginas">${rodapePaginasHTML()}</div>
       <div class="cl-home-foot-linha">
-        <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot98</span></div>
+        <div class="cl-home-foot-l"><span class="cl-home-ver">v2026.01</span><span>© 2026 RetroFoot</span></div>
         <div class="cl-home-foot-r">
           <a class="cl-home-foot" onclick="clWizHome('sobre')">Sobre nós</a>
           <a class="cl-home-foot" onclick="clWizHome('contato')">Contato</a>
@@ -3651,7 +3651,7 @@ function scSeatTurnLegado(){
   const oppId=fx.home===seat.clubId?fx.away:fx.home; const opp=clubOf(oppId)||bgClubById(oppId)||{};
   const home=fx.home===seat.clubId; const flag=(typeof flagImg==='function')?flagImg(seat.country):'';
   const th=clubTheme(seat.clubId);
-  const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador'];
+  const menuNames=['RetroFoot','Formação','Equipa','Jogador','Campeonatos','Treinador'];
   const hamburger=`<div class="cl-hamburger ${CL.mobMenuOpen?'open':''}" onclick="clToggleMobMenu(event)" role="button" aria-expanded="${CL.mobMenuOpen?'true':'false'}">
     <span class="cl-ham-ico" aria-hidden="true">${CL.mobMenuOpen?'✕':'☰'}</span>
     <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span></div>`;
@@ -3884,7 +3884,7 @@ function scMain(){
   const nm=nextUserMatch();
   const uf=(nm&&nm.kind==='league')?nm.uf:null;
   const oppId=nm?nm.oppId:null; const home=nm?nm.home:true;
-  const menuNames=['RetroFoot98','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
+  const menuNames=['RetroFoot','Formação','Equipa','Jogador','Campeonatos','Treinador']; if(CL.online) menuNames.push('Modo Resenha');
   const hamburger=`<div class="cl-hamburger ${CL.mobMenuOpen?'open':''}" onclick="clToggleMobMenu(event)" role="button" aria-expanded="${CL.mobMenuOpen?'true':'false'}">
     <span class="cl-ham-ico" aria-hidden="true">${CL.mobMenuOpen?'✕':'☰'}</span>
     <span class="cl-ham-t">${CL.mobMenuOpen?'Fechar':'Menu'}</span></div>`;
@@ -6149,7 +6149,7 @@ function panSeleccao(){
   // "Seleccionar descansados": só aparece depois que uma formação foi escolhida (mesmo gate
   // usado pelo botão Substituir logo abaixo). Reescala os mesmos setores da formação atual,
   // mas priorizando energia (menos cansados) em vez de força.
-  // formações disponíveis com atalhos — estilo vintage RetroFoot98. Além das 6 formações,
+  // formações disponíveis com atalhos — estilo vintage RetroFoot. Além das 6 formações,
   // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
   // menores pra alinhar 8 opções em 2 linhas).
   const formKeys = Object.keys(FORMATIONS);
@@ -6786,7 +6786,7 @@ function finishCupSpectate(){
   // destrava a rodada de liga ao terminar de assistir.
   if(CL.online && typeof onlineRecoverRunRound==='function') onlineRecoverRunRound();
 }
-/* ---------- PARTIDA AO VIVO (estilo RetroFoot98: placar por divisões) ---------- */
+/* ---------- PARTIDA AO VIVO (estilo RetroFoot: placar por divisões) ---------- */
 function attendanceFor(homeId,rnd){
   const homeClub=(typeof clubOf==='function')?clubOf(homeId):null; const homeOv=(homeClub&&homeClub.overall)||70;
   // Capacidade: MESMO caminho pra qualquer clube, meu ou de outro humano ou da CPU — prioridade
@@ -7994,7 +7994,7 @@ function penaltyTick(){ const RL=CL.live; if(!RL || !RL.penEvent){ clearInterval
   if(left<=0){ clearInterval(CL._penTimer); resolvePenalty(CL.penSel); }
 }
 function penaltySelect(name){ CL.penSel=name; cdraw(); }
-/* ---- resultado do pênalti: agora em 3 fases, igual ao RetroFoot98 clássico —
+/* ---- resultado do pênalti: agora em 3 fases, igual ao RetroFoot clássico —
    1) escolhe o batedor  2) suspense (só o título, alguns segundos)
    3) revelação dramática (GOLO em vermelho / Defendeu em preto) antes de continuar. ---- */
 function resolvePenalty(takerName){
@@ -11454,7 +11454,7 @@ function clToggleAcc(key){ CL[key] = CL[key]===false ? true : false; cdraw(); }
 function menuDropdown(name){ name=name||CL.menu;
   const F=Object.keys(FORMATIONS);
   const items={
-    'RetroFoot98':[['Opções','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
+    'RetroFoot':[['Opções','clOptions()'],['—'],['Gravar jogo','clSaveMenu()'],['Sair para o menu','clExit()']],
     'Formação':[...F.map((f,i)=>[`${f}`,`clSelFormation('${f}')`,(i+1)+'/'+FKEY[f]]),['—'],['Automático','clSelFormation(\'auto\')'],['Melhores','clSelFormation(\'best\')']],
     'Equipa':[['Estádio','clStadium()'],['Historial','clClubHistory()']],
     'Jogador':[['Vender','clSell()'],['Comprar jogador','clMarketClubs()'],[`Propostas recebidas${myIncomingOffers().length?' ('+myIncomingOffers().length+')':''}`,'clIncomingOffers()'],[`Contrapropostas${(typeof myCounterOffers==='function'&&myCounterOffers().length)?' ('+myCounterOffers().length+')':''}`,'clCounterOffers()'],['Leilão de jogadores','clAuctionScreen()'],[(typeof youthAvailable==='function'&&youthAvailable())?'Subir jogador da base':'Base (indisponível agora)','clPromoteYouth()'],[`Treino especial (${myTrainingList().length}/${TRAINING_MAX_SLOTS})`,'clTrainingScreen()'],['Últimas transferências','clTransferHistory()']],
@@ -11477,7 +11477,7 @@ function menuDropdown(name){ name=name||CL.menu;
   return `<div class="cl-menu-dd" onclick="event.stopPropagation()">${rows}</div>`;
 }
 function clStub(t){ CL.menu=null; toastC(t+' — em breve.'); cdraw(); }
-/* ---- RetroFoot98 > Opções... ---- */
+/* ---- RetroFoot > Opções... ---- */
 /* "Tempo de jogo" (ritmo do liveTick) é a única opção com efeito compartilhado no Modo Resenha:
    controla também o intervalo de polling (onlineTimerLoop). Por isso, online, só o Anfitrião pode
    mudar — os convidados ficam travados no valor que ele escolheu (games.speed_mult, já
@@ -11608,7 +11608,7 @@ function clOpcoesGravar(){
   S.config.opcoes=Object.assign({}, S.config.opcoes, CL.options);
 }
 
-/* ---- RetroFoot98 > Opções > Voltar a um ponto guardado ----
+/* ---- RetroFoot > Opções > Voltar a um ponto guardado ----
    Lista as fotos que o salvamento automático guardou (ver autosave.js). Voltar é destrutivo por
    natureza — o que veio depois do ponto some —, então a confirmação diz exatamente o que se
    perde, e na Resenha avisa que a sala inteira volta junto. */
@@ -12281,7 +12281,7 @@ function clCopyResenhaLink(){
 }
 function clSendResenhaInvite(){ const phone=(document.querySelector('#cl-invres-phone')?.value||'').replace(/\D/g,'');
   if(phone.length<10){ toastC('Informe um telefone válido.'); return; }
-  const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem pra minha Resenha do RetroFoot98! Um time é sorteado pra você. '+link);
+  const link=(typeof NET!=='undefined')?NET.inviteLink():''; const wa='https://wa.me/55'+phone+'?text='+encodeURIComponent('Vem pra minha Resenha do RetroFoot! Um time é sorteado pra você. '+link);
   try{ window.open(wa,'_blank'); }catch(e){} toastC('Abrindo WhatsApp','progress'); }
 function clSendResenhaEmailInvite(){ const email=(document.querySelector('#cl-invres-email')?.value||'').trim();
   if(!email || !email.includes('@')){ toastC('Informe um e-mail válido.'); return; }
@@ -12290,7 +12290,7 @@ function clSendResenhaEmailInvite(){ const email=(document.querySelector('#cl-in
   (async ()=>{ try { await NET.sendEmailInvite(email); toastC('✓ Convite enviado por e-mail!'); const inp=document.querySelector('#cl-invres-email'); if(inp) inp.value=''; }
     catch(e){ toastC('⚠ '+(e&&e.message||'Erro ao enviar convite por e-mail')); } })(); }
 function clTab2(t){ CL.menu=null; CL.tab=t; cdraw(); }
-/* "Gravar jogo" (menu RetroFoot98).
+/* "Gravar jogo" (menu RetroFoot).
    NA RESENHA ELE NÃO FAZIA NADA. saveV3() retorna na PRIMEIRA linha quando CL.online (o mundo é
    do servidor, não do save solo), então o menu fechava, a tela redesenhava e o jogador não via
    nem toast nem overlay: pra ele o botão de salvar simplesmente não existia.
@@ -13143,7 +13143,7 @@ function cupFitStage(){
   }
 }
 
-/* ================= SORTEIO DOS JOGOS DA TAÇA (cerimônia animada, igual ao RetroFoot98 clássico) =================
+/* ================= SORTEIO DOS JOGOS DA TAÇA (cerimônia animada, igual ao RetroFoot clássico) =================
    Quando um chaveamento novo é montado (Copa do Brasil no início da temporada; Libertadores/
    Sul-Americana no dia real do sorteio das oitavas), o pareamento em si já foi decidido de
    forma determinística (makeBracket — mesmo overall/seed de sempre); esta tela só ANIMA a
@@ -13520,10 +13520,10 @@ function shareMessage(){
   const pos=(typeof tablePos==='function')?tablePos(CL.clubId):null;
   const div=(typeof divisionLabel==='function')?divisionLabel():'';
   const partes=[];
-  partes.push(`Tô comandando o ${(c&&c.short)||'meu time'} no RetroFoot98`);
+  partes.push(`Tô comandando o ${(c&&c.short)||'meu time'} no RetroFoot`);
   if(div) partes.push(`na ${div}`);
   if(pos) partes.push(`— ${pos}º lugar`);
-  return partes.join(' ')+'. Monta o seu e joga comigo: https://retrofoot98.com.br';
+  return partes.join(' ')+'. Monta o seu e joga comigo: https://retrofoot.com.br';
 }
 async function clShareTo(alvo){
   CL.shareOpen=false; cdraw();
@@ -13531,15 +13531,15 @@ async function clShareTo(alvo){
   try{
     toastC('Gerando imagem...');
     const blob=await buildShareBlob();
-    const file=new File([blob],'retrofoot98.png',{type:'image/png'});
+    const file=new File([blob],'retrofoot.png',{type:'image/png'});
     // caminho bom (celular): bandeja nativa com a imagem — é o único jeito de Instagram/TikTok
     if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], text:texto, title:'RetroFoot98'});
+      await navigator.share({files:[file], text:texto, title:'RetroFoot'});
       return;
     }
     // sem compartilhamento nativo: baixa a imagem e abre o compositor de quem tem
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download='retrofoot98.png'; a.click();
+    const a=document.createElement('a'); a.href=url; a.download='retrofoot.png'; a.click();
     setTimeout(()=>URL.revokeObjectURL(url), 20000);
     if(alvo==='x'){ window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(texto),'_blank','noopener'); toastC('Imagem baixada — anexe no post.'); }
     else if(alvo==='whatsapp'){ window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank','noopener'); toastC('Imagem baixada — anexe na conversa.'); }
@@ -14090,7 +14090,7 @@ document.addEventListener('keydown',e=>{
   if(o.dataset.obrigatorio) return;                 // ver overlayC: decisao que nao se dispensa
   clCloseOverlay();
 });
-function resultDialog(score,verd){ overlayC(dlg('RetroFoot98', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>
+function resultDialog(score,verd){ overlayC(dlg('RetroFoot', `<div class="cl-res"><div class="cl-res-score">${escC(score)}</div>
   <div class="cl-res-verd">${escC(verd)}</div><div class="cl-cal-ok">${btn('OK','clCloseOverlay()',{icon:'✔',cls:'cl-btn-ok'})}</div></div>`,{w:520,bodyClass:'cl-body-green'})); }
 /* ===== TOAST (rebranding 2026) — cinco tons, um glifo fixo por tom =====
    Escuro, filete de 4px à esquerda na cor do tom, UMA frase, some sozinho.

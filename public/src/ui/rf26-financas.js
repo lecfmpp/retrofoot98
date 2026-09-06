@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — FINANÇAS, as cinco abas completas
+   RetroFoot — FINANÇAS, as cinco abas completas
    Marcação de telas-v3/Financas - Abas.dc.html, coluna por coluna.
 
    Resumo · Extrato · Histórico · Estádio · Patrocínio.

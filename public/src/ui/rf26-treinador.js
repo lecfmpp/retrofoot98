@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — TREINADOR, as seis abas completas
+   RetroFoot — TREINADOR, as seis abas completas
    Marcação de telas-v3/Treinador - Abas.dc.html, coluna por coluna.
 
    Carreira · História · Sala de Troféus · Ranking · Ofertas · Perfil.

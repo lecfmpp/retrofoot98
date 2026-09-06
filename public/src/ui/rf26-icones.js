@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — ÍCONES (Iconoir, MIT)
+   RetroFoot — ÍCONES (Iconoir, MIT)
    https://iconoir.com · github.com/iconoir-icons/iconoir
 
    POR QUE ISTO EXISTE. A interface usava emoji, e emoji tem cor própria: o

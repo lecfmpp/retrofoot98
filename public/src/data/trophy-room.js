@@ -72,7 +72,7 @@ window.TROPHY_ROOM = {
        pra reservar o lugar dele na prateleira MUNDO. Quando o Mundial virar competição de
        verdade, basta o motor gravar comp:'mundial' que o card acende sozinho. */
     { id:'mundial', nome:'Mundial de Clubes FIFA', curto:'Mundial FIFA', img:'mundial.webp', regiao:'MUNDO', tipo:'copa', embreve:true,
-      dica:'Ainda não é disputado no RetroFoot98. A taça já tem lugar guardado na estante para quando a competição entrar no jogo.' },
+      dica:'Ainda não é disputado no RetroFoot. A taça já tem lugar guardado na estante para quando a competição entrar no jogo.' },
   ],
 };
 

@@ -202,20 +202,20 @@ const script = `
 /* A MENSAGEM JA' VAI ESCRITA. Quem chega aqui acabou de ver a tabela de midia, e o comercial
    precisa de saber isso de partida — sem o texto, chega um "oi" sem contexto e a conversa
    comeca do zero. */
-const ZAP_TEXTO = encodeURIComponent('Olá! Vi o media kit do RetroFoot98 e quero falar sobre anunciar no jogo.');
+const ZAP_TEXTO = encodeURIComponent('Olá! Vi o media kit do RetroFoot e quero falar sobre anunciar no jogo.');
 const zap = WHATSAPP
   ? `<a class="mk-b amarelo" href="https://wa.me/${WHATSAPP}?text=${ZAP_TEXTO}" target="_blank" rel="noopener">💬 Falar no WhatsApp</a>`
-  : `<a class="mk-b amarelo" href="mailto:${CONTATO}?subject=Media%20kit%20RetroFoot98">✉ Falar com o comercial</a>`;
+  : `<a class="mk-b amarelo" href="mailto:${CONTATO}?subject=Media%20kit%20RetroFoot">✉ Falar com o comercial</a>`;
 
 /* ---- a página ---------------------------------------------------------- */
 
 export const mediaKit = [{
   slug: 'media-kit', ready: true, soMiolo: true, priority: 0.6, lastmod: '2026-09-05',
   schemaType: 'WebPage',
-  title: 'Media Kit — anuncie no RetroFoot98',
-  description: 'Os espaços publicitários do RetroFoot98: leaderboard de topo, laterais, placas do campo e a vitrine da barra lateral, com as capturas reais, as medidas de arte e a tabela de mídia.',
+  title: 'Media Kit — anuncie no RetroFoot',
+  description: 'Os espaços publicitários do RetroFoot: leaderboard de topo, laterais, placas do campo e a vitrine da barra lateral, com as capturas reais, as medidas de arte e a tabela de mídia.',
   h1: 'Sua marca foi convocada',
-  keywords: 'anunciar no retrofoot, media kit retrofoot98, patrocínio jogo de futebol, publicidade em game brasileiro, tabela de mídia',
+  keywords: 'anunciar no retrofoot, media kit retrofoot, patrocínio jogo de futebol, publicidade em game brasileiro, tabela de mídia',
   script,
   head: `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

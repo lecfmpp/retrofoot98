@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — ASSESSORIA DE IMPRENSA · ENTREVISTA PÓS-JOGO
+   RetroFoot — ASSESSORIA DE IMPRENSA · ENTREVISTA PÓS-JOGO
 
    O QUE EXISTIA. Uma coletiva só, na VIRADA DE TEMPORADA (openPressRoom),
    com cinco perguntas FIXAS escritas para o começo de ano ("qual a meta do

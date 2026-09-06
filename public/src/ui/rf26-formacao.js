@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — FORMAÇÃO: os dois blocos que faltavam
+   RetroFoot — FORMAÇÃO: os dois blocos que faltavam
    Portado de telas/Hub do Time - Sidebar Recolhida.html (pacote v2).
 
    NOTAS DO PLANTEL (à esquerda do Adversário) — Artilheiro do clube,

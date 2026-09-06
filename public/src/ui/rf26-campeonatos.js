@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — CAMPEONATOS, as cinco abas completas
+   RetroFoot — CAMPEONATOS, as cinco abas completas
    Marcação de telas-v3/Campeonatos - Abas.dc.html, coluna por coluna.
 
    Minhas competições · Calendário · Artilharia · História · Ligas

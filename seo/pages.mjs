@@ -1,5 +1,5 @@
 // ============================================================================
-// MANIFESTO DE PÁGINAS SEO (Brasil) — RetroFoot98
+// MANIFESTO DE PÁGINAS SEO (Brasil) — RetroFoot
 // Cada entrada vira dist/<slug>/index.html (gerada por scripts/build-seo.mjs) + entra no sitemap.
 // ready:true gera a página. Imagens: screenshots reais em /img/seo/*.webp.
 // Copy em rascunho para revisão (foco nostalgia + features + comparação "antes x agora").
@@ -17,14 +17,14 @@ export const pages = [
   {
     slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-07-25',
     title: 'A História do Elifoot e dos Jogos de Treinador de Futebol',
-    description: 'Do ZX Spectrum de 1987 à febre brasileira: a história do Elifoot, de André Elias e a evolução dos jogos de manager de futebol — até renascer online no RetroFoot98.',
+    description: 'Do ZX Spectrum de 1987 à febre brasileira: a história do Elifoot, de André Elias e a evolução dos jogos de manager de futebol — até renascer online no RetroFoot.',
     h1: 'A história do Elifoot: do disquete à resenha online',
     keywords: 'historia do elifoot, elifoot criador, elifoot andre elias, elifoot quando foi lançado, elifoot 2, elifoot o que é, elifoot acabou',
     resumo: [
       'O <strong>Elifoot</strong> foi criado pelo português <strong>André Elias</strong> e estreou em <strong>1987</strong>, no ZX Spectrum.',
       'A febre brasileira começou em <strong>1998</strong>, com times e elencos nacionais no jogo.',
       'A alma nunca foi o gráfico: era escalar, negociar e <strong>resenhar com os amigos</strong>.',
-      'O <strong>RetroFoot98</strong> retoma essa pegada no navegador, online e de graça.',
+      'O <strong>RetroFoot</strong> retoma essa pegada no navegador, online e de graça.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'A página do próprio André Elias, criador do Elifoot, com as versões do jogo.', url:'https://www.elifoot.com/' },
@@ -33,8 +33,8 @@ export const pages = [
     faq: [
       { q:'Quem criou o Elifoot?', a:'<p>O português <strong>André Elias</strong>, programador (e piloto de avião), que lançou a primeira versão em 1987 no ZX Spectrum e seguiu atualizando o jogo por décadas.</p>' },
       { q:'Em que ano o Elifoot foi lançado?', a:'<p>A primeira versão é de <strong>1987</strong>. O "Elifoot II" saiu em 1989, e a explosão no Brasil veio a partir de <strong>1998</strong>, quando o jogo ganhou clubes e elencos brasileiros.</p>' },
-      { q:'O Elifoot acabou?', a:'<p>Não. O jogo original seguiu recebendo versões, e o gênero está mais vivo do que nunca — inclusive em versões online e gratuitas como o RetroFoot98, que roda direto no navegador.</p>' },
-      { q:'Dá para jogar Elifoot online hoje?', a:'<p>Dá para jogar um manager com a mesma pegada sem instalar nada: o <a href="/elifoot-online/">RetroFoot98 roda no navegador</a>, no celular ou no PC, sozinho ou com amigos.</p>' },
+      { q:'O Elifoot acabou?', a:'<p>Não. O jogo original seguiu recebendo versões, e o gênero está mais vivo do que nunca — inclusive em versões online e gratuitas como o RetroFoot, que roda direto no navegador.</p>' },
+      { q:'Dá para jogar Elifoot online hoje?', a:'<p>Dá para jogar um manager com a mesma pegada sem instalar nada: o <a href="/elifoot-online/">RetroFoot roda no navegador</a>, no celular ou no PC, sozinho ou com amigos.</p>' },
     ],
         body: `
 <p class="lead">Tem um jogo que marcou gerações de brasileiros que gostam de futebol e de mexer com números:
@@ -54,7 +54,7 @@ do técnico.</p>
 <p>Dois anos depois veio o <strong>"Elifoot II"</strong> — que era pra ter sido o fim da linha. André ia focar nos estudos
 e deixar os jogos de lado.</p>
 
-${fig('hub', 'A cara retrô continua — a tela de abertura do RetroFoot98')}
+${fig('hub', 'A cara retrô continua — a tela de abertura do RetroFoot')}
 
 <h2>1996: a faixa do Palmeiras que mudou tudo</h2>
 <p>Passaram-se anos. Em 1996, numa busca rápida pela internet, André Elias resolveu ver o que tinha acontecido com aquele
@@ -75,8 +75,8 @@ passando o teclado de mão em mão</em>.</p>
 placar em texto, tudo num computador só. A ideia era genial; a tecnologia da época é que segurava. E é exatamente aí que
 entra a nossa parte da história.</p>
 
-<h2>2026: o RetroFoot98 tira as amarras</h2>
-<p>O <strong>RetroFoot98</strong> pega aquela mesma alma — a do técnico raiz, do placar em mono, da resenha com os amigos —
+<h2>2026: o RetroFoot tira as amarras</h2>
+<p>O <strong>RetroFoot</strong> pega aquela mesma alma — a do técnico raiz, do placar em mono, da resenha com os amigos —
 e resolve o que a tecnologia dos anos 90 não deixava:</p>
 <ul>
   <li><strong>Abre no navegador</strong>, sem baixar nem instalar nada.</li>
@@ -85,7 +85,7 @@ e resolve o que a tecnologia dos anos 90 não deixava:</p>
   <li>Partida ao vivo, classificação, janela de transferências, finanças, e-mails do treinador… e é <strong>grátis</strong>.</li>
 </ul>
 
-${fig('formacao', 'A tela do seu time no RetroFoot98 — escalação, próximo jogo, elenco e caixa')}
+${fig('formacao', 'A tela do seu time no RetroFoot — escalação, próximo jogo, elenco e caixa')}
 
 <p>É o mesmo prazer de antigamente, agora leve, online e com a galera — pra matar a saudade sem precisar de disquete.
 Quer conferir? Veja <a href="/elifoot-online/">como jogar o Elifoot online</a>, entenda por que é um
@@ -97,7 +97,7 @@ Quer conferir? Veja <a href="/elifoot-online/">como jogar o Elifoot online</a>, 
   {
     slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-07-25',
     title: 'Elifoot Online Grátis — Jogue no Navegador (2026)',
-    description: 'Sente falta do Elifoot? O RetroFoot98 é o manager retrô online: sem baixar, grátis, com clubes reais e multiplayer. Jogue agora no navegador.',
+    description: 'Sente falta do Elifoot? O RetroFoot é o manager retrô online: sem baixar, grátis, com clubes reais e multiplayer. Jogue agora no navegador.',
     h1: 'Elifoot online: jogue no navegador, de graça e com os amigos',
     keywords: 'elifoot online, jogar elifoot online, elifoot online gratis, elifoot navegador, elifoot multiplayer, novo elifoot, elifoot acabou',
     resumo: [
@@ -107,7 +107,7 @@ Quer conferir? Veja <a href="/elifoot-online/">como jogar o Elifoot online</a>, 
       'É <strong>gratuito</strong>.',
     ],
     faq: [
-      { q:'Como jogar Elifoot online sem baixar?', a:'<p>Abra o <a href="/">RetroFoot98</a> no navegador e comece. Não há instalador, emulador nem plugin: o jogo carrega como um site.</p>' },
+      { q:'Como jogar Elifoot online sem baixar?', a:'<p>Abra o <a href="/">RetroFoot</a> no navegador e comece. Não há instalador, emulador nem plugin: o jogo carrega como um site.</p>' },
       { q:'Funciona no celular?', a:'<p>Funciona. O layout se adapta à tela e o save fica na nuvem, então dá para começar no computador e continuar no celular.</p>' },
       { q:'Preciso criar conta?', a:'<p>Para jogar sozinho, dá para começar rápido. Para o Modo Resenha (com amigos) a conta é necessária, porque é ela que guarda a sua sala e o seu clube.</p>' },
     ],
@@ -119,11 +119,11 @@ dá pra viver tudo isso de novo — <strong>direto no navegador, de graça e com
 <h2>O Elifoot acabou? Não — ele ficou online</h2>
 <p>O <a href="/historia-do-elifoot/">Elifoot</a> nasceu em 1987, num ZX Spectrum, pelas mãos do português André Elias,
 e virou febre no Brasil a partir de 1998. Era outra época: instalar no Windows, registro e senha, um PC só passando o
-teclado de mão em mão. O <strong>RetroFoot98</strong> pega aquela mesma alma e resolve as amarras da tecnologia daquele tempo.</p>
+teclado de mão em mão. O <strong>RetroFoot</strong> pega aquela mesma alma e resolve as amarras da tecnologia daquele tempo.</p>
 
 <h2>O que mudou (e o que continua igual)</h2>
 <table>
-  <thead><tr><th>Naquela época</th><th>No RetroFoot98</th></tr></thead>
+  <thead><tr><th>Naquela época</th><th>No RetroFoot</th></tr></thead>
   <tbody>
     <tr><td>Baixar, instalar, registro e senha</td><td>Abre no navegador, sem baixar nada</td></tr>
     <tr><td>Um PC só, passando o teclado</td><td>Multiplayer online de verdade (modo Resenha), em tempo real</td></tr>
@@ -136,7 +136,7 @@ teclado de mão em mão. O <strong>RetroFoot98</strong> pega aquela mesma alma e
 ${fig('partida', 'A partida ao vivo: público, placar e os lances acontecendo em tempo real')}
 
 <h2>Joga com os amigos, como era pra ser</h2>
-<p>O melhor do Elifoot sempre foi a resenha. No RetroFoot98 você cria uma sala, chama a galera e cada um comanda o seu
+<p>O melhor do Elifoot sempre foi a resenha. No RetroFoot você cria uma sala, chama a galera e cada um comanda o seu
 clube — a rodada roda pra todo mundo ao mesmo tempo. Veja mais em <a href="/jogar-com-amigos/">jogar com os amigos</a>.</p>
 
 ${fig('classificacao', 'Crie a sala e convide os amigos para o modo Resenha')}
@@ -159,12 +159,12 @@ ${fig('classificacao', 'Crie a sala e convide os amigos para o modo Resenha')}
     ],
     faq: [
       { q:'O que faz um jogo de treinador de futebol?', a:'<p>Em vez de controlar a bola, você comanda o clube: escolhe a tática e o time titular, negocia jogadores, administra salários e bilheteria e disputa a temporada rodada a rodada.</p>' },
-      { q:'É difícil de aprender?', a:'<p>Não. A pegada do RetroFoot98 é a dos clássicos: em poucos minutos você entende a tela e já escala o time. O <a href="/guia/">guia do jogo</a> cobre o resto.</p>' },
+      { q:'É difícil de aprender?', a:'<p>Não. A pegada do RetroFoot é a dos clássicos: em poucos minutos você entende a tela e já escala o time. O <a href="/guia/">guia do jogo</a> cobre o resto.</p>' },
       { q:'Quanto custa?', a:'<p>Nada. É gratuito e roda no navegador.</p>' },
     ],
         body: `
 <p class="lead">Procurando um <strong>jogo de treinador de futebol online com jogadores reais</strong>? É exatamente
-isso que o RetroFoot98 faz — e sem precisar baixar nada. Você é o técnico: monta o elenco, define a tática e briga
+isso que o RetroFoot faz — e sem precisar baixar nada. Você é o técnico: monta o elenco, define a tática e briga
 pelo título rodada a rodada.</p>
 
 <h2>Você no comando</h2>
@@ -206,7 +206,7 @@ Tudo roda no navegador, de graça. Se você curtia o clima do <a href="/elifoot-
       { q:'Dá para começar na Série D?', a:'<p>Dá — e é o caminho mais divertido: pegar um clube pequeno e subir divisão por divisão.</p>' },
     ],
         body: `
-<p class="lead">Quer um <strong>manager de futebol brasileiro</strong> de verdade? No RetroFoot98 você começa lá embaixo,
+<p class="lead">Quer um <strong>manager de futebol brasileiro</strong> de verdade? No RetroFoot você começa lá embaixo,
 na Série D, e tem a missão de subir divisão após divisão até brigar pelo título nacional e por uma vaga na Libertadores.</p>
 
 <h2>As quatro divisões, de verdade</h2>
@@ -249,7 +249,7 @@ pra uma <a href="/jogar-com-amigos/">Resenha</a>.</p>
       { q:'Todo mundo precisa estar online ao mesmo tempo?', a:'<p>A rodada roda quando os treinadores estão prontos; quem não aparecer é escalado automaticamente, então a liga não trava por causa de um ausente.</p>' },
     ],
         body: `
-<p class="lead">O melhor do manager sempre foi a resenha com os amigos. No RetroFoot98 isso virou o coração do jogo:
+<p class="lead">O melhor do manager sempre foi a resenha com os amigos. No RetroFoot isso virou o coração do jogo:
 o <strong>modo Resenha</strong>, onde cada um comanda o seu clube e a rodada roda pra todos ao mesmo tempo, online.</p>
 
 <h2>Como funciona</h2>
@@ -283,7 +283,7 @@ de sempre, só que agora à distância e sem complicação. Curtiu a ideia? Veja
     resumo: [
       'O gênero tem três perfis: <strong>simulação profunda</strong>, <strong>clássico direto</strong> e <strong>online com amigos</strong>.',
       'Football Manager domina a simulação; Elifoot e Brasfoot, a escola clássica.',
-      'Para jogar hoje, de graça e sem instalar, a opção é o <strong>RetroFoot98</strong>.',
+      'Para jogar hoje, de graça e sem instalar, a opção é o <strong>RetroFoot</strong>.',
     ],
     refs: [
       { nome:'Football Manager (SEGA)', desc:'A simulação mais profunda do gênero — paga, e exige PC.', url:'https://www.footballmanager.com/' },
@@ -291,8 +291,8 @@ de sempre, só que agora à distância e sem complicação. Curtiu a ideia? Veja
       { nome:'Brasfoot (site oficial)', desc:'Clássico brasileiro, forte em ligas e patches.', url:'https://www.brasfoot.com/' },
     ],
     faq: [
-      { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot98</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros reais e multiplayer para até 20 treinadores.</p>' },
-      { q:'Tem algum que rode no celular sem baixar?', a:'<p>Tem: o RetroFoot98 roda no navegador do celular, e o save fica na nuvem.</p>' },
+      { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros reais e multiplayer para até 20 treinadores.</p>' },
+      { q:'Tem algum que rode no celular sem baixar?', a:'<p>Tem: o RetroFoot roda no navegador do celular, e o save fica na nuvem.</p>' },
       { q:'Football Manager é grátis?', a:'<p>Não — é um jogo pago, com versões para PC e console. É a escolha de quem quer simulação profunda e não se importa em instalar.</p>' },
     ],
         body: `
@@ -301,13 +301,13 @@ uns pagos, outros grátis. Aqui vai um guia rápido pra achar o <strong>melhor j
 
 <h2>Por tipo de jogador</h2>
 <ul>
-  <li><strong>Quer algo leve, grátis e sem baixar nada</strong> → um manager que roda no navegador é o ideal. É por aqui que o RetroFoot98 se encaixa.</li>
+  <li><strong>Quer algo leve, grátis e sem baixar nada</strong> → um manager que roda no navegador é o ideal. É por aqui que o RetroFoot se encaixa.</li>
   <li><strong>Quer jogar com os amigos</strong> → procure suporte a <em>multiplayer online</em> de verdade (o modo Resenha), não só "passar o teclado".</li>
   <li><strong>Quer profundidade máxima</strong> → os simuladores completos entregam isso, mas cobram em tempo, preço e curva de aprendizado.</li>
   <li><strong>Quer no celular, offline</strong> → há boas opções de app, embora a maioria peça download e às vezes pagamento.</li>
 </ul>
 
-<h2>Por que o RetroFoot98 entra na lista</h2>
+<h2>Por que o RetroFoot entra na lista</h2>
 <p>Ele resolve o combo que costuma faltar: é <strong>grátis</strong>, roda <strong>no navegador</strong> (celular ou PC, sem instalar),
 tem <strong>clubes e jogadores reais</strong> das divisões brasileiras e copas, e um <strong>multiplayer online</strong> pensado pra
 resenha com os amigos. Tudo isso com aquela pegada retrô de quem cresceu jogando <a href="/elifoot-online/">Elifoot</a>.</p>
@@ -327,13 +327,13 @@ Vale também comparar com os <a href="/jogos-parecidos-com-elifoot/">jogos parec
   {
     slug: 'jogos-parecidos-com-elifoot', ready: true, priority: 0.7, lastmod: '2026-07-25',
     title: 'Jogos Parecidos com Elifoot: Alternativas para 2026',
-    description: 'Procura um jogo tipo Elifoot? Veja alternativas de manager de futebol para jogar online e no navegador em 2026 — incluindo o RetroFoot98, grátis e multiplayer.',
+    description: 'Procura um jogo tipo Elifoot? Veja alternativas de manager de futebol para jogar online e no navegador em 2026 — incluindo o RetroFoot, grátis e multiplayer.',
     h1: 'Jogos parecidos com o Elifoot para jogar em 2026',
     keywords: 'jogo tipo elifoot, jogos parecidos elifoot, elifoot alternativa, games like elifoot, jogo tipo elifoot online',
     resumo: [
       'Quem procura "jogo parecido com Elifoot" quer três coisas: <strong>simples</strong>, <strong>rápido</strong> e <strong>com amigos</strong>.',
       'Os clássicos do gênero ainda existem — e cada um puxa para um lado.',
-      'O <strong>RetroFoot98</strong> é a opção que roda no navegador, de graça, sem instalar.',
+      'O <strong>RetroFoot</strong> é a opção que roda no navegador, de graça, sem instalar.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'O original de André Elias, o "pai dos managers" em português.', url:'https://www.elifoot.com/' },
@@ -341,7 +341,7 @@ Vale também comparar com os <a href="/jogos-parecidos-com-elifoot/">jogos parec
       { nome:'Football Manager (SEGA)', desc:'A referência internacional do gênero, com simulação profunda e paga.', url:'https://www.footballmanager.com/' },
     ],
     faq: [
-      { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot98</strong> roda no navegador, é gratuito e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque o jogo fica gravado na nuvem.</p>' },
+      { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot</strong> roda no navegador, é gratuito e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque o jogo fica gravado na nuvem.</p>' },
       { q:'Preciso baixar alguma coisa?', a:'<p>Não. Abre o site e joga. É a diferença principal em relação aos clássicos de PC, que precisam de download e instalação.</p>' },
       { q:'Tem clubes e jogadores reais?', a:'<p>Tem: Séries A, B, C e D do Brasil, além de Copa do Brasil, Libertadores e Sul-Americana, com elencos de verdade.</p>' },
     ],
@@ -351,7 +351,7 @@ a lista abaixo ajuda a achar a alternativa certa — de olho no que importa: ser
 
 <h2>Alternativas de manager de futebol</h2>
 <ul>
-  <li><strong>RetroFoot98</strong> — o mais próximo da experiência clássica: retrô, leve, com clubes reais do Brasil,
+  <li><strong>RetroFoot</strong> — o mais próximo da experiência clássica: retrô, leve, com clubes reais do Brasil,
       <em>online no navegador</em>, grátis e com multiplayer (Resenha). Sem baixar nada.</li>
   <li><strong>Brasfoot</strong> — outro clássico brasileiro do gênero; veja a comparação em <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</li>
   <li><strong>Simuladores completos</strong> — entregam muita profundidade tática e de scouting, mas pesam mais e têm curva de aprendizado.</li>
@@ -360,7 +360,7 @@ a lista abaixo ajuda a achar a alternativa certa — de olho no que importa: ser
 
 <h2>O que faz um jogo ser "tipo Elifoot"</h2>
 <p>Três coisas: <strong>simplicidade</strong> (você entende em minutos), <strong>foco no técnico</strong> (tática, elenco, dinheiro)
-e <strong>resenha com os amigos</strong>. É essa combinação que o RetroFoot98 busca recriar — com a vantagem de rodar direto no navegador.</p>
+e <strong>resenha com os amigos</strong>. É essa combinação que o RetroFoot busca recriar — com a vantagem de rodar direto no navegador.</p>
 
 ${fig('partida', 'Os lances da partida ao vivo, com os detalhes de cada acontecimento')}
 
@@ -380,7 +380,7 @@ ${fig('partida', 'Os lances da partida ao vivo, com os detalhes de cada aconteci
       'São duas escolas: o <strong>Elifoot</strong> aposta na simplicidade e na resenha; o <strong>Brasfoot</strong>, em ligas e patches.',
       'Elifoot tem curva de aprendizado mais baixa — dá para entender em minutos.',
       'Brasfoot atrai quem gosta de gerenciar muitas ligas e atualizar elencos.',
-      'O <strong>RetroFoot98</strong> junta as duas pontas: simples como o Elifoot, com clubes reais e multiplayer online, no navegador.',
+      'O <strong>RetroFoot</strong> junta as duas pontas: simples como o Elifoot, com clubes reais e multiplayer online, no navegador.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'Site do criador André Elias, com o histórico e as versões do jogo original.', url:'https://www.elifoot.com/' },
@@ -388,8 +388,8 @@ ${fig('partida', 'Os lances da partida ao vivo, com os detalhes de cada aconteci
     ],
     faq: [
       { q:'Qual é melhor: Elifoot ou Brasfoot?', a:'<p>Depende do que você procura. Se quer sentar e jogar em minutos, com foco em tática e resenha, a pegada do <strong>Elifoot</strong> combina mais. Se gosta de gerenciar muitas ligas e atualizar elencos com patches, o <strong>Brasfoot</strong> entrega mais profundidade nesse ponto.</p>' },
-      { q:'Os dois são pagos?', a:'<p>Os dois têm versões gratuitas e versões/registros pagos, que variam por edição. O <a href="/">RetroFoot98</a> é gratuito e roda no navegador, sem instalação nem registro pago.</p>' },
-      { q:'Dá para jogar com amigos?', a:'<p>No RetroFoot98 sim, e é o centro do jogo: até 20 treinadores na mesma liga, disputando a mesma rodada ao vivo, com chat. Veja <a href="/jogar-com-amigos/">como funciona o Modo Resenha</a>.</p>' },
+      { q:'Os dois são pagos?', a:'<p>Os dois têm versões gratuitas e versões/registros pagos, que variam por edição. O <a href="/">RetroFoot</a> é gratuito e roda no navegador, sem instalação nem registro pago.</p>' },
+      { q:'Dá para jogar com amigos?', a:'<p>No RetroFoot sim, e é o centro do jogo: até 20 treinadores na mesma liga, disputando a mesma rodada ao vivo, com chat. Veja <a href="/jogar-com-amigos/">como funciona o Modo Resenha</a>.</p>' },
     ],
         body: `
 <p class="lead">Duas gerações de brasileiros discutem isso até hoje: <strong>Elifoot ou Brasfoot?</strong> Os dois são clássicos
@@ -403,7 +403,7 @@ espaço com foco no futebol brasileiro e nas ligas do mundo, com atualizações 
 <h2>Comparando o essencial</h2>
 <h3>Ponto a ponto</h3>
 <table>
-  <thead><tr><th>Critério</th><th>Estilo Elifoot</th><th>Estilo Brasfoot</th><th>RetroFoot98</th></tr></thead>
+  <thead><tr><th>Critério</th><th>Estilo Elifoot</th><th>Estilo Brasfoot</th><th>RetroFoot</th></tr></thead>
   <tbody>
     <tr><td>Pegada</td><td>Simples, direto, retrô</td><td>Foco em ligas e patches</td><td>Retrô, com clubes reais</td></tr>
     <tr><td>Curva de aprendizado</td><td>Baixa (entende em minutos)</td><td>Média</td><td>Baixa</td></tr>
@@ -417,13 +417,13 @@ espaço com foco no futebol brasileiro e nas ligas do mundo, com atualizações 
 <ul>
   <li><strong>Elifoot:</strong> a escola da simplicidade — senta e joga.</li>
   <li><strong>Brasfoot:</strong> a escola da coleção — muitas ligas, muitos elencos, muitos patches.</li>
-  <li><strong>RetroFoot98:</strong> a simplicidade do primeiro, com a resenha online que nenhum dos dois tinha em 1998.</li>
+  <li><strong>RetroFoot:</strong> a simplicidade do primeiro, com a resenha online que nenhum dos dois tinha em 1998.</li>
 </ul>
 
-${fig('formacao', 'A escalação do RetroFoot98: campo, banco e formação na mesma tela', 'Tela de formação do RetroFoot98 com o campo, os titulares e o banco de reservas')}
+${fig('formacao', 'A escalação do RetroFoot: campo, banco e formação na mesma tela', 'Tela de formação do RetroFoot com o campo, os titulares e o banco de reservas')}
 
 <h2>E se desse pra ter o melhor dos dois, online e de graça?</h2>
-<p>É essa a proposta do <strong>RetroFoot98</strong>: a simplicidade e a resenha do Elifoot, com clubes e jogadores reais do
+<p>É essa a proposta do <strong>RetroFoot</strong>: a simplicidade e a resenha do Elifoot, com clubes e jogadores reais do
 Brasil (Séries A–D, Copa do Brasil, Libertadores), rodando <strong>no navegador, sem baixar, de graça</strong> e com
 <a href="/jogar-com-amigos/">multiplayer online</a>. Em vez de escolher entre um e outro, dá pra simplesmente jogar.</p>
 
@@ -434,9 +434,9 @@ Brasil (Séries A–D, Copa do Brasil, Libertadores), rodando <strong>no navegad
   // ======================= GUIA / DOCUMENTAÇÃO =======================
   {
     slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-07-25',
-    title: 'Guia do RetroFoot98: Como Jogar, Melhores Táticas e Dicas para Vencer',
-    description: 'Domine o RetroFoot98: melhores formações por divisão e situação, como ganhar dinheiro comprando e vendendo jogadores, ampliar o estádio e subir de divisão.',
-    h1: 'Guia do técnico: como jogar e vencer no RetroFoot98',
+    title: 'Guia do RetroFoot: Como Jogar, Melhores Táticas e Dicas para Vencer',
+    description: 'Domine o RetroFoot: melhores formações por divisão e situação, como ganhar dinheiro comprando e vendendo jogadores, ampliar o estádio e subir de divisão.',
+    h1: 'Guia do técnico: como jogar e vencer no RetroFoot',
     keywords: 'como jogar, elifoot como ganhar, melhores taticas, melhores formações, dicas, como subir de divisão, como fazer dinheiro, ampliar estadio',
     resumo: [
       'Escale pensando em <strong>força e energia</strong>: jogador cansado rende menos.',
@@ -445,12 +445,12 @@ Brasil (Séries A–D, Copa do Brasil, Libertadores), rodando <strong>no navegad
       'Suba de divisão com o caixa no azul: folha alta derruba clube pequeno.',
     ],
     faq: [
-      { q:'Qual a melhor formação no RetroFoot98?', a:'<p>Não existe uma só. Contra times fortes fora de casa, um meio-campo mais povoado (4-5-1 ou 4-4-2) segura melhor; em casa e contra times fracos, 4-3-3 e 3-4-3 criam mais.</p>' },
+      { q:'Qual a melhor formação no RetroFoot?', a:'<p>Não existe uma só. Contra times fortes fora de casa, um meio-campo mais povoado (4-5-1 ou 4-4-2) segura melhor; em casa e contra times fracos, 4-3-3 e 3-4-3 criam mais.</p>' },
       { q:'Como ganhar dinheiro no jogo?', a:'<p>Venda quem já chegou ao teto e aposte em jovens com ritmo de evolução alto; fique de olho no leilão e evite folha salarial acima do que a bilheteria sustenta.</p>' },
       { q:'O que é a energia do jogador?', a:'<p>É o quanto ele tem de gás para a próxima partida. Abaixo de 70% o rendimento cai — dá para usar "Selecionar descansados" para escalar priorizando quem está inteiro.</p>' },
     ],
         body: `
-<p class="lead">O RetroFoot98 foi pensado pra ser <strong>equilibrado</strong>: não existe fórmula mágica que ganha sozinha,
+<p class="lead">O RetroFoot foi pensado pra ser <strong>equilibrado</strong>: não existe fórmula mágica que ganha sozinha,
 mas existem boas decisões que aumentam (e muito) as suas chances. Este guia reúne os princípios do jogo e dicas práticas —
 sem revelar as contas por trás do motor, só o que você precisa pra jogar melhor.</p>
 
@@ -498,7 +498,7 @@ ${fig('hub', 'Amplie o estádio para aumentar a bilheteria — no momento certo 
 ${fig('classificacao', 'A classificação das divisões ao fim de cada rodada — seu placar da temporada')}
 
 <h2>Feito pra ser justo — e pra melhorar sempre</h2>
-<p>O equilíbrio do RetroFoot98 é calibrado continuamente pra que boas decisões sejam recompensadas e nenhuma tática seja
+<p>O equilíbrio do RetroFoot é calibrado continuamente pra que boas decisões sejam recompensadas e nenhuma tática seja
 "quebrada". O jogo está em evolução constante, ouvindo a comunidade. Agora é com você: <a href="/">assuma um clube e comece a subir</a>.</p>
 `.trim(),
   },
@@ -506,8 +506,8 @@ ${fig('classificacao', 'A classificação das divisões ao fim de cada rodada �
   // ======================= RANKING (descritiva — sem PII) =======================
   {
     slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-07-25',
-    title: 'Ranking de Treinadores do RetroFoot98 — Pontos e Troféus',
-    description: 'Como funciona o ranking de treinadores do RetroFoot98: pontuação por carreira, com os troféus como principal critério de desempate. Suba no ranking geral.',
+    title: 'Ranking de Treinadores do RetroFoot — Pontos e Troféus',
+    description: 'Como funciona o ranking de treinadores do RetroFoot: pontuação por carreira, com os troféus como principal critério de desempate. Suba no ranking geral.',
     h1: 'Ranking de treinadores: pontos de carreira e troféus',
     keywords: 'ranking retrofoot, ranking de treinadores, ranking elifoot, melhores treinadores',
     resumo: [
@@ -521,7 +521,7 @@ ${fig('classificacao', 'A classificação das divisões ao fim de cada rodada �
       { q:'O que são as Ligas Oficiais?', a:'<p>Competições fechadas entre os treinadores mais bem colocados do ranking, com premiação real. A vaga vem por mérito, não por compra.</p>' },
     ],
         body: `
-<p class="lead">Toda boa resenha tem um pódio. No RetroFoot98 existe um <strong>ranking de treinadores</strong> que mede quem
+<p class="lead">Toda boa resenha tem um pódio. No RetroFoot existe um <strong>ranking de treinadores</strong> que mede quem
 construiu a melhor carreira ao longo das temporadas — e, claro, quem levantou mais taças.</p>
 
 <h2>Como a pontuação funciona</h2>

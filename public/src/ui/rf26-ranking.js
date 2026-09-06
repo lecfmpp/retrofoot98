@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — RANKING DOS TREINADORES
+   RetroFoot — RANKING DOS TREINADORES
    Portado de "ranking pages e top bar" (03/09/2026): a faixa fixa do topo,
    a página de ranking (desktop + mobile) e o item no menu lateral.
 

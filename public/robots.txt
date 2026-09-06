@@ -1,5 +1,5 @@
-# robots.txt — RetroFoot98
-# Site: https://retrofoot98.com.br
+# robots.txt — RetroFoot
+# Site: https://retrofoot.com.br
 # Política: jogo público e gratuito — queremos descoberta por buscadores E por IA.
 
 User-agent: *
@@ -70,4 +70,4 @@ Allow: /
 User-agent: Meta-ExternalAgent
 Allow: /
 
-Sitemap: https://retrofoot98.com.br/sitemap.xml
+Sitemap: https://retrofoot.com.br/sitemap.xml

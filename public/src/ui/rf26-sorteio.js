@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — CERIMÔNIA DO SORTEIO
+   RetroFoot — CERIMÔNIA DO SORTEIO
    Pacote "Sorteio das Competições" (desktop + mobile).
 
    UM DESENHO SÓ, PARA TODAS AS COMPETIÇÕES. Antes havia três miolos e um

@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — LEVA 2: sobreposições de partida e pós-rodada
+   RetroFoot — LEVA 2: sobreposições de partida e pós-rodada
    Portado de docs/rebranding-2026/telas/:
      Modal - Substituicao · Modal - Lesao · Modal - Cartao Vermelho
      Pos-Rodada - Classificacao · Resenha - Lobby da Sala

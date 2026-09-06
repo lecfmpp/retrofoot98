@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — LEVA 4: entre rodadas e competições
+   RetroFoot — LEVA 4: entre rodadas e competições
    Portado de telas/Fim de Temporada · Competicao - Visao Geral ·
    Copa - Classificacao da Fase · Imprensa · Adversario - Ver Time.
 

@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — ONBOARDING (rebranding 2026)
+   RetroFoot — ONBOARDING (rebranding 2026)
    Portado da marcação de docs/rebranding-2026/telas/Onboarding 1..7.
 
    POR QUE ESTE ARQUIVO EXISTE, EM VEZ DE MAIS CSS EM CIMA DO wizShell():

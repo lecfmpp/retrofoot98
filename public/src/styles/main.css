@@ -20,7 +20,7 @@
  --yellow:var(--club-secondary);--yellowlite:var(--club-secondary-hover);--bluetxt:var(--club-primary);
  --bevL:var(--line-1);--bevL2:var(--line-1);--bevD:var(--line-1);--bevD2:var(--line-1);
  --serif:var(--font-serif);--sans:var(--font-sans);--mono:var(--font-mono);
- /* ---- Design system RetroFoot98 — tokens formalizados (aditivos; os 13 acima
+ /* ---- Design system RetroFoot — tokens formalizados (aditivos; os 13 acima
     continuam sendo a fonte da verdade e não mudam de valor) ---- */
  --success:#0b7a2f; --success-alt:#1a8f3c; --success-deep:#063d18; --success-lite:#3fcf6a;
  --ontext-lite:#eaffea; --ontext-lite2:#cfe6cf; --ontext-lite3:#9fe89f;
@@ -1386,7 +1386,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
      grupos é uma grade fluida que divide a altura disponível entre as linhas;
    · placar nunca quebra linha (coluna central fixa de 52px, white-space:nowrap) e nome de
      clube sempre em ellipsis;
-   · estética RetroFoot98: chanfro de 2px (--bevel-*), superfície --chrome, títulos --navy. */
+   · estética RetroFoot: chanfro de 2px (--bevel-*), superfície --chrome, títulos --navy. */
 .cl-cupscr{min-height:100vh;height:100vh;background:var(--felt);display:flex;flex-direction:column;padding:8px 10px 10px;gap:0}
 /* cabeçalho: troféu · nome · temporada · ações (Voltar/Continuar) */
 .cl-cupscr-hdr{flex:none;display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--navy),#1a1aa8);
@@ -1591,7 +1591,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
 /* ================= HOME DE VENDAS (ver scAbertura / landingHomeHTML) =================
    Página longa de venda, com o visual do jogo por dentro: bisel de 2px, quadrado, Tahoma no
    texto e Georgia itálico nos títulos. O gramado continua sendo o fundo; o cabeçalho branco e
-   os cartões vêm do handoff. Um breakpoint só, em 860px, como o resto do RetroFoot98. */
+   os cartões vêm do handoff. Um breakpoint só, em 860px, como o resto do RetroFoot. */
 .cl-lp-page{min-height:100vh;background:var(--felt);color:#fff;font-family:var(--sans)}
 .cl-lp-wrap{max-width:1180px;margin:0 auto;padding:0 20px;box-sizing:border-box}
 .cl-lp-hdr{position:sticky;top:0;z-index:50;background:#fff;border-bottom:2px solid #707070;box-shadow:0 4px 14px rgba(0,0,0,.35)}
@@ -2341,7 +2341,7 @@ body.rf-tem-anchor .cl-wrap{padding-bottom:118px}
 .cl-res-chip.draw{background:#888;color:#fff}
 .cl-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
 .cl-link:hover{color:#0645ad;text-decoration-style:solid}
-/* modal de pênalti — estilo clássico RetroFoot98: fundo preto, texto vermelho */
+/* modal de pênalti — estilo clássico RetroFoot: fundo preto, texto vermelho */
 .cl-pen-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:500}
 .cl-pen-modal{background:var(--pen-bg,#000);border:3px solid #444;box-shadow:0 0 0 2px #888,0 8px 30px rgba(0,0,0,.7);min-width:420px;max-width:92vw;padding:18px 22px;text-align:center;transition:background .2s}
 .cl-pen-suspense-dots{color:var(--pen-fg,#e21c1c);font-size:40px;font-weight:900;letter-spacing:10px;margin:30px 0;animation:cl-pen-pulse 1s infinite}

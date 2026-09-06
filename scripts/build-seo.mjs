@@ -1,5 +1,5 @@
 // ============================================================================
-// GERADOR DE PÁGINAS SEO ESTÁTICAS — RetroFoot98
+// GERADOR DE PÁGINAS SEO ESTÁTICAS — RetroFoot
 // Roda DEPOIS do `vite build`. Para cada página `ready:true` em seo/pages.mjs,
 // escreve dist/<slug>/index.html (HTML real indexável) e regenera dist/sitemap.xml
 // com a home + todas as páginas prontas. Não toca no app (index.html) nem no dist/src.
@@ -9,7 +9,7 @@
 // ============================================================================
 import { pages } from '../seo/pages.mjs';
 /* AS LEGAIS SAO OUTRA LISTA. Mesmo gerador, mesma casca — mas nao sao conteudo de marketing:
-   nao levam resumo, FAQ nem cartao de referencia, nao entram na grelha "Conheca o RetroFoot98"
+   nao levam resumo, FAQ nem cartao de referencia, nao entram na grelha "Conheca o RetroFoot"
    da home e vao ao fundo do sitemap. Misturar as duas listas em pages.mjs faria os Termos
    aparecerem como sugestao de leitura no rodape de um artigo. */
 import { legal } from '../seo/legal.mjs';
@@ -25,7 +25,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const DIST = resolve(ROOT, 'dist');
 // Canonical de produção. IMPORTANTE: deve ser o domínio real do site.
-const SITE = process.env.SEO_SITE || 'https://retrofoot98.com.br';
+/* O CANONICAL TEM DE SER O ENDERECO QUE SERVE. Estava em retrofoot98.com.br, que responde 301
+   para retrofoot.com.br: todo canonical, og:url e linha do sitemap apontavam para uma URL que
+   redireciona — pedir ao robo que siga um salto para chegar a' propria pagina. Com o jogo a
+   chamar-se so' RetroFoot, o endereco canonico passa a ser o mesmo que o visitante ve'. */
+const SITE = process.env.SEO_SITE || 'https://retrofoot.com.br';
 const GA_ID = 'G-YE7PT01DGY';
 const LOGO = SITE + '/img/logo.webp';
 
@@ -43,7 +47,7 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 
 // Remove <figure> cuja imagem real ainda NÃO existe em public/img/seo/. Assim nunca sai imagem
 // quebrada nem screenshot errado no ar: as figuras aparecem sozinhas quando o .webp real for
-// adicionado com o nome certo. (Regra: usar SÓ screenshots reais e atuais do RetroFoot98.)
+// adicionado com o nome certo. (Regra: usar SÓ screenshots reais e atuais do RetroFoot.)
 function stripMissingFigures(html){
   return html.replace(/<figure>[\s\S]*?<\/figure>/g, block => {
     const m = block.match(/src="\/img\/seo\/([^"]+)"/);
@@ -119,9 +123,9 @@ function pageHtml(p){
     name: p.title, headline: p.h1, description: p.description,
     inLanguage:'pt-BR', url, image: img,
     datePublished: p.published || p.lastmod, dateModified: p.lastmod,
-    author:{ '@type':'Organization', name:'RetroFoot98', url: SITE + '/' },
-    publisher:{ '@type':'Organization', name:'RetroFoot98', url: SITE + '/', logo:{ '@type':'ImageObject', url: LOGO } },
-    isPartOf:{ '@type':'WebSite', name:'RetroFoot98', url: SITE + '/' },
+    author:{ '@type':'Organization', name:'RetroFoot', url: SITE + '/' },
+    publisher:{ '@type':'Organization', name:'RetroFoot', url: SITE + '/', logo:{ '@type':'ImageObject', url: LOGO } },
+    isPartOf:{ '@type':'WebSite', name:'RetroFoot', url: SITE + '/' },
     breadcrumb:{ '@type':'BreadcrumbList', itemListElement:[
       { '@type':'ListItem', position:1, name:'Início', item: SITE + '/' },
       { '@type':'ListItem', position:2, name: p.h1, item: url },
@@ -149,7 +153,7 @@ function pageHtml(p){
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');</script>
-<title>${esc(p.title)} | RetroFoot98</title>
+<title>${esc(p.title)} | RetroFoot</title>
 <meta name="description" content="${esc(p.description)}">
 <meta name="robots" content="${p.legal?'index, follow':'index, follow, max-image-preview:large'}">
 ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link rel="canonical" href="${url}">
@@ -158,7 +162,7 @@ ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link re
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 ${p.head||''}
 <meta property="og:type" content="${p.legal?'website':'article'}">
-<meta property="og:site_name" content="RetroFoot98">
+<meta property="og:site_name" content="RetroFoot">
 <meta property="og:title" content="${esc(p.title)}">
 <meta property="og:description" content="${esc(p.description)}">
 <meta property="og:url" content="${url}">
@@ -401,7 +405,7 @@ ${p.css||''}
     </div>
   </div>
   <div class="foot-fim">
-    <span>© 2026 RetroFoot98</span>
+    <span>© 2026 RetroFoot</span>
     <span class="foot-legal">${navLegal}</span>
     <span class="foot-sp"></span>
     <span class="foot-v">v2026.01 — feito por quem cresceu jogando Elifoot.</span>

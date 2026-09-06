@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — PARTIDA AO VIVO (rebranding 2026)
+   RetroFoot — PARTIDA AO VIVO (rebranding 2026)
    Portado de docs/rebranding-2026/telas/PartidaAoVivo.html.
 
    A tela é a RODADA inteira acontecendo ao mesmo tempo: uma faixa de

@@ -77,7 +77,7 @@ const NET = {
      formato antigo continuam a funcionar. */
   inviteLink(){ try{ return location.origin+'/convite/'+this.code; }
                 catch(e){ return this.gameURL()+'?sala='+this.code; } },
-  waLink(phoneDigits){ const num='55'+String(phoneDigits||'').replace(/\D/g,''); const txt=encodeURIComponent('Bora jogar RetroFoot98 comigo! 🟢 Entra na minha sala "'+((this.room&&this.room.name)||'')+'": '+this.inviteLink()); return 'https://wa.me/'+num+'?text='+txt; },
+  waLink(phoneDigits){ const num='55'+String(phoneDigits||'').replace(/\D/g,''); const txt=encodeURIComponent('Bora jogar RetroFoot comigo! 🟢 Entra na minha sala "'+((this.room&&this.room.name)||'')+'": '+this.inviteLink()); return 'https://wa.me/'+num+'?text='+txt; },
 };
 
 /* ---- chat da liga (lobby + bolha flutuante no jogo) ----

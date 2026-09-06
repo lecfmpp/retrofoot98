@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — MERCADO, as seis abas completas
+   RetroFoot — MERCADO, as seis abas completas
    Portado de telas/Mercado - Abas.html (pacote "Abas Completas").
 
    Cada aba é uma TELA INTEIRA, com os blocos que o pacote define:
@@ -11,7 +11,7 @@
      Transferências  · Janela + Movimentações da divisão
 
    ONDE O JOGO NÃO TEM O DADO, A TELA DIZ ISSO. O relógio de leilão da
-   referência ("02:14") não existe aqui: o leilão do RetroFoot98 fecha por
+   referência ("02:14") não existe aqui: o leilão do RetroFoot fecha por
    RODADA (roundsLeft), então a coluna mostra rodadas. Inventar um relógio
    seria prometer um leilão em tempo real que o motor não roda.
    ===================================================================== */

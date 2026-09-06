@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — REBRANDING 2026 · ENVELOPE, SIDEBAR E ROTEADOR DE PÁGINAS
+   RetroFoot — REBRANDING 2026 · ENVELOPE, SIDEBAR E ROTEADOR DE PÁGINAS
    Carrega DEPOIS de main.js e assume o desenho das telas de dentro do jogo.
 
    O QUE MUDA DE VERDADE (não é só pele):
@@ -51,7 +51,7 @@ function rfToggleSidebar(){
    OS NOVE DESTINOS DA SIDEBAR
    A lista sai da TELA de referência (Hub do Time - Sidebar), não da tabela
    de consolidação do PROMPT-IMPLEMENTACAO.md: a tabela lista sete páginas,
-   a tela mostra nove itens — com "RetroFoot98" no topo e "E-mail" como
+   a tela mostra nove itens — com "RetroFoot" no topo e "E-mail" como
    destino próprio. Quando os dois discordam, manda a tela.
 
    `titulo`/`sub`/`pill` são o cabeçalho da página, copiados da referência.
@@ -67,7 +67,7 @@ function rfToggleSidebar(){
    Formação · Mercado · Elenco & Base · Campeonatos · Treinador · Finanças ·
    E-mail · Configurações.
 
-   O item "RetroFoot98" saiu do menu: o escudo no topo da sidebar já faz o
+   O item "RetroFoot" saiu do menu: o escudo no topo da sidebar já faz o
    papel de voltar ao hub. Clube & Sistema virou CONFIGURAÇÕES, e o E-mail
    ganhou destino próprio com as suas duas abas.
 

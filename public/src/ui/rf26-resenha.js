@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — LEVA 4: MODO RESENHA
+   RetroFoot — LEVA 4: MODO RESENHA
    Portado de telas/Resenha - Pausa Patrocinada · A Espera da Rodada ·
    Passe o Aparelho · Classificacao do Assento · Entrega do Aparelho.
 

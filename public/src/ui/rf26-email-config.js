@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — E-MAIL (2 abas) e CONFIGURAÇÕES (3 abas)
+   RetroFoot — E-MAIL (2 abas) e CONFIGURAÇÕES (3 abas)
    Portado de telas/E-mail - Abas.html e telas/Configuracoes - Abas.html.
 
    ARQUIVAR TIRA DA CAIXA. CL.inbox é uma lista só, com dois carimbos por

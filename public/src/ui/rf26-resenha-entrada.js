@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — A ENTRADA DA RESENHA
+   RetroFoot — A ENTRADA DA RESENHA
    Portado de "Resenha - Entrar com Codigo" e "Resenha - Minhas Salas"
    (desktop e mobile — o pacote traz os dois, com o MESMO markup; o que
    muda é a régua sumir e a linha da sala empilhar abaixo de 900px, e

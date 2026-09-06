@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — LEVA 4: FLUXO DE ENTRADA
+   RetroFoot — LEVA 4: FLUXO DE ENTRADA
    Portado de telas/Fluxo - Escolha de Moeda · Pais Jogavel · Carregando ·
    Numero de Treinadores · Escolha dos Clubes · Continuar Save ·
    Conta - Recuperar Senha · Landing - Paginas Institucionais.
@@ -770,7 +770,7 @@ function rfNovaSenhaHTML(){
    Analytics a carregar em toda visita.
    Agora sao links para o documento unico. `href` marca a entrada como saida do jogo. */
 const RF_INSTITUCIONAIS=[
-  { k:'sobre',     t:'Sobre o RetroFoot98' },
+  { k:'sobre',     t:'Sobre o RetroFoot' },
   { k:'ajuda',     t:'Ajuda' },
   { k:'contato',   t:'Contato' },
   { k:'termos',    t:'Termos de uso',  href:'/termos/' },
@@ -786,7 +786,7 @@ function rfInstitucionalHTML(view){
   const def=RF_INSTITUCIONAIS.find(x=>x.k===view)||RF_INSTITUCIONAIS[0];
   return rfStage({
     w:1020, semEscudo:true,
-    contexto:'RetroFoot98',
+    contexto:'RetroFoot',
     titulo:def.t,
     corpo:`<div class="rf-in-cols">
       <div class="rf-card rf-in-nav">
@@ -800,7 +800,7 @@ function rfInstitucionalHTML(view){
         ${rfInstitucionalCorpo(view)}
       </div>
     </div>`,
-    acoes:`<span class="rf-im-auto">© ${new Date().getFullYear()} RetroFoot98</span>
+    acoes:`<span class="rf-im-auto">© ${new Date().getFullYear()} RetroFoot</span>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="clGoModo()">${rfIcone('jogar',16)} Jogar agora</button>`
   });
@@ -828,7 +828,7 @@ function rfInstitucionalCorpo(view){
   if(view==='contato') return p('Achou um bug, tem uma ideia ou quer chamar pra resenha? Fala com a gente:')
     +`<div class="rf-in-ct"><span>${rfIcone('email',16)}</span><span class="rf-in-mono">suporte@retrofoot.com.br</span></div>
       <div class="rf-in-ct"><span>🐦</span><b>@retrofoot98</b><span class="rf-in-mudo">— novidades e updates</span></div>`;
-  return p('O RetroFoot98 é um jogo de gestão de futebol jogado no navegador, na linhagem dos gestores clássicos. Você é o treinador: escolhe a tática, negocia jogadores, cuida do caixa e briga por acesso nas Séries A, B, C e D e nas copas.')
+  return p('O RetroFoot é um jogo de gestão de futebol jogado no navegador, na linhagem dos gestores clássicos. Você é o treinador: escolhe a tática, negocia jogadores, cuida do caixa e briga por acesso nas Séries A, B, C e D e nas copas.')
     +p('Feito por quem cresceu jogando gestor de futebol no computador da família. Roda em qualquer navegador, sem instalar nada, e o save fica na nuvem.')
     +`<div class="rf-ft-grid">
         <div class="rf-ft-b"><span class="rf-ov-res-t">Divisões</span>

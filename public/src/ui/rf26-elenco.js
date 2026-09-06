@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — ELENCO & BASE, as quatro abas completas
+   RetroFoot — ELENCO & BASE, as quatro abas completas
    Marcação de telas-v3/Elenco e Base - Abas.dc.html, coluna por coluna.
 
    O DESENHO VEM PRIMEIRO. Uma versão anterior desta tela omitia de

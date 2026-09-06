@@ -1,8 +1,8 @@
 // ============================================================================
-// PÁGINAS LEGAIS — RetroFoot98
+// PÁGINAS LEGAIS — RetroFoot
 // Mesmo gerador das páginas de conteúdo (scripts/build-seo.mjs), lista separada
 // de propósito: estas não são marketing. Não levam "resumo rápido", nem FAQ, nem
-// cartão de referência, nem entram na grelha "Conheça o RetroFoot98" da home —
+// cartão de referência, nem entram na grelha "Conheça o RetroFoot" da home —
 // entram no rodapé, que é onde se procura por elas.
 //
 // ORIGEM DO TEXTO: rascunhos do Bruno (Drive, 04/09/2026). O que está aqui NÃO é
@@ -57,7 +57,7 @@ export const legal = [
   {
     slug: 'privacidade', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-05',
     title: 'Política de Privacidade',
-    description: 'Como o RetroFoot98 coleta, usa, guarda e protege os dados de quem joga — incluindo a foto do Plano Embaixador, que é apagada logo depois de gerar o avatar.',
+    description: 'Como o RetroFoot coleta, usa, guarda e protege os dados de quem joga — incluindo a foto do Plano Embaixador, que é apagada logo depois de gerar o avatar.',
     h1: 'Política de Privacidade',
     body: `
 ${cabecalho}
@@ -171,7 +171,7 @@ ${verTambem('privacidade')}`,
   {
     slug: 'termos', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-05',
     title: 'Termos de Uso',
-    description: 'As regras de uso do RetroFoot98: conta, planos e assinaturas, o jogador personalizado do Plano Embaixador, convivência no Modo Resenha e integridade do jogo.',
+    description: 'As regras de uso do RetroFoot: conta, planos e assinaturas, o jogador personalizado do Plano Embaixador, convivência no Modo Resenha e integridade do jogo.',
     h1: 'Termos de Uso',
     body: `
 ${cabecalho}
@@ -280,7 +280,7 @@ ${verTambem('termos')}`,
   {
     slug: 'cookies', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-05',
     title: 'Aviso de Cookies',
-    description: 'Quais cookies e tecnologias semelhantes o RetroFoot98 usa hoje — os essenciais da sua sessão e o Google Analytics — e como bloquear o que não quiser.',
+    description: 'Quais cookies e tecnologias semelhantes o RetroFoot usa hoje — os essenciais da sua sessão e o Google Analytics — e como bloquear o que não quiser.',
     h1: 'Aviso de Cookies',
     body: `
 ${cabecalho}

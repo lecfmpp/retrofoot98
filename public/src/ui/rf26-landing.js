@@ -1,5 +1,5 @@
 /* =====================================================================
-   RetroFoot98 — LANDING (rebranding 2026)
+   RetroFoot — LANDING (rebranding 2026)
    Portada de docs/rebranding-2026/telas/Landing - Home.html.
 
    O texto é o da tela, verbatim: é peça de marketing escrita, não conteúdo
@@ -411,7 +411,7 @@ function rfLpVideoTocar(el){
   el.dataset.tocando='1';
   el.classList.remove('vazio');   // 'yt' fica: e' ela que da' o fundo escuro por tras do player
   el.innerHTML=`<iframe class="rf-lp-video-el" src="https://www.youtube-nocookie.com/embed/${escC(RF_LP_HERO_YT)}?autoplay=1&rel=0&modestbranding=1"
-    title="Vídeo de apresentação do RetroFoot98" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture"
+    title="Vídeo de apresentação do RetroFoot" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture"
     allowfullscreen></iframe>`;
 }
 function rfLpHeroVideoHTML(){
@@ -420,7 +420,7 @@ function rfLpHeroVideoHTML(){
     const cartaz=`https://i.ytimg.com/vi/${RF_LP_HERO_YT}/maxresdefault.jpg`;
     const reserva=`https://i.ytimg.com/vi/${RF_LP_HERO_YT}/hqdefault.jpg`;
     return `<div class="rf-lp-video yt" role="button" tabindex="0"
-        aria-label="Tocar o vídeo de apresentação do RetroFoot98"
+        aria-label="Tocar o vídeo de apresentação do RetroFoot"
         onclick="rfLpVideoTocar(this)"
         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();rfLpVideoTocar(this)}">
       <img class="rf-lp-video-cartaz" src="${escC(cartaz)}" alt="" loading="lazy"
@@ -442,7 +442,7 @@ function rfLpHeroVideoHTML(){
     <div class="rf-lp-video-in">
       <span class="rf-lp-video-play">▶</span>
       <span class="rf-lp-video-t">O trailer está no forno</span>
-      <span class="rf-lp-video-s">Aqui vai rodar o vídeo de apresentação do RetroFoot98.</span>
+      <span class="rf-lp-video-s">Aqui vai rodar o vídeo de apresentação do RetroFoot.</span>
     </div>
     <span class="rf-lp-video-tag">Em breve</span>
   </div>`;
@@ -483,14 +483,14 @@ function rfLpTelasHTML(){
       onclick="rfLpTela('${k}')">${escC(l)}</button>`).join('');
   const fotos=RF_LP_TELAS.map(([k,l,d,img],i)=>
     `<figure class="rf-lp-tela-foto ${i===0?'on':''}" data-telafoto="${k}">
-      <img src="${escC(img)}" alt="${escC(l)} — tela do RetroFoot98" loading="lazy" width="1600" height="1000">
+      <img src="${escC(img)}" alt="${escC(l)} — tela do RetroFoot" loading="lazy" width="1600" height="1000">
       <figcaption>${escC(d)}</figcaption>
     </figure>`).join('');
   return `<section class="rf-lp-telas rf-lp-f-branco" id="rf-lp-telas">
     <div class="rf-lp-telas-in">
       <span class="rf-lp-eyebrow">Por dentro do jogo</span>
       <h2 class="rf-lp-h2">Isto aqui não é maquete. É o jogo rodando.</h2>
-      <p class="rf-lp-p">Nenhuma dessas telas foi desenhada pra propaganda: são fotos do RetroFoot98 aberto, no meio de uma temporada da Série D.</p>
+      <p class="rf-lp-p">Nenhuma dessas telas foi desenhada pra propaganda: são fotos do RetroFoot aberto, no meio de uma temporada da Série D.</p>
       <div class="rf-lp-tela-abas">${abas}</div>
       <div class="rf-lp-tela-palco">${fotos}</div>
     </div>
@@ -980,9 +980,9 @@ function rfLpFichaJogadoraHTML(){
 /* as telas onde o jogador do Embaixador aparece depois de aprovado — e' o que prova a promessa
    da seccao: ele nao e' um cartaz, e' uma linha do elenco e uma ficha como as outras */
 const RF_LP_OFICIAL_FOTOS=[
-  ['img/home/ficha-jogador.webp','Ficha do jogador dentro do RetroFoot98',
+  ['img/home/ficha-jogador.webp','Ficha do jogador dentro do RetroFoot',
    'A ficha dele, igual à de qualquer outro: características, ponto forte e valor de mercado.'],
-  ['img/home/elenco.webp','Elenco do clube dentro do RetroFoot98',
+  ['img/home/elenco.webp','Elenco do clube dentro do RetroFoot',
    'E no elenco, entre os outros — escalado, com energia, moral e salário.'],
 ];
 function rfLpJogadorOficialHTML(){
@@ -997,7 +997,7 @@ function rfLpJogadorOficialHTML(){
     <div class="rf-lp-oficial-in">
       <span class="rf-lp-selo-emb">👑 Só no Embaixador</span>
       <h2 class="rf-lp-h2">Você não virou jogador — nem jogadora. Mas ainda dá tempo.</h2>
-      <p class="rf-lp-p">O Embaixador entra na base de dados oficial do RetroFoot98 como <b>jogador</b> ou <b>jogadora</b> — nome seu, rosto seu, ficha sua, no universo que você escolher. Ele nasce nos elencos, é escalado, leva cartão, faz gol e aparece na artilharia dos outros treinadores. Enquanto você jogar, ele joga.</p>
+      <p class="rf-lp-p">O Embaixador entra na base de dados oficial do RetroFoot como <b>jogador</b> ou <b>jogadora</b> — nome seu, rosto seu, ficha sua, no universo que você escolher. Ele nasce nos elencos, é escalado, leva cartão, faz gol e aparece na artilharia dos outros treinadores. Enquanto você jogar, ele joga.</p>
 
       ${/* ===== DUAS COLUNAS, COMO A SECCAO DA RESENHA =====
            Era tudo empilhado ao centro: as tres polaroides, a lista de quatro itens e, por
@@ -1018,7 +1018,7 @@ function rfLpJogadorOficialHTML(){
             <span class="rf-lp-album-seta" aria-hidden="true">→</span>
             <figure class="rf-lp-album-q depois">
               <div class="rf-lp-album-media">
-                <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot98"
+                <img src="img/home/retrato-jogador.webp" alt="Retrato de um jogador na ficha do RetroFoot"
                   loading="lazy" width="400" height="828">
               </div>
               <figcaption>Você, na ficha — como <b>jogador</b></figcaption>
@@ -1077,7 +1077,7 @@ function rfLpGranaHTML(){
            aqui quer resposta hoje, nao um assunto na caixa de entrada. A mensagem vai pronta,
            entao a pessoa so' carrega em enviar. */''}
       <a class="rf-lp-cta2" target="_blank" rel="noopener"
-        href="https://wa.me/16478623292?text=${encodeURIComponent('Olá! Vi no site do RetroFoot98 que serão liberados 10 links de Embaixador no primeiro lançamento. Quero um deles — como faço?')}">Falar com o time</a>
+        href="https://wa.me/16478623292?text=${encodeURIComponent('Olá! Vi no site do RetroFoot que serão liberados 10 links de Embaixador no primeiro lançamento. Quero um deles — como faço?')}">Falar com o time</a>
       <span class="rf-lp-nota">As regras de repasse são combinadas com cada Embaixador na entrada.</span>
     </div>
   </section>`;
@@ -1168,7 +1168,7 @@ function rfLandingHTML(){
                'Masculino e feminino, nas mesmas divisões e nas mesmas copas',
                'Partida ao vivo com narração lance a lance'],
         cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
-      ${rfLpFotoHTML('img/home/classificacao.webp','Classificação da Série D dentro do RetroFoot98')}
+      ${rfLpFotoHTML('img/home/classificacao.webp','Classificação da Série D dentro do RetroFoot')}
     </section>
 
     ${rfLpTelasHTML()}
@@ -1180,7 +1180,7 @@ function rfLandingHTML(){
         prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria, TV e patrocínio'],
         cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
-      ${rfLpFotoHTML('img/home/leilao.webp','Leilão de jogadores dentro do RetroFoot98')}
+      ${rfLpFotoHTML('img/home/leilao.webp','Leilão de jogadores dentro do RetroFoot')}
     </section>
 
     ${rfLpMomentosHTML()}
@@ -1234,7 +1234,7 @@ function rfLpListaHTML(){
 /* ===== O RODAPE SO' MOSTRA O QUE LEVA A ALGUM SITIO (05/09/2026) =====
    Metade dos itens daqui eram `<span>`: texto com cara de link que nao clicava em lado nenhum.
    "Blog", "Canais oficiais", "Cotas de patrocinio", "Parceria de canal" e "Media kit" nao tinham
-   pagina, ancora nem URL — nunca tiveram. E a base dizia "© 2026 RetroFoot98 · Termos ·
+   pagina, ancora nem URL — nunca tiveram. E a base dizia "© 2026 RetroFoot · Termos ·
    Privacidade" como TEXTO CORRIDO, o que e' pior do que nao ter: um rodape que anuncia termos e
    nao os entrega.
    Agora todo item e' um destino de verdade — ancora da propria landing (rfLpIr) ou pagina —, e a
@@ -1278,7 +1278,7 @@ function rfLpRodapeHTML(){
       ${col('Páginas',paginas)}
     </div>
     <div class="rf-lp-fbase">
-      <span>© 2026 RetroFoot98</span>
+      <span>© 2026 RetroFoot</span>
       <span class="rf-lp-fbleg">${legais}</span>
       <div class="rf-sp"></div>
       <span class="rf-lp-fv">v2026.01 — feito por quem cresceu jogando Elifoot.</span>
