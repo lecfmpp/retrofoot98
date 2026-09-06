@@ -1,7 +1,7 @@
 /* ============================================================================
    VÍDEOS DE MOMENTO — override publicado pelo painel dos sócios
    ----------------------------------------------------------------------------
-   O painel (admin.retrofoot98.com.br → aba "Vídeos") publica um vídeo por
+   O painel (admin.retrofoot.com.br → aba "Vídeos") publica um vídeo por
    CHAVE de momento (a mesma chave de VIDEOS_MOMENTO em ui/main.js), global ou
    só para um país/divisão/competição. Este arquivo lê elifoot_v3.momento_videos
    e devolve, para cada chamada, o mais específico que bater com o contexto —

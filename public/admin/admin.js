@@ -97,7 +97,7 @@ async function todasAsLinhas(tabela, packId, ordem){
 let ME = null;                     // linha de adm_users
 const D  = {};                     // dados carregados por página
 const SEL = { salas:new Set(), saves:new Set(), contas:new Set(), convites:new Set() }; // seleções em massa
-const JOGO_URL = 'https://retrofoot98.com.br';   // destino dos links que o painel gera
+const JOGO_URL = 'https://retrofoot.com.br';   // destino dos links que o painel gera
 const ST = {
   tab: 'visao', periodo: 30, authMode: 'login', authErro: '', authOk: '',
   busca: '', carregando: false, modal: null, drag: null,
@@ -300,7 +300,7 @@ function mostrarAuth(){
       <p class="sub">A conta só é criada se o e-mail tiver convite ativo.</p>${err}${ok}
       <div class="col">
         <label class="f">Nome<input class="f" id="a-nome" placeholder="Ex.: Rafael Moreira"></label>
-        <label class="f">E-mail do convite<input class="f" id="a-email" type="email" placeholder="socio@retrofoot98.com"></label>
+        <label class="f">E-mail do convite<input class="f" id="a-email" type="email" placeholder="socio@retrofoot.com.br"></label>
         <div class="g2" style="gap:12px">
           <label class="f">Senha<input class="f" id="a-senha" type="password" placeholder="••••••••"></label>
           <label class="f">Repetir<input class="f" id="a-senha2" type="password" placeholder="••••••••"></label>
@@ -313,7 +313,7 @@ function mostrarAuth(){
     f.innerHTML = `<h2>Recuperar acesso</h2>
       <p class="sub">Enviamos um link para você definir uma senha nova. Vale 30 minutos.</p>${err}${ok}
       <div class="col">
-        <label class="f">E-mail<input class="f" id="a-email" type="email" placeholder="socio@retrofoot98.com"></label>
+        <label class="f">E-mail<input class="f" id="a-email" type="email" placeholder="socio@retrofoot.com.br"></label>
         <button class="btn" id="a-go">Enviar link</button>
         <div style="text-align:center;font-size:13px;color:var(--dim)"><span class="link" data-auth="login">Voltar ao login</span></div>
       </div>`;
@@ -331,7 +331,7 @@ function mostrarAuth(){
     f.innerHTML = `<h2>Entrar</h2>
       <p class="sub">Use o e-mail com que você foi convidado.</p>${err}${ok}
       <div class="col">
-        <label class="f">E-mail<input class="f" id="a-email" type="email" placeholder="socio@retrofoot98.com"></label>
+        <label class="f">E-mail<input class="f" id="a-email" type="email" placeholder="socio@retrofoot.com.br"></label>
         <label class="f">Senha<input class="f" id="a-senha" type="password" placeholder="••••••••"></label>
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px">
           <label style="display:flex;align-items:center;gap:8px;color:var(--dim)">

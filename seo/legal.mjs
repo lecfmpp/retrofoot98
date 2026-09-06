@@ -55,7 +55,7 @@ export const legal = [
 
   // ============================== PRIVACIDADE ==============================
   {
-    slug: 'privacidade', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-05',
+    slug: 'privacidade', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-06',
     title: 'Política de Privacidade',
     description: 'Como o RetroFoot coleta, usa, guarda e protege os dados de quem joga — incluindo a foto do Plano Embaixador, que é apagada logo depois de gerar o avatar.',
     h1: 'Política de Privacidade',
@@ -169,7 +169,7 @@ ${verTambem('privacidade')}`,
 
   // ================================ TERMOS ================================
   {
-    slug: 'termos', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-05',
+    slug: 'termos', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-06',
     title: 'Termos de Uso',
     description: 'As regras de uso do RetroFoot: conta, planos e assinaturas, o jogador personalizado do Plano Embaixador, convivência no Modo Resenha e integridade do jogo.',
     h1: 'Termos de Uso',
@@ -278,7 +278,7 @@ ${verTambem('termos')}`,
 
   // ================================ COOKIES ================================
   {
-    slug: 'cookies', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-05',
+    slug: 'cookies', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-06',
     title: 'Aviso de Cookies',
     description: 'Quais cookies e tecnologias semelhantes o RetroFoot usa hoje — os essenciais da sua sessão e o Google Analytics — e como bloquear o que não quiser.',
     h1: 'Aviso de Cookies',

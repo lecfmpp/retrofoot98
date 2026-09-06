@@ -1,7 +1,7 @@
 /* ============================================================================
    ADS — entrega dos espaços publicitários no jogo
    ----------------------------------------------------------------------------
-   O painel dos sócios (admin.retrofoot98.com.br) publica um criativo por CHAVE;
+   O painel dos sócios (admin.retrofoot.com.br) publica um criativo por CHAVE;
    aqui o jogo lê o que está no ar e desenha. As chaves são o contrato entre os
    dois lados e estão em elifoot_v3.ad_spaces — nunca renomear de um lado só:
 

@@ -43,8 +43,8 @@ on:
         default: beta
         options:
           - beta      # retrofoot98-beta.web.app — o provisório, para testar no ar
-          - jogo      # retrofoot98.com.br — PRODUÇÃO, com salas em andamento
-          - admin     # admin.retrofoot98.com.br — o painel dos sócios
+          - jogo      # retrofoot.com.br — PRODUÇÃO, com salas em andamento
+          - admin     # admin.retrofoot.com.br — o painel dos sócios
         required: true
       motivo:
         description: 'O que está a subir (fica no log da execução)'
@@ -156,7 +156,7 @@ jobs:
       - name: Onde ficou
         run: |
           case "${{ inputs.alvo }}" in
-            jogo)  echo "No ar: https://retrofoot98.com.br (e https://elifoot-d368d.web.app)" ;;
+            jogo)  echo "No ar: https://retrofoot.com.br (e https://elifoot-d368d.web.app)" ;;
             beta)  echo "No ar: https://retrofoot98-beta.web.app" ;;
-            admin) echo "No ar: https://admin.retrofoot98.com.br (e https://retrofoot98-admin.web.app)" ;;
+            admin) echo "No ar: https://admin.retrofoot.com.br (e https://retrofoot98-admin.web.app)" ;;
           esac

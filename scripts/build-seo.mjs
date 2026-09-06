@@ -419,7 +419,11 @@ function sitemapXml(ready){
   /* changefreq POR PAGINA: um artigo pode mudar toda semana, os Termos nao. Dizer "weekly" numa
      pagina legal e' pedir ao robo que volte sempre para nada. */
   const url = (loc, pr, mod, freq) => `  <url>\n    <loc>${loc}</loc>\n${mod?`    <lastmod>${mod}</lastmod>\n`:''}    <changefreq>${freq||'weekly'}</changefreq>\n    <priority>${pr}</priority>\n  </url>`;
-  const rows = [ url(SITE + '/', '1.0', '2026-07-25') ];
+  /* A DATA DA HOME acompanha a pagina mais recente do conjunto, em vez de ficar presa a uma
+     data escrita a mao — ela envelhecia sozinha enquanto o site mudava, e um lastmod velho e'
+     um pedido ao robo para nao voltar. */
+  const maisRecente = ready.map(p=>p.lastmod).filter(Boolean).sort().pop() || '2026-07-25';
+  const rows = [ url(SITE + '/', '1.0', maisRecente) ];
   for(const p of ready) rows.push(url(SITE + '/' + p.slug + '/', String(p.priority ?? 0.7), p.lastmod, p.legal?'yearly':'weekly'));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>\n`;
 }

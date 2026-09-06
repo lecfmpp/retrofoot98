@@ -15,7 +15,7 @@ export const pages = [
 
   // ======================= PÁGINA-PILAR: HISTÓRIA =======================
   {
-    slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-07-25',
+    slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-09-06',
     title: 'A História do Elifoot e dos Jogos de Treinador de Futebol',
     description: 'Do ZX Spectrum de 1987 à febre brasileira: a história do Elifoot, de André Elias e a evolução dos jogos de manager de futebol — até renascer online no RetroFoot.',
     h1: 'A história do Elifoot: do disquete à resenha online',
@@ -95,7 +95,7 @@ Quer conferir? Veja <a href="/elifoot-online/">como jogar o Elifoot online</a>, 
 
   // ======================= P1: ELIFOOT ONLINE =======================
   {
-    slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-07-25',
+    slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-09-06',
     title: 'Elifoot Online Grátis — Jogue no Navegador (2026)',
     description: 'Sente falta do Elifoot? O RetroFoot é o manager retrô online: sem baixar, grátis, com clubes reais e multiplayer. Jogue agora no navegador.',
     h1: 'Elifoot online: jogue no navegador, de graça e com os amigos',
@@ -147,7 +147,7 @@ ${fig('classificacao', 'Crie a sala e convide os amigos para o modo Resenha')}
 
   // ======================= P1: JOGO DE TREINADOR ONLINE =======================
   {
-    slug: 'jogo-treinador-futebol-online', ready: true, priority: 0.9, lastmod: '2026-07-25',
+    slug: 'jogo-treinador-futebol-online', ready: true, priority: 0.9, lastmod: '2026-09-06',
     title: 'Jogo de Treinador de Futebol Online com Jogadores Reais',
     description: 'Assuma um clube de verdade, escale o time, defina a tática e dispute o campeonato. Jogadores reais, online e grátis. Comece agora, no navegador.',
     h1: 'Jogo de treinador de futebol online com jogadores reais',
@@ -190,7 +190,7 @@ Tudo roda no navegador, de graça. Se você curtia o clima do <a href="/elifoot-
 
   // ======================= P1: MANAGER BRASILEIRO =======================
   {
-    slug: 'manager-futebol-brasileiro', ready: true, priority: 0.8, lastmod: '2026-07-25',
+    slug: 'manager-futebol-brasileiro', ready: true, priority: 0.8, lastmod: '2026-09-06',
     title: 'Manager de Futebol Brasileiro Online — Séries A à D',
     description: 'Comande um clube brasileiro de verdade: Séries A, B, C e D, Copa do Brasil e Libertadores com elencos reais. Online, grátis e no navegador.',
     h1: 'Manager de futebol brasileiro: Séries A, B, C, D e Copa do Brasil',
@@ -232,7 +232,7 @@ pra uma <a href="/jogar-com-amigos/">Resenha</a>.</p>
 
   // ======================= P1: JOGAR COM AMIGOS =======================
   {
-    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-07-25',
+    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-06',
     title: 'Jogo de Futebol Manager Online com Amigos — Modo Resenha',
     description: 'Crie uma liga com os amigos e dispute a rodada em tempo real no modo Resenha. Manager de futebol online, grátis e no navegador.',
     h1: 'Dispute um campeonato de manager com seus amigos',
@@ -275,7 +275,7 @@ de sempre, só que agora à distância e sem complicação. Curtiu a ideia? Veja
 
   // ======================= P2: MELHORES JOGOS =======================
   {
-    slug: 'melhores-jogos-treinador-futebol', ready: true, priority: 0.7, lastmod: '2026-07-25',
+    slug: 'melhores-jogos-treinador-futebol', ready: true, priority: 0.7, lastmod: '2026-09-06',
     title: 'Melhores Jogos de Treinador de Futebol em 2026 (Grátis e Online)',
     description: 'Os melhores jogos de manager de futebol em 2026: grátis, online, para celular e clássicos. Veja qual tipo combina com você e comece a jogar.',
     h1: 'Os melhores jogos de treinador de futebol em 2026',
@@ -325,7 +325,7 @@ Vale também comparar com os <a href="/jogos-parecidos-com-elifoot/">jogos parec
 
   // ======================= P2: JOGOS PARECIDOS =======================
   {
-    slug: 'jogos-parecidos-com-elifoot', ready: true, priority: 0.7, lastmod: '2026-07-25',
+    slug: 'jogos-parecidos-com-elifoot', ready: true, priority: 0.7, lastmod: '2026-09-06',
     title: 'Jogos Parecidos com Elifoot: Alternativas para 2026',
     description: 'Procura um jogo tipo Elifoot? Veja alternativas de manager de futebol para jogar online e no navegador em 2026 — incluindo o RetroFoot, grátis e multiplayer.',
     h1: 'Jogos parecidos com o Elifoot para jogar em 2026',
@@ -371,7 +371,7 @@ ${fig('partida', 'Os lances da partida ao vivo, com os detalhes de cada aconteci
 
   // ======================= P2: ELIFOOT VS BRASFOOT =======================
   {
-    slug: 'elifoot-vs-brasfoot', ready: true, priority: 0.6, lastmod: '2026-07-25',
+    slug: 'elifoot-vs-brasfoot', ready: true, priority: 0.6, lastmod: '2026-09-06',
     title: 'Elifoot vs Brasfoot: qual o melhor manager de futebol?',
     description: 'Elifoot ou Brasfoot? Comparamos os dois clássicos do futebol manager brasileiro — e mostramos a opção online e grátis para jogar hoje mesmo.',
     h1: 'Elifoot vs Brasfoot: qual escolher?',
@@ -433,7 +433,7 @@ Brasil (Séries A–D, Copa do Brasil, Libertadores), rodando <strong>no navegad
 
   // ======================= GUIA / DOCUMENTAÇÃO =======================
   {
-    slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-07-25',
+    slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-09-06',
     title: 'Guia do RetroFoot: Como Jogar, Melhores Táticas e Dicas para Vencer',
     description: 'Domine o RetroFoot: melhores formações por divisão e situação, como ganhar dinheiro comprando e vendendo jogadores, ampliar o estádio e subir de divisão.',
     h1: 'Guia do técnico: como jogar e vencer no RetroFoot',
@@ -505,7 +505,7 @@ ${fig('classificacao', 'A classificação das divisões ao fim de cada rodada �
 
   // ======================= RANKING (descritiva — sem PII) =======================
   {
-    slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-07-25',
+    slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-09-06',
     title: 'Ranking de Treinadores do RetroFoot — Pontos e Troféus',
     description: 'Como funciona o ranking de treinadores do RetroFoot: pontuação por carreira, com os troféus como principal critério de desempate. Suba no ranking geral.',
     h1: 'Ranking de treinadores: pontos de carreira e troféus',

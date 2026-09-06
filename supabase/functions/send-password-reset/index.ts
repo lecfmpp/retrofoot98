@@ -144,7 +144,12 @@ Deno.serve(async (req: Request) => {
     const actionLink = linkData?.properties?.action_link;
     if (!actionLink) return json(GENERIC_OK);
 
-    const fromEmail = Deno.env.get("RESET_FROM_EMAIL") || "RetroFoot98 <no-reply@retrofoot98.com.br>";
+    /* O NOME MUDOU, O ENDERECO NAO — e nao por esquecimento. Trocar o dominio do remetente sem a
+       verificacao correspondente no Resend (SPF/DKIM) faz o e-mail de recuperacao deixar de
+       chegar: o utilizador pede a senha nova e nao recebe nada. O valor real vem do segredo
+       RESET_FROM_EMAIL; este e' so' a reserva. Confirmar retrofoot.com.br no Resend antes de
+       trocar o dominio aqui. */
+    const fromEmail = Deno.env.get("RESET_FROM_EMAIL") || "RetroFoot <no-reply@retrofoot98.com.br>";
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },

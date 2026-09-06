@@ -210,7 +210,7 @@ const zap = WHATSAPP
 /* ---- a página ---------------------------------------------------------- */
 
 export const mediaKit = [{
-  slug: 'media-kit', ready: true, soMiolo: true, priority: 0.6, lastmod: '2026-09-05',
+  slug: 'media-kit', ready: true, soMiolo: true, priority: 0.6, lastmod: '2026-09-06',
   schemaType: 'WebPage',
   title: 'Media Kit — anuncie no RetroFoot',
   description: 'Os espaços publicitários do RetroFoot: leaderboard de topo, laterais, placas do campo e a vitrine da barra lateral, com as capturas reais, as medidas de arte e a tabela de mídia.',

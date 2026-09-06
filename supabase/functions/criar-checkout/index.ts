@@ -36,14 +36,15 @@ function resp(status: number, body: unknown) {
 
 const PLANOS = new Set(["resenha", "embaixador"]);
 const CICLOS = new Set(["mes", "ano"]);
-const SITE_PADRAO = "https://retrofoot98.com.br";
+const SITE_PADRAO = "https://retrofoot.com.br";
 
 /* So' o proprio site pode ser o destino de volta. Sem esta trava, um body com
    `origem` apontando para fora transformaria o checkout num redirecionador
    aberto — com o nome do RetroFoot no meio do caminho. */
 const DESTINOS_OK = [
-  "https://retrofoot98.com.br",
   "https://retrofoot.com.br",
+  "https://retrofoot98.com.br",   // dominio antigo: fica na lista so' para nao recusar quem
+                                  // chegar por um link velho, que ainda responde 301
   "https://retrofoot98-beta.web.app",
   "http://localhost:5199",
 ];
