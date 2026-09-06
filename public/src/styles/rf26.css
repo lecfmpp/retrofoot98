@@ -2199,6 +2199,25 @@
   color:var(--text-1);box-sizing:border-box;width:100%}
 .rf-campo-c::placeholder{color:var(--text-faint)}
 .rf-campo-c:focus{outline:none;border-color:var(--club-primary)}
+/* ===== O GUIA DAS REGRAS DA SENHA =====
+   Fica colado ao campo, sem caixa nem borda: e' apoio ao que se esta' a escrever, nao um
+   aviso de erro — pintar de vermelho o que ainda nao se digitou seria repreender alguem por
+   nao ter acabado. Cada exigencia acende a verde quando cumprida (ver rfSenhaGuiaPintar, em
+   ui/rf26-onboarding.js) e a nota do vazamento fica em cinzento, porque essa quem verifica e'
+   o servidor. */
+/* Encostado ao campo em cima (pertence a ele) e com folga em baixo, para nao colar no que
+   vier a seguir — no cadastro e' o visto das Ligas Oficiais. */
+.rf-pwr{display:flex;flex-direction:column;gap:7px;margin:-4px 0 6px}
+.rf-pwr-t{font-size:var(--fs-label);font-weight:var(--fw-semibold);color:var(--text-4);
+  letter-spacing:var(--ls-label);text-transform:uppercase}
+.rf-pwr-l{display:flex;flex-wrap:wrap;gap:8px 16px}
+.rf-pwr-i{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-caption);
+  color:var(--text-4);transition:color var(--dur-fast) var(--ease)}
+.rf-pwr-i.ok{color:var(--ok,#2fbf5f);font-weight:var(--fw-semibold)}
+.rf-pwr-m{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;
+  border-radius:50%;border:1px solid currentColor;font-size:9px;line-height:1;flex:0 0 auto}
+.rf-pwr-i.ok .rf-pwr-m{background:var(--ok,#2fbf5f);border-color:var(--ok,#2fbf5f);color:#fff}
+.rf-pwr-n{font-size:var(--fs-label);color:var(--text-faint);line-height:1.45}
 .rf-codigo{height:44px;display:flex;align-items:center;padding:0 14px;border:var(--border-control);
   border-radius:var(--r-control);background:var(--surface-sunken);font-family:var(--font-mono);
   font-size:var(--fs-subhead);font-weight:var(--fw-semibold);letter-spacing:.18em;color:var(--text-1)}

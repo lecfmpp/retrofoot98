@@ -221,10 +221,22 @@ function netAuthStatus(){
    Sem match: devolve a própria mensagem original como fallback. ---- */
 function authErrPt(error){
   const msg=(error&&error.message||'').toLowerCase();
-  if(msg.includes('weak') || msg.includes('pwned') || msg.includes('easy to guess'))
-    return 'Essa senha é muito fácil de adivinhar. Escolha uma senha mais forte (misture letras, números e evite senhas óbvias).';
-  if(msg.includes('at least') || msg.includes('should be at least') || msg.includes('minimum') || (msg.includes('password')&&msg.includes('6 characters')))
-    return 'A senha precisa ter pelo menos 6 caracteres.';
+  /* ===== A SENHA FRACA TEM TRES MOTIVOS, E O SERVIDOR MANDA OS TRES JUNTOS =====
+     A mensagem do Supabase para uma senha de 3 letras vem inteira: "Password should be at least
+     6 characters. Password should contain at least one character of each: ... Password is known
+     to be weak and easy to guess." Como o teste de "weak" vinha primeiro, quem escrevia "abc"
+     lia "essa senha e' muito facil de adivinhar" — verdade, mas nao o que faltava consertar.
+     Agora leem-se as TRES queixas e diz-se as que se aplicam, na ordem em que se resolvem. */
+  if(msg.includes('weak') || msg.includes('pwned') || msg.includes('easy to guess')
+     || msg.includes('at least') || msg.includes('one character of each')){
+    const falta=[];
+    if(msg.includes('at least 6 characters') || msg.includes('at least')) falta.push('pelo menos 6 caracteres');
+    if(msg.includes('one character of each') || msg.includes('should contain')) falta.push('uma letra e um número');
+    let t = falta.length ? 'A senha precisa de '+falta.join(' e ')+'.' : '';
+    if(msg.includes('known to be weak') || msg.includes('pwned') || msg.includes('easy to guess'))
+      t += (t?' ':'')+'Essa senha também aparece em vazamentos conhecidos — escolha outra.';
+    return t || 'Escolha uma senha mais forte.';
+  }
   if(msg.includes('invalid format') || msg.includes('unable to validate email') || msg.includes('invalid email'))
     return 'E-mail inválido. Confira o endereço e tente de novo.';
   if(msg.includes('requires a valid password') || (msg.includes('password')&&msg.includes('required')))

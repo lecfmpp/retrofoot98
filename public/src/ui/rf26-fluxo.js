@@ -722,7 +722,12 @@ function rfRecuperarSenhaHTML(){
    Não tem tela de referência própria — usa o mesmo envelope, sem trilha. */
 function rfNovaSenhaHTML(){
   const st=CL.resetPw||(CL.resetPw={password:'',confirm:'',focus:'password'});
-  const ok=st.password.length>=6 && st.password===st.confirm;
+  /* AS MESMAS REGRAS DO CADASTRO. Aqui pedia-se so' o comprimento, entao quem redefinia a
+     senha passava pela tela sem saber da letra, do numero e da recusa de senha vazada — e
+     levava o "nao" do servidor no fim, sem entender porque. rfSenhaOk vive em
+     ui/rf26-onboarding.js: uma regra so', nos dois sitios que pedem senha nova. */
+  const ok=(typeof rfSenhaOk==='function' ? rfSenhaOk(st.password) : st.password.length>=6)
+    && st.password===st.confirm;
   const difere=st.confirm.length>0 && st.password!==st.confirm;
   const idP=st.focus!=='confirm'?'id="cl-focus"':'', idC=st.focus==='confirm'?'id="cl-focus"':'';
   const corpo=`
@@ -730,8 +735,10 @@ function rfNovaSenhaHTML(){
       <div class="rf-wiz-form">
         ${rfCampo('Nova senha',
           `<input class="rf-campo-c" ${idP} type="password" autocomplete="new-password" minlength="6"
-             placeholder="••••••••" value="${escC(st.password)}"
-             onfocus="CL.resetPw.focus='password'" oninput="clResetPwInput(this,'password')">`)}
+             placeholder="6+ caracteres, com letra e número" value="${escC(st.password)}"
+             onfocus="CL.resetPw.focus='password'"
+             oninput="clResetPwInput(this,'password');rfSenhaGuiaPintar(this.value)">`)}
+        ${typeof rfSenhaGuiaHTML==='function' ? rfSenhaGuiaHTML(st.password) : ''}
         ${rfCampo('Confirmar senha',
           `<input class="rf-campo-c" ${idC} type="password" autocomplete="new-password"
              placeholder="••••••••" value="${escC(st.confirm)}"
@@ -743,7 +750,10 @@ function rfNovaSenhaHTML(){
     </div>`;
   return rfWiz({ semTrilha:true, corpo,
     sobre:'Acesso à conta', titulo:'Crie uma senha nova',
-    sub:'Mínimo de 6 caracteres. Depois disso já dá para entrar.',
+    /* o subtitulo dizia so' "minimo de 6 caracteres" — meia regra, e agora a lista completa
+       esta' logo abaixo do campo. Duas versoes da mesma exigencia na mesma tela discordam
+       no dia em que uma delas mudar. */
+    sub:'Escolha a senha nova e confirme. Depois disso já dá para entrar.',
     nota:'Os seus saves na nuvem continuam intactos.',
     voltar:'clGoAbertura()', voltarLabel:'‹ Voltar ao início',
     cta:'Salvar senha', ctaOff:!ok, ctaOn:'clDoUpdatePassword()' });

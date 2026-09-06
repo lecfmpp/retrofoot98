@@ -208,6 +208,54 @@ function rfCampo(rotulo, input, extra){
     : `<span class="rf-campo-l">${escC(rotulo)}</span>`;
   return `<label class="rf-campo">${l}${input}</label>`;
 }
+/* ===== AS REGRAS DA SENHA, A' VISTA E EM TEMPO REAL (06/09/2026) =====
+   A tela nao dizia nenhuma delas: o campo tinha o marcador de lugar "minimo 8 caracteres" — que
+   ainda por cima estava ERRADO, sao 6 — e o resto so' se descobria depois de o cadastro falhar.
+   Faltavam a letra, o numero e, sobretudo, a recusa de senha vazada, que e' a que mais confunde
+   ("tem 10 caracteres com letra e numero, por que recusou?").
+
+   AS REGRAS SAO AS DO SUPABASE AUTH, nao inventadas aqui — conferidas contra o proprio servidor
+   em 06/09/2026 (resposta `weak_password.reasons`):
+     · length      -> pelo menos 6 caracteres;
+     · characters  -> pelo menos uma letra (maiuscula ou minuscula, tanto faz) e um numero;
+     · pwned       -> a senha nao pode aparecer em vazamentos conhecidos.
+   Simbolo NAO e' exigido. Se algum dia a configuracao do projeto mudar, esta lista mente — e a
+   unica forma de a manter honesta e' conferir com o servidor, nao com a memoria.
+
+   O QUE JA' ESTA' CUMPRIDO ACENDE. Uma lista estatica de exigencias e' um muro; a mesma lista a
+   ganhar visto conforme se escreve e' um guia. A verificacao de vazamento nao da' para fazer
+   aqui (e' do servidor), entao ela entra como aviso, sem visto. */
+const RF_SENHA_REGRAS = [
+  ['tam',  'pelo menos 6 caracteres', v => (v||'').length >= 6],
+  ['letra','uma letra',               v => /[a-zA-Z]/.test(v||'')],
+  ['num',  'um número',               v => /[0-9]/.test(v||'')],
+];
+function rfSenhaOk(v){ return RF_SENHA_REGRAS.every(([,,f]) => f(v)); }
+function rfSenhaGuiaHTML(valor){
+  const v = valor || '';
+  const itens = RF_SENHA_REGRAS.map(([k, txt, f]) => {
+    const ok = f(v);
+    return `<span class="rf-pwr-i ${ok ? 'ok' : ''}" data-pwr="${k}">
+      <span class="rf-pwr-m">${ok ? '✓' : '·'}</span>${escC(txt)}</span>`;
+  }).join('');
+  return `<div class="rf-pwr" id="rf-pwr">
+    <span class="rf-pwr-t">A senha precisa de:</span>
+    <span class="rf-pwr-l">${itens}</span>
+    <span class="rf-pwr-n">Senhas que já apareceram em vazamentos são recusadas pelo servidor.</span>
+  </div>`;
+}
+/* ACENDER SEM REDESENHAR A TELA. Um cdraw() a cada tecla no campo de senha perderia o cursor e
+   o valor — e' a mesma armadilha do campo que se redesenha a si proprio (ver a nota do cdraw
+   por tecla em ui/rf26.js). Aqui so' se trocam as classes dos vistos. */
+function rfSenhaGuiaPintar(valor){
+  const cx = document.getElementById('rf-pwr'); if(!cx) return;
+  RF_SENHA_REGRAS.forEach(([k, , f]) => {
+    const el = cx.querySelector(`[data-pwr="${k}"]`); if(!el) return;
+    const ok = f(valor || '');
+    el.classList.toggle('ok', ok);
+    const m = el.querySelector('.rf-pwr-m'); if(m) m.textContent = ok ? '✓' : '·';
+  });
+}
 function rfInput(id, ph, valor, tipo, oninput){
   return `<input class="rf-campo-c" id="${id}" type="${tipo||'text'}" placeholder="${escC(ph||'')}"
     value="${escC(valor||'')}" ${oninput?`oninput="${oninput}"`:''}>`;
@@ -226,7 +274,10 @@ function rfOb1(){
   if(st.loggedIn && !(CL.auth&&CL.auth.trocando)) return rfOb1Logado(st);
   const a=CL.auth||(CL.auth={mode:'signup',name:CL.mgr||'',email:'',password:''});
   const criando=a.mode!=='login';
-  const pronto=!!(a.email&&a.password&&(!criando||a.name));
+  /* NO CADASTRO O BOTAO ESPERA PELA SENHA VALIDA. Antes bastava haver alguma coisa escrita, e o
+     unico aviso vinha do servidor depois de a tentativa falhar. Entrar continua a aceitar
+     qualquer senha: quem ja' tem conta pode ter uma anterior a estas regras. */
+  const pronto=!!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password))));
   const corpo=`
     <div class="rf-wiz-mid">
       <div class="rf-wiz-form">
@@ -236,8 +287,10 @@ function rfOb1(){
         </div>
         ${criando?rfCampo('Nome do treinador', rfInput('rf-ob-n','Gringo',a.name,'text',"rfObSet('name',this.value)")):''}
         ${rfCampo('E-mail', rfInput('rf-ob-e','voce@email.com',a.email,'email',"rfObSet('email',this.value)"))}
-        ${rfCampo('Senha', rfInput('rf-ob-s','mínimo 8 caracteres',a.password,'password',"rfObSet('password',this.value)"),
+        ${rfCampo('Senha', rfInput('rf-ob-s', criando?'6+ caracteres, com letra e número':'sua senha', a.password,'password',
+            criando ? "rfObSet('password',this.value);rfSenhaGuiaPintar(this.value)" : "rfObSet('password',this.value)"),
             criando ? '' : `<span class="rf-campo-link" onclick="event.preventDefault();clForgotPassword()">Esqueci minha senha</span>`)}
+        ${criando ? rfSenhaGuiaHTML(a.password) : ''}
         ${criando?`<div class="rf-check" onclick="rfObSet('aviso',!(CL.auth.aviso))">
           <span class="rf-check-b ${a.aviso!==false?'on':''}">${a.aviso!==false?rfIcone('ok',14):''}</span>
           <span class="rf-check-t">Quero receber aviso quando abrir vaga nas Ligas Oficiais.</span>
