@@ -1369,7 +1369,7 @@ function rfHubHTML(){
     <div class="rf-card rf-pitch-card" data-hub="campo">
       <div class="rf-card-hd">
         <span class="rf-label-t">Tática ${escC(CL.formation||'—')}</span>
-        <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · titulares marcados com T na lista</span></span>
+        <span class="rf-label-r">onze <b>${xi.length}/11</b><span class="rf-so-desktop"> · <b>T</b> titular · <b>R</b> reserva</span></span>
         <button type="button" class="rf-campo-ampliar" title="Ver o campo em tela cheia"
           aria-label="Ver o campo em tela cheia" onclick="rfCampoAmpliar()">${rfIcone('expandir',16)}</button>
       </div>
@@ -2502,7 +2502,7 @@ function windowClosesIn(){ const d=rfDiasJanela(); return d? (d+' semana'+(d>1?'
      'elenco' 8 colunas (22/26/1fr/30/34/40/46/62)    — sem SAL., mais folgada
    Regras que não mudam entre elas: número em IBM Plex Mono alinhado à
    direita, nome em 14px/600, e o marcador de 17px à esquerda — "T" nas
-   cores do clube pra titular, letra da posição em cinza pra reserva.
+   cores do clube pra titular, "R" em cinza pra reserva.
    ===================================================================== */
 /* O pacote escreve o valor COM a moeda e na forma CURTA — "R$ 2k", "R$ 99k".
    NÃO se chama rfDin: esse nome já existe em rf26-mercado.js e devolve a forma
@@ -2571,7 +2571,12 @@ function rfSquadTableHTML(modo, opts){
     return `<div class="rf-sq-row rf-sq-${modo||'hub'} ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
         style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'};padding:${cfg.pad}"
         onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
-      <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':escC(posLetter(p.s))}</span>
+      <!-- T de titular, R de reserva. O selo do reserva repetia a LETRA DA POSICAO — a mesma
+           que a coluna logo a seguir ja' mostra: lia-se "G G", "D D", e a coluna nao dizia
+           nada. Agora as duas colunas respondem a perguntas diferentes: esta diz se o jogador
+           entra em campo, a outra diz onde. O cinza contra a cor do clube ja' separava as
+           duas, so' faltava a letra dizer o mesmo. -->
+      <span class="rf-sq-mark ${tit?'tit':''}">${tit?'T':'R'}</span>
       <span class="rf-sq-pos">${escC(posLetter(p.s))}</span>
       <span class="rf-sq-name"><span class="rf-sq-link" role="link" tabindex="0"
         title="Ver a ficha de ${escC(p.n)}"

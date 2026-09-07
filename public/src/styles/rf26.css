@@ -1625,7 +1625,11 @@
 .rf-sq-row.sel{background:var(--club-primary-soft)}
 .rf-sq-row.off{opacity:.55}
 /* marcador: T nas cores do clube pra titular, letra da posição em cinza pro reserva */
-.rf-sq-mark{width:17px;height:17px;border-radius:5px;background:#eceff0;color:var(--text-muted);
+/* O "R" DO RESERVA TEM DE SE LER. Era --text-muted (#8b978d) sobre #eceff0: ~2.6:1 num texto
+   de 9px em negrito, abaixo do minimo para se ler de relance. Passa a --text-3 (~4.9:1), que
+   le-se e continua a ser o lado quieto do par — quem salta a' vista e' o T, que tem a cor
+   cheia do clube. */
+.rf-sq-mark{width:17px;height:17px;border-radius:5px;background:#eceff0;color:var(--text-3);
   font-family:var(--font-sans);font-size:9px;font-weight:var(--fw-bold);
   display:flex;align-items:center;justify-content:center}
 .rf-sq-mark.tit{background:var(--club-primary);color:var(--club-secondary-on-primary,var(--club-secondary))}
