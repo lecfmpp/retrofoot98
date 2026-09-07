@@ -25,9 +25,15 @@
    FICA exactamente UMA accao automatica, a mesma que o cliente ja' faz pelo cao de guarda: a
    rodada 'running' sem ninguem ocupado e parada ha' mais do que a carencia volta a abrir.
 
-   POR FAZER: existe um segundo tick_rooms(boolean,integer) — a versao de 2 argumentos, que o cron
-   nao chama — ainda com as duas chamadas mortas. Nao foi tocada por nao se saber quem a chama;
-   se ninguem a chamar, o certo e' larga-la (DROP).
+   FEITO (06/09/2026): a versao de 2 argumentos foi largada. Conferido antes: o cron chama
+   tick_rooms(false, 10, 2), de tres argumentos, e nada mais no repo a referia. Nao era so'
+   codigo morto — com o terceiro argumento a ter DEFAULT, as duas versoes casavam com a mesma
+   chamada e o PostgREST recusava com "Could not choose the best candidate function". Foi
+   exatamente esse erro que apareceu ao subir a foto do treinador, no rf_perfil_gravar.
+
+   A REGRA QUE FICA: sobrecarga com DEFAULT e' armadilha em API REST. Mudar a assinatura de uma
+   funcao exposta e' CREATE OR REPLACE da mesma, ou DROP da antiga NA MESMA migracao — nunca
+   deixar as duas de pe'.
 */
 
 CREATE OR REPLACE FUNCTION elifoot_v3.tick_rooms(p_dry boolean DEFAULT true, p_ativa_min integer DEFAULT 10, p_reabrir_min integer DEFAULT 2)
