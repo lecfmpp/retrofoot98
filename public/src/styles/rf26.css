@@ -1624,6 +1624,30 @@
 .rf-sq-row:hover{background:var(--surface-row-active)}
 .rf-sq-row.sel{background:var(--club-primary-soft)}
 .rf-sq-row.off{opacity:.55}
+/* ===== TROCAR PELA LISTA =====
+   Tres estados, e so' existem enquanto ha' alguem marcado:
+   · trocar-mk   o escolhido — borda cheia na cor do clube, para se achar de relance;
+   · trocar-alvo pode receber — fundo suave e o cursor a dizer que da' para clicar;
+   · trocar-fora nao serve para este par — apaga, mas NAO fica bloqueado: clicar nele passa a
+     marca para ele, que e' quase sempre o que a pessoa queria (ver rfSubToque).
+   O apagado e' .5 e nao menos: abaixo disso a lista deixa de se ler e o utilizador perde o
+   contexto de onde estava. */
+.rf-sq-row.trocar-mk{background:var(--club-primary-soft);
+  box-shadow:inset 0 0 0 2px var(--club-primary);position:relative;z-index:1}
+.rf-sq-row.trocar-alvo{background:#eef7f0;box-shadow:inset 0 0 0 1px #bfe6cd}
+.rf-sq-row.trocar-alvo:hover{background:#e2f2e7}
+.rf-sq-row.trocar-fora{opacity:.5}
+.rf-sq-row.trocar-fora:hover{opacity:.75;background:var(--surface-card)}
+/* a faixa que explica o estado — sem ela a lista meia apagada nao se explica */
+.rf-sq-troca{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--club-primary-soft);border:1px solid var(--club-primary-line);
+  border-radius:var(--r-control);padding:9px 12px;margin-bottom:8px}
+.rf-sq-troca-t{flex:1;min-width:0;font-size:var(--fs-caption);color:var(--text-2);line-height:1.4}
+.rf-sq-troca-t b{color:var(--club-primary)}
+.rf-sq-troca-x{flex:0 0 auto;height:30px;padding:0 12px;border:var(--border-control);
+  border-radius:var(--r-control);background:var(--surface-card);font-family:var(--font-sans);
+  font-size:var(--fs-caption);font-weight:var(--fw-semibold);color:var(--text-2);cursor:pointer}
+.rf-sq-troca-x:hover{background:var(--surface-sunken)}
 /* marcador: T nas cores do clube pra titular, letra da posição em cinza pro reserva */
 /* O "R" DO RESERVA TEM DE SE LER. Era --text-muted (#8b978d) sobre #eceff0: ~2.6:1 num texto
    de 9px em negrito, abaixo do minimo para se ler de relance. Passa a --text-3 (~4.9:1), que

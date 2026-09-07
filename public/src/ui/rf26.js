@@ -2548,6 +2548,63 @@ const RF_SQUAD_COLS={
   hub:    {grid:'20px 24px minmax(0,1fr) 24px 28px 32px 44px 62px 64px', sal:false, gap:'8px', pad:'7px 10px'},
   elenco: {grid:'22px 26px minmax(0,1fr) 24px 30px 34px 42px 46px 62px', sal:false, gap:'8px', pad:'8px 10px'},
 };
+/* =====================================================================
+   TROCAR PELA LISTA — dois toques, sem caixa de confirmacao
+   ---------------------------------------------------------------------
+   A troca so' existia no campo (arrastar a camisa). Quem esta' a ler a lista
+   tinha de sair dela, achar o jogador no gramado e arrastar — e no telefone o
+   gramado nem cabe na mesma dobra.
+
+   POR QUE NAO HA' BOTAO DE CONFIRMAR: substituir e' a accao mais repetida desta
+   tela. Pedir confirmacao a cada uma cobra um clique de todas para proteger de
+   um engano que custa um clique a desfazer. Em vez disso o erro deixa de ser
+   possivel: ao marcar um jogador, quem PODE receber fica nitido e o resto
+   apaga (ver `rfSubAlvo`). E quem se enganar tem "Desfazer" no proprio aviso.
+
+   NAO SUBSTITUI O CAMPO, soma-se a ele: os dois caminhos desembocam na mesma
+   clTrocarPorPid, que e' onde vivem as travas (mesma posicao, um em campo e um
+   no banco, jogador disponivel). Nao ha' uma segunda regra de troca. */
+function rfSubPode(){
+  /* so' no proprio clube, e so' onde ha' escalacao para mexer */
+  return !!(typeof CL!=='undefined' && CL.clubId && typeof S!=='undefined' && S && Array.isArray(S.xi));
+}
+/* b serve de par para a? A MESMA pergunta que a clTrocarPorPid responde, feita
+   antes em vez de depois — e' isto que deixa a lista apagar quem nao serve. */
+function rfSubAlvo(a, b){
+  if(!a || !b || a.pid===b.pid) return false;
+  if(a.s !== b.s) return false;
+  const xi=new Set(S.xi||[]);
+  const aTit=xi.has(a.pid), bTit=xi.has(b.pid);
+  if(aTit===bTit) return false;                       // dois em campo, ou dois no banco
+  const entra = aTit ? b : a;                          // quem entra tem de estar disponivel
+  return !(entra.suspended>0) && !(entra.injuredMatches>0);
+}
+function rfSubToque(pid){
+  /* O CLIQUE NA LINHA CONTINUA A SELECIONAR O JOGADOR — a ficha ao lado nao pode
+     deixar de responder so' porque a linha ganhou um segundo significado. */
+  if(typeof CL!=='undefined') CL.selPlayer=pid;
+  if(!rfSubPode()){ if(typeof cdraw==='function') cdraw(); return; }
+  const marcado=CL.subA;
+  if(!marcado){ CL.subA=pid; cdraw(); return; }        // primeiro toque: marca
+  if(marcado===pid){ CL.subA=null; cdraw(); return; }  // no mesmo: desmarca
+  const a=pById(marcado,CL.clubId), b=pById(pid,CL.clubId);
+  if(!rfSubAlvo(a,b)){
+    /* clicou num que nao serve: em vez de trocar a marca em silencio, diz porque
+       e passa a marca para o novo — que e' quase sempre o que a pessoa queria. */
+    CL.subA=pid; cdraw();
+    if(a&&b&&a.s!==b.s) toastC('Esses dois jogam em posições diferentes. Marquei '+b.n.split(' ').slice(-1)[0]+'.');
+    return;
+  }
+  CL.subA=null;
+  clTrocarPorPid(marcado, pid);
+}
+function rfSubCancelar(){ if(typeof CL!=='undefined' && CL.subA){ CL.subA=null; cdraw(); } }
+/* ESC LARGA A MARCA. Sem isto, marcar sem querer deixava a lista meia apagada e
+   o unico jeito de sair era achar a mesma linha outra vez. */
+if(typeof document!=='undefined') document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') rfSubCancelar();
+});
+
 function rfSquadTableHTML(modo, opts){
   opts=opts||{};
   modo=RF_SQUAD_COLS[modo]?modo:'hub';
@@ -2557,6 +2614,20 @@ function rfSquadTableHTML(modo, opts){
   const xi=new Set(S.xi||[]);
   // a densidade vai na CLASSE, não só na grade inline: é por ela que o CSS
   // enxuga a tabela do Hub quando a coluna aperta, sem tocar na do Elenco.
+  /* quem esta' marcado para trocar, e se esta tabela e' do proprio clube (so' ai' se troca).
+     TEM DE VIR ANTES DA FAIXA E DAS LINHAS: as duas leem estas duas variaveis. */
+  const troca = (id===CL.clubId && rfSubPode()) ? (CL.subA||null) : null;
+  const pMarcado = troca ? pById(troca, id) : null;
+  /* A FAIXA SO' EXISTE COM ALGUEM MARCADO. Diz quem esta' escolhido, quantos podem receber e
+     como sair — sem ela, a lista meia apagada seria um estado sem explicacao. */
+  const cinta = pMarcado ? (()=>{
+    const n = lista.filter(q=>rfSubAlvo(pMarcado,q)).length;
+    return `<div class="rf-sq-troca">
+      <span class="rf-sq-troca-t"><b>${escC(pMarcado.n)}</b> marcado — ${
+        n ? 'toque em quem entra no lugar dele' : 'ninguém do elenco pode trocar com ele agora'}</span>
+      <button type="button" class="rf-sq-troca-x" onclick="event.stopPropagation();rfSubCancelar()">Cancelar</button>
+    </div>`;
+  })() : '';
   const cab=`<div class="rf-sq-head rf-sq-${modo||'hub'}" style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'}">
     <span></span><span>POS</span><span>NOME</span><span>NAC</span>
     <span>ID</span><span>FRC</span><span>NOTA</span><span>ENER</span>
@@ -2568,9 +2639,16 @@ function rfSquadTableHTML(modo, opts){
     const en=Math.round(p.energy!=null?p.energy:100);
     const sal=(typeof playerSalary==='function')?playerSalary(p):0;
     const indisp=(p.suspended>0)||(p.injuredMatches>0);
-    return `<div class="rf-sq-row rf-sq-${modo||'hub'} ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}"
+    /* MARCADO = o escolhido; ALVO = pode receber a troca; FORA = nao serve para este par.
+       Sem ninguem marcado, nenhuma das tres entra e a lista fica como sempre foi. */
+    const marcado = troca===p.pid;
+    const alvo    = !!pMarcado && !marcado && rfSubAlvo(pMarcado, p);
+    const fora    = !!pMarcado && !marcado && !alvo;
+    return `<div class="rf-sq-row rf-sq-${modo||'hub'} ${CL.selPlayer===p.pid?'sel':''} ${indisp?'off':''}${
+        marcado?' trocar-mk':''}${alvo?' trocar-alvo':''}${fora?' trocar-fora':''}"
         style="grid-template-columns:${cfg.grid};column-gap:${cfg.gap||'8px'};padding:${cfg.pad}"
-        onclick="clSelPlayer('${escC(p.pid)}')" title="${escC(p.n)}">
+        onclick="rfSubToque('${escC(p.pid)}')"
+        title="${escC(p.n)}${marcado?' — marcado para trocar (clique de novo para largar)':(alvo?' — clique para trocar com '+escC(pMarcado.n):'')}">
       <!-- T de titular, R de reserva. O selo do reserva repetia a LETRA DA POSICAO — a mesma
            que a coluna logo a seguir ja' mostra: lia-se "G G", "D D", e a coluna nao dizia
            nada. Agora as duas colunas respondem a perguntas diferentes: esta diz se o jogador
@@ -2592,7 +2670,7 @@ function rfSquadTableHTML(modo, opts){
       <span class="rf-sq-val">${escC(rfDinCurto(rfVM(p)))}</span>
     </div>`;
   }).join('');
-  return `${cab}<div class="rf-sq-list">${linhas}</div>`;
+  return `${cinta}${cab}<div class="rf-sq-list">${linhas}</div>`;
 }
 /* a escala de energia do design system: vermelho → verde em cinco faixas */
 function rfEnergiaCor(v){

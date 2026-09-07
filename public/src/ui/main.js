@@ -6302,8 +6302,17 @@ function clTrocarPorPid(aPid,bPid){
   if(aTit===bTit){ toastC(aTit?'Os dois já estão em campo.':'Os dois estão no banco.'); return; }
   const outP=aTit?a:b, inP=aTit?b:a;
   if(inP.suspended>0||inP.injuredMatches>0){ toastC('Esse jogador não está disponível.'); return; }
+  /* DESFAZER EM VEZ DE CONFIRMAR. A troca acontece na hora e o arrependimento cabe no proprio
+     aviso — vale para os dois caminhos que chegam aqui, o arrasto no campo e o toque na lista.
+     Guarda-se a escalacao INTEIRA de antes, e nao so' o par: repor pelo par daria outra volta
+     nas travas e, se entretanto algo mais tivesse mudado, desfazia a coisa errada. */
+  const antes=(S.xi||[]).slice();
   S.xi=(S.xi||[]).map(x=>x===outP.pid?inP.pid:x);
-  toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.');
+  toastC(inP.n.split(' ').slice(-1)[0]+' entrou no lugar de '+outP.n.split(' ').slice(-1)[0]+' na escalação.',
+    null, { action:'Desfazer', ms:5200, onAction:()=>{
+      S.xi=antes; saveV3(); republicarEscalacao(); cdraw();
+      toastC('Troca desfeita.');
+    }});
   saveV3(); republicarEscalacao(); cdraw();
 }
 /* ---- PORTÃO DE LARGADA DA RESENHA (o mesmo pra liga e pra copa) ----
