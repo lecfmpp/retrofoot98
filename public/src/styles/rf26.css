@@ -455,31 +455,8 @@
 @container miolo (max-width:1578px){ .rf-pitch-card .cl-pitch-block{zoom:.92} }
 @container miolo (max-width:1466px){ .rf-pitch-card .cl-pitch-block{zoom:.85} }
 @container miolo (max-width:1370px){ .rf-pitch-card .cl-pitch-block{zoom:.80} }
-/* ----- E ANTES DE O CAMPO FICAR PEQUENO DEMAIS, O BANCO DESCE -----
-   Continuar a encolher levava o campo a 0,55 num monitor de 1180 -- os nomes
-   deixavam de se ler, que era o defeito que o `zoom` veio evitar. O banco
-   (196px) e a peca que se pode mudar de sitio: por baixo do campo ele fica em
-   faixa, como ja acontece no telemovel, e o campo volta a caber inteiro. */
-/* TUDO ISTO E DE TABLET PARA CIMA. No telemovel o banco ja e uma faixa que ROLA
-   por dentro (@media 760, mais abaixo), e estes seletores -- mais especificos
-   do que os de la -- desfaziam-na: a faixa deixava de rolar e empurrava a
-   pagina 215px para o lado. */
-@media (min-width:761px){
-  @container miolo (max-width:1290px){
-    /* seletor mais especifico de proposito: a largura fixa do banco
-       (.rf-pitch-card .cl-bench, mais abaixo neste ficheiro) ganharia por vir
-       depois, e o banco continuava colado ao lado do campo. */
-    .rf-pitch-card .cl-pitch-block{flex-wrap:wrap;zoom:1}
-    .rf-pitch-card .cl-pitch-block>.cl-bench{width:100%;flex:1 1 100%;height:auto;
-      max-height:none;overflow:visible}
-    /* o banco em faixa e uma LINHA DE GRUPOS (goleiros, defesa, meio, ataque),
-       cada um continuando a ser a sua coluna -- virar tudo em linha punha os
-       reservas todos lado a lado e transbordava outra vez. */
-    .rf-pitch-card .cl-pitch-block>.cl-bench .rf-banco-lista{flex-direction:row;flex-wrap:wrap;
-      align-items:flex-start;gap:10px;overflow:visible}
-    .rf-pitch-card .cl-pitch-block>.cl-bench .rf-bgrupo{flex:1 1 150px;min-width:0}
-  }
-}
+/* O BANCO E' SEMPRE UMA FAIXA DEBAIXO DO CAMPO (ver BANCO DE RESERVAS, abaixo): as regras
+   que o punham de lado acima de 1290px, e em faixa so' abaixo disso, sairam com o desenho. */
 @container miolo (max-width:1162px){ .rf-pitch-card .cl-pitch-block{zoom:.94} }
 /* ----- E ABAIXO DE 1130 A GRADE EMPILHA, como sempre fez -----
    Eu tinha descido este limite para 980 achando que, com o campo a encolher, a
@@ -492,18 +469,6 @@
   .rf-cols{grid-template-columns:minmax(0,1fr)}
   .rf-pitch-card .cl-pitch-block{zoom:1}
 }
-/* O BANCO SO VOLTA PARA O LADO DO CAMPO ACIMA DOS 760px. Esta regra desfaz a
-   faixa do bloco de 1290, e sem a guarda de telemovel ela desfazia tambem a
-   faixa do telemovel -- que vem de um @media, com menos especificidade do que
-   este seletor, e por isso perdia: o banco voltava a ser uma coluna de 196px ao
-   lado de um campo de 375, e a pagina ganhava 245px de rolagem lateral. */
-@media (min-width:761px){
-  @container miolo (max-width:1130px){
-    .rf-pitch-card .cl-pitch-block{flex-wrap:nowrap}
-    .rf-pitch-card .cl-pitch-block>.cl-bench{width:var(--col-bench);flex:0 0 var(--col-bench)}
-  }
-}
-
 /* ----- Abas dentro da página (sub-itens de menu viram aba, nunca página nova) ----- */
 .rf-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .rf-tab{border:1px solid var(--line-2);background:var(--surface-card);color:var(--text-2);
@@ -826,22 +791,34 @@
 .rf-pitch-card .cl-pitch-ad.azul{background:var(--club-primary)}
 .rf-pitch-card .cl-pitch-ad.verde{background:var(--ad-green)}
 
-/* ----- Banco/suplentes: coluna própria à direita do campo, não mais um
-   bloco absoluto grudado por cima. Uma coluna só (a de duas espremia
-   nome, força e energia num espaço em que nada cabia). ----- */
-.rf-pitch-card .cl-bench{position:static;width:var(--col-bench);flex:0 0 var(--col-bench);
-  height:585px;background:var(--surface-sunken);border:var(--border-hairline);
-  border-radius:var(--r-inner);padding:10px;box-sizing:border-box;gap:8px}
-.rf-pitch-card .cl-bench-list{grid-template-columns:1fr;gap:4px}
-.rf-pitch-card .cl-bench-hd{color:var(--text-muted);font-size:var(--fs-label);
-  font-weight:var(--fw-bold);letter-spacing:var(--ls-label);text-transform:uppercase}
-.rf-pitch-card .cl-bench-hd:hover{color:var(--text-2)}
-.rf-pitch-card .cl-bench-hd-n{background:var(--surface-card);border:var(--border-hairline);
-  color:var(--text-3);border-radius:var(--r-pill);padding:1px 7px;font-family:var(--font-mono)}
-.rf-pitch-card .cl-bench.fechado{width:34px;flex:0 0 34px;padding:8px 4px}
-/* alvo de soltura do arraste: o banco inteiro acende na cor de ação */
+/* =====================================================================
+   BANCO DE RESERVAS (pacote "banco de reservas (desktop e mobile)", 08/09)
+   ---------------------------------------------------------------------
+   Três problemas do banco de antes: trilho apertado com rolagem longa,
+   banco que caía para debaixo do campo e saía da vista, e barra de força
+   que esticava quando a linha tinha um jogador só.
+
+   NO DESKTOP O BANCO É UMA FAIXA DOCADA debaixo do campo, dentro do mesmo
+   cartão da tática, separada por um hairline. Cabeçalho com BANCO +
+   contagem + pílulas de filtro; cartões do tamanho do próprio conteúdo que
+   se reorganizam em linhas (flex-wrap — nada de grade de colunas fixas,
+   era ela que criava coluna curta e espaço morto). A faixa rola por dentro
+   (~3 linhas, 164px); a página nunca rola.
+
+   A LARGURA DO CARTÃO É A DO CAMPO. O bloco vira coluna e a faixa entra
+   com `width:0;min-width:100%`: com largura própria zero ela não pesa na
+   conta de max-content do cartão (senão a fila inteira de cartões, lado a
+   lado, alargava a coluna do shell), e o min-width a estica até à largura
+   que o campo já definiu.
+   ===================================================================== */
+.rf-pitch-card .cl-pitch-block{flex-direction:column;align-items:stretch;gap:12px}
+.rf-pitch-card .cl-pitch-wrap{align-self:flex-start}
+.rf-pitch-card .cl-bench{position:static;width:0;min-width:100%;flex:0 0 auto;height:auto;
+  max-height:none;overflow:visible;background:transparent;border:0;border-top:1px solid var(--line-3);
+  border-radius:0;padding:12px 0 0;box-sizing:border-box;display:flex;flex-direction:column;gap:9px}
+/* alvo de soltura do arraste: a faixa inteira acende na cor de ação */
 .rf-pitch-card .cl-bench.alvo-zona{border-color:var(--club-cta-bg,var(--club-secondary));
-  background:var(--club-primary-soft)}
+  background:var(--club-primary-soft);border-radius:var(--r-inner)}
 
 /* ----- Arraste (campo ⇄ banco): as pistas visuais na linguagem nova -----
    O gesto já existia e continua o mesmo (Pointer Events, ver clDragStart em
@@ -963,11 +940,7 @@
      (conteudo apertado, faixa vazia a direita). Aqui a cadeia inteira e
      travada. */
   .rf-pitch-card .cl-pitch-block{min-width:0;max-width:100%;box-sizing:border-box}
-  .rf-pitch-card .cl-bench,.rf-pitch-card .cl-bench-list,
-  .rf-pitch-card .rf-banco-lista{min-width:0;max-width:100%;box-sizing:border-box}
-  .rf-pitch-card .rf-banco-lista{width:100%}
-  .rf-pitch-card .cl-bench{width:100%;flex:0 0 auto;height:230px;max-height:230px;overflow:hidden}
-  .rf-pitch-card .cl-bench-list{grid-template-columns:1fr 1fr;overflow-y:auto;min-height:0;flex:1 1 auto}
+  .rf-pitch-card .cl-bench{min-width:0;max-width:100%;width:100%;flex:0 0 auto;height:auto;box-sizing:border-box}
   .rf-formgrid{grid-template-columns:repeat(3,1fr)}
   .rf-duo{grid-template-columns:1fr}
   .rf-roster{max-height:none}
@@ -7152,38 +7125,123 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
 .rf-pitch-card .cl-pp .cl-pp-name{margin-top:3px;font-size:11px;font-weight:var(--fw-bold);
   color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.65);white-space:nowrap}
 
-/* --- linha de dados do titular --- */
-.rf-pp-meta{display:flex;align-items:center;gap:5px;width:76px;margin:3px auto 0}
-.rf-pp-pos{font-family:var(--font-mono);font-size:10px;color:#dff0e6;
-  text-shadow:0 1px 3px rgba(0,0,0,.65)}
-.rf-pp-bar{flex:1;height:5px;border-radius:99px;background:rgba(0,0,0,.35);overflow:hidden}
-.rf-pp-bar i{display:block;height:100%;border-radius:99px}
-.rf-pp-f{font-family:var(--font-mono);font-size:10px;color:#fff;
-  text-shadow:0 1px 3px rgba(0,0,0,.65)}
+/* --- camisa em campo: o círculo da força na manga direita ---
+   A camisa continua a de sempre (shirtHTML); o invólucro .rf-pp-camisa só dá ao círculo
+   uma caixa do tamanho exato dela, para o `right:-7px;top:-7px` cair na manga. */
+.rf-pp-camisa{position:relative;display:block;width:44px;flex:0 0 auto}
+.rf-pp-camisa .cl-pp-shirt{width:44px;max-width:none}
+/* --- FORÇA: número em círculo, colorido por nível --- */
+.rf-forca-c{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
+  width:23px;height:23px;border-radius:99px;border:1.5px solid transparent;flex:0 0 auto;
+  font-family:var(--font-mono);font-size:9.5px;font-weight:var(--fw-semibold);line-height:1;
+  font-style:normal;letter-spacing:0}
+.rf-forca-c.tres{font-size:8px}
+.rf-forca-c.n1{background:linear-gradient(160deg,#ffffff,#e4eae6);border-color:#b9c6bb;color:#12201a}
+.rf-forca-c.n2{background:linear-gradient(160deg,#3d7fdd,#17458F);border-color:#123a78;color:#ffffff}
+.rf-forca-c.n3{background:linear-gradient(160deg,#dba469,#a86a2c);border-color:#85511f;color:#2b1608}
+.rf-forca-c.n4{background:linear-gradient(160deg,#f2f5f3,#a9b5ad);border-color:#8b9a90;color:#22302a}
+.rf-forca-c.n5{background:linear-gradient(160deg,#ffe07a,#d9a227);border-color:#a8791a;color:#4a3c00}
+.rf-forca-c.peq{width:19px;height:19px;font-size:9px}
+.rf-pp-fc{position:absolute;right:-7px;top:-7px;width:20px;height:20px;
+  box-shadow:0 2px 4px rgba(0,0,0,.35);z-index:1}
+/* --- ENERGIA: pílula com o valor dentro ---
+   A cor do preenchimento é a escala canônica (rfEnergiaCor, limites 80/70/55/40); a tinta
+   do número muda por degrau para manter contraste sobre as cinco cores. */
+.rf-en-pil{position:relative;display:block;box-sizing:border-box;width:56px;height:14px;
+  border-radius:99px;background:var(--line-3);overflow:hidden;flex:0 0 auto}
+.rf-en-pil i{position:absolute;left:0;top:0;bottom:0;display:block;border-radius:99px}
+.rf-en-pil b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-size:9px;font-weight:var(--fw-semibold);line-height:1}
+.rf-en-pil.e100 i{background:var(--energy-100)} .rf-en-pil.e100 b{color:#0d3d22}
+.rf-en-pil.e80 i{background:var(--energy-80)}   .rf-en-pil.e80 b{color:#1e3305}
+.rf-en-pil.e60 i{background:var(--energy-60)}   .rf-en-pil.e60 b{color:#4a3c00}
+.rf-en-pil.e40 i{background:var(--energy-40)}   .rf-en-pil.e40 b{color:#3d1c00}
+/* ABAIXO DE 40 O PREENCHIMENTO NUNCA CHEGA AO MEIO, onde o número está: a tinta é a escura
+   do trilho, não a branca da tabela do pacote — branco sobre trilho claro sumia justamente
+   nos jogadores gastos, que são os que o treinador precisa achar. */
+.rf-en-pil.e20 i{background:var(--energy-20)}   .rf-en-pil.e20 b{color:#12201a}
+/* em campo: sobre o gramado o trilho é claro (obrigatório: com trilho escuro o número dos
+   jogadores de energia baixa ficava ilegível) e a pílula é mais baixa */
+.rf-pp-meta{display:flex;justify-content:center;width:100%;margin:3px auto 0}
+.rf-pp-en{width:46px;height:12px;background:rgba(255,255,255,.88)}
+.cl-pp.dense .rf-pp-en{width:40px}
+/* a marca da troca no campo (a mesma da lista e do banco: CL.subA) */
+.cl-pp.trocar-mk .cl-pp-shirt{filter:drop-shadow(0 0 7px #d1541f) drop-shadow(0 0 2px #d1541f)}
+.cl-pp.trocar-mk .cl-pp-name{color:#ffd9c4}
+.cl-pp.trocar-alvo .cl-pp-shirt{filter:drop-shadow(0 0 7px var(--club-cta-bg,var(--club-secondary)))}
+.cl-pp.trocar-fora{opacity:.45}
 
-/* --- banco: coluna de 196px, uma linha por reserva --- */
-/* A BARRA DE ABAS DO BANCO E' SO' DO TELEFONE. No desktop o banco e' uma coluna alta ao lado
-   do campo e os quatro grupos cabem empilhados — abas seriam um clique a mais para ver o que
-   ja' esta' a' vista. Esconde-se aqui, e o @media do telefone volta a mostra-la. */
-.rf-banco-abas{display:none}
-.rf-pitch-card .rf-banco{display:flex;flex-direction:column}
-.rf-banco-lista{display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-height:0;flex:1 1 auto}
-.rf-bgrupo{display:flex;flex-direction:column;gap:1px}
-.rf-bgrupo-t{font-size:9px;font-weight:var(--fw-bold);color:var(--text-4);
-  letter-spacing:.12em;padding:2px 5px}
-.rf-pitch-card .rf-bp{display:grid;grid-template-columns:30px minmax(0,1fr) 20px;gap:7px;
-  align-items:center;padding:3px 5px;border:0;background:none;border-radius:8px;
-  cursor:pointer;text-align:left;width:100%}
-.rf-pitch-card .rf-bp:hover{background:var(--surface-row-hover,var(--surface-card))}
-.rf-pitch-card .rf-bp.sel{background:var(--surface-row-active)}
-.rf-pitch-card .rf-bp.unavail{opacity:.5}
-.rf-bp-mid{display:flex;flex-direction:column;gap:2px;min-width:0}
-.rf-bp-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;
-  font-weight:var(--fw-semibold);color:var(--text-1)}
-.rf-bp-bar{height:3px;border-radius:99px;background:var(--surface-sunken-2,#eef1ee);overflow:hidden}
-.rf-bp-bar i{display:block;height:100%;border-radius:99px}
-.rf-bp-f{font-family:var(--font-mono);font-size:11px;font-weight:var(--fw-semibold);
-  color:var(--text-3);text-align:right}
+/* --- a faixa do banco: cabeçalho, filtros, legenda --- */
+.rf-banco-legenda{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 2px}
+.rf-banco-legenda-l{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;color:var(--text-muted)}
+.rf-banco-legenda-i{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);
+  font-size:9.5px;color:var(--text-muted);white-space:nowrap}
+.rf-en-sw{display:inline-block;width:16px;height:8px;border-radius:99px}
+.rf-banco-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.rf-banco-l{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;color:var(--text-muted)}
+.rf-banco-n{font-family:var(--font-mono);font-size:10px;font-weight:var(--fw-semibold);color:var(--text-3);
+  background:var(--surface-sunken);border-radius:99px;padding:2px 7px}
+.rf-banco-dica{flex:1;min-width:0;font-size:12px;color:var(--text-4);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-banco.em-troca .rf-banco-dica{color:var(--club-primary);font-weight:var(--fw-semibold)}
+.rf-banco-filtros{display:flex;gap:4px;flex:0 0 auto}
+.rf-banco-aba{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:24px;
+  padding:0 9px;border:0;border-radius:7px;background:var(--surface-sunken);color:var(--text-3);
+  cursor:pointer;font-family:var(--font-mono);font-size:10px;font-weight:var(--fw-semibold);
+  white-space:nowrap;letter-spacing:0}
+.rf-banco-aba:hover:not(:disabled):not(.on){background:var(--line-1)}
+.rf-banco-aba.on{background:var(--club-primary);color:var(--club-on-primary)}
+.rf-banco-aba:disabled{color:var(--text-faint);opacity:.65;cursor:default}
+.rf-banco-aba-n{opacity:.8}
+/* a faixa amarela da troca: quem sai (ou quem entra, se o primeiro toque foi no banco) */
+.rf-banco-sai{display:flex;align-items:center;gap:8px;background:#fdf1c8;border-radius:12px;padding:8px 12px}
+.rf-banco-sai-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rf-banco-sai-n{font-size:13px;font-weight:var(--fw-bold);color:var(--text-1);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-banco-sai-s{font-family:var(--font-mono);font-size:10px;color:#7a6a20;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.rf-banco-sai-x{flex:0 0 auto;width:36px;height:36px;border:0;border-radius:10px;
+  background:rgba(255,255,255,.7);color:#5c4a00;font-size:14px;font-weight:var(--fw-semibold);
+  cursor:pointer;font-family:var(--font-sans)}
+.rf-banco-sai-x:hover{background:#fff}
+/* a pista: no desktop não há setas nem páginas — a faixa rola por dentro */
+.rf-banco-pista{display:flex;align-items:stretch;gap:6px;min-width:0}
+.rf-banco-seta{display:none}
+.rf-banco-vp{flex:1;min-width:0}
+.rf-banco-lista{display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px;max-height:164px;
+  overflow:auto;padding-right:2px;scrollbar-width:thin}
+.rf-banco-pe,.rf-banco-ord,.rf-banco-elenco{display:none}
+.rf-banco .cl-bench-vazio{width:100%;color:var(--text-faint);font-size:12px;padding:8px 0;text-align:center}
+
+/* --- cartão do suplente: largura do próprio conteúdo ---
+   camisa (com colete) | nome sobre a pílula de energia | círculo da força.
+   Os dois níveis .rf-bp-l1/.rf-bp-l2 existem para o telefone empilhar em duas linhas;
+   aqui são `display:contents` e a grade posiciona as quatro peças. */
+.rf-bp.cl-bp{box-sizing:border-box;flex:0 0 auto;width:auto;display:grid;
+  grid-template-columns:30px auto auto;grid-template-rows:auto auto;column-gap:8px;row-gap:5px;
+  align-items:center;background:var(--surface-sunken);border:1px solid var(--line-1);
+  border-radius:11px;padding:7px 9px;margin:0;cursor:pointer;text-align:left;
+  font-family:inherit;line-height:1.15}
+.rf-bp-l1,.rf-bp-l2{display:contents}
+.rf-bp .rf-bj{grid-row:1/3;grid-column:1}
+.rf-bp-n{grid-row:1;grid-column:2;white-space:nowrap;font-size:12px;font-weight:var(--fw-semibold);
+  color:var(--text-1)}
+.rf-bp-en{grid-row:2;grid-column:2}
+.rf-bp-fim{grid-row:1/3;grid-column:3;display:flex;align-items:center;gap:4px}
+.rf-bp-delta{font-family:var(--font-mono);font-size:10.5px;font-weight:var(--fw-semibold)}
+.rf-bp-delta.pos{color:var(--ad-green)}
+.rf-bp-delta.neg{color:var(--note)}
+.rf-bp.cl-bp:hover{background:#eaf2e9;border-color:#c9dbc6}
+.rf-bp.cl-bp.sel{border-color:var(--club-primary-line);background:var(--surface-row-active)}
+.rf-bp.cl-bp.unavail{opacity:.5}
+/* a marca da troca: o escolhido tem borda cheia; quem pode receber fica nítido; o resto apaga
+   (mas não bloqueia — clicar nele passa a marca, como na lista) */
+.rf-bp.cl-bp.trocar-mk{background:var(--club-primary-soft);border-color:var(--club-primary);
+  box-shadow:inset 0 0 0 1px var(--club-primary)}
+.rf-bp.cl-bp.trocar-alvo{background:#eef7f0;border-color:#bfe6cd}
+.rf-bp.cl-bp.trocar-alvo:hover{background:#e2f2e7}
+.rf-bp.cl-bp.trocar-fora{opacity:.45}
+.rf-bp.cl-bp.trocar-fora:hover{opacity:.75}
 
 /* camisa do banco: 30x28 com COLETE — o retangulo da cor secundaria por
    cima do corpo, que é o que marca "esta no banco" de relance. */
@@ -7886,50 +7944,68 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
      `max-height:230px` do desenho antigo, em que ele era uma coluna alta ao lado
      do campo — no telefone isso virava um vazio de 160px abaixo dos cartões. */
   .rf-pitch-card .cl-bench,.cl-bench{max-height:none;height:auto;overflow:visible}
-  /* ===== O BANCO DEIXOU DE ROLAR PARA O LADO =====
-     Era uma faixa unica com os quatro grupos em fila e `overflow-x:auto`: dez suplentes
-     seguidos, os rotulos de posicao a passar raspando, e quem procurava um zagueiro tinha de
-     arrastar as cegas sem saber quantos faltavam. Agora ha' uma aba por posicao (ver
-     rfBancoHTML) e SO' O GRUPO ACTIVO aparece — o que cabe na largura nao precisa de rolar. */
-  .rf-banco-abas{display:flex;align-items:center;gap:6px;margin:2px 0 8px}
-  /* AS ABAS CABEM, NAO ROLAM. Com quatro rotulos curtos e duas setas sobra largura de sobra em
-     375px; o `overflow-x` fica so' como rede para um universo com mais grupos, nunca como o
-     modo normal — barra de abas que rola e' o mesmo defeito noutro sitio. */
-  .rf-banco-abas-l{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;
-    scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .rf-banco-abas-l::-webkit-scrollbar{display:none}
-  .rf-banco-aba{flex:1 1 0;min-width:0;height:34px;padding:0 6px;border:0;border-radius:9px;
-    background:var(--surface-sunken,#f6f8f5);font-family:var(--font-sans);font-size:10px;
-    font-weight:var(--fw-bold);letter-spacing:.06em;color:var(--text-3);cursor:pointer;
-    display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
-  .rf-banco-aba.on{background:var(--club-primary);color:var(--club-on-primary)}
-  .rf-banco-aba-n{font-family:var(--font-mono);font-size:10px;font-weight:var(--fw-semibold);
-    opacity:.75}
-  /* AS SETAS TEM ALVO DE DEDO: 34px de lado. Abaixo disso viram enfeite que erra o toque. */
-  .rf-banco-seta{flex:0 0 auto;width:34px;height:34px;border:var(--border-control);
-    border-radius:9px;background:var(--surface-card);color:var(--text-2);font-size:16px;
-    line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-  .rf-banco-seta:active{background:var(--surface-sunken)}
-  /* a lista deixa de ser faixa: envolve, e so' o grupo da aba activa e' desenhado */
-  .rf-banco-lista{display:block !important;overflow:visible;padding-bottom:0;flex:0 0 auto}
-  .rf-bgrupo{display:none}
-  .rf-bgrupo.on{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;align-items:flex-start;
-    justify-content:flex-start}
-  /* o rotulo dentro do grupo era o que dizia a posicao; agora quem diz e' a aba acesa */
-  .rf-bgrupo-t{display:none}
-  /* CARTÃO DO SUPLENTE — medidas literais do pacote (Hub do Time - Mobile):
-     82px de largura, padding 8/6, gap 4, raio 12, fundo #f6f8f5, sem borda.
-     A pilha é camisa → nome → barra de energia, nessa ordem e só isso: o número
-     de força SAI (ele não está no desenho). Era uma grade de três colunas
-     esticada a 132×163 para uma camisa de 30×28. */
-  .rf-pitch-card .rf-bp{display:flex;flex-direction:column;align-items:center;
-    justify-content:flex-start;gap:4px;padding:8px 6px;width:82px;
-    border:0;border-radius:12px;background:var(--surface-sunken,#f6f8f5);
-    text-align:center}
-  .rf-pitch-card .rf-bp .rf-bp-mid{align-items:center;width:100%;gap:4px}
-  .rf-pitch-card .rf-bp .rf-bp-n{font-size:10px;max-width:100%}
-  .rf-pitch-card .rf-bp .rf-bp-bar{width:100%}
-  .rf-pitch-card .rf-bp .rf-bp-f{display:none}   /* força não entra no cartão do pacote */
+  /* ===== O BANCO NO TELEFONE: ANCORADO, ABAS DE 44px E TRILHO COM SETAS =====
+     (pacote "banco de reservas", tela 2a/2b). Uma aba por posição, largura igual, sempre
+     visíveis sem rolagem lateral. Trilho horizontal com setas de 44×70 nas pontas e DOIS
+     cartões de 126px inteiros por vez (126+6+126=258, cabe na pista que sobra depois das
+     setas); indicador "1–2 de N" e pontinhos de página. Nada de cartão cortado na borda.
+     O cartão é empilhado em duas linhas: numa linha só o nome sobrava com ~36px e nomes
+     como Guimarães e Nascimento ficavam cortados. */
+  .rf-pitch-card .cl-bench,.cl-bench{max-height:none;height:auto;overflow:visible}
+  .rf-pp-fc{width:18px;height:18px}
+  .rf-banco-legenda{display:none}
+  .rf-banco-dica{font-family:var(--font-mono);font-size:10px;color:var(--text-faint)}
+  .rf-banco-filtros{flex:1 1 100%;display:flex;gap:5px;margin-top:1px}
+  .rf-banco-aba{flex:1 1 0;min-width:0;height:44px;padding:0 4px;border-radius:11px;font-size:10.5px;gap:4px}
+  .rf-banco-sai{padding:10px 12px}
+  .rf-banco-sai-x{width:44px;height:44px;border-radius:12px}
+  /* a pista sangra 8px para cada lado do cartão: em 375px a coluna útil tem 319px e, tirando
+     as duas setas de 44 e os intervalos, sobravam 217 para dois cartões — o segundo saía
+     cortado na borda, que era o defeito a evitar. Com o sangramento a pista tem 233. */
+  .rf-banco-pista{gap:6px;align-items:center;margin:0 -8px}
+  .rf-banco-seta{display:flex;align-items:center;justify-content:center;flex:0 0 auto;width:44px;height:70px;
+    border:1px solid var(--club-primary);border-radius:12px;background:var(--club-primary);
+    color:var(--club-on-primary);font-size:17px;font-weight:var(--fw-semibold);line-height:1;
+    cursor:pointer;font-family:var(--font-sans);padding:0}
+  .rf-banco-seta.off{background:var(--surface-sunken);border-color:var(--line-1);color:var(--text-faint);cursor:default}
+  .rf-banco-vp{overflow:hidden}
+  /* o trilho anda por transform: todos os cartões estão no DOM, a página escolhe qual par
+     aparece (--pag vem do rfBancoHTML; 264 = 2 × (126 + 6)) */
+  /* o trilho anda por transform: todos os cartões estão no DOM e a página escolhe qual par
+     aparece (--pag vem do rfBancoHTML). Cada cartão é METADE da pista menos o intervalo, e
+     o passo da página é a pista inteira mais o intervalo — assim os dois aparecem sempre
+     inteiros, seja qual for a largura do telefone. */
+  .rf-banco-lista{flex-wrap:nowrap;gap:6px;max-height:none;overflow:visible;padding:0;
+    transform:translateX(calc(var(--pag,0) * (-100% - 6px)));transition:transform .2s ease}
+  /* `align-items:stretch` desfaz o `center` do .cl-bp da pele antiga: centradas, as duas
+     linhas encolhiam ao conteúdo e a pílula de energia (flex:1) ficava com largura zero */
+  .rf-bp.cl-bp{width:calc(50% - 3px);height:70px;display:flex;flex-direction:column;
+    align-items:stretch;justify-content:flex-start;gap:5px;padding:8px 7px;border-radius:12px}
+  .rf-bp-l1{display:flex;align-items:center;gap:6px;min-width:0;width:100%;box-sizing:border-box}
+  .rf-bp-l2{display:flex;align-items:center;gap:6px;width:100%;box-sizing:border-box}
+  .rf-bp-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
+  .rf-bp-en{flex:1 1 auto;min-width:0;width:auto}
+  .rf-bp-fim{flex:0 0 auto}
+  .rf-bp-fc{width:25px;height:25px}
+  .rf-banco-pe{display:flex;align-items:center;gap:8px}
+  .rf-banco-ind{flex:1;min-width:0;font-family:var(--font-mono);font-size:10px;color:var(--text-faint);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rf-banco-pts{display:flex;gap:4px;flex:0 0 auto}
+  .rf-banco-pts i{display:block;width:6px;height:4px;border-radius:99px;background:var(--line-2)}
+  .rf-banco-pts i.on{width:16px;background:var(--club-primary)}
+  /* ORDENAR: dois botões de 44px, metade da largura cada, com as bolinhas da escala dentro
+     (14×14 — tiras finas de 8px não são clicáveis no celular e a escala virava decoração) */
+  .rf-banco-ord{display:flex;align-items:center;gap:7px;border-top:1px solid var(--line-3);padding-top:10px}
+  .rf-banco-ord-l{flex:0 0 auto;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;color:var(--text-muted)}
+  .rf-banco-ord-b{flex:1;min-width:0;box-sizing:border-box;height:44px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:3px;border:1px solid var(--line-1);border-radius:11px;
+    background:var(--surface-sunken);color:var(--text-3);font-family:var(--font-mono);font-size:10.5px;
+    font-weight:var(--fw-semibold);cursor:pointer;padding:0}
+  .rf-banco-ord-b.on{background:var(--club-primary);border-color:var(--club-primary);color:var(--club-on-primary)}
+  .rf-banco-ord-esc{display:flex;gap:3px}
+  .rf-banco-ord-esc i{display:block;box-sizing:border-box;width:14px;height:14px;border-radius:99px;
+    border:1px solid rgba(255,255,255,.35);font-size:0}
+  .rf-banco-ord-esc .rf-forca-c{width:14px;height:14px;font-size:0;padding:0}
   /* a faixa que rola ganha uma barra fina em vez da barra grossa do sistema */
   .rf-formgrid::-webkit-scrollbar{height:4px}
   .rf-formgrid::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:99px}
@@ -9842,16 +9918,44 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    Daí `min()` com os dois: o que a altura permite e o que a caixa comporta. */
 .rf-teatro-campo .cl-pitch-block{
   max-width:none;
-  width:calc(min(980px, (100vh - 264px)*1.18 + 58px) + 186px);
-  padding-right:186px;                             /* a goleira do banco, mais larga aqui */
+  width:calc(min(980px, (100vh - 264px)*1.18 + 58px) + 242px);
+  padding-right:242px;                             /* o trilho do banco (236px + 6 de respiro) */
 }
 .rf-teatro-campo .cl-pitch-block.banco-fechado{
   width:min(980px, calc((100vh - 264px)*1.18 + 58px));
   padding-right:32px;
 }
 .rf-teatro-campo .cl-pitch-wrap{ max-width:none;width:100%; }
-/* O BANCO É ALVO DE ARRASTE, e alvo pequeno é mira fina: no palco ele ganha largura. */
-.rf-teatro-campo .cl-bench{ width:180px; }
+/* ===== NO PALCO O BANCO É O TRILHO LATERAL (pacote "banco de reservas", tela 1b) =====
+   236px à direita do campo: filtro de posição em cima (cinco abas iguais), uma linha por
+   jogador com camisa + nome + energia + círculo da força, e "Ver elenco inteiro…" no pé.
+   Mostra no máximo o que cabe na altura; o resto sai pelo filtro, não por rolagem longa. */
+.rf-teatro-campo .cl-bench{width:236px;background:var(--surface-sunken);border:1px solid var(--line-1);
+  border-radius:14px;padding:11px;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;min-height:0}
+.rf-teatro-campo .rf-banco-legenda,.rf-teatro-campo .rf-banco-dica,
+.rf-teatro-campo .rf-banco-ord,.rf-teatro-campo .rf-banco-pe{display:none}
+.rf-teatro-campo .rf-banco-hd{gap:7px}
+.rf-teatro-campo .rf-banco-n{background:var(--surface-card);border:1px solid var(--line-1)}
+.rf-teatro-campo .rf-banco-filtros{flex:1 1 100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:3px;background:var(--surface-desk);border-radius:9px;padding:3px}
+.rf-teatro-campo .rf-banco-aba{height:24px;padding:0;border-radius:6px;background:transparent;font-size:9.5px}
+.rf-teatro-campo .rf-banco-aba .rf-banco-aba-n{display:none}
+.rf-teatro-campo .rf-banco-aba.on{background:var(--club-primary)}
+.rf-teatro-campo .rf-banco-sai{padding:7px 9px}
+.rf-teatro-campo .rf-banco-pista{flex:1 1 auto;min-height:0}
+.rf-teatro-campo .rf-banco-vp{min-height:0;display:flex}
+.rf-teatro-campo .rf-banco-lista{flex-direction:column;flex-wrap:nowrap;gap:5px;max-height:none;flex:1;
+  overflow:auto;padding-right:0}
+.rf-teatro-campo .rf-bp.cl-bp{width:100%;grid-template-columns:30px minmax(0,1fr) 48px auto;
+  grid-template-rows:auto;column-gap:7px;padding:7px 8px;background:var(--surface-card);border-radius:10px}
+.rf-teatro-campo .rf-bp .rf-bj{grid-row:1;grid-column:1}
+.rf-teatro-campo .rf-bp-n{grid-row:1;grid-column:2;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.rf-teatro-campo .rf-bp-en{grid-row:1;grid-column:3;width:48px}
+.rf-teatro-campo .rf-bp-fim{grid-row:1;grid-column:4}
+.rf-teatro-campo .rf-banco-elenco{display:flex;align-items:center;justify-content:center;height:30px;
+  border:1px solid var(--line-2);border-radius:9px;background:var(--surface-card);font-family:var(--font-sans);
+  font-size:11.5px;font-weight:var(--fw-semibold);color:var(--club-primary);cursor:pointer}
+.rf-teatro-campo .rf-banco-elenco:hover{background:#eaf2e9}
 /* as placas crescem com o campo: é metade do motivo de ampliar */
 .rf-teatro-campo .cl-pitch-ad{ font-size:13px;letter-spacing:.04em; }
 

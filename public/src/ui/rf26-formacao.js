@@ -138,34 +138,87 @@ function rfPitchMarcaHTML(){
   return `<img class="rf-pitch-marca" src="${escC(url)}" alt="" aria-hidden="true">`;
 }
 
-/* Linha de dados do titular: LETRA DA POSIÇÃO · barra de energia · força.
-   Substitui o par forca+pilha da pele antiga — no gramado o que decide a
-   escalação é ver, de relance, quem esta gasto. */
-function rfPitchMetaHTML(p){
-  const en = Math.max(0, Math.min(100, Math.round(p.energy!=null?p.energy:100)));
-  const cor = en>=70 ? 'var(--ok)' : en>=40 ? 'var(--warn)' : 'var(--danger)';
-  return `<span class="rf-pp-meta">
-    <span class="rf-pp-pos">${escC(posLetter(p.s))}</span>
-    <span class="rf-pp-bar"><i style="width:${en}%;background:${cor}"></i></span>
-    <span class="rf-pp-f">${p.f}</span>
-  </span>`;
+/* =====================================================================
+   FORÇA EM CÍRCULO, ENERGIA COM O VALOR DENTRO
+   (pacote "banco de reservas (desktop e mobile)", 08/09)
+   ---------------------------------------------------------------------
+   A força deixou de ser barra e de ser número solto: é um número dentro
+   de um círculo colorido por nível, do mesmo tamanho em qualquer lugar da
+   tela — na manga direita da camisa em campo, na ponta do cartão no banco.
+   Cinco níveis, escolhidos para se ler de relance quem é quem:
+     1–20 branco · 21–30 azul · 31–50 bronze · 51–70 prateado · 71+ dourado
+   A energia continua na escala canônica do jogo (rfEnergiaCor, limites
+   80/70/55/40); o que muda é ONDE o número aparece: dentro da pílula, e
+   não ao lado dela. A tinta do número segue o nível, para manter contraste
+   sobre as cinco cores (ver .rf-en-pil no CSS).
+   ===================================================================== */
+function rfForcaNivel(f){ f=+f||0; return f<=20?'n1':f<=30?'n2':f<=50?'n3':f<=70?'n4':'n5'; }
+function rfForcaCirculoHTML(f, cls){
+  f=Math.round(+f||0);
+  return `<span class="rf-forca-c ${rfForcaNivel(f)}${f>=100?' tres':''} ${cls||''}" aria-label="força ${f}">${f}</span>`;
+}
+function rfEnergiaNivel(en){ return en>=80?'e100':en>=70?'e80':en>=55?'e60':en>=40?'e40':'e20'; }
+function rfEnergiaPilulaHTML(en, cls){
+  en=Math.max(0, Math.min(100, Math.round(en!=null?en:100)));
+  return `<span class="rf-en-pil ${rfEnergiaNivel(en)} ${cls||''}" aria-label="energia ${en}%">
+    <i style="width:${en}%"></i><b>${en}</b></span>`;
+}
+/* A legenda dos níveis, debaixo do campo (só no desktop, o CSS esconde no resto). No
+   telefone a escala vive dentro dos botões de ordenação, que é onde cabe. */
+function rfForcaLegendaHTML(){
+  const niv=[['n1',14,'1–20'],['n2',26,'21–30'],['n3',44,'31–50'],['n4',63,'51–70'],['n5',88,'71–100']];
+  return `<div class="rf-banco-legenda" aria-hidden="true">
+    <span class="rf-banco-legenda-l">FORÇA</span>
+    ${niv.map(([n,ex,r])=>`<span class="rf-banco-legenda-i"><span class="rf-forca-c ${n} peq">${ex}</span><span>${r}</span></span>`).join('')}
+    <span class="rf-banco-legenda-i"><span class="rf-banco-legenda-l">ENERGIA</span>
+      <span class="rf-en-sw" style="background:var(--energy-20)"></span><span class="rf-en-sw" style="background:var(--energy-40)"></span>
+      <span class="rf-en-sw" style="background:var(--energy-60)"></span><span class="rf-en-sw" style="background:var(--energy-80)"></span>
+      <span class="rf-en-sw" style="background:var(--energy-100)"></span></span>
+  </div>`;
 }
 
-/* BANCO — uma linha por reserva, agrupada por setor:
-   camisa 30x28 com colete | nome + barra de energia | força.
-   O colete (o retangulo da cor secundaria por cima do corpo) é o que
-   diferencia, de relance, quem esta no banco de quem esta em campo. */
-/* o rotulo do grupo de goleiros muda com a modalidade; DEFESA/MEIO/ATAQUE sao setores do campo,
-   nao pessoas, e por isso nao mudam. Funcao, e nao constante, porque a modalidade so' se conhece
-   depois de o save existir. */
+/* A camisa em campo ganha o círculo da força na manga direita. A camisa em si continua a
+   ser a de sempre (shirtHTML, main.js) — o invólucro só existe para dar ao círculo um
+   ponto de referência do tamanho exato da camisa. */
+function rfPitchCamisaHTML(p, th, num){
+  return `<span class="rf-pp-camisa">${shirtHTML(p,th,num)}${rfForcaCirculoHTML(p.f,'rf-pp-fc')}</span>`;
+}
+/* Debaixo do nome só a energia, com o valor dentro. A letra da posição e o número da
+   força saíram desta linha: a força já está na manga, e a posição é o lugar no campo. */
+function rfPitchMetaHTML(p){
+  return `<span class="rf-pp-meta">${rfEnergiaPilulaHTML(p.energy,'rf-pp-en')}</span>`;
+}
+
+/* =====================================================================
+   BANCO — o mesmo DOM em três modos, quem muda é o CSS
+   ---------------------------------------------------------------------
+   · desktop (cartão da tática): FAIXA DOCADA debaixo do campo, dentro do
+     mesmo cartão. Cabeçalho com BANCO + contagem + filtros de posição;
+     cartões do tamanho do conteúdo que se reorganizam em linhas; a faixa
+     rola por dentro (~3 linhas), a página nunca.
+   · palco (campo em tela cheia): TRILHO LATERAL de 236px à direita do
+     campo, filtro de posição no topo, uma linha por jogador.
+   · telefone: banco ancorado no pé do cartão, uma aba por posição (44px),
+     TRILHO HORIZONTAL com setas de 44px mostrando dois cartões de 126px
+     por vez, indicador "1–2 de N" e pontinhos de página.
+
+   SUBSTITUIR É TOCAR EM DOIS. Tocar num titular (no campo) marca-o e o
+   banco entra no estado de troca: a faixa diz quem sai, a aba da posição
+   dele é selecionada, cada candidato mostra a diferença de força, e um
+   toque conclui. A marca é a mesma da lista do elenco (CL.subA /
+   rfSubToque, rf26.js) — não há uma segunda regra de troca: tudo desemboca
+   em clTrocarPorPid, onde vivem as travas e o "Desfazer".
+
+   ESTADO que sobrevive ao cdraw(): CL.bancoTab ('all' ou setor),
+   CL.bancoPag (página do trilho), CL.bancoOrd ('f' força, 'en' energia).
+   ===================================================================== */
 function rfBancoGrupos(){ return [['GK',(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Goleiros').toUpperCase()],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']]; }
-/* ROTULO CURTO SO' PARA AS ABAS DO TELEFONE. Com os nomes inteiros, as quatro abas mais as duas
-   setas nao cabiam em 375px e a propria barra passava a rolar — que era o defeito que as abas
-   vieram corrigir. Sao as abreviaturas que o proprio jogo ja' usa na coluna POS (G/D/M/A),
-   abertas para tres letras porque uma letra sozinha num botao nao se le' como posicao.
-   Neutras de genero de proposito: no universo feminino o grupo chama-se "Goleiras" e a
-   abreviatura continua a servir. */
+/* rótulos curtos das abas/pílulas — os do próprio jogo (G/D/M/A), abertos a três letras.
+   Neutros de gênero de propósito: no feminino o grupo chama-se "Goleiras" e a sigla serve. */
 const RF_BANCO_CURTO={ GK:'GOL', DEF:'DEF', MID:'MEI', ATT:'ATA' };
+const RF_BANCO_SETOR={ GK:'gol', DEF:'defesa', MID:'meio', ATT:'ataque' };
+const RF_BANCO_POR_PAG=2;   /* cartões por página no trilho do telefone */
+
 function rfBancoJerseyHTML(th, num){
   const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
   // O COLETE NÃO É COR DE CLUBE. Colete de verdade é uma peça avulsa, viva,
@@ -179,95 +232,156 @@ function rfBancoJerseyHTML(th, num){
     <b class="rf-bj-n">${escC(String(num||''))}</b>
   </span>`;
 }
-/* ===== O BANCO NO TELEFONE: UMA ABA POR POSICAO =====
-   Os quatro grupos viravam UMA faixa so', com os dez suplentes em fila e rolagem lateral. Quem
-   procurava um zagueiro tinha de arrastar a faixa as cegas, e os rotulos de posicao passavam
-   raspando no meio do caminho — a pessoa nem sabia quantos faltavam para o lado.
-
-   Agora sao abas: uma por posicao QUE TEM reserva, com a contagem, mais duas setas para andar
-   entre elas. So' o grupo activo aparece, e ele CABE na largura — nao ha' rolagem nenhuma.
-
-   O DESKTOP NAO MUDA. La' o banco e' uma coluna alta ao lado do campo e os quatro grupos cabem
-   empilhados; abas seriam um clique a mais para ver o que ja' estava a' vista. Por isso quem
-   esconde os grupos inactivos e' o CSS, dentro do @media do telefone — e nao o JS. Assim
-   redimensionar a janela nao deixa a tela num estado que so' um redesenho conserta.
-
-   A ABA ACTIVA E' ESTADO, nao desenho: vive em CL.bancoTab para sobreviver ao cdraw() que a
-   troca de jogador dispara. Se a posicao escolhida ficar sem ninguem (o ultimo reserva dela
-   entrou em campo), cai na primeira que ainda tenha. */
-function rfBancoAbaEscolher(sec){ CL.bancoTab=sec; cdraw(); }
-function rfBancoAbaAndar(passo){
-  const secs=(CL._bancoSecs||[]); if(secs.length<2) return;
-  const i=Math.max(0, secs.indexOf(CL.bancoTab||secs[0]));
-  CL.bancoTab=secs[(i+passo+secs.length)%secs.length];
-  cdraw();
+function rfBancoFiltrar(sec){ CL.bancoTab=sec; CL.bancoPag=0; cdraw(); }
+function rfBancoPag(passo){ CL.bancoPag=Math.max(0,(CL.bancoPag||0)+passo); cdraw(); }
+function rfBancoOrdenar(k){ CL.bancoOrd=k; CL.bancoPag=0; cdraw(); }
+function rfBancoIrElenco(){
+  if(typeof rfCampoFechar==='function') rfCampoFechar();
+  if(typeof rfNavegar==='function') rfNavegar('elenco'); else if(typeof rfGo==='function') rfGo('elenco');
+}
+/* O TOQUE (sem arraste) num jogador do campo ou do banco. Passa pela mesma marca da lista
+   (rfSubToque); o que este invólucro acrescenta é levar o banco à posição de quem vai
+   sair, para os candidatos aparecerem sem mais um toque. */
+function rfBancoToque(pid){
+  const p=pById(pid,CL.clubId);
+  if(!p || typeof rfSubToque!=='function' || typeof rfSubPode!=='function' || !rfSubPode()){ clSelPlayer(pid); return; }
+  const xi=new Set(S.xi||[]);
+  const marcado=CL.subA;
+  const vaiMarcar = !marcado || (marcado!==pid && !rfSubAlvo(pById(marcado,CL.clubId), p));
+  if(vaiMarcar && xi.has(pid)){ CL.bancoTab=p.s; CL.bancoPag=0; }
+  rfSubToque(pid);
 }
 function rfBancoHTML(th, nums){
   const xiSet=new Set(S.xi||[]);
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid));
-  /* que posicoes tem reserva agora — a lista de abas sai daqui, e nao de uma lista fixa:
-     uma aba vazia e' uma promessa de que ha' alguem ali. */
-  const comGente=rfBancoGrupos().filter(([sec])=>banco.some(p=>p.s===sec));
-  CL._bancoSecs=comGente.map(([sec])=>sec);
-  let aba=CL.bancoTab;
-  if(!aba || !CL._bancoSecs.includes(aba)) aba=CL._bancoSecs[0]||null;
-  const grupos = rfBancoGrupos().map(([sec,rot])=>{
-    const list=banco.filter(p=>p.s===sec).slice().sort((a,b)=>b.f-a.f);
-    if(!list.length) return '';
-    const linhas=list.map(p=>{
-      const selc   = CL.selPlayer===p.pid;
-      const unavail= p.suspended>0||p.injuredMatches>0;
-      const en = Math.max(0, Math.min(100, Math.round(p.energy!=null?p.energy:100)));
-      const cor = en>=70 ? 'var(--ok)' : en>=40 ? 'var(--warn)' : 'var(--danger)';
-      const sobrenome = p.n.split(' ').slice(-1)[0]||p.n;
-      return `<button type="button" class="rf-bp cl-bp ${selc?'sel':''} ${unavail?'unavail':''}"
-        data-pid="${escC(p.pid)}" data-sec="${p.s}"
-        onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
-        title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${unavail?'':' · arraste pro campo pra escalar'}">
+  const enDe=p=>Math.max(0,Math.min(100,Math.round(p.energy!=null?p.energy:100)));
+  const ord=CL.bancoOrd==='en'?'en':'f';
+  const ordenar=l=>l.slice().sort((a,b)=>ord==='en'?(enDe(b)-enDe(a))||(b.f-a.f):(b.f-a.f)||(enDe(b)-enDe(a)));
+  const grupos=rfBancoGrupos();
+  const contagem={}; grupos.forEach(([sec])=>{ contagem[sec]=banco.filter(p=>p.s===sec).length; });
+
+  /* quem está marcado para trocar (a mesma marca da lista do elenco) */
+  const pode=(typeof rfSubPode==='function')&&rfSubPode();
+  const pMarcado=(pode&&CL.subA)?pById(CL.subA,CL.clubId):null;
+  const saiTitular=!!(pMarcado&&xiSet.has(pMarcado.pid));
+
+  /* filtro: 'all' ou um setor com gente; um setor vazio cai em 'all' */
+  let aba=CL.bancoTab||'all';
+  if(aba!=='all' && !contagem[aba]) aba='all';
+  const lista=ordenar(aba==='all'?banco:banco.filter(p=>p.s===aba));
+
+  /* páginas do trilho do telefone (o desktop ignora, ver CSS) */
+  const pags=Math.max(1,Math.ceil(lista.length/RF_BANCO_POR_PAG));
+  const pag=Math.min(Math.max(0,CL.bancoPag||0),pags-1);
+  CL.bancoPag=pag;
+  const ini=pag*RF_BANCO_POR_PAG, fim=Math.min(lista.length,ini+RF_BANCO_POR_PAG);
+
+  const cartoes=lista.map(p=>{
+    const selc   = CL.selPlayer===p.pid;
+    const unavail= p.suspended>0||p.injuredMatches>0;
+    const en=enDe(p);
+    const sobrenome=p.n.split(' ').slice(-1)[0]||p.n;
+    const marcado = !!pMarcado && pMarcado.pid===p.pid;
+    const alvo    = !!pMarcado && !marcado && rfSubAlvo(pMarcado,p);
+    const fora    = !!pMarcado && !marcado && !alvo;
+    /* a diferença de força só faz sentido contra um titular que vai sair */
+    const d = (alvo && saiTitular) ? (p.f-pMarcado.f) : null;
+    const delta = d==null ? '' : `<span class="rf-bp-delta ${d>=0?'pos':'neg'}">${d>0?'+':''}${d}</span>`;
+    const dica = marcado ? ' — marcado para trocar (toque de novo para largar)'
+               : alvo ? ' — toque para trocar com '+pMarcado.n.split(' ').slice(-1)[0]
+               : unavail ? '' : ' — toque para marcar, ou arraste pro campo';
+    return `<button type="button" class="rf-bp cl-bp ${selc?'sel':''} ${unavail?'unavail':''}${marcado?' trocar-mk':''}${alvo?' trocar-alvo':''}${fora?' trocar-fora':''}"
+      data-pid="${escC(p.pid)}" data-sec="${p.s}"
+      onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')rfBancoToque('${escC(p.pid)}')"
+      title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${escC(dica)}">
+      <span class="rf-bp-l1">
         ${rfBancoJerseyHTML(th, nums[p.pid])}
-        <span class="rf-bp-mid">
-          <span class="rf-bp-n"><span class="rf-bp-link" role="link" tabindex="0"
-            title="Ver a ficha de ${escC(p.n)}"
-            onpointerdown="event.stopPropagation()"
-            onclick="event.stopPropagation();rfSelPlayer('${escC(p.pid)}')"
-            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();rfSelPlayer('${escC(p.pid)}')}"
-            >${escC(sobrenome)}</span>${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
-          <span class="rf-bp-bar"><i style="width:${en}%;background:${cor}"></i></span>
-        </span>
-        <span class="rf-bp-f">${p.f}</span>
-      </button>`;
-    }).join('');
-    return `<div class="rf-bgrupo ${sec===aba?'on':''}" data-sec="${sec}">
-      <span class="rf-bgrupo-t">${rot}</span>${linhas}</div>`;
+        <span class="rf-bp-n"><span class="rf-bp-link" role="link" tabindex="0"
+          title="Ver a ficha de ${escC(p.n)}"
+          onpointerdown="event.stopPropagation()"
+          onclick="event.stopPropagation();rfSelPlayer('${escC(p.pid)}')"
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();rfSelPlayer('${escC(p.pid)}')}"
+          >${escC(sobrenome)}</span>${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
+      </span>
+      <span class="rf-bp-l2">
+        ${rfEnergiaPilulaHTML(en,'rf-bp-en')}
+        <span class="rf-bp-fim">${delta}${rfForcaCirculoHTML(p.f,'rf-bp-fc')}</span>
+      </span>
+    </button>`;
   }).join('');
-  /* a barra de abas — desenhada sempre, escondida pelo CSS no desktop */
-  const abas = comGente.length ? `<div class="rf-banco-abas">
-    ${comGente.length>1?`<button type="button" class="rf-banco-seta" aria-label="Posição anterior"
-      onclick="rfBancoAbaAndar(-1)">‹</button>`:''}
-    <div class="rf-banco-abas-l" role="tablist">
-      ${comGente.map(([sec,rot])=>{
-        const n=banco.filter(p=>p.s===sec).length;
-        return `<button type="button" class="rf-banco-aba ${sec===aba?'on':''}" role="tab"
-          aria-selected="${sec===aba?'true':'false'}" title="${escC(rot)} — ${n} no banco"
-          onclick="rfBancoAbaEscolher('${sec}')"
-          >${escC(RF_BANCO_CURTO[sec]||rot)}<span class="rf-banco-aba-n">${n}</span></button>`;
-      }).join('')}
+
+  /* filtros de posição: pílulas no desktop, abas de 44px no telefone (mesmo DOM). Uma aba
+     sem ninguém fica desativada — aba vazia é uma promessa de que há alguém ali. */
+  const filtros=`<div class="rf-banco-filtros" role="tablist">
+    <button type="button" class="rf-banco-aba ${aba==='all'?'on':''}" role="tab" aria-selected="${aba==='all'}"
+      onclick="rfBancoFiltrar('all')">TODOS</button>
+    ${grupos.map(([sec,rot])=>{
+      const n=contagem[sec];
+      return `<button type="button" class="rf-banco-aba ${sec===aba?'on':''}" role="tab" aria-selected="${sec===aba}"
+        ${n?'':'disabled'} title="${escC(rot)} — ${n} no banco" onclick="rfBancoFiltrar('${sec}')"
+        >${RF_BANCO_CURTO[sec]}<span class="rf-banco-aba-n">${n}</span></button>`;
+    }).join('')}
+  </div>`;
+
+  /* a faixa da troca: quem sai (titular marcado) ou quem entra (reserva marcado primeiro) */
+  let faixa='';
+  if(pMarcado){
+    const thSai=saiTitular?Object.assign({},th,{col:'#d1541f'}):th;
+    const candidatos=banco.filter(q=>rfSubAlvo(pMarcado,q)).length;
+    const titulares=xiPlayers(CL.clubId).filter(q=>rfSubAlvo(pMarcado,q)).length;
+    const sub = saiTitular
+      ? `${RF_BANCO_SETOR[pMarcado.s]||''} · força ${pMarcado.f} · energia ${enDe(pMarcado)}${candidatos?'':' · ninguém do banco pode entrar'}`
+      : `${RF_BANCO_SETOR[pMarcado.s]||''} · força ${pMarcado.f} · ${titulares?'toque no titular que sai':'ninguém em campo pode sair por ele'}`;
+    faixa=`<div class="rf-banco-sai ${saiTitular?'':'entra'}">
+      ${rfBancoJerseyHTML(thSai, nums[pMarcado.pid])}
+      <span class="rf-banco-sai-id">
+        <span class="rf-banco-sai-n">${saiTitular?'Sai':'Entra'} ${escC(pMarcado.n.split(' ').slice(-1)[0]||pMarcado.n)}</span>
+        <span class="rf-banco-sai-s">${escC(sub)}</span>
+      </span>
+      <button type="button" class="rf-banco-sai-x" aria-label="Cancelar a substituição" title="Cancelar"
+        onclick="event.stopPropagation();rfSubCancelar()">✕</button>
+    </div>`;
+  }
+
+  const rotAba = aba==='all' ? '' : (grupos.find(g=>g[0]===aba)||[])[1];
+  const indicador = lista.length
+    ? `${rotAba?rotAba.toLowerCase()+' · ':''}${ini+1}–${fim} de ${lista.length}`
+    : (aba==='all'?'banco vazio':'ninguém nesta posição');
+  const pontos = pags>1 ? `<span class="rf-banco-pts" aria-hidden="true">${
+      Array.from({length:pags},(_,i)=>`<i class="${i===pag?'on':''}"></i>`).join('')}</span>` : '';
+
+  return `<div class="cl-bench rf-banco ${pMarcado?'em-troca':''}" style="--pag:${pag}">
+    ${rfForcaLegendaHTML()}
+    <div class="rf-banco-hd">
+      <span class="rf-banco-l">BANCO</span>
+      <span class="rf-banco-n">${banco.length}</span>
+      <span class="rf-banco-dica">${pMarcado?(saiTitular?'toque em quem entra':'toque em quem sai'):'toque num titular pra trocar'}</span>
+      ${filtros}
     </div>
-    ${comGente.length>1?`<button type="button" class="rf-banco-seta" aria-label="Próxima posição"
-      onclick="rfBancoAbaAndar(1)">›</button>`:''}
-  </div>` : '';
-  /* SEM EXPANDIR/COLAPSAR. O banco vivia atrás de um botão que recolhia a lista
-     para alargar o campo; com o campo em tamanho fixo isso deixou de valer, e o
-     que sobrava era um clique a mais entre o treinador e os seus reservas — no
-     telefone, ainda por cima, escondia a única forma de ver quem está no banco.
-     O cabeçalho continua, mas como RÓTULO, não como interruptor. */
-  return `<div class="cl-bench rf-banco">
-    <div class="cl-bench-hd" role="presentation">
-      <span class="cl-bench-hd-txt">SUPLENTES</span>
-      <span class="cl-bench-hd-n">${banco.length}</span>
+    ${faixa}
+    <div class="rf-banco-pista">
+      <button type="button" class="rf-banco-seta ${pag<=0?'off':''}" aria-label="Página anterior"
+        ${pag<=0?'disabled':''} onclick="rfBancoPag(-1)">‹</button>
+      <div class="rf-banco-vp"><div class="rf-banco-lista">${cartoes||'<div class="cl-bench-vazio">—</div>'}</div></div>
+      <button type="button" class="rf-banco-seta ${pag>=pags-1?'off':''}" aria-label="Próxima página"
+        ${pag>=pags-1?'disabled':''} onclick="rfBancoPag(1)">›</button>
     </div>
-    ${abas}
-    <div class="rf-banco-lista">${grupos||'<div class="cl-bench-vazio">—</div>'}</div>
+    <div class="rf-banco-pe">
+      <span class="rf-banco-ind">${escC(indicador)}</span>
+      ${pontos}
+    </div>
+    <div class="rf-banco-ord">
+      <span class="rf-banco-ord-l">ORDENAR</span>
+      <button type="button" class="rf-banco-ord-b ${ord==='f'?'on':''}" onclick="rfBancoOrdenar('f')">
+        <span>FORÇA ↓</span>
+        <span class="rf-banco-ord-esc"><i class="rf-forca-c n1"></i><i class="rf-forca-c n2"></i><i class="rf-forca-c n3"></i><i class="rf-forca-c n4"></i><i class="rf-forca-c n5"></i></span>
+      </button>
+      <button type="button" class="rf-banco-ord-b ${ord==='en'?'on':''}" onclick="rfBancoOrdenar('en')">
+        <span>ENERGIA${ord==='en'?' ↓':''}</span>
+        <span class="rf-banco-ord-esc"><i style="background:var(--energy-20)"></i><i style="background:var(--energy-40)"></i><i style="background:var(--energy-60)"></i><i style="background:var(--energy-80)"></i><i style="background:var(--energy-100)"></i></span>
+      </button>
+    </div>
+    <button type="button" class="rf-banco-elenco" onclick="rfBancoIrElenco()">Ver elenco inteiro…</button>
   </div>`;
 }
 

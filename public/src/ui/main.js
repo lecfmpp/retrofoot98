@@ -6054,6 +6054,7 @@ function pitchHTML(){
     ? PITCH_BANDS_MOBILE
     : (PITCH_BANDS[CL.formation]||PITCH_BANDS._);
   const linhas=[['ATT',bandas[0]],['MID',bandas[1]],['DEF',bandas[2]],['GK',bandas[3]]];
+  const mk=(CL.subA && typeof rfSubPode==='function' && rfSubPode()) ? pById(CL.subA,CL.clubId) : null;
   const nodes=linhas.map(([sec,top])=>{
     const list=xi.filter(p=>p.s===sec);
     const lanes=PITCH_LANES[list.length]||PITCH_LANES[5];
@@ -6062,6 +6063,11 @@ function pitchHTML(){
       const left = lanes[i]!=null?lanes[i]:(7+((i+0.5)/list.length)*86);
       const selc   = CL.selPlayer===p.pid;
       const unavail= p.suspended>0||p.injuredMatches>0;
+      /* a marca da troca (CL.subA, ver rfBancoToque em rf26-formacao.js): quem vai sair
+         acende, quem pode receber um reserva marcado fica nítido, o resto apaga */
+      const tMk   = !!mk && mk.pid===p.pid;
+      const tAlvo = !!mk && !tMk && typeof rfSubAlvo==='function' && rfSubAlvo(mk,p);
+      const tFora = !!mk && !tMk && !tAlvo;
       // linha cheia (3+ na mesma faixa) só cabe um nome: usa o último, que é como o jogador
       // é chamado na escalação ("Richard Almeida" vira "Almeida")
       const partes = p.n.split(' ');
@@ -6079,11 +6085,11 @@ function pitchHTML(){
         ? (sec==='GK' ? `left:4%` : `left:${(100-top).toFixed(2)}%`)
         : (sec==='GK' ? `bottom:2%` : `top:${top}%`);
       const eixo = deitado ? `top:${left.toFixed(2)}%` : `left:${left.toFixed(2)}%`;
-      return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${unavail?'unavail':''}"
+      return `<button type="button" class="cl-pp${dense}${sec==='GK'?' gk':''} ${selc?'sel':''} ${unavail?'unavail':''}${tMk?' trocar-mk':''}${tAlvo?' trocar-alvo':''}${tFora?' trocar-fora':''}"
         style="${eixo};${pos}" data-pid="${escC(p.pid)}" data-sec="${p.s}"
         onpointerdown="clDragStart(event,'${escC(p.pid)}')" onkeydown="if(event.key==='Enter'||event.key===' ')clSelPlayer('${escC(p.pid)}')"
         title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}% · arraste pro banco pra tirar">
-        ${shirtHTML(p,th,nums[p.pid])}
+        ${typeof rfPitchCamisaHTML==='function'?rfPitchCamisaHTML(p,th,nums[p.pid]):shirtHTML(p,th,nums[p.pid])}
         <span class="cl-pp-name">${escC(nome)}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
         ${typeof rfPitchMetaHTML==='function'?rfPitchMetaHTML(p):chipMetaHTML(p)}
       </button>`;
@@ -6269,7 +6275,9 @@ function clDragEnd(ev){
   if(moveu && DRAG.ghost) DRAG.ghost.style.display='none';   // pra não ser ele o elemento sob o dedo
   const sob = moveu ? document.elementFromPoint(ev.clientX,ev.clientY) : null;
   clDragLimpa();
-  if(!moveu || !pid){ if(pid) clSelPlayer(pid); return; }      // foi toque, não arraste: só seleciona
+  /* foi toque, não arraste: marca para trocar (dois toques, ver rfBancoToque) — e, sem o
+     banco novo, só seleciona como sempre */
+  if(!moveu || !pid){ if(pid){ if(typeof rfBancoToque==='function') rfBancoToque(pid); else clSelPlayer(pid); } return; }
   // arrastou: o clique que vem logo atrás do pointerup não deve selecionar ninguém
   window.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); },{capture:true,once:true});
   if(!sob) return;
