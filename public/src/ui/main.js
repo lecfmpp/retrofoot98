@@ -754,6 +754,11 @@ function capturaRolagem(){
   const m={_ctx:RF_CTX_DESENHADO};
   try{ CDRAW_ROLAGENS.forEach(sel=>{ m[sel]=Array.from(document.querySelectorAll(sel)).map(el=>el.scrollTop); }); }catch(e){}
   try{ const main=document.querySelector('.rf-main'); m._main=main?main.scrollTop:0; }catch(e){}
+  /* NO TELEFONE QUEM ROLA E' A JANELA (a barra lateral some e o .rf-main deixa de ter altura
+     fixa). Guarda-se tambem o deslocamento dela: um redesenho que encurte a pagina por um
+     instante faz o navegador grampear a rolagem para cima, e o utilizador que estava no banco
+     de reservas, no pe' da pagina, caia no topo a cada aba de posicao que tocava. */
+  try{ m._win=window.scrollY||0; }catch(e){}
   return m;
 }
 function devolveRolagem(m){
@@ -777,6 +782,10 @@ function devolveRolagem(m){
       // sem isto, o navegador deixava um resto de deslocamento e a tela nova
       // abria no meio.
       main.scrollTop = (m._ctx===rfContextoRolagem()) ? (m._main||0) : 0;
+      /* a mesma tela devolve tambem a rolagem da JANELA (telefone) — ver capturaRolagem */
+      if(m._ctx===rfContextoRolagem() && m._win>0 && Math.abs((window.scrollY||0)-m._win)>1){
+        try{ window.scrollTo(0,m._win); }catch(e){}
+      }
       /* PEDIDO EXPLÍCITO DE ROLAGEM (CL.rolarPara). Quem quer levar o utilizador
          a um bloco — o "Escolher tática" da barra lateral, por exemplo — não pode
          simplesmente rolar depois de chamar cdraw(): qualquer redesenho seguinte

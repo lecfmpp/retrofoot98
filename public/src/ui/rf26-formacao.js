@@ -232,9 +232,32 @@ function rfBancoJerseyHTML(th, num){
     <b class="rf-bj-n">${escC(String(num||''))}</b>
   </span>`;
 }
-function rfBancoFiltrar(sec){ CL.bancoTab=sec; CL.bancoPag=0; cdraw(); }
-function rfBancoPag(passo){ CL.bancoPag=Math.max(0,(CL.bancoPag||0)+passo); cdraw(); }
-function rfBancoOrdenar(k){ CL.bancoOrd=k; CL.bancoPag=0; cdraw(); }
+/* ===== O BANCO FICA ONDE ESTAVA =====
+   Toda accao do banco redesenha a tela inteira (cdraw), e o banco vive no PE' do cartao do
+   campo: se o redesenho mexer na rolagem, quem acabou de tocar numa aba de posicao tem de
+   rolar ate' ao banco outra vez — a cada aba, a cada pagina, a cada toque num titular. Aqui o
+   cabecalho do banco e' a ancora: mede-se onde ele estava na tela, redesenha-se, e devolve-se
+   a diferenca ao que rola (a janela no telefone, o .rf-main no desktop). Vale para qualquer
+   causa de deslocamento — grampeamento da rolagem, altura que muda acima do banco — porque
+   corrige pelo resultado, nao pela causa. */
+function rfBancoRedesenhar(fn){
+  const hd=document.querySelector('.rf-banco-hd');
+  const antes=hd?hd.getBoundingClientRect().top:null;
+  fn();
+  if(antes==null) return;
+  const dep=document.querySelector('.rf-banco-hd'); if(!dep) return;
+  const delta=dep.getBoundingClientRect().top-antes;
+  if(Math.abs(delta)<1) return;
+  const main=document.querySelector('.rf-main');
+  const rolaMain=main && /(auto|scroll)/.test(getComputedStyle(main).overflowY) && main.scrollHeight>main.clientHeight+4;
+  try{
+    if(rolaMain) main.scrollTop+=delta;
+    else window.scrollBy(0,delta);
+  }catch(e){}
+}
+function rfBancoFiltrar(sec){ rfBancoRedesenhar(()=>{ CL.bancoTab=sec; CL.bancoPag=0; cdraw(); }); }
+function rfBancoPag(passo){ rfBancoRedesenhar(()=>{ CL.bancoPag=Math.max(0,(CL.bancoPag||0)+passo); cdraw(); }); }
+function rfBancoOrdenar(k){ rfBancoRedesenhar(()=>{ CL.bancoOrd=k; CL.bancoPag=0; cdraw(); }); }
 function rfBancoIrElenco(){
   if(typeof rfCampoFechar==='function') rfCampoFechar();
   if(typeof rfNavegar==='function') rfNavegar('elenco'); else if(typeof rfGo==='function') rfGo('elenco');
@@ -249,7 +272,7 @@ function rfBancoToque(pid){
   const marcado=CL.subA;
   const vaiMarcar = !marcado || (marcado!==pid && !rfSubAlvo(pById(marcado,CL.clubId), p));
   if(vaiMarcar && xi.has(pid)){ CL.bancoTab=p.s; CL.bancoPag=0; }
-  rfSubToque(pid);
+  rfBancoRedesenhar(()=>rfSubToque(pid));
 }
 function rfBancoHTML(th, nums){
   const xiSet=new Set(S.xi||[]);
@@ -276,6 +299,12 @@ function rfBancoHTML(th, nums){
   CL.bancoPag=pag;
   const ini=pag*RF_BANCO_POR_PAG, fim=Math.min(lista.length,ini+RF_BANCO_POR_PAG);
 
+  /* NO TELEFONE O NOME NAO E' LINK. O nome do reserva abre a ficha no desktop (clique fino,
+     com o cursor); no telefone o dedo que ia arrastar ou marcar o cartao acertava o nome e
+     caia na ficha em vez de trocar — e' o que o dono reportou a 08/09. Ali o cartao tem so'
+     dois gestos: arrastar para o campo e tocar para trocar. A ficha continua na lista do
+     elenco. Decidido no leitor, como as faixas do campo (isPhone em pitchHTML). */
+  const fone=(typeof isPhone==='function')&&isPhone();
   const cartoes=lista.map(p=>{
     const selc   = CL.selPlayer===p.pid;
     const unavail= p.suspended>0||p.injuredMatches>0;
@@ -296,12 +325,12 @@ function rfBancoHTML(th, nums){
       title="${escC(p.n)} — ${escC(SETOR_FORCA[p.s]||'')} · força ${p.f} · energia ${en}%${escC(dica)}">
       <span class="rf-bp-l1">
         ${rfBancoJerseyHTML(th, nums[p.pid])}
-        <span class="rf-bp-n"><span class="rf-bp-link" role="link" tabindex="0"
+        <span class="rf-bp-n">${fone?escC(sobrenome):`<span class="rf-bp-link" role="link" tabindex="0"
           title="Ver a ficha de ${escC(p.n)}"
           onpointerdown="event.stopPropagation()"
           onclick="event.stopPropagation();rfSelPlayer('${escC(p.pid)}')"
           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();rfSelPlayer('${escC(p.pid)}')}"
-          >${escC(sobrenome)}</span>${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
+          >${escC(sobrenome)}</span>`}${unavail?(p.suspended>0?' 🟥':' ✚'):''}</span>
       </span>
       <span class="rf-bp-l2">
         ${rfEnergiaPilulaHTML(en,'rf-bp-en')}
