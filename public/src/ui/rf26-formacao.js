@@ -159,6 +159,13 @@ function rfPitchMetaHTML(p){
    nao pessoas, e por isso nao mudam. Funcao, e nao constante, porque a modalidade so' se conhece
    depois de o save existir. */
 function rfBancoGrupos(){ return [['GK',(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('Goleiros').toUpperCase()],['DEF','DEFESA'],['MID','MEIO'],['ATT','ATAQUE']]; }
+/* ROTULO CURTO SO' PARA AS ABAS DO TELEFONE. Com os nomes inteiros, as quatro abas mais as duas
+   setas nao cabiam em 375px e a propria barra passava a rolar — que era o defeito que as abas
+   vieram corrigir. Sao as abreviaturas que o proprio jogo ja' usa na coluna POS (G/D/M/A),
+   abertas para tres letras porque uma letra sozinha num botao nao se le' como posicao.
+   Neutras de genero de proposito: no universo feminino o grupo chama-se "Goleiras" e a
+   abreviatura continua a servir. */
+const RF_BANCO_CURTO={ GK:'GOL', DEF:'DEF', MID:'MEI', ATT:'ATA' };
 function rfBancoJerseyHTML(th, num){
   const c1=th.col||'#17458F', c2=th.col2||'#F2B90C';
   // O COLETE NÃO É COR DE CLUBE. Colete de verdade é uma peça avulsa, viva,
@@ -172,9 +179,38 @@ function rfBancoJerseyHTML(th, num){
     <b class="rf-bj-n">${escC(String(num||''))}</b>
   </span>`;
 }
+/* ===== O BANCO NO TELEFONE: UMA ABA POR POSICAO =====
+   Os quatro grupos viravam UMA faixa so', com os dez suplentes em fila e rolagem lateral. Quem
+   procurava um zagueiro tinha de arrastar a faixa as cegas, e os rotulos de posicao passavam
+   raspando no meio do caminho — a pessoa nem sabia quantos faltavam para o lado.
+
+   Agora sao abas: uma por posicao QUE TEM reserva, com a contagem, mais duas setas para andar
+   entre elas. So' o grupo activo aparece, e ele CABE na largura — nao ha' rolagem nenhuma.
+
+   O DESKTOP NAO MUDA. La' o banco e' uma coluna alta ao lado do campo e os quatro grupos cabem
+   empilhados; abas seriam um clique a mais para ver o que ja' estava a' vista. Por isso quem
+   esconde os grupos inactivos e' o CSS, dentro do @media do telefone — e nao o JS. Assim
+   redimensionar a janela nao deixa a tela num estado que so' um redesenho conserta.
+
+   A ABA ACTIVA E' ESTADO, nao desenho: vive em CL.bancoTab para sobreviver ao cdraw() que a
+   troca de jogador dispara. Se a posicao escolhida ficar sem ninguem (o ultimo reserva dela
+   entrou em campo), cai na primeira que ainda tenha. */
+function rfBancoAbaEscolher(sec){ CL.bancoTab=sec; cdraw(); }
+function rfBancoAbaAndar(passo){
+  const secs=(CL._bancoSecs||[]); if(secs.length<2) return;
+  const i=Math.max(0, secs.indexOf(CL.bancoTab||secs[0]));
+  CL.bancoTab=secs[(i+passo+secs.length)%secs.length];
+  cdraw();
+}
 function rfBancoHTML(th, nums){
   const xiSet=new Set(S.xi||[]);
   const banco=squad(CL.clubId).filter(p=>!xiSet.has(p.pid));
+  /* que posicoes tem reserva agora — a lista de abas sai daqui, e nao de uma lista fixa:
+     uma aba vazia e' uma promessa de que ha' alguem ali. */
+  const comGente=rfBancoGrupos().filter(([sec])=>banco.some(p=>p.s===sec));
+  CL._bancoSecs=comGente.map(([sec])=>sec);
+  let aba=CL.bancoTab;
+  if(!aba || !CL._bancoSecs.includes(aba)) aba=CL._bancoSecs[0]||null;
   const grupos = rfBancoGrupos().map(([sec,rot])=>{
     const list=banco.filter(p=>p.s===sec).slice().sort((a,b)=>b.f-a.f);
     if(!list.length) return '';
@@ -201,8 +237,25 @@ function rfBancoHTML(th, nums){
         <span class="rf-bp-f">${p.f}</span>
       </button>`;
     }).join('');
-    return `<div class="rf-bgrupo"><span class="rf-bgrupo-t">${rot}</span>${linhas}</div>`;
+    return `<div class="rf-bgrupo ${sec===aba?'on':''}" data-sec="${sec}">
+      <span class="rf-bgrupo-t">${rot}</span>${linhas}</div>`;
   }).join('');
+  /* a barra de abas — desenhada sempre, escondida pelo CSS no desktop */
+  const abas = comGente.length ? `<div class="rf-banco-abas">
+    ${comGente.length>1?`<button type="button" class="rf-banco-seta" aria-label="Posição anterior"
+      onclick="rfBancoAbaAndar(-1)">‹</button>`:''}
+    <div class="rf-banco-abas-l" role="tablist">
+      ${comGente.map(([sec,rot])=>{
+        const n=banco.filter(p=>p.s===sec).length;
+        return `<button type="button" class="rf-banco-aba ${sec===aba?'on':''}" role="tab"
+          aria-selected="${sec===aba?'true':'false'}" title="${escC(rot)} — ${n} no banco"
+          onclick="rfBancoAbaEscolher('${sec}')"
+          >${escC(RF_BANCO_CURTO[sec]||rot)}<span class="rf-banco-aba-n">${n}</span></button>`;
+      }).join('')}
+    </div>
+    ${comGente.length>1?`<button type="button" class="rf-banco-seta" aria-label="Próxima posição"
+      onclick="rfBancoAbaAndar(1)">›</button>`:''}
+  </div>` : '';
   /* SEM EXPANDIR/COLAPSAR. O banco vivia atrás de um botão que recolhia a lista
      para alargar o campo; com o campo em tamanho fixo isso deixou de valer, e o
      que sobrava era um clique a mais entre o treinador e os seus reservas — no
@@ -213,6 +266,7 @@ function rfBancoHTML(th, nums){
       <span class="cl-bench-hd-txt">SUPLENTES</span>
       <span class="cl-bench-hd-n">${banco.length}</span>
     </div>
+    ${abas}
     <div class="rf-banco-lista">${grupos||'<div class="cl-bench-vazio">—</div>'}</div>
   </div>`;
 }
