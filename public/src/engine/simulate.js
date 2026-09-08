@@ -505,6 +505,12 @@ function liveMatchSession(homeId, awayId, seed, opts){
   // lê posse/finalizações AO VIVO daqui, sem esperar o fim da partida.
   const session={ minute:0, done:false, pending:null, totalMinutes:null, events, decisions, result:null, perf,
     subsLeft:(side)=>Math.max(0,3-subsUsed[side||userSide||'H']),
+    /* QUEM ESTA' EM CAMPO AGORA — a verdade da partida em curso, e a unica. `cur[side]` e' o
+       registo que a substituicao, a lesao e a EXPULSAO mexem (ver removeFromField); S.xi e' a
+       escalacao ESCOLHIDA antes do apito e nao acompanha nada disso.
+       Esteve aqui sem ninguem a usar, e por isso o painel de substituicao lia S.xi e mostrava
+       um jogador expulso ainda "em campo" enquanto o motor ja' jogava com 10.
+       Devolve copia: quem desenha nao mexe no estado da partida. */
     onField:(side)=>cur[side].slice(), userSide };
   // minuto de RELÓGIO (o mesmo que vai nos eventos): na prorrogação, 90+x em vez do contador
   // cru. É o que o Modo Camarote mostra no placar — sem isso o relógio da tela discordaria

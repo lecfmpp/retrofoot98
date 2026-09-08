@@ -152,9 +152,24 @@ function rfPlLinhaHTML(p, opts){
    ===================================================================== */
 function rfSubHTML(m){
   const id=CL.clubId;
+  /* ===== QUEM MANDA AQUI E' A SESSAO, NAO O S.xi =====
+     O MESMO defeito que ja' tinha sido corrigido no seletor de batedor de penalti (ver
+     penaltyTakerPool em ui/main.js, e o playtest que o apanhou): estas duas listas saiam de
+     S.xi, que e' a escalacao ESCOLHIDA antes do apito e nao a que esta' em campo. Durante a
+     partida quem muda e' `cur[side]`, dentro da sessao — substituicao, lesao e EXPULSAO mexem
+     nele. Resultado: um jogador expulso continuava listado em "Em campo" e podia ser escolhido
+     para sair numa substituicao, enquanto o motor ja' jogava com 10.
+     O `benchOf` do motor tambem e' melhor do que o filtro que estava aqui: exclui, alem de
+     suspenso e lesionado, quem foi expulso nesta partida e quem ja' entrou (nao volta ao banco).
+     Fallback para S.xi quando nao ha' sessao — partida remota/transmitida, ou o painel aberto
+     fora do jogo ao vivo. */
+  const lado = m ? (m.h===id ? 'H' : (m.a===id ? 'A' : null)) : null;
+  const motor = (lado && m.sim && typeof m.sim.onField==='function') ? m.sim : null;
   const xiSet=new Set(S.xi||[]);
-  const xi=squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder);
-  const banco=squad(id).filter(p=>!xiSet.has(p.pid)&&!(p.suspended>0)&&!(p.injuredMatches>0)).sort(bySquadOrder);
+  const xi = motor ? motor.onField(lado).slice().sort(bySquadOrder)
+                   : squad(id).filter(p=>xiSet.has(p.pid)).sort(bySquadOrder);
+  const banco = motor ? motor.benchOf(lado).slice().sort(bySquadOrder)
+                      : squad(id).filter(p=>!xiSet.has(p.pid)&&!(p.suspended>0)&&!(p.injuredMatches>0)).sort(bySquadOrder);
   const usadas=CL.subsUsed||0, max=3;
   /* A TROCA TEM DE SER VISTA. Confirmar mandava a substituicao para o motor e
      chamava updateLive(), que so mexe no placar — as duas listas continuavam com
@@ -435,7 +450,12 @@ const RF_REORG=[
 function rfExpulsaoHTML(m,e){
   const id=CL.clubId;
   const p=squad(id).find(x=>x.pid===(e&&e.pid))||squad(id)[0];
-  const emCampo=(S.xi||[]).length-1;
+  /* O MOTOR JA' TIROU O EXPULSO quando gerou o evento, entao ele ja' devolve 10. O `-1` da
+     reserva era o remendo de quando este numero saia de S.xi, que continuava com os 11. */
+  const ladoU = m ? (m.h===id ? 'H' : (m.a===id ? 'A' : null)) : null;
+  const emCampo = (ladoU && m.sim && typeof m.sim.onField==='function')
+    ? m.sim.onField(ladoU).length
+    : Math.max(0,(S.xi||[]).length-1);
   const sel=CL.redForm||(RF_REORG.find(r=>r.rec)||RF_REORG[1]).f;
   const corpo=`
     <div class="rf-ov-alerta">
