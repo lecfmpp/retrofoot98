@@ -10198,21 +10198,57 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   .rf-fx-etapa .rf-fx-etapa-tl{position:absolute;left:-7px;top:2px;width:11px}
   .rf-fx-etapa .rf-fx-etapa-tl span{display:none}
   .rf-fx-etapa.atual{border-left-color:#e4ebd8}
-  /* elenco: a tabela vira lista */
-  .rf-eln-band{flex-wrap:wrap;gap:14px}
-  .rf-eln-crest{width:72px;height:72px}
-  .rf-eln-band-kpis{width:100%}
-  .rf-eln-bk{flex:1;min-width:0}
-  .rf-eln-head{display:none}
-  .rf-eln-g{grid-template-columns:46px minmax(0,1fr) 44px;grid-auto-rows:auto;row-gap:6px}
-  .rf-eln-row{padding:10px}
-  .rf-eln-jog{grid-column:1/3}
-  .rf-eln-av{width:46px;height:46px}
-  .rf-eln-for{grid-column:3;grid-row:1;font-size:20px;align-self:center}
-  .rf-eln-g .rf-eln-c.ctr,.rf-eln-g .rf-eln-c.dim.dir{display:none}
-  .rf-eln-c.dir{grid-column:2;text-align:left}
-  .rf-eln-en{grid-column:1/3}
-  .rf-eln-pill,.rf-eln-c.forte.ctr{grid-column:3;justify-self:end;text-align:right}
+  /* ===== ELENCO NO TELEFONE: UM JOGADOR, UMA LINHA =====
+     Antes cada jogador virava um CARTAO de quatro linhas: nome com um numero de 20px solto a'
+     direita, a idade sozinha noutra linha, a barra de energia atravessada e o salario em baixo.
+     Nada estava alinhado com nada, os numeros nao diziam o que eram (12 era forca? 26 era o
+     que?) e cinco jogadores enchiam a tela.
+
+     Agora e' tabela de verdade, com CABECALHO — e e' o cabecalho que responde "o que e' este
+     numero", uma vez no topo em vez de nunca. Cinco colunas, nesta ordem de importancia:
+       JOGADOR (quem)  ·  NAC  ·  POS (onde joga)  ·  FOR (quanto vale em campo)  ·  ENERGIA
+     Cabem em 375px: 18+22+30+42 fixos mais quatro folgas de 7px deixam ~180px para o nome.
+
+     O QUE SAIU, e porque: idade, forma, salario e fim de contrato. Sao quatro numeros que nao
+     se comparam de relance numa lista e que estao todos na Ficha do jogador, a um toque daqui.
+     A NACIONALIDADE FICA mesmo apertando: a cota de estrangeiros e' regra de verdade em cada
+     liga, e a bandeira tem de estar a' vista onde houver jogador (regra do dono, 22/08 — a
+     mesma nota que esta' em rfNacHTML). */
+  .rf-eln-band{flex-wrap:wrap;gap:12px}
+  .rf-eln-crest{width:56px;height:56px}
+  .rf-eln-band-id{gap:3px}
+  .rf-eln-band-n{font-size:19px}
+  .rf-eln-band-s{font-size:12.5px}
+  .rf-eln-band-kpis{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  /* os KPI cabiam em 104px de largura minima com numero de 26px: "R$ 62 mil" quebrava em tres
+     linhas. A caixa passa a ceder e o numero encolhe ate' caber numa linha so'. */
+  .rf-eln-bk{min-width:0;padding:9px 10px;gap:3px;border-radius:12px}
+  .rf-eln-bk .rf-fx-microt{font-size:8px;letter-spacing:.06em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .rf-eln-bk b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* A FOLHA E' O UNICO DOS TRES QUE E' UMA FRASE ("R$ 58 mil") e nao um numero curto — a 16px
+     ela ainda cortava em "R$ 58 m…". So' ela encolhe; os outros dois sao "9" e "27,7" e
+     continuam grandes, que e' a hierarquia certa: numero curto salta, valor longo cabe. */
+  .rf-eln-bk.oliva b{font-size:13px;letter-spacing:-.02em}
+
+  /* O CABECALHO VOLTA — e' ele que diz o que cada coluna e' */
+  .rf-eln-head{display:grid;padding:0 8px 6px}
+  .rf-eln-head span{font-size:8.5px;letter-spacing:.08em}
+  .rf-eln-g{grid-template-columns:minmax(0,1fr) 18px 22px 30px 42px;gap:0 7px;
+    grid-auto-rows:auto;row-gap:0}
+  .rf-eln-row{padding:7px 8px;border-radius:12px}
+  .rf-eln-jog{gap:8px}
+  .rf-eln-av{width:32px;height:32px}
+  .rf-eln-num{min-width:15px;height:15px;font-size:9px;border-width:1.5px}
+  .rf-eln-nome{font-size:13.5px}
+  .rf-eln-for{font-size:14px;text-align:right}
+  .rf-eln-en{height:6px}
+  /* QUATRO COLUNAS SAEM, na mesma posicao no cabecalho e na linha (as duas listas tem a mesma
+     ordem de filhos): 4=IDADE, 7=FORMA, 8=SALARIO, 9=FIM DE CONTRATO. */
+  .rf-eln-head>span:nth-child(4),.rf-eln-head>span:nth-child(7),
+  .rf-eln-head>span:nth-child(8),.rf-eln-head>span:nth-child(9),
+  .rf-eln-row>:nth-child(4),.rf-eln-row>:nth-child(7),
+  .rf-eln-row>:nth-child(8),.rf-eln-row>:nth-child(9){display:none}
   .rf-eln-setores{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
