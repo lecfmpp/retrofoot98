@@ -848,18 +848,33 @@ function rfPenaltiBatedorHTML(){
   const takers=(typeof penaltyTakerPool==='function')?penaltyTakerPool(m,CL.clubId):[];
   const sel=CL.penSel||(takers[0]&&takers[0].n);
   const alvo=takers.find(p=>p.n===sel)||takers[0];
+  const temCanto=CL.penCanto!=null;
   return rfOverlay({
     w:800, contexto:rfCtxPartida(m), titulo:'Pênalti a favor',
     hdDir:'<span class="rf-ov-bola" aria-hidden="true">⚽</span>',
     corpo:`
-      ${rfGolHTML(CL.penCanto, {on:'rfPenCanto', txt:'Escolha o canto'})}
+      ${rfGolHTML(CL.penCanto, {on:'rfPenCanto', txt:temCanto?'Canto escolhido':'Escolha o canto'})}
       <div class="rf-card">
         <div class="rf-label"><span class="rf-label-t">Quem bate</span>
           <span class="rf-label-r">toque para escolher</span></div>
         <div class="rf-bat-lista">${takers.map(p=>rfBatedorLinhaHTML(p, sel===p.n, `penaltySelect('${escC(p.n)}')`)).join('')}</div>
       </div>
-      <span class="rf-note">A frieza cai quando o jogador está cansado ou entrou há pouco tempo.</span>`,
-    acoes:`<button type="button" class="rf-ov-b2" onclick="resolvePenalty(null)">Deixar o capitão bater</button>
+      <span class="rf-note">${temCanto
+        ? 'A frieza cai quando o jogador está cansado ou entrou há pouco tempo.'
+        : 'Escolher o canto <b>melhora a chance de converter</b> — sem escolha, a cobrança sai no escuro.'}</span>`,
+    /* ===== O RELOGIO DESTA COBRANCA CORRIA ESCONDIDO =====
+       `openPenaltyModal` sempre marcou um prazo de 10s (CL.penDeadline) e o `penaltyTick`
+       escreve os segundos em `#cl-pen-count` — um id que ESTA tela nao desenhava. O prazo
+       vencia sem aviso nenhum e a cobranca saia com o batedor escolhido e SEM CANTO.
+       Isso nao e' cosmetico: o canto vale +6 pontos na chance de converter
+       (`opts.canto!=null` em penaltyConvChance). Quem nao via o relogio perdia o bonus sem
+       nunca saber que houve uma escolha a fazer.
+       A disputa de penaltis ja' desenhava o seu contador com este mesmo id; era este modal, o
+       da cobranca no meio do jogo, que tinha ficado de fora. Sem maquinaria nova: o `id` e' o
+       que o tick ja' procura, e o rotulo diz o que acontece quando o tempo acabar. */
+    acoes:`${rfCronoHTML('cl-pen-count', ((CL.penDeadline||0)-Date.now())/1000,
+        temCanto?'bate no canto escolhido':'bate sem canto escolhido')}
+      <button type="button" class="rf-ov-b2" onclick="resolvePenalty(null)">Deixar o capitão bater</button>
       <div class="rf-sp"></div>
       <button type="button" class="rf-ov-cta" onclick="resolvePenalty(CL.penSel)">Bater com ${escC(alvo?alvo.n.split(' ')[0]:'')}</button>`
   });
