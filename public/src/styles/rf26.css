@@ -9467,9 +9467,15 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-adph.rf-pz-video{width:100%; aspect-ratio:16/9; min-height:0}
 
 /* placa com arte de anunciante: a imagem preenche a placa, recortando o que sobrar —
-   a caixa e a mesma dos rotulos de casa, so muda o conteudo */
-.rf-pitch-card .cl-pitch-ad.arte{padding:0;overflow:hidden;background:#0d1a12}
-.rf-pitch-card .cl-pitch-ad.arte img{width:100%;height:100%;object-fit:cover;display:block}
+   a caixa e a mesma dos rotulos de casa, so muda o conteudo.
+   A IMAGEM NAO DA TAMANHO A PLACA. As regras eram so do cartao do Hub (.rf-pitch-card): no
+   palco (campo em tela cheia) a placa lateral recebia a imagem no tamanho natural — 386px de
+   altura numa coluna de 19px de largura —, a coluna somava 1166px e, como a fila do campo
+   estica os filhos, o proprio gramado esticava ate la e o palco passava a rolar. Agora vale
+   onde quer que a placa apareca, e a imagem e' absoluta dentro dela: uma imagem no fluxo
+   entra no min-content da placa (flex item, min-height:auto) e volta a puxar a altura. */
+.cl-pitch-ad.arte{position:relative;padding:0;overflow:hidden;background:#0d1a12;min-height:0;min-width:0}
+.cl-pitch-ad.arte img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 
 /* barra de patrocínio comprada: um logo grande no lugar do trilho de marcas de casa */
 .rf-spon-unico{display:flex;align-items:center;justify-content:center;padding:14px 10px;
