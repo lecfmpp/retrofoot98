@@ -7132,6 +7132,34 @@ function liveAgendarReenvioFinal(RL){
     finais.forEach(f=>{ try{ NET.broadcastMatch({k:f.k, ...f.snap}); }catch(e){} });
   }, 900);
 }
+/* ===== O EVENTO TRANSMITIDO AINDA PODE MUDAR DEPOIS =====
+   O anexo era `slice(m.events.length)`: só o que faltava, e NUNCA se voltava a olhar para o que
+   já tinha chegado. Só que um pênalti é transmitido no instante em que é MARCADO — pendente,
+   `scored:null` — e o resultado dele só existe uns segundos depois, quando o batedor é escolhido.
+   Quem assistia guardava para sempre a versão pendente e ainda a carimbava `_resolved:true`:
+   o laço de eventos consumia-a como cobrança PERDIDA (é o que `scored` falso quer dizer), então
+   a narração anunciava a defesa, a linha do jogo pintava o X de pênalti perdido e o gol não
+   entrava no placar — enquanto a revelação do modal, que lê o snapshot na hora, dizia GOL. Era
+   exactamente o relato: o placar muda e os comentários insistem que ele perdeu.
+   Agora o snapshot é a VERDADE do que ainda não foi consumido: evento novo entra, evento já
+   recebido e ainda não resolvido é reescrito, e o que está PENDENTE fica marcado como tal para
+   o laço segurar em vez de adivinhar (ver o laço de consumo em liveTick).
+   O que já foi consumido não se mexe: reescrever história daria placar a dobrar. */
+function netStreamPending(p,e){
+  const pe=p&&p.pending&&p.pending.ev; if(!pe) return false;
+  return pe.min===e.min && pe.type===e.type && pe.side===e.side;
+}
+function netMergeStreamEvents(m,p){
+  const chegam=p.events||[];
+  for(let i=0;i<chegam.length;i++){
+    const e=chegam[i], resolvido=!netStreamPending(p,e);
+    if(i<m.events.length){
+      if(!m.events[i]._resolved) Object.assign(m.events[i], e, {_resolved:resolvido});
+    } else {
+      m.events.push({...e, _resolved:resolvido});
+    }
+  }
+}
 /* snapshot recebido: atualiza o cache e, se for a MINHA partida assistida (visitante), anexa os
    eventos novos e abre/fecha o modal de decisão remota conforme a pendência. */
 function onNetMatchLive(p){
@@ -7139,7 +7167,7 @@ function onNetMatchLive(p){
   CL._liveStreams[p.k]={ts:nowMs(),snap:p};
   const RL=CL.live; if(!RL) return;
   const m=RL.matches.find(x=>x.streamRemote && x.streamKey===p.k); if(!m) return;
-  (p.events||[]).slice(m.events.length).forEach(e=>m.events.push({...e,_resolved:true})); // cumulativo: só o que falta
+  netMergeStreamEvents(m,p);   // eventos novos + os que MUDARAM depois de transmitidos (ver a nota lá)
   if(p.perf) m.livePerf=p.perf; // posse/finalizações parciais pro Modo Camarote de quem só assiste
   if(p.done){ m.streamDone=true; m.fhg=p.hg; m.fag=p.ag; m.perf=(p.result&&p.result.perf)||null; m.streamResult=p.result||null; }
   if(m.spectate) return; // FASE 3C: partida de terceiros — eu só assisto, nenhum lado é meu pra decidir
@@ -7485,12 +7513,20 @@ function liveTick(){ const RL=CL.live; if(!RL) return;
   let pendingPenalty=null, pendingInjury=null, pendingRed=null;
   RL.matches.forEach(m=>{ while(m.idx<m.events.length && m.events[m.idx].min<=RL.minute){ const e=m.events[m.idx];
     const isUserSide = m.user && ((e.side==='H'&&m.h===CL.clubId)||(e.side==='A'&&m.a===CL.clubId));
-    if(e.type==='penalti' && isUserSide && !e._resolved){ pendingPenalty={m,e}; break; } // não consome ainda — pausa antes, resolve pelo modal
-    if(e.type==='lesao' && isUserSide && !e._resolved){ pendingInjury={m,e}; break; } // idem — precisa escolher quem entra
+    /* os modais LOCAIS são só de quem roda a sessão (m.sim). Numa partida que eu ASSISTO, a
+       decisão é minha na mesma, mas pelo modal REMOTO (openRemoteDecision) — abrir aqui o modal
+       local faria duas cobranças do mesmo pênalti. */
+    if(e.type==='penalti' && isUserSide && !e._resolved && m.sim){ pendingPenalty={m,e}; break; } // não consome ainda — pausa antes, resolve pelo modal
+    if(e.type==='lesao' && isUserSide && !e._resolved && m.sim){ pendingInjury={m,e}; break; } // idem — precisa escolher quem entra
     if(e.type==='cartao' && e.cardType==='vermelho' && isUserSide && !e._resolved && m.sim){ pendingRed={m,e}; break; } // expulsão do usuário: modal de reorganização (Fase 3A)
-    // FASE 3B: evento de decisão do lado REMOTO ainda não resolvido (sessão autoritativa esperando
-    // o 'mdec' do visitante) — NÃO consome (o placar dele depende da decisão); overlay avisa.
-    if(m.sim && !e._resolved && (e.type==='penalti'||e.type==='lesao'||(e.type==='cartao'&&e.cardType==='vermelho'))){ break; }
+    // FASE 3B: evento de decisão ainda não resolvido — NÃO consome, seja da sessão autoritativa
+    // (esperando o 'mdec' do visitante) ou da transmissão que eu assisto (o mandante ainda não
+    // decidiu). Consumir um pênalti sem resultado é anunciá-lo como perdido. Transmissão MORTA
+    // não segura nada: aí o resultado oficial sai na classificação e a fila tem de andar.
+    /* `_resolved===false` de propósito: só a sessão e a transmissão marcam pendência explícita.
+       As partidas de fundo vêm da simulação cega, que não carimba `_resolved` nenhum — testar
+       por `!e._resolved` deixaria as 39 outras partidas da rodada paradas no primeiro pênalti. */
+    if(e._resolved===false && !m.streamDead && (e.type==='penalti'||e.type==='lesao'||(e.type==='cartao'&&e.cardType==='vermelho'))){ break; }
     m.idx++;
     if(e.type==='gol'){ if(e.side==='H')m.hg++; else m.ag++; m.goals.push({min:e.min,side:e.side,scorer:e.scorer,team:e.team});
       m.incidents.push({min:e.min,type:'gol',side:e.side,player:e.scorer}); }
@@ -8005,6 +8041,9 @@ function finishPenaltyShootout(){
    Se não decidir em 10s, bate automaticamente com o jogador pré-selecionado (o de maior força). ---- */
 function openPenaltyModal(m,e){ const RL=CL.live;
   RL.paused=true; RL.penMatch=m; RL.penEvent=e; RL.sel=RL.matches.indexOf(m);
+  /* fase limpa: é ela que destranca `resolvePenalty` (a trava de cobrança dupla). Uma sobra da
+     cobrança anterior deixaria este pênalti sem quem o resolvesse. */
+  CL.penPhase=null; CL.penResultScorer=null; CL.penResultScored=null;
   const takers=penaltyTakerPool(m, CL.clubId);   // sem expulso/substituído (ver penaltyTakerPool)
   const best=takers.slice().sort((a,b)=>b.f-a.f)[0];
   CL.penSel = best ? best.n : (takers[0]&&takers[0].n) || null;
@@ -8025,6 +8064,12 @@ function penaltySelect(name){ CL.penSel=name; cdraw(); }
    3) revelação dramática (GOLO em vermelho / Defendeu em preto) antes de continuar. ---- */
 function resolvePenalty(takerName){
   const RL=CL.live; if(!RL || !RL.penEvent) return;
+  /* UMA COBRANÇA DE CADA VEZ. `RL.penEvent` só é limpo quando o modal fecha, uns quatro segundos
+     depois da batida — até lá, um segundo clique (ou o prazo a vencer no mesmo instante) entrava
+     outra vez aqui. A segunda passagem já não encontra pendência no motor: `applyDecision`
+     devolve null, o resultado vira "não marcou" e o modal, o toast e a narração anunciam uma
+     cobrança perdida que na verdade tinha sido gol. Mesma trava da disputa (ver shootoutRevelar). */
+  if(CL.penPhase) return;
   if(CL._penTimer){ clearInterval(CL._penTimer); CL._penTimer=null; }
   const e=RL.penEvent;
   if(e._remote){
@@ -8041,6 +8086,9 @@ function resolvePenalty(takerName){
   if(RL.penMatch && RL.penMatch.sim){
     // FASE 3A: a SESSÃO decide (mesma RNG determinística de sempre) e já aplica placar/artilheiro/log
     scored=RL.penMatch.sim.applyDecision({tipo:'penalti', batedor:takerName, canto:CL.penCanto});
+    /* motor sem pendência (a decisão já tinha sido aplicada — timeout do lado remoto, por
+       exemplo): quem manda é o que ele GRAVOU no evento, nunca o null devolvido aqui. */
+    if(scored==null) scored=!!e.scored;
     e._resolved=true;
   } else {
     const taker=findP(takerName,CL.clubId);
@@ -9057,7 +9105,9 @@ function camOnEvent(m,e){
   if(e.type==='gol'){ A.shots++; A.goals++; A.onTarget++; }
   else if(e.type==='penalti'){ A.shots++;
     if(e.scored){ A.goals++; A.onTarget++; }
-    else { out=RF_NARRA.chanceOutcome(e,ctx.seed); if(out==='defesa'){ A.onTarget++; D.saves++; } } }
+    /* `scored===false` é cobrança PERDIDA; `null` é cobrança que ainda não foi batida — sortear
+       um desfecho para ela dava defesa/trave/fora a um pênalti que ninguém cobrou. */
+    else if(e.scored===false){ out=RF_NARRA.chanceOutcome(e,ctx.seed); if(out==='defesa'){ A.onTarget++; D.saves++; } } }
   else if(e.type==='chance'){ A.shots++; out=RF_NARRA.chanceOutcome(e,ctx.seed);
     if(out==='defesa'){ A.onTarget++; D.saves++; } }
   else if(e.type==='cartao'){ if(e.cardType==='vermelho'){ A.red++; m.presBias+=(e.side==='H'?-8:8); } else A.yellow++; }

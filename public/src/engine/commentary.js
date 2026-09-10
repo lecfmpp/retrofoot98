@@ -87,6 +87,13 @@
     'NA MARCA DA CAL: {P} bate com categoria e faz.',
     'GOL DE PÊNALTI! {P} escolhe o canto e {G} não alcança.'
   ];
+  /* PÊNALTI AINDA POR BATER. `scored` nasce null (a cobrança de quem decide só é resolvida
+     depois) e null não é "perdeu" — sem este banco, um pênalti sem desfecho caía no ramo do
+     erro e a narração dava por perdida uma cobrança que ia ser gol. */
+  const PEN_MARCADO=[
+    'PÊNALTI PARA {T}! O árbitro aponta para a marca da cal.',
+    'É PÊNALTI! A falta na área não deixou dúvida ao árbitro.'
+  ];
   const PEN_DEF=[
     'DEFENDEU! {G} pega a cobrança de {P}.',
     'QUE DEFESA! {G} adivinha o canto e pega o pênalti de {P}.'
@@ -220,6 +227,7 @@
     if(ev.type==='penalti'){
       v.P=ev.scorer||(art(fem)+' '+G_('batedor',fem));
       if(ev.scored) return {icon:'⚽', kind:'gol', text:fill(pick(PEN_GOL,key),v)+' '+ctx.hShort+' '+ctx.hg+' × '+ctx.ag+' '+ctx.aShort+'.'};
+      if(ev.scored==null) return {icon:'◎', kind:'chance', text:fill(pick(PEN_MARCADO,key),v)};
       const o=ctx.out||'defesa';
       const bank = o==='trave'?PEN_TRAVE : o==='fora'?PEN_FORA : PEN_DEF;
       return {icon:o==='defesa'?'✋':'❌', kind:o==='defesa'?'defesa':'chance', text:fill(pick(bank,key),v)};
