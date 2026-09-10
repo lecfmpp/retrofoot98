@@ -71,7 +71,7 @@ function piso(){
 }
 /* a medida vai para o <html> e nao para o host: o aviso de enviado mora no
    <body>, fora do host, e le' o mesmo valor para nao cair por cima da barra. */
-function medirPiso(){ try{ document.documentElement.style.setProperty('--rf-op-piso', piso()+'px'); }catch(e){} }
+function medirPiso(){ try{ document.documentElement.style.setProperty('--rf-opi-piso', piso()+'px'); }catch(e){} }
 
 /* ---- o que a etiqueta 📍 vai dizer: tela · competição · versão ---- */
 function nomeDaTela(){
@@ -124,37 +124,37 @@ function gravarRascunho(t){ try{ t?localStorage.setItem(RASCUNHO,t):localStorage
 function esc(s){ return (typeof escC==='function') ? escC(s) : String(s==null?'':s); }
 function abaHTML(){
   const tel=noTelefone();
-  return `<button type="button" class="rf-op-aba" id="rf-op-aba"
-    aria-expanded="${aberto?'true':'false'}" aria-controls="rf-op-painel"
+  return `<button type="button" class="rf-opi-aba" id="rf-opi-aba"
+    aria-expanded="${aberto?'true':'false'}" aria-controls="rf-opi-painel"
     title="Mandar um recado pra equipe" onclick="rfOpiniaoAlternar(event)">
-    ${aberto && !tel ? `<span class="rf-op-puxador" aria-hidden="true">›</span>`
-      : `<span class="rf-op-bal" aria-hidden="true">💬</span>
-         <span class="rf-op-rot">${tel?'OPINIÃO':'DAR OPINIÃO'}</span>`}
+    ${aberto && !tel ? `<span class="rf-opi-puxador" aria-hidden="true">›</span>`
+      : `<span class="rf-opi-bal" aria-hidden="true">💬</span>
+         <span class="rf-opi-rot">${tel?'OPINIÃO':'DAR OPINIÃO'}</span>`}
   </button>`;
 }
 function painelHTML(){
   const tel=noTelefone(), c=contexto(), texto=lerRascunho();
-  return `<div class="rf-op-painel" id="rf-op-painel" role="dialog" aria-label="Dar opinião">
-    <div class="rf-op-hd">
-      ${tel?'<span class="rf-op-alca" aria-hidden="true"></span>':''}
-      <span class="rf-op-tit">Dar opinião</span>
+  return `<div class="rf-opi-painel" id="rf-opi-painel" role="dialog" aria-label="Dar opinião">
+    <div class="rf-opi-hd">
+      ${tel?'<span class="rf-opi-alca" aria-hidden="true"></span>':''}
+      <span class="rf-opi-tit">Dar opinião</span>
       <span class="rf-sp"></span>
-      <button type="button" class="rf-op-x" aria-label="Fechar" onclick="rfOpiniaoFechar()">✕</button>
+      <button type="button" class="rf-opi-x" aria-label="Fechar" onclick="rfOpiniaoFechar()">✕</button>
     </div>
-    ${tel?'':'<span class="rf-op-sub">O que você quer nos contar?</span>'}
-    <div class="rf-op-tipos">
-      ${TIPOS.map(([k,ic,l])=>`<button type="button" class="rf-op-tipo ${tipo===k?'on':''}"
+    ${tel?'':'<span class="rf-opi-sub">O que você quer nos contar?</span>'}
+    <div class="rf-opi-tipos">
+      ${TIPOS.map(([k,ic,l])=>`<button type="button" class="rf-opi-tipo ${tipo===k?'on':''}"
         data-tipo="${k}" aria-pressed="${tipo===k}" onclick="rfOpiniaoTipo('${k}')">${ic} ${l}</button>`).join('')}
     </div>
-    <textarea id="rf-op-txt" class="rf-op-txt" maxlength="2000"
+    <textarea id="rf-opi-txt" class="rf-opi-txt" maxlength="2000"
       placeholder="${tel?'Escreva do seu jeito.':'Escreva do seu jeito. Quanto mais direto, melhor.'}"
       oninput="rfOpiniaoDigitou(this)">${esc(texto)}</textarea>
-    <div class="rf-op-ctx"><span aria-hidden="true">📍</span><span>${esc(etiqueta(c))}</span></div>
-    <div class="rf-op-erro" id="rf-op-erro" hidden>⚠ Não deu pra enviar. Tenta de novo.</div>
-    <div class="rf-op-acts">
-      <button type="button" class="rf-op-cta" id="rf-op-enviar" ${texto.trim()?'':'disabled'}
+    <div class="rf-opi-ctx"><span aria-hidden="true">📍</span><span>${esc(etiqueta(c))}</span></div>
+    <div class="rf-opi-erro" id="rf-opi-erro" hidden>⚠ Não deu pra enviar. Tenta de novo.</div>
+    <div class="rf-opi-acts">
+      <button type="button" class="rf-opi-cta" id="rf-opi-enviar" ${texto.trim()?'':'disabled'}
         onclick="rfOpiniaoEnviar()">Enviar recado</button>
-      ${tel?'':'<button type="button" class="rf-op-alt" onclick="rfOpiniaoFechar()">Cancelar</button>'}
+      ${tel?'':'<button type="button" class="rf-opi-alt" onclick="rfOpiniaoFechar()">Cancelar</button>'}
     </div>
   </div>`;
 }
@@ -165,9 +165,9 @@ function painelHTML(){
    a cada cdraw() é o jogo inteiro — por isso a primeira linha é uma saída. */
 function render(){
   if(typeof document==='undefined') return;
-  let host=document.getElementById('rf-op-host');
+  let host=document.getElementById('rf-opi-host');
   if(!podeAparecer()){ if(host){ host.remove(); aberto=false; } return; }
-  if(!host){ host=document.createElement('div'); host.id='rf-op-host'; document.body.appendChild(host); }
+  if(!host){ host=document.createElement('div'); host.id='rf-opi-host'; document.body.appendChild(host); }
   else if(aberto) return;                       // painel aberto: não se toca (ver o cabeçalho)
   const assinatura=(noTelefone()?'m':'d')+'|'+(aberto?'1':'0');
   if(host.dataset.sig===assinatura && !aberto) return;
@@ -179,34 +179,35 @@ function render(){
 function abrir(){
   if(aberto) return;
   aberto=true;
-  const host=document.getElementById('rf-op-host'); if(!host) return;
+  const host=document.getElementById('rf-opi-host'); if(!host) return;
   host.className=(noTelefone()?'tel':'desk')+' aberto';
   medirPiso();
   host.dataset.sig=(noTelefone()?'m':'d')+'|1';
   host.innerHTML=painelHTML()+abaHTML();
-  const t=document.getElementById('rf-op-txt');
+  const t=document.getElementById('rf-opi-txt');
   if(t && !noTelefone()){ t.focus(); t.setSelectionRange(t.value.length,t.value.length); }
 }
 function fechar(){
   if(!aberto) return;
-  const t=document.getElementById('rf-op-txt'); if(t) gravarRascunho(t.value);
+  const t=document.getElementById('rf-opi-txt'); if(t) gravarRascunho(t.value);
   aberto=false; enviando=false;
-  const host=document.getElementById('rf-op-host'); if(!host) return;
+  const host=document.getElementById('rf-opi-host'); if(!host) return;
   host.className=noTelefone()?'tel':'desk';
   medirPiso();
   host.dataset.sig=(noTelefone()?'m':'d')+'|0';
   host.innerHTML=abaHTML();
 }
 
-/* ---- aviso de enviado: escuro, centrado embaixo, some em 3s ---- */
+/* ---- aviso de enviado ----
+   É O TOAST DO JOGO, não um aviso próprio. O pacote pedia uma peça escura e
+   centrada embaixo, e ela saiu ILEGÍVEL: o <span> da frase caía numa regra
+   global que pinta span solto (computava #5c4a00, castanho sobre o quase-preto
+   do fundo). Além disso o jogo já tinha decidido, e por escrito, que o toast
+   escuro #12201a se confundia com o fundo das páginas — ver a nota do .rf-toast
+   no rf26.css. Aviso do sistema tem uma voz só: a mesma peça clara, a mesma
+   posição, a mesma saída, e no telefone o mesmo desvio para cima da barra. */
 function aviso(){
-  const velho=document.getElementById('rf-op-aviso'); if(velho) velho.remove();
-  const d=document.createElement('div');
-  d.id='rf-op-aviso'; d.className='rf-op-aviso'+(noTelefone()?' tel':'');
-  d.innerHTML='<span class="rf-op-ok" aria-hidden="true">✓</span><span>Recado enviado. Valeu!</span>';
-  d.setAttribute('role','status');
-  document.body.appendChild(d);
-  setTimeout(()=>{ d.classList.add('sai'); setTimeout(()=>d.remove(),260); }, 3000);
+  if(typeof toastC==='function') toastC('✓ Recado enviado. Valeu!', 'success', {ms:3000});
 }
 
 /* ---- envio ----
@@ -215,10 +216,10 @@ function aviso(){
    conta tanto como a dos outros. */
 async function enviar(){
   if(enviando) return;
-  const t=document.getElementById('rf-op-txt'); if(!t) return;
+  const t=document.getElementById('rf-opi-txt'); if(!t) return;
   const texto=(t.value||'').trim(); if(!texto) return;
-  const erro=document.getElementById('rf-op-erro');
-  const bt=document.getElementById('rf-op-enviar');
+  const erro=document.getElementById('rf-opi-erro');
+  const bt=document.getElementById('rf-opi-enviar');
   enviando=true; if(bt){ bt.disabled=true; bt.textContent='Enviando…'; }
   if(erro) erro.hidden=true;
   const c=contexto();
@@ -252,14 +253,14 @@ window.rfOpiniaoAlternar=function(ev){ if(ev){ ev.stopPropagation(); } aberto?fe
 window.rfOpiniaoFechar=fechar;
 window.rfOpiniaoTipo=function(k){
   tipo=k;
-  document.querySelectorAll('#rf-op-painel .rf-op-tipo').forEach(b=>{
+  document.querySelectorAll('#rf-opi-painel .rf-opi-tipo').forEach(b=>{
     const on=b.dataset.tipo===k;
     b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
   });
 };
 window.rfOpiniaoDigitou=function(el){
   gravarRascunho(el.value);
-  const bt=document.getElementById('rf-op-enviar');
+  const bt=document.getElementById('rf-opi-enviar');
   if(bt && !enviando) bt.disabled=!el.value.trim();
 };
 window.rfOpiniaoEnviar=enviar;
@@ -272,12 +273,12 @@ window.rfOpiniaoRender=render;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && aberto) fechar(); });
 document.addEventListener('mousedown',e=>{
   if(!aberto) return;
-  const host=document.getElementById('rf-op-host');
+  const host=document.getElementById('rf-opi-host');
   if(host && !host.contains(e.target)) fechar();
 });
 document.addEventListener('touchstart',e=>{
   if(!aberto) return;
-  const host=document.getElementById('rf-op-host');
+  const host=document.getElementById('rf-opi-host');
   if(host && !host.contains(e.target)) fechar();
 }, {passive:true});
 /* girar o aparelho troca a aba pela gaveta (e vice-versa) */
