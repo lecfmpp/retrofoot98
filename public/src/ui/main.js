@@ -6168,7 +6168,7 @@ function panSeleccao(){
   // inclui os modos rápidos "Automático" e "Melhores" no mesmo grid (4 colunas, quadrados
   // menores pra alinhar 8 opções em 2 linhas).
   const formKeys = Object.keys(FORMATIONS);
-  const formOpts = formKeys.map(f=>({sel:!CL.xiModo && CL.formation===f, on:`clSelFormation('${f}');cdraw()`, main:f, sub:FKEY[f], title:'Tecla '+FKEY[f]}))
+  const formOpts = formKeys.map(f=>({sel:CL.formation===f, on:`clSelFormation('${f}');cdraw()`, main:f, sub:FKEY[f], title:'Tecla '+FKEY[f]}))
     .concat([
       {sel:CL.xiModo==='auto', on:"clSelFormation('auto');cdraw()", main:'Auto', sub:'A', title:'Escalação automática'},
       {sel:CL.xiModo==='best', on:"clSelFormation('best');cdraw()", main:'11+',  sub:'Melhores', title:'O melhor de cada posição'},
@@ -13493,8 +13493,16 @@ function clCancelarPronto(){
 function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
   if(f==='auto'){ S.xi=autoXI(CL.clubId); CL.formation=coherentFormation(CL.clubId,'4-3-3');
     CL.xiModo='auto'; S.tactic='equilibrado'; }
-  else if(f==='best'){ const forma=bestFormationForSquad(CL.clubId) || coherentFormation(CL.clubId,'4-3-3');
-    S.xi=pickXIByFormation(CL.clubId,forma); CL.formation=forma; CL.xiModo='best'; S.tactic=tacticPosture(forma); }
+  /* MELHORES E' UMA CAMADA, NAO UMA FORMACAO. Ele escolhia sozinho o esquema que melhor
+     servia o elenco (bestFormationForSquad) e ainda trocava a postura tatica junto: quem
+     tinha acabado de montar o seu 4-4-2 via o time inteiro mudar de casa por carregar num
+     botao que so' devia trocar OS NOMES. A ordem e a mesma que o treinador usa -- primeiro
+     a formacao, depois "quero os melhores" (ou "quero os descansados") DENTRO dela. So' com
+     formacao nenhuma escolhida e' que ele ainda precisa de arranjar uma para poder escalar. */
+  else if(f==='best'){ const jaTem=!!FORMATIONS[CL.formation];
+    const forma=jaTem?CL.formation:(bestFormationForSquad(CL.clubId)||coherentFormation(CL.clubId,'4-3-3'));
+    S.xi=pickXIByFormation(CL.clubId,forma); CL.formation=forma; CL.xiModo='best';
+    if(!jaTem) S.tactic=tacticPosture(forma); }
   else { const real=coherentFormation(CL.clubId,f); if(real!==f) adjustedFrom=f;
     S.xi=pickXIByFormation(CL.clubId,real); CL.formation=real; CL.xiModo=null; S.tactic=tacticPosture(real); }
   CL.tacticChosen=true; CL.tab='seleccao'; saveV3();
@@ -13509,6 +13517,9 @@ function clSelFormation(f){ CL.menu=null; let adjustedFrom=null;
    solo, resenha e hotseat porque só mexe em S.xi/CL.formation, igual clSelFormation. */
 function clSelectRested(){ if(!CL.tacticChosen) return;
   const f=(FORMATIONS[CL.formation])?CL.formation:'4-3-3';
+  /* a camada anterior deixa de valer: o onze passa a ser o mais descansado, entao o "11+"
+     nao pode continuar aceso. A formacao e' que fica -- ela nao e' camada nenhuma. */
+  CL.xiModo=null;
   S.xi=pickXIByFormationRested(CL.clubId,f); saveV3();
   republicarEscalacao(); cdraw();
   toastC('🔋 Onze mais descansado seleccionado.'); }

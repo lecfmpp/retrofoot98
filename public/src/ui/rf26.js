@@ -1419,7 +1419,10 @@ const TATICA_DESC={
 };
 /* as oito pastilhas de formação (seis + Auto + Melhores), com o atalho embaixo */
 function rfFormacoesHTML(){
-  const opts=Object.keys(FORMATIONS).map(f=>({sel:!CL.xiModo&&CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f],
+  /* A PASTILHA DA FORMACAO FICA ACESA MESMO COM A CAMADA POR CIMA. "Melhores" e
+     "Descansados" nao trocam de esquema -- so' trocam os nomes dentro dele --, e apagar o
+     4-4-2 ao carregar no 11+ dizia ao contrario: parecia que a formacao tinha mudado. */
+  const opts=Object.keys(FORMATIONS).map(f=>({sel:CL.formation===f, on:`clSelFormation('${f}');cdraw()`, l:f, h:FKEY[f], t:'Tecla '+FKEY[f],
       tat:(typeof tacticPosture==='function')?tacticPosture(f):null}))
     .concat([
       {sel:CL.xiModo==='auto', on:"clSelFormation('auto');cdraw()", l:'Auto', h:'A', t:'Escalação automática'},
