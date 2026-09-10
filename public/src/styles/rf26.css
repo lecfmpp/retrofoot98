@@ -512,7 +512,27 @@
   transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
 .rf-lista-n:hover{background:var(--surface-sunken);color:var(--text-1)}
 .rf-lista-n.on{background:var(--club-primary);border-color:var(--club-primary);color:var(--club-on-primary)}
-@media (max-width:760px){ .rf-lista{max-height:none;overflow:visible} .rf-lista-pe{display:none} }
+/* setas de página, ao lado do contador */
+.rf-lista-pag{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-2);
+  white-space:nowrap;min-width:56px;text-align:center}
+.rf-lista-seta{height:26px;min-width:30px;padding:0 8px;border:1px solid var(--line-2);
+  border-radius:8px;background:var(--surface-card);color:var(--text-2);cursor:pointer;
+  font-size:14px;line-height:1;font-family:var(--font-sans)}
+.rf-lista-seta:hover:not(:disabled){background:var(--surface-sunken);color:var(--text-1)}
+.rf-lista-seta:disabled{opacity:.35;cursor:default}
+/* ===== O RODAPÉ NÃO PODE SUMIR NO TELEFONE =====
+   Ele estava `display:none` abaixo de 760px, e é ele que dá acesso ao resto da
+   lista: no telefone via-se a primeira página e mais nada — as outras mil linhas
+   do mercado não tinham caminho. Agora ele fica, e quebra em duas alturas quando
+   não couber; o que sai são só os botões de TAMANHO de página (20/50/100), que
+   são conforto de tela larga. As setas e a contagem ficam sempre. */
+@media (max-width:760px){
+  .rf-lista{max-height:none;overflow:visible}
+  .rf-lista-pe{gap:6px;padding-top:10px}
+  .rf-lista-pe .rf-lista-l,.rf-lista-pe .rf-lista-n{display:none}
+  .rf-lista-conta{font-size:10.5px}
+  .rf-lista-seta{height:32px;min-width:40px}
+}
 
 /* ============================ PUBLICIDADE ============================
    A publicidade SAI ANTES DO CONTEÚDO quando a tela encolhe. Os trilhos
@@ -3880,9 +3900,28 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
 .rf-lp-album-q.depois.jogadora .rf-lp-album-media{aspect-ratio:400/828;background:transparent;
   overflow:visible;border-radius:0}
 .rf-lp-album-q.depois.jogadora .rf-mod-frame{width:100%;height:100%;max-height:none;aspect-ratio:auto}
-/* o escudo 20% menor (54 -> 43px) e a ficha alinhada a' esquerda, como a do jogador */
-.rf-lp-album-q.depois.jogadora .rf-mod-ficha{text-align:left;align-items:flex-start}
-.rf-lp-album-q.depois.jogadora .rf-mod-crest{width:43px;height:43px}
+/* ===== A FICHA DELA TEM DE CABER NO CARTAO DELA =====
+   O escudo, o nome e a forca estavam em pixels fixos (54px, 19px, 22px), medidos para a moldura
+   larga do assistente de modalidade — a mesma peca, mas la' com 350px ou mais de largura. Nesta
+   polaroide o cartao tem 113px na coluna estreita e 212px na larga: com os mesmos pixels, o bloco
+   de baixo media 187px de altura dentro de um cartao de 223px, subia pelo cartao acima e o escudo
+   ia parar EM CIMA DA CARA DELA. Nao era o escudo esticado — era o bloco todo fora de escala.
+   Agora tudo aqui e' medido em `cqw`, percentagem da largura do PROPRIO cartao, com os valores
+   tirados do cartao do jogador ao lado (img/home/retrato-jogador.webp, 400px de largura): escudo
+   46px = 11.5cqw, nome ~30px = 7.5cqw, o numero da forca ~34px = 8.5cqw. Assim os dois leem-se
+   como duas cartas do mesmo baralho em qualquer largura, que e' o que a seccao promete.
+   O escudo fica no canto INFERIOR ESQUERDO, com o resto da ficha, e nao volta a subir. */
+.rf-lp-album-q.depois.jogadora .rf-mod-frame{container-type:inline-size}
+.rf-lp-album-q.depois.jogadora .rf-mod-ficha{text-align:left;align-items:flex-start;
+  padding:0 7cqw 7cqw;gap:1cqw}
+/* o valor em px vem primeiro como rede: navegador sem `cqw` fica com uma ficha
+   pequena e no sitio, em vez de voltar aos 54px que subiam pelo cartao acima */
+.rf-lp-album-q.depois.jogadora .rf-mod-crest{width:24px;height:24px;margin-bottom:4px;
+  width:11.5cqw;height:11.5cqw;margin-bottom:2cqw}
+.rf-lp-album-q.depois.jogadora .rf-mod-pos{font-size:7px;font-size:3.2cqw;letter-spacing:.12em}
+.rf-lp-album-q.depois.jogadora .rf-mod-nome{font-size:16px;font-size:7.5cqw;line-height:1.1}
+.rf-lp-album-q.depois.jogadora .rf-mod-forca{font-size:7px;font-size:3.2cqw;gap:.8cqw}
+.rf-lp-album-q.depois.jogadora .rf-mod-forca b{font-size:18px;font-size:8.5cqw}
 /* a forca, no mesmo tom do cartao do jogador: numero grande, rotulo pequeno */
 .rf-mod-forca{display:flex;align-items:baseline;gap:5px;font-family:var(--font-mono);
   font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.72)}

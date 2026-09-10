@@ -1789,7 +1789,28 @@ function rfListaLim(chave){
 }
 function rfListaSetLim(chave, n){
   CL.listaLim=CL.listaLim||{}; CL.listaLim[chave]=n;
+  rfListaSetPag(chave, 0);   // trocar o tamanho da página recomeça na primeira
+}
+/* ===== A LISTA TEM PÁGINAS, NÃO UM TETO =====
+   O rodapé só escolhia QUANTAS linhas mostrar (20/50/100) — e mostrava sempre as
+   primeiras. Quem procurava um jogador no mercado via as vinte mais fortes e mais
+   nada: as outras mil não tinham caminho nenhum. Pior no telefone, onde o rodapé
+   inteiro era escondido por CSS: vinte linhas e ponto final.
+   A página vive por CHAVE, ao lado do limite, e é sempre CONTIDA no que existe
+   agora (ver o clamp em rfLista): filtrar de mil para três não deixa ninguém preso
+   numa página 7 que já não existe. */
+function rfListaPag(chave){
+  const v=CL.listaPag && CL.listaPag[chave];
+  return (typeof v==='number' && v>0) ? v : 0;
+}
+function rfListaSetPag(chave, n){
+  CL.listaPag=CL.listaPag||{}; CL.listaPag[chave]=Math.max(0, n|0);
   cdraw();
+  /* a página nova começa do topo da lista, não onde o dedo parou na anterior */
+  try{
+    const el=document.querySelector('[data-lista="'+chave+'"]');
+    if(el && el.scrollIntoView) el.scrollIntoView({block:'start', behavior:'smooth'});
+  }catch(e){}
 }
 /* `linhas` é um ARRAY de HTML, não uma string já juntada: o corte tem de
    acontecer por linha, e receber a string pronta obrigaria a cortar no
@@ -1799,14 +1820,22 @@ function rfLista(chave, linhas, vazio){
   if(!linhas.length) return `<div class="rf-empty">${vazio||'Nada aqui agora.'}</div>`;
   const lim=rfListaLim(chave);
   const total=linhas.length;
-  const vistas=Math.min(lim,total);
-  const corpo=`<div class="rf-lista">${linhas.slice(0,vistas).join('')}</div>`;
+  const paginas=Math.max(1, Math.ceil(total/lim));
+  const pag=Math.min(rfListaPag(chave), paginas-1);   // clamp: ver rfListaSetPag
+  const de=pag*lim, ate=Math.min(de+lim, total);
+  const corpo=`<div class="rf-lista" data-lista="${escC(chave)}">${linhas.slice(de,ate).join('')}</div>`;
   // o pé só aparece quando há mais linha do que o menor passo — numa lista
   // de seis nomes ele seria ruído
   if(total<=RF_LISTA_PASSOS[0]) return corpo;
+  const bt=(n,rot,dis,titulo)=>`<button type="button" class="rf-lista-seta" ${dis?'disabled':''}
+    title="${escC(titulo)}" aria-label="${escC(titulo)}"
+    onclick="rfListaSetPag('${escC(chave)}',${n})">${rot}</button>`;
   return corpo+`<div class="rf-lista-pe">
-    <span class="rf-lista-conta">mostrando ${vistas} de ${total}</span>
+    <span class="rf-lista-conta">${de+1}–${ate} de ${total}</span>
     <div class="rf-sp"></div>
+    ${paginas>1?`${bt(pag-1,'‹',pag<=0,'Página anterior')}
+      <span class="rf-lista-pag">${pag+1} de ${paginas}</span>
+      ${bt(pag+1,'›',pag>=paginas-1,'Próxima página')}`:''}
     <span class="rf-lista-l">linhas</span>
     ${RF_LISTA_PASSOS.map(n=>`<button type="button" class="rf-lista-n ${lim===n?'on':''}"
       onclick="rfListaSetLim('${escC(chave)}',${n})">${n}</button>`).join('')}

@@ -312,17 +312,20 @@ function rfMktSetF(k,v){
     f.clube='all'; f.nac='all';   // clube e nacionalidade são DO país escolhido — trocar de país os zera
   } else f[k]=v;
   if(f.pais==null) f.pais='meu';  // filtro salvo antes do país existir
-  CL._mktCache2=null; cdraw();
+  CL._mktCache2=null;
+  /* filtro novo, lista nova: recomeca na primeira pagina */
+  if(CL.listaPag) CL.listaPag['mkt-mercado']=0;
+  cdraw();
 }
 /* a mesma caixa mostra pais e divisao: o valor seleccionado tem de ser reconstruido */
 function rfMktPaisVal(){ const f=rfMktF(); return f.div && f.div!=='all' ? (f.pais+'|'+f.div) : f.pais; }
-function rfMktSetOrd(v){ const f=rfMktF(); f.ord=v; CL._mktCache2=null; cdraw(); }
+function rfMktSetOrd(v){ const f=rfMktF(); f.ord=v; CL._mktCache2=null; if(CL.listaPag) CL.listaPag['mkt-mercado']=0; cdraw(); }
 /* ===== SUBIR OU DESCER =====
    A lista saia sempre da forca, do maior para o menor — nao havia como pedir "o mais barato
    primeiro" nem "o mais novo". O criterio e a direccao sao duas escolhas separadas de
    proposito: trocar a direccao nao pode obrigar a reescolher o criterio. */
 function rfMktVirar(){ const f=rfMktF(); f.dir = f.dir==='desc' ? 'asc' : 'desc'; CL._mktCache2=null; cdraw(); }
-function rfMktLimpar(){ CL.mktF={pais:'meu',div:'all',pos:'all',forca:'all',idade:'all',preco:'all',nac:'all',clube:'all',ord:'forca',dir:'desc',q:''}; CL._mktCache2=null; cdraw(); }
+function rfMktLimpar(){ CL.mktF={pais:'meu',div:'all',pos:'all',forca:'all',idade:'all',preco:'all',nac:'all',clube:'all',ord:'forca',dir:'desc',q:''}; CL._mktCache2=null; if(CL.listaPag) CL.listaPag['mkt-mercado']=0; cdraw(); }
 /* ===== BUSCA POR NOME =====
    "Buscar jogador", no Resumo, levava para a aba Comprar e mais nada: nao havia
    campo nenhum onde escrever um nome. Quem procura alguem em concreto tinha de
@@ -344,6 +347,7 @@ function rfMktNorm(t){
 function rfMktBusca(v){
   rfMktF().q=v||'';
   CL._mktCache2=null;
+  if(CL.listaPag) CL.listaPag['mkt-mercado']=0;   // busca nova recomeca na primeira pagina
   const alvo=document.querySelector('.rf-mkt[data-mkt="mkt-mercado"]');
   if(!alvo) { cdraw(); return; }
   const novo=document.createElement('div');
@@ -523,7 +527,11 @@ function rfMktFiltrosHTML(){
 /* A TABELA SEPARADA DA TELA: a busca por nome refaz so isto, no lugar, sem
    passar por cdraw() -- ver rfMktBusca. */
 function rfMktComprarTabelaHTML(){
-  const mostra=rfMktMercado().slice(0,60);
+  /* ===== SEM TETO: A LISTA PAGINA =====
+     Eram as 60 primeiras do mercado inteiro, e as outras nao existiam para quem
+     procurava — nem com filtro, nem com busca por nome. Agora vai a lista toda
+     para `rfLista`, que a parte em paginas (ver rfLista/rfListaSetPag). */
+  const mostra=rfMktMercado();
   const linhas=mostra.map(({p,clubId,ask,pais,clube,gols})=>{
     const propor=`rfMkPropor('${escC(clubId)}','${escC(p.n)}','${escC(pais||'')}')`;
     /* bandeira + o lado da cota no title: quem está com a cota cheia enxerga de relance
@@ -558,7 +566,8 @@ function rfMktComprarTabelaHTML(){
 }
 function rfMktConta(){
   const todos=rfMktMercado();
-  return Math.min(60,todos.length)+' de '+todos.length;
+  const n=todos.length;
+  return n+' '+((typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t(n===1?'jogador':'jogadores'));
 }
 function rfMktComprarHTML(){
   if(typeof canNegotiate==='function' && !canNegotiate())
