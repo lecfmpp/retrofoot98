@@ -546,6 +546,19 @@ function youthCountThisWindow(){ const w=currentWindowIndex();
   const pendentes=(S._netTransfers||[]).filter(t=>t && t.from==='BASE' && t.to===S.clubId
     && daJanela(t.player) && !jaContados.has(t.player.pid));
   return noElenco.length+pendentes.length; }
+/* o mesmo derivado, mas da TEMPORADA inteira (as duas janelas). O painel da base e o perfil do
+   treinador liam `S.youthPromotedSeason`, um campo que ninguem escreve desde que a contagem
+   passou a sair do proprio elenco: o contador dizia 0 mesmo depois de promover, e o treinador
+   nunca ganhava o traco "aposta na base". Contam-se os do elenco mais os que ainda estao na fila
+   de envio, pela mesma razao explicada em youthCountThisWindow. */
+function youthCountThisSeason(){
+  const daTemporada=p=>!!p && p._youthSeason===S.season;
+  const noElenco=(squad(S.clubId)||[]).filter(daTemporada);
+  const jaContados=new Set(noElenco.map(p=>p.pid));
+  const pendentes=(S._netTransfers||[]).filter(t=>t && t.from==='BASE' && t.to===S.clubId
+    && daTemporada(t.player) && !jaContados.has(t.player.pid));
+  return noElenco.length+pendentes.length;
+}
 function youthWindowOpen(){ return currentWindowIndex()>=0; }
 function youthAvailable(){
   if(!S || !S.clubId) return false;

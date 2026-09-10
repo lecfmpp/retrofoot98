@@ -481,11 +481,12 @@ function rfTrPerfilHTML(){
      comecava aos 36. A ESPECIALIDADE o motor continua a nao guardar -- sai do
      que a campanha mostra. */
   const idade=(S.coachAge0||36)+(temps-1);
-  const especial = rep>=70 ? 'montar elenco caro' : (S.youthPromotedSeason?'desenvolver a base':'segurar time pequeno');
+  const daBase=(typeof youthCountThisSeason==='function') && youthCountThisSeason()>0;
+  const especial = rep>=70 ? 'montar elenco caro' : (daBase?'desenvolver a base':'segurar time pequeno');
   const chips=[];
   const tat=(typeof CAM_TATICA!=='undefined'&&CAM_TATICA[S.tactic])||S.tactic||'';
   if(tat) chips.push(String(tat).toLowerCase());
-  if(S.youthPromotedSeason) chips.push('aposta na base');
+  if(daBase) chips.push('aposta na base');
   chips.push(rep>=70?'nome respeitado':rep>=40?'calmo na derrota':'ainda desconhecido');
   if((S.budget||0)<500000) chips.push('pouco caixa');
   if(CL.formation) chips.push('fiel ao '+CL.formation);

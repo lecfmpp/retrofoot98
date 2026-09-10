@@ -732,7 +732,8 @@ function rfElBaseHTML(){
   // e vendas da base o motor não tem — entram como traço, não como número
   // inventado.
   const gasto=cands.reduce((t,c)=>t+(((c.contract&&c.contract.salary)||0)),0);
-  const promovidos=(S.youthPromotedSeason===S.season)?1:0;
+  /* a cota da temporada sao DUAS promocoes, uma por janela (ver youthAvailable no motor) */
+  const promovidos=(typeof youthCountThisSeason==='function')?youthCountThisSeason():0;
   return `<div class="rf-card rf-el-tbl" data-el="base" style="--el-cols:${RF_BASE_COLS}">
       <div class="rf-label"><span class="rf-label-t">CATEGORIA DE BASE</span>
         <span class="rf-label-r">${cands.length} em formação</span></div>
@@ -744,7 +745,8 @@ function rfElBaseHTML(){
       <div class="rf-el-stats">
         ${rfElStat('GASTO POR MÊS', gasto?rfDin(gasto):'R$ 0')}
         ${rfElStat('NÍVEL DO CT', '—', 'o motor ainda não tem CT')}
-        ${rfElStat('PROMOVIDOS EM '+(S.season||''), promovidos, promovidos?'cota da temporada usada':'cota livre')}
+        ${rfElStat('PROMOVIDOS EM '+(S.season||''), promovidos+' de 2',
+            promovidos>=2?'cota da temporada cheia':(youthWindowOpen&&youthWindowOpen()?'janela aberta':'fora da janela'))}
         ${rfElStat('VENDIDOS DA BASE', '—', 'sem histórico por origem')}
       </div>
     </div>`;
