@@ -969,8 +969,13 @@ function rfLpFichaJogadoraHTML(){
     <span class="rf-mod-listras"></span>
     <img class="rf-mod-foto" src="${escC(j.foto)}" alt="Ficha de ${escC(j.nome)}, do ${escC(j.clube)}" loading="lazy">
     <span class="rf-mod-veu"></span>
+    ${/* O ESCUDO E' IRMAO DA FICHA, NAO FILHO. No cartao do jogador ao lado
+         (img/home/retrato-jogador.webp) ele mora pequeno no ALTO A' DIREITA, e o
+         canto de baixo e' so' do texto — posicao, nome e forca. Para ir para la'
+         ele tem de ser posicionado contra a MOLDURA, e dentro da ficha
+         (`position:relative`) ele ancorava na ficha. */''}
+    <img class="rf-mod-crest" src="${escC(j.crest)}" alt="${escC(j.clube)}" loading="lazy">
     <span class="rf-mod-ficha">
-      <img class="rf-mod-crest" src="${escC(j.crest)}" alt="${escC(j.clube)}" loading="lazy">
       <span class="rf-mod-pos">${escC(linha)}</span>
       <span class="rf-mod-nome">${escC(j.nome)}</span>
       ${j.forca?`<span class="rf-mod-forca"><b>${escC(String(j.forca))}</b> de força</span>`:''}

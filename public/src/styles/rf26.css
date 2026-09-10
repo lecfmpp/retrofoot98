@@ -3914,10 +3914,15 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
 .rf-lp-album-q.depois.jogadora .rf-mod-frame{container-type:inline-size}
 .rf-lp-album-q.depois.jogadora .rf-mod-ficha{text-align:left;align-items:flex-start;
   padding:0 7cqw 7cqw;gap:1cqw}
-/* o valor em px vem primeiro como rede: navegador sem `cqw` fica com uma ficha
-   pequena e no sitio, em vez de voltar aos 54px que subiam pelo cartao acima */
-.rf-lp-album-q.depois.jogadora .rf-mod-crest{width:24px;height:24px;margin-bottom:4px;
-  width:11.5cqw;height:11.5cqw;margin-bottom:2cqw}
+/* O ESCUDO ESPELHA O DO CARTAO DO JOGADOR: pequeno, no alto a' direita, longe do
+   rosto e longe do texto. As medidas saem de img/home/retrato-jogador.webp, que
+   tem 400px de largura — escudo de 46px (11.5cqw) a ~15px da borda direita
+   (3.75cqw) e ~18px do topo (4.5cqw). Ancora na MOLDURA (ver o comentario em
+   rfLpFichaJogadoraHTML) e vem depois do veu no HTML, entao pinta por cima dele.
+   O valor em px vem primeiro como rede para navegador sem `cqw`. */
+.rf-lp-album-q.depois.jogadora .rf-mod-crest{position:absolute;z-index:2;margin:0;
+  top:8px;right:6px;width:24px;height:24px;
+  top:4.5cqw;right:3.75cqw;width:11.5cqw;height:11.5cqw}
 .rf-lp-album-q.depois.jogadora .rf-mod-pos{font-size:7px;font-size:3.2cqw;letter-spacing:.12em}
 .rf-lp-album-q.depois.jogadora .rf-mod-nome{font-size:16px;font-size:7.5cqw;line-height:1.1}
 .rf-lp-album-q.depois.jogadora .rf-mod-forca{font-size:7px;font-size:3.2cqw;gap:.8cqw}

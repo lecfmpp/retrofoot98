@@ -334,7 +334,17 @@ function simEventsC(h,a,seed,opts){ const evs=[]; let fin=null; const isU=(h===S
   return {hg:fin.hg,ag:fin.ag,scorers:fin.scorers,events:evs,perf:fin.perf,caps:fin.caps,matchMinutes:fin.matchMinutes}; }
 function escC(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function rngFrom(seed){ let x=(seed>>>0)||1; return ()=>{ x^=x<<13; x^=x>>>17; x^=x<<5; return ((x>>>0)/0xffffffff); }; }
-const REFS_C=['Anderson Daronco','Wilton Sampaio','Raphael Claus','Bráulio da Silva','Ramon Abatti','Flávio Rodrigues','Ferreira Rodrigues'];
+/* ===== ARBITROS SAO FICTICIOS =====
+   A lista comecou com os nomes dos arbitros de verdade da Serie A. Sao pessoas
+   reais, vivas e identificaveis, postas a apitar num jogo comercial sem que
+   ninguem lhes tenha perguntado — o mesmo motivo que ja levou os 1.900
+   jogadores brasileiros a nome ficticio (ver scripts/nomes-ficticios.mjs).
+   Estes oito sao inventados: primeiro nome comum + sobrenome que nao casa com
+   arbitro nenhum em atividade, e conferidos contra a base do jogo para nao
+   colidirem com jogador ou tecnico. Nome novo entra por aqui e mais nada — a
+   lista e a unica fonte, e o arbitro nunca e gravado no save nem publicado. */
+const REFS_C=['Nivaldo Prestes','Edson Bacelar','Rubens Tinoco','Silvério Mattos',
+  'Haroldo Vilanova','Otávio Lisboa','Jandir Bonfim','Aluísio Braga'];
 const COACHES_C=['Arnaldo Lira','Renato Bianchi','Vanderlei Souza','Paulo Meira','Zé Carlos','Ademir Fonseca','Cuca Ramires'];
 
 /* ---- chrome Win3.1 ---- */
