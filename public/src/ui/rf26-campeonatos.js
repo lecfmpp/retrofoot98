@@ -247,7 +247,7 @@ function rfCpCalendarioHTML(){
     <span class="dir">PLACAR</span><span></span>
   </div>`;
   const grupo=(typeof myGroupLabel==='function')?myGroupLabel():'';
-  const cartaoLiga = mostraLiga ? `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_CAL_COLS}">
+  const cartaoLiga = mostraLiga ? `<div class="rf-card rf-el-tbl" data-el="cal" style="--el-cols:${RF_CP_CAL_COLS}">
       <div class="rf-label">
         <span class="rf-label-t">${rfCompTagHTML(S.division)}${grupo?' <i class="rf-cp-grupo">'+escC(grupo)+'</i>':''}</span>
         <span class="rf-label-r">${(S.round||0)} de ${sched.length||14} semanas</span></div>
@@ -306,7 +306,7 @@ function rfCpCopasCalendarioHTML(so){
         <span>FASE</span><span>DATA</span><span></span><span>ADVERSÁRIO</span><span>LOCAL</span>
         <span class="dir">PLACAR</span><span></span>
       </div>`:'';
-    out.push(`<div class="rf-card rf-el-tbl" style="--el-cols:${RF_CP_COPA_COLS}">
+    out.push(`<div class="rf-card rf-el-tbl" data-el="cal-copa" style="--el-cols:${RF_CP_COPA_COLS}">
       <div class="rf-label"><span class="rf-label-t">${(typeof rfCompTagHTML==='function')?rfCompTagHTML(k):escC(def.name||k)}</span>
         ${linhas.length?`<span class="rf-label-r">${linhas.length} jogo${linhas.length>1?'s':''}</span>`:''}</div>
       ${cabCopa}
@@ -691,7 +691,10 @@ function rfMdClassificacaoHTML(){
       <span class="rf-md-pts">${t.Pts||0}</span>
     </div>`;
   }).join('');
-  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_MD_TBL_COLS}">
+  /* `data-el` e' o gancho da grade de TELEFONE (ver rf26.css): sem ele as dez
+     colunas somam mais do que o card e a grade esmaga a unica flexivel — a do
+     CLUBE — ate' 0px, que era a coluna vazia que se via no telefone. */
+  return `<div class="rf-card rf-el-tbl" data-el="classif" style="--el-cols:${RF_MD_TBL_COLS}">
     <div class="rf-label"><span class="rf-label-t">${comp.tag||escC(comp.label)}</span>
       <span class="rf-label-r">${linhas.length} clubes · ${S.round||0} semanas jogadas</span></div>
     <div class="rf-el-head" style="--el-cols:${RF_MD_TBL_COLS}">
@@ -713,7 +716,7 @@ function rfMdClassifCopaHTML(key){
   return Object.keys(g.groups).sort().map(L=>{
     const grp=g.groups[L];
     const linhas=(typeof sortTableRows==='function')?sortTableRows(grp.table):Object.values(grp.table||{});
-    return `<div class="rf-card rf-el-tbl" style="--el-cols:${cols}">
+    return `<div class="rf-card rf-el-tbl" data-el="classif-grupo" style="--el-cols:${cols}">
       <div class="rf-label"><span class="rf-label-t">Grupo ${escC(L)}</span></div>
       <div class="rf-el-head" style="--el-cols:${cols}">
         <span>#</span><span>CLUBE</span><span>J</span><span>GP</span><span>GC</span><span>SG</span><span class="dir">PTS</span>

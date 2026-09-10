@@ -111,7 +111,7 @@ const RF_PAGES=[
            {k:'base',   l:()=>'Base',             build:()=>rfElBaseHTML(), show:()=>!rfElVisita()},
            {k:'treino', l:()=>'Treino especial',  build:()=>rfElTreinoHTML(), show:()=>!rfElVisita()} ] },
 
-  { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Copas',
+  { key:'campeonatos', ico:'trofeu', label:'Campeonatos', curto:'Tabela',
     titulo:'Campeonatos', sub:()=>rfCpSubHTML(),
     acoes:()=>rfCpAcoesHTML(), grid:'minmax(0,1fr)',
     /* DUAS PERGUNTAS, DUAS PÁGINAS. O CALENDÁRIO é do CLUBE: quando jogo, contra quem, a

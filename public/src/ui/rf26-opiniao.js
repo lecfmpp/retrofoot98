@@ -126,7 +126,7 @@ function abaHTML(){
   const tel=noTelefone();
   return `<button type="button" class="rf-opi-aba" id="rf-opi-aba"
     aria-expanded="${aberto?'true':'false'}" aria-controls="rf-opi-painel"
-    title="Mandar um recado pra equipe" onclick="rfOpiniaoAlternar(event)">
+    aria-label="Dar opinião" title="Mandar um recado pra equipe" onclick="rfOpiniaoAlternar(event)">
     ${aberto && !tel ? `<span class="rf-opi-puxador" aria-hidden="true">›</span>`
       : `<span class="rf-opi-bal" aria-hidden="true">💬</span>
          <span class="rf-opi-rot">${tel?'OPINIÃO':'DAR OPINIÃO'}</span>`}

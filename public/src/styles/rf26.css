@@ -8232,13 +8232,65 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
 .rf-sem-anim .rf-chat-peek,
 .rf-sem-anim .rf-cbx-pop{animation:none !important}
 
-/* ===== NO TELEFONE, CLUBE É SÓ O ESCUDO =====
-   O nome ao lado do escudo come a largura de uma coluna inteira em 375px. O
-   escudo identifica igual, e o nome continua acessível: as células levam
-   `title`, então passar o rato (ou tocar e segurar) mostra a dica. */
+/* ===== NO TELEFONE, O CLUBE TEM DE APARECER =====
+   A regra era esconder o nome e deixar só o escudo, porque "o escudo identifica
+   igual". Só que numa tabela de dez colunas o escudo NÃO chegava a aparecer: a
+   grade tem uma coluna flexível (a do clube) e nove fixas que, somadas, passam
+   da largura do card — a flexível ia a 0px e a coluna do CLUBE ficava
+   literalmente vazia, com os números todos deslocados. Era isso que se via na
+   classificação do telefone: uma tabela de números sem dono.
+   Agora o clube tem largura própria e mostra ESCUDO + as primeiras letras do
+   nome. Sem reticências de propósito (`text-overflow:clip`): num espaço de dez
+   letras, as reticências gastam três a dizer que o texto continua — "Quinzão A"
+   identifica melhor que "Quinzão…". O nome inteiro segue no `title`.
+   O mercado continua só com o escudo: lá a linha tem o nome do JOGADOR, que é
+   quem manda na leitura, e o clube é o complemento. */
 @media (max-width:760px){
-  .rf-cp-clube>span,.rf-mkt-clube>span{display:none}
-  .rf-cp-clube,.rf-mkt-clube{justify-content:center;gap:0}
+  .rf-mkt-clube>span{display:none}
+  .rf-mkt-clube{justify-content:center;gap:0}
+  .rf-cp-clube{gap:5px}
+  .rf-cp-clube>span:last-child{display:block;min-width:0;overflow:hidden;
+    text-overflow:clip;white-space:nowrap;font-size:11px}
+  .rf-cp-clube img,.rf-cp-clube .rf-crest-fb{width:18px;height:18px}
+}
+
+/* ===== AS TABELAS DE COMPETIÇÃO NO TELEFONE =====
+   Mesma doença e mesmo remédio das tabelas do Elenco (ver mais acima): cada uma
+   ganha a SUA grade de telefone, com todas as colunas em largura real, para a
+   grade não ter o que esmagar. A ordem e o vocabulário são os mesmos das duas
+   abas — Calendário e Classificação — para quem passa de uma para a outra não
+   ter de reaprender a ler.
+   A CLASSIFICAÇÃO PERDE V·E·D no telefone, e só ela: são as três colunas que o
+   J, o SG e os PTS ao lado já resumem, e são o que faz a diferença entre uma
+   tabela que cabe e uma que só se lê arrastando. Nas telas largas continuam
+   todas lá. */
+@media (max-width:760px){
+  [data-el="classif"] .rf-el-head,[data-el="classif"] .rf-el-row{
+    grid-template-columns:20px minmax(0,1fr) 22px 24px 24px 28px 28px !important;
+    gap:0 6px}
+  /* V, E e D — 4ª, 5ª e 6ª células da linha e do cabeçalho */
+  [data-el="classif"] .rf-el-head>*:nth-child(4),[data-el="classif"] .rf-el-row>*:nth-child(4),
+  [data-el="classif"] .rf-el-head>*:nth-child(5),[data-el="classif"] .rf-el-row>*:nth-child(5),
+  [data-el="classif"] .rf-el-head>*:nth-child(6),[data-el="classif"] .rf-el-row>*:nth-child(6){display:none}
+  [data-el="classif-grupo"] .rf-el-head,[data-el="classif-grupo"] .rf-el-row{
+    grid-template-columns:20px minmax(0,1fr) 22px 24px 24px 28px 28px !important;
+    gap:0 6px}
+  /* a coluna do adversário fica com o que sobra, e sobra de propósito: as
+     outras seis levam o mínimo em que ainda se leem */
+  [data-el="cal"] .rf-el-head,[data-el="cal"] .rf-el-row{
+    grid-template-columns:28px 40px 20px minmax(0,1fr) 28px 40px 18px !important;
+    gap:0 6px}
+  [data-el="cal-copa"] .rf-el-head,[data-el="cal-copa"] .rf-el-row{
+    grid-template-columns:58px 40px 20px minmax(0,1fr) 28px 40px 18px !important;
+    gap:0 6px}
+  [data-el="classif"] .rf-el-row,[data-el="classif-grupo"] .rf-el-row,
+  [data-el="cal"] .rf-el-row,[data-el="cal-copa"] .rf-el-row{padding:7px 8px}
+  [data-el="classif"] .rf-el-nome,[data-el="classif-grupo"] .rf-el-nome,
+  [data-el="cal"] .rf-el-nome,[data-el="cal-copa"] .rf-el-nome{
+    font-size:11px;overflow:hidden;text-overflow:clip;white-space:nowrap}
+  [data-el="cal"] .rf-cp-jor,[data-el="cal-copa"] .rf-cp-jor,
+  [data-el="cal"] .rf-cp-local,[data-el="cal-copa"] .rf-cp-local{font-size:9.5px}
+  [data-el="cal"] .rf-cp-placar,[data-el="cal-copa"] .rf-cp-placar{font-size:12px}
 }
 /* data do jogo no calendário — mono, discreta; no telefone encolhe ao máximo */
 .rf-cp-data{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--text-muted);white-space:nowrap}
@@ -11691,9 +11743,20 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 /* --rf-opi-piso e' MEDIDO em tempo de desenho (ver medirPiso, rf26-opiniao.js):
    e' a altura da barra fixa que estiver no fundo, ou 0 nas telas sem barra. */
 #rf-opi-host.tel{top:auto;bottom:calc(var(--rf-opi-piso,0px) + 12px);transform:none;flex-direction:column;align-items:flex-end}
-#rf-opi-host.tel .rf-opi-aba{width:44px;height:132px;padding:0}
-#rf-opi-host.tel .rf-opi-bal{font-size:16px}
-#rf-opi-host.tel .rf-opi-rot{letter-spacing:.15em}
+/* ===== NO TELEFONE A ABA ENCOLHE PARA UM SELO =====
+   Ela era 44x132 com o rótulo na vertical, como no pacote. Só que 132px de
+   altura colada à direita atravessam TRÊS linhas de uma tabela — e a última
+   coluna das tabelas de competição (PTS, no caso da classificação) mora
+   exactamente ali. Medido na Série D no telefone: o selo tapava os pontos de
+   três clubes de cada vez.
+   Um selo de 46px tapa, no máximo, o canto de uma linha, e é o tamanho de alvo
+   de toque que o telefone pede. O rótulo sai porque a 46px ele não caberia sem
+   encolher a letra abaixo do legível; o balão sozinho já diz o que é, e o
+   `aria-label` diz para quem não vê o desenho. No computador, onde a lateral é
+   margem e não conteúdo, a aba continua inteira com "DAR OPINIÃO". */
+#rf-opi-host.tel .rf-opi-aba{width:46px;height:46px;padding:0;gap:0}
+#rf-opi-host.tel .rf-opi-bal{font-size:19px}
+#rf-opi-host.tel .rf-opi-rot{display:none}
 #rf-opi-host.tel.aberto{left:0;right:0;bottom:var(--rf-opi-piso,0px);align-items:stretch}
 #rf-opi-host.tel.aberto .rf-opi-aba{display:none}     /* a gaveta tem o seu próprio ✕ */
 #rf-opi-host.tel .rf-opi-painel{width:100%;border-right:1px solid var(--line-1);
