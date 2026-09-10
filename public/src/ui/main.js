@@ -345,7 +345,12 @@ function rngFrom(seed){ let x=(seed>>>0)||1; return ()=>{ x^=x<<13; x^=x>>>17; x
    lista e a unica fonte, e o arbitro nunca e gravado no save nem publicado. */
 const REFS_C=['Nivaldo Prestes','Edson Bacelar','Rubens Tinoco','Silvério Mattos',
   'Haroldo Vilanova','Otávio Lisboa','Jandir Bonfim','Aluísio Braga'];
-const COACHES_C=['Arnaldo Lira','Renato Bianchi','Vanderlei Souza','Paulo Meira','Zé Carlos','Ademir Fonseca','Cuca Ramires'];
+/* ===== O TECNICO DE UM CLUBE E' UM SO' =====
+   Havia DUAS listas de tecnicos: esta, de 7 nomes, para a ficha do adversario, e a COACH_POOL,
+   de 27, para o ranking de treinadores. Sorteadas por criterios diferentes — hash do id numa,
+   indice na outra —, o MESMO clube aparecia com um tecnico na ficha e outro no ranking.
+   Fica so' a COACH_POOL, e quem responde "quem treina este clube?" e' o `coachName` (mais
+   abaixo), em qualquer tela. */
 
 /* ---- chrome Win3.1 ---- */
 function deskWrap(inner,opts){ opts=opts||{};
@@ -4701,7 +4706,7 @@ function panViewJogador(vid){
 function panViewAdversario(oppId){
   if(!oppId) return `<div class="cl-adv">Sem adversário nesta rodada.</div>`;
   const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
-  const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
+  const rnd=rngFrom(hashC(oppId)); const coach=coachName(oppId);
   return `<div class="cl-adv">
     <div class="cl-adv-big"><span class="cl-link" onclick="clViewTeam('${oppId}')">${escC(clubOf(oppId).short)}</span></div>
     <div class="cl-bar cl-bar-lg"><div class="cl-bar-fill" style="width:${forca}%"></div></div>
@@ -11162,7 +11167,7 @@ function lastIncidentTxt(inc){
 function panAdversario(oppId){
   if(!oppId) return `<div class="cl-adv">Sem adversário nesta rodada.</div>`;
   const r=ratings(oppId,false); const forca=Math.max(6,Math.min(100,Math.round((r.OS+r.DS)/2)));
-  const rnd=rngFrom(hashC(oppId)); const coach=COACHES_C[Math.floor(rnd()*COACHES_C.length)];
+  const rnd=rngFrom(hashC(oppId)); const coach=coachName(oppId);
   return `<div class="cl-adv">
     <div class="cl-adv-big">${clubLink(oppId)}</div>
     <div class="cl-bar cl-bar-lg"><div class="cl-bar-fill" style="width:${forca}%"></div></div>
@@ -11788,8 +11793,32 @@ function clPerfilOk(){ saveV3(); clCloseOverlay(); toastC('Preferências do trei
 function clPerfilCancel(){ S.config.profile=CL._profileSnapshot; clCloseOverlay(); }
 
 /* ---- Treinador > História / Ranking ---- */
-const COACH_POOL=['C. A. Silva','Artur Nunes','Dimas Filgueiras','Wanderlei Sousa','Carlos A. Silva','Antônio Lopes','Celso Roth','Émerson Leão','Cláudio Duarte','Gassem','Eduardo Amorim','Joel Castro','Oswaldo Alvarez','Arnaldo Lira','Felipe Scolari','Rafael Granit','Nelsinho','C. A. Torres','Gilson Nunes','Rubens Minelli','Beto Almeida','Pardal','Lauro Búrigo','Amado Bucar','Abel Braga','Evaristo Macedo','Jair Pereira'];
-function coachName(clubId,idx){ if(CL.humans&&CL.humans[clubId]) return CL.humans[clubId]; return COACH_POOL[idx%COACH_POOL.length]; }
+/* ===== OS TECNICOS SAO FICTICIOS =====
+   Esta lista tinha treinadores DE VERDADE — Scolari, Abel Braga, Emerson Leao, Celso Roth,
+   Carlos Alberto Torres, Rubens Minelli, Antonio Lopes — e nao ficava num canto qualquer: e' ela
+   que enche o RANKING DE TREINADORES, onde os nomes aparecem classificados ao lado do jogador,
+   com titulos e pontos. Sao pessoas reais, identificaveis, num quadro de classificacao que elas
+   nunca disputaram. Mesma razao que ja levou os 1.900 jogadores brasileiros e os arbitros a nome
+   ficticio (ver REFS_C).
+   Os 27 novos sao inventados, conferidos contra a base do jogo e contra a lista de arbitros para
+   nao haver o mesmo nome em dois papeis. O nome nao e' guardado no save — sai do id do clube —,
+   entao a troca vale tambem para quem ja tem carreira a meio. */
+const COACH_POOL=['Teobaldo Nery','Almir Zaluar','Hélio Bandeira','Wagner Pontes','Ivo Sacramento',
+  'Dalmo Ribeiral','Otacílio Freire','Bento Aragão','Genésio Palma','Ubirajara Melo','Toninho Vidal',
+  'Sandoval Maia','Tunico','Élcio Barreto','Mauro Castilho','Vicente Nogueira','Zeca Valadares',
+  'Adilson Prado','Zanoni','Raimundo Serpa','Gilmar Tavares','Osvaldino Rocha','Fábio Quintana',
+  'Lindomar Boaventura','Tarcísio Bueno','Juvenal Prata','Márcio Estrela'];
+/* O NOME SAI DO CLUBE, NAO DA POSICAO NA LISTA. O `idx` que os chamadores passam e' a ordem em
+   que cada tela percorre os clubes — e duas telas percorrem em ordens diferentes, entao o mesmo
+   clube ganhava tecnicos diferentes conforme a tela. Agora e o id que decide, sempre, e o `idx`
+   fica so' por compatibilidade com quem ja chama assim.
+   Com 27 nomes e mais clubes do que isso ha repeticao — havia com o indice tambem, e um tecnico
+   que aparece em dois clubes pequenos e' menos estranho do que o mesmo clube trocar de tecnico
+   ao mudar de ecra. */
+function coachName(clubId){
+  if(CL.humans&&CL.humans[clubId]) return CL.humans[clubId];
+  return COACH_POOL[hashC(String(clubId))%COACH_POOL.length];
+}
 /* ícone por tipo de evento da carreira do treinador — troféus de campeão usam a imagem
    real da competição (ver comp); os demais tipos usam um emoji fixo */
 const COACH_HIST_ICON={contratado:'🤝', acesso:'🔺', rebaixamento:'🔻', campeao:'🏆', demissao:'🚪'};
