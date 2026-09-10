@@ -107,7 +107,9 @@ const ST = {
      '' = ano inteiro. despFiltro é o da aba Despesas, independente do de cima. */
   finAno: '', finMes: null, despFiltro: 'recentes',
   /* filtros do quadro de funcionalidades */
-  kbPri: '', kbData: ''
+  kbPri: '', kbData: '',
+  /* filtros da seção Opinião de usuários (mesma página do quadro) */
+  opTipo: '', opVer: 'novas', opBusca: ''
 };
 
 /* ============================ utilidades ============================ */
@@ -3125,14 +3127,19 @@ function modalUpload(chave){
 async function pgFeatures(forcar, senha = pedirDesenho()){
   /* a equipe entra na consulta porque o card mostra QUEM o criou, e o banco só
      guarda o uuid — sem isto o quadro mostraria um identificador a ninguém */
-  const [cols, feats, equipe] = await Promise.all([
+  const [cols, feats, equipe, opin] = await Promise.all([
     sb.from('adm_kanban_cols').select('*').order('ord'),
     sb.from('adm_features').select('*').order('ord'),
-    sb.from('adm_users').select('user_id,nome,email')
+    sb.from('adm_users').select('user_id,nome,email'),
+    /* a opinião vem do JOGO (elifoot_v3), não do painel: quem escreve é o
+       treinador, muitas vezes deslogado, e `anon` não entra em admin_rf98.
+       Ver a aba de opinião em public/src/ui/rf26-opiniao.js. */
+    jogo('user_opinions').select('*').order('criada_em', { ascending:false }).range(0, PAGINA_SB-1)
   ]);
   if(cols.error) throw cols.error;
   if(feats.error) throw feats.error;
-  D.cols = cols.data||[]; D.feats = feats.data||[];
+  if(opin.error) throw opin.error;
+  D.cols = cols.data||[]; D.feats = feats.data||[]; D.opinioes = opin.data||[];
   D.pessoas = new Map((equipe.data||[]).map(a => [a.user_id, a]));
   const editar = podeEditar('produto');
   const total = D.feats.length, votos = D.feats.reduce((a,f)=>a+ +f.votos,0);
@@ -3178,7 +3185,8 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
         <input class="f" id="kb-nome" placeholder="Nome da nova coluna" style="border-style:dashed;background:var(--card)">
         <button class="btn btn-ghost btn-sm" id="kb-add-col">+ Criar coluna</button>
       </div>`:''}
-    </div>`;
+    </div>
+    ${opinioesHTML(editar)}`;
 
   /* os filtros e a abertura da ficha valem para quem só lê — o quadro serve
      para consultar, e prendê-los ao papel deixaria metade da equipe sem eles */
@@ -3189,6 +3197,145 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   if(editar) ligarKanban();
   else document.querySelectorAll('.kbcard').forEach(c =>
     c.onclick = () => abrirCardFeature(c.dataset.card));
+  ligarOpinioes(editar);
+}
+
+/* ==================== OPINIÃO DE USUÁRIOS ====================
+   A caixa de entrada do que os treinadores mandam pela aba de opinião do jogo
+   (public/src/ui/rf26-opiniao.js -> elifoot_v3.user_opinions).
+
+   POR QUE ELA MORA NA PÁGINA DO QUADRO: é a mesma pergunta — "o que os
+   treinadores pedem" —, só que em estado bruto. O quadro é o que a equipe
+   decidiu fazer; isto é o que chegou. Ter as duas coisas na mesma página é o
+   que permite ler um recado e transformá-lo num card sem sair do lugar.
+
+   A LISTA COMEÇA NAS NÃO LIDAS. Uma caixa de entrada que abre no histórico
+   inteiro deixa de ser caixa de entrada: o que se quer ver ao chegar é o que
+   ainda não passou por ninguém. */
+const OP_TIPOS = { melhoria:{ic:'💡', n:'Melhoria', c:'var(--azul,#3b82f6)'},
+                   problema:{ic:'🐞', n:'Problema', c:'var(--vermelho)'},
+                   elogio:  {ic:'⚽', n:'Elogio',   c:'var(--verde2)'} };
+const OP_VER = { novas:'Não lidas', todas:'Todas', arquivadas:'Arquivadas' };
+function opinioesFiltradas(){
+  const todas = D.opinioes || [];
+  const q = (ST.opBusca||'').toLowerCase();
+  return todas.filter(o => {
+    if(ST.opVer === 'arquivadas' ? !o.arquivada : o.arquivada) return false;
+    if(ST.opVer === 'novas' && o.lida) return false;
+    if(ST.opTipo && o.tipo !== ST.opTipo) return false;
+    if(q && ![o.texto,o.tela,o.competicao,o.clube,o.tecnico,o.email]
+              .some(v => String(v||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function opinioesHTML(editar){
+  const todas = D.opinioes || [];
+  const naCaixa = todas.filter(o => !o.arquivada);
+  const novas = naCaixa.filter(o => !o.lida).length;
+  const ls = opinioesFiltradas();
+  const col = '96px minmax(0,1fr) 190px 120px';
+  return `<div class="card" id="op-secao" style="overflow:hidden;margin-top:22px">
+    <div class="card-h" style="flex-wrap:wrap;gap:10px">
+      <b>Opinião de usuários</b>
+      <span class="mono" style="font-size:12px;color:var(--dim2)">
+        ${num(naCaixa.length)} na caixa${novas?` · <b style="color:var(--ambar)">${num(novas)} por ler</b>`:' · tudo lido'}</span>
+      <span style="flex:1"></span>
+      <select class="f" id="op-ver" style="width:auto;font-size:12.5px">
+        ${Object.entries(OP_VER).map(([k,r]) =>
+          `<option value="${k}" ${ST.opVer===k?'selected':''}>${h(r)}</option>`).join('')}
+      </select>
+      <select class="f" id="op-tipo" style="width:auto;font-size:12.5px">
+        <option value="">Qualquer tipo</option>
+        ${Object.entries(OP_TIPOS).map(([k,t]) =>
+          `<option value="${k}" ${ST.opTipo===k?'selected':''}>${t.ic} ${h(t.n)} (${naCaixa.filter(o=>o.tipo===k).length})</option>`).join('')}
+      </select>
+      <input class="busca" id="op-busca" placeholder="Procurar no texto, tela, clube…" value="${h(ST.opBusca||'')}">
+    </div>
+    <div class="rowh" style="grid-template-columns:${col}">
+      <span>Tipo</span><span>O que escreveram</span><span>Onde e quem</span>
+      <span style="text-align:right">Quando</span>
+    </div>
+    ${ls.length ? ls.map(o => opLinhaHTML(o, editar)).join('')
+      : `<div class="vazio">${ST.opVer==='novas' && naCaixa.length
+          ? 'Nada por ler — todas as opiniões da caixa já foram vistas.'
+          : 'Nenhuma opinião ainda.'}</div>`}
+  </div>`;
+}
+function opLinhaHTML(o, editar){
+  const t = OP_TIPOS[o.tipo] || OP_TIPOS.melhoria;
+  const col = '96px minmax(0,1fr) 190px 120px';
+  /* o contexto foi capturado pelo jogo — é o que responde "onde ele estava
+     quando isto aconteceu?" sem ter de perguntar a ninguém */
+  const onde = [o.tela, o.competicao, o.versao?('v'+o.versao):null].filter(Boolean).join(' · ');
+  const quem = [o.clube, o.tecnico, o.email].filter(Boolean).join(' · ');
+  return `<div class="row" style="grid-template-columns:${col};align-items:start${o.lida?';opacity:.62':''}">
+    <span style="font-size:12px;font-weight:600;color:${t.c};white-space:nowrap">${t.ic} ${h(t.n)}</span>
+    <span style="min-width:0;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word">${h(o.texto)}</span>
+    <span class="mono" style="min-width:0;font-size:11px;color:var(--dim2);line-height:1.5">
+      ${h(onde||'—')}
+      <small style="display:block;font-size:10.5px;color:var(--dim3);overflow:hidden;text-overflow:ellipsis"
+             title="${h(o.user_agent||'')}">${h(quem||'sem conta')}${o.plataforma?' · '+h(o.plataforma):''}</small></span>
+    <span class="mono" style="text-align:right;font-size:12px" title="${h(new Date(o.criada_em).toLocaleString('pt-BR'))}">
+      ${h(dmy(o.criada_em))}<small style="display:block;font-size:10.5px;color:var(--dim3)">${h(horaHM(o.criada_em))}</small></span>
+    ${editar?`<span style="grid-column:1/-1;display:flex;gap:8px;padding-top:2px">
+      <button class="btn btn-sm btn-ghost" data-op-lida="${o.id}">${o.lida?'Marcar por ler':'Marcar lida'}</button>
+      ${o.arquivada
+        ? `<button class="btn btn-sm btn-ghost" data-op-voltar="${o.id}">Devolver à caixa</button>`
+        : `<button class="btn btn-sm btn-ghost" data-op-arquivar="${o.id}">Arquivar</button>`}
+      ${o.feature_id
+        ? '<span class="mono" style="font-size:11.5px;color:var(--verde2);align-self:center">✓ virou card no quadro</span>'
+        : `<button class="btn btn-sm" data-op-card="${o.id}">Virar card do quadro</button>`}
+    </span>`:''}
+  </div>`;
+}
+function ligarOpinioes(editar){
+  if(!el('op-secao')) return;
+  el('op-ver').onchange  = () => { ST.opVer  = el('op-ver').value;  redesenhar(pgFeatures); };
+  el('op-tipo').onchange = () => { ST.opTipo = el('op-tipo').value; redesenhar(pgFeatures); };
+  const b = el('op-busca'); let t = null;
+  b.oninput = () => { clearTimeout(t); t = setTimeout(() => { ST.opBusca = b.value.trim(); redesenhar(pgFeatures); }, 350); };
+  if(!editar) return;
+  const mexer = (attr, campo, valor, msg) => {
+    document.querySelectorAll('[data-'+attr+']').forEach(bt => bt.onclick = async () => {
+      const id = bt.dataset[attr.replace(/-(\w)/g, (m,c)=>c.toUpperCase())];
+      bt.disabled = true;
+      const o = (D.opinioes||[]).find(x => x.id === id);
+      const novo = typeof valor === 'function' ? valor(o) : valor;
+      const { error } = await jogo('user_opinions').update({ [campo]: novo }).eq('id', id);
+      if(error){ bt.disabled = false; return toast('Não deu para gravar: ' + erroMsg(error), true); }
+      registrar('opiniao.' + campo, id, { valor:novo });
+      toast(msg(novo));
+      redesenhar(pgFeatures);
+    });
+  };
+  mexer('op-lida', 'lida', o => !(o && o.lida), v => v ? 'Marcada como lida.' : 'De volta às não lidas.');
+  mexer('op-arquivar', 'arquivada', true,  () => 'Arquivada.');
+  mexer('op-voltar',   'arquivada', false, () => 'De volta à caixa.');
+  document.querySelectorAll('[data-op-card]').forEach(bt => bt.onclick = () => opVirarCard(bt.dataset.opCard));
+}
+/* ===== DO RECADO AO QUADRO =====
+   O card nasce na PRIMEIRA coluna, que é onde entra tudo o que ainda não foi
+   triado, e leva o texto do treinador na descrição — não uma paráfrase. A
+   opinião fica marcada com o id do card e sai da caixa: já tem dono. */
+async function opVirarCard(id){
+  const o = (D.opinioes||[]).find(x => x.id === id); if(!o) return;
+  const col = (D.cols||[])[0];
+  if(!col) return toast('Crie uma coluna no quadro antes.', true);
+  const t = OP_TIPOS[o.tipo] || OP_TIPOS.melhoria;
+  const titulo = o.texto.length > 70 ? o.texto.slice(0,67).trim() + '…' : o.texto;
+  const onde = [o.tela, o.competicao, o.versao?('v'+o.versao):null].filter(Boolean).join(' · ');
+  const ord = Math.max(0, ...(D.feats||[]).filter(f=>f.coluna_id===col.id).map(f=>+f.ord||0)) + 1;
+  const ins = await sb.from('adm_features').insert({
+    coluna_id: col.id, ord, titulo, origem:'usuario', criado_por: ME && ME.user_id,
+    descricao: o.texto + '\n\n— ' + t.n.toLowerCase() + ' de um treinador' +
+               (onde ? ' em ' + onde : '') + (o.clube ? ' (' + o.clube + ')' : '')
+  }).select('id').single();
+  if(ins.error) return toast('Não deu para criar o card: ' + erroMsg(ins.error), true);
+  const up = await jogo('user_opinions').update({ feature_id: ins.data.id, lida:true, arquivada:true }).eq('id', id);
+  if(up.error) toast('Card criado, mas a opinião não saiu da caixa: ' + erroMsg(up.error), true);
+  else toast('Card criado em "' + col.nome + '".');
+  registrar('opiniao.virou_card', id, { feature: ins.data.id });
+  redesenhar(pgFeatures);
 }
 function colunaHTML(c, editar){
   const cards = D.feats.filter(f=>f.coluna_id===c.id).sort((a,b)=>a.ord-b.ord);

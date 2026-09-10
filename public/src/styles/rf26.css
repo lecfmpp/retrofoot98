@@ -11615,3 +11615,98 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-mjp-selo{width:56px;height:56px;font-size:26px}
   .rf-mjp-cta{height:50px}
 }
+
+/* =====================================================================
+   ABA DE OPINIÃO (ver src/ui/rf26-opiniao.js)
+   z-index 45 de propósito: por baixo da barra do telefone (50), do chat
+   (55), do Camarote (60), dos overlays de partida (65) e dos modais (120).
+   A aba nunca fica por cima de uma decisão à espera de resposta.
+   ===================================================================== */
+#rf-op-host{position:fixed;right:0;z-index:45;display:flex;align-items:stretch;
+  pointer-events:none}
+#rf-op-host>*{pointer-events:auto}
+#rf-op-host.desk{top:50%;transform:translateY(-50%);flex-direction:row-reverse}
+
+/* a aba recolhida — 36px, raio só do lado esquerdo */
+.rf-op-aba{flex:0 0 auto;width:36px;border:none;padding:13px 0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  background:var(--club-primary);color:var(--club-on-primary);
+  border-radius:var(--r-control) 0 0 var(--r-control);box-shadow:var(--shadow-shell);
+  transition:background var(--dur-fast,.18s) var(--ease,ease),width var(--dur-fast,.18s) var(--ease,ease)}
+.rf-op-aba:hover{background:var(--club-primary-deep)}
+.rf-op-bal{font-size:15px;line-height:1}
+.rf-op-rot{font-family:var(--font-mono);font-size:10.5px;font-weight:var(--fw-semibold,600);
+  letter-spacing:.16em;writing-mode:vertical-rl;text-orientation:mixed;color:var(--club-on-primary)}
+.rf-op-puxador{font-family:var(--font-mono);font-size:13px;font-weight:var(--fw-semibold,600);
+  color:var(--club-on-primary)}
+/* aberta no desktop: a aba encolhe e vira o puxador de fechar */
+#rf-op-host.desk.aberto .rf-op-aba{width:28px;padding:0;border-radius:var(--r-control) 0 0 var(--r-control)}
+
+/* o painel do desktop — 308px encostado na borda */
+.rf-op-painel{width:308px;box-sizing:border-box;background:var(--surface-card);
+  border:1px solid var(--line-1);border-right:none;border-radius:var(--r-card) 0 0 var(--r-card);
+  box-shadow:var(--shadow-shell);padding:14px;display:flex;flex-direction:column;gap:11px}
+.rf-op-hd{display:flex;align-items:center;gap:8px}
+.rf-op-alca{width:34px;height:4px;border-radius:99px;background:var(--line-2);flex:0 0 auto}
+.rf-op-tit{font-size:15px;font-weight:var(--fw-bold,700);color:var(--text-1)}
+.rf-op-x{width:28px;height:28px;flex:0 0 auto;border:none;cursor:pointer;
+  border-radius:var(--r-chip);background:var(--surface-sunken);color:var(--text-3);
+  font-size:12px;font-weight:var(--fw-semibold,600);display:flex;align-items:center;justify-content:center}
+.rf-op-x:hover{background:var(--line-3)}
+.rf-op-sub{font-size:12.5px;line-height:1.45;color:var(--text-3)}
+.rf-op-tipos{display:flex;gap:6px}
+.rf-op-tipo{flex:1 1 0;min-width:0;height:40px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  border-radius:var(--r-chip);border:1px solid var(--line-2);background:var(--surface-sunken);
+  color:var(--text-3);font-size:12px;font-weight:var(--fw-semibold,600);white-space:nowrap}
+.rf-op-tipo.on{background:var(--club-primary);color:var(--club-on-primary);border-color:var(--club-primary)}
+.rf-op-txt{width:100%;box-sizing:border-box;height:92px;resize:none;
+  font-family:inherit;font-size:13px;line-height:1.45;padding:9px 10px;
+  border:1px solid var(--line-2);border-radius:var(--r-inner);
+  background:var(--surface-sunken);color:var(--text-1);outline:none}
+.rf-op-txt:focus{border-color:var(--club-primary)}
+.rf-op-ctx{display:flex;align-items:center;gap:7px;padding:7px 9px;
+  background:var(--club-primary-soft);border:1px solid var(--club-primary-line);
+  border-radius:var(--r-chip);font-family:var(--font-mono);font-size:10.5px;line-height:1.35;
+  color:var(--club-primary-deep)}
+.rf-op-erro{font-size:12px;font-weight:var(--fw-semibold,600);color:var(--danger)}
+.rf-op-acts{display:flex;gap:7px}
+.rf-op-cta{flex:1 1 auto;height:var(--h-cta);border:none;cursor:pointer;
+  border-radius:var(--r-control);background:var(--club-primary);color:var(--club-on-primary);
+  font-family:inherit;font-size:13.5px;font-weight:var(--fw-semibold,600)}
+.rf-op-cta:disabled{opacity:.45;cursor:default}
+.rf-op-alt{flex:0 0 auto;width:92px;height:var(--h-cta);cursor:pointer;
+  border-radius:var(--r-control);border:1px solid var(--line-2);background:var(--surface-sunken);
+  color:var(--text-3);font-family:inherit;font-size:13.5px;font-weight:var(--fw-semibold,600)}
+
+/* o aviso de enviado: some sozinho em 3s */
+.rf-op-aviso{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:46;
+  display:flex;align-items:center;gap:8px;padding:11px 15px;
+  background:var(--text-1);border-radius:var(--r-control);box-shadow:var(--shadow-shell);
+  font-size:13px;font-weight:var(--fw-semibold,600);color:var(--text-on-dark);
+  animation:rf-op-entra .18s var(--ease,ease)}
+.rf-op-aviso.tel{bottom:calc(var(--rf-op-piso,0px) + 14px)}
+.rf-op-aviso.sai{opacity:0;transition:opacity .25s var(--ease,ease)}
+.rf-op-ok{color:var(--ok);font-size:12px}
+@keyframes rf-op-entra{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ----- TELEFONE: aba de 44×132 no centro do polegar, gaveta por baixo -----
+   A gaveta ASSENTA ACIMA da barra inferior (--rf-op-piso) em vez de a cobrir:
+   a barra é a navegação do jogo, e tapá-la seria trocar um caminho por outro.
+   Sem véu escuro — o jogo continua visível e um toque fora fecha. */
+/* --rf-op-piso e' MEDIDO em tempo de desenho (ver medirPiso, rf26-opiniao.js):
+   e' a altura da barra fixa que estiver no fundo, ou 0 nas telas sem barra. */
+#rf-op-host.tel{top:auto;bottom:calc(var(--rf-op-piso,0px) + 12px);transform:none;flex-direction:column;align-items:flex-end}
+#rf-op-host.tel .rf-op-aba{width:44px;height:132px;padding:0}
+#rf-op-host.tel .rf-op-bal{font-size:16px}
+#rf-op-host.tel .rf-op-rot{letter-spacing:.15em}
+#rf-op-host.tel.aberto{left:0;right:0;bottom:var(--rf-op-piso,0px);align-items:stretch}
+#rf-op-host.tel.aberto .rf-op-aba{display:none}     /* a gaveta tem o seu próprio ✕ */
+#rf-op-host.tel .rf-op-painel{width:100%;border-right:1px solid var(--line-1);
+  border-radius:var(--r-shell) var(--r-shell) 0 0;padding:12px 14px 14px;gap:10px;
+  animation:rf-op-sobe .18s var(--ease,ease)}
+#rf-op-host.tel .rf-op-x{width:36px;height:36px;font-size:13px}
+#rf-op-host.tel .rf-op-tipo{height:44px}
+#rf-op-host.tel .rf-op-txt{height:80px}
+#rf-op-host.tel .rf-op-cta{width:100%;font-size:14px}
+@keyframes rf-op-sobe{from{transform:translateY(100%)}to{transform:translateY(0)}}

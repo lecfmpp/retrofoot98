@@ -843,6 +843,11 @@ function devolveRolagem(m){
       rfSubCentrarTroca();
   }catch(e){}
   try{ RF_CTX_DESENHADO=rfContextoRolagem(); }catch(e){}
+  /* A ABA DE OPINIAO E' REDESENHADA AQUI, no fim de cada desenho, porque ela vive
+     FORA do #c-root e nenhuma tela sabe que ela existe (mesma escolha do chat da
+     Resenha). Com o painel aberto a funcao sai na primeira linha — um innerHTML
+     novo apagaria o que a pessoa esta a escrever. */
+  try{ if(typeof rfOpiniaoRender==='function') rfOpiniaoRender(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
   /* as vagas aprovadas entram tambem no save JA' ABERTO — comparacao de strings quando nada
