@@ -244,7 +244,10 @@ function rfContaChipHTML(minimo){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(!st.loggedIn){
     if(rfSoLista()) return '';
-    return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('solo')">${rfIcone('chave',16)} Entrar</button>`;
+    /* 'login' e nao 'solo': o modo vai direto para `CL.auth.mode`, e qualquer valor que nao
+       seja 'login' abre a aba CRIAR CONTA (ver rfOb1). Um botao que diz "Entrar" e abre o
+       cadastro manda quem ja tem conta preencher nome e senha nova. */
+    return `<button type="button" class="rf-lp-entrar" onclick="clGoModo('login')">${rfIcone('chave',16)} Entrar</button>`;
   }
   const nome=st.name||(st.email||'').split('@')[0]||'treinador';
   const pro=rfContaEhPro();
@@ -292,7 +295,7 @@ function rfLpMenu(minimo){
     ? `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('lista')">
       <span class="rf-nav-l">Entrar na lista</span></button>`
     : `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('planos')">
-      <span class="rf-nav-l">Ver os planos</span></button>`);
+      <span class="rf-nav-l">${RF_LP_CTA_TXT}</span></button>`);
   const conta = st.loggedIn ? `<div class="rf-sheet-sep"></div>
       <div class="rf-sheet-conta">
         <span class="rf-sheet-conta-ic" aria-hidden="true">👤</span>
@@ -304,7 +307,7 @@ function rfLpMenu(minimo){
       <button type="button" class="rf-sheet-i sair" onclick="clCloseOverlay();rfAcSairConta()">
         <span class="rf-nav-l">Sair da conta</span></button>`
     : (rfSoLista() ? '' : `<div class="rf-sheet-sep"></div>
-      <button type="button" class="rf-sheet-i" onclick="clCloseOverlay();clGoModo('solo')">
+      <button type="button" class="rf-sheet-i" onclick="clCloseOverlay();clGoModo('login')">
         <span class="rf-nav-l">Entrar na minha conta</span></button>`);
   if(typeof rfSheet==='function') rfSheet('Menu', `<div class="rf-sheet-list">${links}${lista}${conta}</div>`);
 }
@@ -339,7 +342,7 @@ function rfLpNavHTML(extra, minimo){
     </div>
     <div class="rf-lp-acoes">
       ${extra||''}
-      ${(!minimo && extra==null) ? `<button type="button" class="rf-lp-btlista" onclick="rfLpIr('${RF_SO_LISTA?'lista':'planos'}')">${RF_SO_LISTA?'Entrar na lista':'Ver os planos'}</button>` : ''}
+      ${(!minimo && extra==null) ? `<button type="button" class="rf-lp-btlista" onclick="${rfLpComecarOn()}">${RF_SO_LISTA?'Entrar na lista':RF_LP_CTA_TXT}</button>` : ''}
       ${rfContaChipHTML(minimo)}
     </div>
   </nav>`;
@@ -353,6 +356,17 @@ function rfIrParaModo(){ CL.screen='modo'; cdraw(); }
 function rfLpEntrarOn(chamada){
   return rfSoLista() ? "rfLpIr('lista')" : chamada;
 }
+/* ===== UM SO' BOTAO, UM SO' DESTINO =====
+   Os CTAs da home diziam tres coisas diferentes — "Jogar de graca", "Comecar uma carreira",
+   "Ver o mercado" — e os tres saltavam DIRETO para o assistente, passando por cima da tabela de
+   precos. Quem clicava nunca via que ha planos; quem queria assinar tinha de descobrir a seccao
+   sozinho. Agora todos dizem a mesma coisa e levam ao mesmo sitio: a seccao de planos, onde a
+   pessoa escolhe com que plano comeca. O Peladeiro nao passa pelo Stripe — vai direto para o
+   cadastro (ver rfPlanoEscolher).
+   A trava da lista de espera continua a valer por cima de tudo: enquanto o jogo nao abriu, o
+   destino e a lista, e e por isso que isto e uma funcao e nao um `onclick` escrito a mao. */
+const RF_LP_CTA_TXT='Começar carreira';
+function rfLpComecarOn(){ return rfSoLista() ? "rfLpIr('lista')" : "rfLpIr('planos')"; }
 function rfLpIr(k){
   const el=document.getElementById('rf-lp-'+k);
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -703,9 +717,14 @@ function rfPlanoCta(key, trava, ciclo){
 
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
 
-  /* o grátis não tem o que comprar: leva a jogar (ou a criar a conta, que é o mesmo caminho) */
+  /* ===== O PELADEIRO NAO PASSA PELO STRIPE =====
+     Ele e o plano de entrada e nao tem o que cobrar: escolher o Peladeiro leva DIRETO ao
+     cadastro. `'signup'` e nao `'solo'`: o valor vai parar em `CL.auth.mode` e e' ele que
+     decide a aba (ver rfOb1) — 'solo' calhava de abrir o cadastro por nao ser 'login', o que
+     e' o resultado certo pela razao errada. Quem ja tem sessao cai na mesma tela, que com
+     sessao mostra a conta e o caminho para dentro do jogo (rfOb1Logado). */
   if(key==='peladeiro'){
-    if(typeof clGoModo==='function') return clGoModo('solo');
+    if(typeof clGoModo==='function') return clGoModo('signup');
     return paraLista();
   }
 
@@ -713,7 +732,7 @@ function rfPlanoCta(key, trava, ciclo){
     /* a intenção sobrevive ao login: rfPlanoIntencaoRetomar() a consome quando a sessão abre */
     try{ sessionStorage.setItem('rf98:planoIntencao', JSON.stringify({key, ciclo:ciclo||'mes'})); }catch(e){}
     if(typeof toastC==='function') toastC('Crie a sua conta (ou entre) para assinar o '+nome+'.');
-    if(typeof clGoModo==='function') return clGoModo('solo');
+    if(typeof clGoModo==='function') return clGoModo('signup');
     return paraLista();
   }
 
@@ -1160,7 +1179,7 @@ function rfLandingHTML(){
              uma decisao que ninguem tem como tomar. Fica o que nao custa nada: jogar. Os planos
              continuam a um toque no cabecalho e ganham a seccao inteira mais abaixo. */''}
         <div class="rf-lp-ctas">
-          <button type="button" class="rf-wiz-cta" onclick="${rfLpEntrarOn("clGoModo('solo')")}">⚽ Jogar de graça</button>
+          <button type="button" class="rf-wiz-cta" onclick="${rfLpComecarOn()}">${rfIcone('jogar',16)} ${RF_LP_CTA_TXT}</button>
         </div>
         <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>: Modo Solo pra sempre e 7 dias de Resenha. Sem instalar nada, sem cartão.</span>
       </div>
@@ -1180,7 +1199,7 @@ function rfLandingHTML(){
                `${rfNomeComp('copaBrasil','Copa Nacional')}, ${rfNomeComp('libertadores','Liberta Cup')} e ${rfNomeComp('sulamericana','Sula Cup')}`,
                'Masculino e feminino, nas mesmas divisões e nas mesmas copas',
                'Partida ao vivo com narração lance a lance'],
-        cta:rfIcone('jogar',16)+' Começar uma carreira', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
+        cta:rfIcone('jogar',16)+' '+RF_LP_CTA_TXT, ctaOn:rfLpComecarOn()})}
       ${rfLpFotoHTML('img/home/classificacao.webp','Classificação da Série D dentro do RetroFoot')}
     </section>
 
@@ -1192,7 +1211,7 @@ function rfLandingHTML(){
       ${rfLpSecaoHTML({eyebrow:'Mercado global', titulo:'O leilão é onde a liga se decide.',
         prosa:'Cada jogador tem vários clubes disputando. Para levar, cubra a maior oferta antes das semanas acabarem — se o seu lance ficar abaixo, a concorrência cobre na semana seguinte.',
         itens:['Leilão aberto a todos os clubes da liga','Propostas e contrapropostas por jogador','Finanças de verdade: folha, bilheteria, TV e patrocínio'],
-        cta:rfIcone('leilao',16)+' Ver o mercado', ctaOn:rfLpEntrarOn("clGoModo('solo')")})}
+        cta:rfIcone('jogar',16)+' '+RF_LP_CTA_TXT, ctaOn:rfLpComecarOn()})}
       ${rfLpFotoHTML('img/home/leilao.webp','Leilão de jogadores dentro do RetroFoot')}
     </section>
 
