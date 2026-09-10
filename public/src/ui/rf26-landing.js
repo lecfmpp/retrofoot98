@@ -12,10 +12,18 @@
      Ligas Oficiais · lista de espera · rodapé escuro
    ===================================================================== */
 
+/* ===== CADA ITEM TEM DOIS ROTULOS =====
+   Os oito rotulos por extenso somam 773px, e o cabecalho so' tem ~1200px depois da marca e das
+   accoes: abaixo de 1280px a caixa dos links comecava a ROLAR — com a barra de rolagem escondida
+   por CSS, entao os ultimos itens ("Planos", "Embaixadores") simplesmente deixavam de existir para
+   quem nao soubesse arrastar. Item de menu que ninguem ve nao e' menu.
+   O segundo rotulo e' a forma curta do mesmo destino, e quem escolhe entre os dois e' o CSS, por
+   largura de ecra (ver .rf-lp-link-l / .rf-lp-link-c). Nada e' escondido: o rotulo encolhe. */
 const RF_LP_NAV=[
-  ['jogo','O jogo'],['telas','Por dentro'],['resenha','Modo Resenha'],
-  ['momentos','Momentos'],['oficial','Seu jogador'],['grana','Ganhar com a resenha'],
-  ['planos','Planos'],['ligas','Embaixadores'],
+  ['jogo','O jogo','O jogo'],['telas','Por dentro','Por dentro'],['resenha','Modo Resenha','Resenha'],
+  ['momentos','Momentos','Momentos'],['oficial','Seu jogador','Jogador'],
+  ['grana','Ganhar com a resenha','Ganhar'],
+  ['planos','Planos','Planos'],['ligas','Embaixadores','Embaixador'],
 ];
 
 /* ===== A CONTA VIVE NO CABEÇALHO, EM TODA A TELA =====
@@ -327,7 +335,7 @@ function rfLpNavHTML(extra, minimo){
          largo puxar o meio) e as accoes a' direita. E' o mesmo esqueleto das barras de dentro
          do jogo, e por isso o cabecalho passa a parecer parte da mesma peca. */''}
     <div class="rf-lp-links">
-      ${minimo?'':RF_LP_NAV.map(([k,l])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')">${escC(l)}</button>`).join('')}
+      ${minimo?'':RF_LP_NAV.map(([k,l,c])=>`<button type="button" class="rf-lp-link" onclick="rfLpIr('${k}')" title="${escC(l)}"><span class="rf-lp-link-l">${escC(l)}</span><span class="rf-lp-link-c">${escC(c||l)}</span></button>`).join('')}
     </div>
     <div class="rf-lp-acoes">
       ${extra||''}

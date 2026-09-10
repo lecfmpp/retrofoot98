@@ -3203,9 +3203,7 @@
 /* os links vivem numa CAIXA, como os grupos de pilulas de dentro do jogo — sem a caixa eles
    flutuavam no branco e nada dizia que sao um conjunto */
 .rf-lp-links{display:flex;align-items:center;gap:2px;justify-self:center;
-  padding:3px;border-radius:var(--r-pill);background:var(--surface-sunken);
-  overflow-x:auto;scrollbar-width:none;max-width:100%}
-.rf-lp-links::-webkit-scrollbar{display:none}
+  padding:3px;border-radius:var(--r-pill);background:var(--surface-sunken);max-width:100%}
 .rf-lp-link{background:none;border:none;font-family:var(--font-sans);font-size:var(--fs-body-sm);
   font-weight:var(--fw-medium);color:var(--text-3);padding:7px 13px;border-radius:var(--r-pill);
   cursor:pointer;white-space:nowrap;transition:background var(--dur-fast) var(--ease),
@@ -3215,9 +3213,35 @@
 .rf-lp-link:hover{background:var(--brand-primary,#17458F);color:var(--brand-secondary,#F2B90C);
   box-shadow:0 2px 8px -3px rgba(23,69,143,.55)}
 .rf-lp-link:focus-visible{outline:2px solid var(--club-primary);outline-offset:1px}
-/* entre 1100 e 1320px os sete rotulos ainda cabem, mas so' com menos folga: apertar o padding
-   evita que a barra comece a rolar num ecra de portatil, que e' o tamanho mais comum */
+/* ===== O MENU NAO ROLA: ELE ENCOLHE =====
+   A caixa dos links tinha `overflow-x:auto` com a barra de rolagem escondida. Abaixo de 1280px
+   os oito rotulos (773px) deixavam de caber e os ultimos saiam de vista sem deixar rasto — item
+   de menu que ninguem ve nao e' menu. O `overflow` sai, e o que cede sao, por esta ordem: a
+   folga entre os rotulos, o tamanho da letra, o rotulo curto de cada item (ver RF_LP_NAV) e, ja'
+   em ecra de tablet, a assinatura e o botao de planos, que tem um link com o mesmo destino a
+   dois dedos dali. Abaixo de 760px o menu inteiro passa para a folha, como sempre. */
+.rf-lp-link-c{display:none}
 @media (max-width:1320px){ .rf-lp-link{padding:7px 9px} .rf-lp-nav{padding:14px 18px} }
+/* 1240 e' onde a conta deixa de fechar com os rotulos por extenso: 704px de links + 206 de
+   assinatura + 216 de accoes + 64 de folgas = 1190, e a partir daqui a caixa dos links comecaria
+   a empurrar a marca. E' o degrau do rotulo curto, medido, nao arredondado. */
+@media (max-width:1240px){
+  .rf-lp-link{padding:7px 7px;font-size:12.5px}
+  .rf-lp-links{gap:0}
+  .rf-lp-marca img.marca{height:24px;max-width:160px}
+  .rf-lp-link-l{display:none}
+  .rf-lp-link-c{display:inline}
+}
+@media (max-width:1120px){
+  .rf-lp-acoes{gap:8px}
+  /* "Ver os planos" sai: `Planos` esta' na propria barra, a dois itens de distancia */
+  .rf-lp-btlista{display:none}
+}
+@media (max-width:900px){
+  .rf-lp-nav{padding:12px 14px;gap:10px}
+  .rf-lp-link{padding:6px 6px;font-size:12px}
+  .rf-lp-marca img.marca{height:22px;max-width:132px}
+}
 .rf-lp-entrar{height:38px;padding:0 14px;border:var(--border-control);border-radius:var(--r-control);
   background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body-sm);
   font-weight:var(--fw-semibold);color:var(--text-2);cursor:pointer;white-space:nowrap}
