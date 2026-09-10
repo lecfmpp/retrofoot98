@@ -8,10 +8,15 @@
   --brand-primary:#0A3C9F;
   --brand-primary-deep:#072a70;
   --brand-secondary:#FFBF01;
+  --brand-secondary-hover:#ffcb2e;
   --brand-on-primary:#ffffff;
   --brand-on-secondary:#0A3C9F;
   /* o cinza da palavra, para quando ela e' escrita em texto em vez de desenhada */
   --brand-tinta:#373435;
+  /* o azul da marca diluido, para fundos de apoio que nao podem trocar por clube
+     (a etiqueta de contexto da aba de opiniao e' o primeiro deles) */
+  --brand-primary-soft:#e8eefa;
+  --brand-primary-line:#cddaf1;
 
   /* Clube — trocáveis por time. Estes são os do XV Piracicaba. */
   --club-primary:#17458F;

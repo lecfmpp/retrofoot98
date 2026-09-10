@@ -78,12 +78,21 @@ function nomeDaTela(){
   const fixo=TELAS[CL.screen];
   if(fixo) return fixo;
   /* 'main' e 'seatturn' desenham a mesma casa com muitas páginas dentro —
-     quem sabe em qual delas o jogador está é o RF_PAGES. */
+     quem sabe em qual delas o jogador está é o RF_PAGES.
+     O `label` VEM ANTES DO `titulo` de propósito: em algumas páginas o titulo é
+     uma FUNÇÃO (o do Elenco muda com o clube que se está a visitar), e ela caía
+     na etiqueta como texto — o jogador via o código-fonte da função no lugar do
+     nome da tela. O label é sempre uma string curta, que é o que a etiqueta
+     quer; o titulo fica de reserva, e resolvido se for função. */
   try{
     const pg=(typeof rfState==='function') ? rfState().page : null;
     if(pg && typeof RF_PAGES!=='undefined'){
       const def=RF_PAGES.find(p=>p.key===pg);
-      if(def) return def.titulo || def.label || pg;
+      if(def){
+        if(def.label) return def.label;
+        const t=(typeof def.titulo==='function') ? def.titulo() : def.titulo;
+        if(typeof t==='string' && t) return t;
+      }
     }
     if(pg) return pg;
   }catch(e){}
