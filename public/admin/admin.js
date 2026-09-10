@@ -109,7 +109,7 @@ const ST = {
   /* filtros do quadro de funcionalidades */
   kbPri: '', kbData: '',
   /* filtros da seção Opinião de usuários (mesma página do quadro) */
-  opTipo: '', opVer: 'novas', opBusca: ''
+  opTipo: '', opVer: 'novas', opBusca: '', fxAba: 'quadro'
 };
 
 /* ============================ utilidades ============================ */
@@ -3161,8 +3161,27 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   D.feitsVisiveis = new Set(D.feats.filter(f => passaPri(f) && passaData(f)).map(f => f.id));
   const escondidos = D.feats.length - D.feitsVisiveis.size;
 
+  /* ===== DUAS ABAS, PORQUE SÃO DUAS LEITURAS =====
+     O quadro é alto por natureza — colunas com dezenas de cards — e o mural
+     vinha depois dele: chegar ao que os treinadores acabaram de escrever exigia
+     rolar a página inteira. A aba põe o mural a um clique, e o contador de não
+     lidas nela é o aviso de que há recado novo sem ninguém ter de ir ver.
+     Na aba do quadro o mural continua logo abaixo dele, como estava. */
+  const aba = ST.fxAba === 'opinioes' ? 'opinioes' : 'quadro';
+  const porLer = (D.opinioes||[]).filter(o => !o.arquivada && !o.lida).length;
+  const abasHTML = `<div class="per" style="gap:6px;margin-bottom:4px">
+    <span class="${aba==='quadro'?'on':''}" data-fx="quadro" style="padding:9px 16px">Quadro</span>
+    <span class="${aba==='opinioes'?'on':''}" data-fx="opinioes" style="padding:9px 16px">Mural de opiniões${
+      porLer?` <b style="color:var(--ambar)">${porLer}</b>`:''}</span>
+  </div>`;
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
-  el('page').innerHTML = `
+  if(aba === 'opinioes'){
+    el('page').innerHTML = abasHTML + opinioesHTML(editar);
+    ligarAbasFeatures();
+    ligarOpinioes(editar);
+    return;
+  }
+  el('page').innerHTML = abasHTML + `
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <select class="f" id="kb-pri" style="width:auto;font-size:12.5px">
         <option value="">Qualquer prioridade</option>
@@ -3194,10 +3213,15 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   el('kb-data').onchange = () => { ST.kbData = el('kb-data').value; redesenhar(pgFeatures); };
   if(el('kb-limpar')) el('kb-limpar').onclick = () => { ST.kbPri = ST.kbData = ''; redesenhar(pgFeatures); };
 
+  ligarAbasFeatures();
   if(editar) ligarKanban();
   else document.querySelectorAll('.kbcard').forEach(c =>
     c.onclick = () => abrirCardFeature(c.dataset.card));
   ligarOpinioes(editar);
+}
+function ligarAbasFeatures(){
+  document.querySelectorAll('[data-fx]').forEach(x =>
+    x.onclick = () => { ST.fxAba = x.dataset.fx; redesenhar(pgFeatures); });
 }
 
 /* ==================== OPINIÃO DE USUÁRIOS ====================
@@ -3234,7 +3258,7 @@ function opinioesHTML(editar){
   const novas = naCaixa.filter(o => !o.lida).length;
   const ls = opinioesFiltradas();
   const col = '96px minmax(0,1fr) 190px 120px';
-  return `<div class="card" id="op-secao" style="overflow:hidden;margin-top:22px">
+  return `<div class="card" id="op-secao" style="overflow:hidden${ST.fxAba==='opinioes'?'':';margin-top:22px'}">
     <div class="card-h" style="flex-wrap:wrap;gap:10px">
       <b>Opinião de usuários</b>
       <span class="mono" style="font-size:12px;color:var(--dim2)">
