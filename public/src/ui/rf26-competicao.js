@@ -1466,7 +1466,8 @@ function rfCampeaoDadosLiga(div, info){
     campanha:{ jogos:t.P||0, gols:t.GF||0, fases:0, pontos:t.Pts||0,
                campanhaTxt:(t.W||0)+'V '+(t.D||0)+'E '+(t.L||0)+'D', saldo:(t.GF||0)-(t.GA||0) },
     titulos: rfCampeaoTitulos(div,souEu),
-    rodape: souEu?'A vaga continental está garantida.':'A temporada está encerrada.'
+    rodape: souEu ? ((typeof rodapeCampeaoLiga==='function') ? rodapeCampeaoLiga(div) : 'A temporada está encerrada.')
+                  : 'A temporada está encerrada.'
   };
 }
 

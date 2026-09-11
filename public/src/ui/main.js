@@ -5465,6 +5465,25 @@ function momentoPromoRelegOutcome(){
   if(relegN>0 && m.pos>m.total-relegN) return 'relegated';
   return null;
 }
+/* O RODAPÉ DO CAMPEÃO DE LIGA diz o que o título DÁ — e isso depende da divisão. Estava fixo em
+   "A vaga continental está garantida." para qualquer uma, e o campeão da Série D lia que ia à
+   Libertadores. Vaga continental é só da 1ª divisão; das outras, o campeão ganha o ACESSO à de
+   cima (o campeão está sempre dentro da zona de acesso). Usado pelos dois modais de campeão de liga
+   (dadosCampeaoLiga, aqui, e rfCampeaoDadosLiga em rf26-competicao.js). */
+function rodapeCampeaoLiga(div){
+  const tier=(typeof PRIZES!=='undefined' && PRIZES.tierOf) ? PRIZES.tierOf(div) : div;
+  if(tier==='A') return 'A vaga continental está garantida.';
+  const ordem=(typeof DIV_ORDER!=='undefined' && DIV_ORDER) || ['A','B','C','D'];
+  const i=ordem.indexOf(div);
+  const promo=(typeof DIVISION_PROMO!=='undefined' && DIVISION_PROMO[div]) || 0;
+  if(i>0 && promo>0){
+    const cima=ordem[i-1];
+    const nome=(typeof classifDivName==='function') ? classifDivName(cima, S && S.intlUniverse)
+      : ((typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[cima]) || ('Série '+cima));
+    return `O acesso à ${nome} está garantido.`;
+  }
+  return 'A temporada está encerrada.';
+}
 function dadosCampeaoLiga(){
   const m=momentoPrevSeasonPos(); if(!m || m.pos!==1) return null;
   const nome=(clubOf(CL.clubId)||{}).short||'O clube';
@@ -5472,7 +5491,7 @@ function dadosCampeaoLiga(){
     manchete:`${nome} é campeão.`, trofeu:m.div,
     linha:`Título conquistado na ${S.sched?S.sched.length:38}ª semana da competição.`,
     stats:[{k:'PONTOS',v:String(m.t.Pts)},{k:'CAMPANHA',v:momentoCampanha(m.t)},{k:'SALDO',v:String((m.t.GF||0)-(m.t.GA||0))}],
-    rodape:'A vaga continental está garantida.' };
+    rodape:rodapeCampeaoLiga(m.div) };
 }
 function dadosPromovido(){
   const m=momentoPrevSeasonPos(); if(!m) return null;
