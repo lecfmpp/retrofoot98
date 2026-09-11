@@ -873,6 +873,97 @@ function duplaHTML(a, b, rotuloA, rotuloB, troféu){
     <small style="display:block;font-size:9.5px;color:var(--dim3);letter-spacing:.3px">solo/res</small>
   </span>`;
 }
+/* partidas de carreira; "parcial" quando algum save antigo tem temporadas fechadas sem os
+   numeros guardados — o total entao esta' ABAIXO do real, e a tela diz isso em vez de esconder */
+function partidasHTML(u){
+  const cel = duplaHTML(u.jogos_solo, u.jogos_resenha, 'partida no Solo', 'partida na Resenha');
+  if(!u.incompleto) return cel;
+  return cel.replace('>solo/res</small>',
+    ' title="Há save com temporadas fechadas antes de o jogo guardar os números por passagem: o total está abaixo do real.">solo/res · <b style=\'color:var(--ambar)\'>parcial</b></small>');
+}
+const DIV_ADM = {A:'Série A', B:'Série B', C:'Série C', D:'Série D'};
+function divAdm(d){ return DIV_ADM[d] || (d ? String(d) : '—'); }
+function campanhaHTML(div, pos){
+  if(!pos) return '<span class="mono" style="font-size:12px;text-align:center;color:var(--dim3)">—</span>';
+  return `<span class="mono" style="font-size:12px;text-align:center;line-height:1.35"
+      title="Melhor campanha: ${pos}º na ${h(divAdm(div))}">
+    <b style="font-weight:600;color:${pos===1?'var(--ambar)':'var(--fg)'}">${pos}º</b>
+    <small style="display:block;font-size:9.5px;color:var(--dim3)">${h(divAdm(div))}</small></span>`;
+}
+const COMP_ADM = { serieA:'Série A', serieB:'Série B', serieC:'Série C', serieD:'Série D',
+                   copaBrasil:'Copa nacional', libertadores:'Libertadores', sulamericana:'Sul-Americana' };
+
+/* ===== A CARREIRA DE UM USUARIO =====
+   Um cartao por save e por sala. E' aqui que partidas e pontos se leem por carreira — somados na
+   lista eles juntam campeonatos diferentes. A consulta e' so' deste usuario (usuario_detalhe). */
+async function modalUsuario(id){
+  const u = (D.usuarios||[]).find(x => x.id === id) || {};
+  abrirModal(`<h3>${h(u.nome||'Usuário')}</h3><div class="st">Carregando a carreira…</div>`);
+  const { data, error } = await sb.rpc('usuario_detalhe', { p_user: id });
+  if(!el('modais').innerHTML) return;          // fechou enquanto carregava
+  if(error){ abrirModal(`<h3>${h(u.nome||'')}</h3><div class="erro">${h(erroMsg(error))}</div>
+    <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>`); return; }
+  const dd = data || {}, saves = dd.saves||[], salas = dd.salas||[], tits = dd.titulos||[];
+  const ved = x => `${num(x.v||0)}-${num(x.e||0)}-${num(x.d||0)}`;
+  const parcial = x => x.completa===false
+    ? ' <b class="mono" style="font-size:10px;color:var(--ambar)" title="Temporadas fechadas antes de o jogo guardar os números por passagem: o total está abaixo do real.">parcial</b>' : '';
+  const campanha = x => x.melhor_pos ? `${x.melhor_pos}º ${h(divAdm(x.melhor_div))}` : '—';
+  const colS = 'minmax(0,1.1fr) minmax(0,1.2fr) .9fr .8fr .8fr .9fr .6fr .9fr';
+  const colR = 'minmax(0,.8fr) minmax(0,1.2fr) .7fr .8fr .8fr .9fr .6fr .9fr';
+  const tabSolo = saves.length ? `
+    <div class="rowh" style="grid-template-columns:${colS}">
+      <span>Save</span><span>Clube</span><span>Agora</span>
+      <span style="text-align:right">Partidas</span><span style="text-align:right">Pontos</span>
+      <span style="text-align:center">V-E-D</span><span style="text-align:center">Temp.</span><span>Campanha</span></div>
+    ${saves.map(x => `<div class="row" style="grid-template-columns:${colS}">
+      <b class="mono" style="font-size:12px;overflow:hidden;text-overflow:ellipsis">${h(x.nome)}</b>
+      <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis">${h(x.clube||'—')}</span>
+      <span class="mono" style="font-size:11.5px;color:var(--dim2)">${h(divAdm(x.divisao))} · ${h(x.temporada||'—')}
+        <small style="display:block;color:var(--dim3)">rodada ${num(x.rodada||0)} · ${h(ha(x.atualizado))}</small></span>
+      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.jogos||0)}${parcial(x)}</span>
+      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.pontos||0)}</span>
+      <span class="mono" style="font-size:12px;text-align:center;color:var(--dim)">${ved(x)}</span>
+      <span class="mono" style="font-size:12px;text-align:center">${num(x.temporadas_fechadas||0)}</span>
+      <span class="mono" style="font-size:12px">${campanha(x)}</span></div>`).join('')}`
+    : '<div class="vazio">Nenhum save no Modo Solo.</div>';
+  const tabRes = salas.length ? `
+    <div class="rowh" style="grid-template-columns:${colR}">
+      <span>Sala</span><span>Clube</span><span>Fase</span>
+      <span style="text-align:right">Partidas</span><span style="text-align:right">Pontos</span>
+      <span style="text-align:center">V-E-D</span><span style="text-align:center">Temp.</span><span>Campanha</span></div>
+    ${salas.map(x => `<div class="row" style="grid-template-columns:${colR}">
+      <b class="mono" style="font-size:12px">${h(x.sala)}</b>
+      <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis">${h(x.clube||'—')}</span>
+      <span class="mono" style="font-size:11.5px;color:var(--dim2)">${h(x.fase||'—')}
+        <small style="display:block;color:var(--dim3)">${h(ha(x.visto))}</small></span>
+      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.jogos||0)}${parcial(x)}</span>
+      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.pontos||0)}</span>
+      <span class="mono" style="font-size:12px;text-align:center;color:var(--dim)">${ved(x)}</span>
+      <span class="mono" style="font-size:12px;text-align:center">${num(x.temporadas_fechadas||0)}</span>
+      <span class="mono" style="font-size:12px">${campanha(x)}</span></div>`).join('')}`
+    : '<div class="vazio">Não está em nenhuma sala de Resenha.</div>';
+  const tabTit = tits.length
+    ? tits.map(t => `<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--bd)">
+        <b class="mono" style="font-size:12px;min-width:44px">${h(t.temporada||'—')}</b>
+        <span style="font-size:12.5px;flex:1;min-width:0">🏆 ${h(COMP_ADM[t.comp]||t.comp||'—')}
+          <small style="color:var(--dim2)"> · ${h(t.clube||'—')}</small></span>
+        <span class="mono" style="font-size:11px;color:var(--dim2)">${t.modo==='resenha'?'Resenha':'Solo'} · ${h(t.origem||'')}</span>
+      </div>`).join('')
+    : '<div class="vazio">Nenhum título ainda.</div>';
+  const totJ = saves.reduce((a,x)=>a+(+x.jogos||0),0) + salas.reduce((a,x)=>a+(+x.jogos||0),0);
+  const totT = saves.reduce((a,x)=>a+(+x.temporadas_fechadas||0),0) + salas.reduce((a,x)=>a+(+x.temporadas_fechadas||0),0);
+  abrirModal(`
+    <h3>${h(u.nome||'Usuário')} <small class="mono" style="font-size:12px;color:var(--dim2);font-weight:400">${h(u.email||'')}</small></h3>
+    <div class="col" style="width:min(940px,88vw);gap:14px">
+      <div class="st" style="margin:0">${num(saves.length)} save${saves.length===1?'':'s'} · ${num(salas.length)} sala${salas.length===1?'':'s'} ·
+        ${num(totT)} temporada${totT===1?'':'s'} fechada${totT===1?'':'s'} · ${num(totJ)} partidas · ${num(tits.length)} título${tits.length===1?'':'s'}</div>
+      <div class="card" style="overflow:hidden"><div class="card-h"><b>Modo Solo</b></div>${tabSolo}</div>
+      <div class="card" style="overflow:hidden"><div class="card-h"><b>Resenha</b></div>${tabRes}</div>
+      <div class="card card-p"><div class="tt" style="margin-bottom:6px">Títulos</div>${tabTit}</div>
+      <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>
+    </div>`);
+}
+
 /* ===== OS TRES PLANOS, COM O NOME QUE O JOGADOR VE' =====
    O painel dizia so' "gratis" ou "pago" enquanto a landing vendia tres planos e
    o jogo ja' os distinguia: quem operava aqui nao tinha como saber se a conta
@@ -900,8 +991,20 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   const vivos = new Set(us.map(u=>u.id));
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
 
-  // Jogos / Pontos / Títulos vêm por MODO — é a leitura que a página precisa dar
-  const col = `${podeApagar?'30px ':''}1.5fr .55fr .9fr .85fr .8fr .7fr .8fr .75fr .7fr 84px`;
+  /* ===== OS NUMEROS DE JOGO, COM O NOME CERTO E A FONTE CERTA =====
+     A lista mostrava "Jogos / Pontos / Titulos" e nenhum dos tres era o que o nome dizia:
+     "Jogos" era o numero de SAVES e de SALAS; "Pontos" somava os pontos da temporada EM CURSO
+     de cada save — campeonatos diferentes empilhados, e as temporadas fechadas de fora; e os
+     titulos da Resenha liam o historico da SALA, que nunca e' preenchido, e davam zero sempre.
+     Agora (ver admin_rf98.usuarios):
+       CARREIRAS  saves / salas
+       TEMPORADAS temporadas fechadas
+       PARTIDAS   de carreira, pelas passagens do tecnico — "parcial" quando algum save antigo
+                  tem temporadas fechadas sem os numeros guardados
+       TITULOS    o livro elifoot_v3.coach_titles, um por linha
+       CAMPANHA   a divisao mais alta em que terminou uma temporada, e nela a melhor posicao
+     Os PONTOS ficam no detalhe (clicar na linha): la' sao de uma carreira so', e fazem sentido. */
+  const col = `${podeApagar?'30px ':''}1.4fr .5fr .8fr .62fr .66fr .74fr .62fr .72fr .6fr .7fr .62fr 72px`;
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
@@ -925,14 +1028,18 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       <div class="rowh" style="grid-template-columns:${col}">
         ${podeApagar?'<span><input type="checkbox" id="sel-todas-contas" title="Selecionar todas"></span>':''}
         <span>Técnico</span><span>Plano</span><span>Referral</span>
-        <span style="text-align:center">Jogos</span><span style="text-align:center">Pontos</span>
+        <span style="text-align:center" title="Saves no Solo / salas de Resenha">Carreiras</span>
+        <span style="text-align:center" title="Temporadas que chegaram ao fim">Temporadas</span>
+        <span style="text-align:center" title="Partidas de liga na carreira toda">Partidas</span>
         <span style="text-align:center">Títulos</span>
+        <span style="text-align:center" title="Divisão mais alta em que terminou uma temporada, e a melhor posição nela">Campanha</span>
         <span style="text-align:right">Tempo</span><span style="text-align:right">Últ. acesso</span>
         <span style="text-align:center">Estado</span><span style="text-align:right">Senha</span>
       </div>
       ${us.length ? us.map(u => {
         const e = estadoAcesso(u.ultimo_acesso);
-        return `<div class="row" style="grid-template-columns:${col}">
+        return `<div class="row" data-detalhe="${h(u.id)}" style="grid-template-columns:${col};cursor:pointer"
+                     title="Ver a carreira de ${h(u.nome)}">
           ${podeApagar?`<span><input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''}></span>`:''}
           <span style="display:flex;align-items:center;gap:10px;min-width:0">
             <i class="av" style="width:26px;height:26px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
@@ -947,8 +1054,10 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
                <small class="mono" style="display:block;font-size:10.5px;color:var(--verde2)">${h(u.referral)}</small>`
             : '<span style="color:var(--dim3)">orgânico</span>'}</span>
           ${duplaHTML(u.saves_solo, u.salas_resenha, 'save solo', 'sala de Resenha')}
-          ${duplaHTML(u.pontos_solo, u.pontos_resenha, 'ponto no Solo', 'ponto na Resenha')}
+          ${duplaHTML(u.temporadas_solo, u.temporadas_resenha, 'temporada fechada no Solo', 'temporada fechada na Resenha')}
+          ${partidasHTML(u)}
           ${duplaHTML(u.titulos_solo, u.titulos_resenha, 'título no Solo', 'título na Resenha', true)}
+          ${campanhaHTML(u.melhor_div, u.melhor_pos)}
           <span class="mono" style="font-size:12.5px;text-align:right">${hm(u.minutos)}</span>
           <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(u.ultimo_acesso))}</span>
           <span style="justify-self:center;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)">
@@ -966,6 +1075,10 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
 
   document.querySelectorAll('[data-reset]').forEach(a =>
     a.onclick = () => modalResetSenha(a.dataset.reset, a.dataset.nome));
+  document.querySelectorAll('[data-detalhe]').forEach(r => r.onclick = (ev) => {
+    if(ev.target.closest('input,[data-reset],a,button')) return;
+    modalUsuario(r.dataset.detalhe);
+  });
 
   if(podeApagar){
     document.querySelectorAll('[data-conta]').forEach(c => c.onchange = () => {
@@ -981,7 +1094,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       const q = a.dataset.selContas;
       if(q==='nenhuma') SEL.contas.clear();
       // "nunca jogaram" = sem clube, sem pontos e sem tempo: conta criada e abandonada
-      else if(q==='nunca') us.filter(u => !u.clube && !u.pontos && !u.minutos).forEach(u=>SEL.contas.add(u.id));
+      else if(q==='nunca') us.filter(u => !u.clube && !((+u.jogos_solo||0)+(+u.jogos_resenha||0)) && !u.minutos).forEach(u=>SEL.contas.add(u.id));
       else us.filter(u => dias(u.ultimo_acesso) >= Number(q)).forEach(u=>SEL.contas.add(u.id));
       marcarCaixas(); barraSelecao();
     });
