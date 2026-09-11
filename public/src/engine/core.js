@@ -881,7 +881,7 @@ function pruneIncomingOffers(){
   Object.keys(S.incomingOffersByClub).forEach(cid=>{
     const sq=(S.squads&&S.squads[cid])||[];
     S.incomingOffersByClub[cid]=(S.incomingOffersByClub[cid]||[])
-      .filter(o=>o && o.expiresRound>S.round && sq.some(p=>p && p.n===o.playerName)); // validade + jogador ainda no elenco
+      .filter(o=>o && o.expiresRound>S.round && sq.some(p=>p && p.n===o.playerName && !isTradeLocked(p))); // validade + jogador ainda no elenco e negociável nesta temporada
   });
 }
 /* ---- QUEM PODE COMPRAR ESTE JOGADOR (regra única, espelhada no resolve-round) ----
@@ -925,7 +925,9 @@ function generateIncomingOffers(R){
     // clubes miram preferencialmente os melhores do elenco (que ainda não têm proposta).
     // canReleaseFromSquad: não adianta oferecer pelo 2º goleiro de um elenco com 2 — a venda
     // seria recusada na hora de aceitar (piso de elenco), então a proposta nem nasce.
-    const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale&&canReleaseFromSquad(myClubId,p).ok)
+    // isTradeLocked: comprado nesta temporada não pode ser revendido — a proposta nem nasce
+    // (antes chegava, o treinador negociava e só era barrado ao aceitar).
+    const targets=mySquad.filter(p=>!pending.has(p.n)&&!p._pendingSale&&!isTradeLocked(p)&&canReleaseFromSquad(myClubId,p).ok)
       .sort((a,b)=>b.f-a.f).slice(0, Math.max(3,Math.ceil(mySquad.length*0.4)));
     if(!targets.length) return;
     const p=targets[Math.floor(R.random()*targets.length)];

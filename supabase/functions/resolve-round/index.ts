@@ -4254,7 +4254,7 @@ function pruneIncomingOffers(S: any) {
     // validade + FONTE ÚNICA (o elenco): proposta por jogador que já saiu do clube não sobrevive
     // no estado autoritativo — senão voltava pro cliente a cada adopt (ver offersForClub no core).
     S.incomingOffersByClub[cid] = (S.incomingOffersByClub[cid] || [])
-      .filter((o: any) => o && o.expiresRound > S.round && sq.some((p: any) => p && p.n === o.playerName));
+      .filter((o: any) => o && o.expiresRound > S.round && sq.some((p: any) => p && p.n === o.playerName && p._tradeLockSeason !== S.season)); // + negociável nesta temporada (espelha isTradeLocked do core)
   });
 }
 /* propostas que um humano mandou pro clube de OUTRO humano, publicadas em last_result.offers.
@@ -4344,7 +4344,8 @@ function generateIncomingOffers(S: any, humanClubs: Set<string>) {
     if (R.random() > 0.5) return;
     const mySquad = S.squads[myClubId] || []; if (mySquad.length <= 16) return;
     const pending = new Set(myOffers.map((o: any) => o.playerName));
-    const targets = mySquad.filter((p: any) => !pending.has(p.n) && !p._pendingSale && canReleaseFromSquadR(mySquad, p))
+    // comprado nesta temporada (isTradeLocked no core) não recebe proposta — nem nasce
+    const targets = mySquad.filter((p: any) => !pending.has(p.n) && !p._pendingSale && p._tradeLockSeason !== S.season && canReleaseFromSquadR(mySquad, p))
       .sort((a: any, b: any) => b.f - a.f).slice(0, Math.max(3, Math.ceil(mySquad.length * 0.4)));
     if (!targets.length) return;
     const p = targets[Math.floor(R.random() * targets.length)];
