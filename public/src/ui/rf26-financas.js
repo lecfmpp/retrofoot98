@@ -1,22 +1,24 @@
 /* =====================================================================
-   RetroFoot — FINANÇAS, as cinco abas completas
-   Marcação de telas-v3/Financas - Abas.dc.html, coluna por coluna.
+   RetroFoot — FINANÇAS (redesign de 10/09/2026, pacote "financas")
+   Quatro abas — Resumo · Extrato · Estádio · Patrocínio — e a faixa azul do
+   contador, fixa entre as abas e o conteúdo (rfFiFaixaHTML, pendurada no
+   `aviso` da página em rf26.js). A aba Histórico saiu: a tabela "por
+   temporada" tinha uma linha só e o gráfico do caixa contava a mesma história
+   dos gráficos do Resumo. Quando houver mais de uma temporada, a comparação
+   ano a ano volta como faixa no pé do Resumo — não como aba.
 
-   Resumo · Extrato · Histórico · Estádio · Patrocínio.
+   NADA DE NÚMERO REPETIDO. O que a faixa mostra (caixa, queima, folha,
+   projeção) não volta no corpo de nenhuma aba.
 
-   As cinco abas empilham cartões de LARGURA CHEIA; onde o pacote põe duas
-   peças lado a lado (ENTRA/SAI, preço do bilhete e obras, espaços livres e
-   a nota do patrocínio), a grade é INTERNA ao cartão.
-
-   A linha de tabela é a peça partilhada (.rf-el-row, grade vinda de
-   --el-cols) e os blocos de número grande são o mesmo rfElStat do Elenco e
-   do Treinador.
-
-   O EXTRATO É POR RODADA, não por dia: S.finances guarda uma entrada por
-   rodada fechada (income, salaries, opex, playerSales, playerPurchases,
-   stadium, net, log) — não existe data de lançamento no motor. A coluna que
-   o pacote chama de DATA mostra a rodada, que é a unidade em que o dinheiro
-   de facto se move aqui.
+   OS NÚMEROS DA MAQUETE ERAM INVENTADOS; aqui tudo vem do motor. Onde o motor
+   é diferente da maquete, vale o motor:
+   · as obras são BANCADAS de 5 000 lugares (STAND_SEATS), com o preço de cada
+     uma a subir com o estádio (standCostFor) e no máximo SEASON_BUILD_LIMIT
+     lugares por ano — não pacotes lineares de 2 000 / 5 000 / 10 000;
+   · o mês a mês vem de S.fiMeses, acumulado em pushFinanceEntry (core.js); o
+     save anterior a ele reconstrói os meses a partir do extrato;
+   · o caixa depois de cada rodada não é guardado — sai de trás para a frente,
+     do caixa de hoje menos o saldo de cada rodada mais recente.
    ===================================================================== */
 
 function rfFiTotais(){
@@ -26,17 +28,9 @@ function rfFiTotais(){
   return {receita, despesa, saldo:receita-despesa};
 }
 /* ===== DE ONDE VEM A RECEITA =====
-   O motor credita a receita-base todas as rodadas desde sempre — cota de TV e patrocínio
-   incluídos —, mas o lançamento só tinha um campo, `income`, com tudo somado. A tela dizia
-   "Receita da rodada" e mais nada, e daí a leitura de que TV e patrocínio não existiam no jogo.
-   Agora o motor carimba as parcelas (ver RF_RECEITA_PARTES em core.js) e elas aparecem com nome.
-
-   SAVES ANTERIORES A ISTO não têm as parcelas: as rodadas já fechadas guardaram só o total. Aí
-   a linha única volta, em vez de mostrar quatro zeros e um total que não bate com elas — o que
-   é a verdade daquele save, não um buraco. As rodadas seguintes já entram repartidas.
-
-   A SOBRA APARECE. Se o total for maior do que as parcelas conhecidas (uma receita futura que
-   nasça fora destas cinco naturezas), o resto sai como "Outras receitas" em vez de sumir. */
+   O lançamento carimba as parcelas (RF_RECEITA_PARTES em core.js). Save anterior a elas só tem o
+   total, e então a linha única volta em vez de quatro zeros; a sobra de uma receita que nasça fora
+   destas cinco naturezas sai como "Outras receitas" em vez de sumir. */
 const RF_FI_RECEITA_ROT=[['tvFixa','Cota de TV (fixa)'],['tvMerito','Cota de TV (mérito)'],
   ['patrocinio','Patrocínio'],['bilheteria','Bilheteria'],['premioVitoria','Prêmio de desempenho']];
 function rfFiReceitaLinhas(o){
@@ -47,159 +41,29 @@ function rfFiReceitaLinhas(o){
   const sobra=total-soma;
   return partes.filter(x=>x[1]).concat(sobra>0?[['Outras receitas', sobra]]:[]);
 }
-/* linha de ENTRA/SAI: rótulo · barrinha proporcional ao maior item · valor */
-function rfFiLinha(rot, valor, maior, cor){
-  const pct=maior?Math.round(100*valor/maior):0;
-  return `<div class="rf-fi-l">
-    <span class="rf-fi-l-t">${escC(rot)}</span>
-    <span class="rf-fi-l-b"><i style="width:${Math.max(valor?4:0,pct)}%;background:${cor}"></i></span>
-    <span class="rf-fi-l-v">${escC(fmt(valor))}</span>
-  </div>`;
-}
-function rfFiTotalHTML(valor, tom){
-  return `<div class="rf-fi-total">
-    <span class="rf-fi-total-t">Total</span>
-    <span class="rf-fi-total-v ${tom}">${escC(fmt(valor))}</span>
-  </div>`;
-}
-
-/* =====================================================================
-   1 · RESUMO
-   ===================================================================== */
-function rfFiResumoHTML(){
-  const {receita,despesa}=rfFiTotais();
-  const t=S.seasonTotals||{};
-  const ult=(S.finances||[])[0];
-  const sq=squad(CL.clubId);
-  const folha=sq.reduce((s,p)=>s+((p.contract&&p.contract.salary)||p.salary||0),0);
-  const totalRodadas=(S.sched||[]).length||14;
-  const faltam=Math.max(0,totalRodadas-(S.round||0));
-  const rodadas=Math.max(1,S.round||1);
-  /* O PATROCINIO SAI DA MEDIA, porque ele nao se repete. Ele entra de uma vez na 1a rodada do
-     ano; incluido na conta "por rodada" fazia a media da 2a rodada projectar um ano inteiro de
-     patrocinios que nao vao acontecer — na Serie D dava um saldo previsto quarenta vezes maior
-     que o real. O que se projecta e' o RITMO: cota de TV, bilheteria, folha e custos. O dinheiro
-     do patrocinio ja' esta' dentro de `S.budget`, entao nao se perde da projecao — so' deixa de
-     ser contado outra vez em cada rodada que falta. */
-  const porRodada=Math.round(((receita-(t.patrocinio||0))-despesa)/rodadas);
-  const projecao=(S.budget||0)+porRodada*faltam;
-  const entra=rfFiReceitaLinhas(t).concat([[('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerSales||0]]);
-  /* A FOLHA NAO NASCE A ZERO. `t.salaries` e o ACUMULADO da temporada, e antes
-     da primeira rodada nao acumulou nada — a tela dizia "Folha salarial 0" com
-     o elenco todo contratado, e so na 2a rodada aparecia. O compromisso ja e
-     calculavel no minuto um: e a soma dos salarios do elenco (`folha`, acima).
-     Enquanto nada foi pago, mostra-se o que VAI ser pago. */
-  const sai=[['Folha salarial', (t.salaries||0) || folha],['Bônus', t.bonuses||0],
-             ['Custo operacional', t.opex||0],[('Compra de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), t.playerPurchases||0],
-             ['Obras no estádio', t.stadium||0]];
-  const maiE=Math.max.apply(null,entra.map(x=>x[1]).concat([1]));
-  const maiS=Math.max.apply(null,sai.map(x=>x[1]).concat([1]));
-  const delta=ult?ult.net:0;
-  return `<div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">CAIXA</span>
-        <span class="rf-label-r">${(S.round||0)}ª semana de ${escC(String(S.season||''))}</span></div>
-      <div class="rf-fi-caixa">
-        <span class="rf-fi-caixa-v">${escC(fmt(S.budget||0))}</span>
-        <span class="rf-fi-caixa-s ${delta>=0?'ok':'ruim'}">${ult
-          ? ((delta>=0?'+':'')+fmt(delta)+' na última rodada')
-          : 'sem movimento ainda'}</span>
-      </div>
-    </div>
-    <div class="rf-fi-duo">
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">ENTRA</span></div>
-        ${entra.map(([r,v])=>rfFiLinha(r,v,maiE,'var(--ok)')).join('')}
-        ${rfFiTotalHTML(receita,'ok')}
-      </div>
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">SAI</span>
-          <span class="rf-label-r">folha atual ${escC(fmt(folha))}</span></div>
-        ${sai.map(([r,v])=>rfFiLinha(r,v,maiS,'var(--danger)')).join('')}
-        ${rfFiTotalHTML(despesa,'ruim')}
-      </div>
-    </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">PROJEÇÃO ATÉ O FIM DA TEMPORADA</span></div>
-      <div class="rf-el-stats">
-        ${rfElStat('SALDO PREVISTO', fmt(projecao), 'se manter o ritmo')}
-        ${rfElStat('POR RODADA', (porRodada>=0?'+':'')+fmt(porRodada), 'média desta temporada')}
-        ${rfElStat('RODADAS QUE FALTAM', faltam, faltam?'até o fim da fase':'temporada encerrada')}
-        ${rfElStat('FOLHA POR RODADA', fmt(folha), 'compromisso fixo')}
-      </div>
-    </div>`;
-}
-
-/* =====================================================================
-   2 · EXTRATO
-   Grade do pacote: 58 / lançamento / 74 / 92 / 92
-   ===================================================================== */
-const RF_FI_EXT_COLS='86px minmax(0,1.6fr) minmax(74px,.5fr) minmax(92px,.6fr) minmax(92px,.6fr)';
-/* QUANDO A TRANSACAO ACONTECEU, e nao so em que rodada. A coluna DATA mostrava
-   "4ª" -- o numero da rodada --, que nao diz nada a quem olha o extrato para
-   perceber o mes em que o caixa virou. Agora sai a data do calendario do save
-   ("7/mar"), com a rodada por baixo em letra pequena para nao se perder a
-   referencia. A data vem do dia carimbado no lancamento (ver pushFinanceEntry);
-   nos saves gravados antes disso cai na data da rodada da liga, que e a fonte
-   unica que o calendario e a faixa do clube ja usam. */
-function rfFiDataHTML(f){
-  let d=null;
-  if(f.day!=null && typeof realDateForDay==='function'){ try{ d=realDateForDay(f.day); }catch(e){} }
-  if(!d && f.round!=null && typeof dataDaJornada==='function') d=dataDaJornada(Math.max(0,f.round-1),'liga');
-  const dia=d?(d.getDate()+'/'+PT_MONTHS_ABBR[d.getMonth()]):'—';
-  return `${escC(dia)}${f.round!=null?`<i class="rf-fi-jor">${f.round}ª jor.</i>`:''}`;
-}
-function rfFiExtratoHTML(){
-  const fin=(S.finances||[]);
-  let saldo=S.budget||0;
-  const linhas=[];
-  fin.forEach(f=>{
-    const itens=rfFiReceitaLinhas(f).map(([rot,v])=>[rot,v,1]).concat([
-      [('Venda de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), f.playerSales||0, 1],
-      ['Folha salarial', -(f.salaries||0), -1],
-      ['Custo operacional', -(f.opex||0), -1],
-      [('Compra de '+(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t('jogadores')), -(f.playerPurchases||0), -1],
-      ['Obras no estádio', -(f.stadium||0), -1],
-    ]).filter(x=>x[1]);
-    itens.forEach(([rot,valor])=>{
-      const entrada=valor>0;
-      linhas.push(`<div class="rf-el-row">
-        <span class="rf-fi-data">${rfFiDataHTML(f)}</span>
-        <span class="rf-fi-lanc">${escC(rot)}${f.log?(' · '+escC(String(f.log).slice(0,40))):''}</span>
-        <span class="rf-fi-tipo ${entrada?'entrada':'saida'}">${entrada?'ENTRADA':'SAÍDA'}</span>
-        <span class="rf-fi-valor ${entrada?'ok':'ruim'}">${escC(fmt(Math.abs(valor)))}</span>
-        <span class="rf-fi-saldo">${escC(fmt(saldo))}</span>
-      </div>`);
-    });
-    saldo-=(f.net||0);
-  });
-  const cab=`<div class="rf-el-head" style="--el-cols:${RF_FI_EXT_COLS}">
-    <span>DATA</span><span>LANÇAMENTO</span><span>TIPO</span>
-    <span class="dir">VALOR</span><span class="dir">SALDO</span>
-  </div>`;
-  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_FI_EXT_COLS}">
-      <div class="rf-label"><span class="rf-label-t">LANÇAMENTOS</span>
-        <span class="rf-label-r">temporada de ${escC(String(S.season||''))}</span></div>
-      ${cab}
-      ${rfLista('extrato', linhas, 'Nenhuma rodada fechada ainda nesta temporada.')}
-    </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">FILTROS</span></div>
-      <div class="rf-fi-filtros">
-        <span class="rf-fi-filtro"><b>Temporada</b><span>${escC(String(S.season||''))}</span><i>▾</i></span>
-        <span class="rf-fi-filtro"><b>Tipo</b><span>todos</span><i>▾</i></span>
-        <span class="rf-fi-filtro"><b>Valor mínimo</b><span>${escC(fmt(0))}</span><i>▾</i></span>
-        <div class="rf-sp"></div>
-        <button type="button" class="rf-btn rf-btn-secondary" onclick="rfFiExportar()">${rfIcone('exportar',16)} Exportar extrato</button>
-      </div>
-    </div>`;
-}
-/* dinheiro miúdo (preço por lugar): o `fmt` encurta para k/M e transformava
-   8 reais em "R$ 0k" */
+function rfFiG(){ return (typeof RF_GENERO!=='undefined')?RF_GENERO:{t:x=>x}; }
+/* dinheiro miúdo (preço por lugar): o `fmt` encurta para k/M e transformava 8 reais em "R$ 0k" */
 function rfFiReais(v){
   const sim=(typeof curSym==='function')?curSym():'R$';
   const n=Math.round((typeof curConv==='function')?curConv(v||0):(v||0));
   return sim+' '+((typeof grp==='function')?grp(n):String(n));
 }
+/* o rótulo curto das colunas do gráfico ("402k", "1,2M"), sem moeda — a moeda está no cabeçalho */
+function rfFiCurto(v){
+  v=Math.round((typeof curConv==='function')?curConv(v||0):(v||0));
+  const a=Math.abs(v);
+  if(a>=1e6) return (v/1e6).toFixed(1).replace('.',',').replace(/,0$/,'')+'M';
+  if(a>=1e3) return Math.round(v/1e3)+'k';
+  return String(v);
+}
+/* a data do lançamento: o dia carimbado (pushFinanceEntry) ou, em save antigo, a data da rodada */
+function rfFiDataDe(f){
+  let d=null;
+  if(f.day!=null && typeof realDateForDay==='function'){ try{ d=realDateForDay(f.day); }catch(e){} }
+  if(!d && f.round!=null && typeof dataDaJornada==='function'){ try{ d=dataDaJornada(Math.max(0,f.round-1),'liga'); }catch(e){} }
+  return d||null;
+}
+function rfFiDataTxt(f){ const d=rfFiDataDe(f); return d?(d.getDate()+'/'+PT_MONTHS_ABBR[d.getMonth()]):'—'; }
 function rfFiExportar(){
   const linhas=(S.finances||[]).map(f=>[f.round!=null?f.round:'', f.income||0, f.playerSales||0,
     f.salaries||0, f.opex||0, f.playerPurchases||0, f.stadium||0, f.net||0].join(';'));
@@ -213,243 +77,469 @@ function rfFiExportar(){
 }
 
 /* =====================================================================
-   3 · HISTÓRICO
-   Grade do pacote: 50 / 92 / 92 / 92 / 100
+   A FAIXA DO CONTADOR — igual nas quatro abas; só a fala muda
+   A ordem dos quatro números conta uma frase e não se reordena:
+   caixa hoje → quanto queima → o que é fixo → onde termina.
    ===================================================================== */
-const RF_FI_HIST_COLS='60px minmax(92px,1fr) minmax(92px,1fr) minmax(92px,1fr) minmax(100px,1fr)';
-function rfFiHistoricoHTML(){
-  const ent=((S.financeHistory&&S.financeHistory[CL.clubId])||[]).slice().reverse();
-  const atual={season:S.season, budget:S.budget||0, receita:rfFiTotais().receita,
-    despesa:rfFiTotais().despesa};
-  const todas=[atual].concat(ent.map(e=>({season:e.season, budget:e.budget||e.caixa||0,
-    receita:e.receita||e.income||0, despesa:e.despesa||e.expenses||0})));
-  const linhas=todas.map((e,i)=>{
-    const saldo=(e.receita||0)-(e.despesa||0);
-    return `<div class="rf-el-row ${i===0?'sel':''}">
-      <span class="rf-fi-ano ${i===0?'agora':''}">${escC(String(e.season||''))}</span>
-      <span class="rf-fi-cel forte">${escC(fmt(e.budget||0))}</span>
-      <span class="rf-fi-cel">${escC(fmt(e.receita||0))}</span>
-      <span class="rf-fi-cel">${escC(fmt(e.despesa||0))}</span>
-      <span class="rf-fi-cel ${saldo>=0?'ok':'ruim'}">${(saldo>=0?'+':'')+escC(fmt(saldo))}</span>
+const RF_FI_ABAS=['resumo','extrato','estadio','patrocinio'];
+function rfFiAbaAtual(){
+  const w=((typeof rfState==='function' && rfState().tab)||{}).financas;
+  return RF_FI_ABAS.indexOf(w)>=0 ? w : 'resumo';
+}
+/* QUEIMA (ou sobra) MÉDIA DAS RODADAS JÁ JOGADAS — só o que se repete toda rodada: cota de TV,
+   bilheteria e prêmio de jogo contra folha, bônus e custo. Fica de fora o que acontece uma vez:
+   o patrocínio do ano (entra de uma vez na 1ª rodada) e o mercado e as obras — uma compra de
+   R$ 3,9 M dividida por onze rodadas projectaria uma queima que não existe. Antes da 1ª rodada
+   não há média: devolve null e a faixa usa a projeção do contador. */
+function rfFiRitmo(){
+  const n=S.round||0; if(!n) return null;
+  const t=S.seasonTotals||{};
+  const temPartes=(t.tvFixa||t.tvMerito||t.bilheteria||t.premioVitoria);
+  const entra = temPartes ? (t.tvFixa||0)+(t.tvMerito||0)+(t.bilheteria||0)+(t.premioVitoria||0)
+                          : (t.income||0)-(t.patrocinio||0);
+  const sai=(t.salaries||0)+(t.bonuses||0)+(t.opex||0);
+  return Math.round((entra-sai)/n);
+}
+function rfFiFalaExtrato(r){
+  const entra=r.tv+r.bilheteria, sai=r.folha+r.opex;
+  if(entra>=sai) return `Cada rodada repete o mesmo desenho: TV e bilheteria pagam a folha e os custos, e sobram ${rfDin(entra-sai)} para o caixa.`;
+  const pct=Math.round(r.tv/Math.max(1,r.folha)*100);
+  return `Cada rodada repete o mesmo desenho: a cota de TV cobre ${pct>=100?'a folha inteira':pct+'% da folha'}, o resto sai do caixa.`;
+}
+function rfFiFalaEstadio(){
+  const e=rfFiEstadioDados();
+  const base=`Lugar vazio não rende. Com ${grp(e.cap)} lugares a ${rfFiReais(e.preco)}, o teto de uma tarde é ${rfDin(e.cap*e.preco)}`;
+  if(e.liberado>0) return base+' — e o teto é o problema.';
+  return base+(e.noTeto
+    ? ' — e o estádio chegou ao limite do porte do clube: agora, só subindo de divisão.'
+    : ' — e a cota de obras deste ano já foi usada. Na próxima temporada dá para crescer de novo.');
+}
+function rfFiFalaPatro(){
+  const vagos=rfFiPatroDados().contratos.filter(c=>!c.marcaSrc).length;
+  return vagos
+    ? 'Os três espaços já estão vendidos. O que falta é a arte da marca, não o dinheiro.'
+    : 'Os três espaços estão vendidos e estampados. Agora o contrato cresce com o elenco e com a divisão.';
+}
+function rfFiFaixaHTML(){
+  let r; try{ r=rfCtConta({}); }catch(e){ return ''; }
+  const real=rfFiRitmo();
+  const ritmo=(real!=null)?real:r.ritmo;
+  const fim=Math.round(r.caixa + r.patroPendente + ritmo*r.faltam);
+  const rr=Object.assign({}, r, {ritmo, fimAno:fim});
+  const aba=rfFiAbaAtual();
+  let fala='';
+  try{
+    fala = aba==='extrato' ? rfFiFalaExtrato(rr)
+         : aba==='estadio' ? rfFiFalaEstadio()
+         : aba==='patrocinio' ? rfFiFalaPatro()
+         : rfCtFalaHoje(rr);
+  }catch(e){ fala=''; }
+  const p=rfCtPessoa(); const cl=clubOf(CL.clubId)||{};
+  const selo = r.caixa<0 ? ['NO VERMELHO','ruim']
+             : fim<0     ? ['VAI FECHAR NO VERMELHO','ruim']
+             : ritmo<0   ? ['NO AZUL, SEM FOLGA','']
+             :             ['NO AZUL, COM FOLGA','ok'];
+  const n=S.round||0;
+  /* rótulo em duas versões: o do celular é o curto da maquete de 390px ("QUEIMA/RODADA"), para
+     nenhum rótulo quebrar nem sair cortado */
+  const kpi=(rot,val,nota,tom,curto)=>`<div class="rf-cf-kpi">
+      <span class="rf-cf-kpi-l"><span class="rf-f2-so-desk">${escC(rot)}</span><span class="rf-f2-so-mob">${escC(curto||rot)}</span></span>
+      <span class="rf-cf-kpi-v ${tom||''}">${escC(val)}</span>
+      <span class="rf-cf-kpi-n">${escC(nota)}</span>
     </div>`;
-  }).join('');
-  const cab=`<div class="rf-el-head" style="--el-cols:${RF_FI_HIST_COLS}">
-    <span>ANO</span><span class="dir">CAIXA FINAL</span><span class="dir">RECEITAS</span>
-    <span class="dir">DESPESAS</span><span class="dir">SALDO</span>
-  </div>`;
-  // EVOLUÇÃO DO CAIXA: uma barra por rodada fechada, a última em destaque
-  const fin=(S.finances||[]).slice().reverse();
-  let acc=(S.budget||0)-fin.reduce((t,f)=>t+(f.net||0),0);
-  const pontos=fin.map(f=>{ acc+=(f.net||0); return {r:f.round, v:acc}; });
-  const maior=Math.max.apply(null,pontos.map(p=>p.v).concat([1]));
-  const barras=pontos.map((p,i)=>`<span class="rf-fi-barra ${i===pontos.length-1?'agora':''}"
-    style="height:${Math.max(6,Math.round(100*p.v/maior))}%" title="${escC(fmt(p.v))}"></span>`).join('');
-  const eixo=pontos.length?`<div class="rf-fi-eixo">
-      <span>${pontos[0].r||1}ª</span>
-      <span>${pontos[Math.floor(pontos.length/2)].r||''}ª</span>
-      <span>${pontos[pontos.length-1].r||''}ª</span>
-    </div>`:'';
-  return `<div class="rf-card rf-el-tbl" style="--el-cols:${RF_FI_HIST_COLS}">
-      <div class="rf-label"><span class="rf-label-t">POR TEMPORADA</span>
-        <span class="rf-label-r">${todas.length} ${todas.length===1?'ano':'anos'}</span></div>
-      ${cab}
-      ${linhas}
+  return `<div class="rf-cf">
+    <div class="rf-cf-top">
+      <span class="rf-cf-av" aria-hidden="true">${escC(p.ini)}${p.foto?`<img src="${escC(p.foto)}" alt="" onerror="this.remove()">`:''}</span>
+      <span class="rf-cf-id">
+        <span class="rf-cf-n">${escC(p.nome)}</span>
+        <span class="rf-cf-c">${escC((p.cargo+' do '+(cl.short||'clube')).toUpperCase())}</span>
+      </span>
+      <span class="rf-cf-selo ${selo[1]}"><i></i>${selo[0]}</span>
+      ${fala?`<span class="rf-cf-fala">“${escC(fala)}”</span>`:''}
     </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">EVOLUÇÃO DO CAIXA</span>
-        <span class="rf-label-r">${pontos.length?('últimas '+pontos.length+' rodadas'):'sem rodadas'}</span></div>
-      ${pontos.length
-        ? `<div class="rf-fi-graf">${barras}</div>${eixo}`
-        : '<div class="rf-empty">O gráfico aparece quando a primeira rodada fechar.</div>'}
+    <div class="rf-cf-kpis">
+      ${kpi('CAIXA HOJE', rfDin(r.caixa), n+'ª semana de '+(S.season||''), r.caixa<0?'ruim':'', 'CAIXA HOJE')}
+      ${kpi(ritmo<0?'QUEIMA POR RODADA':'SOBRA POR RODADA', (ritmo>0?'+':'')+rfDin(ritmo),
+            real!=null?('média das '+n+' já jogada'+(n===1?'':'s')):'projeção, antes da 1ª rodada', ritmo<0?'queima':'ok',
+            ritmo<0?'QUEIMA/RODADA':'SOBRA/RODADA')}
+      ${kpi('FOLHA POR RODADA', rfDin(r.folha), 'compromisso fixo', '', 'FOLHA/RODADA')}
+      ${kpi('PROJEÇÃO · FIM DA TEMPORADA', rfDin(fim),
+            r.faltam?('em '+r.faltam+' rodada'+(r.faltam===1?'':'s')+', no ritmo atual'):'temporada encerrada', fim<0?'ruim':'fim',
+            'FIM DA TEMPORADA')}
+    </div>
+    <span class="rf-cf-nota">Prêmios de vitória e de fim de temporada ficam fora da conta — quando vierem, são lucro.</span>
+  </div>`;
+}
+
+/* =====================================================================
+   1 · RESUMO — dois gráficos mês a mês na MESMA escala, e Entra / Sai
+   ===================================================================== */
+const RF_MES_EXT=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+function rfFiMeses(){
+  const vazio=()=>({r:0,d:0,compras:0,bil:0});
+  const out={}; const k0=String(S.season)+'|'; const M=S.fiMeses||{};
+  Object.keys(M).forEach(k=>{ if(k.indexOf(k0)===0) out[Number(k.slice(k0.length))]=Object.assign(vazio(), M[k]); });
+  if(!Object.keys(out).length){
+    /* SAVE ANTERIOR AO MÊS A MÊS: reconstrói do extrato (as rodadas que ele ainda guarda) */
+    (S.finances||[]).forEach(f=>{
+      const d=rfFiDataDe(f); if(!d) return;
+      const o=out[d.getMonth()]||(out[d.getMonth()]=vazio());
+      o.r+=(f.income||0)+(f.playerSales||0);
+      o.d+=(f.salaries||0)+(f.bonuses||0)+(f.opex||0)+(f.playerPurchases||0)+(f.stadium||0);
+      o.compras+=f.playerPurchases||0; o.bil+=f.bilheteria||0;
+    });
+  }
+  const ks=Object.keys(out).map(Number).sort((a,b)=>a-b);
+  if(!ks.length) return [];
+  const lista=[];
+  for(let m=ks[0]; m<=ks[ks.length-1]; m++) lista.push(Object.assign({m}, out[m]||vazio()));
+  return lista;
+}
+function rfFiGraficoHTML(rec, meses, teto, total, leitura, fora){
+  const vals=meses.map(x=>rec?x.r:x.d);
+  return `<div class="rf-card rf-f2-graf">
+    <div class="rf-f2-cab">
+      <span class="rf-f2-cab-t"><i class="${rec?'rec':'des'}"></i>${rec?'RECEITAS':'DESPESAS'} MÊS A MÊS</span>
+      <span class="rf-f2-cab-r">total ${escC(rfDin(total))}</span>
+    </div>
+    <div class="rf-f2-cols">${vals.map((v,i)=>`<div class="rf-f2-col">
+        <span class="rf-f2-col-v">${v?escC(rfFiCurto(v)):''}</span>
+        <span class="rf-f2-col-b ${rec?'rec':'des'}${(!rec&&i===fora)?' fora':''}" style="height:${v>0?Math.max(6,Math.round(v/teto*84)):0}%"></span>
+      </div>`).join('')}</div>
+    <div class="rf-f2-meses">${meses.map(x=>`<span>${PT_MONTHS_ABBR[x.m]}</span>`).join('')}</div>
+    <span class="rf-f2-leitura">${leitura}</span>
+  </div>`;
+}
+function rfFiFluxoHTML(titulo, direita, itens, total, rec){
+  const ord=itens.slice().sort((a,b)=>b[1]-a[1]);
+  const maior=Math.max.apply(null, ord.map(x=>x[1]).concat([1]));
+  return `<div class="rf-card rf-f2-fluxo">
+    <div class="rf-f2-cab"><span class="rf-f2-cab-t">${titulo}</span><span class="rf-f2-cab-r">${escC(direita)}</span></div>
+    ${ord.map(([rot,v])=>`<div class="rf-f2-lin">
+      <span class="rf-f2-lin-t">${escC(rot)}</span>
+      <span class="rf-f2-lin-b"><i class="${rec?'rec':'des'}" style="width:${v>0?Math.max(4,Math.round(100*v/maior)):0}%"></i></span>
+      <span class="rf-f2-lin-v">${escC(rfDin(v))}</span>
+    </div>`).join('')}
+    <div class="rf-f2-tot ${rec?'rec':'des'}"><span>Total</span><b>${escC(rfDin(total))}</b></div>
+  </div>`;
+}
+function rfFiResumoHTML(){
+  const {receita,despesa}=rfFiTotais();
+  const t=S.seasonTotals||{};
+  const folha=squad(CL.clubId).reduce((s,p)=>s+((p.contract&&p.contract.salary)||p.salary||0),0);
+  const meses=rfFiMeses();
+  let graficos;
+  if(!meses.length){
+    graficos=`<div class="rf-card"><div class="rf-empty">Os gráficos aparecem quando a primeira rodada fechar.</div></div>`;
+  } else {
+    /* A ESCALA É UMA SÓ para os dois gráficos: o maior valor entre receitas e despesas é 100%.
+       Duas escalas faziam um mês de despesa normal parecer maior que o melhor mês de receita. */
+    const teto=Math.max.apply(null, meses.map(x=>Math.max(x.r,x.d)).concat([1]));
+    const totR=meses.reduce((a,x)=>a+x.r,0), totD=meses.reduce((a,x)=>a+x.d,0);
+    let iBom=0; meses.forEach((x,i)=>{ if(x.r>meses[iBom].r) iBom=i; });
+    let iMax=0; meses.forEach((x,i)=>{ if(x.d>meses[iMax].d) iMax=i; });
+    const ds=meses.map(x=>x.d).filter(Boolean).sort((a,b)=>a-b);
+    const mediana=ds.length?ds[Math.floor(ds.length/2)]:0;
+    const fora=(meses.length>=3 && mediana && meses[iMax].d>=1.6*mediana) ? iMax : -1;
+    const mb=meses[iBom], mm=meses[iMax];
+    const leituraR = meses.length===1
+      ? `Primeiro mês da temporada: <b>${RF_MES_EXT[mb.m]}</b>`
+      : `Melhor mês: <b>${RF_MES_EXT[mb.m]}</b> · ${escC(rfDin(mb.r))}${mb.bil>mb.r*0.4?' · bilheteria forte':''}`;
+    const leituraD = fora>=0
+      ? `Fora da curva: <b>${RF_MES_EXT[mm.m]}</b> · ${mm.compras>=mm.d*0.5
+          ? escC(rfDin(mm.compras))+' em compra de '+rfFiG().t('jogadores')
+          : escC(rfDin(mm.d))+' no mês'}`
+      : `Maior mês: <b>${RF_MES_EXT[mm.m]}</b> · ${escC(rfDin(mm.d))}`;
+    graficos=`<div class="rf-f2-duo">${rfFiGraficoHTML(true, meses, teto, totR, leituraR, -1)}${rfFiGraficoHTML(false, meses, teto, totD, leituraD, fora)}</div>`;
+  }
+  const entra=rfFiReceitaLinhas(t).concat([['Venda de '+rfFiG().t('jogadores'), t.playerSales||0]]);
+  /* A FOLHA NAO NASCE A ZERO: antes da 1ª rodada o acumulado é 0, e o compromisso já é a soma dos
+     salários do elenco. Enquanto nada foi pago, mostra-se o que VAI ser pago. */
+  const sai=[['Folha salarial', (t.salaries||0) || folha],['Bônus', t.bonuses||0],
+             ['Custo operacional', t.opex||0],['Compra de '+rfFiG().t('jogadores'), t.playerPurchases||0],
+             ['Obras no estádio', t.stadium||0]];
+  return graficos+`<div class="rf-f2-duo estica">
+      ${rfFiFluxoHTML('ENTRA', 'temporada '+(S.season||''), entra, receita, true)}
+      ${rfFiFluxoHTML('SAI', 'folha atual '+rfDin(folha), sai, despesa || folha, false)}
     </div>`;
 }
 
 /* =====================================================================
-   4 · ESTÁDIO
+   2 · EXTRATO — agrupado por rodada; o caixa aparece uma vez por rodada
    ===================================================================== */
-function rfFiEstadioHTML(){
+const RF_FI_TIPOS=['todos','entradas','saídas'];
+const RF_FI_MIN=[0,10000,100000,1000000];
+const RF_FI_POR_PAG=12;
+function rfFiExtEstado(){ CL._fiExt=CL._fiExt||{tipo:0,min:0,pag:0}; return CL._fiExt; }
+function rfFiExtSet(k){
+  const e=rfFiExtEstado();
+  if(k==='tipo'){ e.tipo=(e.tipo+1)%RF_FI_TIPOS.length; e.pag=0; }
+  else if(k==='min'){ e.min=(e.min+1)%RF_FI_MIN.length; e.pag=0; }
+  else if(k==='prox') e.pag++;
+  else if(k==='ant') e.pag=Math.max(0,e.pag-1);
+  cdraw();
+}
+function rfFiExtItens(f){
+  const G=rfFiG();
+  return rfFiReceitaLinhas(f).concat([
+    ['Venda de '+G.t('jogadores'), f.playerSales||0],
+    ['Folha salarial', -(f.salaries||0)],
+    ['Bônus', -(f.bonuses||0)],
+    ['Custo operacional', -(f.opex||0)],
+    ['Compra de '+G.t('jogadores'), -(f.playerPurchases||0)],
+    ['Obras no estádio', -(f.stadium||0)],
+  ]).filter(x=>x[1]);
+}
+function rfFiExtratoHTML(){
+  const e=rfFiExtEstado();
+  /* GRUPOS POR RODADA. S.finances vem da mais recente para a mais antiga; lançamentos da mesma
+     rodada (o fecho e uma compra no meio da semana) juntam-se no mesmo grupo. O caixa depois de
+     cada rodada não é guardado: sai do caixa de hoje menos o saldo de cada rodada mais nova. */
+  const grupos=[]; let caixa=S.budget||0;
+  (S.finances||[]).forEach(f=>{
+    let g=grupos[grupos.length-1];
+    if(!g || g.round!==f.round){ g={round:f.round, f, net:0, itens:[], caixaDepois:caixa}; grupos.push(g); }
+    g.net+=(f.net||0); caixa-=(f.net||0);
+    g.itens=g.itens.concat(rfFiExtItens(f));
+  });
+  const tipo=RF_FI_TIPOS[e.tipo], minimo=RF_FI_MIN[e.min];
+  const passa=([,v])=> Math.abs(v)>=minimo && (tipo==='todos' || (tipo==='entradas'?v>0:v<0));
+  const lista=[]; grupos.forEach(g=>g.itens.filter(passa).forEach(it=>lista.push({g,it})));
+  const total=lista.length;
+  const pags=Math.max(1, Math.ceil(total/RF_FI_POR_PAG));
+  const pag=Math.min(e.pag, pags-1); e.pag=pag;
+  const fatia=lista.slice(pag*RF_FI_POR_PAG, (pag+1)*RF_FI_POR_PAG);
+  const blocos=[]; fatia.forEach(x=>{ let b=blocos[blocos.length-1]; if(!b||b.g!==x.g){ b={g:x.g,itens:[]}; blocos.push(b); } b.itens.push(x.it); });
+  const filtro=(rot,val,on)=>`<button type="button" class="rf-f2-filtro" onclick="${on}">
+      <span>${escC(rot)}</span><b>${escC(val)}</b><i>▾</i></button>`;
+  const corpo = !grupos.length
+    ? '<div class="rf-empty">Nenhuma rodada fechada ainda nesta temporada.</div>'
+    : !total ? '<div class="rf-empty">Nenhum lançamento com estes filtros.</div>'
+    : blocos.map(b=>{
+        const g=b.g;
+        return `<div class="rf-f2-rod">
+          <div class="rf-f2-rod-cab">
+            <span class="rf-f2-rod-id"><b>${g.round!=null?g.round+'ª jornada':'Rodada'}</b><i>${escC(rfFiDataTxt(g.f))}</i></span>
+            <span class="rf-f2-rod-num">
+              <span class="rf-f2-rod-l">saldo da rodada</span>
+              <span class="rf-f2-rod-s ${g.net>=0?'ok':'ruim'}">${g.net>=0?'+':'−'}${escC(rfDin(Math.abs(g.net)))}</span>
+              <span class="rf-f2-rod-div"></span>
+              <span class="rf-f2-rod-l">caixa</span>
+              <span class="rf-f2-rod-c">${escC(rfDin(g.caixaDepois))}</span>
+            </span>
+          </div>
+          ${b.itens.map(([rot,v])=>`<div class="rf-f2-it">
+            <span class="rf-f2-chip ${v>0?'ent':'sai'}">${v>0?'ENTRADA':'SAÍDA'}</span>
+            <span class="rf-f2-it-n">${escC(rot)}</span>
+            <span class="rf-f2-it-v ${v>0?'ok':'ruim'}">${v>0?'+':'−'}${escC(rfDin(Math.abs(v)))}</span>
+          </div>`).join('')}
+        </div>`;
+      }).join('');
+  const de=total?(pag*RF_FI_POR_PAG+1):0, ate=Math.min(total,(pag+1)*RF_FI_POR_PAG);
+  return `<div class="rf-card rf-f2-ext">
+    <div class="rf-f2-filtros">
+      <span class="rf-f2-cab-t rf-f2-so-desk">LANÇAMENTOS</span>
+      <div class="rf-f2-trilho">
+        ${filtro('Temporada', String(S.season||''), '')}
+        ${filtro('Tipo', tipo, "rfFiExtSet('tipo')")}
+        ${filtro('Valor mínimo', rfDin(minimo), "rfFiExtSet('min')")}
+      </div>
+      <span class="rf-sp rf-f2-so-desk"></span>
+      <button type="button" class="rf-f2-exp rf-f2-so-desk" onclick="rfFiExportar()">${rfIcone('exportar',14)} Exportar extrato</button>
+    </div>
+    ${corpo}
+    <div class="rf-f2-pag">
+      <span class="rf-f2-pag-t">${total?`${de}–${ate} de ${total} lançamento${total===1?'':'s'}`:'0 lançamentos'}</span>
+      <span class="rf-sp"></span>
+      <button type="button" class="rf-f2-pag-b" ${pag<=0?'disabled':''} onclick="rfFiExtSet('ant')" aria-label="Página anterior">‹</button>
+      <span class="rf-f2-pag-n">${pag+1} de ${pags}</span>
+      <button type="button" class="rf-f2-pag-b" ${pag>=pags-1?'disabled':''} onclick="rfFiExtSet('prox')" aria-label="Próxima página">›</button>
+    </div>
+  </div>
+  <button type="button" class="rf-f2-exp rf-f2-so-mob" onclick="rfFiExportar()">${rfIcone('exportar',14)} Exportar extrato</button>`;
+}
+
+/* =====================================================================
+   3 · ESTÁDIO — como faturar mais: receita por jogo = público × preço
+   ===================================================================== */
+function rfFiEstadioDados(){
   const st=(typeof myStadium==='function')?myStadium():null;
   const cap=(st&&st.capacity)||(typeof STAND_START!=='undefined'?STAND_START:0);
-  const max=(typeof stadiumMaxCapacity==='function')?stadiumMaxCapacity():cap;
-  const custo=(typeof standCost==='function')?standCost():0;
-  const foto=(typeof stadiumPhotoFor==='function')?stadiumPhotoFor(CL.clubId):'';
+  const teto=(typeof stadiumMaxCapacity==='function')?stadiumMaxCapacity():cap;
+  const feito=(st&&st.builtThisSeason)||0;
+  const cota=(typeof SEASON_BUILD_LIMIT!=='undefined')?SEASON_BUILD_LIMIT:0;
+  const liberado=Math.max(0, Math.min(cota-feito, teto-cap));
+  const bloqueado=Math.max(0, teto-cap-liberado);
+  /* O PREÇO VEM DA DIVISÃO, e é o motor que o diz (ticketPriceForDivision): é a mesma tabela que
+     paga a bilheteria. O jogador não o escolhe. */
+  const preco=(typeof ticketPriceForDivision==='function')?ticketPriceForDivision(S.division):(CL.ticket||0);
+  return {st, cap, teto, feito, cota, liberado, bloqueado, preco, noTeto:cap>=teto};
+}
+/* o botão do pacote abre o diálogo da obra JÁ com a quantidade — é ele que cobra, confirma e
+   passa pelo contador (rfCtSegurar em rfEstConstruirGo). Nunca vai direto ao motor. */
+function rfFiObra(n){ CL._obrasQtd=n; rfAcAbrir('est-construir'); }
+function rfFiEstadioHTML(){
+  const e=rfFiEstadioDados();
   const cl=clubOf(CL.clubId)||{short:'—'};
-  const att=CL.lastAtt||0;
-  const ocup=cap&&att?Math.round(att/cap*100):0;
-  /* O PREÇO VEM DA DIVISÃO, e é o motor que o diz. `CL.ticket` é uma cópia
-     recalculada a cada carregamento (ver main.js) e o motor nunca a lê: a
-     bilheteria usa `ticketPriceForDivision(div)`, uma tabela fixa
-     (A:25 · B:20 · C:15 · D:10). Ler daqui é ler da mesma fonte que paga. */
-  const preco=(typeof ticketPriceForDivision==='function')
-    ? ticketPriceForDivision(S.division) : (CL.ticket||0);
-  const casa=(S.results||[]).filter(r=>r.h===CL.clubId);
-  const publicos=casa.map(r=>r.att||0).filter(Boolean);
+  const th=(typeof clubTheme==='function')?clubTheme(CL.clubId):{col:'#8f1d18',hdr:'#fff'};
+  const esc=(c,k)=>(typeof shade==='function')?shade(c,k):c;
+  const heroBg=`linear-gradient(105deg,${esc(th.col,-0.22)},${th.col} 55%,${esc(th.col,-0.34)})`;
+  const pct=v=>e.teto?Math.round(v/e.teto*1000)/10:0;
+  const nomeEst=(typeof rfObEstadioNome==='function')?rfObEstadioNome(cl,e.st):('Estádio do '+cl.short);
+  const casa=Math.max(1, Math.round(((S.sched||[]).length||38)/2));
+  const o=(typeof rfObrasPrecos==='function')?rfObrasPrecos():{linhas:[],maxPorRegra:0};
+  const caixa=S.budget||0;
+  const pacotes=o.linhas.slice(0,3);
+  const cabem=pacotes.filter(l=>l.cabeNoCaixa);
+  const destaque=cabem.length?cabem[cabem.length-1].n:0;
+  const primeira=pacotes[0];
+  const porLugar=primeira?Math.round(primeira.preco/STAND_SEATS):0;
+  const paga=primeira?primeira.preco/(STAND_SEATS*e.preco*casa):0;
+  const pagaTxt=!primeira?'' : paga<=1 ? 'a primeira bancada se paga dentro de uma temporada, com casa cheia'
+    : paga>5 ? 'a obra leva mais de cinco temporadas a se pagar só com bilheteria'
+    : `a primeira bancada se paga em ${paga.toFixed(1).replace('.',',')} temporadas com casa cheia`;
+  const obraHTML=pacotes.map(l=>{
+    const lug=l.n*STAND_SEATS;
+    const falta=Math.max(0, l.total-caixa);
+    const on=l.cabeNoCaixa;
+    const nota = !on ? `faltam ${rfDin(falta)} no caixa`
+      : l.n===o.maxPorRegra && l.n>1 ? 'tudo o que está liberado este ano'
+      : 'cabe no caixa de hoje';
+    return `<div class="rf-f2-obra ${l.n===destaque?'on':''}">
+      <span class="rf-f2-obra-id"><b>+${grp(lug)} lugares</b><i>${escC(nota)}</i></span>
+      <span class="rf-f2-obra-num"><b>${escC(rfDin(l.total))}</b><i>+${escC(rfDin(lug*e.preco))} / jogo</i></span>
+      <button type="button" class="rf-f2-obra-b" ${on?`onclick="rfFiObra(${l.n})"`:'disabled'}>${on?'Construir':'Sem caixa'}</button>
+    </div>`;
+  }).join('');
+  const semObra = e.noTeto
+    ? `O estádio chegou ao teto do porte do clube (${grp(e.teto)} lugares). Crescer além disso só com o clube maior.`
+    : `A cota de obras deste ano (${grp(e.cota)} lugares) já foi usada. Na próxima temporada dá para construir de novo.`;
+  const ultimo=pacotes[pacotes.length-1];
+  const aviso = !pacotes.length ? ''
+    : destaque ? `Caixa hoje ${rfDin(caixa)}. Dá para erguer <b>${grp(destaque*STAND_SEATS)} lugares agora</b>${ultimo && !ultimo.cabeNoCaixa?`; para os ${grp(ultimo.n*STAND_SEATS)} de uma vez faltam ${rfDin(ultimo.total-caixa)}`:''}.`
+    : `Caixa hoje ${rfDin(caixa)}. Nenhuma obra cabe agora: a primeira bancada custa ${rfDin(primeira.total)} e faltam ${rfDin(primeira.total-caixa)}.`;
+  /* a escada das divisões: a de agora e o próximo degrau marcados */
+  const TIERS=['A','B','C','D'];
+  const tier=(typeof PRIZES!=='undefined'&&PRIZES.tierOf)?PRIZES.tierOf(S.division):S.division;
+  const iT=Math.max(0,TIERS.indexOf(tier));
+  const precoDe=t=>(typeof PRIZES!=='undefined'&&PRIZES.TICKET&&PRIZES.TICKET[t])||0;
+  const prox=iT>0?TIERS[iT-1]:null;
+  const escada=TIERS.map((t,i)=>{
+    const v=precoDe(t);
+    const cls = i===iT?'atual' : t===prox?'prox' : '';
+    const nota = i===iT?'a sua divisão' : t===prox?'próximo degrau'
+      : (e.preco? ((v>=e.preco?'+':'')+Math.round((v/e.preco-1)*100)+'%') : '');
+    return `<div class="rf-f2-deg ${cls}"><b>${escC(rfFiReais(v))}</b><span>Série ${t}</span><i>${escC(nota)}</i></div>`;
+  }).join('');
+  const lugFut=e.cap+e.liberado;
+  const junta = prox
+    ? {rot:'AS DUAS JUNTAS, NA SÉRIE '+prox, v:lugFut*precoDe(prox), p:precoDe(prox)}
+    : {rot:'COM AS OBRAS LIBERADAS', v:lugFut*e.preco, p:e.preco};
+  const mult=e.cap*e.preco ? junta.v/(e.cap*e.preco) : 0;
+  const casaRes=(S.results||[]).filter(r=>r.h===CL.clubId);
+  const publicos=casaRes.map(r=>r.att||0).filter(Boolean);
   const medio=publicos.length?Math.round(publicos.reduce((a,b)=>a+b,0)/publicos.length):0;
   const maiorP=publicos.length?Math.max.apply(null,publicos):0;
-  const receita=(S.seasonTotals&&S.seasonTotals.gate)||0;
-  /* O PREÇO DO BILHETE NÃO É UMA ESCOLHA DESTE JOGO.
-     Aqui havia três faixas clicáveis — 25% abaixo, o preço de hoje, 30% acima —
-     com o efeito no público ao lado. Nenhuma delas mudava coisa nenhuma: as
-     três chamavam `clTicketPrice && clTicketPrice()`, e `clTicketPrice` NÃO
-     EXISTE — o `&&` transformava o clique num silêncio. E não podia existir:
-     a bilheteria do motor é `att × ticketPriceForDivision(div)`, uma tabela
-     fixa por divisão que o jogador não toca.
-     De caminho, os três valores saíam como "R$ 0k": o preço é por lugar (8, 10,
-     25 reais) e estava a passar pelo `fmt`, que encurta para milhares.
-     No lugar da escolha falsa fica a tabela verdadeira — o que se paga em cada
-     divisão — que responde à única pergunta real: quanto rende subir. */
-  const TAB_PRECO=[['A','Série A',25],['B','Série B',20],['C','Série C',15],['D','Série D',10]];
-  return `<div class="rf-card rf-fi-est">
-      <div class="rf-fi-est-foto"${foto?` style="background-image:url('${escC(foto)}')"`:''}>
-        <span class="rf-fi-est-veu"></span>
-        <div class="rf-fi-est-id">
-          <span class="rf-fi-est-n">${escC(rfObEstadioNome(cl,st))}</span>
-          <span class="rf-fi-est-s">CAPACIDADE ${grp(cap)}${ocup?' · OCUPAÇÃO MÉDIA '+ocup+'%':''}</span>
+  const receitaBil=(S.seasonTotals&&S.seasonTotals.bilheteria)||0;
+  const bil=(rot,val,nota,vazio)=>`<div class="rf-f2-bil"><span class="rf-f2-bil-l">${rot}</span>
+    <b class="${vazio?'vazio':''}">${escC(val)}</b><i>${escC(nota)}</i></div>`;
+  return `<div class="rf-f2-hero" style="background:${heroBg};--hero-ink:${th.hdr||'#fff'}">
+      <div class="rf-f2-hero-top">
+        <span class="rf-f2-hero-id"><b>${escC(nomeEst)}</b><i>${grp(e.cap)} LUGARES · TETO ${grp(e.teto)}</i></span>
+        <span class="rf-f2-hero-v"><i>RENDE HOJE, COM CASA CHEIA</i><b>${escC(rfDin(e.cap*e.preco))} / jogo</b></span>
+      </div>
+      <div class="rf-f2-cap"><span class="c" style="width:${pct(e.cap)}%"></span><span class="l" style="width:${pct(e.liberado)}%"></span></div>
+      <div class="rf-f2-cap-leg">
+        <span><i class="c"></i>${grp(e.cap)} construídos</span>
+        ${e.liberado?`<span><i class="l"></i>${grp(e.liberado)} liberados para obra este ano</span>`:''}
+        ${e.bloqueado?`<span><i class="b"></i>${grp(e.bloqueado)} só em temporadas futuras</span>`:''}
+      </div>
+    </div>
+    <div class="rf-f2-alav">
+      <div class="rf-card rf-f2-bloco">
+        <div class="rf-f2-cab"><span class="rf-f2-cab-t">ALAVANCA 1 · MAIS LUGARES</span>
+          ${porLugar?`<span class="rf-f2-cab-r">${escC(rfFiReais(porLugar))} por lugar</span>`:''}</div>
+        <span class="rf-f2-txt">Cada lugar novo vale <b>${escC(rfFiReais(e.preco))} por jogo em casa</b> — o preço da sua divisão. Com ${casa} jogos em casa por temporada, ${escC(pagaTxt||'a obra rende a cada jogo')}${prox?', e mais rápido ainda se o clube subir de divisão':''}.</span>
+        ${pacotes.length?`<div class="rf-f2-obras">${obraHTML}</div>`:`<div class="rf-f2-alerta">${escC(semObra)}</div>`}
+        ${aviso?`<div class="rf-f2-alerta">⚠ <span>${aviso}</span></div>`:''}
+      </div>
+      <div class="rf-card rf-f2-bloco">
+        <div class="rf-f2-cab"><span class="rf-f2-cab-t">ALAVANCA 2 · PREÇO DO BILHETE</span>
+          <span class="rf-f2-cab-r">pela divisão</span></div>
+        <span class="rf-f2-txt">O preço não se escolhe: sobe com o clube. Subir uma divisão vale o mesmo que construir milhares de lugares.</span>
+        <div class="rf-f2-escada">${escada}</div>
+        <div class="rf-f2-junta">
+          <i>${escC(junta.rot)}</i>
+          <b>${escC(rfDin(junta.v))} / jogo</b>
+          <span>${grp(lugFut)} lugares × ${escC(rfFiReais(junta.p))}${mult>1.05?' — '+mult.toFixed(1).replace('.',',')+'× o de hoje':''}</span>
         </div>
       </div>
     </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">BILHETERIA</span></div>
-      <div class="rf-el-stats">
-        ${rfElStat('PÚBLICO MÉDIO', medio?grp(medio):'—', casa.length+' jogo'+(casa.length===1?'':'s')+' em casa')}
-        ${rfElStat('MAIOR PÚBLICO', maiorP?grp(maiorP):'—', maiorP?'nesta temporada':'ainda sem jogo em casa')}
-        ${rfElStat('PREÇO DO BILHETE', rfFiReais(preco), 'por lugar')}
-        ${rfElStat('RECEITA NO ANO', receita?fmt(receita):'—', 'só bilheteria')}
-      </div>
-    </div>
-    <div class="rf-fi-duo">
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">PREÇO DO BILHETE</span>
-          <span class="rf-label-r">definido pela divisão</span></div>
-        ${TAB_PRECO.map(([d,nome,v])=>`<div class="rf-fi-preco ${d===S.division?'on':''}">
-          <span class="rf-fi-preco-v">${escC(rfFiReais(v))}</span>
-          <span class="rf-fi-preco-o">${escC(nome)}</span>
-          <span class="rf-fi-preco-r">${d===S.division?'a sua divisão':(v>preco?'subindo':'abaixo')}</span>
-        </div>`).join('')}
-        <span class="rf-note">A bilheteria de cada jogo é <b>público × preço</b>. O preço não se
-          escolhe: sobe quando o clube sobe de divisão.</span>
-      </div>
-      <div class="rf-card">
-        <div class="rf-label"><span class="rf-label-t">OBRAS</span></div>
-        <!-- Vai ao diálogo, nunca direto ao motor: clBuildStand() constrói sem confirmar e,
-             quando recusa, reabria renderStadium() — o overlay de 98 — por cima da pele nova.
-             rfAcEstadio() mostra a obra ou a recusa certa, ambas no desenho novo. E deixou de
-             ser desativado no tecto: é justamente aí que a explicação do porque importa.
-
-             O BOTÃO TINHA A CARA DAS LINHAS DE INFORMAÇÃO. Este cartão tem três linhas com a
-             mesma pintura e só a primeira era clicável — não havia como adivinhar qual. Agora a
-             ação é uma chamada com o desenho de botão do jogo, e as outras duas continuam a ser
-             o que sempre foram: números. -->
-        <button type="button" class="rf-obr-cta" onclick="rfAcEstadio()">
-          <span class="rf-obr-cta-t">${rfIcone('estadio',16)} ${cap>=max?'Estádio no teto':'Construir bancadas'}</span>
-          <span class="rf-obr-cta-v">${cap>=max?'ver porquê':'a partir de '+escC(fmt(custo))}</span>
-        </button>
-        <div class="rf-fi-obra estatica">
-          <span class="rf-fi-obra-n">Teto de expansão</span>
-          <span class="rf-fi-obra-v">${grp(max)}</span>
-          <span class="rf-fi-obra-p">lugares</span>
-        </div>
-        <div class="rf-fi-obra estatica">
-          <span class="rf-fi-obra-n">Capacidade de hoje</span>
-          <span class="rf-fi-obra-v">${grp(cap)}</span>
-          <span class="rf-fi-obra-p">lugares</span>
-        </div>
-        <div class="rf-fi-obra estatica">
-          <span class="rf-fi-obra-n">Obras liberadas este ano</span>
-          <span class="rf-fi-obra-v">${grp(Math.max(0,(typeof SEASON_BUILD_LIMIT!=='undefined'?SEASON_BUILD_LIMIT:0)-(((typeof myStadium==='function'&&myStadium())||{}).builtThisSeason||0)))}</span>
-          <span class="rf-fi-obra-p">lugares</span>
-        </div>
+    <div class="rf-card rf-f2-bloco">
+      <div class="rf-f2-cab"><span class="rf-f2-cab-t">BILHETERIA ATÉ AQUI</span><span class="rf-f2-cab-r">temporada ${escC(String(S.season||''))}</span></div>
+      <div class="rf-f2-bils">
+        ${bil('JOGOS EM CASA', String(casaRes.length), 'de '+casa+' na temporada', false)}
+        ${bil('PÚBLICO MÉDIO', medio?grp(medio):'—', medio?'pagantes por jogo':'ainda sem jogo em casa', !medio)}
+        ${bil('MAIOR PÚBLICO', maiorP?grp(maiorP):'—', maiorP?'nesta temporada':'recorde ainda por bater', !maiorP)}
+        ${bil('RECEITA NO ANO', receitaBil?rfDin(receitaBil):'—', 'só bilheteria', !receitaBil)}
       </div>
     </div>`;
 }
 
 /* =====================================================================
-   5 · PATROCÍNIO
-   O DINHEIRO AQUI É O DINHEIRO A SÉRIO. Esta aba tinha a sua PRÓPRIA fórmula
-   (capacidade × peso da divisão × 0,7) que não tinha relação nenhuma com o que
-   o motor credita: mostrava ~1,8 M/temporada a um clube da Série A quando o
-   patrocínio realmente creditado é ~60 M. Duas réguas para o mesmo dado — e a
-   que a tela mostrava não pagava nada a ninguém.
-
-   Agora a conta vem de `REBAL.receitaPartes`, a mesma que `processFinances`
-   usa todas as rodadas: metade da receita-base é patrocínio. Os três espaços
-   REPARTEM esse valor (a soma é o total exacto, o último leva o resto), então
-   o que está escrito nos contratos é dinheiro que entra mesmo no caixa.
-
-   NÃO HÁ CONTRATO NO MOTOR — não há marca com vencimento nem negociação, e por
-   isso o vencimento fica em traço.
-
-   ===== AS MARCAS INVENTADAS SAÍRAM (04/09/2026) =====
-   Estes três contratos vinham carimbados com Betano, CazéTV e iFood, tiradas de
-   AD_SPONSORS. Nenhuma existia: não havia contrato com elas, não estavam no painel
-   (elifoot_v3.ad_spaces) e o jogo nem sequer tinha link para onde as mandar. Lidas
-   nesta tela ao lado de um valor em reais, pareciam patrocínio real do clube.
-
-   O DINHEIRO CONTINUA. Só a marca saiu. Onde havia logo há agora "Em breve", que é a
-   verdade: o espaço existe no jogo, a receita entra, e a marca é o que ainda falta.
-
-   A EXCEÇÃO É O PATROCINADOR DA CAMISA quando o clube TEM um: esse vem do uniforme
-   (Estúdio do painel -> RF_UNIFORMES), é escolhido por quem administra o jogo e é o
-   mesmo que está estampado na camisa — real, e por isso fica.
-
-   OS "ESPAÇOS LIVRES" SAÍRAM. Ofereciam calção e boné "a partir de X/temporada"
-   numa venda que o jogo não sabe fazer: nenhum clique, nenhuma receita. Pela
-   regra do dono — funcionalidade que não existe não se anuncia — o cartão foi
-   removido em vez de continuar a prometer.
+   4 · PATROCÍNIO
+   O DINHEIRO AQUI É O DINHEIRO A SÉRIO: metade da receita-base do clube é patrocínio
+   (REBAL.receitaPartes, a mesma conta de processFinances), repartida pelos três espaços — a soma
+   é o total exacto. NÃO HÁ CONTRATO NO MOTOR (marca, vencimento, negociação); sem marca, o lugar
+   diz "em breve", que é a verdade. A exceção é a camisa quando o uniforme do clube tem
+   patrocinador (Estúdio do painel -> RF_UNIFORMES): esse é real, e fica.
    ===================================================================== */
-function rfFiPatrocinioHTML(){
+function rfFiPatroDados(){
   const cl=(typeof clubOf==='function')?clubOf(CL.clubId):null;
   const med=(typeof divOverallAvgOf==='function')?divOverallAvgOf(S.division):undefined;
   const partes=(cl && REBAL.receitaPartes)?REBAL.receitaPartes(cl.overall, med):null;
   const porRodada=partes?partes.patrocinio:0;
-  /* POR TEMPORADA = por rodada × as rodadas do calendário deste ano. É a unidade em que um
-     contrato se lê, e a divisão por rodada continua à vista na etiqueta do cartão. */
   const rodadas=((S.sched||[]).length)||38;
   const total=porRodada*rodadas;
-  /* SINCRONIA COM O UNIFORME: o patrocinador da CAMISA é o mesmo que está estampado no uniforme
-     do clube (Estúdio do painel -> RF_UNIFORMES). Trocou o logo no uniforme, troca aqui — uma
-     fonte só. Sem uniforme com patrocinador, o espaço fica em "Em breve". */
   const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)]||{};
   const quota=[0.55,0.27,0.18];                    // camisa · manga · placas
   const v0=Math.round(total*quota[0]), v1=Math.round(total*quota[1]);
-  const ativos=[
-    {nome:'Camisa', papel:'Patrocinador principal — camisa', valor:v0,
-     marcaSrc: uni.patroUrl||null, marcaNome: uni.patroNome||null},
-    {nome:'Manga',  papel:'Manga da camisa', valor:v1,
-     marcaSrc: uni.fabricanteUrl||null, marcaNome: null},
-    {nome:'Placas', papel:'Placas do estádio', valor:total-v0-v1},
+  const contratos=[
+    {espaco:'Patrocinador principal', onde:'camisa', icone:'👕', valor:v0, marcaSrc:uni.patroUrl||null, marcaNome:uni.patroNome||null},
+    {espaco:'Manga da camisa', onde:'manga', icone:'💪', valor:v1, marcaSrc:uni.fabricanteUrl||null, marcaNome:null},
+    {espaco:'Placas do estádio', onde:'placas', icone:'🪧', valor:total-v0-v1, marcaSrc:null, marcaNome:null},
   ];
-  return `<div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">CONTRATOS ATIVOS</span>
-        <span class="rf-label-r">${escC(fmt(total))}/temporada · ${escC(fmt(porRodada))} por rodada</span></div>
-      ${ativos.map(e=>{
-        /* SEM MARCA, O LUGAR DIZ O QUE E'. O selo tambem muda: "ATIVO" ao lado de "Em breve"
-           era contraditorio — o que esta' ativo e' a RECEITA, e ela aparece no valor. */
-        const src=e.marcaSrc||null;
-        const temMarca=!!src;
-        const nomeMarca=temMarca?(e.marcaNome||'Patrocinador do clube'):'Em breve';
-        return `<div class="rf-fi-contrato${temMarca?'':' rf-fi-contrato-vago'}">
-          <span class="rf-fi-marca">${temMarca?`<img src="${escC(src)}" alt="${escC(nomeMarca)}">`:'—'}</span>
-          <span class="rf-fi-contrato-id">
-            <span class="rf-fi-contrato-n">${escC(nomeMarca)}</span>
-            <span class="rf-fi-contrato-p">${escC(e.papel)}</span>
-          </span>
-          <span class="rf-fi-contrato-v">${escC(fmt(e.valor))}/temp.</span>
-          <span class="rf-fi-contrato-d">—</span>
-          <span class="rf-fi-selo ${temMarca?'ativo':'vago'}">${temMarca?'ATIVO':'EM BREVE'}</span>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="rf-card">
-      <div class="rf-label"><span class="rf-label-t">COMO AUMENTAR O PATROCÍNIO</span></div>
-      <span class="rf-fi-texto">O espaço já rende: <b>o dinheiro destes três contratos entra
-        no caixa</b> mesmo sem marca nenhuma estampada — a marca é o que ainda falta, e é isso
-        que o <b>Em breve</b> diz.</span>
-      <span class="rf-fi-texto">O valor do ano inteiro entra <b>de uma vez</b>, na primeira rodada
-        da temporada — é caixa para o mercado logo na abertura, e não volta a entrar. Depois disso o
-        clube vive de cota de TV e bilheteria. O contrato sobe com a força do elenco, e subir de
-        divisão puxa a conta duas vezes: o seu clube vale mais e a média da
-        ${escC(divisionLabel())} também.</span>
+  return {total, porRodada, rodadas, contratos};
+}
+function rfFiPatrocinioHTML(){
+  const d=rfFiPatroDados();
+  const cards=d.contratos.map(c=>{
+    const pct=d.total?Math.round(c.valor/d.total*100):0;
+    const selo=c.marcaSrc?escC(c.marcaNome||'ATIVO').toUpperCase():'MARCA EM BREVE';
+    return `<div class="rf-card rf-f2-pat">
+      <div class="rf-f2-pat-top">
+        <span class="rf-f2-pat-ic">${c.marcaSrc?`<img src="${escC(c.marcaSrc)}" alt="">`:c.icone}</span>
+        <span class="rf-f2-pat-id"><b>${escC(c.espaco)}</b><i class="${c.marcaSrc?'ativo':''}">${selo}</i></span>
+        <span class="rf-f2-pat-v rf-f2-so-mob">${escC(rfDin(c.valor))}</span>
+      </div>
+      <div class="rf-f2-pat-num rf-f2-so-desk"><b>${escC(rfDin(c.valor))}</b></div>
+      <div class="rf-f2-pat-peso"><span><i style="width:${pct}%"></i></span><b>${pct}%</b></div>
+      <span class="rf-f2-pat-r">${escC(c.onde)} · ${escC(rfDin(d.rodadas?Math.round(c.valor/d.rodadas):0))} por rodada</span>
+    </div>`;
+  }).join('');
+  return `<div class="rf-f2-tri">${cards}</div>
+    <div class="rf-f2-duo estica">
+      <div class="rf-card rf-f2-bloco">
+        <span class="rf-f2-cab-t">COMO O DINHEIRO ENTRA</span>
+        <div class="rf-f2-tot azul"><span>Total dos três contratos</span><b>${escC(rfDin(d.total))}</b></div>
+        <span class="rf-f2-txt">O valor do ano inteiro entra <b>de uma vez, na primeira rodada da temporada</b> — é caixa para o mercado logo na abertura, e não volta a entrar. Depois disso o clube vive de cota de TV e bilheteria.</span>
+        <span class="rf-f2-txt fraco">O espaço já rende sem marca nenhuma estampada: o "em breve" é só a arte, não o dinheiro.</span>
+      </div>
+      <div class="rf-card rf-f2-bloco">
+        <span class="rf-f2-cab-t">O QUE FAZ O CONTRATO SUBIR</span>
+        <div class="rf-f2-porque"><span>💪</span><span><b>Elenco mais forte</b><i>Quanto mais vale o time em campo, mais a marca paga para estar nele. O contrato acompanha a força do elenco.</i></span></div>
+        <div class="rf-f2-porque"><span>🏆</span><span><b>Subir de divisão</b><i>Puxa a conta duas vezes: o seu clube passa a valer mais e a média da divisão nova também é maior.</i></span></div>
+      </div>
     </div>`;
 }
 

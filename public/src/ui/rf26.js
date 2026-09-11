@@ -145,10 +145,9 @@ const RF_PAGES=[
     titulo:'Finanças', sub:()=>rfFiSubHTML(),
     acoes:()=>rfFiAcoesHTML(), grid:'minmax(0,1fr)',
     /* o contador do clube, fixo abaixo das abas em todas elas (ver rf26-contador.js) */
-    aviso:()=>(typeof rfCtPainelHTML==='function'?rfCtPainelHTML():''),
+    aviso:()=>(typeof rfFiFaixaHTML==='function'?rfFiFaixaHTML():''),
     tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFiResumoHTML()},
            {k:'extrato',   l:()=>'Extrato',    build:()=>rfFiExtratoHTML()},
-           {k:'historico', l:()=>'Histórico',  build:()=>rfFiHistoricoHTML()},
            {k:'estadio',   l:()=>'Estádio',    build:()=>rfFiEstadioHTML()},
            {k:'patrocinio',l:()=>'Patrocínio', build:()=>rfFiPatrocinioHTML()} ] },
 

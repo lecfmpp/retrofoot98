@@ -6104,6 +6104,21 @@ function pushFinanceEntry(patch){
   S.seasonTotals.playerSales+=entry.playerSales||0;
   S.seasonTotals.playerPurchases+=entry.playerPurchases||0;
   S.seasonTotals.stadium+=entry.stadium||0;
+  /* O MÊS A MÊS da aba Finanças (os dois gráficos do Resumo). S.finances guarda só as 12
+     últimas entradas e seasonTotals não tem mês, então sem isto não havia de onde tirar os
+     meses. Chave "temporada|mês"; guarda a temporada atual e a anterior. */
+  try{
+    const d=(entry.day!=null && typeof realDateForDay==='function') ? realDateForDay(entry.day) : null;
+    if(d){
+      S.fiMeses=S.fiMeses||{};
+      const k=S.season+'|'+d.getMonth();
+      const m=S.fiMeses[k]||(S.fiMeses[k]={r:0,d:0,compras:0,bil:0});
+      m.r+=(entry.income||0)+(entry.playerSales||0);
+      m.d+=(entry.salaries||0)+(entry.bonuses||0)+(entry.opex||0)+(entry.playerPurchases||0)+(entry.stadium||0);
+      m.compras+=entry.playerPurchases||0; m.bil+=entry.bilheteria||0;
+      Object.keys(S.fiMeses).forEach(x=>{ if(Number(x.split('|')[0])<S.season-1) delete S.fiMeses[x]; });
+    }
+  }catch(e){}
   if(typeof saveMyFinances==='function') saveMyFinances(); // online: o log é meu, não do anfitrião
 }
 /* promised-status enforcement: benched key players lose morale */

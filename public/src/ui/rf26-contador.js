@@ -215,13 +215,7 @@ function rfCtDialogoHTML(o){
     return rfCtCartaoHTML(r, rfCtFalaDecisao(r, (o&&o.ctx)||''), 'dialogo');
   }catch(e){ return ''; }   // o contador nunca pode derrubar o diálogo de compra
 }
-/* fixo no topo de Finanças */
-function rfCtPainelHTML(){
-  try{
-    const r=rfCtConta({});
-    return rfCtCartaoHTML(r, rfCtFalaHoje(r), 'painel');
-  }catch(e){ return ''; }
-}
+/* o painel fixo de Finanças mora agora em rf26-financas.js (rfFiFaixaHTML, a faixa azul) */
 
 /* ---------- O DIÁLOGO QUE SEGURA A DECISÃO ----------
    rfCtSegurar({taxa, salario, chave, volta, guardar}) — chamado pelo handler que
