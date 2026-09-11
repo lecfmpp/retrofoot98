@@ -174,19 +174,27 @@ function rfCtDicaHoje(r){
 }
 
 /* ---------- AS PEÇAS ---------- */
-function rfCtNumHTML(rotulo, valor, tom){
+function rfCtNumHTML(rotulo, valor, tom, sub){
   return `<span class="rf-ct-num"><span class="rf-ct-num-l">${escC(rotulo)}</span>
-    <span class="rf-ct-num-v ${tom||''}">${escC(valor)}</span></span>`;
+    <span class="rf-ct-num-v ${tom||''}">${escC(valor)}</span>${sub?`<span class="rf-ct-num-s">${escC(sub)}</span>`:''}</span>`;
 }
 function rfCtTom(v){ return v<0?'ruim':'ok'; }
 function rfCtCartaoHTML(r, fala, modo){
   const p=rfCtPessoa();
   const cl=clubOf(CL.clubId)||{};
   const nums = modo==='painel'
-    ? rfCtNumHTML('Caixa hoje', rfDin(r.caixa), rfCtTom(r.caixa))
-      + rfCtNumHTML('Por rodada', (r.ritmo>=0?'+':'')+rfDin(r.ritmo), r.ritmo<0?'aviso':'ok')
-      + rfCtNumHTML('Fim da temporada', rfDin(r.fimAno), rfCtTom(r.fimAno))
-      + rfCtNumHTML('Folha por rodada', rfDin(r.folha), '')
+    /* O RESUMO DA RODADA EM TRES LINHAS — o que entra, o que sai e o que sobra — e depois as
+       duas fotografias do caixa: hoje e no fim do ano. Cada cartao diz de onde vem o numero. */
+    ? rfCtNumHTML('Receita por rodada', rfDin(r.tv+r.bilheteria), 'ok',
+        'TV '+rfDin(r.tv)+' · bilheteria '+rfDin(r.bilheteria))
+      + rfCtNumHTML('Despesas por rodada', rfDin(r.folha+r.opex), 'despesa',
+        'folha '+rfDin(r.folha)+' · custos '+rfDin(r.opex))
+      + rfCtNumHTML('Saldo por rodada', (r.ritmo>=0?'+':'')+rfDin(r.ritmo), r.ritmo<0?'ruim':'ok',
+        'despesas = '+Math.round((r.folha+r.opex)/Math.max(1,r.tv+r.bilheteria)*100)+'% da receita')
+      + rfCtNumHTML('Caixa hoje', rfDin(r.caixa), rfCtTom(r.caixa),
+        r.patroPendente>0 ? 'patrocínio a receber '+rfDin(r.patroPendente) : 'o que há hoje na conta')
+      + rfCtNumHTML('Fim da temporada', rfDin(r.fimAno), rfCtTom(r.fimAno),
+        r.faltam ? 'em '+r.faltam+' rodada'+(r.faltam===1?'':'s')+', sem prêmios' : 'temporada encerrada')
     : rfCtNumHTML('Caixa depois', rfDin(r.caixaDepois), rfCtTom(r.caixaDepois))
       + rfCtNumHTML('Por rodada', (r.ritmo>=0?'+':'')+rfDin(r.ritmo), r.ritmo<0?'aviso':'ok')
       + rfCtNumHTML('Fim da temporada', rfDin(r.fimAno), rfCtTom(r.fimAno));

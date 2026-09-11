@@ -11885,3 +11885,21 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-fita-mid::-webkit-scrollbar{display:none}
   .rf-fita-trilho.so-mob.parado{padding-right:90px}   /* o último nome não fica por baixo da pílula */
 }
+
+/* ===== CONTADOR EM FINANÇAS: cinco cartões com a origem de cada número ===== */
+.rf-ct-num-s{font-size:10.5px;line-height:1.35;color:var(--text-4);white-space:normal}
+.rf-ct-num-v.despesa{color:#b2432f}
+.rf-ct.painel .rf-ct-nums{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.rf-ct.painel .rf-ct-num{padding:10px 12px;gap:4px;border:1px solid var(--line-1)}
+.rf-ct.painel .rf-ct-num-v{font-size:15px}
+@media (max-width:1200px){ .rf-ct.painel .rf-ct-nums{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:640px){ .rf-ct.painel .rf-ct-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rf-ct.painel .rf-ct-num:last-child{grid-column:1/-1} }
+/* rótulo inteiro, nunca cortado; no estreito os cartões usam a largura toda do quadro,
+   por baixo do rosto, em vez de ficarem espremidos na coluna do texto */
+.rf-ct.painel .rf-ct-num-l{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
+@media (max-width:900px){
+  .rf-ct.painel .rf-ct-rosto{width:48px;height:48px;font-size:15px}
+  .rf-ct.painel .rf-ct-nums,.rf-ct.painel .rf-ct-dica{margin-left:-58px}
+  .rf-ct.painel .rf-ct-num-v{font-size:14px}
+}
