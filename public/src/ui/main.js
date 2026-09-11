@@ -5602,9 +5602,14 @@ function dadosCrise(){
   const nome=(clubOf(CL.clubId)||{}).short||'o clube';
   return { titulo:'A diretoria quer falar com você',
     manchete:'O clima azedou.', trofeu:null,
-    linha:`${pos}º lugar e vestiário em baixa. A diretoria do ${nome} está de olho nas próximas rodadas.`,
-    stats:[{k:'Segurança no cargo',v:js+'%'},{k:'Posição',v:pos?pos+'º':'—'},{k:'Moral do elenco',v:moral+'%'}],
-    rodape:'Abaixo de 15% de segurança, a demissão entra em sorteio a cada rodada.' };
+    linha:(S.budget||0)<0
+      ? `${pos}º lugar e o caixa no vermelho. A diretoria do ${nome} está cobrando os resultados e as contas.`
+      : `${pos}º lugar e vestiário em baixa. A diretoria do ${nome} está de olho nas próximas rodadas.`,
+    stats:[{k:'Segurança no cargo',v:js+'%'},{k:'Posição',v:pos?pos+'º':'—'},
+           (S.budget||0)<0 ? {k:'Caixa',v:fmt(S.budget)} : {k:'Moral do elenco',v:moral+'%'}],
+    rodape:(S.budget||0)<0
+      ? 'Mais algumas rodadas assim e a diretoria pode decidir trocar o comando — e com o caixa no vermelho, quem sai daqui só encontra porta aberta em clube menor.'
+      : 'Mais algumas rodadas assim e a diretoria pode decidir trocar o comando. Uma boa sequência muda essa conversa.' };
 }
 /* enfileira o momento de crise se ele se aplica AGORA e ainda não apareceu nesta temporada */
 function enfileirarMomentoCrise(){
@@ -11860,9 +11865,10 @@ function handleResenhaCareer(){
 }
 function enterResenhaUnemployment(){
   if(!CL.online) return;
+  S._demitidoPorDivida=(S.budget||0)<0;   // decide de onde vem o convite (resenhaFreeClubs)
   CL._firedFrom=CL.clubId; CL.unemployed=true; CL._unempRounds=0; CL._pendingResenhaOffer=null;
   S.coachHistory=S.coachHistory||[];
-  S.coachHistory.push({season:S.season, type:'demissao', text:`Demitido pelo ${String((clubOf(CL._firedFrom)||{}).short||'clube').toUpperCase()}`});
+  S.coachHistory.push({season:S.season, type:'demissao', text:`Demitido pelo ${String((clubOf(CL._firedFrom)||{}).short||'clube').toUpperCase()}${S._demitidoPorDivida?' — contas no vermelho':''}`});
   /* a passagem pelo clube fecha AQUI e fecha como demissão — quem for demitido fica sem clube por
      algumas rodadas, e esperar pela contratação seguinte para a fechar deixava a Carreira a
      mostrar uma passagem "em curso" num clube que já não é dele. */
@@ -11876,6 +11882,7 @@ function enterResenhaUnemployment(){
   }
   overlayC(dlg('Você foi demitido', `<div class="cl-res" style="text-align:center;padding:16px">
     <div class="cl-res-score" style="color:#c0392b">Demitido do ${escC((clubOf(CL._firedFrom)||{}).short||'clube')}</div>
+    ${S._demitidoPorDivida?'<div style="margin-top:8px;font-size:13px">As contas no vermelho pesaram na decisão. Os convites vão chegar de clubes menores.</div>':''}
     <div class="cl-res-verd" style="margin-top:8px">Os resultados e o clima do vestiário não seguraram o seu cargo.<br>
       Você fica <b>sem clube</b>, acompanhando as rodadas. Em algumas rodadas um clube livre pode te chamar.</div>
     <div class="cl-cal-ok" style="margin-top:14px">${btn('Entendi','clCloseOverlay();CL.screen=\'main\';CL.tab=\'jogo\';cdraw()',{icon:'✔',cls:'cl-btn-ok'})}</div>
@@ -11913,6 +11920,7 @@ function clAcceptResenhaOffer(){
   NET.setMyClub(offer.clubId).then(r=>{
     if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
     CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null; CL._ofertaEmMesa=null;
+    S._demitidoPorDivida=false;
     if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==offer.clubId);
     CL.clubId=offer.clubId; S.clubId=offer.clubId;
     /* ===== CONVITE DE OUTRO PAÍS: O MUNDO DE LÁ NASCE AGORA =====

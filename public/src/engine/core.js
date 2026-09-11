@@ -4518,6 +4518,21 @@ function decidePromotionRelegation(finalPos, totalClubs){
      ou (mais raro) um clube fraco de UMA divisão acima — nunca um salto gigante de carreira.
    Só roda no modo solo (Resenha é sessão compartilhada; trocar de clube no meio quebraria o
    fluxo dos outros jogadores humanos). */
+/* O CAIXA TAMBEM PESA NA CADEIRA (pedido do dono, 10/09). Ate aqui a seguranca no cargo so' via
+   tabela e moral: um treinador podia afundar o clube em divida e, estando bem colocado, nunca
+   ouvia nada. Agora o alvo desconta:
+     · caixa NEGATIVO: 8 pontos + 3,2 por rodada de receita-base devida, ate' 40 (divida de 10
+       rodadas de receita = -40, o que leva ate' o lider a zona de risco);
+     · caixa positivo mas PROJECAO do ano no vermelho (a conta do contador): -10, o aviso amarelo.
+   Medido em rodadas de receita, e nao em reais, para valer igual na Serie A e na D. */
+function penalidadeFinanceira(){
+  if(!S || S.budget==null || !S.clubId) return 0;
+  const cl=clubOf(S.clubId); if(!cl) return 0;
+  const base=Math.max(1, baseIncome(cl.overall));
+  if(S.budget<0) return Math.min(40, Math.round(8 + (-S.budget/base)*3.2));
+  if(typeof rfCtConta==='function'){ try{ if(rfCtConta({}).fimAno<0) return 10; }catch(e){} }
+  return 0;
+}
 function tickJobSecurity(){
   if(typeof CL!=='undefined' && CL.unemployed) return; // sem clube: a régua fica parada até assumir outro
   if(S.jobSecurity==null) S.jobSecurity=60;
@@ -4525,7 +4540,8 @@ function tickJobSecurity(){
   const posScore = total>1 ? 100-((pos-1)/(total-1))*100 : 60;          // 1º=100, lanterna=0 (RESULTADOS)
   const sq=squad(S.clubId)||[];
   const moraleScore = sq.length ? clamp(sq.reduce((s,p)=>s+(p.moral==null?70:p.moral),0)/sq.length, 0, 100) : 70; // MORAL do elenco
-  const target = 0.7*posScore + 0.3*moraleScore;                        // 70% resultados + 30% moral (decisão do usuário)
+  S._penFinanceira=penalidadeFinanceira();
+  const target = clamp(0.7*posScore + 0.3*moraleScore - S._penFinanceira, 0, 100);                        // 70% resultados + 30% moral (decisão do usuário)
   S.jobSecurity = clamp(Math.round(S.jobSecurity + (target-S.jobSecurity)*0.18), 0, 100);
 }
 function clubOverall(id){ const c=clubOf(id); return c?(c.overall||55):55; }
@@ -4535,7 +4551,13 @@ function generateFiringOptions(){
   const divIdx=DIV_ORDER.indexOf(S.division);
   const sameDiv=DATA.clubs.filter(c=>c.id!==S.clubId).map(c=>({clubId:c.id, division:S.division}));
   const downDiv = divIdx<DIV_ORDER.length-1 ? ensureDivisionClubs(DIV_ORDER[divIdx+1]).map(c=>({clubId:c.id, division:DIV_ORDER[divIdx+1]})) : [];
-  const pool=[...sameDiv, ...downDiv];
+  /* DEMITIDO COM O CAIXA NO VERMELHO: a porta que se abre e' menor. So' a divisao de baixo; na
+     ultima divisao (nao ha' baixo), so' os cinco clubes mais fracos dela. Sem isto, quebrar o
+     clube e ser demitido rendia um clube do mesmo nivel com o caixa limpo. */
+  S._demitidoPorDivida=(S.budget||0)<0;
+  const pool = !S._demitidoPorDivida ? [...sameDiv, ...downDiv]
+    : downDiv.length ? downDiv
+    : sameDiv.map(o=>({...o, ov:clubOverall(o.clubId)})).sort((a,b)=>a.ov-b.ov).slice(0,5).map(({ov,...o})=>o);
   const R=makeRng(hashSeed(S.seed,S.season,S.round,'firingjob'));
   const picks=[], used=new Set();
   while(picks.length<3 && used.size<pool.length){
@@ -5141,6 +5163,14 @@ function resenhaFreeClubs(){
     const clubs = d===S.division ? DATA.clubs : ((S.otherDivs&&S.otherDivs[d]&&S.otherDivs[d].clubs)||[]);
     (clubs||[]).forEach(c=>{ if(c&&c.id && !humans.has(c.id)) out.push({clubId:c.id, division:d}); });
   });
+  /* demitido com o caixa no vermelho (ver generateFiringOptions): so' a divisao de baixo; na
+     ultima, fica a propria — e o convite ja' sai dos mais modestos (tickResenhaCareer). */
+  if(S._demitidoPorDivida){
+    const baixo=DIV_ORDER[myIdx+1];
+    if(baixo){ const so=out.filter(o=>o.division===baixo); if(so.length) return so; }
+    return out.filter(o=>o.division===S.division)
+      .map(o=>({...o, ov:clubOverall(o.clubId)})).sort((a,b)=>a.ov-b.ov).slice(0,5).map(({ov,...o})=>o);
+  }
   return out;
 }
 /* overall de um clube que pode estar fora de DATA.clubs (outra divisão) */
@@ -5545,7 +5575,9 @@ function showFiredModal(options){
   CL._jobOptions=options;
   S._demissaoPendente=options.map(o=>({clubId:o.clubId, division:o.division}));
   overlayC(dlg('Você foi demitido!', `<div class="cl-jobmodal">
-    <div class="cl-jobmodal-msg">Os resultados recentes custaram seu cargo.
+    <div class="cl-jobmodal-msg">${S._demitidoPorDivida
+      ? 'Os resultados e as contas no vermelho custaram seu cargo. Com o clube devendo, só clubes menores abriram a porta.'
+      : 'Os resultados recentes custaram seu cargo.'}
       <b>Escolha o seu próximo clube para continuar</b> — você assume ainda nesta rodada.</div>
     <div class="cl-joboptlist">${rows}</div>
   </div>`, {w:560,bodyClass:'cl-body-red',obrigatorio:true}), {obrigatorio:true});
@@ -5563,9 +5595,10 @@ function clAcceptJob(idx){
   const _saiDe=clubOf(S.clubId);
   S.coachHistory=S.coachHistory||[];
   S.coachHistory.push({season:S.season, type:'demissao',
-    text:`Demitido pelo ${String((_saiDe&&_saiDe.short)||'clube').toUpperCase()}`});
+    text:`Demitido pelo ${String((_saiDe&&_saiDe.short)||'clube').toUpperCase()}${S._demitidoPorDivida?' — contas no vermelho':''}`});
   S._saidaPorDemissao=true;                      // consumido por applyManagerJobChange
   applyManagerJobChange(opt.clubId, opt.division);
+  S._demitidoPorDivida=false;
   S.coachHistory.push({season:S.season, type:'contratado', text:`Contratado pelo ${clubOf(opt.clubId).short.toUpperCase()}`});
   CL._jobOptions=null; S._demissaoPendente=null;
   clCloseOverlay(); saveV3(); cdraw();

@@ -114,7 +114,9 @@ function rfCtFalaDecisao(r, ctx){
       `Se isso passar, fechamos a temporada com ${D(r.fimAno)}. Não tenho de onde tirar a folha até lá.`,
       `Com ${D(r.taxa)} saindo agora e a folha subindo, o caixa não aguenta: o ano termina em ${D(r.fimAno)}.`,
       `Eu assino se o senhor mandar — mas isso nos deixa ${D(r.fimAno)} no vermelho no fim da temporada.`,
-      `A conta não fecha. ${r.viraEm?`Em ${r.viraEm} rodada${r.viraEm===1?'':'s'} o caixa zera`:'O caixa zera antes do fim do ano'} e daí em diante é dívida.`
+      `A conta não fecha. ${r.viraEm?`Em ${r.viraEm} rodada${r.viraEm===1?'':'s'} o caixa zera`:'O caixa zera antes do fim do ano'} e daí em diante é dívida.`,
+      `Se isso passar, fechamos com ${D(r.fimAno)}. E aqui dentro dívida pesa tanto quanto derrota — já vi treinador perder o cargo por menos.`,
+      `Eu cuido das contas, o senhor cuida do time. Mas se o clube afundar e a diretoria perder a paciência, o mercado lembra: quem sai devendo só recebe convite de clube menor.`
     ], 'p'+ctx);
   }
   if(r.nivel==='atencao'){
@@ -133,13 +135,22 @@ function rfCtFalaDecisao(r, ctx){
 /* a fala de TODO DIA, na página de Finanças — sem decisão em jogo */
 function rfCtFalaHoje(r){
   const D=rfDin;
-  if(r.caixa<0) return rfCtEscolher([
-    `Estamos ${D(r.caixa)} no vermelho. Enquanto não entrar dinheiro, não dá para contratar ninguém.`,
-    `O caixa está negativo (${D(r.caixa)}). Vender um salário alto é o jeito mais rápido de respirar.`
-  ], 'hv');
+  if(r.caixa<0){
+    const base=Math.max(1, r.tv*2);                 // receita-base ≈ TV (metade) x 2
+    const rodadas=Math.round(-r.caixa/base);
+    if(rodadas>=6) return rfCtEscolher([
+      `A dívida já passa de ${rodadas} rodadas de receita. Nesse tamanho, nem liderar o campeonato acalma a diretoria — preciso que o senhor venda alguém.`,
+      `Vou ser franco: com ${D(r.caixa)} de buraco, o seu nome já aparece nas reuniões da diretoria. Um salário alto a menos muda essa conversa.`
+    ], 'hg');
+    return rfCtEscolher([
+      `Estamos ${D(r.caixa)} no vermelho, e a diretoria já perguntou por isso esta semana. Resultado segura o cargo, mas conta no vermelho vai minando a paciência deles.`,
+      `O caixa está negativo (${D(r.caixa)}). Enquanto não entrar dinheiro, nada de reforço — e cada rodada assim pesa na sua avaliação lá em cima.`,
+      `Não gosto de trazer isso, mas preciso: com o clube devendo, se a coisa desandar, as portas que se abrem depois são de clubes menores. Vender um salário alto é o jeito mais rápido de respirar.`
+    ], 'hv');
+  }
   if(r.fimAno<0) return rfCtEscolher([
-    `No ritmo de hoje fechamos o ano em ${D(r.fimAno)}. Precisamos vender alguém ou cortar folha.`,
-    `A folha está pesada demais: ${r.viraEm?`em ${r.viraEm} rodadas`:'antes do fim do ano'} o caixa zera.`
+    `No ritmo de hoje fechamos o ano em ${D(r.fimAno)}. A diretoria ainda não reclamou, mas já pediu a projeção — e ela não está bonita.`,
+    `A folha está pesada demais: ${r.viraEm?`em ${r.viraEm} rodadas`:'antes do fim do ano'} o caixa zera. Melhor resolver antes que a diretoria comece a perguntar.`
   ], 'hp');
   if(r.ritmo<0) return rfCtEscolher([
     `A folha já passa do que TV e bilheteria rendem: perdemos ${D(-r.ritmo)} por rodada. Os prêmios de fim de ano não podem ser o plano.`,
@@ -148,12 +159,15 @@ function rfCtFalaHoje(r){
   return rfCtEscolher([
     `Contas em ordem. No ritmo atual terminamos a temporada com ${D(r.fimAno)}.`,
     `Sobram ${D(r.ritmo)} por rodada depois de folha e custos. É esse o espaço que temos para um salário novo.`,
-    `Tudo sob controle. A folha usa ${Math.round(r.folha/Math.max(1,r.tv+r.bilheteria)*100)}% do que entra de TV e bilheteria.`
+    `Tudo sob controle. A folha usa ${Math.round(r.folha/Math.max(1,r.tv+r.bilheteria)*100)}% do que entra de TV e bilheteria.`,
+    `Com as contas no azul, a diretoria só olha para a tabela. É um sossego que vale a pena manter.`
   ], 'ho');
 }
 /* o lembrete do patrocínio: aparece nas primeiras rodadas, que é quando o
    caixa cheio engana e a 1ª janela está aberta */
 function rfCtDicaHoje(r){
+  if(r.caixa<0) return 'Aqui dentro, conta no vermelho pesa na avaliação do treinador junto com a tabela — quanto maior a dívida, mais pesa.';
+  if(r.fimAno<0) return 'A diretoria acompanha a projeção do ano. Fechar no vermelho começa a pesar na sua cadeira antes mesmo de o caixa virar.';
   if(r.patroPendente>0) return `O patrocínio do ano (${rfDin(r.patroPendente)}) entra na 1ª rodada — já está nesta conta.`;
   if((S.round||0)<10 && r.patroAno>0) return `O patrocínio do ano já entrou (${rfDin(r.patroAno)}). Não é sobra: é o que segura a folha até o fim da temporada.`;
   return 'Prêmios de vitória e de fim de temporada ficam fora da conta — quando vierem, são lucro.';
@@ -179,7 +193,7 @@ function rfCtCartaoHTML(r, fala, modo){
   return `<div class="rf-ct ${r.nivel} ${modo||''}">
     ${rfCtRostoHTML(p)}
     <div class="rf-ct-txt">
-      <span class="rf-ct-quem">${escC(p.nome)} · <i>${p.cargo} ${p.fem?'da':'do'} ${escC(cl.short||'clube')}</i></span>
+      <span class="rf-ct-quem">${escC(p.nome)} · <i>${p.cargo} do ${escC(cl.short||'clube')}</i></span>
       <span class="rf-ct-fala">“${fala}”</span>
       <div class="rf-ct-nums">${nums}</div>
       ${modo==='painel'?`<span class="rf-ct-dica">${rfCtDicaHoje(r)}</span>`:''}
@@ -241,7 +255,7 @@ RF_ACOES['ct-confirmar']=d=>{
       + (r.salario?rfAcLinhaHTML('Folha a mais por rodada', '+'+rfDin(r.salario), 'aviso'):'')
       + rfAcLinhaHTML('Rodadas até o fim da temporada', String(r.faltam), '')
       + rfAcLinhaHTML('Caixa no fim da temporada', rfDin(r.fimAno), 'ruim')
-      + rfAcNotaHTML('O jogo deixa seguir. Mas com o caixa negativo não entra reforço nenhum nem obra até o dinheiro voltar — e a conta não inclui prêmios, que podem não vir.'),
+      + rfAcNotaHTML('Não vou impedir — a decisão é sua. Só lembro três coisas: com o caixa negativo não entra reforço nem obra, a diretoria passa a cobrar as contas junto com os resultados, e prêmio nenhum está garantido para tapar o buraco.'),
     acoes:[{l:'Voltar e rever',tom:'fantasma',on:'rfCtVoltar()'},
            {l:'Seguir mesmo assim',tom:'perigo',on:'rfCtSeguirMesmoAssim()'}],
     fechar:'rfCtVoltar()' });
