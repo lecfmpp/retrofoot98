@@ -12180,3 +12180,11 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
 .rf-f2-meta-l span b{font-family:var(--font-mono);font-size:13px;font-weight:var(--fw-semibold);color:#1d8a45}
 .rf-f2-meta-l i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--text-faint);white-space:nowrap}
 .rf-f2-meta.ok .rf-f2-meta-l i{color:#1d8a45;font-weight:var(--fw-semibold)}
+/* ===== A LINHA DA NARRAÇÃO NUNCA ENCOLHE =====
+   .rf-cam-narra é uma coluna flex com max-height e rolagem: quando o feed passa da altura, o flex
+   espreme os filhos para caberem. A linha comum resiste (min-height:auto não a deixa ficar menor
+   que o texto), mas a linha de gol em festa tem overflow:hidden (.celebra, para o brilho não vazar)
+   — e overflow diferente de visible zera essa proteção. Resultado: o gol nascia achatado,
+   escondendo quem marcou, e só ganhava a altura certa quando a festa acabava. Com flex-shrink:0
+   cada linha tem sempre a altura do seu conteúdo, e quem rola é o feed. */
+.rf-cam-narra>.rf-cam-linha,.rf-cam-linha{flex-shrink:0}
