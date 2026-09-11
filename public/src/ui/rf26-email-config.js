@@ -481,6 +481,15 @@ function rfCfOpcoesHTML(){
        </div>`
     + rfOpLinha('Substituições ao intervalo','Trocar quem está em campo no descanso.',
         rfOpSeg('subsIntervalo',['Sim','Não'], o.subsIntervalo||'Sim'), 'seg')
+    /* ===== COPAS QUE O MEU CLUBE NAO DISPUTA =====
+       So vale no Modo Solo (ver soloPulaCopasAlheias em main.js). Na Resenha a rodada de copa e o
+       marcador do dia da sala inteira — por isso la' a opcao aparece travada, com o motivo escrito,
+       em vez de sumir: quem joga nos dois modos precisa de saber porque ela nao muda nada ali. */
+    + rfOpLinha('Assistir copas que você não disputa',
+        'Liberta Cup, Copa do Sul das Américas e Copa do Brasil quando o seu clube não está em campo. Com “Não”, a rodada é simulada e você vê só o resultado. Vale só no Modo Solo.',
+        rfOpSeg('assistirCopas',['Sim','Não'], (CL.online ? 'Sim' : (o.assistirCopas||'Sim')), {travado:!!CL.online}), 'seg')
+    + (CL.online ? `<div class="rf-op-aviso"><span style="flex:0 0 auto;font-size:12px">🔒</span>
+         <span>Na <b>Resenha</b> as rodadas das copas marcam o dia da sala inteira e continuam a aparecer para todos. A opção acima vale só no Modo Solo.</span></div>` : '')
     /* O NOME DO ANFITRIAO NAO SE INVENTA. O protótipo escreve "fale com o Gringo", mas o cliente
        de um CONVIDADO não conhece o nome de quem hospeda — `rfTreinadorNome()` é o nome DELE
        próprio, e usá-lo aqui mandaria a pessoa falar consigo mesma. Sem nome, a frase diz o que

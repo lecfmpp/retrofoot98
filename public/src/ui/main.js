@@ -6494,6 +6494,9 @@ function clJogar(){
     .filter(c=>!diaDeLiga && (!copaDoDia || c.key===copaDoDia));
   if(idle.length){
     if(onlineJogarGate()) return;    // mesmo portão: quem assiste entra JUNTO com quem joga
+    /* SO NO SOLO o jogador pode dispensar a transmissao (Opcoes > Partida). Na Resenha estas
+       rodadas sao o marcador do dia da sala inteira e nao se pulam — ver o comentario acima. */
+    if(soloPulaCopasAlheias()){ pularCopasAlheias(idle); return; }
     const cand=idle[0];
     CL._pendingCupIdleQueue=idle.slice(1);
     /* FASE 3: O CARIMBO SO DEPOIS DE A TELA ABRIR.
@@ -6796,6 +6799,50 @@ function startCupRound(key, stage, pending){
   return true;
 }
 function startCupSpectate(cand){ startCupRound(cand.key, cand.stage, null); }
+/* ===== COPAS QUE NAO DISPUTO: ASSISTIR OU NAO (SO NO SOLO) =====
+   Um dia de Liberta Cup, Copa do Sul das Americas ou Copa do Brasil sem o meu clube em campo
+   abria a rodada ao vivo inteira — noventa minutos de jogos alheios antes de o calendario andar.
+   No Solo nao ha' ninguem a sincronizar, entao o jogador pode dispensar isso em Opcoes > Partida.
+   Pular faz EXACTAMENTE o que o fim da transmissao faz (ver finishCupSpectate): resolve a chave,
+   carimba o dia e, se a copa acabou, celebra — so' nao abre a tela. O resultado e' o mesmo,
+   porque a rodada assistida nunca decidiu nada: as sementes sao as mesmas.
+   FORA DA RESENHA E DO JOGO A DOIS NO MESMO ECRA, de proposito: la' a rodada da copa e' o marcador
+   do dia de todos os humanos, e pular abriria a porta a cada um estar numa tela diferente. */
+function soloPulaCopasAlheias(){
+  if(CL.online) return false;
+  if(CL.humans && Object.keys(CL.humans).length>1) return false;   // jogo a dois no mesmo ecra
+  const o=(typeof clOpcoes==='function')?clOpcoes():(CL.options||{});
+  return (o.assistirCopas||'Sim')==='Não';
+}
+/* o meu clube esta' nesta fase desta copa? null = os dados do sorteio ainda nao existem e nao da'
+   para saber; quem chama so' age com um `false` de verdade */
+function clubeNaCopa(key, stage){
+  const c=S.cups&&S.cups[key], id=CL.clubId;
+  if(!c || !id) return null;
+  if(stage==='group'){
+    const g=c.group; if(!g || !g.groups) return null;
+    return Object.values(g.groups).some(grp=>(grp.teams||[]).includes(id));
+  }
+  const b = (c.champion!==undefined) ? c : c.bracket;
+  if(!b || !Array.isArray(b.ties)) return null;
+  return b.ties.some(t=>t && (t.h===id || t.a===id)) || (b.byeTeams||[]).includes(id);
+}
+function pularCopasAlheias(lista){
+  const nomes=[];
+  (lista||[]).forEach(c=>{
+    if(typeof resolveCupRoundRest==='function') resolveCupRoundRest(c.key);
+    cupDayMarkDone(c.key);
+    markSpectateHandled(c.key);
+    nomes.push((COMP_DEFS[c.key]&&COMP_DEFS[c.key].short)||c.key);
+  });
+  CL._pendingCupIdleQueue=null;
+  CL.screen='main'; cdraw();
+  toastC('Rodada simulada sem transmissão: '+nomes.join(', ')+'. Resultados na Tabela.');
+  /* a taca de quem ganhou sai na hora, como no fim da transmissao */
+  if(typeof celebrarCopasDecididas==='function' && celebrarCopasDecididas() && MOMENTO_FILA.length){
+    momentoSeguinte(()=>{ CL.screen='main'; CL.tab='jogo'; cdraw(); });
+  }
+}
 /* fim da rodada de copa de quem NÃO disputa a competição. Mesmo encadeamento nos dois modos (a
    fila é a _pendingCupIdleQueue, montada no clJogar): próxima competição da semana, e no fim de
    volta pra tela do clube. A classificação da competição vem depois, no fechamento da rodada —
@@ -13397,6 +13444,21 @@ function checkPendingCupDraws(onDone){
   // o marcador também é lido do armazenamento (ver drawAlreadySeen): sem isso, a fila que veio no
   // shared_state re-exibia a cerimônia depois de um reload — inclusive o do botão de sincronizar.
   if((CL._drawPlayedSeason||{})[mark] || drawAlreadySeen(mark)) return checkPendingCupDraws(onDone);
+  /* COPA QUE O MEU CLUBE NAO DISPUTA, NO SOLO, COM "ASSISTIR" DESLIGADO (Opcoes > Partida). A
+     cerimonia do sorteio e' a primeira coisa que essa copa mostra: o jogador desligava "assistir
+     copas que nao disputa" e, no primeiro dia de Liberta Cup, o sorteio dos grupos aparecia na
+     mesma — a opcao parecia nao funcionar. O sorteio fica dado como VISTO com as mesmas marcas
+     que a propria cerimonia deixa (ver startCupDrawReplay), para as tabelas aparecerem normais.
+     So' quando se SABE que o clube esta' fora (=== false): sem os dados do sorteio montados nao
+     da' para saber, e ai' segue o caminho de sempre, que tenta de novo — esconder por engano o
+     sorteio da minha propria copa seria pior do que mostrar um a mais. */
+  if(typeof soloPulaCopasAlheias==='function' && soloPulaCopasAlheias() && clubeNaCopa(key, stage)===false){
+    CL._drawPlayedSeason=CL._drawPlayedSeason||{};
+    CL._drawPlayedSeason[mark]=true;
+    rememberDrawSeen(mark);
+    rememberDrawSeen(key+':'+(S.season||1));
+    return checkPendingCupDraws(onDone);
+  }
   /* CERIMÔNIA NUNCA SE PERDE EM SILÊNCIO. O startCupDrawReplay desiste quando os dados dela ainda
      não existem (chave/grupos por montar) — e como a entrada JÁ tinha saído da fila, ela sumia para
      sempre NAQUELE cliente, enquanto o outro, que chegou ali um instante depois, assistia normal.
