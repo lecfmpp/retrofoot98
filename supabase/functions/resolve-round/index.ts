@@ -3376,7 +3376,10 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     t.winner = res.winner; t.pens = res.pens || null; winners.push(res.winner);
     t.jornada = S.round;                                   // Calendário do cliente lê este carimbo
     awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans);
-    bilheteriaCopaS(S, t.h, humans);                         // bilheteria do mandante (se for CPU)
+    /* bilheteria do mandante: a CPU recebe aqui; o humano que NÃO jogou esta partida ao vivo (fui eu
+       quem a simulou) recebe pelo cliente dele, lendo este carimbo — o mesmo jogo, o mesmo dinheiro */
+    const bilhT = bilheteriaCopaS(S, t.h, humans);
+    if (bilhT > 0 && humans && humans.has(t.h)) t.bilhHumano = { id: t.h, amt: bilhT };
     const loser = res.winner === t.h ? t.a : t.h; b.eliminated[loser] = true;
   });
   const advancing = winners.concat(b.pendingByes || []);
@@ -3453,7 +3456,9 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
       cupSumula(S, h, a, hg, ag, scorers, perf, roundLabel, gcaps, gmins);   // artilharia + Historial dos dois elencos
       g.results = g.results || [];
       g.results.push({ r: mg.round, h, a, hg, ag, jornada: S.round });   // Calendário do cliente lê isto
-      bilheteriaCopaS(S, h, humans);                                      // bilheteria do mandante (se for CPU)
+      const bilhG = bilheteriaCopaS(S, h, humans);                        // bilheteria do mandante (CPU credita aqui)
+      if (!(sub && sub.stage === 'group') && bilhG > 0 && humans && humans.has(h))
+        g.results[g.results.length - 1].bilhHumano = { id: h, amt: bilhG };   // humano que não jogou ao vivo: o cliente credita
       T[h].P++; T[a].P++; T[h].GF += hg; T[h].GA += ag; T[a].GF += ag; T[a].GA += hg;
       if (hg > ag) { T[h].W++; T[a].L++; T[h].Pts += 3; }
       else if (hg < ag) { T[a].W++; T[h].L++; T[a].Pts += 3; }
@@ -3479,13 +3484,20 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
    core.js); na Resenha o caixa da CPU é daqui. A conta é a MESMA da bilheteria de liga da CPU
    (WR.cpuCaixaRodada): 55% da capacidade — a construída, se houver, senão a do porte — vezes o
    ingresso da divisão do mandante. Clube humano fica de fora: o caixa dele é do assento. */
-function bilheteriaCopaS(S: any, homeId: string, humans?: Set<string>) {
-  if (!homeId || (humans && humans.has(homeId)) || !S.budgets || S.budgets[homeId] == null) return;
+/* Devolve o valor. Para a CPU credita aqui mesmo; para o HUMANO só calcula — o caixa dele é do
+   assento e quem credita é o cliente dele, lendo o carimbo `bilhHumano` que os chamadores gravam
+   na partida quando fui EU (servidor) que a resolvi sem ele (ver applyMyCupGates em main.js). */
+function bilheteriaCopaS(S: any, homeId: string, humans?: Set<string>): number {
+  if (!homeId || !S.budgets) return 0;
   const ov = (S.clubOverall && S.clubOverall[homeId] != null) ? S.clubOverall[homeId] : 30;
   const cap = (S.clubStadiumCap && S.clubStadiumCap[homeId] && S.clubStadiumCap[homeId].capacity) || rbStadiumCap(ov);
   const div = divDeCadaClubeT(S)[homeId] || S.division;
   const gate = Math.round(cap * 0.55) * PRIZES.ticketPrice(div);
-  if (gate > 0) S.budgets[homeId] = Math.round(S.budgets[homeId] + gate);
+  if (!(gate > 0)) return 0;
+  if (humans && humans.has(homeId)) return gate;
+  if (S.budgets[homeId] == null) return 0;
+  S.budgets[homeId] = Math.round(S.budgets[homeId] + gate);
+  return gate;
 }
 /* fase ALCANÇADA por um clube numa continental, já na chave de prêmio de PRIZES.cupPrize
    ('campeao','vice','semi','quartas','oitavas','part') — o mesmo desfecho que cupResultForClub

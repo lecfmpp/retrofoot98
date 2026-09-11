@@ -10485,6 +10485,36 @@ function applyMyCupPrizes(){
     toastC('🏆 Cota da Copa do Brasil: +'+fmt(meu.amt));
   });
 }
+/* ===== BILHETERIA DE COPA QUE O SERVIDOR RESOLVEU POR MIM (Resenha) =====
+   Quando a MINHA partida de copa em casa é decidida pelo servidor sem que eu a tenha jogado ao vivo
+   (app fechado, prazo da rodada), o servidor calcula a bilheteria pela mesma conta que usa para a
+   CPU e deixa o carimbo `bilhHumano` na partida — mas não credita: o meu caixa é do assento, e só
+   eu escrevo nele. Aqui eu credito. A marca vai em S._bilhCopaPagas, que é chave de CARREIRA
+   (sobrevive ao adopt e a recarregar a página), então cada partida paga uma vez só. A partida que
+   joguei ao vivo não traz carimbo — finishCupLiveMatch já creditou a bilheteria dela. */
+function applyMyCupGates(){
+  if(!S || !S.cups || !CL.clubId) return;
+  S._bilhCopaPagas=S._bilhCopaPagas||{};
+  let novo=false;
+  const pagar=(comp,x)=>{
+    const b=x && x.bilhHumano; if(!b || b.id!==CL.clubId || !b.amt) return;
+    const chave=S.season+'|'+comp+'|'+x.h+'|'+x.a+'|'+(x.jornada!=null?x.jornada:'?');
+    if(S._bilhCopaPagas[chave]) return;
+    S._bilhCopaPagas[chave]=b.amt; novo=true;
+    S.budget=(S.budget||0)+b.amt; commitBudget();
+    if(typeof pushFinanceEntry==='function') pushFinanceEntry({income:b.amt, bilheteria:b.amt,
+      log:['🎟️ Bilheteria · '+((COMP_DEFS[comp]&&COMP_DEFS[comp].short)||'copa')+': +'+fmt(b.amt)]});
+  };
+  Object.keys(S.cups).forEach(comp=>{
+    const c=S.cups[comp]; if(!c) return;
+    [c, c.bracket].filter(Boolean).forEach(b=>{
+      [].concat(b.ties||[], (b.history||[]).flatMap(h=>(h&&h.ties)||[])).forEach(t=>pagar(comp,t));
+    });
+    if(c.group && c.group.groups) Object.values(c.group.groups).forEach(g=>((g&&g.results)||[]).forEach(r=>pagar(comp,r)));
+  });
+  Object.keys(S._bilhCopaPagas).forEach(k=>{ if(Number(k.split('|')[0])<(S.season||0)-1) delete S._bilhCopaPagas[k]; });
+  if(novo && typeof persistCareer==='function') persistCareer();
+}
 function applyOwnPendingFinances(){
   const f=S._pendingRoundFin; if(!f) return; S._pendingRoundFin=null;
   try{
@@ -10536,6 +10566,7 @@ async function onlineAdoptServerRound(RL){
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
   applyMyCupPrizes();        // cota de fase da Copa do Brasil decidida pelo servidor (ver applyMyCupPrizes)
+  try{ applyMyCupGates(); }catch(e){ console.warn('bilheteria de copa:', e&&e.message); }   // minha partida de copa em casa que o servidor resolveu
   try{ if(typeof pagarCopasContinentais==='function') pagarCopasContinentais(); }catch(e){}   // continental do MEU clube, quando a copa acaba
   if(typeof fixUserXIAvailability==='function') fixUserXIAvailability();
   if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }

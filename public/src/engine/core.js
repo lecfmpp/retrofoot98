@@ -5036,7 +5036,7 @@ function checkManagerJobEvent(){
    carimbo de quantas coletivas já deu nesta temporada também. Guardados no S
    sem estarem aqui, seriam sobrescritos pelo estado do anfitrião a cada adoção
    de rodada — e toda a gente na sala herdaria a reputação de um só. */
-const CAREER_KEYS=['_copasPagas','jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin','coachGender','coachAvatar','coachRep','pressState'];
+const CAREER_KEYS=['_copasPagas','_bilhCopaPagas','jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin','coachGender','coachAvatar','coachRep','pressState'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
