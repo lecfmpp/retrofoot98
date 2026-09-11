@@ -291,28 +291,23 @@ function rfFitaHTML(){
       ${t.souEu?'<span class="rf-fita-tag">VOCÊ</span>':''}
     </span>`;
   /* ===== O TICKER É DO 4º PARA BAIXO, E SÓ EXISTE SE HOUVER 4º =====
-     Duas coisas davam nomes repetidos na barra, e as duas apareciam juntas
-     quando o ranking é pequeno:
-       · sem `resto`, o código caía na lista INTEIRA — e aí os mesmos três do
-         pódio ancorado voltavam a correr ao lado dele;
-       · a lista vai duplicada de propósito (o trilho anda de 0 a -50%, e é o que
-         faz o laço não ter emenda), o que com poucos nomes lê-se como "o jogo
-         está a repetir gente".
-     Com o ranking a nascer — dois treinadores — o efeito era ver GRINGO e
-     CHIANELLI quatro vezes na mesma barra. Agora: sem 4º não há ticker (o pódio
-     já mostra toda a gente), e a cópia só entra quando há nomes que cheguem para
-     o laço ser laço em vez de repetição visível. */
+     Sem `resto`, o pódio ancorado já mostra toda a gente e a barra fica curta (rfFitaSemTicker)
+     — senão os mesmos três voltariam a correr ao lado deles. Havendo 4º, o laço anda (ver
+     `laco` abaixo). */
   if(!resto.length) return rfFitaSemTicker(tres, eu);
-  const trilho = (resto.length>=6)
-    ? resto.map(item).join('')+resto.map(item).join('')
-    : resto.map(item).join('');
-  /* NO CELULAR O PODIO FICA ESCONDIDO (a barra e' so' o ticker), entao o trilho de la' leva a
-     lista INTEIRA, do 1o para baixo — antes levava so' o `resto`, e o celular nunca via os tres
-     primeiros. Com nomes que cheguem para o laco, corre sozinho; com poucos, fica parado e
-     arrasta com o dedo (ver .rf-fita-mid no bloco mobile do CSS). */
-  const trilhoMob = (l.length>=6)
-    ? l.map(item).join('')+l.map(item).join('')
-    : l.map(item).join('');
+  /* O LACO ANDA SEMPRE QUE HA' DOIS NOMES OU MAIS (pedido do dono, 10/09). Antes so' andava com
+     6+ nomes, para nao repetir gente — e com o ranking pequeno a barra ficava parada, que lia
+     como defeito. Agora a lista e' repetida ate' fazer uma volta de pelo menos 8 itens, e a volta
+     vai duas vezes: o trilho anda de 0 a -50%, e e' isso que faz o laco nao ter emenda. A
+     duracao acompanha o tamanho da volta, para a velocidade de leitura ser a mesma. */
+  const laco=(arr)=>{
+    if(arr.length<2) return { html:arr.map(item).join(''), anda:false, dur:0 };
+    let volta=[]; while(volta.length<8) volta=volta.concat(arr);
+    const um=volta.map(item).join('');
+    return { html:um+um, anda:true, dur:Math.round(volta.length*4.5) };
+  };
+  const desk=laco(resto);          // no desktop o podio fica ancorado: o laco e' do 4o para baixo
+  const mob=laco(l);               // no celular o podio some: o laco leva toda a gente
   return `<div class="rf-fita" onclick="rfGo('ranking')" role="button" tabindex="0"
       onkeydown="if(event.key==='Enter')rfGo('ranking')" title="Abrir o ranking dos treinadores">
     <div class="rf-fita-podio">${tres.map((t,i)=>`
@@ -324,7 +319,7 @@ function rfFitaHTML(){
           <span class="rf-fita-cp">${rfRankNum(t.pts)} pts</span>
         </span>
       </span>`).join('')}</div>
-    <div class="rf-fita-mid"><div class="rf-fita-trilho so-desk ${resto.length>=6?'':'parado'}">${trilho}</div><div class="rf-fita-trilho so-mob ${l.length>=6?'':'parado'}">${trilhoMob}</div><span class="rf-fita-mask"></span></div>
+    <div class="rf-fita-mid"><div class="rf-fita-trilho so-desk ${desk.anda?'':'parado'}" style="${desk.anda?'animation-duration:'+desk.dur+'s':''}">${desk.html}</div><div class="rf-fita-trilho so-mob ${mob.anda?'':'parado'}" style="${mob.anda?'animation-duration:'+mob.dur+'s':''}">${mob.html}</div><span class="rf-fita-mask"></span></div>
     ${eu?`<div class="rf-fita-eu">
       <span class="rf-fita-eu-id">
         <span class="rf-fita-eu-r">A SUA POSIÇÃO</span>

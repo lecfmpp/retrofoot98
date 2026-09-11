@@ -11903,3 +11903,12 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-ct.painel .rf-ct-nums,.rf-ct.painel .rf-ct-dica{margin-left:-58px}
   .rf-ct.painel .rf-ct-num-v{font-size:14px}
 }
+
+/* ===== FAIXA NO CELULAR, SIMPLIFICADA: posição, nome e pontos, sem escudo, com mais ar ===== */
+@media (max-width:900px){
+  .rf-fita-trilho.so-mob .rf-fita-i > :nth-child(2){display:none}      /* o escudo */
+  .rf-fita-trilho.so-mob .rf-fita-i{padding:0 16px;gap:7px}
+  .rf-fita-trilho.so-mob .rf-fita-n{font-size:13.5px;font-weight:600}
+  .rf-fita-trilho.so-mob .rf-fita-v{font-size:12px;color:#F2B90C}
+  .rf-fita-trilho.so-mob:not(.parado){touch-action:auto}
+}
