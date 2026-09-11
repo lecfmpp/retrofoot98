@@ -249,10 +249,10 @@ const RF_ACOES = {
         rfAcFichaHTML(p,'TAXA ACERTADA',rfDin(n.offerFee),d.num)
         + rfAcAvisoHTML(`O ${escC(c.short)} <b>aceitou a taxa</b> de ${escC(rfDin(n.offerFee))}. Falta acertar o salário com ${RF_G().t('o')} ${RF_G().t('jogador')}.`,'ok')
         + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(salAtual),
-            pedeAgente?`O empresário pede ${escC(rfDin(pedeAgente))}/mês.`
+            pedeAgente?`O empresário pede ${escC(rfDin(pedeAgente))}/rodada.`
                       :`${RF_G().t('O')} ${RF_G().t('jogador')} pede no mínimo ${escC(rfDin(Math.round(salAtual*0.9)))}.`,
-            {sufixo:'/mês', foco:true})
-        + rfAcLinhaHTML('Folha depois da contratação', rfDin(folhaDepois)+'/mês', 'aviso', true)
+            {sufixo:'/rodada', foco:true})
+        + rfAcLinhaHTML('Folha depois da contratação', rfDin(folhaDepois)+'/rodada', 'aviso', true)
         + rfCtDialogoHTML({taxa:n.offerFee, salario:salAtual, ctx:'termos'})
         + rfAcNotaHTML(`A taxa já está fechada — daqui em diante você negocia só com ${RF_G().t('o')} ${RF_G().t('jogador')}.`),
       acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar termos',on:'rfMkTermos()'}] });
@@ -272,12 +272,12 @@ const RF_ACOES = {
       corpo:
         rfAcFichaHTML(p,'TAXA',rfDin(n.offerFee),d.num)
         + (emAberto
-            ? rfAcAvisoHTML(`O empresário pede <b>${escC(rfDin(pede))}</b>/mês — acima da sua oferta de ${escC(rfDin(n.salary||0))}. O valor abaixo não fecha.`,'aviso')
+            ? rfAcAvisoHTML(`O empresário pede <b>${escC(rfDin(pede))}</b>/rodada — acima da sua oferta de ${escC(rfDin(n.salary||0))}. O valor abaixo não fecha.`,'aviso')
               + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(pede),
-                  'Abaixo de '+escC(rfDin(pede))+' o empresário recusa.', {sufixo:'/mês', foco:true})
-            : rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/mês', '', true))
+                  'Abaixo de '+escC(rfDin(pede))+' o empresário recusa.', {sufixo:'/rodada', foco:true})
+            : rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/rodada', '', true))
         + rfCtDialogoHTML({taxa:n.offerFee, salario:salFinal, ctx:'fechar'})
-        + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/mês', 'aviso')
+        + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/rodada', 'aviso')
         + rfAcNotaHTML(`Clube e ${RF_G().t('jogador')} já concordaram. Confirmar transfere ${RF_G().t('o')} ${RF_G().t('jogador')} para o seu elenco.`),
       acoes:[{l:'Cancelar',tom:'fantasma'},
              {l:emAberto?'Aceitar e fechar':'Fechar contratação',on:'rfMkFinalizar()'}] });
@@ -305,7 +305,7 @@ const RF_ACOES = {
         + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
             `O valor de mercado dele é ${escC(rfDin(ask))} — quem decide é o outro treinador.`, {foco:true})
         + rfCtDialogoHTML({taxa:oferta, salario:sal, ctx:'propor'})
-        + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
+        + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/rodada', 'aviso')
         + rfAcNotaHTML('A proposta fica de pé por seis semanas. Enquanto ele não responder, ela aparece em Propostas.'),
       acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkEnviarHumano()'}] });
   }
@@ -319,7 +319,7 @@ const RF_ACOES = {
       + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
           `Abaixo de ${escC(rfDin(minimo))} o ${escC(c.short)} recusa direto.`, {foco:true})
       + rfCtDialogoHTML({taxa:oferta, salario:sal, ctx:'propor'})
-      + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
+      + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/rodada', 'aviso')
       + rfAcNotaHTML(`Primeiro acerta-se a TAXA com o ${escC(c.short)}. O salário ${RF_G().ehFem()?'da':'do'} ${RF_G().t('jogador')} vem na etapa seguinte.`),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
 },
@@ -410,7 +410,7 @@ const RF_ACOES = {
          a mesma do cartao. */
       + (o.lastMsg?rfAcAvisoHTML(escC(o.lastMsg), o.state==='final'?'perigo':''):'')
       + rfAcLinhaHTML('Entra no caixa', '+'+rfDin(o.fee), 'ok', true)
-      + rfAcLinhaHTML('Sai da folha', sal?('−'+rfDin(sal)+'/mês'):'—', 'ok')
+      + rfAcLinhaHTML('Sai da folha', sal?('−'+rfDin(sal)+'/rodada'):'—', 'ok')
       + rfAcLinhaHTML('Valor de mercado dele', vm?rfDin(vm):'—', o.fee>=vm?'ok':'ruim')
       + rfAcLinhaHTML('Quem herda a vaga', sub?sub.n+' (força '+sub.f+')':'ninguém no setor', sub?'':'ruim')
       + rfAcNotaHTML(sub
@@ -557,7 +557,7 @@ const RF_ACOES = {
     rfAcSeloHTML(rfIcone('moedas',18), d.player||'—', 'sai para o '+(d.buyer||'comprador'))
     + rfAcLinhaHTML('Entrou no caixa', '+'+rfDin(d.fee||0), 'ok', true)
     + rfAcLinhaHTML('Caixa agora', rfDin(S.budget||0), '')
-    + (d.salario?rfAcLinhaHTML('Sai da folha', '−'+rfDin(d.salario)+'/mês', 'ok'):'')
+    + (d.salario?rfAcLinhaHTML('Sai da folha', '−'+rfDin(d.salario)+'/rodada', 'ok'):'')
     + (d.vm?rfAcLinhaHTML('Valor de mercado dele', rfDin(d.vm), (d.fee||0)>=d.vm?'ok':'ruim'):'')
     + rfAcLinhaHTML('Quem herda a vaga', d.sub||'ninguém no setor', d.sub?'':'ruim')
     + (d.sub?'':rfAcAvisoHTML(`<b>Sem ${RF_G().t('reserva')} no setor.</b> O onze fica com um buraco até você repor.`,'aviso'))
@@ -674,7 +674,7 @@ const RF_ACOES = {
     corpo:
       rfAcFichaHTML(p,'SALÁRIO',sal?rfDin(sal):'—',d.num)
       + rfAcCampoHTML('rf-ac-novo','Novo salário', moneyDisp(novo),
-          `Hoje ele ganha ${escC(rfDin(sal))}. Abaixo disso ele nem escuta.`, {foco:true,sufixo:'/mês'})
+          `Hoje ele ganha ${escC(rfDin(sal))}. Abaixo disso ele nem escuta.`, {foco:true,sufixo:'/rodada'})
       + rfAcPassoHTML('rf-ac-anos','Anos de contrato', 3, `Mais anos seguram ${RF_G().t('o')} ${RF_G().t('jogador')}, mas travam a folha.`)
       + rfCtDialogoHTML({salario:novo-sal, ctx:'renovar'})
       + rfAcChanceHTML('Chance de aceitar', chance)
@@ -763,7 +763,7 @@ const RF_ACOES = {
       rfAcFichaHTML(p,'PRONTO EM',d.pronto||'—',d.num)
       /* idem: p.f vem fracionario do motor */
       + rfAcLinhaHTML('Força hoje', (p.f!=null?String(Math.round(p.f)):'—')+(d.teto?(' · pode chegar a '+Math.round(d.teto)):''), '')
-      + rfAcLinhaHTML('Entra na folha', rfDin(d.salario||0)+'/mês', 'aviso', true)
+      + rfAcLinhaHTML('Entra na folha', rfDin(d.salario||0)+'/rodada', 'aviso', true)
       /* o teto do motor é 40, não 30 — ver youthAvailable() */
       + rfAcLinhaHTML('Elenco depois', (squad(CL.clubId).length+1)+' de 40', '')
       + rfAcNotaHTML('Promovido, ele ocupa vaga no elenco e passa a contar na folha. Só sobe um jogador da base por janela de transferências.'),
