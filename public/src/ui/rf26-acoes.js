@@ -742,7 +742,7 @@ const RF_ACOES = {
     rfAcSeloHTML(rfIcone('ok',16), escC(d.nome||'—'), 'assinou com você')
     + rfAcLinhaHTML('Novo salário', rfDin(d.salario||0), 'aviso', true)
     + rfAcLinhaHTML('Até', String(d.ate||'—'), '')
-    + rfAcNotaHTML('A folha nova vale a partir do mês seguinte.'),
+    + rfAcNotaHTML('A folha nova vale a partir da próxima rodada.'),
   acoes:[{l:'Continuar'}] }),
 
 'elenco-semrenovar': d=>rfAcao({ kicker:'ELENCO · RENOVAÇÃO', titulo:'Não dá para renovar agora', w:460,

@@ -1075,7 +1075,7 @@ function rfMkOfertaHTML(){
   }
   return rfMkGavetaHTML(escC(p.n)+' está fechado', 'taxa '+escC(rfDin(n.offerFee))+' · salário '+escC(rfDin(n.salary||0)), `
     <div class="rf-mkg-linha">
-      <span class="rf-note">Falta só assinar. O valor sai do caixa na hora e o salário entra na folha do mês seguinte.</span>
+      <span class="rf-note">Falta só assinar. O valor sai do caixa na hora e o salário entra na folha a partir da próxima rodada.</span>
       <button type="button" class="rf-btn rf-btn-cta" onclick="rfMkFinalizar()">Fechar contratação</button>
     </div>`);
 }

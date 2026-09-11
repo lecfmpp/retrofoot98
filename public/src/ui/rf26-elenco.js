@@ -743,7 +743,7 @@ function rfElBaseHTML(){
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">INVESTIMENTO NA BASE</span></div>
       <div class="rf-el-stats">
-        ${rfElStat('GASTO POR MÊS', gasto?rfDin(gasto):'R$ 0')}
+        ${rfElStat('GASTO POR RODADA', gasto?rfDin(gasto):'R$ 0', 'salários da base')}
         ${rfElStat('NÍVEL DO CT', '—', 'o motor ainda não tem CT')}
         ${rfElStat('PROMOVIDOS EM '+(S.season||''), promovidos+' de 2',
             promovidos>=2?'cota da temporada cheia':(youthWindowOpen&&youthWindowOpen()?'janela aberta':'fora da janela'))}
