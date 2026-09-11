@@ -6445,6 +6445,9 @@ function registerPrevSeasonTitles(){
        O ranking mede a campanha com isto; sem a linha, sobrava a posicao, que e' uma
        aproximacao pior de "o que o time fez". */
     myPts:(myTable.find(t=>t.id===CL.clubId)||{}).Pts||0,
+    /* AS PARTIDAS TAMBEM. Mesmo motivo dos pontos: a tabela zera na virada, e sem isto o
+       painel dos socios so' consegue dizer quantas partidas houve NESTA temporada. */
+    myP:(myTable.find(t=>t.id===CL.clubId)||{}).P||0,
     myPos, myClubShort:shortOf(CL.clubId), cups, myCups, qualifiedFor:[] });
   // taças do MEU treinador — o que a Sala de Troféus lê
   S.coachHistory=S.coachHistory||[];
@@ -6737,6 +6740,7 @@ function endSeason(){
     relegated:tbl.slice(-4).map(t=>clubOf(t.id).short),
     artilheiro:arty?`${arty[0]} (${arty[1]})`:'—',
     myPts:((S.table&&S.table[S.clubId])||{}).Pts||0,   // ver a nota na outra entrada de historico
+    myP:((S.table&&S.table[S.clubId])||{}).P||0,       // idem, para as partidas
     myPos:tablePos(S.clubId),
     myClubShort:clubOf(S.clubId).short,
     cups, myCups, qualifiedFor});
