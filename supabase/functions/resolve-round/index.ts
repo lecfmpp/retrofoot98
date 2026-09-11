@@ -3363,7 +3363,9 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
       applyMatchIncidents(S, sub.events || []);
       cupSumula(S, t.h, t.a, sub.hg, sub.ag, sub.scorers || [], sub.perf || null, roundLabel, sub.caps || null, sub.matchMinutes || 90);
       const loser = sub.winner === t.h ? t.a : t.h; b.eliminated[loser] = true; winners.push(sub.winner);
-      t.jornada = S.round; awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans); return;
+      t.jornada = S.round; awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans);
+      bilheteriaCopaS(S, t.h, humans);                       // bilheteria do mandante (se for CPU)
+      return;
     }
     const seed = ME.hashSeed(S.seed, 'cup', roundLabel, t.h, t.a);
     const r = ME.simMatchPure(t.h, t.a, cupSide(S, t.h), cupSide(S, t.a), seed, {});
@@ -3374,6 +3376,7 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     t.winner = res.winner; t.pens = res.pens || null; winners.push(res.winner);
     t.jornada = S.round;                                   // Calendário do cliente lê este carimbo
     awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans);
+    bilheteriaCopaS(S, t.h, humans);                         // bilheteria do mandante (se for CPU)
     const loser = res.winner === t.h ? t.a : t.h; b.eliminated[loser] = true;
   });
   const advancing = winners.concat(b.pendingByes || []);
@@ -3423,7 +3426,7 @@ function groupStageAdvancersS(mg: any) {
   });
   return out;
 }
-function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultByFx: any) {
+function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultByFx: any, humans?: Set<string>) {
   if (!mg || mg.finished) return;
   Object.values(mg.groups || {}).forEach((g: any) => {
     const fx = (g.sched || [])[mg.round] || [];
@@ -3450,6 +3453,7 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
       cupSumula(S, h, a, hg, ag, scorers, perf, roundLabel, gcaps, gmins);   // artilharia + Historial dos dois elencos
       g.results = g.results || [];
       g.results.push({ r: mg.round, h, a, hg, ag, jornada: S.round });   // Calendário do cliente lê isto
+      bilheteriaCopaS(S, h, humans);                                      // bilheteria do mandante (se for CPU)
       T[h].P++; T[a].P++; T[h].GF += hg; T[h].GA += ag; T[a].GF += ag; T[a].GA += hg;
       if (hg > ag) { T[h].W++; T[a].L++; T[h].Pts += 3; }
       else if (hg < ag) { T[a].W++; T[h].L++; T[a].Pts += 3; }
@@ -3470,6 +3474,53 @@ function advanceGroupStageRoundS(S: any, mg: any, roundLabel: string, cupResultB
 /* `M` e o MUNDO do pais: as copas e o calendario de copa sao DELE. O resto -- semente, rodada,
    dia, forca dos clubes -- e do jogo inteiro. Sem M, opera na ancora, como sempre operou.
    Enquanto isto rodava uma vez so, a Champions do treinador ingles simplesmente nao avancava. */
+/* ===== BILHETERIA DOS JOGOS DE COPA (CPU) — pedido do dono, 11/09 =====
+   Jogo de copa em casa não rendia nada a ninguém. No solo o cliente credita (creditarBilheteriaCopa,
+   core.js); na Resenha o caixa da CPU é daqui. A conta é a MESMA da bilheteria de liga da CPU
+   (WR.cpuCaixaRodada): 55% da capacidade — a construída, se houver, senão a do porte — vezes o
+   ingresso da divisão do mandante. Clube humano fica de fora: o caixa dele é do assento. */
+function bilheteriaCopaS(S: any, homeId: string, humans?: Set<string>) {
+  if (!homeId || (humans && humans.has(homeId)) || !S.budgets || S.budgets[homeId] == null) return;
+  const ov = (S.clubOverall && S.clubOverall[homeId] != null) ? S.clubOverall[homeId] : 30;
+  const cap = (S.clubStadiumCap && S.clubStadiumCap[homeId] && S.clubStadiumCap[homeId].capacity) || rbStadiumCap(ov);
+  const div = divDeCadaClubeT(S)[homeId] || S.division;
+  const gate = Math.round(cap * 0.55) * PRIZES.ticketPrice(div);
+  if (gate > 0) S.budgets[homeId] = Math.round(S.budgets[homeId] + gate);
+}
+/* fase ALCANÇADA por um clube numa continental, já na chave de prêmio de PRIZES.cupPrize
+   ('campeao','vice','semi','quartas','oitavas','part') — o mesmo desfecho que cupResultForClub
+   devolve no cliente, sem passar pela frase. null = não disputou. */
+function faseAlcancadaS(c: any, id: string): string | null {
+  const inGroup = !!(c.group && Object.values(c.group.groups || {}).some((g: any) => (g.teams || []).includes(id)));
+  if (!inGroup) return null;
+  const b = c.bracket; if (!b) return 'part';
+  if (b.champion === id) return 'campeao';
+  let last: number | null = null;
+  (b.history || []).forEach((h: any) => { if ((h.ties || []).some((t: any) => t.h === id || t.a === id)) last = h.round; });
+  if ((b.ties || []).some((t: any) => t.h === id || t.a === id)) last = b.round;
+  if (last == null) return 'part';
+  const dist = (b.roundsTotal || 0) - (last as number);
+  return dist <= 0 ? 'vice' : dist === 1 ? 'semi' : dist === 2 ? 'quartas' : dist === 3 ? 'oitavas' : 'part';
+}
+/* ===== AS CONTINENTAIS PAGAM A CPU QUANDO A COPA ACABA — espelho de pagarCopasContinentais =====
+   Na Resenha o humano recebe pelo cliente dele (marca S._copasPagas no assento); aqui é a CPU,
+   uma vez por copa (marca c._premiosPagos, a mesma que o solo usa). */
+function pagarContinentaisCpuS(S: any, mundoC: any, uniC: string, humans?: Set<string>) {
+  WORLD_CONFIG.copasContinentaisDe(uniC).forEach((key: string) => {
+    const c = mundoC.cups && mundoC.cups[key];
+    if (!c || c._premiosPagos || !c.bracket || !c.bracket.champion) return;
+    c._premiosPagos = true;
+    const times: string[] = [];
+    Object.values(c.group ? (c.group.groups || {}) : {}).forEach((g: any) => (g.teams || []).forEach((id: string) => times.push(id)));
+    times.forEach((id: string) => {
+      if (humans && humans.has(id)) return;
+      if (!S.budgets || S.budgets[id] == null) return;
+      const out = faseAlcancadaS(c, id);
+      const amt = out ? (PRIZES.cupPrize(key, out) || 0) : 0;
+      if (amt > 0) S.budgets[id] = Math.round(S.budgets[id] + amt);
+    });
+  });
+}
 function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>, M?: any) {
   const mundoC = M || S;
   const uniC = (M && M.pais) || UNI_ATIVO;          // as copas sao do PAIS deste mundo
@@ -3493,7 +3544,7 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>, M?
     if (jaResolvida(key)) return;
     const c = mundoC.cups[key]; if (!c) return;
     if (c.group && !c.bracket) {
-      if (!c.group.finished) { advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx); marcar(key); }
+      if (!c.group.finished) { advanceGroupStageRoundS(S, c.group, key + '-grupo-r' + c.group.round, cupResultByFx, humans); marcar(key); }
       if (c.group.finished) {
         const drawDate = (S.season === 2026) ? COMP_R16_DRAW_2026[key] : null;
         if (!drawDate || realDateForDayS(S.day) >= drawDate) {
@@ -3504,6 +3555,7 @@ function advancePendingCups(S: any, cupResultByFx: any, humans?: Set<string>, M?
       advanceCupBracket(S, c.bracket, key + '-r' + c.bracket.round, cupResultByFx, humans); marcar(key);
     }
   });
+  pagarContinentaisCpuS(S, mundoC, uniC, humans);   // prêmio da CPU assim que a copa tiver campeão
 }
 /* ===== COPAS CONTINENTAIS NA VIRADA DE TEMPORADA =====
    O cliente monta Libertadores/Sul-Americana em newSeasonReset (initSeasonCups), mas na Resenha a
