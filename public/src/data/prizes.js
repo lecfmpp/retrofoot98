@@ -144,8 +144,8 @@
      reais. O que se copia da vida real é também a diferença nas fases iniciais: até a 4ª fase a
      Série B recebe ~1,6x o que recebem Séries C e D (R$ 1,38 mi contra R$ 830 mil em 2026). Aqui
      o fator vale para a 1ª e a 2ª divisão, nas fases antes das oitavas; dali em diante a cota é
-     igual para todos. copaBrasilPhaseCash (só o vencedor) continua a existir para a Resenha,
-     cujo caixa de copa é decidido pelo servidor. */
+     igual para todos. Solo e Resenha usam esta função (core.js e resolve-round); a antiga
+     copaBrasilPhaseCash (só o vencedor) fica apenas por compatibilidade. */
   const CB_TIER_INICIAL=1.6;
   function copaBrasilCotaParticipacao(round, roundsTotal, tier, campeao){
     const dist=(roundsTotal||0)-(round||0);

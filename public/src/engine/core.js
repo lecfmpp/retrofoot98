@@ -2039,12 +2039,11 @@ function awardCupPhasePrize(key, b, t){
   const loser=t.winner===t.h?t.a:t.h;
   const isFinal=(b.roundsTotal-b.round)<=0;
   let pagar;
-  if(!CL.online && PRIZES.copaBrasilCotaParticipacao){
+  if(PRIZES.copaBrasilCotaParticipacao){
     /* QUEM JOGA A FASE RECEBE (ver copaBrasilCotaParticipacao em prizes.js): os dois lados de cada
        confronto levam a cota da fase, e na final o campeão e o vice levam as suas. A divisão de
-       cada clube decide o fator das fases iniciais. Só no solo: na Resenha o caixa de copa é do
-       servidor (resolve-round), que ainda paga só o vencedor — misturar as duas regras daria a
-       cada lado um número diferente. */
+       cada clube decide o fator das fases iniciais. Vale nos dois modos: o servidor da Resenha
+       (awardCupPhasePrize no resolve-round) usa a MESMA função da folha. */
     const tierDe=id=>{ const d=(typeof clubDivisionOf==='function' && clubDivisionOf(id)) || null;
       return (d && PRIZES.tierOf) ? PRIZES.tierOf(d) : 'D'; };
     const fase=cupPhaseLabel(b.round,b.roundsTotal);

@@ -15,7 +15,7 @@
    O servidor grava o seu no shared_state; o cliente compara com o dele e pede
    recarga se divergir. É o que impede dois humanos de jogarem a mesma sala com
    regras diferentes depois de um deploy no meio da partida. */
-/* @motor-ver */ const MOTOR_VER = '0a58fe3bff3c';
+/* @motor-ver */ const MOTOR_VER = '616b9ae9e950';
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -2812,8 +2812,26 @@ if(typeof module!=='undefined' && module.exports){ module.exports={ UNIVERSOS:ro
     if(dist===4) return CB_PHASE.dezesseis;
     return round<=1 ? CB_PHASE.f1 : CB_PHASE.f2;   // fases iniciais de chaveamento grande
   }
+  /* ===== COPA DA FEDERAÇÃO: A COTA É DE QUEM JOGA A FASE (pedido do dono, 11/09) =====
+     A mecânica da Copa do Brasil real: cada clube recebe a cota da fase que DISPUTA, ganhe ou
+     perca; só a final separa campeão e vice. Os VALORES são os nossos (CB_PHASE acima), não os
+     reais. O que se copia da vida real é também a diferença nas fases iniciais: até a 4ª fase a
+     Série B recebe ~1,6x o que recebem Séries C e D (R$ 1,38 mi contra R$ 830 mil em 2026). Aqui
+     o fator vale para a 1ª e a 2ª divisão, nas fases antes das oitavas; dali em diante a cota é
+     igual para todos. Solo e Resenha usam esta função (core.js e resolve-round); a antiga
+     copaBrasilPhaseCash (só o vencedor) fica apenas por compatibilidade. */
+  const CB_TIER_INICIAL=1.6;
+  function copaBrasilCotaParticipacao(round, roundsTotal, tier, campeao){
+    const dist=(roundsTotal||0)-(round||0);
+    if(dist<=0) return campeao ? CB_PHASE.final : CB_PHASE.vice;
+    if(dist===1) return CB_PHASE.semi;
+    if(dist===2) return CB_PHASE.quartas;
+    if(dist===3) return CB_PHASE.oitavas;
+    const v = dist===4 ? CB_PHASE.dezesseis : (round<=1 ? CB_PHASE.f1 : CB_PHASE.f2);
+    return (tier==='A'||tier==='B') ? Math.round(v*CB_TIER_INICIAL) : v;
+  }
   root.PRIZES={ tierOf, leaguePrize, cupCategory, cupResultOutcome, cupPrize,
-                copaBrasilPhaseCash, CB_PHASE, accessPrize, ACCESS, ticketPrice, TICKET,
+                copaBrasilPhaseCash, copaBrasilCotaParticipacao, CB_TIER_INICIAL, CB_PHASE, accessPrize, ACCESS, ticketPrice, TICKET,
                 artilheiroCash, ART_VALUE_MULT, ART_VALUE_CAP, LEAGUE, CUP };
   if(typeof module!=='undefined' && module.exports){ module.exports={ PRIZES:root.PRIZES }; }
 })(typeof globalThis!=='undefined'?globalThis:this);
@@ -3290,8 +3308,17 @@ function awardCupPhasePrize(S: any, key: string, b: any, t: any, humans?: Set<st
   if (key !== COPA_NACIONAL_KEY() || !t || !t.winner || t.prize) return;   // cota de fase e da copa nacional
   const loser = t.winner === t.h ? t.a : t.h;
   const isFinal = (b.roundsTotal - b.round) <= 0;
-  const pagar: any[] = [[t.winner, copaBrasilPhaseCash(b.round, b.roundsTotal, true)]];
-  if (isFinal) pagar.push([loser, copaBrasilPhaseCash(b.round, b.roundsTotal, false)]);
+  /* QUEM JOGA A FASE RECEBE (pedido do dono, 11/09) — espelho de awardCupPhasePrize em core.js,
+     com a MESMA função da folha (PRIZES.copaBrasilCotaParticipacao, prizes.js): os dois lados de
+     cada confronto levam a cota da fase; na final, campeão e vice. A divisão de cada clube
+     (divDeCadaClubeT) decide o fator das fases iniciais (1ª e 2ª divisão recebem 1,6x). O humano
+     continua a receber pelo cliente dele, lendo t.prize.pagos (applyMyCupPrizes). */
+  const divs = divDeCadaClubeT(S);
+  const tierDe = (id: string) => { const d = divs[id]; return (d && PRIZES.tierOf) ? PRIZES.tierOf(d) : 'D'; };
+  const cota = (id: string, campeao: boolean) => PRIZES.copaBrasilCotaParticipacao(b.round, b.roundsTotal, tierDe(id), campeao);
+  const pagar: any[] = isFinal
+    ? [[t.winner, cota(t.winner, true)], [loser, cota(loser, false)]]
+    : [[t.h, cota(t.h, false)], [t.a, cota(t.a, false)]];
   t.prize = { round: b.round, pagos: pagar.map(([id, amt]: any) => ({ id, amt })) };
   S.budgets = S.budgets || {};
   pagar.forEach(([id, amt]: any) => {
