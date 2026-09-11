@@ -6855,8 +6855,25 @@ function endSeason(){
       // card "Historial" só mostrava os números da temporada atual, perdendo tudo a cada virada.
       p.careerStats=p.careerStats||{apps:0,cs:0,yellows:0,reds:0,injuries:0};
       const st=p.stats||{};
+      /* GOLS E ASSISTÊNCIAS PASSAM A MORAR NO JOGADOR. Os gols de carreira vinham da artilharia
+         por NOME (S.allTimeScorers), que junta dois jogadores homônimos; as assistências não
+         tinham acumulado nenhum. Save antigo migra aqui, uma vez: os gols das temporadas passadas
+         são o que a artilharia já dizia (S.allTimeScorers já inclui esta temporada, somada acima,
+         por isso sai o st.goals desta antes de o somar de novo). */
+      if(p.careerStats.goals==null) p.careerStats.goals=Math.max(0,((S.allTimeScorers&&S.allTimeScorers[p.n])||0)-(st.goals||0));
+      if(p.careerStats.assists==null) p.careerStats.assists=0;
       p.careerStats.apps+=st.apps||0; p.careerStats.cs+=st.cs||0;
+      p.careerStats.goals+=st.goals||0; p.careerStats.assists+=st.assists||0;
       p.careerStats.yellows+=st.yellows||0; p.careerStats.reds+=st.reds||0; p.careerStats.injuries+=st.injuries||0;
+      /* UMA LINHA POR TEMPORADA — o histórico do jogador, clube a clube. Vai no próprio objeto do
+         jogador, que é o que viaja com ele numa transferência e sobrevive a newSeasonReset. O clube
+         é o do fim da temporada (quem foi vendido a meio do ano leva os números para o novo). */
+      if((st.apps||0)>0 || (st.goals||0)>0){
+        p.temporadas=p.temporadas||[];
+        if(!p.temporadas.some(t=>t && t.s===S.season)) p.temporadas.push({ s:S.season, c:cid,
+          d:(typeof clubDivisionOf==='function' && clubDivisionOf(cid)) || null,
+          j:st.apps||0, g:st.goals||0, a:st.assists||0 });
+      }
     });
   });
   // purge detailed cache -> new season

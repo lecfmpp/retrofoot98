@@ -693,8 +693,14 @@ const RF_ACOES = {
   const c=(typeof anyClubOf==='function'?anyClubOf(cid):null)||{};
   const meu=String(cid)===String(CL.clubId);
   const hist=(typeof careerHistTotals==='function')?careerHistTotals(p):null;
-  const golsTemp=((S.scorers&&S.scorers[p.n])||0);
-  const jogosTemp=(p.stats&&p.stats.games)||p.games||0;
+  /* gols da temporada: o do próprio jogador (p.stats.goals) ou o da artilharia, o que for maior —
+     nesta temporada os atletas de outras divisões só tinham os gols na artilharia (a nota deles
+     passou a ser contada agora, ver applyOtherDivResults) */
+  const golsTemp=Math.max((p.stats&&p.stats.goals)||0, (S.scorers&&S.scorers[p.n])||0);
+  /* PARTIDAS SÃO `apps`: é o campo que o motor escreve (ratePlayers/mpRate). Isto lia `games`,
+     que não existe em lado nenhum, e o perfil dizia "0 jogos" ao lado dos gols. */
+  const jogosTemp=(p.stats&&p.stats.apps)||0;
+  const temporadas=(p.temporadas||[]).slice(-3).reverse();
   const notaTemp=(typeof playerAvgRating==='function')?playerAvgRating(p):null;
   const vm=(typeof computeVM==='function')?computeVM(p):(p.mv||0);
   const ask=(typeof playerAsk==='function')?playerAsk(p,cid):vm;
@@ -719,7 +725,9 @@ const RF_ACOES = {
           <div class="rf-jp-grid">
             ${linha('Nesta temporada', jogosTemp+' jogo'+(jogosTemp===1?'':'s'), golsTemp?golsTemp+' gol'+(golsTemp>1?'s':''):'sem gols')}
             ${linha('Nota média', notaTemp!=null?String(notaTemp):'—','')}
-            ${hist?linha('Na carreira', (hist.games||0)+' jogos', (hist.goals||0)+' gols'):''}
+            ${hist?linha('Na carreira', (hist.apps||0)+' jogo'+((hist.apps||0)===1?'':'s'), (hist.goals||0)+' gol'+((hist.goals||0)===1?'':'s')):''}
+            ${temporadas.map(t=>linha(String(t.s)+' · '+(((typeof anyClubOf==='function'&&anyClubOf(t.c))||{}).short||'—'),
+              t.j+' jogo'+(t.j===1?'':'s'), t.g+' gol'+(t.g===1?'':'s'))).join('')}
             ${linha('Valor de mercado', rfDin(vm), meu?'':'pedido: '+rfDin(ask))}
             ${linha('Salário', sal?rfDin(sal):'—','')}
           </div>

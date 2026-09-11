@@ -4759,7 +4759,11 @@ function careerHistTotals(p){
   const cs=p.careerStats||{}, st=p.stats||{};
   return {
     apps:(cs.apps||0)+(st.apps||0),
-    goals:((S.allTimeScorers&&S.allTimeScorers[p.n])||0)+((S.scorers&&S.scorers[p.n])||0),
+    /* gols do PRÓPRIO jogador quando o save já os guarda (careerStats.goals, ver endSeason); save
+       antigo, que ainda não fechou temporada desde então, cai na artilharia por nome como antes */
+    goals: (cs.goals!=null) ? cs.goals+(st.goals||0)
+         : ((S.allTimeScorers&&S.allTimeScorers[p.n])||0)+((S.scorers&&S.scorers[p.n])||0),
+    assists:(cs.assists||0)+(st.assists||0),
     yellows:(cs.yellows||0)+(st.yellows||0),
     reds:(cs.reds||0)+(st.reds||0),
     injuries:(cs.injuries||0)+(st.injuries||0)
@@ -10142,6 +10146,20 @@ function applyOtherDivResults(RL){
     const th=od.table[m.h], ta=od.table[m.a];
     th.P++; ta.P++; th.GF+=m.hg; th.GA+=m.ag; ta.GF+=m.ag; ta.GA+=m.hg;
     if(m.hg>m.ag){ th.W++; th.Pts+=3; ta.L++; } else if(m.hg<m.ag){ ta.W++; ta.Pts+=3; th.L++; } else { th.D++; ta.D++; th.Pts++; ta.Pts++; }
+    /* OS JOGADORES DAS OUTRAS DIVISÕES TAMBÉM JOGAM. Isto só mexia na tabela: nota, partidas e gols
+       dos atletas das outras séries nunca eram contados, então o perfil de um jogador de outra
+       divisão mostrava gols (a artilharia vem por outro caminho) e "0 jogos" para sempre. É a
+       mesma ratePlayers da divisão do usuário e das copas, com a mesma semente de nota. */
+    if(typeof ratePlayers==='function' && S.squads && S.squads[m.h] && S.squads[m.a]){
+      try{
+        const scorers=(m.events||[]).filter(e=>e.type==='gol'||(e.type==='penalti'&&e.scored)).map(e=>({name:e.scorer,id:e.team}));
+        const Rm=makeRng(hashSeed(matchSeed(m.h,m.a),'rate'));
+        const mm=m.matchMinutes||90;
+        const cap=(lado)=>(typeof liveCaps==='function')?liveCaps(m,lado):null;
+        ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A,cap('H'),mm);
+        ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H,cap('A'),mm);
+      }catch(e){ console.warn('nota das outras divisões:', e&&e.message); }
+    }
   });
 }
 /* ---- Fase 2 Etapa A (auditoria server-side): retrato do elenco JUSTO ANTES de
