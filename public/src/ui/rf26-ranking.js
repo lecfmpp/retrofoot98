@@ -306,6 +306,13 @@ function rfFitaHTML(){
   const trilho = (resto.length>=6)
     ? resto.map(item).join('')+resto.map(item).join('')
     : resto.map(item).join('');
+  /* NO CELULAR O PODIO FICA ESCONDIDO (a barra e' so' o ticker), entao o trilho de la' leva a
+     lista INTEIRA, do 1o para baixo — antes levava so' o `resto`, e o celular nunca via os tres
+     primeiros. Com nomes que cheguem para o laco, corre sozinho; com poucos, fica parado e
+     arrasta com o dedo (ver .rf-fita-mid no bloco mobile do CSS). */
+  const trilhoMob = (l.length>=6)
+    ? l.map(item).join('')+l.map(item).join('')
+    : l.map(item).join('');
   return `<div class="rf-fita" onclick="rfGo('ranking')" role="button" tabindex="0"
       onkeydown="if(event.key==='Enter')rfGo('ranking')" title="Abrir o ranking dos treinadores">
     <div class="rf-fita-podio">${tres.map((t,i)=>`
@@ -317,7 +324,7 @@ function rfFitaHTML(){
           <span class="rf-fita-cp">${rfRankNum(t.pts)} pts</span>
         </span>
       </span>`).join('')}</div>
-    <div class="rf-fita-mid"><div class="rf-fita-trilho ${resto.length>=6?'':'parado'}">${trilho}</div><span class="rf-fita-mask"></span></div>
+    <div class="rf-fita-mid"><div class="rf-fita-trilho so-desk ${resto.length>=6?'':'parado'}">${trilho}</div><div class="rf-fita-trilho so-mob ${l.length>=6?'':'parado'}">${trilhoMob}</div><span class="rf-fita-mask"></span></div>
     ${eu?`<div class="rf-fita-eu">
       <span class="rf-fita-eu-id">
         <span class="rf-fita-eu-r">A SUA POSIÇÃO</span>

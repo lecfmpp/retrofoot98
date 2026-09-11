@@ -11872,3 +11872,16 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-ct-rosto,.rf-ct.painel .rf-ct-rosto{width:48px;height:48px;font-size:15px}
   .rf-ct-nums,.rf-ct.painel .rf-ct-nums{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* ===== FAIXA DO RANKING NO CELULAR: lista inteira e arrastável (ver rfFitaHTML) =====
+   Dois trilhos no HTML: o do desktop (do 4º para baixo, ao lado do pódio) e o do celular
+   (todos). Com poucos nomes o do celular fica parado e rola com o dedo. */
+.rf-fita-trilho.so-mob{display:none}
+@media (max-width:900px){
+  .rf-fita-trilho.so-desk{display:none}
+  .rf-fita-trilho.so-mob{display:flex}
+  .rf-fita-mid{overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;touch-action:pan-x}
+  .rf-fita-mid::-webkit-scrollbar{display:none}
+  .rf-fita-trilho.so-mob.parado{padding-right:90px}   /* o último nome não fica por baixo da pílula */
+}

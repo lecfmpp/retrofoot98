@@ -5021,6 +5021,13 @@ function persistCareer(){
 function enviarTitulos(modo, origem){
   if(typeof NET==='undefined' || !NET.enviarTitulos || !origem) return;
   if(typeof S==='undefined' || !S) return;
+  const nome=(typeof CL!=='undefined' && CL.mgr) || (S && S.mgr) || null;
+  /* A CAMPANHA VAI PRIMEIRO, E SEMPRE. Esta chamada morava no FIM desta funcao, depois das duas
+     saidas abaixo: quem nao tinha titulo nunca mandava temporada nenhuma, e quem tinha so' a
+     mandava quando ganhava um titulo novo (a assinatura dos titulos nao mudava e a funcao saia
+     antes). O livro coach_seasons ficou parado em 06/09 por isso. A campanha tem a sua propria
+     guarda de "nada mudou" (ver enviarTemporadas), entao chamar a cada gravacao nao custa rede. */
+  enviarTemporadas(modo, origem, nome);
   const campeoes=(S.coachHistory||[]).filter(h=>h && h.type==='campeao' && h.comp && h.season!=null);
   if(!campeoes.length) return;
   const ult=campeoes[campeoes.length-1];
@@ -5029,7 +5036,6 @@ function enviarTitulos(modo, origem){
     if(CL._titulosEnviados===assinatura) return;
     CL._titulosEnviados=assinatura;
   }
-  const nome=(typeof CL!=='undefined' && CL.mgr) || (S && S.mgr) || null;
   const lista=campeoes.map(h=>({
     season:h.season, comp:h.comp, uni:h.uni||null, div:h.div||null,
     clubId:h.clubId||null, clubShort:h.clubShort||null,
@@ -5039,7 +5045,6 @@ function enviarTitulos(modo, origem){
     pontos:(typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(h.comp,h.uni,h.div))||0 : 0
   }));
   try{ Promise.resolve(NET.enviarTitulos(modo, origem, nome, lista)).catch(()=>{}); }catch(e){}
-  enviarTemporadas(modo, origem, nome);
 }
 /* ===== A CAMPANHA TAMBEM PONTUA =====
    O ranking somava so' titulos, e quem faz uma grande temporada sem levantar taca
