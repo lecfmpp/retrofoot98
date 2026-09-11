@@ -24,31 +24,38 @@
    incertos, e o contador é prudente de propósito.
    ===================================================================== */
 
-/* O ROSTO E O NOME. 24 pessoas fictícias; o clube escolhe uma pelo id (mesma
-   ideia de coachName em main.js), então o mesmo clube tem sempre o mesmo
-   contador, em qualquer tela e em qualquer save. A foto mora em
-   img/contadores/NN.webp — gerada por IA, quadrada, rosto ao centro. Enquanto
-   o arquivo não existir, aparecem as iniciais (o <img> some sozinho no erro). */
+/* O ROSTO E O NOME. Dez pessoas fictícias, cinco homens e cinco mulheres. As faces
+   são geradas no painel (Estúdio IA > Contadores) e chegam em RF_CONTADORES pela
+   mesma busca das fotos (ver net/dados.js). A chave c1..c10 liga as duas pontas:
+   o nome mora aqui E no painel (CONTADORES em admin.js) — mudar um exige o outro.
+
+   SORTEADO POR SAVE, NÃO POR CLUBE. Na primeira vez que o contador aparece, o save
+   sorteia um dos dez e guarda em S.contador; dali em diante é sempre ele, mesmo se
+   o treinador trocar de clube (é o contador DO USUÁRIO, que o acompanha). Sem face
+   gerada, aparecem as iniciais. */
 const RF_CT_POOL=[
-  ['Arlindo Mesquita',0],['Célia Brandão',1],['Nivaldo Peixoto',0],['Dirce Albuquerque',1],
-  ['Osmar Tavares',0],['Rosângela Pires',1],['Wanderley Couto',0],['Marlene Viana',1],
-  ['Joaquim Serrano',0],['Ivone Cardoso',1],['Edgar Moreira',0],['Sônia Bittencourt',1],
-  ['Gilberto Assunção',0],['Lúcia Fontes',1],['Raimundo Paes',0],['Teresa Guimarães',1],
-  ['Valdir Coelho',0],['Neusa Rezende',1],['Heitor Vasconcelos',0],['Cleide Amaral',1],
-  ['Otávio Lacerda',0],['Zuleica Prado',1],['Aurélio Nogueira',0],['Débora Siqueira',1]
+  ['c1','Arlindo Mesquita',0], ['c2','Célia Brandão',1],    ['c3','Nivaldo Peixoto',0],
+  ['c4','Dirce Albuquerque',1],['c5','Osmar Tavares',0],    ['c6','Rosângela Pires',1],
+  ['c7','Wanderley Couto',0],  ['c8','Marlene Viana',1],    ['c9','Joaquim Serrano',0],
+  ['c10','Ivone Cardoso',1]
 ];
-function rfCtPessoa(clubId){
-  const id=clubId!=null?clubId:CL.clubId;
-  const i=hashC('contador|'+id)%RF_CT_POOL.length;
-  const [nome,fem]=RF_CT_POOL[i];
+function rfCtChave(){
+  if(!S) return RF_CT_POOL[0][0];
+  if(!S.contador || !RF_CT_POOL.some(e=>e[0]===S.contador))
+    S.contador=RF_CT_POOL[Math.floor(Math.random()*RF_CT_POOL.length)][0];   // grava junto no próximo save()
+  return S.contador;
+}
+function rfCtPessoa(){
+  const chave=rfCtChave();
+  const [, nome, fem]=RF_CT_POOL.find(e=>e[0]===chave)||RF_CT_POOL[0];
   const partes=nome.split(' ');
-  return { nome, fem:!!fem, cargo:fem?'Contadora':'Contador',
+  return { chave, nome, fem:!!fem, cargo:fem?'Contadora':'Contador',
     ini:(partes[0][0]+(partes[partes.length-1][0]||'')).toUpperCase(),
-    foto:'img/contadores/'+String(i+1).padStart(2,'0')+'.webp' };
+    foto:((typeof window!=='undefined' && window.RF_CONTADORES)||{})[chave]||null };
 }
 function rfCtRostoHTML(p){
   return `<span class="rf-ct-rosto" aria-hidden="true">${escC(p.ini)}
-    <img src="${p.foto}" alt="" onerror="this.remove()"></span>`;
+    ${p.foto?`<img src="${escC(p.foto)}" alt="" onerror="this.remove()">`:''}</span>`;
 }
 
 /* ---------- A CONTA ----------

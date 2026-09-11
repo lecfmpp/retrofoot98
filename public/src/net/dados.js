@@ -376,6 +376,9 @@ window.RF_TREINADOR_POS = window.RF_TREINADOR_POS || {};       // ajuste solto p
    asset a commitar. O jogo escolhe uma por rodada e clube; sem nenhuma gerada, o modal volta a
    mostrar as iniciais do nome, que e' o que ele fazia antes de existirem. */
 window.RF_JORNALISTAS = window.RF_JORNALISTAS || {};
+/* RF_CONTADORES['c1'..'c10'] -> as faces do contador do clube (ui/rf26-contador.js). Mesmo truque
+   (linhas com club_id '__contador__'), mesma busca. Sem face gerada, o jogo mostra as iniciais. */
+window.RF_CONTADORES = window.RF_CONTADORES || {};
 /* ===== OS MOMENTOS (modais de celebração) VÊM DO PAINEL =====
    O vídeo de cada momento estava num mapa dentro de ui/main.js: trocar um
    obrigava a publicar o site. Agora a tabela elifoot_v3.momentos manda, e este
@@ -433,6 +436,10 @@ function buscarFotos(packId){
            nome de um jogador. */
         if(f.club_id === '__jornalista__'){
           if(f.url) window.RF_JORNALISTAS[f.jogador] = f.url;
+          continue;
+        }
+        if(f.club_id === '__contador__'){
+          if(f.url) window.RF_CONTADORES[f.jogador] = f.url;
           continue;
         }
         const at = f.atributos || {};

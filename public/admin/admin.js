@@ -9020,6 +9020,86 @@ async function refazerFaceJornalista(i){
   catch(err){ toast(err.message, true); }
   pgEstudio();
 }
+/* ===== OS CONTADORES — a pessoa que fala do caixa no jogo (ver src/ui/rf26-contador.js) =====
+   Dez faces, cinco homens e cinco mulheres, geradas uma vez e partilhadas: cada save sorteia uma.
+   Mesma maquina das faces de jornalista (tipo transparente, tabela player_photos com club_id
+   sentinela). O nome mora aqui E no jogo (RF_CT_POOL) — a chave c1..c10 e' o que os liga. */
+const CONTADOR_KEY = '__contador__';
+/* [chave, nome, quem, idade, pele, cabelo, roupa, expressao] */
+const CONTADORES = [
+  ['c1',  'Arlindo Mesquita',  'man',   'in his mid 50s',   'fair skin',        'neatly combed greying hair and thin wire-rimmed glasses', 'a navy blazer over a light blue dress shirt with a dark tie',            'a calm, serious professional look'],
+  ['c2',  'Célia Brandão',     'woman', 'in her early 40s', 'light brown skin', 'shoulder-length straight dark hair',                      'a tailored grey blazer over a white blouse and a thin gold necklace',   'a warm friendly smile'],
+  ['c3',  'Nivaldo Peixoto',   'man',   'in his late 30s',  'dark brown skin',  'short cropped black hair and a neatly trimmed beard',     'a white dress shirt with a burgundy tie under a dark suit vest',        'a confident broad smile'],
+  ['c4',  'Dirce Albuquerque', 'woman', 'in her late 50s',  'fair skin',        'a short silver bob haircut and reading glasses',          'a navy suit jacket over a cream silk blouse',                           'a composed, attentive serious look'],
+  ['c5',  'Osmar Tavares',     'man',   'in his early 60s', 'medium tan skin',  'a completely bald head and a short grey mustache',        'a charcoal suit with a white shirt and a navy tie',                     'a kind, gentle smile'],
+  ['c6',  'Rosângela Pires',   'woman', 'in her early 30s', 'brown skin',       'curly dark hair tied back neatly',                        'a light beige blazer over a simple black top',                          'a bright cheerful smile'],
+  ['c7',  'Wanderley Couto',   'man',   'in his mid 40s',   'light brown skin', 'medium wavy dark hair and black rectangular glasses',     'a light grey suit jacket over a pale blue open-collar shirt',           'a thoughtful slight smile'],
+  ['c8',  'Marlene Viana',     'woman', 'in her early 60s', 'dark skin',        'short natural grey hair and small pearl earrings',        'a maroon blazer over a white blouse',                                   'a calm, confident look with a hint of a smile'],
+  ['c9',  'Joaquim Serrano',   'man',   'in his early 30s', 'olive skin',       'short neat dark hair, clean-shaven',                      'a navy knit sweater over a white collared shirt',                       'a focused, attentive serious look'],
+  ['c10', 'Ivone Cardoso',     'woman', 'in her mid 40s',   'olive skin',       'long wavy auburn hair',                                   'a dark green blazer over a crisp white shirt',                          'a warm, confident smile'],
+];
+function promptFaceContador(i){
+  const c = CONTADORES[i];
+  return [
+    `Hyper-realistic studio portrait of a fictional FOOTBALL CLUB ACCOUNTANT (the club's finance officer), a ${c[2]} ${c[3]}, ${c[4]}, ${c[5]}, wearing ${c[6]}.`,
+    `The face has ${c[7]}.`,
+    (typeof FACE_NUNCA!=='undefined') ? FACE_NUNCA : '',
+    'Never grumpy, frowning, stern, annoyed or menacing — a trustworthy, approachable office professional.',
+    'No club crest, no team badge, no sponsor logo and no readable text anywhere on the clothing.',
+    'Head and upper chest only, facing the camera directly, corporate headshot style.',
+    'Cropped just below the collarbone — do not show the arms, the waist or any part of the background scene.',
+    'Soft professional studio lighting, plain neutral light gray background, sharp focus, DSLR photo quality.',
+    'The head is horizontally centered and fills about 55% of the frame height, with a small margin of empty space above the hair.',
+    'Clean, crisp edges around the hair and the shoulders — every pixel outside the person must be fully transparent, with no grey halo, no soft fade and no leftover backdrop.',
+    (typeof NAO_REAL!=='undefined') ? NAO_REAL : ''
+  ].filter(Boolean).join(' ');
+}
+function contadoresQueFaltam(){
+  const faltam = [];
+  CONTADORES.forEach((c, i) => { if(!D.fotos[CONTADOR_KEY+'|'+c[0]]) faltam.push(i); });
+  return faltam;
+}
+async function garantirFaceContador(i, refazer){
+  const c = CONTADORES[i];
+  if(!refazer && D.fotos[CONTADOR_KEY+'|'+c[0]]) return D.fotos[CONTADOR_KEY+'|'+c[0]];
+  const url = await gerarImagemIA('camisa', promptFaceContador(i), 'medium', null,
+    'contadores/'+c[0], 'Gerando a face do contador…');
+  const linha = { pack_id: ST.packId, club_id: CONTADOR_KEY, jogador: c[0], url,
+                  atributos: { nome: c[1], sexo: c[2]==='woman'?'fem':'masc' } };
+  const r = await jogo('player_photos').upsert(linha, { onConflict:'pack_id,club_id,jogador' });
+  if(r.error) throw new Error(erroMsg(r.error));
+  D.fotos[CONTADOR_KEY+'|'+c[0]] = linha;
+  return linha;
+}
+async function prepararFacesContador(btn){
+  const faltam = contadoresQueFaltam();
+  if(!faltam.length) return toast('As 10 faces de contador já estão prontas.');
+  if(!await rfConfirm({ titulo:'Gerar as faces de contador',
+    texto:`Faltam <b>${faltam.length} face(s)</b> das dez que falam do caixa no jogo.`,
+    detalhe:`Custo único: <b>~US$ ${(faltam.length*0.042).toFixed(2)}</b>. Face que sair torta pode ser
+             refeita pelo ✦ do cartão.`,
+    nao:'Agora não', sim:`Gerar ${faltam.length} face(s)` })) return;
+  btn.disabled = true; const rot = btn.textContent;
+  let ok = 0, erros = 0;
+  for(const i of faltam){
+    btn.textContent = `${CONTADORES[i][1]}… (${ok+erros+1}/${faltam.length})`;
+    try{ await garantirFaceContador(i); ok++; }
+    catch(err){ erros++; console.warn('face de contador falhou:', i, err.message); }
+  }
+  registrar('estudio.contadores.preparar', String(ok), { pacote: ST.packId, falhas: erros });
+  toast(`Faces geradas: ${ok}${erros?`, ${erros} falharam`:''}.`);
+  btn.disabled = false; btn.textContent = rot;
+  pgEstudio();
+}
+async function refazerFaceContador(i){
+  const c = CONTADORES[i];
+  if(D.fotos[CONTADOR_KEY+'|'+c[0]] && !await rfConfirm({ titulo:'Gerar esta face de novo',
+    texto:`Isto é uma <b>geração nova</b> de <b>${h(c[1])}</b>, e ela substitui a atual.`,
+    detalhe:'Custo: <b>~US$ 0,04</b>. A imagem de agora é perdida.', nao:'Agora não', sim:'Gerar de novo' })) return;
+  try{ await garantirFaceContador(i, true); toast('Face gerada.'); }
+  catch(err){ toast(err.message, true); }
+  pgEstudio();
+}
 const faceNome  = (genero, estilo) => (genero === 'f' ? 'treinadora-' : 'treinador-') + estilo;
 
 /* variedade entre as cinco do mesmo genero: sem isto o modelo devolve
@@ -10461,6 +10541,48 @@ function blocoJornalistasHTML(){
       </div>
     </div>`;
 }
+function contadorCartaoHTML(i){
+  const c = CONTADORES[i];
+  const linha = D.fotos[CONTADOR_KEY+'|'+c[0]];
+  const pode = podeEditar('dados');
+  const moldura = linha ? 'border:1px solid var(--bd);background:var(--card2)'
+                        : 'border:1px dashed var(--bd2);background:transparent';
+  const retrato = linha
+    ? `<span data-face-ver="${h(linha.url)}" style="display:block;cursor:zoom-in">
+         <img src="${h(linha.url)}" alt="" style="width:100%;aspect-ratio:1/1;object-fit:cover;object-position:top center;border-radius:9px;background:var(--card)"></span>`
+    : `<span style="width:100%;aspect-ratio:1/1;border-radius:9px;border:1px dashed var(--bd2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#3d4a43">＋</span>`;
+  return `<div style="${moldura};border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:9px;min-width:0">
+    ${retrato}
+    <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+      <b style="font-size:12.5px;font-weight:600${linha?'':';color:var(--dim)'}">${h(c[1])}</b>
+      <span class="mono" style="font-size:10.5px;color:var(--dim3)">${h(c[0])} · ${c[2]==='woman'?'contadora':'contador'}</span>
+    </span>
+    ${pode?`<span style="display:flex;align-items:center;gap:8px">
+      <span class="link" style="font-size:11.5px" data-cont-refazer="${i}">✦ Gerar</span></span>`:''}
+  </div>`;
+}
+function blocoContadoresHTML(){
+  const faltam = contadoresQueFaltam().length;
+  const prontas = CONTADORES.length - faltam;
+  return `<div class="card" style="overflow:hidden">
+      <div class="card-h">
+        <b>As 10 faces de contador do clube</b>
+        <span class="mono" style="font-size:11.5px;color:var(--dim3);white-space:nowrap;flex:0 0 auto">${prontas} de ${CONTADORES.length} geradas</span>
+        ${faltam && podeEditar('dados')
+          ? `<button class="btn btn-sm" id="est-cont" style="white-space:nowrap;flex:0 0 auto"
+               title="Gera só as faces que ainda não existem">Gerar as faces que faltam (${faltam})</button>`
+          : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:16px 20px">
+        ${CONTADORES.map((_c, i) => contadorCartaoHTML(i)).join('')}
+      </div>
+      <div style="border-top:1px solid var(--bd);padding:13px 20px;font-size:12px;color:var(--dim2);line-height:1.55">
+        Aparecem no jogo em <b>todo diálogo que gasta dinheiro</b> (compra, lance, obra, renovação) e fixos
+        em <b>Finanças</b>. Cada save sorteia um dos dez na primeira vez e fica com ele. Sem imagem gerada,
+        o jogo mostra as iniciais do nome.
+      </div>
+    </div>`;
+}
 function blocoTreinadoresHTML(){
   const faltam = facesQueFaltam().length;
   const prontas = 10 - faltam;
@@ -10600,10 +10722,10 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
       ${kpiHTML({l:'Jogadores no catálogo', v:num(base.reduce((a,x)=>a+((x.c.squad||[]).length),0)), d:'candidatos a foto'})}
     </div>
     <div class="per" style="gap:6px;margin-bottom:2px">
-      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores'],['treinadores','Treinadores'],['jornalistas','Jornalistas']]
+      ${[['escudos','Escudos'],['uniformes','Uniformes'],['fotos','Fotos de jogadores'],['treinadores','Treinadores'],['jornalistas','Jornalistas'],['contadores','Contadores']]
         .map(([id,l])=>`<span class="${aba===id?'on':''}" data-est-aba="${id}" style="padding:9px 16px">${l}</span>`).join('')}
     </div>
-    ${aba==='treinadores' ? blocoTreinadoresHTML() : aba==='jornalistas' ? blocoJornalistasHTML() : `
+    ${aba==='treinadores' ? blocoTreinadoresHTML() : aba==='jornalistas' ? blocoJornalistasHTML() : aba==='contadores' ? blocoContadoresHTML() : `
     <div class="card" style="overflow:hidden">
       <div class="card-h">
         <b>${aba==='escudos'?'Escolha o clube para gerar o escudo'
@@ -10669,6 +10791,10 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
   if(btJorn) btJorn.onclick = () => prepararFacesJornalista(btJorn);
   document.querySelectorAll('[data-jorn-refazer]').forEach(x =>
     x.onclick = () => refazerFaceJornalista(Number(x.dataset.jornRefazer)));
+  const btCont = el('est-cont');
+  if(btCont) btCont.onclick = () => prepararFacesContador(btCont);
+  document.querySelectorAll('[data-cont-refazer]').forEach(x =>
+    x.onclick = () => refazerFaceContador(Number(x.dataset.contRefazer)));
   /* O FILTRO E A BUSCA SO' EXISTEM NAS ABAS DE CLUBE. Sem estes guards a aba
      Treinadores achava null aqui, o TypeError estourava e MATAVA o resto do
      wiring — seletor de patch, botoes de aba, tudo — deixando o Estudio
