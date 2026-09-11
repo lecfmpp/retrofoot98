@@ -6607,6 +6607,7 @@ function clAvancarDia(){
   /* as copas correm na virada da rodada como em qualquer rodada — sem isto,
      passar o dia saltaria por cima de uma rodada de copa devida */
   try{ if(typeof advancePendingCups==='function') advancePendingCups(); }catch(e){ console.warn('copas ao passar o dia:', e); }
+  try{ if(typeof pagarCopasContinentais==='function') pagarCopasContinentais(); }catch(e){}
   /* se alguma final foi decidida neste avanco, a taca aparece agora — passar o
      dia nao pode engolir a cerimonia (ver celebrarCopasDecididas) */
   if(typeof celebrarCopasDecididas==='function' && celebrarCopasDecididas() && MOMENTO_FILA.length){
@@ -10535,6 +10536,7 @@ async function onlineAdoptServerRound(RL){
   }catch(e){ console.warn('adotar estado do servidor:', e); }
   applyOwnPendingFinances(); // F3.3: aplica as finanças da MINHA rodada (o servidor não computa finanças)
   applyMyCupPrizes();        // cota de fase da Copa do Brasil decidida pelo servidor (ver applyMyCupPrizes)
+  try{ if(typeof pagarCopasContinentais==='function') pagarCopasContinentais(); }catch(e){}   // continental do MEU clube, quando a copa acaba
   if(typeof fixUserXIAvailability==='function') fixUserXIAvailability();
   if(!S.finished && typeof tickJobSecurity==='function'){ tickJobSecurity(); const je=checkManagerJobEvent(); if(je) CL._pendingManagerEvent=je; }
   if(isTurnover){
@@ -10690,6 +10692,7 @@ function resolveCupRoundRest(key){
     if(ok) S._cupResolvedRound=WORLD_RULES.markCupResolved(S._cupResolvedRound, key, S.round);
     else console.log('avanço da '+key+' aguarda resultado publicado de outro humano');
   }catch(e){ console.warn('resolveCupRoundRest('+key+'):', e && e.message); }
+  try{ if(typeof pagarCopasContinentais==='function') pagarCopasContinentais(); }catch(e){}   // a final pode ter sido esta partida
 }
 function finishCupLiveMatch(){
   const RL=CL.live, pending=RL.cup, m=RL.matches[0];
@@ -10699,7 +10702,12 @@ function finishCupLiveMatch(){
   if(typeof recordScorers==='function') recordScorers(scorers, pending.key); // gol na PRÓPRIA partida de copa ao vivo também tem que contar em S.scorers (ver core.js)
   const mm=liveMatchMinutes(m);
   ratePlayers(m.h,m.hg,m.ag,scorers,Rm,m.perf&&m.perf.H,m.perf&&m.perf.A,liveCaps(m,'H'),mm); ratePlayers(m.a,m.ag,m.hg,scorers,Rm,m.perf&&m.perf.A,m.perf&&m.perf.H,liveCaps(m,'A'),mm);
-  if(m.h===CL.clubId) S.budget=(S.budget||0)+(m.att*m.price); // bilheteria do mando de campo, igual à liga
+  /* bilheteria do mando de campo, igual à liga — e agora no EXTRATO: entrava direto no caixa, sem
+     lançamento, e a aba Finanças nunca a mostrava */
+  if(m.h===CL.clubId){ const gate=Math.round((m.att||0)*(m.price||0));
+    if(gate>0){ S.budget=(S.budget||0)+gate; if(typeof commitBudget==='function') commitBudget();
+      if(typeof pushFinanceEntry==='function') pushFinanceEntry({income:gate, bilheteria:gate,
+        log:['🎟️ Bilheteria · '+((COMP_DEFS[pending.key]&&COMP_DEFS[pending.key].short)||'copa')+': +'+fmt(gate)]}); } }
   const compShort=COMP_DEFS[pending.key].short;
   let resultMsg;
   if(pending.stage==='bracket'){

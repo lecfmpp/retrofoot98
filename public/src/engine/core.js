@@ -1807,7 +1807,8 @@ function advanceCupBracket(b, roundLabel, comp){
     const res=resolveDrawnKnockoutTie(t.h,t.a,seed,fin.hg,fin.ag);
     t.winner=res.winner; t.pens=res.pens||null; winners.push(res.winner);
     t.jornada=S.round; // rodada de liga em que este confronto foi jogado — o Calendário precisa dela pra listar o resultado (ver userCupCalendarRows)
-    awardCupPhasePrize(_cupKeyOf(roundLabel), b, t); // cota da fase (Copa do Brasil), no caixa de quem venceu
+    awardCupPhasePrize(_cupKeyOf(roundLabel), b, t); // cota da fase (Copa da Federação), para os dois lados
+    if(!CL.online) creditarBilheteriaCopa(t.h, seed, _cupKeyOf(roundLabel));   // bilheteria do mandante
     const loser=res.winner===t.h?t.a:t.h; b.eliminated[loser]=true;
   });
   const advancing=winners.concat(b.pendingByes||[]);
@@ -1964,6 +1965,7 @@ function advanceGroupStageRound(mg, roundLabel, comp){
       // partida de grupo era impossível de recuperar depois (Calendário ficava só com os jogos
       // FUTUROS da competição, enquanto a liga mostrava todos os resultados).
       g.results=g.results||[]; g.results.push({r:mg.round, h, a, hg:fin.hg, ag:fin.ag, jornada:S.round});
+      if(!CL.online) creditarBilheteriaCopa(h, seed, comp);   // bilheteria do mandante no jogo de grupo
       T[h].P++; T[a].P++; T[h].GF+=fin.hg; T[h].GA+=fin.ag; T[a].GF+=fin.ag; T[a].GA+=fin.hg;
       if(fin.hg>fin.ag){ T[h].W++; T[a].L++; T[h].Pts+=3; }
       else if(fin.hg<fin.ag){ T[a].W++; T[h].L++; T[a].Pts+=3; }
@@ -2036,17 +2038,100 @@ function awardCupPhasePrize(key, b, t){
   if(typeof PRIZES==='undefined' || !PRIZES.copaBrasilPhaseCash) return;
   const loser=t.winner===t.h?t.a:t.h;
   const isFinal=(b.roundsTotal-b.round)<=0;
-  const pagar=[[t.winner, PRIZES.copaBrasilPhaseCash(b.round, b.roundsTotal, true), isFinal?'Campeão':cupPhaseLabel(b.round,b.roundsTotal)]];
-  if(isFinal) pagar.push([loser, PRIZES.copaBrasilPhaseCash(b.round, b.roundsTotal, false), 'Vice-campeão']);
+  let pagar;
+  if(!CL.online && PRIZES.copaBrasilCotaParticipacao){
+    /* QUEM JOGA A FASE RECEBE (ver copaBrasilCotaParticipacao em prizes.js): os dois lados de cada
+       confronto levam a cota da fase, e na final o campeão e o vice levam as suas. A divisão de
+       cada clube decide o fator das fases iniciais. Só no solo: na Resenha o caixa de copa é do
+       servidor (resolve-round), que ainda paga só o vencedor — misturar as duas regras daria a
+       cada lado um número diferente. */
+    const tierDe=id=>{ const d=(typeof clubDivisionOf==='function' && clubDivisionOf(id)) || null;
+      return (d && PRIZES.tierOf) ? PRIZES.tierOf(d) : 'D'; };
+    const fase=cupPhaseLabel(b.round,b.roundsTotal);
+    pagar = isFinal
+      ? [[t.winner, PRIZES.copaBrasilCotaParticipacao(b.round,b.roundsTotal,tierDe(t.winner),true), 'Campeão'],
+         [loser,    PRIZES.copaBrasilCotaParticipacao(b.round,b.roundsTotal,tierDe(loser),false),   'Vice-campeão']]
+      : [[t.h, PRIZES.copaBrasilCotaParticipacao(b.round,b.roundsTotal,tierDe(t.h),false), fase],
+         [t.a, PRIZES.copaBrasilCotaParticipacao(b.round,b.roundsTotal,tierDe(t.a),false), fase]];
+  } else {
+    pagar=[[t.winner, PRIZES.copaBrasilPhaseCash(b.round, b.roundsTotal, true), isFinal?'Campeão':cupPhaseLabel(b.round,b.roundsTotal)]];
+    if(isFinal) pagar.push([loser, PRIZES.copaBrasilPhaseCash(b.round, b.roundsTotal, false), 'Vice-campeão']);
+  }
+  const nomeCopa=(typeof COMP_DEFS!=='undefined' && COMP_DEFS[key] && COMP_DEFS[key].short) || 'Copa do Brasil';
   t.prize={ round:b.round, pagos:pagar.map(([id,amt])=>({id,amt})) }; // carimbo (idempotência)
   pagar.forEach(([id,amt,fase])=>{
     if(!id || !amt) return;
     if(id===S.clubId){
       S.budget=(S.budget||0)+amt; commitBudget();
-      pushFinanceEntry({income:amt, log:['🏆 Copa do Brasil — '+fase+': +'+(typeof fmt==='function'?fmt(amt):amt)]});
-      S.roundNews=S.roundNews||[]; S.roundNews.push(`🏆 Cota da Copa do Brasil (${fase}): +${typeof fmt==='function'?fmt(amt):amt} no caixa.`);
+      pushFinanceEntry({income:amt, log:['🏆 '+nomeCopa+' — '+fase+': +'+(typeof fmt==='function'?fmt(amt):amt)]});
+      S.roundNews=S.roundNews||[]; S.roundNews.push(`🏆 Cota da ${nomeCopa} (${fase}): +${typeof fmt==='function'?fmt(amt):amt} no caixa.`);
     } else {
       S.budgets=S.budgets||{}; S.budgets[id]=Math.round((S.budgets[id]||0)+amt);
+    }
+  });
+}
+/* ===== BILHETERIA DOS JOGOS DE COPA =====
+   Jogo de copa em casa não rendia nada: a bilheteria só existia nas rodadas de liga
+   (processFinances). Agora o mandante fatura público × preço, pela MESMA conta da liga
+   (attendanceFor), com uma semente própria da partida. O clube do usuário vê a linha no extrato;
+   os outros entram no caixa por-clube do mundo. Só no solo: na Resenha o caixa da CPU é do
+   servidor, e o do humano entra pela partida ao vivo (finishCupLiveMatch). */
+function creditarBilheteriaCopa(homeId, seed, comp){
+  if(!homeId || typeof attendanceFor!=='function' || typeof makeRng!=='function') return 0;
+  try{
+    const R=makeRng(hashSeed(seed,'bilheteria'));
+    const g=attendanceFor(homeId, ()=>R.random());
+    const gate=Math.round((g.att||0)*(g.price||0)); if(!gate) return 0;
+    if(homeId===S.clubId){
+      S.budget=(S.budget||0)+gate; commitBudget();
+      const nome=(typeof COMP_DEFS!=='undefined' && COMP_DEFS[comp] && COMP_DEFS[comp].short) || 'copa';
+      pushFinanceEntry({income:gate, bilheteria:gate, log:['🎟️ Bilheteria · '+nome+': +'+(typeof fmt==='function'?fmt(gate):gate)]});
+    } else if(S.budgets && S.budgets[homeId]!=null){
+      S.budgets[homeId]=Math.round(S.budgets[homeId]+gate);
+    }
+    return gate;
+  }catch(e){ return 0; }
+}
+/* ===== AS COPAS CONTINENTAIS PAGAM QUANDO A COPA ACABA =====
+   A premiação de Libertadores e Sul-Americana (pela fase ALCANÇADA, com cota de participação para
+   quem cai nos grupos — PRIZES.cupPrize) só era paga ao USUÁRIO e só em awardSeasonPrizes, no
+   fecho do ano do solo. Duas falhas: a Resenha nunca pagava (o fecho dela lê a foto do servidor,
+   que só traz a Copa do Brasil) e a CPU nunca recebia. Agora ela é paga assim que a copa tem
+   campeão — o desfecho de cada clube já é definitivo:
+   · o meu clube, nos dois modos, com a marca em S._copasPagas (chave de CARREIRA: sobrevive ao
+     adopt da Resenha, e nunca paga duas vezes);
+   · os clubes da CPU, só no solo (na Resenha o caixa deles é do servidor).
+   awardSeasonPrizes paga o que ainda não tiver sido pago (copa que não acabou até ao fecho). */
+function pagarCopasContinentais(){
+  if(!S || !S.cups || typeof PRIZES==='undefined' || typeof allCupKeys!=='function') return;
+  const nac=(typeof copaNacionalDoUniverso==='function')?copaNacionalDoUniverso():'copaBrasil';
+  allCupKeys().forEach(key=>{
+    if(key===nac) return;
+    const c=S.cups[key]; if(!c) return;
+    if(cupCompetitionChampion(c)==null) return;                    // ainda em disputa
+    const nome=(typeof COMP_DEFS!=='undefined' && COMP_DEFS[key] && COMP_DEFS[key].short) || key;
+    S._copasPagas=S._copasPagas||{};
+    const marca=S.season+'|'+key;
+    if(!S._copasPagas[marca] && S.clubId){
+      const res=cupResultForClub(key, S.clubId);
+      const out=PRIZES.cupResultOutcome(res);
+      const amt=out?(PRIZES.cupPrize(key,out)||0):0;
+      S._copasPagas[marca]={ amt, res:res||null };                  // marca mesmo sem prêmio
+      if(amt>0){
+        S.budget=(S.budget||0)+amt; commitBudget();
+        pushFinanceEntry({income:amt, log:['🏆 '+nome+' — '+res+': +'+(typeof fmt==='function'?fmt(amt):amt)]});
+        S.roundNews=S.roundNews||[]; S.roundNews.push(`🏆 Premiação da ${nome} (${res}): +${typeof fmt==='function'?fmt(amt):amt} no caixa.`);
+      }
+      if(typeof persistCareer==='function') persistCareer();
+    }
+    if(!(typeof CL!=='undefined' && CL.online) && !c._premiosPagos){
+      c._premiosPagos=true;
+      Object.keys(S.budgets||{}).forEach(id=>{
+        if(id===S.clubId || (typeof CL!=='undefined' && CL.humans && CL.humans[id])) return;
+        const out=PRIZES.cupResultOutcome(cupResultForClub(key, id));
+        const amt=out?(PRIZES.cupPrize(key,out)||0):0;
+        if(amt>0) S.budgets[id]=Math.round((S.budgets[id]||0)+amt);
+      });
     }
   });
 }
@@ -4952,7 +5037,7 @@ function checkManagerJobEvent(){
    carimbo de quantas coletivas já deu nesta temporada também. Guardados no S
    sem estarem aqui, seriam sobrescritos pelo estado do anfitrião a cada adoção
    de rodada — e toda a gente na sala herdaria a reputação de um só. */
-const CAREER_KEYS=['jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin','coachGender','coachAvatar','coachRep','pressState'];
+const CAREER_KEYS=['_copasPagas','jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin','coachGender','coachAvatar','coachRep','pressState'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
@@ -5909,6 +5994,7 @@ function playRound(userResult, humanResults){
      relatórios não. Vale para qualquer notícia gerada ali, não só para esta. */
   S.roundNews=[];
   advancePendingCups();
+  try{ pagarCopasContinentais(); }catch(e){ console.warn('premiação continental:', e&&e.message); }
   const uf=userFixture();
   const Rr=makeRng(hashSeed(S.seed,S.round,'post')); // deterministic post-match stream
   // capture who started THIS round before energy changes (for finances/enforcement)
@@ -6267,10 +6353,12 @@ function awardSeasonPrizes(tbl, myCups){
   }
   // Copas (fase alcançada / título)
   allCupKeys().forEach(k=>{
+    if(S._copasPagas && S._copasPagas[S.season+'|'+k]) return;      // já paga quando a copa acabou (pagarCopasContinentais)
     const outcome=PRIZES.cupResultOutcome(myCups && myCups[k]);
     if(!outcome) return;
     const amt=PRIZES.cupPrize(k, outcome);
     if(amt<=0) return;
+    S._copasPagas=S._copasPagas||{}; S._copasPagas[S.season+'|'+k]={ amt, res:(myCups&&myCups[k])||null };
     lines.push({icon:outcome==='campeao'?'🏆':'🎖️', comp:(COMP_DEFS[k]&&COMP_DEFS[k].short)||k, place:myCups[k], amount:amt});
     total+=amt;
   });

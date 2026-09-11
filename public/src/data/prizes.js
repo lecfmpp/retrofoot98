@@ -138,8 +138,26 @@
     if(dist===4) return CB_PHASE.dezesseis;
     return round<=1 ? CB_PHASE.f1 : CB_PHASE.f2;   // fases iniciais de chaveamento grande
   }
+  /* ===== COPA DA FEDERAÇÃO: A COTA É DE QUEM JOGA A FASE (pedido do dono, 11/09) =====
+     A mecânica da Copa do Brasil real: cada clube recebe a cota da fase que DISPUTA, ganhe ou
+     perca; só a final separa campeão e vice. Os VALORES são os nossos (CB_PHASE acima), não os
+     reais. O que se copia da vida real é também a diferença nas fases iniciais: até a 4ª fase a
+     Série B recebe ~1,6x o que recebem Séries C e D (R$ 1,38 mi contra R$ 830 mil em 2026). Aqui
+     o fator vale para a 1ª e a 2ª divisão, nas fases antes das oitavas; dali em diante a cota é
+     igual para todos. copaBrasilPhaseCash (só o vencedor) continua a existir para a Resenha,
+     cujo caixa de copa é decidido pelo servidor. */
+  const CB_TIER_INICIAL=1.6;
+  function copaBrasilCotaParticipacao(round, roundsTotal, tier, campeao){
+    const dist=(roundsTotal||0)-(round||0);
+    if(dist<=0) return campeao ? CB_PHASE.final : CB_PHASE.vice;
+    if(dist===1) return CB_PHASE.semi;
+    if(dist===2) return CB_PHASE.quartas;
+    if(dist===3) return CB_PHASE.oitavas;
+    const v = dist===4 ? CB_PHASE.dezesseis : (round<=1 ? CB_PHASE.f1 : CB_PHASE.f2);
+    return (tier==='A'||tier==='B') ? Math.round(v*CB_TIER_INICIAL) : v;
+  }
   root.PRIZES={ tierOf, leaguePrize, cupCategory, cupResultOutcome, cupPrize,
-                copaBrasilPhaseCash, CB_PHASE, accessPrize, ACCESS, ticketPrice, TICKET,
+                copaBrasilPhaseCash, copaBrasilCotaParticipacao, CB_TIER_INICIAL, CB_PHASE, accessPrize, ACCESS, ticketPrice, TICKET,
                 artilheiroCash, ART_VALUE_MULT, ART_VALUE_CAP, LEAGUE, CUP };
   if(typeof module!=='undefined' && module.exports){ module.exports={ PRIZES:root.PRIZES }; }
 })(typeof globalThis!=='undefined'?globalThis:this);
