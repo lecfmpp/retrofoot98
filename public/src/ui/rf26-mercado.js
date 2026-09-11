@@ -1024,6 +1024,9 @@ function rfMkFinalizar(){
      empresário em aberto o campo é editável e é ele que manda */
   const doCampo=rfMkSalarioDoCampo();
   if(n && doCampo) n.salary=doCampo;
+  /* o contador segura a compra que deixa o ano no vermelho — o motor só confere a taxa */
+  if(n && typeof rfCtSegurar==='function' && rfCtSegurar({taxa:n.offerFee, salario:n.salary||0,
+      chave:'compra|'+M.negoIdx, volta:'rfMkFinalizar', rotuloTaxa:'Taxa da contratação'})) return;
   const r=finalizeTransfer(M.negoIdx);
   toastC(r.msg||'');
   if(r.ok){ rfGravar(); CL.mkP=null; CL.market=null; CL.acao=null; }
@@ -1109,7 +1112,13 @@ function rfMkLanceGo(){
      lote fecha, então o número precisa existir em algum lugar. Fica no próprio
      lote, que é salvo junto com o resto do leilão. */
   const eraCobertura = !!(lot && lot.leader && lot.leader!==S.clubId);
-  const r=placeAuctionBid(id, rfMkVal('rf-mk-lance'));
+  /* o valor do lance só existe no campo do diálogo; se o contador segurou e a pessoa
+     seguiu mesmo assim, o campo já não está na tela e o valor volta por CL._ctValor */
+  const valor=(CL._ctValor!=null)?CL._ctValor:rfMkVal('rf-mk-lance'); CL._ctValor=null;
+  const pl=(typeof findP==='function')?findP(P.player,P.sellerId):null;
+  if(typeof rfCtSegurar==='function' && rfCtSegurar({taxa:valor, salario:pl?REBAL.wage(pl.f):0,
+      chave:'lance|'+id+'|'+valor, volta:'rfMkLanceGo', guardar:valor, rotuloTaxa:'Seu lance'})) return;
+  const r=placeAuctionBid(id, valor);
   if(r&&r.ok&&eraCobertura&&lot) lot.myCovers=(lot.myCovers||0)+1;
   toastC(r.msg||'');
   if(r.ok){ rfGravar(); CL.mkP=null; CL.acao=null; }

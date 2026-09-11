@@ -144,6 +144,8 @@ const RF_PAGES=[
   { key:'financas', ico:'financas', label:'Finanças', curto:'Finanças',
     titulo:'Finanças', sub:()=>rfFiSubHTML(),
     acoes:()=>rfFiAcoesHTML(), grid:'minmax(0,1fr)',
+    /* o contador do clube, fixo abaixo das abas em todas elas (ver rf26-contador.js) */
+    aviso:()=>(typeof rfCtPainelHTML==='function'?rfCtPainelHTML():''),
     tabs:[ {k:'resumo',    l:()=>'Resumo',     build:()=>rfFiResumoHTML()},
            {k:'extrato',   l:()=>'Extrato',    build:()=>rfFiExtratoHTML()},
            {k:'historico', l:()=>'Histórico',  build:()=>rfFiHistoricoHTML()},
@@ -1303,6 +1305,7 @@ function rfPageHeadHTML(def){
       ${acoes||(pill?`<span class="rf-pill rf-pill-${pill.tom}">${escC(pill.txt)}</span>`:'')}
     </div>
     ${rfTabsHTML(def)}
+    ${typeof def.aviso==='function'?def.aviso():''}
   </div>`;
 }
 

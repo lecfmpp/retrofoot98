@@ -253,6 +253,7 @@ const RF_ACOES = {
                       :`${RF_G().t('O')} ${RF_G().t('jogador')} pede no mínimo ${escC(rfDin(Math.round(salAtual*0.9)))}.`,
             {sufixo:'/mês', foco:true})
         + rfAcLinhaHTML('Folha depois da contratação', rfDin(folhaDepois)+'/mês', 'aviso', true)
+        + rfCtDialogoHTML({taxa:n.offerFee, salario:salAtual, ctx:'termos'})
         + rfAcNotaHTML(`A taxa já está fechada — daqui em diante você negocia só com ${RF_G().t('o')} ${RF_G().t('jogador')}.`),
       acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar termos',on:'rfMkTermos()'}] });
   }
@@ -275,7 +276,7 @@ const RF_ACOES = {
               + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(pede),
                   'Abaixo de '+escC(rfDin(pede))+' o empresário recusa.', {sufixo:'/mês', foco:true})
             : rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/mês', '', true))
-        + rfAcLinhaHTML('Caixa depois', rfDin((S.budget||0)-n.offerFee), ((S.budget||0)-n.offerFee)<0?'ruim':'ok')
+        + rfCtDialogoHTML({taxa:n.offerFee, salario:salFinal, ctx:'fechar'})
         + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/mês', 'aviso')
         + rfAcNotaHTML(`Clube e ${RF_G().t('jogador')} já concordaram. Confirmar transfere ${RF_G().t('o')} ${RF_G().t('jogador')} para o seu elenco.`),
       acoes:[{l:'Cancelar',tom:'fantasma'},
@@ -303,7 +304,7 @@ const RF_ACOES = {
         + rfAcAvisoHTML(`${escC(p&&p.n|| (RF_G().t('O')+' '+RF_G().t('jogador')))} é ${RF_G().ehFem()?'da':'do'} <b>${escC(c.short)}</b>, que tem treinador de verdade — <b>${escC(quem)}</b>. Aqui não há regateio: a proposta vai para o e-mail dele, que aceita, recusa ou pede outro valor.`,'aviso')
         + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
             `O valor de mercado dele é ${escC(rfDin(ask))} — quem decide é o outro treinador.`, {foco:true})
-        + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
+        + rfCtDialogoHTML({taxa:oferta, salario:sal, ctx:'propor'})
         + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
         + rfAcNotaHTML('A proposta fica de pé por seis semanas. Enquanto ele não responder, ela aparece em Propostas.'),
       acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkEnviarHumano()'}] });
@@ -317,7 +318,7 @@ const RF_ACOES = {
       + (pediu?rfAcAvisoHTML(`O ${escC(c.short)} quer a partir de <b>${escC(rfDin(n.clubCounter))}</b>.`,'aviso'):'')
       + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
           `Abaixo de ${escC(rfDin(minimo))} o ${escC(c.short)} recusa direto.`, {foco:true})
-      + rfAcLinhaHTML('Caixa depois da compra', rfDin(caixa), caixa<0?'ruim':'ok', true)
+      + rfCtDialogoHTML({taxa:oferta, salario:sal, ctx:'propor'})
       + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/mês', 'aviso')
       + rfAcNotaHTML(`Primeiro acerta-se a TAXA com o ${escC(c.short)}. O salário ${RF_G().ehFem()?'da':'do'} ${RF_G().t('jogador')} vem na etapa seguinte.`),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
@@ -368,7 +369,7 @@ const RF_ACOES = {
       + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
       + rfAcLinhaHTML('Clubes na disputa', String(lot.interest||1), '', true)
       + rfAcLinhaHTML('Caixa disponível', rfDin(S.budget||0), '')
-      + rfAcLinhaHTML('Se vencer, sobra', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
+      + rfCtDialogoHTML({taxa:sug, salario:REBAL.wage(p.f), ctx:'lance'})
       + rfAcNotaHTML('Para <b>garantir</b>, ofereça acima do que a concorrência topa pagar — quem fica abaixo é coberto na semana seguinte.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:rfIcone('leilao',16)+' Dar lance',on:'rfMkLanceGo()'}] });
 },
@@ -388,7 +389,7 @@ const RF_ACOES = {
           `${escC(rfDin(sug-lot.bid))} acima do lance do ${escC(lider.short)}.`, {foco:true})
       + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
       + rfAcLinhaHTML('Lance a cobrir', rfDin(lot.bid), '', true)
-      + rfAcLinhaHTML('Caixa depois', rfDin((S.budget||0)-sug), (S.budget||0)-sug<0?'ruim':'ok')
+      + rfCtDialogoHTML({taxa:sug, salario:REBAL.wage(p.f), ctx:'cobrir'})
       + rfAcLinhaHTML('Vezes que você já cobriu', ((lot.myCovers||0)+' de 3'), (lot.myCovers||0)>=2?'aviso':'')
       + rfAcNotaHTML('Depois da terceira cobertura o leilão fecha automaticamente no maior lance.'),
     acoes:[{l:'Desistir do lote',tom:'fantasma'},{l:rfIcone('raio',16)+' Cobrir agora',on:'rfMkLanceGo()'}] });
@@ -675,6 +676,7 @@ const RF_ACOES = {
       + rfAcCampoHTML('rf-ac-novo','Novo salário', moneyDisp(novo),
           `Hoje ele ganha ${escC(rfDin(sal))}. Abaixo disso ele nem escuta.`, {foco:true,sufixo:'/mês'})
       + rfAcPassoHTML('rf-ac-anos','Anos de contrato', 3, `Mais anos seguram ${RF_G().t('o')} ${RF_G().t('jogador')}, mas travam a folha.`)
+      + rfCtDialogoHTML({salario:novo-sal, ctx:'renovar'})
       + rfAcChanceHTML('Chance de aceitar', chance)
       + rfAcNotaHTML('Contrato vencendo derruba o valor do passe: renovar cedo é o que segura o preço.'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Oferecer renovação',on:`rfElRenovarGo('${escC(String(d.pid))}')`}] });
@@ -1037,6 +1039,8 @@ function rfEstConstruirGo(){
   if(!q) return;
   const linha=o.linhas[q-1];
   if(!linha || !linha.cabeNoCaixa) return rfAcAbrir('est-caixa');
+  /* o contador segura a obra que deixa o ano no vermelho (ver rf26-contador.js) */
+  if(typeof rfCtSegurar==='function' && rfCtSegurar({taxa:linha.total, chave:'obra|'+q, volta:'rfEstConstruirGo', rotuloTaxa:'Custo da obra'})) return;
   rfAcFechar();
   /* constroi UMA a UMA pelo caminho do motor: e ele que cobra o caixa, sobe a capacidade,
      publica na sala e escreve nas financas. O `true` so lhe diz para nao redesenhar o dialogo
@@ -1170,6 +1174,7 @@ const RF_ACOES_EXTRA = {
       + recibo
       + rfAcLinhaHTML('Caixa hoje', rfDin(e.caixa), '', true)
       + rfAcLinhaHTML('Caixa depois da obra', rfDin(e.caixa-total), paga?((e.caixa-total)>0?'ok':'aviso'):'ruim')
+      + rfCtDialogoHTML({taxa:total, ctx:'obra'})
       + rfAcLinhaHTML('Cota da temporada', grp(e.feito+q*STAND_SEATS)+' de '+grp(SEASON_BUILD_LIMIT)+' lugares', '')
       + rfAcLinhaHTML('Teto do porte do clube', grp(e.teto)+' lugares', '')
       + (paga?'':rfAcAvisoHTML('O caixa não cobre esta obra. Tire uma bancada ou venda antes de construir.','ruim'))
