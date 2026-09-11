@@ -221,7 +221,7 @@ function rfSubMercado(){
   const aberta=(typeof canNegotiate!=='function')||canNegotiate();
   return (aberta?'Janela aberta':'Janela fechada')
     +' · caixa '+rfDin(S.budget||0)
-    +' · folha '+rfDin(rfFolha())+'/mês';
+    +' · folha '+rfDin(rfFolha())+'/rodada';
 }
 /* posição do meu clube na tabela da divisão */
 function rfMinhaPosicao(){

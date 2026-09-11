@@ -569,6 +569,12 @@ function rfMktConta(){
   const n=todos.length;
   return n+' '+((typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x}).t(n===1?'jogador':'jogadores'));
 }
+/* MARGEM DE SALARIO = o salario novo que cabe por rodada sem a folha passar do que entra de
+   TV e bilheteria (a sobra por rodada do contador, rf26-contador.js). Era caixa/12 - folha:
+   uma conta mensal num jogo que paga por rodada, sem relacao com a receita. */
+function rfMktMargemSalario(){
+  try{ return Math.max(0, rfCtConta({}).ritmo); }catch(e){ return 0; }
+}
 function rfMktComprarHTML(){
   if(typeof canNegotiate==='function' && !canNegotiate())
     return rfCol(rfCard(`${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Jogadores')} no mercado`,
@@ -591,8 +597,8 @@ function rfMktComprarHTML(){
     + rfCard('O que o caixa permite', `
       <div class="rf-kpis rf-kpis-4">
         ${rfKpiHTML('Caixa', rfDin(teto))}
-        ${rfKpiHTML('Folha atual', rfDin(folha)+'/mês')}
-        ${rfKpiHTML('Margem de salário', rfDin(Math.max(0,Math.round(teto/12)-folha))+'/mês')}
+        ${rfKpiHTML('Folha atual', rfDin(folha)+'/rodada')}
+        ${rfKpiHTML('Margem de salário', rfDin(rfMktMargemSalario())+'/rodada', 'sem a folha passar do que entra')}
         ${rfKpiHTML('Elenco', sq.length+' de 30')}
         ${kpiCota}
       </div>`)
@@ -710,7 +716,7 @@ function rfMktPropostasHTML(){
     rfCard(`Impacto se aceitar ${ofertas.length===1?'a proposta':(ofertas.length===2?'as duas':'as '+ofertas.length)}`, `
       <div class="rf-kpis rf-kpis-4">
         ${rfKpiHTML('Caixa', rfDin((S.budget||0)+totalFee), '+'+rfDin(totalFee), 'bom')}
-        ${rfKpiHTML('Folha', rfDin(rfFolha()-totalSal)+'/mês', totalSal?'−'+rfDin(totalSal):'', 'bom')}
+        ${rfKpiHTML('Folha', rfDin(rfFolha()-totalSal)+'/rodada', totalSal?'−'+rfDin(totalSal):'', 'bom')}
         ${rfKpiHTML('Força do ataque', String(media(depois,'ATT')), del(dAtt), dAtt<0?'ruim':'bom')}
         ${rfKpiHTML('Força do meio', String(media(depois,'MID')), del(dMid), dMid<0?'ruim':'bom')}
       </div>`)

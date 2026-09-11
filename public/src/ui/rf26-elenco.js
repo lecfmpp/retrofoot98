@@ -318,7 +318,7 @@ function rfElRenovarGo(pid){
   p.contract=Object.assign({}, p.contract||{}, {salary:novo, years:anos});
   p.moral=Math.min(100,(p.moral==null?70:p.moral)+6);
   S.roundNews=S.roundNews||[];
-  S.roundNews.push(`✍️ ${p.n} renovou contrato: ${fmt(novo)}/mês por ${anos} ano${anos>1?'s':''}.`);
+  S.roundNews.push(`✍️ ${p.n} renovou contrato: ${fmt(novo)}/rodada por ${anos} ano${anos>1?'s':''}.`);
   rfGravar();
   CL.acao=null;
   rfAcAbrir('elenco-renovado', {nome:p.n, salario:novo, ate:(S.season||2026)+anos});

@@ -194,7 +194,7 @@ const RF_EMAIL_RESP = {
 
   caixa: {
     kicker:'E-MAIL · RESPOSTA AO PRESIDENTE',
-    intro:d=>`O caixa fechou a semana em <b>${escC(rfDin(d.caixa||0))}</b>${d.folha?` com uma folha de <b>${escC(rfDin(d.folha))}</b>/mês`:''}. O presidente quer saber o seu plano.`,
+    intro:d=>`O caixa fechou a semana em <b>${escC(rfDin(d.caixa||0))}</b>${d.folha?` com uma folha de <b>${escC(rfDin(d.folha))}</b>/rodada`:''}. O presidente quer saber o seu plano.`,
     ops:[
       { t:'Vou vender quem estiver sobrando',     s:'a diretoria aprova · o elenco fica em alerta',          m:-3, c:+5, r: 0, fala:'prometeu vendas para equilibrar o caixa' },
       { t:'Corto custos sem mexer no elenco',     s:'ninguém se assusta; a conta continua apertada',         m:+1, c:+1, r: 0, fala:'prometeu cortar custos sem vender ninguém' },
