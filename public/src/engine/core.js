@@ -6040,6 +6040,14 @@ function processFinances(userResult,uf,startedNames,gateOverride){
   const partes=(REBAL.receitaPartes)?REBAL.receitaPartes(cl.overall, divOverallAvgOf(S.division)):null;
   const tv=partes?(partes.tvFixa+partes.tvMerito):base;
   const patrocinio=(partes&&patroRodadas)?partes.patrocinio*patroRodadas:0;
+  /* o que o patrocínio PAGOU em cada temporada — base dos bônus por meta (ver patroMetas). Na
+     Resenha a premiação da temporada que acabou é lida depois da virada, com seasonTotals já
+     zerado; por isso o valor fica guardado aqui, por temporada (a atual e a anterior). */
+  if(patrocinio>0){
+    S._patroPago=S._patroPago||{};
+    S._patroPago[S.season]=(S._patroPago[S.season]||0)+patrocinio;
+    Object.keys(S._patroPago).forEach(k=>{ if(Number(k)<S.season-1) delete S._patroPago[k]; });
+  }
   const income=tv + patrocinio + (gate!=null?gate:0) + winBonus;
   let salaries=0,bonuses=0,log=[];
   squad(S.clubId).forEach(p=>{
@@ -6208,6 +6216,44 @@ function cupResultForClub(key, clubId){
    em cada copa + prêmio de artilheiro, valoriza o artilheiro (se materializado) e guarda o
    resumo em S._seasonPrizes pro modal de celebração (seasonEndDialog). Idempotente por
    temporada. Ver escalas/racional em prizes.js. */
+/* ===== BÔNUS POR META DO PATROCÍNIO (pedido do dono, 11/09) =====
+   O patrocínio do ano é um valor só (metade da receita-base, pela força do elenco), pago na 1ª
+   rodada. Os três espaços da tela repartem esse valor e, desde aqui, cada um tem uma META: batida
+   no fim da temporada, o espaço paga um bônus sobre a sua parte do que o patrocínio de facto
+   pagou (S._patroPago). É o que faz o desempenho em campo mexer no patrocínio.
+     camisa  terminar entre os 4 primeiros da liga             +20%
+     manga   chegar às quartas de final de uma copa            +20%
+     placas  subir de divisão (na 1ª divisão: top 6 da liga)   +25%
+   Uma regra só para o solo (awardSeasonPrizes), a Resenha (computeMyPrevSeasonPrizes) e a tela
+   (rf26-financas.js), para o que se promete na aba ser o que se paga no fim do ano. */
+const PATRO_ESPACOS=[
+  {k:'camisa', espaco:'Patrocinador principal', onde:'camisa', icone:'👕', quota:0.55, pct:0.20},
+  {k:'manga',  espaco:'Manga da camisa',        onde:'manga',  icone:'💪', quota:0.27, pct:0.20},
+  {k:'placas', espaco:'Placas do estádio',      onde:'placas', icone:'🪧', quota:0.18, pct:0.25},
+];
+const PATRO_FASES=['part','oitavas','quartas','semi','vice','campeao'];
+const PATRO_FASE_ROT={part:'fase inicial',oitavas:'oitavas',quartas:'quartas',semi:'semifinal',vice:'final',campeao:'título'};
+/* o = { total: o que o patrocínio pagou no ano; pos: posição na liga; fases: desfechos de copa
+         ('part','oitavas',...); subiu: houve acesso; topo: o clube está na 1ª divisão } */
+function patroMetas(o){
+  o=o||{};
+  const total=Math.max(0, Math.round(o.total||0));
+  const v0=Math.round(total*PATRO_ESPACOS[0].quota), v1=Math.round(total*PATRO_ESPACOS[1].quota);
+  const valores=[v0, v1, total-v0-v1];                      // a soma é o total exacto
+  let melhor=-1; (o.fases||[]).forEach(f=>{ const i=PATRO_FASES.indexOf(f); if(i>melhor) melhor=i; });
+  return PATRO_ESPACOS.map((e,i)=>{
+    const valor=valores[i]; let meta, cumpriu, hoje;
+    if(e.k==='camisa'){ meta='terminar entre os 4 primeiros da liga'; cumpriu=o.pos>0 && o.pos<=4; hoje=o.pos?o.pos+'º lugar':'—'; }
+    else if(e.k==='manga'){ meta='chegar às quartas de final de uma copa'; cumpriu=melhor>=2; hoje=melhor>=0?PATRO_FASE_ROT[PATRO_FASES[melhor]]:'sem copa'; }
+    else if(o.topo){ meta='terminar entre os 6 primeiros da liga'; cumpriu=o.pos>0 && o.pos<=6; hoje=o.pos?o.pos+'º lugar':'—'; }
+    else { meta='subir de divisão'; cumpriu=!!o.subiu; hoje=o.subiu?'na zona de acesso':(o.pos?o.pos+'º lugar':'—'); }
+    return Object.assign({}, e, { valor, bonus:Math.round(valor*e.pct), meta, cumpriu:!!cumpriu, hoje });
+  });
+}
+function patroMetasLinhas(metas){
+  return (metas||[]).filter(m=>m.cumpriu && m.bonus>0)
+    .map(m=>({icon:'🤝', comp:'Patrocínio · '+m.onde, place:'Meta batida: '+m.meta, amount:m.bonus}));
+}
 function awardSeasonPrizes(tbl, myCups){
   if(typeof PRIZES==='undefined' || !tbl) return;
   if(S._seasonPrizes && S._seasonPrizes.season===S.season) return; // já creditado nesta temporada
@@ -6274,6 +6320,16 @@ function awardSeasonPrizes(tbl, myCups){
       lines.push({icon:'🎉', comp:'Acesso', place:`Subida à ${novoLbl}`, amount:aamt}); total+=aamt;
     }
   }
+  /* BÔNUS POR META DO PATROCÍNIO — pago aqui, com os outros prêmios (ver patroMetas) */
+  try{
+    const pago=(S._patroPago&&S._patroPago[S.season]) || (S.seasonTotals&&S.seasonTotals.patrocinio) || 0;
+    let subiu=false;
+    try{ const nd=(typeof pendingDivisionChange==='function')?pendingDivisionChange():null;
+         subiu=!!(nd && PRIZES.accessPrize && PRIZES.accessPrize(nd, S.division)>0); }catch(e){}
+    const fases=allCupKeys().map(k=>PRIZES.cupResultOutcome(myCups&&myCups[k])).filter(Boolean);
+    patroMetasLinhas(patroMetas({ total:pago, pos, fases, subiu, topo:PRIZES.tierOf(div)==='A' }))
+      .forEach(l=>{ lines.push(l); total+=l.amount; });
+  }catch(e){ console.warn('bônus de patrocínio:', e&&e.message); }
   if(total>0){
     S.budget=(S.budget||0)+total;
     S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
@@ -6330,6 +6386,16 @@ function computeMyPrevSeasonPrizes(){
       lines.push({icon:'🎉', comp:'Acesso', place:`Subida à ${novoLbl}`, amount:aamt}); total+=aamt;
     }
   }
+  /* BÔNUS POR META DO PATROCÍNIO na Resenha — mesma regra do solo. O que o patrocínio pagou vem de
+     S._patroPago da temporada que acabou; das copas, o snapshot do servidor só traz a Copa do Brasil. */
+  try{
+    const temp=(pv.season!=null)?pv.season:(S.season-1);
+    const pago=(S._patroPago&&S._patroPago[temp])||0;
+    const subiu=!!(PRIZES.accessPrize && S.division && PRIZES.accessPrize(S.division, myDiv)>0);
+    const fases=pv.copaBrasil?[PRIZES.cupResultOutcome(cupBracketResultForClub(pv.copaBrasil, CL.clubId))].filter(Boolean):[];
+    patroMetasLinhas(patroMetas({ total:pago, pos:myPos, fases, subiu, topo:PRIZES.tierOf(myDiv)==='A' }))
+      .forEach(l=>{ lines.push(l); total+=l.amount; });
+  }catch(e){ console.warn('bônus de patrocínio (Resenha):', e&&e.message); }
   const champId=(myTable[0]&&myTable[0].id)||null;
   // aposentadorias do MEU clube nesta virada (item 5 — sabor). Servidor tagueia motivo em _prevSeason.
   const retirements=(pv.retirements||[]).filter(r=>r && r.club===CL.clubId);

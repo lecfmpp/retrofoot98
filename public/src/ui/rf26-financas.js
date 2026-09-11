@@ -540,14 +540,22 @@ function rfFiPatroDados(){
   const creditado=(S.seasonTotals&&S.seasonTotals.patrocinio)||0;
   const total = pago ? (creditado || porRodada*rodadas) : porRodada*Math.max(0, rodadas-(S.round||0));
   const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)]||{};
-  const quota=[0.55,0.27,0.18];                    // camisa · manga · placas
-  const v0=Math.round(total*quota[0]), v1=Math.round(total*quota[1]);
-  const contratos=[
-    {espaco:'Patrocinador principal', onde:'camisa', icone:'👕', valor:v0, marcaSrc:uni.patroUrl||null, marcaNome:uni.patroNome||null},
-    /* o logo na manga do uniforme é o do FABRICANTE, não um patrocinador — não há contrato dele */
-    {espaco:'Manga da camisa', onde:'manga', icone:'💪', valor:v1, marcaSrc:null, marcaNome:null},
-    {espaco:'Placas do estádio', onde:'placas', icone:'🪧', valor:total-v0-v1, marcaSrc:null, marcaNome:null},
-  ];
+  /* OS TRÊS ESPAÇOS E AS METAS vêm da regra do motor (patroMetas, core.js): a mesma que paga o
+     bônus no fim da temporada. O "hoje" é a situação se a temporada acabasse agora. */
+  const jogou=(S.round||0)>0;
+  const pos=(jogou && typeof tablePos==='function')?tablePos(CL.clubId):0;
+  const fases=(typeof allCupKeys==='function' && typeof cupResultForClub==='function')
+    ? allCupKeys().map(k=>{ try{ return PRIZES.cupResultOutcome(cupResultForClub(k, CL.clubId)); }catch(e){ return null; } }).filter(Boolean) : [];
+  let subiu=false;
+  try{ if(pos && typeof decidePromotionRelegation==='function'){
+    const nd=decidePromotionRelegation(pos, DATA.clubs.length);
+    subiu=!!(nd && PRIZES.accessPrize && PRIZES.accessPrize(nd, S.division)>0); } }catch(e){}
+  const metas=(typeof patroMetas==='function')
+    ? patroMetas({ total, pos, fases:jogou?fases:[], subiu, topo:(PRIZES.tierOf?PRIZES.tierOf(S.division):S.division)==='A' })
+    : [];
+  const contratos=metas.map(m=>({ espaco:m.espaco, onde:m.onde, icone:m.icone, valor:m.valor,
+    marcaSrc: m.k==='camisa'?(uni.patroUrl||null):null, marcaNome: m.k==='camisa'?(uni.patroNome||null):null,
+    meta:m.meta, bonus:m.bonus, pct:m.pct, cumpriu:jogou && m.cumpriu, hoje:jogou?m.hoje:'—' }));
   return {total, porRodada, rodadas, contratos, pago};
 }
 function rfFiPatrocinioHTML(){
@@ -564,6 +572,10 @@ function rfFiPatrocinioHTML(){
       <div class="rf-f2-pat-num rf-f2-so-desk"><b>${escC(rfDin(c.valor))}</b></div>
       <div class="rf-f2-pat-peso"><span><i style="width:${pct}%"></i></span><b>${pct}%</b></div>
       <span class="rf-f2-pat-r">${escC(c.onde)} · ${escC(rfDin(d.rodadas?Math.round(c.valor/d.rodadas):0))} por rodada</span>
+      <div class="rf-f2-meta ${c.cumpriu?'ok':''}">
+        <span class="rf-f2-meta-t"><b>META</b> ${escC(c.meta)}</span>
+        <span class="rf-f2-meta-l"><span>bônus <b>+${escC(rfDin(c.bonus))}</b></span><i>hoje: ${escC(c.hoje)}${c.cumpriu?' · no caminho':''}</i></span>
+      </div>
     </div>`;
   }).join('');
   return `<div class="rf-f2-tri">${cards}</div>
@@ -577,6 +589,7 @@ function rfFiPatrocinioHTML(){
       <div class="rf-card rf-f2-bloco">
         <span class="rf-f2-cab-t">O QUE FAZ O CONTRATO SUBIR</span>
         <div class="rf-f2-porque"><span>💪</span><span><b>Elenco mais forte</b><i>Quanto mais vale o time em campo, mais a marca paga para estar nele. O contrato acompanha a força do elenco.</i></span></div>
+        <div class="rf-f2-porque"><span>🎯</span><span><b>Bônus por meta</b><i>Cada espaço tem uma meta. Batida no fim da temporada, ele paga um extra sobre a sua parte do contrato — entra junto com os prêmios. É o desempenho em campo mexendo no patrocínio.</i></span></div>
         <div class="rf-f2-porque"><span>📅</span><span><b>Quando o valor é fechado</b><i>No início de cada temporada, pela força do elenco naquele momento. Reforço contratado no meio do ano só pesa no contrato do ano seguinte.</i></span></div>
       </div>
     </div>`;
