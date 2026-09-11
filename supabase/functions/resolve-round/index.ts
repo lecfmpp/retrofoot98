@@ -3018,6 +3018,30 @@ function rbForce(rawF: number, division: string) { const rf = (typeof rawF === '
 const V_ANCHORS = [[5,80e3],[10,200e3],[15,450e3],[20,700e3],[25,1e6],[30,1.6e6],[35,2.5e6],[40,4e6],[45,6e6],[50,9e6],[60,18e6],[70,35e6],[80,70e6],[90,150e6],[99,260e6]];
 function ageFactor(age: number) { const a = age || 26; if (a <= 21) return 1.35; if (a <= 27) return 1.00; if (a <= 31) return 0.80; if (a <= 35) return 0.50; return 0.25; }
 function rbValue(f: number, age: number) { return Math.max(30000, Math.round(interp(V_ANCHORS as any, f) * ageFactor(age))); }
+/* VALOR DO PASSE (11/09) — espelho fiel do computeVM do cliente (public/index.html):
+   tabela da força × idade × potencial × comportamento × momento × artilharia.
+   Mudou lá? Muda aqui também, senão as vendas da CPU na Resenha usam outro preço. */
+const BEHAVIOR_MV_MULT_S: Record<string, number> = { 'Exemplar': 1.15, 'Manso': 1.02, 'Discreto': 1.06, 'Encrenqueiro': 0.98, 'Brigão': 0.92, 'Casca-Grossa': 0.85 };
+const MV_GA_ESPERADO_S: Record<string, number> = { ATT: 0.35, MID: 0.15, DEF: 0.05, GK: 0 };
+function fatorPotencialS(p: any) { const age = p.age || 26, f = p.f || 20; return 1 + 0.20 * Math.max(0, Math.min(1, (24 - age) / 6)) * Math.max(0, Math.min(1, (f - 10) / 40)); }
+function fatorMomentoS(p: any) {
+  const st = p.stats; if (!st) return 1;
+  const r3 = st.r3 || [], apps = st.apps || 0;
+  if (!r3.length && apps < 1) return 1;
+  let m = 1;
+  if (r3.length) m += (r3.reduce((a: number, b: number) => a + b, 0) / r3.length - 6.5) * 0.10;
+  const g3 = (st.g3 || []).reduce((a: number, b: number) => a + b, 0);
+  m += Math.min(0.15, g3 * (({ ATT: 0.04, MID: 0.06 } as any)[p.s] || 0.08));
+  if (apps >= 5) {
+    if (p.s === 'GK') m += Math.max(-0.08, Math.min(0.12, ((st.cs || 0) / apps - 0.30) * 0.4));
+    else { const ga = ((st.goals || 0) + 0.7 * (st.assists || 0)) / apps; m += Math.max(-0.12, Math.min(0.20, (ga - (MV_GA_ESPERADO_S[p.s] ?? 0.15)) * 0.5)); }
+  }
+  return Math.max(0.75, Math.min(1.40, m));
+}
+function vmS(p: any) {
+  const v = rbValue(p.f || 1, p.age) * fatorPotencialS(p) * (BEHAVIOR_MV_MULT_S[p.behavior] || 1) * fatorMomentoS(p) * Math.min(1.6, p.mvBoost || 1);
+  return Math.max(30000, Math.round(v / 1000) * 1000);
+}
 /* ===== ECONOMIA — DA FOLHA, NÃO DE UMA CÓPIA =====
    Estas quatro tabelas (receita, salário, capacidade, premiação de liga) são calibradas UMA contra
    a outra no cliente. Viviam aqui como cópia à mão, com um aviso pedindo para lembrar de refletir
@@ -3148,7 +3172,8 @@ function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
     const physKeys = ['vel', 'agi', 'res'].filter((k) => a[k] != null);
     if (physKeys.length) { const k = physKeys[R.int(physKeys.length)]; if (a[k] > 1 && R.random() < chance) { a[k]--; changed = true; } }
   }
-  if (changed) { p.rawF = levelToForce(attrLevel(a, p.s)); p.f = rbForce(p.rawF, p._div || sDivision || 'A'); p.mv = Math.round(rbValue(p.f, p.age) * (p.mvBoost || 1)); }
+  if (changed) { p.rawF = levelToForce(attrLevel(a, p.s)); p.f = rbForce(p.rawF, p._div || sDivision || 'A'); }
+  p.mv = vmS(p); // valor acompanha força, idade e momento toda rodada — espelha o evolvePlayer do cliente
   p._trend = !changed ? null : p.f > fBefore ? 'up' : p.f < fBefore ? 'down' : null;
 }
 /* TREINO ESPECIAL na Resenha: o flag p._training vive no objeto do jogador, dentro de S.squads —
