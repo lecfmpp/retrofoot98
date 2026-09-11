@@ -120,14 +120,10 @@
      No momento em que a transferência fecha, o valor do passe é recalculado pelo MVL
      do novo clube — SEM mexer em atributo técnico. Reancoramos mv0 junto pra a
      valorização por força (evolvePlayer) seguir coerente. Muta o jogador in-place. */
+  /* 11/09: NÃO mexe mais no valor. A razão de MVL cortava até 93% (Portugal → Série D)
+     e os chamadores passavam a divisão do HUMANO mesmo quando o comprador era da CPU.
+     A força já diz o nível do jogador; o valor sai de computeVM. Só atualiza a liga. */
   function revalueOnTransfer(p, newLeague){
-    const oldLeague = leagueOfPlayer(p);
-    const oldMvl = mvlOf(oldLeague), newMvl = mvlOf(newLeague);
-    if(oldMvl && newMvl && oldMvl!==newMvl){
-      const ratio = newMvl/oldMvl;
-      p.mv  = Math.round((p.mv  || 0) * ratio);
-      if(p.mv0!=null) p.mv0 = Math.round(p.mv0 * ratio);
-    }
     p.lg = newLeague;
     return p;
   }

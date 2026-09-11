@@ -353,13 +353,41 @@ function normalizePlayerFields(p){
   }
   return p;
 }
-function fatorIdade(p){ return p.age<=19?1.5 : p.age<=23?1.15 : p.age>=31?0.7 : 1.0; }
-function isHot(p){ const st=p.stats; if(!st||st.r3.length<3)return false;
-  return st.g3.reduce((a,b)=>a+b,0)>=1 || st.r3.every(x=>x>8); }
-function fatorDesempenho(p){ return isHot(p)?1.25:1.0; }
+function isHot(p){ const st=p.stats; if(!st||!st.r3||st.r3.length<3)return false;
+  return (st.g3||[]).reduce((a,b)=>a+b,0)>=1 || st.r3.every(x=>x>8); }
+/* ===== VALOR DO PASSE (11/09) =====
+   Valor = tabela da força × idade × potencial × comportamento × momento × artilharia.
+   Calculado sempre na hora (não depende de p.mv guardado, que podia estar congelado
+   ou cortado por troca de liga). Idade entra UMA vez só. */
+function fatorPotencial(p){               // jovem bom ainda tem pra onde crescer: até +20%
+  const age=p.age||26, f=p.f||20;
+  return 1 + 0.20*Math.max(0,Math.min(1,(24-age)/6))*Math.max(0,Math.min(1,(f-10)/40));
+}
+/* momento: últimas 3 notas + gols recentes + produção da temporada (gols e assistências
+   por jogo contra o esperado da posição). Sobe com boa fase, desce com nota fraca e
+   atacante que não marca. Faixa ×0,75 … ×1,40. Usa só stats que solo e servidor gravam. */
+const MV_GA_ESPERADO={ ATT:0.35, MID:0.15, DEF:0.05, GK:0 };
+function fatorMomento(p){
+  const st=p.stats; if(!st) return 1;
+  const r3=st.r3||[], apps=st.apps||0;
+  if(!r3.length && apps<1) return 1;
+  let m=1;
+  if(r3.length) m+=(r3.reduce((a,b)=>a+b,0)/r3.length-6.5)*0.10;
+  const g3=(st.g3||[]).reduce((a,b)=>a+b,0);
+  m+=Math.min(0.15, g3*({ATT:0.04,MID:0.06}[p.s]||0.08));
+  if(apps>=5){
+    if(p.s==='GK') m+=Math.max(-0.08,Math.min(0.12,((st.cs||0)/apps-0.30)*0.4));
+    else {
+      const ga=((st.goals||0)+0.7*(st.assists||0))/apps;
+      m+=Math.max(-0.12,Math.min(0.20,(ga-(MV_GA_ESPERADO[p.s]||0.15))*0.5));
+    }
+  }
+  return Math.max(0.75,Math.min(1.40,m));
+}
 function computeVM(p){
-  const base = p.mv || Math.round(50000*Math.pow(p.f/50,2)); // doc força-based fallback
-  return Math.round(base*fatorIdade(p)*fatorDesempenho(p));
+  const base = REBAL.value(p.f||1, p.age);                      // tabela da força × fator idade
+  const v = base*fatorPotencial(p)*(BEHAVIOR_MV_MULT[p.behavior]||1)*fatorMomento(p)*Math.min(1.6,p.mvBoost||1);
+  return Math.max(30000, Math.round(v/1000)*1000);
 }
 
 /* ================= ATRIBUTOS DO JOGADOR (escala 1–20, original) =================
@@ -509,7 +537,8 @@ function attachAttrs(p, division){ normalizePlayerFields(p);
    (como na vida real), goleiro/meio/atacante tendem mais a exemplar/manso. */
 const BEHAVIOR_CARD_MULT={ 'Casca-Grossa':3.2, 'Brigão':2.4, 'Encrenqueiro':1.7, 'Discreto':1.0, 'Manso':0.75, 'Exemplar':0.4 };
 const BEHAVIOR_INJURY_MULT={ 'Discreto':1.6, 'Manso':0.55, 'Exemplar':0.85, 'Encrenqueiro':1.0, 'Brigão':1.05, 'Casca-Grossa':1.1 };
-const BEHAVIOR_MV_MULT={ 'Exemplar':1.35, 'Manso':1.05, 'Discreto':1.15, 'Encrenqueiro':0.95, 'Brigão':0.8, 'Casca-Grossa':0.65 };
+// 11/09: suavizado (era 1.35…0.65) — comportamento tempera o valor, não o define
+const BEHAVIOR_MV_MULT={ 'Exemplar':1.15, 'Manso':1.02, 'Discreto':1.06, 'Encrenqueiro':0.98, 'Brigão':0.92, 'Casca-Grossa':0.85 };
 // ordem de frequência (mais comum -> menos comum) por grupo de posição
 const BEHAVIOR_DIST={
   GK:  ['Exemplar','Manso','Discreto','Encrenqueiro','Brigão','Casca-Grossa'],
@@ -594,8 +623,8 @@ function evolvePlayer(p, R, played){
   if(changed){
     p.rawF=levelToForce(attrLevel(a,p.s));   // recalcula na escala de ATRIBUTOS...
     p.f=REBAL.force(p.rawF, p._div||(S&&S.division)||'A'); // ...e remapeia pra escala NOVA (motor/exibição)
-    p.mv=Math.round(REBAL.value(p.f,p.age)*(p.mvBoost||1)); // valor segue a tabela pela força nova (× prêmio de artilharia, se houver)
   }
+  p.mv=computeVM(p); // valor guardado acompanha o valor vivo (força, idade, potencial, momento) — orçamentos e leilões leem p.mv
   // marca a tendência do jogador pra UI (seta ▲/▼ no elenco) — evolução puxa o valor de
   // mercado pra cima, involução pra baixo (já garantido pelo recálculo de mv acima).
   p._trend = !changed ? null : p.f>fBefore ? 'up' : p.f<fBefore ? 'down' : null;
