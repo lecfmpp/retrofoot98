@@ -12153,3 +12153,19 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   .rf-cf-kpi-n{white-space:normal;line-height:1.3;overflow:visible}
   .rf-f2-pat-v{font-size:19px}
 }
+/* ===== CONTADOR NO HUB (só no vermelho): a mesma faixa, mais baixa, com a saída para Finanças ===== */
+.rf-cf-hub{margin:0 0 14px;padding:14px 16px;gap:12px}
+.rf-cf-hub .rf-cf-fala{font-size:15px}
+.rf-cf-hub-pe{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.14);padding-top:12px}
+.rf-cf-hub-n{display:flex;flex-direction:column;gap:2px}
+.rf-cf-hub-n i{font-style:normal;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;color:#bcd0ee;white-space:nowrap}
+.rf-cf-hub-n b{font-family:var(--font-mono);font-size:18px;font-weight:var(--fw-semibold);color:#fff;white-space:nowrap}
+.rf-cf-hub-n b.ruim{color:#ffb4a6}
+.rf-cf-hub-b{height:40px;padding:0 16px;border-radius:var(--r-control);background:var(--brand-secondary);color:var(--brand-primary);
+  border:1px solid var(--brand-secondary);font-weight:var(--fw-bold);font-size:13px;white-space:nowrap;cursor:pointer;font-family:inherit}
+.rf-cf-hub-b:hover{background:var(--brand-secondary-hover)}
+@media (max-width:900px){
+  .rf-cf-hub{margin:0 0 12px}
+  .rf-cf-hub-pe{gap:14px}
+  .rf-cf-hub-b{width:100%;height:44px}
+}

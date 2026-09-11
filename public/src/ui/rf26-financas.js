@@ -120,12 +120,35 @@ function rfFiFalaPatro(){
     ? 'Os três espaços já estão vendidos. O que falta é a arte da marca, não o dinheiro.'
     : 'Os três espaços estão vendidos e estampados. Agora o contrato cresce com o elenco e com a divisão.';
 }
-function rfFiFaixaHTML(){
-  let r; try{ r=rfCtConta({}); }catch(e){ return ''; }
+/* A SITUAÇÃO DO CAIXA, numa conta só — a faixa de Finanças e o aviso do Hub leem daqui, para
+   nunca dizerem números diferentes sobre o mesmo clube. */
+function rfFiSituacao(){
+  const r=rfCtConta({});
   const real=rfFiRitmo();
   const ritmo=(real!=null)?real:r.ritmo;
   const fim=Math.round(r.caixa + r.patroPendente + ritmo*r.faltam);
-  const rr=Object.assign({}, r, {ritmo, fimAno:fim});
+  return { r, real, ritmo, fim, rr:Object.assign({}, r, {ritmo, fimAno:fim}),
+    vermelho: r.caixa<0 || fim<0 };
+}
+function rfFiSelo(r, fim, ritmo){
+  return r.caixa<0 ? ['NO VERMELHO','ruim'] : fim<0 ? ['VAI FECHAR NO VERMELHO','ruim']
+       : ritmo<0 ? ['NO AZUL, SEM FOLGA',''] : ['NO AZUL, COM FOLGA','ok'];
+}
+function rfFiContadorTopoHTML(selo, fala){
+  const p=rfCtPessoa(); const cl=clubOf(CL.clubId)||{};
+  return `<div class="rf-cf-top">
+      <span class="rf-cf-av" aria-hidden="true">${escC(p.ini)}${p.foto?`<img src="${escC(p.foto)}" alt="" onerror="this.remove()">`:''}</span>
+      <span class="rf-cf-id">
+        <span class="rf-cf-n">${escC(p.nome)}</span>
+        <span class="rf-cf-c">${escC((p.cargo+' do '+(cl.short||'clube')).toUpperCase())}</span>
+      </span>
+      <span class="rf-cf-selo ${selo[1]}"><i></i>${selo[0]}</span>
+      ${fala?`<span class="rf-cf-fala">“${escC(fala)}”</span>`:''}
+    </div>`;
+}
+function rfFiFaixaHTML(){
+  let sit; try{ sit=rfFiSituacao(); }catch(e){ return ''; }
+  const {r, real, ritmo, fim, rr}=sit;
   const aba=rfFiAbaAtual();
   let fala='';
   try{
@@ -134,11 +157,7 @@ function rfFiFaixaHTML(){
          : aba==='patrocinio' ? rfFiFalaPatro()
          : rfCtFalaHoje(rr);
   }catch(e){ fala=''; }
-  const p=rfCtPessoa(); const cl=clubOf(CL.clubId)||{};
-  const selo = r.caixa<0 ? ['NO VERMELHO','ruim']
-             : fim<0     ? ['VAI FECHAR NO VERMELHO','ruim']
-             : ritmo<0   ? ['NO AZUL, SEM FOLGA','']
-             :             ['NO AZUL, COM FOLGA','ok'];
+  const selo=rfFiSelo(r, fim, ritmo);
   const n=S.round||0;
   /* rótulo em duas versões: o do celular é o curto da maquete de 390px ("QUEIMA/RODADA"), para
      nenhum rótulo quebrar nem sair cortado */
@@ -148,15 +167,7 @@ function rfFiFaixaHTML(){
       <span class="rf-cf-kpi-n">${escC(nota)}</span>
     </div>`;
   return `<div class="rf-cf">
-    <div class="rf-cf-top">
-      <span class="rf-cf-av" aria-hidden="true">${escC(p.ini)}${p.foto?`<img src="${escC(p.foto)}" alt="" onerror="this.remove()">`:''}</span>
-      <span class="rf-cf-id">
-        <span class="rf-cf-n">${escC(p.nome)}</span>
-        <span class="rf-cf-c">${escC((p.cargo+' do '+(cl.short||'clube')).toUpperCase())}</span>
-      </span>
-      <span class="rf-cf-selo ${selo[1]}"><i></i>${selo[0]}</span>
-      ${fala?`<span class="rf-cf-fala">“${escC(fala)}”</span>`:''}
-    </div>
+    ${rfFiContadorTopoHTML(selo, fala)}
     <div class="rf-cf-kpis">
       ${kpi('CAIXA HOJE', rfDin(r.caixa), n+'ª semana de '+(S.season||''), r.caixa<0?'ruim':'', 'CAIXA HOJE')}
       ${kpi(ritmo<0?'QUEIMA POR RODADA':'SOBRA POR RODADA', (ritmo>0?'+':'')+rfDin(ritmo),
@@ -168,6 +179,26 @@ function rfFiFaixaHTML(){
             'FIM DA TEMPORADA')}
     </div>
     <span class="rf-cf-nota">Prêmios de vitória e de fim de temporada ficam fora da conta — quando vierem, são lucro.</span>
+  </div>`;
+}
+
+/* ===== O CONTADOR NO HUB — só quando as contas estão no vermelho =====
+   Caixa negativo, ou a projeção do ano a fechar negativa (a mesma conta da faixa de Finanças).
+   No azul ele não aparece: o Hub é a tela de escalar o time, e um aviso que está sempre lá deixa
+   de ser lido. Leva a Finanças, onde está o resto da conversa. */
+function rfFiHubHTML(){
+  let sit; try{ sit=rfFiSituacao(); }catch(e){ return ''; }
+  if(!sit.vermelho) return '';
+  const {r, ritmo, fim, rr}=sit;
+  let fala=''; try{ fala=rfCtFalaHoje(rr); }catch(e){}
+  return `<div class="rf-cf rf-cf-hub">
+    ${rfFiContadorTopoHTML(rfFiSelo(r, fim, ritmo), fala)}
+    <div class="rf-cf-hub-pe">
+      <span class="rf-cf-hub-n"><i>CAIXA HOJE</i><b class="${r.caixa<0?'ruim':''}">${escC(rfDin(r.caixa))}</b></span>
+      <span class="rf-cf-hub-n"><i>FIM DA TEMPORADA</i><b class="${fim<0?'ruim':''}">${escC(rfDin(fim))}</b></span>
+      <span class="rf-sp"></span>
+      <button type="button" class="rf-cf-hub-b" onclick="rfGo('financas','resumo')">Ver finanças</button>
+    </div>
   </div>`;
 }
 
@@ -500,16 +531,24 @@ function rfFiPatroDados(){
   const partes=(cl && REBAL.receitaPartes)?REBAL.receitaPartes(cl.overall, med):null;
   const porRodada=partes?partes.patrocinio:0;
   const rodadas=((S.sched||[]).length)||38;
-  const total=porRodada*rodadas;
+  /* O NÚMERO É O QUE ENTROU NO CAIXA. Depois da 1ª rodada o patrocínio do ano já foi creditado
+     (processFinances carimba S._patroAno_eu) e o valor certo é o que o motor pagou —
+     seasonTotals.patrocinio —, não uma conta refeita agora: o elenco mudou desde o pagamento, e
+     as rodadas extras de copa que a temporada possa ganhar não pagam patrocínio. Antes da 1ª
+     rodada, mostra o que VAI entrar, pela mesma conta de patrocinioRodadasAPagar. */
+  const pago=(S._patroAno_eu===S.season);
+  const creditado=(S.seasonTotals&&S.seasonTotals.patrocinio)||0;
+  const total = pago ? (creditado || porRodada*rodadas) : porRodada*Math.max(0, rodadas-(S.round||0));
   const uni=(window.RF_UNIFORMES||{})[String(CL.clubId)]||{};
   const quota=[0.55,0.27,0.18];                    // camisa · manga · placas
   const v0=Math.round(total*quota[0]), v1=Math.round(total*quota[1]);
   const contratos=[
     {espaco:'Patrocinador principal', onde:'camisa', icone:'👕', valor:v0, marcaSrc:uni.patroUrl||null, marcaNome:uni.patroNome||null},
-    {espaco:'Manga da camisa', onde:'manga', icone:'💪', valor:v1, marcaSrc:uni.fabricanteUrl||null, marcaNome:null},
+    /* o logo na manga do uniforme é o do FABRICANTE, não um patrocinador — não há contrato dele */
+    {espaco:'Manga da camisa', onde:'manga', icone:'💪', valor:v1, marcaSrc:null, marcaNome:null},
     {espaco:'Placas do estádio', onde:'placas', icone:'🪧', valor:total-v0-v1, marcaSrc:null, marcaNome:null},
   ];
-  return {total, porRodada, rodadas, contratos};
+  return {total, porRodada, rodadas, contratos, pago};
 }
 function rfFiPatrocinioHTML(){
   const d=rfFiPatroDados();
@@ -531,14 +570,14 @@ function rfFiPatrocinioHTML(){
     <div class="rf-f2-duo estica">
       <div class="rf-card rf-f2-bloco">
         <span class="rf-f2-cab-t">COMO O DINHEIRO ENTRA</span>
-        <div class="rf-f2-tot azul"><span>Total dos três contratos</span><b>${escC(rfDin(d.total))}</b></div>
+        <div class="rf-f2-tot azul"><span>${d.pago?'Recebido nesta temporada':'A receber na 1ª rodada'}</span><b>${escC(rfDin(d.total))}</b></div>
         <span class="rf-f2-txt">O valor do ano inteiro entra <b>de uma vez, na primeira rodada da temporada</b> — é caixa para o mercado logo na abertura, e não volta a entrar. Depois disso o clube vive de cota de TV e bilheteria.</span>
         <span class="rf-f2-txt fraco">O espaço já rende sem marca nenhuma estampada: o "em breve" é só a arte, não o dinheiro.</span>
       </div>
       <div class="rf-card rf-f2-bloco">
         <span class="rf-f2-cab-t">O QUE FAZ O CONTRATO SUBIR</span>
         <div class="rf-f2-porque"><span>💪</span><span><b>Elenco mais forte</b><i>Quanto mais vale o time em campo, mais a marca paga para estar nele. O contrato acompanha a força do elenco.</i></span></div>
-        <div class="rf-f2-porque"><span>🏆</span><span><b>Subir de divisão</b><i>Puxa a conta duas vezes: o seu clube passa a valer mais e a média da divisão nova também é maior.</i></span></div>
+        <div class="rf-f2-porque"><span>📅</span><span><b>Quando o valor é fechado</b><i>No início de cada temporada, pela força do elenco naquele momento. Reforço contratado no meio do ano só pesa no contrato do ano seguinte.</i></span></div>
       </div>
     </div>`;
 }

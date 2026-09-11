@@ -1388,7 +1388,10 @@ function rfHubHTML(){
      pacote). Não é a mesma página rolando: cada aba mostra o seu conteúdo e o
      resto não existe na tela. No desktop a barra não aparece e as duas colunas
      seguem inteiras, que é o desenho de lá. */
+  /* o contador aparece aqui SÓ com as contas no vermelho (ver rfFiHubHTML em rf26-financas.js),
+     acima das abas: vale para as três abas do telefone e para o desktop */
   return `${rfBandHTML('Formação')}
+    ${typeof rfFiHubHTML==='function'?rfFiHubHTML():''}
     ${rfHubAbasHTML()}
     <div class="rf-cols" data-hubtab="${escC(rfHubTab())}">
       <div class="rf-col">${esquerda}</div>
