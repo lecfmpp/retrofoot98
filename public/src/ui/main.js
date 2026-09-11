@@ -5447,24 +5447,6 @@ function momentoPrevSeasonPos(){
   if(!div) return null;
   return { div, pos, t:table[pos-1], total:table.length };
 }
-/* PROMOVIDO/REBAIXADO, DA MESMA FOTO QUE A POSIÇÃO EXIBIDA — nunca de S._promoRelegNews.
-   Esse campo só nasce dentro de switchToDivision() (core.js), chamada por newSeasonReset() —
-   e newSeasonReset() só roda quando o jogador clica em "continuar" na tela de resumo, BEM
-   DEPOIS de enfileirarMomentosFimDeTemporada() (chamada logo após endSeason(), pra montar o
-   modal). Nesse intervalo, S._promoRelegNews ainda tinha o veredito da ÚLTIMA virada — um
-   clube que subiu ano passado e caiu pro Z-4 agora via "Subimos de divisão" de novo, com a
-   posição (17º) certa e o veredito da temporada ERRADO (relato do dono, 22/08). Na Resenha o
-   problema era pior: switchToDivision nunca roda no cliente (quem vira é o servidor), então
-   S._promoRelegNews podia nem existir. Calculando aqui, direto da MESMA leitura de
-   momentoPrevSeasonPos() que decide a posição exibida, os dois nunca mais podem discordar. */
-function momentoPromoRelegOutcome(){
-  const m=momentoPrevSeasonPos(); if(!m) return null;
-  const promoN=(typeof DIVISION_PROMO!=='undefined'&&DIVISION_PROMO[m.div])||0;
-  const relegN=(typeof DIVISION_RELEG!=='undefined'&&DIVISION_RELEG[m.div])||0;
-  if(promoN>0 && m.pos<=promoN) return 'promoted';
-  if(relegN>0 && m.pos>m.total-relegN) return 'relegated';
-  return null;
-}
 /* O RODAPÉ DO CAMPEÃO DE LIGA diz o que o título DÁ — e isso depende da divisão. Estava fixo em
    "A vaga continental está garantida." para qualquer uma, e o campeão da Série D lia que ia à
    Libertadores. Vaga continental é só da 1ª divisão; das outras, o campeão ganha o ACESSO à de
@@ -5492,22 +5474,6 @@ function dadosCampeaoLiga(){
     linha:`Título conquistado na ${S.sched?S.sched.length:38}ª semana da competição.`,
     stats:[{k:'PONTOS',v:String(m.t.Pts)},{k:'CAMPANHA',v:momentoCampanha(m.t)},{k:'SALDO',v:String((m.t.GF||0)-(m.t.GA||0))}],
     rodape:rodapeCampeaoLiga(m.div) };
-}
-function dadosPromovido(){
-  const m=momentoPrevSeasonPos(); if(!m) return null;
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
-    manchete:'Subimos de divisão.', trofeu:m.div,
-    linha:`${m.pos}º lugar. Ano que vem o clube joga a divisão de cima.`,
-    stats:[{k:'POSIÇÃO',v:m.pos+'º'},{k:'PONTOS',v:m.t?String(m.t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(m.t)}],
-    rodape:'A verba de reforços foi reajustada.' };
-}
-function dadosRebaixado(){
-  const m=momentoPrevSeasonPos(); if(!m) return null;
-  return { titulo:'Fim de temporada — '+(typeof classifDivName==='function'?classifDivName(m.div,S.intlUniverse):'Liga'),
-    manchete:'A queda foi confirmada.', trofeu:null,
-    linha:`${m.pos}º lugar. O clube disputa a divisão de baixo na próxima temporada.`,
-    stats:[{k:'POSIÇÃO',v:m.pos+'º'},{k:'PONTOS',v:m.t?String(m.t.Pts):'—'},{k:'CAMPANHA',v:momentoCampanha(m.t)}],
-    rodape:'A diretoria quer conversar sobre o seu contrato.' };
 }
 /* ARTILHEIRO: só vira modal se for jogador DO USUÁRIO — é o que o pedido especifica. */
 /* ===== A ARTILHARIA E DE UMA COMPETICAO, E NAO E SO A MINHA =====
@@ -5654,9 +5620,10 @@ function enfileirarMomentosFimDeTemporada(){
   try{
     const camp=dadosCampeaoLiga(); if(camp) enfileirarMomento('campeao-liga', camp);
     const art=dadosArtilheiro('liga'); if(art) enfileirarMomento('marcador-liga', art);
-    const pr=momentoPromoRelegOutcome();
-    if(pr==='promoted') enfileirarMomento('promovido', dadosPromovido());
-    else if(pr==='relegated') enfileirarMomento('rebaixado', dadosRebaixado());
+    /* os momentos de acesso e de queda saíram da fila (11/09): eram o envelope antigo (cl-mom),
+       repetiam posição/pontos/campanha que o resumo e o modal de campeão já mostram, e traziam
+       rodapés que o motor não cumpre ("A verba de reforços foi reajustada", "A diretoria quer
+       conversar sobre o seu contrato"). O desfecho vive no resumo de fim de temporada. */
   }catch(e){ console.warn('momentos de fim de temporada:', e&&e.message); }
 }
 /* Copa decidida: campeão -> artilheiro da copa. Uma vez por competição/temporada. */
@@ -9897,10 +9864,11 @@ function clAdvanceSeason(){
     }
     newSeasonReset();
     saveV3(); cdraw();
-    checkPendingCupDraws(()=>{ // mostra o sorteio da Copa do Brasil da nova temporada antes do aviso de acesso/queda
-      if(S._promoRelegNews==='promoted') resultDialog('🔺 Promoção!','Você subiu pra '+divisionLabel()+'!');
-      else if(S._promoRelegNews==='relegated') resultDialog('🔻 Rebaixamento','Você caiu pra '+divisionLabel()+'.');
-    });
+    /* O AVISO DE ACESSO/QUEDA SAIU (pedido do dono, 11/09). Era um diálogo da pele antiga
+       ("🔺 Promoção! Você subiu pra Série C!") que repetia o que o resumo de fim de temporada
+       (rfFimTemporadaHTML, desfecho "Acesso garantido"/"Rebaixamento") e, para o campeão, o modal
+       de campeão já tinham dito. Fica só o sorteio da Copa do Brasil da temporada nova. */
+    checkPendingCupDraws(()=>{});
   })().catch(err=>{
     // antes, qualquer erro aqui dentro travava a tela em silêncio (sem nenhum aviso).
     // agora mostra o erro de verdade e tenta voltar pra tela principal mesmo assim.
