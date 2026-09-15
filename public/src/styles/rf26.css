@@ -10638,7 +10638,7 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
    por cima, e o degrade que apaga o uniforme e da' contraste ao nome. O card inteiro e' o
    botao — por isso e' um <button>, e nao uma div com onclick: ganha foco, Enter e Espaco de
    graca, que era o que faltava para o teclado. */
-.rf-mod-cards{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.rf-mod-cards{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start; }
 /* NUMA COLUNA SO', O 4:5 ESTOURA. Empilhado, o card ocupa a largura inteira e a moldura vira
    uma foto de meio metro de altura -- e' preciso rolar duas vezes para ver o segundo cartao. O
    limite mantem a proporcao onde ela cabe e corta o exagero onde nao cabe. */
@@ -10650,7 +10650,8 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-mod-card{ appearance:none; text-align:left; font:inherit; cursor:pointer;
   background:#fff; border:2px solid #dde7db; border-radius:20px; padding:14px;
   display:flex; flex-direction:column; gap:14px; box-sizing:border-box;
-  transition:border-color .15s ease, background .15s ease; }
+  transition:border-color .15s ease, background .15s ease;
+  transform:scale(.7); transform-origin:top center; }
 .rf-mod-card:hover{ border-color:#17458F; }
 .rf-mod-card.on{ background:#eef3fa; border-color:#17458F; }
 .rf-mod-card:focus-visible{ outline:3px solid #17458F; outline-offset:2px; }

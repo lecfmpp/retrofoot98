@@ -36,7 +36,7 @@ function rfModalidadeAtual(){ return (typeof CL!=='undefined' && CL.modalidade) 
    Resolver pelo `id`, que o pacote nao toca, passa por cima disso. No feminino o nome vem do
    mapa de jogadoras, pelo mesmo id — a regra de femSquad (core.js). */
 const RF_MOD_CARTAZ = {
-  masc: { clube:'3876',                    id:'jm000526' },  // atacante, 23 anos
+  masc: { clube:'6600',                    id:'jm000440' },  // Huguinho, meia, 22 anos, pele clara
   fem:  { clube:'br_D_portuguesacarioca',  id:'jm001780' }   // atacante, 29 anos
 };
 /* O clube entra so' para ACHAR o jogador e para compor a chave da foto (club_id|nome) — nao vai
