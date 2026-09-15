@@ -7052,6 +7052,10 @@ function recomputeClubOverall(clubId){
    Carlo pra idade média de aposentadoria ficar perto de 34; a partir dos 40, é certa —
    ninguém joga pra sempre. Ver relatorios/Sugestoes_Mecanica_ParaDepois.md pro contexto. */
 const RETIRE_CHANCE_BY_AGE={32:0.11,33:0.24,34:0.40,35:0.56,36:0.71,37:0.83,38:0.92,39:0.97};
+/* limite de aposentadorias por clube por temporada — sem isso, um elenco que envelheceu
+   junto (comum em time de CPU nunca renovado) pode perder dezenas de jogadores na mesma
+   virada. Espelho de RETIRE_CAP_PER_CLUB no resolve-round. */
+const MAX_RETIREMENTS_PER_CLUB_SEASON=3;
 /* motivo da aposentadoria (sabor) — espelho de pickRetireReason no resolve-round: os dois lados
    precisam falar a mesma língua, senão o texto muda dependendo de quem resolveu a temporada. */
 const RETIRE_REASONS={ idade:'pendurou as chuteiras — a idade pesou',
@@ -7066,19 +7070,29 @@ function pickRetireReason(R,p){
   const pool=[RETIRE_REASONS.idade,RETIRE_REASONS.lesao,RETIRE_REASONS.negocios,RETIRE_REASONS.tv,RETIRE_REASONS.rico];
   return pool[Math.floor(r*pool.length)];
 }
-/* quem está PERTO de pendurar as chuteiras: chance de se aposentar no fim DESTA temporada
-   (retireChance usa a idade que ele terá na virada). Serve pro aviso antecipado no e-mail —
-   dá tempo de vender ou buscar substituto enquanto a janela está aberta. */
-function retirementRisk(clubId){
-  return ((S.squads&&S.squads[clubId])||[])
-    .map(p=>({p, chance:retireChance((p.age||26)+1)}))
-    .filter(x=>x.chance>=0.24)                       // 33 anos pra cima (ver RETIRE_CHANCE_BY_AGE)
-    .sort((a,b)=>b.chance-a.chance || b.p.f-a.p.f);
-}
 function retireChance(age){
   if(age<32) return 0;
   if(age>=40) return 1;
   return RETIRE_CHANCE_BY_AGE[age] ?? 0.11;
+}
+/* previsão exata (não é % de risco) de quem vai se aposentar na PRÓXIMA virada — repete
+   bit-a-bit o sorteio e o cap que applySeasonAgingAndRetirement vai rodar de verdade,
+   sem mutar nada. Só fica errada se o elenco (ordem/índice de cada jogador) mudar por
+   compra/venda antes da virada real. */
+function predictSeasonRetirements(clubId){
+  const sq=(S.squads&&S.squads[clubId])||[];
+  const nextSeason=(S.season||1)+1;
+  const candidates=[];
+  for(let i=sq.length-1;i>=0;i--){
+    const p=sq[i];
+    const nextAge=(p.age||26)+1;
+    const R=makeRng(hashSeed('retire-roll',(S&&S.seed)||1,nextSeason,clubId,i,p.n));
+    if(R.random()<retireChance(nextAge)){
+      candidates.push({name:p.n, age:nextAge, pos:p.s, f:p.f, reason:pickRetireReason(R,{...p,age:nextAge})});
+    }
+  }
+  candidates.sort((a,b)=>b.age-a.age);
+  return candidates.slice(0,MAX_RETIREMENTS_PER_CLUB_SEASON);
 }
 /* gera o jovem que assume a vaga de quem se aposentou — sempre 18-22 anos (entra pra
    crescer, não pra já ser referência), na faixa de força da divisão do clube (mesma
@@ -7100,6 +7114,7 @@ function retirementReplacement(position, division, seedExtra){
 function applySeasonAgingAndRetirement(){
   Object.keys(S.squads).forEach(cid=>{
     const sq=S.squads[cid];
+    const candidates=[];
     for(let i=sq.length-1;i>=0;i--){
       const p=sq[i];
       p.age=(p.age||26)+1;
@@ -7109,21 +7124,26 @@ function applySeasonAgingAndRetirement(){
       p.benchStreak=0;
       if(p.contract) p.contract.benchStreak=0;
       const R=makeRng(hashSeed('retire-roll',(S&&S.seed)||1,S.season,cid,i,p.n));
-      if(R.random()<retireChance(p.age)){
-        const repl=attachAttrs(initStats(retirementReplacement(p.s, S.division, cid+'_'+i)));
-        sq[i]=repl;
-        // REGISTRA a aposentadoria (nome, idade, motivo, substituto). Só o servidor gravava isso
-        // (S._prevSeason.retirements), então no SOLO a sala de imprensa e o e-mail de fim de
-        // temporada ficavam sem a lista — o fato acontecia e não sobrava rastro nenhum.
-        S._prevSeason=S._prevSeason||{}; S._prevSeason.retirements=S._prevSeason.retirements||[];
-        S._prevSeason.retirements.push({ name:p.n, club:cid, clubShort:(clubOf(cid)||{}).short||cid,
-          age:p.age, pos:p.s, f:p.f, reason:pickRetireReason(R,p), replacement:repl.n, replacementAge:repl.age });
-        if(cid===S.clubId){
-          S.roundNews=S.roundNews||[];
-          S.roundNews.push(`👋 ${p.n} encerrou a carreira aos ${p.age} anos. ${repl.n} (${repl.age} anos) chega pra disputar a vaga.`);
-        }
-      }
+      if(R.random()<retireChance(p.age)) candidates.push({i,p,R});
     }
+    // cap de MAX_RETIREMENTS_PER_CLUB_SEASON por clube: entre quem "passou" no sorteio,
+    // só os mais velhos aposentam de fato — não faz sentido um de 33 sair enquanto um de
+    // 41 continua, e evita um elenco inteiro esvaziar na mesma virada.
+    candidates.sort((a,b)=>b.p.age-a.p.age);
+    candidates.slice(0,MAX_RETIREMENTS_PER_CLUB_SEASON).forEach(({i,p,R})=>{
+      const repl=attachAttrs(initStats(retirementReplacement(p.s, S.division, cid+'_'+i)));
+      sq[i]=repl;
+      // REGISTRA a aposentadoria (nome, idade, motivo, substituto). Só o servidor gravava isso
+      // (S._prevSeason.retirements), então no SOLO a sala de imprensa e o e-mail de fim de
+      // temporada ficavam sem a lista — o fato acontecia e não sobrava rastro nenhum.
+      S._prevSeason=S._prevSeason||{}; S._prevSeason.retirements=S._prevSeason.retirements||[];
+      S._prevSeason.retirements.push({ name:p.n, club:cid, clubShort:(clubOf(cid)||{}).short||cid,
+        age:p.age, pos:p.s, f:p.f, reason:pickRetireReason(R,p), replacement:repl.n, replacementAge:repl.age });
+      if(cid===S.clubId){
+        S.roundNews=S.roundNews||[];
+        S.roundNews.push(`👋 ${p.n} encerrou a carreira aos ${p.age} anos. ${repl.n} (${repl.age} anos) chega pra disputar a vaga.`);
+      }
+    });
     recomputeClubOverall(cid);
   });
 }

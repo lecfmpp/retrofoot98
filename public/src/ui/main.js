@@ -4461,20 +4461,20 @@ function syncInbox(){
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }
   }
-  // 6) AVISO ANTECIPADO: quem corre risco real de se aposentar no fim DESTA temporada. Chega uma
+  // 6) AVISO ANTECIPADO: lista EXATA de quem vai se aposentar no fim DESTA temporada (o sorteio
+  // já é determinístico — dá pra prever o resultado adiantado, não só uma % de risco). Chega uma
   // vez por temporada, pra dar tempo de vender ou buscar substituto com a janela ainda aberta.
-  if(typeof retirementRisk==='function'){
-    const risco=retirementRisk(S.clubId);
-    if(risco.length){
-      addInboxEmail({ key:'risco-'+(S.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
-        subject:'Elenco envelhecendo — '+risco.length+' jogador'+(risco.length>1?'es':'')+' perto da aposentadoria',
-        body:`<p>Estes jogadores podem pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:</p>`
-          +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Força',m:1},{t:'Risco',m:1},{t:'Vale',m:1}],
-            risco.slice(0,8).map(x=>[ escC(x.p.n), x.p.age, posLetter(x.p.s), x.p.f,
-                                      Math.round(x.chance*100)+'%', fmt(x.p.mv||0) ]))
-          +mailNota(risco.length>8 ? `E mais ${risco.length-8} na mesma faixa de idade.`
-                                   : 'A janela ainda está aberta — depois da virada, não vale mais nada.'),
-        dados:{ quantos:risco.length, nomes:risco.slice(0,8).map(x=>x.p.n) },
+  // Só fica desatualizado se o elenco for reordenado por compra/venda antes da virada real.
+  if(typeof predictSeasonRetirements==='function'){
+    const previstos=predictSeasonRetirements(S.clubId);
+    if(previstos.length){
+      addInboxEmail({ key:'retiro-previsto-'+(S.season||0), kind:'retire', from:inboxSigner('dir',S.clubId), role:'Diretor de Futebol · '+myShort,
+        subject:'Aposentadorias confirmadas para o fim da temporada — '+previstos.length+' jogador'+(previstos.length>1?'es':''),
+        body:`<p>Pelo que o elenco de hoje indica, estes jogadores vão pendurar as chuteiras na virada da temporada. Vale avaliar uma venda enquanto ainda valem alguma coisa, ou já buscar substituto:</p>`
+          +mailTab([{t:'Jogador'},{t:'Idade',m:1},{t:'Pos'},{t:'Força',m:1},{t:'Motivo'}],
+            previstos.map(x=>[ escC(x.name), x.age, posLetter(x.pos), x.f, escC(x.reason||'') ]))
+          +mailNota('Previsão com base no elenco de hoje — comprar ou vender jogadores antes da virada pode mudar quem sai.'),
+        dados:{ quantos:previstos.length, nomes:previstos.map(x=>x.name) },
         nav:{ label:'Ver quem pode sair', page:'mercado', tab:'vender' },
         action:{label:'Ver elenco', go:'clCloseOverlay();CL.tab="jogador";cdraw()'} });
     }

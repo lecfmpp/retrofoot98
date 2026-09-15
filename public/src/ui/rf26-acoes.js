@@ -167,6 +167,15 @@ function rfAcChanceHTML(rotulo, pct){
 }
 /* aviso destacado (perigo, atenção) */
 function rfAcAvisoHTML(txt, tom){ return `<div class="rf-ac-aviso ${tom||''}">${txt}</div>`; }
+/* aviso de aposentadoria próxima — mesmo limiar (33+ anos na próxima temporada) usado no
+   e-mail de previsão (predictSeasonRetirements, ver core.js). Avisa ANTES de fechar a
+   contratação/lance/contraproposta, pra quem compra decidir de olhos abertos. */
+function rfAcAvisoAposentadoriaHTML(p){
+  if(!p || typeof retireChance!=='function') return '';
+  const chance=retireChance((p.age||0)+1);
+  if(chance<0.24) return '';
+  return rfAcAvisoHTML(`Aos ${p.age} anos, ${escC(p.n)} tem ${Math.round(chance*100)}% de chance de se aposentar até o fim da temporada.`,'aviso');
+}
 /* selo grande de resultado (arrematado, gravado, renovado) */
 function rfAcSeloHTML(emoji, titulo, sub){
   return `<div class="rf-ac-selo">
@@ -271,6 +280,7 @@ const RF_ACOES = {
       titulo:'Fechar a contratação de '+escC((p&&p.n)||'—'), w:520,
       corpo:
         rfAcFichaHTML(p,'TAXA',rfDin(n.offerFee),d.num)
+        + rfAcAvisoAposentadoriaHTML(p)
         + (emAberto
             ? rfAcAvisoHTML(`O empresário pede <b>${escC(rfDin(pede))}</b>/rodada — acima da sua oferta de ${escC(rfDin(n.salary||0))}. O valor abaixo não fecha.`,'aviso')
               + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(pede),
@@ -364,6 +374,7 @@ const RF_ACOES = {
     titulo:'Lance por '+escC(p.n), w:500,
     corpo:
       rfAcFichaHTML(p,'LANCE ATUAL',rfDin(lot.bid),d.num)
+      + rfAcAvisoAposentadoriaHTML(p)
       + rfAcCampoHTML('rf-ac-lance','Seu lance', moneyDisp(sug),
           `Incremento mínimo de ${escC(rfDin(RF_LANCE_MIN))}.`, {foco:true})
       + rfAcAtalhosLanceHTML('rf-ac-lance', lot.bid)
@@ -384,6 +395,7 @@ const RF_ACOES = {
     titulo:'Cobrir o lance do '+escC(lider.short), w:500,
     corpo:
       rfAcFichaHTML(p,'SEU LANCE',lot.myBid?rfDin(lot.myBid):'—',d.num)
+      + rfAcAvisoAposentadoriaHTML(p)
       + rfAcAvisoHTML(`O lance na frente é de <b>${escC(rfDin(lot.bid))}</b>. Se a semana fechar assim, o lote é do ${escC(lider.short)}.`,'aviso')
       + rfAcCampoHTML('rf-ac-lance','Cobrir com', moneyDisp(sug),
           `${escC(rfDin(sug-lot.bid))} acima do lance do ${escC(lider.short)}.`, {foco:true})
@@ -464,6 +476,7 @@ const RF_ACOES = {
   return rfAcao({ kicker:'MERCADO · CONTRAPROPOSTA', titulo:'Contrapropor ao '+escC(o.buyerName||'clube'), w:500,
     corpo:
       rfAcFichaHTML(p,respondeu?'OFERTA AGORA':'OFERTA DELES',rfDin(o.fee),d.num)
+      + rfAcAvisoAposentadoriaHTML(p)
       /* A RESPOSTA DELES FICA A VISTA. Ela só existia como toast — passava em três segundos e
          o diálogo continuava a mostrar os mesmos números, sem dizer o que tinha mudado. */
       + (o.lastMsg?rfAcAvisoHTML(escC(o.lastMsg), fechado?'perigo':(aceite?'':'aviso')):'')
@@ -499,6 +512,7 @@ const RF_ACOES = {
   return rfAcao({ kicker:'MERCADO · CONTRAPROPOSTA RECEBIDA', titulo:quem+' pediu '+escC(rfDin(pedido)), w:500,
     corpo:
       rfAcFichaHTML(p,'PEDIDO DELES',rfDin(pedido),p.num)
+      + rfAcAvisoAposentadoriaHTML(p)
       + rfAcLinhaHTML('Você ofereceu', rfDin(minha), '', true)
       + rfAcLinhaHTML('Diferença', dif>0?('+'+rfDin(dif)):'—', dif>0?'ruim':'ok')
       + rfAcLinhaHTML('Seu caixa', rfDin(caixa), cabe?'ok':'ruim')

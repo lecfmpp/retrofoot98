@@ -3785,6 +3785,8 @@ function aplicarUniverso(S: any) {
   return chave;
 }
 const RETIRE_CHANCE_BY_AGE: any = { 32: 0.11, 33: 0.24, 34: 0.40, 35: 0.56, 36: 0.71, 37: 0.83, 38: 0.92, 39: 0.97 };
+// limite de aposentadorias por clube por temporada — espelho de MAX_RETIREMENTS_PER_CLUB_SEASON no core.js do client.
+const RETIRE_CAP_PER_CLUB = 3;
 /* Os nomes de regen saem da folha (WORLD_CONFIG.NAME_POOLS), por pais. As listas do Brasil que
    estavam aqui eram identicas as do cliente -- conferidas antes de mover -- entao nada muda para
    quem ja joga; o que muda e que um regen ingles deixa de se chamar "Gabriel Silva". */
@@ -3848,15 +3850,20 @@ function ageAndRetire(S: any, divOfClub: any, used: Set<string>, retirements?: a
   let regens = 0;
   Object.keys(S.squads).forEach((cid) => {
     const sq = S.squads[cid];
+    const candidates: any[] = [];
     for (let i = sq.length - 1; i >= 0; i--) {
       const p = sq[i]; p.age = (p.age || 26) + 1; p.f0 = p.f; p.mv0 = (p.mv || 1e6); p.benchStreak = 0; if (p.contract) p.contract.benchStreak = 0;
       const R = ME.makeRng(ME.hashSeed('retire-roll', (S.seed || 1), S.season, cid, i, p.n));
       const ch = p.age < 32 ? 0 : p.age >= 40 ? 1 : (RETIRE_CHANCE_BY_AGE[p.age] ?? 0.11);
-      if (R.random() < ch) {
-        if (retirements) retirements.push({ name: p.n, club: cid, clubShort: (S.clubShort || {})[cid] || cid, age: p.age, pos: p.s, f: p.f, reason: pickRetireReason(R, p) });
-        sq[i] = makeRegen(S, p.s, divOfClub[cid] || S.division, cid + '_' + i, used); regens++;
-      }
+      if (R.random() < ch) candidates.push({ i, p, R });
     }
+    // cap de RETIRE_CAP_PER_CLUB por clube: entre quem "passou" no sorteio, só os mais
+    // velhos aposentam de fato (espelha exatamente a escolha do client, ver core.js).
+    candidates.sort((a, b) => b.p.age - a.p.age);
+    candidates.slice(0, RETIRE_CAP_PER_CLUB).forEach(({ i, p, R }) => {
+      if (retirements) retirements.push({ name: p.n, club: cid, clubShort: (S.clubShort || {})[cid] || cid, age: p.age, pos: p.s, f: p.f, reason: pickRetireReason(R, p) });
+      sq[i] = makeRegen(S, p.s, divOfClub[cid] || S.division, cid + '_' + i, used); regens++;
+    });
     S.clubOverall[cid] = Math.round(sq.reduce((s: number, p: any) => s + p.f, 0) / (sq.length || 1));
   });
   return regens;
