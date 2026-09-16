@@ -1987,7 +1987,7 @@ body{font-family:var(--sans);background:var(--felt);-webkit-font-smoothing:antia
    da competição, logo acima dela, nem com os cartões, logo abaixo. O formato
    passa a ser o leaderboard de 970×90 (o mesmo do topo do jogo), desenhado na
    LARGURA DA COLUNA: `aspect-ratio` em vez de altura fixa é o que deixa a faixa
-   acompanhar a coluna sem cortar o criativo — mesma receita de .rf-ad-entrada.
+   acompanhar a coluna sem cortar o criativo.
    A medida também mudou em elifoot_v3.ad_spaces: as duas pontas do contrato. */
 .rf-ad-inline{margin:10px 0;width:100%;max-width:none;aspect-ratio:970/90}
 /* FAIXA ÂNCORA — o único espaço por cima do conteúdo. Fica presa ao rodapé, centrada, e
