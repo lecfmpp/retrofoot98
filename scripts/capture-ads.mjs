@@ -53,19 +53,6 @@ await tira('03-hub-300x250','[data-ad-vazio="rf98.hub.sidebar"]');
 await run(()=>{ const a=document.querySelector('.rf-sb-ad'); if(a) a.scrollIntoView({block:'center'}); },600);
 await tira('18-vitrine-300x300','.rf-sb-ad');
 
-/* A ENTRADA NO CLUBE (rf98.entrada.sorteio) — a tela de boas-vindas do pos-sorteio.
-   Chega-se a ela pelo roteador (CL.screen='boasvindas' -> rfOb7), sem refazer o
-   funil: o save de bancada do ?rf= ja' tem clube, elenco e estadio, que e' tudo o
-   que a tela le'.
-
-   VEM ANTES DA RODADA AO VIVO de proposito. startLiveRound() deixa um
-   temporizador a redesenhar, e depois dele qualquer troca de CL.screen e'
-   desfeita no quadro seguinte — a captura saia sempre "nao encontrado". */
-await run(()=>{ CL.screen='boasvindas'; cdraw(); },1200);
-await run(()=>{ const a=document.querySelector('[data-ad-vazio="rf98.entrada.sorteio"]');
-  if(a) a.scrollIntoView({block:'center'}); },700);
-await tira('16-entrada-clube-970x250','[data-ad-vazio="rf98.entrada.sorteio"]');
-await run(()=>{ CL.screen='hub'; cdraw(); },600);
 
 // rodada ao vivo: trilhos + faixa entre divisões
 await run(()=>{ let g=0; while(g++<3){ try{ playRound(null); }catch(e){ S.round++; } }
@@ -101,10 +88,6 @@ await run(()=>{ let g=0; while(g++<3){ try{ playRound(null); }catch(e){ S.round+
   CL.tacticChosen=true; S.xi=autoXI(CL.clubId); startLiveRound(); },1600);
 await tira('12-mobile-faixa-rodada','[data-ad-vazio="rf98.live.inline"]');
 
-await run(()=>{ CL.live=null; CL.screen='boasvindas'; cdraw(); },1200);
-await run(()=>{ const a=document.querySelector('[data-ad-vazio="rf98.entrada.sorteio"]');
-  if(a) a.scrollIntoView({block:'center'}); },700);
-await tira('17-mobile-entrada-clube','[data-ad-vazio="rf98.entrada.sorteio"]');
 
 await browser.close();
 console.log('pronto →', OUT);

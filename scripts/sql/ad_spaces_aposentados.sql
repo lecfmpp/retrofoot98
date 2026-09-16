@@ -36,3 +36,17 @@ delete from elifoot_v3.ad_spaces where chave in ('rf98.anchor.bottom','rf98.paus
 -- billboards de pagina, e assim nenhum `ord` fica repetido (empate deixa a
 -- ordem do painel instavel entre carregamentos)
 update elifoot_v3.ad_spaces set ord = 1 where chave = 'rf98.entrada.sorteio';
+
+-- ============================================================
+-- 2026-09-16 · rf98.entrada.sorteio (Boas-vindas ao clube) — o dono decidiu nao
+-- usar. O desenho saiu de rfOb7 (ui/rf26-onboarding.js) e o CSS .rf-ad-entrada
+-- tambem. Nao tinha criativo; os eventos antigos em ad_events ficam (nao ha FK).
+-- Para trazer de volta:
+/*
+insert into elifoot_v3.ad_spaces (chave, nome, iab, local, tipo, w, h, mw, mh, formatos, peso_kb, ord, dur_max_s, sem_audio, tem_botao, placas, ligado, nota) values
+ ('rf98.entrada.sorteio','Boas-vindas ao clube','Billboard',
+  'Entrada no clube — depois do sorteio, antes de cair na Formação','pagina',970,250,320,100,
+  array['JPG','PNG','WEBP'],300,1,null,true,false,0,true,
+  'Momento de maior atencao do funil: toda carreira nova passa aqui uma vez. Fica abaixo dos numeros do clube e acima do botao de entrar.');
+*/
+delete from elifoot_v3.ad_spaces where chave = 'rf98.entrada.sorteio';
