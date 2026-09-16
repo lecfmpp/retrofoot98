@@ -13,6 +13,8 @@
    · checkout.session.completed        -> primeira cobranca confirmada
    · customer.subscription.updated     -> renovacao, troca de plano, past_due
    · customer.subscription.deleted     -> cancelamento
+   · checkout.session.completed (mode payment, forma pix) e
+     checkout.session.async_payment_succeeded -> Pix avulso pago: prazo de 1 mes/1 ano
 
    DE QUEM E' A ASSINATURA: do user_id carimbado em subscription.metadata pelo
    checkout. Se faltar (assinatura criada a mao no painel do Stripe), cai na
@@ -100,9 +102,23 @@ Deno.serve(async (req) => {
     return data?.user_id || null;
   }
 
-  async function gravar(uid: string, plano: string, until: string | null) {
+  async function gravar(uid: string, plano: string, until: string | null,
+                       source = "stripe", note: string | null = null) {
+    /* ===== UM PIX PAGO NAO CAI POR CAUSA DE UM CARTAO ANTIGO =====
+       Quem cancelou o cartao e pagou Pix ainda recebe, dias depois, o `subscription.deleted`
+       ou o `updated` da assinatura velha. Esse evento rebaixaria para `free` um periodo que o
+       Pix ja' pagou. Rebaixamento vindo de assinatura so' vale sobre linha de assinatura. */
+    if (source === "stripe" && plano === "free") {
+      const { data: atual } = await admin.schema("elifoot_v3")
+        .from("user_plans").select("source,until").eq("user_id", uid).maybeSingle();
+      if (atual?.source === "stripe_pix" && atual.until &&
+          new Date(atual.until).getTime() > Date.now()) {
+        console.log(`rebaixamento ignorado: ${uid} tem Pix válido até ${atual.until}`);
+        return;
+      }
+    }
     const { error } = await admin.schema("elifoot_v3").from("user_plans").upsert({
-      user_id: uid, plan: plano, until, source: "stripe", updated_at: new Date().toISOString(),
+      user_id: uid, plan: plano, until, source, note, updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
     if (error) throw error;
     console.log(`plano ${plano} para ${uid} até ${until ?? "sem prazo"}`);
@@ -142,8 +158,44 @@ Deno.serve(async (req) => {
     return new Date(seg * 1000 + FOLGA_MS).toISOString();
   }
 
+  /* ===== PIX AVULSO: O PRAZO E' O PERIODO PAGO =====
+     Um mes (ou um ano) a contar de agora — ou do fim do periodo atual, se o jogador esta'
+     pagando o MESMO plano antes de vencer (quem paga adiantado nao perde os dias que faltam).
+     Trocar de plano recomeca a contar de hoje.
+
+     O MESMO PIX NAO PODE SER CONTADO DUAS VEZES. O Stripe manda `completed` e, conforme o
+     caso, `async_payment_succeeded` para a mesma sessao, e reenvia eventos quando quer. O id
+     da sessao fica em `note`; chegando de novo, nao se soma nada. */
+  async function concederPix(s: Stripe.Checkout.Session) {
+    const uid = (s.client_reference_id as string) || (s.metadata?.user_id as string) || null;
+    const pm = String(s.metadata?.plano || "");
+    const plano = (pm === "resenha" || pm === "embaixador") ? pm : null;
+    const ciclo = s.metadata?.ciclo === "ano" ? "ano" : "mes";
+    if (!uid || !plano) { console.error("pix sem dono ou sem plano", s.id); return; }
+
+    const marca = `pix:${s.id}`;
+    const { data: atual } = await admin.schema("elifoot_v3")
+      .from("user_plans").select("plan,until,note").eq("user_id", uid).maybeSingle();
+    if (atual?.note === marca) { console.log("pix já concedido", s.id); return; }
+
+    const agora = Date.now();
+    const fimAtual = atual?.until ? new Date(atual.until).getTime() - FOLGA_MS : 0;
+    const base = (atual?.plan === plano && fimAtual > agora) ? fimAtual : agora;
+    const fim = new Date(base);
+    if (ciclo === "ano") fim.setUTCFullYear(fim.getUTCFullYear() + 1);
+    else fim.setUTCMonth(fim.getUTCMonth() + 1);
+    await gravar(uid, plano, new Date(fim.getTime() + FOLGA_MS).toISOString(), "stripe_pix", marca);
+  }
+
   try {
     switch (evento.type) {
+      /* Pix confirmado depois do fecho da sessao (pagamento assincrono). */
+      case "checkout.session.async_payment_succeeded": {
+        const s = evento.data.object as Stripe.Checkout.Session;
+        if (s.mode === "payment" && s.metadata?.forma === "pix") await concederPix(s);
+        break;
+      }
+
       /* A sessao completa nao traz os itens da assinatura — so' o id dela.
          Buscar a assinatura e' o que da' acesso ao preco vendido (e ao plano). */
       /* ===== A SESSAO JA' TRAZ QUEM E' E O QUE COMPROU =====
@@ -157,6 +209,12 @@ Deno.serve(async (req) => {
          inteiro por causa da parte opcional. */
       case "checkout.session.completed": {
         const s = evento.data.object as Stripe.Checkout.Session;
+        /* Pix: so' concede com o dinheiro dentro. `unpaid` quer dizer QR gerado e ainda nao
+           pago — a confirmacao vem depois, no `async_payment_succeeded`. */
+        if (s.mode === "payment" && s.metadata?.forma === "pix") {
+          if (s.payment_status === "paid") await concederPix(s);
+          break;
+        }
         if (s.mode !== "subscription" || !s.subscription) break;
         const subId = typeof s.subscription === "string" ? s.subscription : s.subscription.id;
         const uid = (s.client_reference_id as string) || (s.metadata?.user_id as string) || null;

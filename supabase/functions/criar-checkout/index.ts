@@ -14,7 +14,15 @@
    sem publicar nada. Quatro `price_...` espalhados pelo codigo seriam quatro
    sitios para esquecer de mudar.
 
-   Body: { plano:'resenha'|'embaixador', ciclo:'mes'|'ano', origem?: url }
+   Body: { plano:'resenha'|'embaixador', ciclo:'mes'|'ano', forma?:'cartao'|'pix', origem?: url }
+
+   ===== PIX E' PAGAMENTO AVULSO, NAO ASSINATURA =====
+   O Stripe so' faz Pix recorrente (Pix Automatico) fora do Brasil, e por convite. Conta
+   brasileira aceita Pix de uma vez so'. Entao `forma:'pix'` abre um checkout em
+   mode:'payment' com o valor do MESMO preco (mes ou ano), e o webhook concede o plano ate'
+   o fim do periodo pago — sem renovacao. Quando vencer, o jogador paga outro Pix.
+   O preco continua a vir do metadata: o Pix usa o valor e o produto do preco recorrente,
+   entao reajustar o preco no Stripe reajusta os dois caminhos de uma vez.
    Resposta: { url } ou { error }
    ================================================================== */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -77,13 +85,29 @@ Deno.serve(async (req) => {
     return resp(503, { error: "Pagamento ainda não está ligado.", motivo: "sem_chave" });
   }
 
-  let body: { plano?: string; ciclo?: string; origem?: string };
+  let body: { plano?: string; ciclo?: string; forma?: string; origem?: string };
   try { body = await req.json(); } catch { return resp(400, { error: "Body inválido." }); }
 
   const plano = String(body.plano || "");
   const ciclo = String(body.ciclo || "mes");
   if (!PLANOS.has(plano)) return resp(400, { error: "Plano desconhecido." });
   if (!CICLOS.has(ciclo)) return resp(400, { error: "Ciclo desconhecido." });
+  const forma = String(body.forma || "cartao");
+  if (forma !== "cartao" && forma !== "pix") return resp(400, { error: "Forma de pagamento desconhecida." });
+
+  /* ===== QUEM JA' ASSINA NO CARTAO NAO PAGA PIX POR CIMA =====
+     O Pix grava um prazo; a assinatura do cartao, na renovacao seguinte, gravaria outro por
+     cima — e o jogador teria pago duas vezes pelo mesmo mes. Quem quer trocar para Pix
+     cancela o cartao primeiro e paga o Pix quando o periodo acabar. */
+  if (forma === "pix") {
+    const { data: atual } = await admin.schema("elifoot_v3")
+      .from("user_plans").select("plan,until,source").eq("user_id", uid).maybeSingle();
+    const vivo = atual && atual.plan !== "free" &&
+      (!atual.until || new Date(atual.until).getTime() > Date.now());
+    if (vivo && atual.source === "stripe") {
+      return resp(409, { error: "Você já tem uma assinatura no cartão.", motivo: "ja_assina_cartao" });
+    }
+  }
 
   const stripe = new Stripe(STRIPE_KEY, { apiVersion: "2025-02-24.acacia" });
 
@@ -177,6 +201,41 @@ Deno.serve(async (req) => {
     }
 
     const volta = destino(body.origem);
+
+    if (forma === "pix") {
+      /* O Pix so' fala real. Um preco em outra moeda aqui e' erro de configuracao, e dizer
+         isso e' melhor do que o Stripe recusar a sessao com uma mensagem generica. */
+      if (preco.currency !== "brl" || !preco.unit_amount) {
+        return resp(500, { error: "Preço deste plano não está em reais.", motivo: "pix_sem_brl" });
+      }
+      const produto = typeof preco.product === "string" ? preco.product : preco.product.id;
+      const pix = await stripe.checkout.sessions.create({
+        mode: "payment",
+        customer: customerId,
+        payment_method_types: ["pix"],
+        /* o valor do preco recorrente, cobrado uma vez: `price` nao serve porque o Stripe
+           recusa preco recorrente em mode:'payment' */
+        line_items: [{
+          price_data: { currency: "brl", product: produto, unit_amount: preco.unit_amount },
+          quantity: 1,
+        }],
+        /* 30 minutos para pagar o QR. Passado isso a sessao expira e nada e' concedido. */
+        payment_method_options: { pix: { expires_after_seconds: 30 * 60 } },
+        client_reference_id: uid,
+        locale: "pt-BR",
+        ...(cupomBeta
+          ? { discounts: [{ coupon: cupomBeta }] }
+          : { allow_promotion_codes: true }),
+        /* `forma` e `ciclo` sao o que o webhook usa para saber que e' Pix e quanto prazo dar */
+        metadata: { user_id: uid, plano, ciclo, forma: "pix" },
+        payment_intent_data: { metadata: { user_id: uid, plano, ciclo, forma: "pix" } },
+        success_url: `${volta}/?assinatura=ok&plano=${plano}&forma=pix`,
+        cancel_url: `${volta}/?assinatura=cancelada`,
+      });
+      if (!pix.url) return resp(500, { error: "O Stripe não devolveu a página de pagamento." });
+      return resp(200, { url: pix.url });
+    }
+
     const sessao = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
