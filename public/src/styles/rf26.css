@@ -10651,7 +10651,7 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
   background:#fff; border:2px solid #dde7db; border-radius:20px; padding:14px;
   display:flex; flex-direction:column; gap:14px; box-sizing:border-box;
   transition:border-color .15s ease, background .15s ease;
-  transform:scale(.7); transform-origin:top center; }
+  max-width:70%; margin-inline:auto; }
 .rf-mod-card:hover{ border-color:#17458F; }
 .rf-mod-card.on{ background:#eef3fa; border-color:#17458F; }
 .rf-mod-card:focus-visible{ outline:3px solid #17458F; outline-offset:2px; }
