@@ -2020,9 +2020,11 @@ function clLoginDo(){ const a=CL.auth; if(!a||!(a.email&&a.password)) return; to
     clLoginAfter(user.user_metadata?.name || a.email.split('@')[0]); toastC('Login feito!');
   } catch(e){ toastC('⚠ '+e.message); } })();
 }
-function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)) return; toastC('Criando conta...');
+function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)) return;
+  if(typeof rfWaOk==='function' && !rfWaOk(a.waPais||'BR', a.whatsapp)){ toastC('⚠ Informe um WhatsApp válido.'); return; }
+  toastC('Criando conta...');
   (async ()=>{ try {
-    await NET.authSignUp(a.email, a.password, a.name);
+    await NET.authSignUp(a.email, a.password, a.name, (typeof rfWaMeta==='function')?rfWaMeta(a):{});
     /* AGORA HA' SESSAO — e' o primeiro instante em que o upload e' possivel, porque
        a politica do bucket exige auth.uid(). Falhar aqui nao pode derrubar o
        cadastro: a conta ja' foi criada e a foto e' opcional; ela fica guardada em

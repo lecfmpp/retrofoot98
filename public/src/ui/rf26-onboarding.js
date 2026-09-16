@@ -277,7 +277,7 @@ function rfOb1(){
   /* NO CADASTRO O BOTAO ESPERA PELA SENHA VALIDA. Antes bastava haver alguma coisa escrita, e o
      unico aviso vinha do servidor depois de a tentativa falhar. Entrar continua a aceitar
      qualquer senha: quem ja' tem conta pode ter uma anterior a estas regras. */
-  const pronto=!!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password))));
+  const pronto=rfObPronto(a);
   const corpo=`
     <div class="rf-wiz-mid">
       <div class="rf-wiz-form">
@@ -287,6 +287,7 @@ function rfOb1(){
         </div>
         ${criando?rfCampo('Nome do treinador', rfInput('rf-ob-n','Gringo',a.name,'text',"rfObSet('name',this.value)")):''}
         ${rfCampo('E-mail', rfInput('rf-ob-e','voce@email.com',a.email,'email',"rfObSet('email',this.value)"))}
+        ${criando?rfWhatsCampoHTML('CL.auth', a, 'rfObSyncCta'):''}
         ${rfCampo('Senha', rfInput('rf-ob-s', criando?'6+ caracteres, com letra e número':'sua senha', a.password,'password',
             criando ? "rfObSet('password',this.value);rfSenhaGuiaPintar(this.value)" : "rfObSet('password',this.value)"),
             criando ? '' : `<span class="rf-campo-link" onclick="event.preventDefault();clForgotPassword()">Esqueci minha senha</span>`)}
@@ -343,8 +344,12 @@ function rfObSet(k,v){ CL.auth=CL.auth||{}; CL.auth[k]=v; if(k==='aviso') cdraw(
 /* o CTA liga/desliga sem redesenhar: redesenhar a cada tecla tira o foco do campo */
 function rfObSyncCta(){
   const b=document.querySelector('.rf-wiz-cta'); if(!b) return;
-  const a=CL.auth||{}; const criando=a.mode!=='login';
-  b.disabled=!(a.email&&a.password&&(!criando||a.name));
+  b.disabled=!rfObPronto(CL.auth||{});
+}
+/* cadastro: nome, senha valida e WhatsApp completo; entrar: so e-mail e senha */
+function rfObPronto(a){
+  const criando=a.mode!=='login';
+  return !!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password)&&rfWaOk(a.waPais||'BR',a.whatsapp))));
 }
 
 /* =====================================================================

@@ -977,6 +977,23 @@ const PLANOS_ADM = {
 const planoAdm = (k) => PLANOS_ADM[k] || PLANOS_ADM.free;
 const ehPago   = (u) => !!u.plano && u.plano !== 'free';
 
+/* WHATSAPP DO CADASTRO — vem de auth.users.raw_user_meta_data (ver src/ui/rf-whatsapp.js no
+   jogo), sempre como +<ddi><numero>. Bandeira pelo ISO do pais; Brasil com a mascara local.
+   O numero abre a conversa no WhatsApp (wa.me). */
+function whatsHTML(num, pais){
+  if(!num) return '<span style="color:var(--dim3);font-size:12px">—</span>';
+  const d = String(num).replace(/\D/g,'');
+  let txt = '+' + d;
+  if(pais === 'BR' && d.startsWith('55') && (d.length === 12 || d.length === 13)){
+    const n = d.slice(4);
+    txt = `+55 (${d.slice(2,4)}) ${n.slice(0, n.length-4)}-${n.slice(-4)}`;
+  }
+  const flag = /^[A-Z]{2}$/.test(pais||'') ? String.fromCodePoint(...[...pais].map(c => 0x1F1A5 + c.charCodeAt(0))) : '';
+  return `<a href="https://wa.me/${h(d)}" target="_blank" rel="noopener" class="mono"
+            style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2);text-decoration:none"
+            title="Abrir conversa no WhatsApp">${flag?flag+' ':''}${h(txt)}</a>`;
+}
+
 async function pgUsuarios(forcar, senha = pedirDesenho()){
   const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
   if(error) throw error;
@@ -1004,7 +1021,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
        TITULOS    o livro elifoot_v3.coach_titles, um por linha
        CAMPANHA   a divisao mais alta em que terminou uma temporada, e nela a melhor posicao
      Os PONTOS ficam no detalhe (clicar na linha): la' sao de uma carreira so', e fazem sentido. */
-  const col = `${podeApagar?'30px ':''}1.4fr .5fr .8fr .62fr .66fr .74fr .62fr .72fr .6fr .7fr .62fr 72px`;
+  const col = `${podeApagar?'30px ':''}1.4fr .95fr .5fr .8fr .62fr .66fr .74fr .62fr .72fr .6fr .7fr .62fr 72px`;
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
@@ -1022,12 +1039,12 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
           <span class="link" data-sel-contas="nunca">nunca jogaram</span> ·
           <span class="link" data-sel-contas="90">sumidos 90d+</span> ·
           <span class="link" data-sel-contas="nenhuma">limpar</span></span>`:''}
-        <input class="busca" id="u-busca" placeholder="Procurar técnico, clube ou e-mail…" value="${h(ST.busca)}">
+        <input class="busca" id="u-busca" placeholder="Procurar técnico, clube, e-mail ou WhatsApp…" value="${h(ST.busca)}">
         <span class="mono" style="font-size:12px;color:var(--dim2)">${num(us.length)} contas</span>
       </div>
       <div class="rowh" style="grid-template-columns:${col}">
         ${podeApagar?'<span><input type="checkbox" id="sel-todas-contas" title="Selecionar todas"></span>':''}
-        <span>Técnico</span><span>Plano</span><span>Referral</span>
+        <span>Técnico</span><span title="Informado no cadastro (contas antigas não têm)">WhatsApp</span><span>Plano</span><span>Referral</span>
         <span style="text-align:center" title="Saves no Solo / salas de Resenha">Carreiras</span>
         <span style="text-align:center" title="Temporadas que chegaram ao fim">Temporadas</span>
         <span style="text-align:center" title="Partidas de liga na carreira toda">Partidas</span>
@@ -1046,6 +1063,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
             <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(u.nome)}</b>
             <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(u.email)}</small></span>
           </span>
+          ${whatsHTML(u.whatsapp, u.whatsapp_pais)}
           <span class="tag ${planoAdm(u.plano).tag}" style="justify-self:start"
                 title="${h(u.plano_ate ? 'até '+dmy(u.plano_ate) : 'sem prazo')}${u.plano_origem?' · '+h(u.plano_origem):''}">${
             h(planoAdm(u.plano).nome)}</span>

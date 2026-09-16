@@ -2228,6 +2228,21 @@
    o servidor. */
 /* Encostado ao campo em cima (pertence a ele) e com folga em baixo, para nao colar no que
    vier a seguir — no cadastro e' o visto das Ligas Oficiais. */
+/* WhatsApp no cadastro (ver src/ui/rf-whatsapp.js): bandeira+DDI com o <select> nativo
+   por cima, invisivel — no telefone abre a roda de paises do sistema */
+.rf-wa{display:flex;gap:8px;min-width:0}
+.rf-wa-pais{position:relative;display:inline-flex;align-items:center;gap:6px;flex:none;height:44px;
+  padding:0 10px 0 12px;border:var(--border-control);border-radius:var(--r-control);
+  background:var(--surface-card);font-family:var(--font-sans);font-size:var(--fs-body);color:var(--text-1);
+  box-sizing:border-box;cursor:pointer}
+.rf-wa-pais:focus-within{border-color:var(--club-primary)}
+.rf-wa-flag{font-size:18px;line-height:1}
+.rf-wa-ddi{font-variant-numeric:tabular-nums}
+.rf-wa-seta{font-size:10px;color:var(--text-faint)}
+.rf-wa-pais select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.rf-wa-num{flex:1;min-width:0;font-variant-numeric:tabular-nums}
+.rf-wa-num.rf-wa-bad{border-color:var(--danger,#e5484d)}
+.rf-wa-nota{font-size:var(--fs-label);color:var(--text-faint);line-height:1.45}
 .rf-pwr{display:flex;flex-direction:column;gap:7px;margin:-4px 0 6px}
 .rf-pwr-t{font-size:var(--fs-label);font-weight:var(--fw-semibold);color:var(--text-4);
   letter-spacing:var(--ls-label);text-transform:uppercase}

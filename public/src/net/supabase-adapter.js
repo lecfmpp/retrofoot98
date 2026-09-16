@@ -250,11 +250,12 @@ function authErrPt(error){
   return error&&error.message || 'Ocorreu um erro. Tente de novo.';
 }
 
-/* ---- CADASTRO: e-mail + senha + nome. Bloqueia duplicado com mensagem clara. ---- */
-async function netAuthSignUp(email, password, name){
+/* ---- CADASTRO: e-mail + senha + nome (+ extras: whatsapp/whatsapp_pais, ver ui/rf-whatsapp.js).
+   Os extras vao para os metadados da conta, que o painel le. Bloqueia duplicado com mensagem clara. ---- */
+async function netAuthSignUp(email, password, name, extra){
   if(!sb) await netInitSupabase();
   if(!sb) throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente de novo.');
-  const { data, error } = await sb.auth.signUp({ email, password, options:{ data:{ name } } });
+  const { data, error } = await sb.auth.signUp({ email, password, options:{ data:{ ...(extra||{}), name } } });
   if(error){
     const msg = (error.message||'').toLowerCase();
     if(msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')){
