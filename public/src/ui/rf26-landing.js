@@ -698,7 +698,48 @@ function rfPlanoPrecoPartes(p, ciclo){
 
    O ciclo entra como parâmetro (mês/ano) para o dia em que a landing ganhar o
    seletor anual: a canalização já leva, só falta quem o mostre. */
-function rfPlanoCta(key, trava, ciclo){
+/* ===== CARTAO OU PIX: A ESCOLHA VEM ANTES DO STRIPE =====
+   Uma pagina de pagamento do Stripe nao mistura as duas coisas: o cartao e' ASSINATURA (renova
+   sozinho), o Pix e' pagamento AVULSO do periodo (o Stripe nao faz Pix recorrente para conta
+   brasileira). Por isso a pergunta e' feita aqui, e cada botao diz com todas as letras o que
+   acontece no mes seguinte. O clique no botao e' o gesto do utilizador que o `window.open` do
+   jogo precisa — por isso ele chama rfPlanoCta de novo, ja' com a forma. */
+function rfPlanoEscolherForma(key, trava, ciclo){
+  const p=RF_PLANOS.find(x=>x.key===key)||{};
+  const ano = ciclo==='ano';
+  const cent = ano ? p.ano : p.mes;
+  const pago = (cent && rfBetaVale(p)) ? rfBetaCent(cent) : cent;
+  const valor = cent ? rfBRL(pago) : '';
+  const periodo = ano ? '1 ano' : '1 mês';
+  const arg = (v)=>`'${escC(String(v||''))}'`;
+  const chamar = (forma)=>`rfPgFechar();rfPlanoCta(${arg(key)},${trava?arg(trava):'null'},${arg(ciclo||'mes')},'${forma}')`;
+  const html = `
+    <div class="rf-pg-topo plano-${escC(key)}">
+      <span class="rf-pg-halo" aria-hidden="true"></span>
+      <div class="rf-pg-topo-in">
+        <span class="rf-pg-kicker">PLANO ${escC((p.nome||key).toUpperCase())} · ${ano?'ANUAL':'MENSAL'}</span>
+        <h2 class="rf-pg-tit">Como você quer pagar?</h2>
+      </div>
+    </div>
+    <div class="rf-pg-corpo">
+      <button type="button" class="rf-pg-forma" onclick="${chamar('cartao')}">
+        <span class="rf-pg-tile">💳</span>
+        <span class="rf-pg-resumo-id"><b>Cartão de crédito</b>
+          <span class="rf-pg-forma-d">Renova sozinho ${ano?'todo ano':'todo mês'}. Cancele quando quiser.</span></span>
+        ${valor?`<span class="rf-pg-valor"><b>${escC(valor)}</b></span>`:''}
+      </button>
+      <button type="button" class="rf-pg-forma" onclick="${chamar('pix')}">
+        <span class="rf-pg-tile">⚡</span>
+        <span class="rf-pg-resumo-id"><b>Pix</b>
+          <span class="rf-pg-forma-d">Paga ${periodo} de uma vez, sem renovação automática. Quando vencer, é só pagar outro Pix.</span></span>
+        ${valor?`<span class="rf-pg-valor"><b>${escC(valor)}</b></span>`:''}
+      </button>
+    </div>`;
+  rfPgDesenhar(html);
+  const m=document.querySelector('.rf-pg-modal'); if(m) m.classList.add('rf-pg-escolha');
+}
+
+function rfPlanoCta(key, trava, ciclo, forma){
   const nome=(RF_PLANOS.find(p=>p.key===key)||{}).nome||key;
   /* De onde veio o lead. Da landing e' o botao do cartao do plano; de dentro do
      jogo e' um cadeado, e ai o nome da trava vai junto — e' assim que se sabe
@@ -741,6 +782,9 @@ function rfPlanoCta(key, trava, ciclo){
     return;
   }
 
+  if(forma!=='cartao' && forma!=='pix' && typeof rfPgDesenhar==='function')
+    return rfPlanoEscolherForma(key, trava, ciclo||'mes');
+
   if(typeof toastC==='function') toastC('Abrindo o pagamento…');
   /* ===== DE DENTRO DO JOGO, O STRIPE ABRE NOUTRA JANELA =====
      Da landing, trocar a pagina e' natural — a pessoa veio ler sobre planos e vai pagar. De
@@ -754,7 +798,7 @@ function rfPlanoCta(key, trava, ciclo){
      sempre: melhor trocar de pagina do que nao pagar. */
   const noJogo = (typeof CL!=='undefined') && !!CL.clubId && CL.screen!=='landing';
   const aba = noJogo ? window.open('', '_blank') : null;
-  NET.criarCheckout(key, ciclo||'mes').then(r=>{
+  NET.criarCheckout(key, ciclo||'mes', forma).then(r=>{
     if(r && r.url){
       if(aba && !aba.closed){ aba.location.href = r.url; aba.focus(); }
       else location.href = r.url;
@@ -765,6 +809,11 @@ function rfPlanoCta(key, trava, ciclo){
        conta e queria pagar era mandado pedir uma vaga que já tinha. Se o pagamento não abre,
        isso é uma avaria e a pessoa tem de o saber para voltar a tentar. */
     console.warn('checkout indisponível:', r && r.erro);
+    if(r && r.erro==='ja_assina_cartao'){
+      if(typeof toastC==='function')
+        toastC('Você já tem uma assinatura ativa no cartão. O Pix fica para depois que ela acabar.','warn');
+      return;
+    }
     if(typeof toastC==='function')
       toastC('Não consegui abrir o pagamento agora. Tente de novo em instantes.','warn');
   }).catch(e=>{

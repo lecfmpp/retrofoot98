@@ -99,6 +99,8 @@ function rfPgData(until){
   catch(e){ return null; }
 }
 
+/* o Pix nao renova: a festa nao pode falar em cobranca recorrente nem em "renova em" */
+let RF_PG_FORMA = null;
 function rfPgCorpoHTML(plano, st){
   const c = RF_PG_CONTEUDO[plano] || RF_PG_CONTEUDO.embaixador;
   const def = (typeof RF_PLANOS!=='undefined' && RF_PLANOS.find(p=>p.key===plano)) || {};
@@ -108,6 +110,7 @@ function rfPgCorpoHTML(plano, st){
      caia no mensal por omissao (mesmo para quem pagou o anual) e a data saia invalida.
      O `|| st.until` fica como rede para um adaptador que um dia devolva o nome do banco. */
   const ate = st && (st.proAte || st.until);
+  const pix = RF_PG_FORMA==='pix';
   const ciclo = rfPgCiclo(ate);
   const cent = ciclo==='ano' ? def.ano : def.mes;
   const beta = (typeof rfBetaVale==='function') && rfBetaVale(def);
@@ -133,10 +136,10 @@ function rfPgCorpoHTML(plano, st){
         <span class="rf-pg-tile">${c.emoji}</span>
         <span class="rf-pg-resumo-id">
           <b>Plano ${escC(def.nome||plano)}</b>
-          <span class="rf-pg-mono">${ciclo==='ano'?'ANUAL':'MENSAL'}${renova?' · RENOVA EM '+escC(renova.toUpperCase()):''}</span>
+          <span class="rf-pg-mono">${ciclo==='ano'?'ANUAL':'MENSAL'}${renova?(pix?' · VÁLIDO ATÉ ':' · RENOVA EM ')+escC(renova.toUpperCase()):''}${pix?' · PIX':''}</span>
         </span>
         ${valor?`<span class="rf-pg-valor"><b>${escC(valor)}</b>
-          <span class="rf-pg-mono">${ciclo==='ano'?'/ano':'/mês'}</span></span>`:''}
+          <span class="rf-pg-mono">${pix?'pago no Pix':(ciclo==='ano'?'/ano':'/mês')}</span></span>`:''}
       </div>
 
       <span class="rf-pg-rot">${plano==='embaixador'?'A SUA CADEIRA CATIVA INCLUI':'O QUE ABRIU PARA VOCÊ'}</span>
@@ -252,15 +255,19 @@ function rfPgVerificar(){
   const plano = st.plan || st.plano;
   const chegou = RF_PG_ALVO ? (plano===RF_PG_ALVO) : (plano==='resenha' || plano==='embaixador');
   if(chegou){
-    rfPgDesenhar(rfPgCorpoHTML(plano, st), (RF_PG_CONTEUDO[plano]||{}).legal);
+    const legal = RF_PG_FORMA==='pix'
+      ? 'Pagamento único via Pix, sem renovação automática. Quando o prazo acabar, é só pagar outro Pix.'
+      : (RF_PG_CONTEUDO[plano]||{}).legal;
+    rfPgDesenhar(rfPgCorpoHTML(plano, st), legal);
     return;
   }
   if(++RF_PG_TENTATIVAS > 15){ rfPgDesenhar(rfPgNaoConfirmouHTML()); return; }
   if(typeof NET!=='undefined' && NET.carregarPlano) { try{ NET.carregarPlano(); }catch(e){} }
   setTimeout(rfPgVerificar, 2000);
 }
-function rfPgAbrir(alvo){
+function rfPgAbrir(alvo, forma){
   RF_PG_TENTATIVAS=0;
+  RF_PG_FORMA = forma==='pix' ? 'pix' : null;
   RF_PG_ALVO=(alvo==='resenha'||alvo==='embaixador')?alvo:null;
   rfPgDesenhar(rfPgEsperandoHTML());
   rfPgVerificar();
@@ -268,17 +275,18 @@ function rfPgAbrir(alvo){
 /* chamado no arranque (ver index.html): so' com `?assinatura=ok` na volta do Stripe. O parametro
    e' limpo do endereco para um F5 nao repetir a festa. */
 function rfPgVoltaDoStripe(){
-  let ok=false, alvo=null;
+  let ok=false, alvo=null, forma=null;
   try{
     const q=new URLSearchParams(location.search);
     ok = q.get('assinatura')==='ok';
     alvo = q.get('plano');            // que plano foi comprado — quem o escreve e' o success_url
+    forma = q.get('forma');           // 'pix' quando foi pagamento avulso
   }catch(e){}
   if(!ok) return false;
   try{
-    const u=new URL(location.href); u.searchParams.delete('assinatura'); u.searchParams.delete('plano');
+    const u=new URL(location.href); u.searchParams.delete('assinatura'); u.searchParams.delete('plano'); u.searchParams.delete('forma');
     history.replaceState({}, '', u.pathname + (u.search||'') + (u.hash||''));
   }catch(e){}
-  setTimeout(()=>rfPgAbrir(alvo), 400);   // deixa a tela do jogo desenhar por baixo antes da festa
+  setTimeout(()=>rfPgAbrir(alvo, forma), 400);   // deixa a tela do jogo desenhar por baixo antes da festa
   return true;
 }

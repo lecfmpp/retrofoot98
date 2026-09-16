@@ -11665,6 +11665,14 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
   transition:filter var(--dur-fast) var(--ease)}
 .rf-pg-cta.plano-resenha{background:#17458F;color:#fff}
 .rf-pg-cta:hover{filter:brightness(1.06)}
+/* escolha cartao/Pix: dois cartoes-botao com o mesmo desenho do resumo */
+.rf-pg-escolha .rf-pg-topo-in{padding-block:22px}
+.rf-pg-forma{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;text-align:left;
+  background:#f6f8f5;border:1px solid #e3e8e3;border-radius:14px;cursor:pointer;font:inherit;
+  transition:border-color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease)}
+.rf-pg-forma:hover,.rf-pg-forma:focus-visible{border-color:#17458F;background:#fff}
+.rf-pg-forma .rf-pg-tile{background:#fff;font-size:22px}
+.rf-pg-forma-d{font-size:12.5px;color:#5f6f64;line-height:1.4}
 /* a nota legal vive FORA do cartao, centrada por baixo dele — e' letra da lei, nao conteudo */
 .rf-pg-legal{max-width:640px;text-align:center;font-size:12px;color:#dfe6e0;line-height:1.45}
 
@@ -11688,6 +11696,7 @@ body.rf-tem-fita .rf-app{padding-top:64px;box-sizing:border-box}
     8%{opacity:1}
     100%{opacity:0;transform:translate3d(var(--dx,0),560px,0) rotate(var(--rot,720deg))}}
   .rf-pg-corpo{padding:14px}
+  .rf-pg-modal.rf-pg-escolha{height:auto;padding-bottom:24px;border-radius:18px 18px 0 0}
   .rf-pg-tile{width:40px;height:40px}
   .rf-pg-resumo-id b{font-size:14.5px}
   .rf-pg-valor b{font-size:18px}

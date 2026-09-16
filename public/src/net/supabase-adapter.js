@@ -1438,11 +1438,11 @@ async function netLoadGame(){
    ligado no projeto, a função responde 503 com esse motivo e quem chamou volta
    para a lista de espera, que é o comportamento de hoje. Botão nenhum morre no
    meio do caminho. */
-async function netCriarCheckout(plano, ciclo){
+async function netCriarCheckout(plano, ciclo, forma){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
   const res = await netInvokeFn('criar-checkout', {
-    plano, ciclo: ciclo||'mes',
+    plano, ciclo: ciclo||'mes', forma: forma==='pix' ? 'pix' : 'cartao',
     origem: (typeof location!=='undefined' ? location.origin : '')
   });
   if(res.error){
