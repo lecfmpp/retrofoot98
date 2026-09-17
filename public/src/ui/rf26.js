@@ -157,13 +157,6 @@ const RF_PAGES=[
     tabs:[ {k:'caixa',     l:()=>'Caixa de entrada'+rfSufixo(rfNaoLidas()), build:()=>rfEmCaixaHTML()},
            {k:'arquivadas',l:()=>'Arquivadas',                              build:()=>rfEmArquivadasHTML()} ] },
 
-  { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
-    titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
-    acoes:()=>rfResenhaAcoesHTML(),
-    grid:'minmax(0,1fr)',
-    /* a sala (so' numa resenha online) e, por baixo, os planos — no Modo Solo so' os planos */
-    resumo:()=>(CL.online?rfCfResenhaHTML():'')+(typeof rfUpPaginaHTML==='function'?rfUpPaginaHTML():'') },
-
   /* O RANKING E' PAGINA, nao aba de Treinador: ele e' do JOGO INTEIRO, nao da
      carreira de quem esta' a jogar — a pagina Treinador fala do proprio. */
   { key:'ranking', ico:'trofeu', label:'Ranking', curto:'Ranking',
@@ -184,6 +177,16 @@ const RF_PAGES=[
        com as preferências. A lista de saves mudou-se para lá (ver
        rfSairOutrosSavesHTML); o "Baixar o save" foi com ela. */
     tabs:[ {k:'opcoes',  l:()=>'Opções', build:()=>rfCfOpcoesHTML()} ] },
+
+  /* MINHA CONTA (era "Modo Resenha", 16/09): o plano da conta e, numa resenha online, a sala.
+     A CHAVE CONTINUA 'resenha' — os atalhos que ja' levam para ca' (rfGo, rfSetTab) nao mudam.
+     Fica logo acima de "Sair do jogo", junto do que e' da pessoa e nao do clube. */
+  { key:'resenha', ico:'jogador', label:'Minha Conta', curto:'Conta',
+    titulo:'Minha Conta', sub:()=>(CL.online?rfResenhaSubHTML():rfUpContaSub()),
+    acoes:()=>rfResenhaAcoesHTML(),
+    grid:'minmax(0,1fr)',
+    /* a sala (so' numa resenha online) e, por baixo, os planos — no Modo Solo so' os planos */
+    resumo:()=>(CL.online?rfCfResenhaHTML():'')+(typeof rfUpPaginaHTML==='function'?rfUpPaginaHTML():'') },
 
   /* ÚLTIMO ITEM, sempre. O nome e a chave são os do pacote: "Sair do jogo" /
      `sairjogo` — não "Sair", que se confunde com sair da conta. */

@@ -181,6 +181,13 @@ function rfUpPaginaHTML(){
     ${barra}
   </div>`;
 }
+/* o subtitulo da pagina Minha Conta fora de uma sala: o e-mail e o plano */
+function rfUpContaSub(){
+  const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
+  if(!st.loggedIn) return 'Entre na sua conta para ver o seu plano';
+  const d=rfUpDef(rfUpPlanoAtual())||{};
+  return `${escC(st.email||'')} · Plano ${escC(d.nome||'')}`;
+}
 function rfUpPaginaCiclo(k){
   RF_UP.ciclo = k==='ano' ? 'ano' : 'mes';
   document.querySelectorAll('[data-up-pagina]').forEach(el=>{ el.outerHTML=rfUpPaginaHTML(); });
