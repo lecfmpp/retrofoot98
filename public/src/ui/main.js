@@ -9811,7 +9811,8 @@ function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(C
   if(CL.online && typeof NET!=='undefined' && NET.gameId && !S.finished){
     if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local
   }
-  if(S.finished) setTimeout(()=>seasonEndDialog(),300); }
+  if(S.finished) setTimeout(()=>seasonEndDialog(),300);
+  else if(typeof rfUpMarcoRodada==='function') rfUpMarcoRodada(); }   // lembrete de plano, 4x por temporada (rf26-planos.js)
 /* ---- fim de temporada: mostra campeão + posição final, botão avança a temporada
    (com promoção/rebaixamento de verdade, pré-carregando dados reais da nova divisão) ---- */
 /* o marcador é por TEMPORADA: sem zerar, o fim da temporada seguinte não mostraria nada. */
@@ -9860,12 +9861,14 @@ function clAdvanceSeason(){
   const nd=pendingDivisionChange();
   const goingReal = nd!==S.division && nd!=='A';
   toastC(goingReal?'Preparando Série '+nd+'...':'Preparando nova temporada...');
+  const temporadaQueAcabou=S.season||0;
   (async ()=>{
     if(goingReal && typeof NET!=='undefined' && NET.getDivisionClubs){
       try{ await loadRealDivisionClubs(nd); }catch(e){ console.warn('divisão real indisponível, usando fallback:',e); }
     }
     newSeasonReset();
     saveV3(); cdraw();
+    if(typeof rfUpMarcoFim==='function') rfUpMarcoFim(temporadaQueAcabou);
     /* O AVISO DE ACESSO/QUEDA SAIU (pedido do dono, 11/09). Era um diálogo da pele antiga
        ("🔺 Promoção! Você subiu pra Série C!") que repetia o que o resumo de fim de temporada
        (rfFimTemporadaHTML, desfecho "Acesso garantido"/"Rebaixamento") e, para o campeão, o modal
@@ -10097,6 +10100,8 @@ function clOnlineSeasonContinue(){
   const _dl=(typeof DIV_LABEL_FULL!=='undefined' && DIV_LABEL_FULL[S.division]) || ('Série '+S.division);
   toastC('🏆 Nova temporada '+(S.season||'')+'! Você está na '+_dl+'.');
   CL.screen='main'; CL.tab='seleccao'; cdraw();
+  /* a virada ja' aconteceu no servidor: a temporada que acabou e' a anterior */
+  if(typeof rfUpMarcoFim==='function') rfUpMarcoFim((S.season||1)-1);
 }
 /* ---- corrige a escalação do usuário se algum titular ficou suspenso/lesionado ----
    Chamada após cada rodada E de novo, defensivamente, antes de iniciar a próxima

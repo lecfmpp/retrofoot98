@@ -183,6 +183,9 @@ const RF_TRAVAS={
     saida:'As caras prontas continuam à sua disposição, de graça.' },
 };
 function rfTrava(chave){
+  /* anfitriao, cota de carreiras e fim dos 7 dias abrem o popup novo dos dois planos
+     (rf26-planos.js); velocidade e avatar continuam nesta janela */
+  if(typeof rfUpTrava==='function' && rfUpTrava(chave)) return;
   /* A trava de saves aponta para o plano SEGUINTE ao de quem bateu no teto:
      quem esta no Peladeiro sobe para o Resenha, quem ja esta no Resenha so'
      resolve com o Embaixador. Oferecer a alguem o plano que ele ja tem e' o
@@ -580,7 +583,7 @@ function rfLpMomentosHTML(){
    exatamente o que o jogo entrega.
    ===================================================================== */
 const RF_PLANOS=[
-  { key:'peladeiro', nome:'Peladeiro', mes:0, ano:0, ciclo:'pra sempre',
+  { key:'peladeiro', nome:'Peladeiro', icone:'⚽', mes:0, ano:0, ciclo:'pra sempre',
     resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
     itens:['Começa até 3 carreiras por mês no Modo Solo','As quatro divisões brasileiras, com elenco completo','Modo Resenha por 7 dias, nas salas dos outros'],
     falta:['Não abre sala como anfitrião'],
@@ -592,16 +595,27 @@ const RF_PLANOS=[
     nota:'A vaga do mês não volta se você apagar a carreira, e o Resenha sai depois dos 7 dias.',
     cta:'Começar de graça' },
 
-  { key:'resenha', nome:'Resenha', mes:1990, ano:19900,
+  { key:'resenha', nome:'Resenha', icone:'💬', mes:1990, ano:19900,
     resumo:'Pra quem joga direto com a turma e não quer os 7 dias acabando.',
     /* O PRIMEIRO ITEM E' O PLANO DE BAIXO INTEIRO: sem ele, cada cartao parecia uma lista
        solta e quem lia tinha de comparar linha a linha para perceber que os planos se
        empilham. */
     itens:['Tudo do Peladeiro','Começa até 10 carreiras por mês no Modo Solo','Modo Resenha sem prazo: entra na sala de qualquer anfitrião'],
     falta:['Não abre sala como anfitrião'],
-    cta:'Assinar o Resenha' },
+    cta:'Assinar o Resenha',
+    /* ===== A VENDA DO POPUP (ver rf26-planos.js) =====
+       Quatro beneficios de UMA linha de titulo + uma de texto: o popup tem altura travada e
+       nao rola, entao texto mais comprido empurra o botao para fora do cartao. Ao mudar a
+       copia, conferir `scrollHeight <= height` do cartao numa janela de 540px. */
+    venda:{ titulo:'O campeonato com a sua turma',
+      frase:'Todo mundo jogando a mesma semana, com resenha no grupo entre as rodadas. Sem contagem de 7 dias, sem sair da sala no meio do campeonato.',
+      beneficios:[
+        {icone:'⏳', titulo:'Acaba a contagem dos 7 dias', texto:'No Peladeiro o Resenha vai embora no meio do campeonato. Aqui ele fica.'},
+        {icone:'🚪', titulo:'Entra na sala de qualquer anfitrião', texto:'Seus amigos abrem a liga, você entra pelo código.'},
+        {icone:'💾', titulo:'10 carreiras por mês no Modo Solo', texto:'Três viram dez: testa clube, divisão e tática.'},
+        {icone:'⚽', titulo:'E tudo o que você já tinha', texto:'As quatro divisões brasileiras, com elenco completo.'} ] } },
 
-  { key:'embaixador', nome:'Embaixador', mes:4990, ano:39900,
+  { key:'embaixador', nome:'Embaixador', icone:'👑', mes:4990, ano:39900,
     destaque:true, selo:'O mais completo',
     resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
     itens:['Tudo do Resenha',
@@ -610,7 +624,14 @@ const RF_PLANOS=[
            'Seu jogador na base de dados oficial, com avatar na sua cara',
            'Selo de Embaixador no seu perfil',
            'Código pra passar aos seus seguidores — e monetizar com ele (depois do Beta)'],
-    cta:'Quero ser Embaixador' },
+    cta:'Quero ser Embaixador',
+    venda:{ titulo:'Você abre a liga e chama a galera',
+      frase:'O anfitrião escolhe os clubes, manda no calendário e recebe todo mundo pelo seu código. Nada fica trancado.',
+      beneficios:[
+        {icone:'🏟️', titulo:'Você é o anfitrião da sala', texto:'Abre salas de 2 a 10 treinadores e manda no calendário.'},
+        {icone:'♾️', titulo:'Carreiras ilimitadas no Modo Solo', texto:'Sem cota mensal: começa quantas quiser.'},
+        {icone:'🧑', titulo:'Seu jogador na base oficial', texto:'Com avatar na sua cara e o selo no perfil.'},
+        {icone:'🎟️', titulo:'Código pra passar aos seguidores', texto:'E monetizar com ele depois do Beta. Tudo do Resenha incluído.'} ] } },
 ];
 
 /* ===== O PRECO EM CENTAVOS, E O RESTO CALCULADO =====

@@ -160,7 +160,9 @@ const RF_PAGES=[
   { key:'resenha', ico:'chopp', label:'Modo Resenha', curto:'Resenha',
     titulo:'Modo Resenha', sub:()=>rfResenhaSubHTML(),
     acoes:()=>rfResenhaAcoesHTML(),
-    grid:'minmax(0,1fr)', resumo:()=>rfCfResenhaHTML() },
+    grid:'minmax(0,1fr)',
+    /* a sala (so' numa resenha online) e, por baixo, os planos — no Modo Solo so' os planos */
+    resumo:()=>(CL.online?rfCfResenhaHTML():'')+(typeof rfUpPaginaHTML==='function'?rfUpPaginaHTML():'') },
 
   /* O RANKING E' PAGINA, nao aba de Treinador: ele e' do JOGO INTEIRO, nao da
      carreira de quem esta' a jogar — a pagina Treinador fala do proprio. */
