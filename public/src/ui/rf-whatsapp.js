@@ -1,5 +1,5 @@
 /* ===== WHATSAPP NO CADASTRO (16/09/2026) =====
-   Campo obrigatorio nos dois formularios de conta (Solo: rfOb1; Resenha: scConta em
+   Campo OPCIONAL (desde 17/09/2026; nasceu obrigatorio) nos dois formularios de conta (Solo: rfOb1; Resenha: scConta em
    net/local-transport.js). Serve para validar a pessoa e coloca-la no grupo de jogadores
    que ajudam a construir o jogo.
 
@@ -70,6 +70,8 @@ function rfWaOk(iso, v){
   if(p[0]==='BR') return d.length===10 || d[2]==='9';
   return true;
 }
+/* o que libera o cadastro: vazio (e' opcional) ou completo — nunca pela metade */
+function rfWaAceito(iso, v){ return !rfWaDigitos(v) || rfWaOk(iso, v); }
 /* +<ddi><numero>, pronto para o banco; '' se incompleto */
 function rfWaE164(iso, v){
   if(!rfWaOk(iso, v)) return '';
@@ -86,7 +88,7 @@ function rfWhatsCampoHTML(alvo, estado, aoMudar){
   let k = 0;
   const exemplo = iso==='BR' ? '(11) 91234-5678' : p[4][p[4].length-1].replace(/#/g, () => String((++k)%10));
   return `<div class="rf-campo">
-    <span class="rf-campo-l">WhatsApp</span>
+    <span class="rf-campo-l">WhatsApp <i class="rf-wa-opc">(opcional)</i></span>
     <div class="rf-wa">
       <label class="rf-wa-pais" title="País do número">
         <span class="rf-wa-flag">${p[1]}</span><span class="rf-wa-ddi">+${p[3]}</span><span class="rf-wa-seta">▾</span>

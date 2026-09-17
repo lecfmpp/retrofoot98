@@ -2242,6 +2242,7 @@
 .rf-wa-pais select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
 .rf-wa-num{flex:1;min-width:0;font-variant-numeric:tabular-nums}
 .rf-wa-num.rf-wa-bad{border-color:var(--danger,#e5484d)}
+.rf-wa-opc{font-style:normal;font-weight:var(--fw-regular,400);color:var(--text-faint)}
 .rf-wa-nota{font-size:var(--fs-label);color:var(--text-faint);line-height:1.45}
 .rf-pwr{display:flex;flex-direction:column;gap:7px;margin:-4px 0 6px}
 .rf-pwr-t{font-size:var(--fs-label);font-weight:var(--fw-semibold);color:var(--text-4);

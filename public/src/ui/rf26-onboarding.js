@@ -349,7 +349,7 @@ function rfObSyncCta(){
 /* cadastro: nome, senha valida e WhatsApp completo; entrar: so e-mail e senha */
 function rfObPronto(a){
   const criando=a.mode!=='login';
-  return !!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password)&&rfWaOk(a.waPais||'BR',a.whatsapp))));
+  return !!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password)&&rfWaAceito(a.waPais||'BR',a.whatsapp))));
 }
 
 /* =====================================================================

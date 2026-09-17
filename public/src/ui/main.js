@@ -2021,7 +2021,7 @@ function clLoginDo(){ const a=CL.auth; if(!a||!(a.email&&a.password)) return; to
   } catch(e){ toastC('⚠ '+e.message); } })();
 }
 function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)) return;
-  if(typeof rfWaOk==='function' && !rfWaOk(a.waPais||'BR', a.whatsapp)){ toastC('⚠ Informe um WhatsApp válido.'); return; }
+  if(typeof rfWaAceito==='function' && !rfWaAceito(a.waPais||'BR', a.whatsapp)){ toastC('⚠ WhatsApp incompleto. Complete o número ou deixe em branco.'); return; }
   toastC('Criando conta...');
   (async ()=>{ try {
     await NET.authSignUp(a.email, a.password, a.name, (typeof rfWaMeta==='function')?rfWaMeta(a):{});
