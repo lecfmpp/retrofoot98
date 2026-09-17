@@ -830,6 +830,11 @@ function rfPlanoCta(key, trava, ciclo, forma){
        conta e queria pagar era mandado pedir uma vaga que já tinha. Se o pagamento não abre,
        isso é uma avaria e a pessoa tem de o saber para voltar a tentar. */
     console.warn('checkout indisponível:', r && r.erro);
+    if(r && r.erro==='pix_indisponivel'){
+      if(typeof toastC==='function')
+        toastC('O Pix ainda não está disponível. Por enquanto, assine com o cartão.','warn');
+      return;
+    }
     if(r && r.erro==='ja_assina_cartao'){
       if(typeof toastC==='function')
         toastC('Você já tem uma assinatura ativa no cartão. O Pix fica para depois que ela acabar.','warn');

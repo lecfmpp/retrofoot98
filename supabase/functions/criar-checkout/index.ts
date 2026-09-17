@@ -271,6 +271,12 @@ Deno.serve(async (req) => {
     return resp(200, { url: sessao.url });
   } catch (e) {
     console.error("criar-checkout:", e);
+    /* Pix recusado pelo Stripe (meio de pagamento ainda nao ativo na conta): e' configuracao,
+       nao avaria — o cliente diz ao jogador para usar o cartao em vez de "tente de novo". */
+    const err = e as { param?: string; message?: string };
+    if (err?.param === "payment_method_types" || /payment method type provided: pix/i.test(err?.message || "")) {
+      return resp(503, { error: "O Pix ainda não está disponível.", motivo: "pix_indisponivel" });
+    }
     const msg = (e as Error)?.message || "Falha ao abrir o pagamento.";
     return resp(500, { error: msg });
   }
