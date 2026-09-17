@@ -23,6 +23,18 @@
    QUAL PLANO: do metadata do PRECO vendido, nao de um id escrito aqui. E' o
    mesmo principio da criar-checkout — preco novo com o mesmo metadata entra
    sozinho, sem publicar codigo.
+
+   UMA ASSINATURA POR CONTA (troca de plano). Quem sobe de Resenha para Embaixador
+   (ou desce) passa pelo Checkout de novo e ganha uma assinatura NOVA. Duas coisas
+   impedem que as duas convivam:
+   · no `checkout.session.completed`, as outras assinaturas vivas do mesmo cliente
+     sao canceladas na hora, com rateio — o que sobrou do periodo pago vira credito
+     no saldo do cliente e abate a proxima fatura da assinatura nova;
+   · a conta guarda QUAL assinatura manda (user_plans.note = "sub:<id>:<criada_em>").
+     Evento de uma assinatura mais velha do que essa e' ignorado: a renovacao, o
+     past_due ou o cancelamento da assinatura antiga nunca mais mexem no plano.
+     A comparacao e' pela data de criacao que vem no proprio evento — nao precisa
+     de ler nada no Stripe.
    ================================================================== */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -100,6 +112,72 @@ Deno.serve(async (req) => {
     const { data } = await admin.schema("elifoot_v3")
       .from("stripe_customers").select("user_id").eq("customer_id", cust).maybeSingle();
     return data?.user_id || null;
+  }
+
+  /* ===== QUAL ASSINATURA MANDA NA CONTA =====
+     O carimbo mora em user_plans.note: "sub:<id>:<unix da criacao>". Sem carimbo (conta de antes
+     desta regra, ou linha de outra origem) nao ha' com que comparar e o evento vale, como antes. */
+  type Carimbo = { id: string; t: number };
+  function lerCarimbo(note: string | null | undefined): Carimbo | null {
+    const m = /^sub:([^:]+):(\d+)$/.exec(String(note || ""));
+    return m ? { id: m[1], t: Number(m[2]) } : null;
+  }
+  const carimbar = (id: string, t: number) => `sub:${id}:${Math.floor(t)}`;
+
+  /* Decide se um evento de assinatura pode mexer no plano, e com que carimbo gravar.
+     Devolve null quando o evento e' de uma assinatura velha (ou quando um Pix mais novo que
+     ela esta' valendo) — nesse caso nao se grava nada. */
+  async function avaliarAssinatura(uid: string, sub: Stripe.Subscription):
+      Promise<{ note: string | null } | null> {
+    const { data: atual } = await admin.schema("elifoot_v3")
+      .from("user_plans").select("source,until,note,updated_at").eq("user_id", uid).maybeSingle();
+    const criada = Number(sub.created) || 0;
+
+    /* um Pix valido, pago DEPOIS de esta assinatura nascer, vale mais do que ela */
+    if (atual?.source === "stripe_pix" && atual.until &&
+        new Date(atual.until).getTime() > Date.now() &&
+        criada * 1000 < new Date(atual.updated_at || 0).getTime()) {
+      console.log(`evento de ${sub.id} ignorado: ${uid} tem Pix válido e mais novo`);
+      return null;
+    }
+
+    const c = lerCarimbo(atual?.note);
+    if (!c) {
+      /* sem carimbo: so' se carimba quem ja' e' linha de assinatura; linha de admin ou de outra
+         origem guarda o seu `note` (e' la' que fica escrito o porque da cortesia) */
+      if (atual?.source === "stripe" || !atual) return { note: carimbar(sub.id, criada) };
+      return { note: atual.note ?? null };
+    }
+    if (c.id === sub.id) return { note: atual!.note };
+    if (criada < c.t) {
+      console.log(`evento ignorado: ${sub.id} é mais velha que a assinatura atual ${c.id} de ${uid}`);
+      return null;
+    }
+    /* uma assinatura mais nova que a carimbada (ex.: o `updated` dela chegou antes do
+       `checkout.session.completed`) passa a mandar */
+    return { note: carimbar(sub.id, criada) };
+  }
+
+  /* ===== A ASSINATURA ANTIGA SAI QUANDO A NOVA ENTRA =====
+     Cancela as outras assinaturas vivas do cliente, com rateio: `prorate` gera o credito do tempo
+     que nao sera' usado e `invoice_now` fecha a conta ja', entao o credito cai no saldo do cliente
+     e abate a proxima cobranca da assinatura nova. Quem subiu de plano paga, no fim, so' a
+     diferenca — so' que no mes seguinte, nao no Checkout (que ainda cobra o preco cheio do novo).
+     Precisa de `subscription_read` (listar) e `subscription_write` (cancelar) na chave. Sem elas
+     falha AQUI, com log — e o plano novo entra na mesma: e' melhor cobrar em dobro por um erro
+     visivel no log do que deixar sem plano quem acabou de pagar. */
+  async function cancelarAntigas(customer: string, manter: string) {
+    try {
+      const lista = await stripe.subscriptions.list({ customer, status: "all", limit: 20 });
+      for (const velha of lista.data) {
+        if (velha.id === manter || !VIVOS.has(velha.status)) continue;
+        await stripe.subscriptions.cancel(velha.id, { prorate: true, invoice_now: true });
+        console.log(`assinatura antiga ${velha.id} cancelada (troca para ${manter})`);
+      }
+    } catch (e) {
+      console.error(`NAO CANCELOU a assinatura antiga do cliente ${customer} — cobrança em dobro até alguém cancelar no painel:`,
+        (e as Error)?.message);
+    }
   }
 
   async function gravar(uid: string, plano: string, until: string | null,
@@ -223,15 +301,29 @@ Deno.serve(async (req) => {
         if (!uid || !plano) { console.error("checkout sem dono ou sem plano", s.id); break; }
 
         let until: string | null = null;
+        /* a data de criacao da assinatura: sem ler o Stripe, a da sessao serve de piso — a
+           assinatura nasce depois dela, entao o carimbo nunca fica mais novo que a propria */
+        let criada = Number(s.created) || Math.floor(Date.now() / 1000);
         try {
           const sub = await stripe.subscriptions.retrieve(subId);
           until = fimDoPeriodo(sub);
+          criada = Number(sub.created) || criada;
         } catch (e) {
           /* tipicamente falta `subscription_read` na chave. NAO e' motivo para recusar o evento:
              o plano entra na mesma e o prazo vem no evento seguinte. */
           console.error("sem ler a assinatura (segue sem prazo):", (e as Error)?.message);
         }
-        await gravar(uid, plano, until);
+        /* reenvio de um checkout antigo nao pode tomar o lugar de uma assinatura mais nova */
+        const { data: atual } = await admin.schema("elifoot_v3")
+          .from("user_plans").select("note").eq("user_id", uid).maybeSingle();
+        const c = lerCarimbo(atual?.note);
+        if (c && c.id !== subId && c.t > criada) {
+          console.log(`checkout ${s.id} ignorado: ${uid} já tem assinatura mais nova (${c.id})`);
+          break;
+        }
+        await gravar(uid, plano, until, "stripe", carimbar(subId, c?.id === subId ? c.t : criada));
+        const cust = typeof s.customer === "string" ? s.customer : s.customer?.id;
+        if (cust) await cancelarAntigas(cust, subId);
         break;
       }
 
@@ -240,12 +332,14 @@ Deno.serve(async (req) => {
         const uid = await donoDa(sub);
         const plano = planoDaAssinatura(sub);
         if (!uid) { console.error("assinatura sem dono", sub.id); break; }
+        const ok = await avaliarAssinatura(uid, sub);
+        if (!ok) break;
         if (VIVOS.has(sub.status) && plano) {
-          await gravar(uid, plano, fimDoPeriodo(sub));
+          await gravar(uid, plano, fimDoPeriodo(sub), "stripe", ok.note);
         } else {
           /* Nao apaga a linha: deixa o registo de que ja' foi assinante, com o
              plano rebaixado. `free` e' o que plano_limites le'. */
-          await gravar(uid, "free", null);
+          await gravar(uid, "free", null, "stripe", ok.note);
         }
         break;
       }
@@ -254,7 +348,11 @@ Deno.serve(async (req) => {
         const sub = evento.data.object as Stripe.Subscription;
         const uid = await donoDa(sub);
         if (!uid) { console.error("cancelamento sem dono", sub.id); break; }
-        await gravar(uid, "free", null);
+        /* o cancelamento da assinatura ANTIGA (feito por cancelarAntigas, numa troca de plano)
+           chega aqui tambem — e e' ignorado, porque ela e' mais velha que a carimbada */
+        const ok = await avaliarAssinatura(uid, sub);
+        if (!ok) break;
+        await gravar(uid, "free", null, "stripe", ok.note);
         break;
       }
 
