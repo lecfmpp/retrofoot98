@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { cpSync } from 'node:fs';
+import { cpSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 // Marco 1 da reestruturação (ver relatorios/ e o plano de arquitetura): só bootstrap
@@ -41,6 +41,15 @@ export default defineConfig({
         // puro, sem nada para empacotar, e o que importa nela são as meta tags do cartão
         // do WhatsApp — passar pelo bundler só arriscava reescrevê-las (ver o ficheiro).
         for(const f of ['robots.txt', 'sitemap.xml', 'llms.txt', 'ads.txt', 'convite.html']){
+          cpSync(resolve(__dirname, 'public/'+f), resolve(__dirname, 'dist/'+f));
+        }
+        /* CHAVE DO INDEXNOW — por PADRÃO, não pelo nome. O ficheiro chama-se <chave>.txt
+           (32 hex), e o buscador vai buscá-lo à raiz do domínio para confirmar que quem
+           submeteu controla o site. Listá-lo pelo nome aqui obrigaria a mexer no build a
+           cada rotação de chave — e esquecer disso não dá erro nenhum no build: dá uma
+           submissão recusada em silêncio, semanas depois, porque o catch-all do Firebase
+           devolve 200 com o index.html para o ficheiro que sumiu. Ver seo/indexnow.mjs. */
+        for(const f of readdirSync(resolve(__dirname, 'public')).filter(n=>/^[0-9a-f]{32}\.txt$/.test(n))){
           cpSync(resolve(__dirname, 'public/'+f), resolve(__dirname, 'dist/'+f));
         }
       },

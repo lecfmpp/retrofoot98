@@ -35,7 +35,7 @@ export const pages = [
 
   // ======================= PÁGINA-PILAR: HISTÓRIA =======================
   {
-    slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-09-18',
+    slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-09-20',
     title: 'Elifoot, Brasfoot e RetroFoot: a história do manager de futebol no Brasil',
     description: 'Do ZX Spectrum de 1987 à resenha online: como Elifoot e Brasfoot criaram a escola brasileira do jogo de treinador — e o que o RetroFoot faz hoje no navegador, de graça e com os amigos.',
     h1: 'A história do manager de futebol no Brasil — e o capítulo que o RetroFoot escreve agora',
@@ -163,7 +163,7 @@ hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui
   },
   // ======================= P1: ELIFOOT ONLINE =======================
   {
-    slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-09-18',
+    slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-09-20',
     title: 'Manager de futebol online e grátis: jogue o RetroFoot no navegador',
     description: 'Procurando um manager de futebol para jogar online? O RetroFoot abre no navegador, é de graça, tem clubes brasileiros da Série A à D e um modo para jogar com a sua turma. Sem baixar, sem instalar.',
     h1: 'Manager de futebol online: jogue no navegador, de graça',
@@ -428,7 +428,7 @@ clubes, o mesmo calendário e as mesmas competições — muda quem entra em cam
 
   // ======================= P1: JOGAR COM AMIGOS =======================
   {
-    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-18',
+    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-20',
     title: 'Jogar manager de futebol com amigos: o Modo Resenha do RetroFoot',
     description: 'No Modo Resenha do RetroFoot, até 10 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Grátis para experimentar.',
     h1: 'Modo Resenha: um campeonato de verdade com a sua turma',
