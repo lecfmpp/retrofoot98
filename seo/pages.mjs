@@ -709,7 +709,7 @@ coleção</strong> — e essa comunidade é um patrimônio que nenhum jogo compr
     <tr><td>Curva de aprendizado</td><td>Baixa (entende em minutos)</td><td>Média</td><td>Baixa</td></tr>
     <tr><td>Ligas jogáveis</td><td>Varia por edição</td><td><strong>Muitas — é o forte dele</strong></td><td>Só o Brasil (4 divisões); mercado mundial</td></tr>
     <tr><td>Elencos atualizados</td><td>Por versão</td><td><strong>Patches da comunidade</strong></td><td>Atualização do próprio jogo</td></tr>
-    <tr><td>Jogar com amigos</td><td>É a alma do jogo</td><td>Presente</td><td>Modo Resenha: até 8, online, cada um no seu aparelho</td></tr>
+    <tr><td>Jogar com amigos</td><td>É a alma do jogo</td><td>Presente</td><td>Modo Resenha: até 10, online, cada um no seu aparelho</td></tr>
     <tr><td>Precisa instalar?</td><td>Sim (PC)</td><td>Sim (PC/celular)</td><td><strong>Não — roda no navegador</strong></td></tr>
     <tr><td>Onde fica o save</td><td>No computador</td><td>No aparelho</td><td>Na nuvem — continua em qualquer tela</td></tr>
   </tbody>

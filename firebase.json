@@ -4,9 +4,12 @@
       "//": "SITE DO JOGO — retrofoot.com.br. Nada aqui mudou com o painel: o admin saiu para um site próprio.",
       "target": "jogo",
       "public": "dist",
+      "//ignore": "'**/.*' apagaria a pasta .well-known INTEIRA do deploy, porque ela comeca por ponto — e o sintoma nao seria um 404: seria o catch-all a devolver index.html com 200 para /.well-known/ai-catalog.json, ou seja, HTML onde o agente espera JSON. Por isso o ignore passa a nomear o que nao se quer, em vez de apanhar tudo o que comeca por ponto.",
       "ignore": [
         "firebase.json",
-        "**/.*",
+        "**/.DS_Store",
+        "**/.git/**",
+        "**/.env*",
         "**/node_modules/**"
       ],
       "rewrites": [
@@ -90,6 +93,35 @@
             {
               "key": "Content-Type",
               "value": "application/xml; charset=utf-8"
+            }
+          ]
+        },
+        {
+          "//": "A VERSAO MARKDOWN DE CADA PAGINA (ver seo/markdown.mjs). Sem isto o Firebase serve .md como text/plain, e quem pede por agente nao sabe que recebeu markdown.",
+          "source": "**/*.md",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "text/markdown; charset=utf-8"
+            }
+          ]
+        },
+        {
+          "//": "ARD e indice de skills. O CORS aberto e' exigencia da especificacao do ai-catalog: o registo que o le corre noutra origem.",
+          "source": "/.well-known/**",
+          "headers": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            }
+          ]
+        },
+        {
+          "source": "/.well-known/**/*.json",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
             }
           ]
         }

@@ -17,7 +17,11 @@ import { legal } from '../seo/legal.mjs';
    comercial de largura inteira, com desenho proprio (`css`) e sem a barra branca do site
    (soMiolo) — mantem a casca do site e corta so' a mobilia de artigo. */
 import { mediaKit } from '../seo/media-kit.mjs';
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+/* A versão markdown de cada página, para quem lê por agente (ver seo/markdown.mjs). */
+import { paginaMarkdown, restos } from '../seo/markdown.mjs';
+/* O que um agente encontra sozinho em /.well-known/ (ver seo/well-known.mjs). */
+import { aiCatalog, agentSkillsIndex } from '../seo/well-known.mjs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync, copyFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -172,6 +176,10 @@ function pageHtml(p){
 <meta name="description" content="${esc(p.description)}">
 <meta name="robots" content="${p.legal?'index, follow':'index, follow, max-image-preview:large'}">
 ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link rel="canonical" href="${url}">
+${p.soMiolo?'':`<!-- A MESMA PÁGINA EM MARKDOWN, para quem lê por agente. É assim que ela se
+     descobre: o Firebase serve ficheiro estático e não faz negociação por
+     \`Accept: text/markdown\`, então o alternate é um ficheiro de verdade. -->
+<link rel="alternate" type="text/markdown" href="${url}index.md" title="Esta página em Markdown">`}
 <meta name="theme-color" content="#2f8f2f">
 <link rel="icon" type="image/webp" href="/img/logo.webp">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
@@ -446,12 +454,45 @@ function sitemapXml(ready){
 // ---- build ----
 if(!existsSync(DIST)){ console.error('dist/ não existe — rode `vite build` antes.'); process.exit(1); }
 const ready = [...pages, ...legal, ...mediaKit].filter(p=>p.ready);
+const tagsPerdidas = new Set();
 for(const p of ready){
   const dir = resolve(DIST, p.slug);
   mkdirSync(dir, { recursive:true });
   writeFileSync(resolve(dir, 'index.html'), pageHtml(p));
+  /* MARKDOWN AO LADO DO HTML. O media kit fica de fora: é uma página comercial de
+     desenho próprio (soMiolo), sem a estrutura de artigo que o conversor espera —
+     sairia um markdown que não descreve nem a página nem o produto. */
+  if(!p.soMiolo){
+    const md = paginaMarkdown(p, SITE);
+    writeFileSync(resolve(dir, 'index.md'), md);
+    restos(md).forEach(t=>tagsPerdidas.add(t));
+  }
   console.log((p.legal?'LEGAL':p.css?'PAGINA':'SEO  ') + ' ✓ /' + p.slug + '/');
 }
+/* TAG QUE O CONVERSOR NÃO CONHECE SAI COMO TEXTO COLADO, e markdown estragado não
+   quebra build nenhum — por isso ele tem de reclamar aqui, alto. */
+if(tagsPerdidas.size){
+  console.warn('SEO   ⚠ markdown: tags não convertidas —', [...tagsPerdidas].join(', '),
+               '(ver seo/markdown.mjs)');
+}
+/* ===== /.well-known/ — ARD e índice de skills =====
+   As `representativeQueries` saem das `keywords` da própria página: são os termos
+   de busca que ela já se propõe a responder. Inventar uma lista à parte daria duas
+   verdades sobre a mesma página, e a segunda envelheceria primeiro. */
+const paraCatalogo = pages.filter(p=>p.ready && !p.soMiolo).map(p=>({
+  slug: p.slug, h1: p.h1, description: p.description,
+  queries: String(p.keywords||'').split(',').map(k=>k.trim()).filter(Boolean).slice(0,4),
+}));
+const WK = resolve(DIST, '.well-known');
+mkdirSync(resolve(WK, 'agent-skills', 'markdown'), { recursive:true });
+const SKILL_SRC = resolve(ROOT, 'public', '.well-known', 'agent-skills', 'markdown', 'SKILL.md');
+copyFileSync(SKILL_SRC, resolve(WK, 'agent-skills', 'markdown', 'SKILL.md'));
+writeFileSync(resolve(WK, 'ai-catalog.json'),
+  JSON.stringify(aiCatalog({ site: SITE, host: SITE.replace(/^https?:\/\//,''), paginas: paraCatalogo }), null, 2));
+writeFileSync(resolve(WK, 'agent-skills', 'index.json'),
+  JSON.stringify(agentSkillsIndex({ site: SITE, skillPath: SKILL_SRC }), null, 2));
+console.log('AGENT ✓ /.well-known/ai-catalog.json (' + (paraCatalogo.length+3) + ' entradas) + agent-skills/index.json');
+
 writeFileSync(resolve(DIST, 'sitemap.xml'), sitemapXml(ready));
 // mantém public/sitemap.xml em sincronia (fonte que o Vite copia em builds futuros)
 try{ writeFileSync(resolve(ROOT, 'public', 'sitemap.xml'), sitemapXml(ready)); }catch(e){}
