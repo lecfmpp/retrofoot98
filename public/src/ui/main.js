@@ -1004,16 +1004,16 @@ const LANDING_FOOT=[['sobre','Sobre nós'],['contato','Contato'],['termos','Term
    propósito — o título de SEO é longo por natureza e não cabe num rodapé.
    Se uma página nova entrar em seo/pages.mjs sem entrar aqui, o build avisa (ver build-seo.mjs). */
 const LANDING_PAGINAS=[
-  ['guia','Guia do jogo','Formações por divisão, como fazer dinheiro no mercado e subir de série.'],
-  ['ranking','Ranking de treinadores','Como funcionam os pontos de carreira e os troféus.'],
-  ['historia-do-elifoot','História do Elifoot','Do disquete de 1994 à resenha online — a trajetória do clássico.'],
-  ['elifoot-online','Elifoot online','Jogue no navegador, de graça, sem instalar nada.'],
-  ['jogar-com-amigos','Jogar com amigos','O Modo Resenha: um campeonato com a sua turma, na mesma semana.'],
+  ['guia','Guia do jogo','Formações por situação, como fazer dinheiro no mercado e subir de série.'],
+  ['ranking','Ranking de treinadores','Como os pontos de carreira e o peso de cada título são contados.'],
+  ['historia-do-elifoot','História do manager','De 1987 à resenha online: Elifoot, Brasfoot e o RetroFoot.'],
+  ['elifoot-online','Jogar no navegador','Sem baixar e sem instalar — o Modo Solo é de graça.'],
+  ['jogar-com-amigos','Jogar com amigos','O Modo Resenha: até 8 treinadores na mesma liga, online.'],
   ['manager-futebol-brasileiro','Futebol brasileiro','Séries A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana.'],
-  ['jogo-treinador-futebol-online','Jogo de treinador','Elencos reais, tática, mercado e partida ao vivo.'],
-  ['melhores-jogos-treinador-futebol','Melhores jogos de treinador','O que existe hoje, grátis e online, e onde cada um se sai melhor.'],
-  ['jogos-parecidos-com-elifoot','Jogos parecidos com o Elifoot','Alternativas para quem procura aquela mesma pegada.'],
-  ['elifoot-vs-brasfoot','Elifoot vs Brasfoot','Um comparativo honesto entre os dois clássicos.'],
+  ['jogo-treinador-futebol-online','Jogo de treinador','Elencos reais, tática, mercado mundial e partida ao vivo.'],
+  ['melhores-jogos-treinador-futebol','Melhores jogos de treinador','O que existe hoje, e qual combina com o tempo que você tem.'],
+  ['jogos-parecidos-com-elifoot','Jogos parecidos com o Elifoot','O que faz um jogo ter essa pegada — e onde achar hoje.'],
+  ['elifoot-vs-brasfoot','Elifoot vs Brasfoot','As duas escolas do manager brasileiro, comparadas sem torcida.'],
 ];
 /* ===== AS PAGINAS LEGAIS SAO OUTRA LISTA =====
    Nao entram em LANDING_PAGINAS de proposito: aquela lista alimenta TAMBEM a grelha "Conheca o

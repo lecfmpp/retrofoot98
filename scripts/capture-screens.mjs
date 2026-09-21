@@ -5,7 +5,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const URL = 'http://localhost:5173/';
+const URL = process.env.RF_URL || 'http://localhost:5199/';
 const OUT = resolve(process.cwd(), 'screenshots-atual');
 mkdirSync(OUT, { recursive: true });
 

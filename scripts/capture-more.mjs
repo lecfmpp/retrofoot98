@@ -5,8 +5,8 @@ import puppeteer from 'puppeteer-core';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const URL='http://localhost:5173/';
-const OUT=resolve(process.cwd(),'screenshots-atual'); mkdirSync(OUT,{recursive:true});
+const URL=process.env.RF_URL||'http://localhost:5199/';
+const OUT=resolve(process.cwd(),'screenshots-catalogo'); mkdirSync(OUT,{recursive:true});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let n=42; const log=(...a)=>console.log('  ',...a);
 const browser=await puppeteer.launch({ executablePath:CHROME, headless:'new',
@@ -14,30 +14,38 @@ const browser=await puppeteer.launch({ executablePath:CHROME, headless:'new',
   defaultViewport:{width:1320,height:860} });
 const page=await browser.newPage();
 page.on('pageerror',e=>console.log('  [pageerror]',String(e).slice(0,120)));
-await page.goto(URL,{waitUntil:'networkidle2',timeout:60000}); await sleep(1500);
+await page.goto(URL+'?rf=hub',{waitUntil:'networkidle2',timeout:60000}); await sleep(3500);
 async function shot(name){ n++; const label=String(n).padStart(2,'0')+' - '+name;
   try{ await page.evaluate(()=>{ const t=document.getElementById('c-toast'); if(t) t.replaceChildren(); }); }catch(e){}
   await page.screenshot({path:resolve(OUT,label+'.png')}); log('📸',label,'| screen=',await page.evaluate(()=>typeof CL!=='undefined'?CL.screen:'?')); }
 async function run(fn,wait=600){ try{ await page.evaluate(fn); }catch(e){ log('(evaluate falhou)',String(e).slice(0,90)); } await sleep(wait); }
 
-// ---- SETUP -> main ----
-await run(()=>clGoModo()); await run(()=>clPickSolo()); await run(()=>clSoloNew());
-await run(()=>{ CL.save='MR01'; clModoOk(); },900);
-await run(()=>clPaisesOk(),900);
-if(await page.evaluate(()=>CL.screen==='paisJogavel')) await run(()=>clPaisJogavelOk(),900);
-if(await page.evaluate(()=>CL.screen==='moeda')) await run(()=>clMoedaOk(),900);
-await run(()=>{ CL.names=['VOCE']; if(typeof clEscolherClubes==='function') clEscolherClubes(); },3500);
-await run(()=>{ if(typeof clSortearStart==='function') clSortearStart(); },3500);
-let skipped=false;
-for(let i=0;i<50 && await page.evaluate(()=>CL.screen!=='main'); i++){
-  if(await page.evaluate(()=>CL.screen==='cupdraw')&&!skipped){ skipped=true; await run(()=>{ if(typeof clCupDrawSkip==='function') clCupDrawSkip(); },400); }
-  await run(()=>{ if((CL.screen==='classif'||CL.screen==='seatclassif')&&typeof clClassifContinue==='function') clClassifContinue(); },400);
-}
-await sleep(2500); log('estado:', await page.evaluate(()=>CL.screen));
+/* ENTRA-SE PELO ATALHO DE BANCADA (?rf=hub), NAO PELO ASSISTENTE.
+   Estes scripts percorriam os sete passos do onboarding chamando clGoModo/clPickSolo/... a
+   cada corrida. O assistente foi redesenhado em 20/08 e ganhou um passo novo (Modalidade,
+   masculino ou feminino): a sequencia antiga passa por ele sem responder e encalha em
+   'boasvindas' — a partida nunca abria e o script saia sem tirar foto nenhuma dos eventos.
+   O ?rf=hub monta um save descartavel da Serie D e cai direto no jogo, que e' exatamente o
+   ponto de partida de que estas capturas precisam. Quem fotografa o assistente, e le a regua
+   na propria pagina em vez de adivinhar a ordem, e' o scripts/capture-wizard.mjs. */
+log('estado:', await page.evaluate(()=>typeof CL!=='undefined'?CL.screen:'?'));
 
 // ---- INICIA PARTIDA ----
 await run(()=>{ try{ if(typeof autoXI==='function'&&CL.clubId) S.xi=autoXI(CL.clubId); }catch(e){} CL.tacticChosen=true; CL.formation=CL.formation||'4-4-2'; },300);
-await run(()=>{ if(typeof clJogar==='function') clJogar(); },2500);
+/* ATE O CAMPO, E NAO UM CLIQUE SO. O botao "Jogar" e' uma ESCADA (ver rfProximaAcao em
+   rf26.js): num dia de sorteio ele abre o sorteio, num dia de classificacao abre a tabela,
+   e so' depois disso e' que leva a campo. O clique unico que estava aqui parava no primeiro
+   degrau -- a corrida saia com "partida nao abriu" sempre que a rodada tivesse copa pela
+   frente, que e' precisamente a rodada 1 de qualquer save novo. */
+for(let i=0;i<40 && !(await page.evaluate(()=>CL.screen==='live')); i++){
+  await run(()=>{
+    if(CL.screen==='cupdraw' && typeof clCupDrawSkip==='function') return clCupDrawSkip();
+    if((CL.screen==='classif'||CL.screen==='seatclassif') && typeof clClassifContinue==='function') return clClassifContinue();
+    if(typeof rfJogar==='function') return rfJogar();
+    if(typeof clJogar==='function') return clJogar();
+  }, 700);
+}
+await sleep(1500);
 const inLive=await page.evaluate(()=>CL.screen==='live');
 if(inLive){
   await sleep(2000);

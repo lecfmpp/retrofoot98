@@ -35,9 +35,12 @@ const LOGO = SITE + '/img/logo.webp';
 
 /* rotulos curtos do rodape, iguais aos de LANDING_PAGINAS em public/src/ui/main.js */
 const CURTO = {
-  'guia':'Guia do jogo', 'ranking':'Ranking de treinadores',
-  'historia-do-elifoot':'História do Elifoot', 'elifoot-online':'Elifoot online',
-  'jogar-com-amigos':'Jogar com amigos', 'manager-futebol-brasileiro':'Futebol brasileiro',
+  'guia':'Guia do jogo',
+  'ranking':'Ranking de treinadores',
+  'historia-do-elifoot':'História do manager',
+  'elifoot-online':'Jogar no navegador',
+  'jogar-com-amigos':'Jogar com amigos',
+  'manager-futebol-brasileiro':'Futebol brasileiro',
   'jogo-treinador-futebol-online':'Jogo de treinador',
   'melhores-jogos-treinador-futebol':'Melhores jogos de treinador',
   'jogos-parecidos-com-elifoot':'Jogos parecidos com o Elifoot',
@@ -45,15 +48,23 @@ const CURTO = {
 };
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-// Remove <figure> cuja imagem real ainda NÃO existe em public/img/seo/. Assim nunca sai imagem
-// quebrada nem screenshot errado no ar: as figuras aparecem sozinhas quando o .webp real for
-// adicionado com o nome certo. (Regra: usar SÓ screenshots reais e atuais do RetroFoot.)
-function stripMissingFigures(html){
+/* Remove <figure> cuja imagem real ainda NÃO existe, para nunca sair imagem quebrada no ar.
+   (Regra: usar SÓ screenshots reais e atuais do RetroFoot — ver scripts/capture-catalogo.mjs.)
+
+   ESTA REDE ESTAVA DESLIGADA, E EM SILÊNCIO. Ela procurava `/img/seo/`, uma pasta que nunca
+   existiu e que nenhuma figura cita desde que as imagens passaram para `/img/telas/`: o regex
+   não casava com nada, toda figura voltava intacta e uma imagem inexistente ia ao ar como
+   quadrado quebrado. Pior: quando o caminho ERA esse, a rede fazia o oposto do que o nome
+   promete — apagava as dez páginas inteiras de figuras sem avisar ninguém.
+   Agora ela confere o caminho de verdade E RECLAMA em vez de sumir calada: figura que falta
+   vira aviso no build, porque página sem imagem é problema para resolver, não para esconder. */
+function stripMissingFigures(html, slug){
   return html.replace(/<figure>[\s\S]*?<\/figure>/g, block => {
-    const m = block.match(/src="\/img\/seo\/([^"]+)"/);
+    const m = block.match(/src="\/img\/telas\/([^"]+)"/);
     if(!m) return block;
-    const file = resolve(ROOT, 'public', 'img', 'seo', m[1]);
-    return existsSync(file) ? block : '';
+    if(existsSync(resolve(ROOT, 'public', 'img', 'telas', m[1]))) return block;
+    console.warn(`SEO   ⚠ /${slug||'?'}/ — figura sem arquivo: public/img/telas/${m[1]} (rode scripts/otimizar-telas.sh)`);
+    return '';
   });
 }
 
@@ -105,8 +116,12 @@ function refsHtml(p){
       <span class="refcard-d">${esc(r.desc)}</span>
       <span class="refcard-u">${esc(String(r.url).replace(/^https?:\/\//,'').replace(/\/$/,''))} ↗</span>
     </a>`).join('');
-  return `<section class="refs"><h2 id="onde-conhecer-os-originais">Onde conhecer os originais</h2>
-    <p>Os sites oficiais de cada jogo citado — vale conhecer a fonte.</p>
+  /* "OS CLÁSSICOS DO GÊNERO", E NÃO "OS ORIGINAIS". O título antigo dizia, sem querer, que o
+     RetroFoot é a cópia e os outros são o original — que é exatamente o enquadramento que o
+     site deixou de fazer: o RetroFoot é jogo próprio, e Elifoot e Brasfoot são os clássicos
+     que abriram o caminho. O `id` acompanha, porque ele aparece em âncora de link. */
+  return `<section class="refs"><h2 id="os-classicos-do-genero">Os clássicos do gênero</h2>
+    <p>Os sites oficiais de cada jogo citado — vale conhecer cada um na fonte.</p>
     <div class="refgrid">${cards}</div></section>`;
 }
 function pageHtml(p){
@@ -378,7 +393,7 @@ ${p.css||''}
        aparecia ACIMA da abertura, antes de o visitante ver o que a pagina e' — um sumario
        de acordeoes por cima de uma capa. Quem traz soMiolo desenha o seu proprio topo. -->
   ${p.soMiolo?'':indiceHtml(p.body||'')}
-  <article${p.legal?' class="legal"':''}>${envolveTabelas(ancoraH2(stripMissingFigures(p.body||'')))}</article>
+  <article${p.legal?' class="legal"':''}>${envolveTabelas(ancoraH2(stripMissingFigures(p.body||'', p.slug)))}</article>
   ${(p.legal||p.soMiolo)?'':refsHtml(p)}
   ${(p.legal||p.soMiolo)?'':faqHtml(p)}
   ${(p.legal||p.soMiolo)?'':'<div class="playbar"><a class="cta" href="/">▶ Jogar de graça no navegador</a></div>'}

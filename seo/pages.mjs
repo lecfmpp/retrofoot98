@@ -5,46 +5,67 @@
 // Copy em rascunho para revisão (foco nostalgia + features + comparação "antes x agora").
 // ============================================================================
 
-/* FIGURAS: apontam para as capturas REAIS do jogo (public/img/telas) — as mesmas do carrossel da
-   home, geradas com o jogo rodando, não de mock. Antes apontavam pra /img/seo/, pasta que nunca
-   existiu: o gerador apagava toda figura sem arquivo, e as dez páginas iam ao ar SEM UMA IMAGEM.
-   Nomes disponíveis: hub · formacao · classificacao · leilao · copa · partida. */
-const fig = (img, cap, alt) => `<figure><img src="/img/telas/${img}.webp" alt="${alt||cap}" width="1280" height="800" loading="lazy" decoding="async"><figcaption>${cap}</figcaption></figure>`;
+/* FIGURAS: apontam para as capturas REAIS do jogo (public/img/telas) — geradas com o jogo
+   rodando, não de mock. Antes apontavam pra /img/seo/, pasta que nunca existiu: o gerador
+   apagava toda figura sem arquivo, e as dez páginas iam ao ar SEM UMA IMAGEM.
+
+   A PASTA É GERADA, NÃO É ACERVO À MÃO: scripts/capture-catalogo.mjs fotografa cada página e
+   cada aba do jogo, e scripts/otimizar-telas.sh converte as escolhidas para cá com estes
+   nomes curtos. Quem renomear um nome aqui tem de renomear lá — e o erro não aparece no
+   build, aparece como página sem imagem.
+
+   Nomes disponíveis (todos 1600×1000, salvo nota):
+     hub · formacao · elenco · ficha-jogador · base · treino
+     mercado · leilao · financas · estadio · patrocinio · email
+     campeonatos: copa · calendario · classificacao · artilharia
+     treinador: carreira · trofeus · ranking
+     partida: partida · penalti · substituicao · disputa-penaltis · pos-rodada · camarote
+     resenha: sala-resenha · resenha-criar · resenha-entrar · chat-resenha (retrato, 592×674)
+
+   O TAMANHO É DECLARADO PORQUE ELE RESERVA O ESPAÇO: sem width/height o texto salta quando a
+   imagem chega (é o CLS que o PageSpeed cobra). Mas declarar 1280×800 para TODAS era mentir
+   sobre as que não são 8:5 — o painel do chat é retrato e saía esticado. Daí o terceiro
+   argumento: `fig('chat-resenha', 'legenda', {w:592,h:674})`. */
+const fig = (img, cap, dim, alt) => {
+  const w=(dim&&dim.w)||1280, h=(dim&&dim.h)||800;
+  return `<figure><img src="/img/telas/${img}.webp" alt="${alt||cap}" width="${w}" height="${h}" loading="lazy" decoding="async"><figcaption>${cap}</figcaption></figure>`;
+};
 
 export const pages = [
 
   // ======================= PÁGINA-PILAR: HISTÓRIA =======================
   {
-    slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-09-06',
-    title: 'A História do Elifoot e dos Jogos de Treinador de Futebol',
-    description: 'Do ZX Spectrum de 1987 à febre brasileira: a história do Elifoot, de André Elias e a evolução dos jogos de manager de futebol — até renascer online no RetroFoot.',
-    h1: 'A história do Elifoot: do disquete à resenha online',
-    keywords: 'historia do elifoot, elifoot criador, elifoot andre elias, elifoot quando foi lançado, elifoot 2, elifoot o que é, elifoot acabou',
+    slug: 'historia-do-elifoot', ready: true, priority: 1.0, lastmod: '2026-09-18',
+    title: 'Elifoot, Brasfoot e RetroFoot: a história do manager de futebol no Brasil',
+    description: 'Do ZX Spectrum de 1987 à resenha online: como Elifoot e Brasfoot criaram a escola brasileira do jogo de treinador — e o que o RetroFoot faz hoje no navegador, de graça e com os amigos.',
+    h1: 'A história do manager de futebol no Brasil — e o capítulo que o RetroFoot escreve agora',
+    keywords: 'historia do elifoot, elifoot criador, elifoot andre elias, elifoot quando foi lançado, elifoot 2, brasfoot, retrofoot, jogo de treinador de futebol, manager de futebol brasileiro',
     resumo: [
-      'O <strong>Elifoot</strong> foi criado pelo português <strong>André Elias</strong> e estreou em <strong>1987</strong>, no ZX Spectrum.',
-      'A febre brasileira começou em <strong>1998</strong>, com times e elencos nacionais no jogo.',
+      'O gênero <em>manager</em> chegou ao Brasil pelo <strong>Elifoot</strong>, de <strong>André Elias</strong>, que estreou em <strong>1987</strong> no ZX Spectrum.',
+      'A febre nacional veio a partir de <strong>1998</strong>; depois o <strong>Brasfoot</strong> fundou a outra escola, a das muitas ligas e dos patches da comunidade.',
       'A alma nunca foi o gráfico: era escalar, negociar e <strong>resenhar com os amigos</strong>.',
-      'O <strong>RetroFoot</strong> retoma essa pegada no navegador, online e de graça.',
+      'O <strong>RetroFoot</strong> é o capítulo online dessa escola — jogo próprio, no navegador, de graça, com carreira, ranking de treinadores e a turma na mesma rodada.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'A página do próprio André Elias, criador do Elifoot, com as versões do jogo.', url:'https://www.elifoot.com/' },
-      { nome:'Brasfoot', desc:'O outro clássico brasileiro do gênero, com temporadas e patches da comunidade.', url:'https://www.brasfoot.com/' },
+      { nome:'Brasfoot (site oficial)', desc:'O clássico brasileiro das muitas ligas, com temporadas e patches da comunidade.', url:'https://www.brasfoot.com/' },
     ],
     faq: [
+      { q:'O que é o RetroFoot?', a:'<p>É um <strong>jogo de treinador de futebol que roda no navegador</strong>, de graça: você comanda um clube brasileiro da Série A à Série D, escala, negocia no mercado, cuida do caixa e do estádio, e disputa liga, Copa do Brasil e as continentais. Dá para jogar no <strong>Modo Solo</strong>, contra a máquina, ou no <strong>Modo Resenha</strong>, com a sua turma — cada um no seu aparelho. <a href="/">Abra e comece</a>.</p>' },
+      { q:'O RetroFoot é o Elifoot?', a:'<p>Não. O RetroFoot é um <strong>jogo próprio</strong>, escrito do zero, sem ligação com o Elifoot nem com o Brasfoot. O que ele tem em comum com eles é a escola: o prazer de ser o técnico, decidir e resenhar. O Elifoot segue com o criador dele, e o Brasfoot com o dele — os dois links estão logo abaixo.</p>' },
       { q:'Quem criou o Elifoot?', a:'<p>O português <strong>André Elias</strong>, programador (e piloto de avião), que lançou a primeira versão em 1987 no ZX Spectrum e seguiu atualizando o jogo por décadas.</p>' },
       { q:'Em que ano o Elifoot foi lançado?', a:'<p>A primeira versão é de <strong>1987</strong>. O "Elifoot II" saiu em 1989, e a explosão no Brasil veio a partir de <strong>1998</strong>, quando o jogo ganhou clubes e elencos brasileiros.</p>' },
-      { q:'O Elifoot acabou?', a:'<p>Não. O jogo original seguiu recebendo versões, e o gênero está mais vivo do que nunca — inclusive em versões online e gratuitas como o RetroFoot, que roda direto no navegador.</p>' },
-      { q:'Dá para jogar Elifoot online hoje?', a:'<p>Dá para jogar um manager com a mesma pegada sem instalar nada: o <a href="/elifoot-online/">RetroFoot roda no navegador</a>, no celular ou no PC, sozinho ou com amigos.</p>' },
+      { q:'O Elifoot acabou?', a:'<p>Não. O jogo original seguiu recebendo versões, e o gênero está mais vivo do que nunca. Se o que você procura é jogar hoje, sem instalar nada, o <a href="/elifoot-online/">RetroFoot abre no navegador</a>.</p>' },
     ],
         body: `
-<p class="lead">Tem um jogo que marcou gerações de brasileiros que gostam de futebol e de mexer com números:
-o <strong>Elifoot</strong>. Se você é dessa turma, senta que lá vem história — e no fim ela desemboca num lugar
-que talvez você estivesse esperando faz tempo.</p>
+<p class="lead">No Brasil, quem gosta de futebol e de mexer com números tem uma história em comum: em algum momento
+sentou na frente de uma tela para <strong>ser o técnico</strong>, e não o jogador. Essa história tem nomes conhecidos —
+<strong>Elifoot</strong>, <strong>Brasfoot</strong> — e um capítulo que está sendo escrito agora, no navegador.</p>
 
-<h2>Antes do Elifoot: os jogos de treinador</h2>
+<h2>Antes de tudo: o gênero de quem prefere o banco ao gramado</h2>
 <p>No fim dos anos 80, quase todo videogame de futebol era sobre <em>jogar a bola</em> — chutar, driblar, defender.
-Mas existia uma turma que curtia o outro lado: <strong>ser o técnico</strong>. Montar o elenco, escolher a tática,
-decidir quem compra, quem vende, quem entra em campo. É o gênero <em>manager</em>, e foi nele que o Elifoot virou lenda.</p>
+Mas existia uma turma que curtia o outro lado: montar o elenco, escolher a tática, decidir quem compra, quem vende,
+quem entra em campo. É o gênero <em>manager</em>, e foi no Brasil que ele criou raiz mais funda.</p>
 
 <h2>1987: um Spectrum, umas cassetes e um piloto de avião</h2>
 <p>O Elifoot foi criado pelo português <strong>André Elias</strong> — programador e, curiosamente, piloto de avião.
@@ -54,286 +75,513 @@ do técnico.</p>
 <p>Dois anos depois veio o <strong>"Elifoot II"</strong> — que era pra ter sido o fim da linha. André ia focar nos estudos
 e deixar os jogos de lado.</p>
 
-${fig('hub', 'A cara retrô continua — a tela de abertura do RetroFoot')}
-
 <h2>1996: a faixa do Palmeiras que mudou tudo</h2>
 <p>Passaram-se anos. Em 1996, numa busca rápida pela internet, André Elias resolveu ver o que tinha acontecido com aquele
 joguinho antigo. Descobriu que o <strong>Elifoot continuava vivo — e tinha explodido no Brasil</strong>. O estalo veio ao ver,
 num jogo do Brasileirão, uma faixa da torcida do Palmeiras com os dizeres: <em>"Palmeiras campeão só no Elifoot"</em>.</p>
-<p>Foi o empurrão que faltava. "Já que as pessoas jogam tanto, vou tentar ter algum retorno", pensou. Em <strong>1998</strong>
-saiu a primeira versão paga, para baixar da internet — e foi a partir dali que o jogo virou <strong>fenômeno nacional</strong>.
-Desde então, o Brasil é a maior comunidade de jogadores do manager no mundo.</p>
+<p>Foi o empurrão que faltava. Em <strong>1998</strong> saiu a primeira versão paga, para baixar da internet — e foi a partir
+dali que o jogo virou <strong>fenômeno nacional</strong>. Desde então, o Brasil é a maior comunidade de manager do mundo.</p>
 
-<h2>Por que o Elifoot marcou tanto</h2>
-<p>Ganhou até o apelido de <strong>"Pai dos Managers"</strong>: foi o primeiro jogo do gênero para PC realmente acessível a
-todos, leve, simples de entender e — detalhe importante — com <strong>suporte a vários jogadores</strong>. Você e os amigos,
-cada um com seu time, brigando pelo título. Só que, na época, "vários jogadores" quase sempre queria dizer <em>o mesmo PC,
-passando o teclado de mão em mão</em>.</p>
+<h2>A outra escola: o Brasfoot</h2>
+<p>O <strong>Brasfoot</strong> chegou depois e fundou a segunda escola brasileira do gênero — a da <strong>coleção</strong>.
+Se o Elifoot ficou conhecido pela simplicidade e pela partida rápida, o Brasfoot ficou conhecido pela quantidade: muitas
+ligas, muitos elencos, temporadas novas a cada ano e uma <strong>comunidade de patches</strong> que mantém os plantéis em dia
+por conta própria. São feitios diferentes de amar a mesma coisa, e cada um formou a sua geração. Quem quiser a comparação
+lado a lado, ela está em <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>
 
-<h2>A limitação era a tecnologia — não a ideia</h2>
+<h2>Por que essa escola marcou tanto</h2>
+<p>O Elifoot ganhou o apelido de <strong>"pai dos managers"</strong>: leve, direto, fácil de entender e — detalhe decisivo —
+com <strong>suporte a vários jogadores</strong>. Você e os amigos, cada um com seu time, brigando pelo título. Só que, na época,
+"vários jogadores" quase sempre queria dizer <em>o mesmo PC, passando o teclado de mão em mão</em>. A resenha era ótima, mas
+cabia numa sala só.</p>
+
+<h2>O que segurava não era a ideia — era a tecnologia</h2>
 <p>Pensa no que era jogar naquele tempo: baixar, instalar no Windows, digitar registro e senha, elencos que envelheciam,
-placar em texto, tudo num computador só. A ideia era genial; a tecnologia da época é que segurava. E é exatamente aí que
-entra a nossa parte da história.</p>
+um computador só. A ideia estava certa desde 1987. O que faltava era a internet que a gente tem hoje.</p>
 
-<h2>2026: o RetroFoot tira as amarras</h2>
-<p>O <strong>RetroFoot</strong> pega aquela mesma alma — a do técnico raiz, do placar em mono, da resenha com os amigos —
-e resolve o que a tecnologia dos anos 90 não deixava:</p>
+<h2>2026: o RetroFoot pega essa escola e leva para o navegador</h2>
+<p>O <strong>RetroFoot</strong> é um jogo próprio, escrito do zero — não é uma versão do Elifoot nem do Brasfoot, e não
+pretende substituir nenhum dos dois. O que ele herda é a escola: a do técnico raiz, da decisão que pesa, da resenha com
+os amigos. E o que ele acrescenta é tudo aquilo que os anos 90 não permitiam.</p>
+<p>Começa pelo mais simples: <strong>abre no navegador</strong>. Sem baixar, sem instalar, sem registro e senha em papel.
+No computador ou no celular, e o save fica na nuvem — dá para começar no PC e continuar no ônibus.</p>
+
+${fig('formacao', 'A tela do seu clube: escalação no campo, banco, próximo jogo e o caixa — tudo à vista')}
+
+<h2>A resenha deixou de caber numa sala só</h2>
+<p>O <strong>Modo Resenha</strong> é o multiplayer online: você abre uma sala, chama a turma (até <strong>8 treinadores</strong>),
+e o sorteio distribui os clubes com todo mundo assistindo — ninguém escolhe time. Dali em diante cada um comanda o seu do
+próprio aparelho, e a rodada só fecha quando todos jogarem. É a mesma resenha de sempre, sem o teclado passando de mão em mão.
+Tem uma página só sobre isso: <a href="/jogar-com-amigos/">jogar com os amigos</a>.</p>
+
+${fig('sala-resenha', 'A sala do Modo Resenha enchendo — cada treinador no seu aparelho')}
+
+<h2>A carreira passou a ter memória</h2>
+<p>Essa é a parte que a tecnologia antiga não tinha como dar. No RetroFoot o treinador é um personagem que atravessa
+temporadas: acumula pontos de carreira, guarda cada taça na <strong>sala de troféus</strong>, recebe sondagens de outros
+clubes quando vai bem, e aparece no <strong>ranking de treinadores</strong> — onde o peso de cada título é o peso real da
+competição. Uma Libertadores conta bem acima de um acesso na Série D, e é isso que separa quem ganhou de quem só somou.</p>
+
+${fig('ranking', 'O ranking de treinadores: pontos de carreira somados ao peso real de cada título')}
+
+<h2>E o clube inteiro veio junto</h2>
+<p>Não é só escalar e jogar. O RetroFoot põe na sua mão as decisões que o técnico brasileiro conhece de cor:</p>
 <ul>
-  <li><strong>Abre no navegador</strong>, sem baixar nem instalar nada.</li>
-  <li><strong>Multiplayer online de verdade</strong> (o modo <em>Resenha</em>): cada um no seu aparelho, a rodada rolando em tempo real.</li>
-  <li><strong>Clubes e jogadores reais</strong> — Séries A, B, C e D, Copa do Brasil e Libertadores.</li>
-  <li>Partida ao vivo, classificação, janela de transferências, finanças, e-mails do treinador… e é <strong>grátis</strong>.</li>
+  <li><strong>Mercado e leilão</strong> — comprar, vender, receber proposta, fazer contraproposta e disputar um jogador no lance.</li>
+  <li><strong>Base e treino especial</strong> — subir garoto da base e trabalhar quem tem potencial.</li>
+  <li><strong>Finanças, estádio e patrocínio</strong> — bilheteria, folha, ampliar arquibancada na hora certa do caixa.</li>
+  <li><strong>Série A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana</strong> — com calendário de verdade, uma coisa de cada vez.</li>
+  <li><strong>Futebol feminino</strong> — os mesmos clubes e o mesmo calendário, com elenco feminino, escolhido logo no começo da carreira.</li>
 </ul>
 
-${fig('formacao', 'A tela do seu time no RetroFoot — escalação, próximo jogo, elenco e caixa')}
+${fig('estadio', 'Ampliar o estádio é decisão de caixa: mais bilheteria depois, menos dinheiro agora')}
 
-<p>É o mesmo prazer de antigamente, agora leve, online e com a galera — pra matar a saudade sem precisar de disquete.
-Quer conferir? Veja <a href="/elifoot-online/">como jogar o Elifoot online</a>, entenda por que é um
-<a href="/jogo-treinador-futebol-online/">jogo de treinador de futebol com jogadores reais</a>, ou simplesmente…</p>
+<h2>E a partida continua sendo o melhor momento</h2>
+<p>A rodada roda ao vivo, minuto a minuto: o placar anda, o público reage, entra lesão, sai expulso, o pênalti para tudo
+e você escolhe o batedor. Se der empate em mata-mata, a disputa de pênaltis é uma a uma. É o pedaço do jogo que não mudou
+de essência desde 1987 — só ganhou tela.</p>
+
+${fig('partida', 'A rodada ao vivo: o placar andando, o público e os lances acontecendo')}
+
+<h2>Os clássicos seguem vivos — e é bom que sigam</h2>
+<p>Nada disso existe contra o Elifoot ou contra o Brasfoot. Os dois abriram o caminho, formaram a comunidade e continuam
+tendo os seus donos, os seus jogadores e as suas versões. O RetroFoot é o que a gente conseguiu fazer com a internet de
+hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui embaixo, e vale a visita.</p>
+
+<p>Se bateu a vontade de escalar um time agora: o RetroFoot <strong>abre no navegador e é de graça</strong>.
+<a href="/"><strong>Comece a sua carreira de treinador</strong></a> — ou veja antes
+<a href="/elifoot-online/">como jogar sem instalar nada</a> e o que é o
+<a href="/jogo-treinador-futebol-online/">jogo de treinador com elencos reais</a>.</p>
+
+<!-- O CONVITE FECHA AQUI, NA PRÓPRIA FRASE. O texto antigo terminava em "ou simplesmente…" a
+     apontar para o botão — só que o botão (a playbar do build-seo.mjs) entra DEPOIS das
+     referências e do FAQ, três seções abaixo. Quem lia até o fim caía num "…" que não levava
+     a lugar nenhum. O botão continua lá, no fim da página; esta frase deixou de depender dele. -->
 `.trim(),
   },
-
   // ======================= P1: ELIFOOT ONLINE =======================
   {
-    slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-09-06',
-    title: 'Elifoot Online Grátis — Jogue no Navegador (2026)',
-    description: 'Sente falta do Elifoot? O RetroFoot é o manager retrô online: sem baixar, grátis, com clubes reais e multiplayer. Jogue agora no navegador.',
-    h1: 'Elifoot online: jogue no navegador, de graça e com os amigos',
-    keywords: 'elifoot online, jogar elifoot online, elifoot online gratis, elifoot navegador, elifoot multiplayer, novo elifoot, elifoot acabou',
+    slug: 'elifoot-online', ready: true, priority: 0.9, lastmod: '2026-09-18',
+    title: 'Manager de futebol online e grátis: jogue o RetroFoot no navegador',
+    description: 'Procurando um manager de futebol para jogar online? O RetroFoot abre no navegador, é de graça, tem clubes brasileiros da Série A à D e um modo para jogar com a sua turma. Sem baixar, sem instalar.',
+    h1: 'Manager de futebol online: jogue no navegador, de graça',
+    keywords: 'elifoot online, jogar elifoot online, elifoot online gratis, elifoot navegador, manager de futebol online, jogo de treinador online gratis, retrofoot',
     resumo: [
-      'Roda <strong>no navegador</strong>: sem download, sem instalação, sem emulador.',
-      'Funciona no celular, no tablet e no PC — o jogo fica salvo na nuvem.',
-      'Dá para jogar sozinho contra a máquina ou com até <strong>20 amigos</strong> na mesma liga.',
-      'É <strong>gratuito</strong>.',
+      'O <strong>RetroFoot</strong> roda <strong>no navegador</strong>: sem download, sem instalação, sem emulador.',
+      'Funciona no celular, no tablet e no PC — e o save fica na nuvem.',
+      'Dois modos: <strong>Modo Solo</strong>, contra a máquina, e <strong>Modo Resenha</strong>, com até <strong>8 treinadores</strong> na mesma liga.',
+      'É <strong>gratuito</strong> para começar e jogar a sua carreira no <strong>Modo Solo</strong>.',
+    ],
+    refs: [
+      { nome:'Elifoot (site oficial)', desc:'Se o que você procura é o Elifoot em si, ele fica aqui, com o criador dele.', url:'https://www.elifoot.com/' },
+      { nome:'Brasfoot (site oficial)', desc:'O outro clássico brasileiro, das muitas ligas e dos patches da comunidade.', url:'https://www.brasfoot.com/' },
     ],
     faq: [
-      { q:'Como jogar Elifoot online sem baixar?', a:'<p>Abra o <a href="/">RetroFoot</a> no navegador e comece. Não há instalador, emulador nem plugin: o jogo carrega como um site.</p>' },
-      { q:'Funciona no celular?', a:'<p>Funciona. O layout se adapta à tela e o save fica na nuvem, então dá para começar no computador e continuar no celular.</p>' },
-      { q:'Preciso criar conta?', a:'<p>Para jogar sozinho, dá para começar rápido. Para o Modo Resenha (com amigos) a conta é necessária, porque é ela que guarda a sua sala e o seu clube.</p>' },
+      { q:'Como jogar um manager de futebol online sem baixar?', a:'<p>Abra o <a href="/">RetroFoot</a> no navegador e comece. Não há instalador, emulador nem plugin: o jogo carrega como um site, igual a abrir qualquer página.</p>' },
+      { q:'O RetroFoot é o Elifoot online?', a:'<p>Não. O RetroFoot é um <strong>jogo próprio</strong>, escrito do zero, sem ligação com o Elifoot. Os dois são managers de futebol e dividem a mesma escola — a de ser o técnico e decidir — mas são jogos diferentes, de gente diferente. O site oficial do Elifoot está nas referências desta página.</p>' },
+      { q:'Funciona no celular?', a:'<p>Funciona. O layout se adapta à tela e o save fica na nuvem, então dá para começar no computador e continuar no celular — a carreira é a mesma.</p>' },
+      { q:'Preciso criar conta?', a:'<p>No <strong>Modo Solo</strong>, dá para começar rápido. Para o Modo Resenha (com amigos) a conta é necessária, porque é ela que guarda a sua sala e o seu clube.</p>' },
+      { q:'É pago?', a:'<p>Começar e jogar a sua carreira no <strong>Modo Solo</strong> é de graça, sem prazo. O <strong>Modo Resenha</strong> — o multiplayer, em que o servidor roda a rodada de todo mundo — vem liberado por <strong>7 dias</strong> quando você cria a conta, para experimentar com a turma; depois disso ele passa a ser do plano.</p>' },
     ],
         body: `
-<p class="lead">Se você procurou por <strong>"elifoot online"</strong>, provavelmente é da turma que passou tardes
-escalando o time, vendendo jogador pra fechar as contas e brigando pra tirar o clube da Série D. A boa notícia:
-dá pra viver tudo isso de novo — <strong>direto no navegador, de graça e com os amigos</strong>.</p>
+<p class="lead">Se você quer sentar, pegar um clube e <strong>ser o técnico</strong> — escalar, negociar, fechar as contas,
+brigar pelo acesso — sem baixar nada e sem pagar nada para começar, é disso que esta página trata. O
+<strong>RetroFoot</strong> abre no navegador e a primeira partida acontece em menos de um minuto.</p>
 
-<h2>O Elifoot acabou? Não — ele ficou online</h2>
-<p>O <a href="/historia-do-elifoot/">Elifoot</a> nasceu em 1987, num ZX Spectrum, pelas mãos do português André Elias,
-e virou febre no Brasil a partir de 1998. Era outra época: instalar no Windows, registro e senha, um PC só passando o
-teclado de mão em mão. O <strong>RetroFoot</strong> pega aquela mesma alma e resolve as amarras da tecnologia daquele tempo.</p>
+<h2>Procurou "Elifoot online"? Duas respostas honestas</h2>
+<p>Muita gente chega aqui digitando o nome do clássico. Então vamos ser diretos, porque são duas coisas diferentes:</p>
+<ul>
+  <li><strong>Se você quer o Elifoot em si</strong> — aquele jogo, daquele autor — ele continua existindo e tem site
+  oficial. O link está no fim desta página, na seção dos clássicos do gênero.</li>
+  <li><strong>Se o que você quer é jogar um manager agora, no navegador</strong>, com clubes brasileiros e com os amigos,
+  sem instalar nada: é o <strong>RetroFoot</strong>, e é ele que você abre aqui.</li>
+</ul>
+<p>O RetroFoot não é uma versão, um port ou um sucessor oficial de ninguém. É um jogo próprio, feito por gente que
+cresceu no gênero — a história completa dessa escola está em <a href="/historia-do-elifoot/">Elifoot, Brasfoot e o
+RetroFoot</a>.</p>
 
-<h2>O que mudou (e o que continua igual)</h2>
+<h2>Começar leva menos de um minuto</h2>
+<ol>
+  <li><strong>Abra o jogo</strong> — sem download, sem instalador, sem emulador.</li>
+  <li><strong>Escolha o modo</strong>: <strong>Modo Solo</strong>, contra a máquina, ou <strong>Modo Resenha</strong>, com a turma.</li>
+  <li><strong>Receba o seu clube no sorteio</strong>, escale o time e entre em campo.</li>
+</ol>
+<p>Ninguém escolhe o clube a dedo: o sorteio distribui, e o desafio começa aí — tirar o time de onde ele está.</p>
+
+${fig('formacao', 'A tela do seu clube: escalação no campo, banco, próximo jogo e o caixa')}
+
+<h2>O que o navegador resolveu</h2>
+<p>A ideia de comandar um clube no computador é dos anos 80, e era boa desde sempre. O que atrapalhava era a tecnologia
+da época — e é exatamente essa lista que deixou de existir:</p>
 <table>
-  <thead><tr><th>Naquela época</th><th>No RetroFoot</th></tr></thead>
+  <thead><tr><th>No PC dos anos 90</th><th>No RetroFoot, hoje</th></tr></thead>
   <tbody>
-    <tr><td>Baixar, instalar, registro e senha</td><td>Abre no navegador, sem baixar nada</td></tr>
-    <tr><td>Um PC só, passando o teclado</td><td>Multiplayer online de verdade (modo Resenha), em tempo real</td></tr>
-    <tr><td>Placar em texto</td><td>Partida ao vivo, classificação e janela de transferências</td></tr>
-    <tr><td>Elencos desatualizados</td><td>Clubes e jogadores reais (Séries A–D, Copa do Brasil, Libertadores)</td></tr>
-    <tr><td>Pago</td><td>Grátis</td></tr>
+    <tr><td>Baixar, instalar, guardar registro e senha</td><td>Abre no navegador, como qualquer site</td></tr>
+    <tr><td>Um computador só, passando o teclado de mão em mão</td><td>Cada um no seu aparelho, a rodada rodando para todos</td></tr>
+    <tr><td>O save preso naquela máquina</td><td>Save na nuvem — começa no PC, continua no celular</td></tr>
+    <tr><td>Placar em texto</td><td>Rodada ao vivo, com lance, lesão, expulsão e pênalti</td></tr>
+    <tr><td>Elenco envelhecendo até sair o patch</td><td>Clubes e elencos brasileiros das Séries A, B, C e D</td></tr>
   </tbody>
 </table>
 
-${fig('partida', 'A partida ao vivo: público, placar e os lances acontecendo em tempo real')}
+<h2>O que você faz no jogo</h2>
+<p>Não é só apertar "jogar". A semana do técnico tem as decisões que interessam:</p>
+<ul>
+  <li><strong>Mercado</strong> — comprar, vender, responder proposta, fazer contraproposta e disputar um reforço no leilão.</li>
+  <li><strong>Base e treino especial</strong> — subir o garoto e trabalhar quem tem potencial para virar titular.</li>
+  <li><strong>Finanças</strong> — folha, bilheteria, patrocínio, e a hora certa de ampliar o estádio.</li>
+  <li><strong>Competições</strong> — Série A, B, C e D, Copa do Brasil, Libertadores e Sul-Americana, num calendário de verdade.</li>
+  <li><strong>Futebol feminino</strong> — os mesmos clubes e o mesmo calendário, com elenco feminino.</li>
+</ul>
 
-<h2>Joga com os amigos, como era pra ser</h2>
-<p>O melhor do Elifoot sempre foi a resenha. No RetroFoot você cria uma sala, chama a galera e cada um comanda o seu
-clube — a rodada roda pra todo mundo ao mesmo tempo. Veja mais em <a href="/jogar-com-amigos/">jogar com os amigos</a>.</p>
+${fig('mercado', 'O mercado: quem está à venda, por quanto, e o que o seu caixa aguenta')}
 
-${fig('classificacao', 'Crie a sala e convide os amigos para o modo Resenha')}
+<h2>A rodada acontece ao vivo</h2>
+<p>Quando a rodada roda, ela roda de verdade: o placar anda minuto a minuto, o público reage, entra lesão, sai expulso,
+e quando marca pênalti é você que escolhe o batedor. Em mata-mata empatado, a disputa é cobrança a cobrança.</p>
 
-<p>É leve, rápido e feito pra matar a saudade. <a href="/">Comece agora — é de graça, no navegador.</a></p>
+${fig('partida', 'A rodada ao vivo: o placar andando, o público e os lances acontecendo')}
+
+<h2>Com a turma: o Modo Resenha</h2>
+<p>É aqui que o jogo fica melhor. Você abre uma sala, chama até <strong>8 treinadores</strong>, e o sorteio distribui os
+clubes com todo mundo assistindo ao mesmo tempo. Dali em diante cada um comanda o seu do próprio aparelho — celular,
+tablet ou PC — e a semana só fecha quando todos jogarem. Ninguém precisa estar na mesma sala, nem na mesma cidade.
+Tem uma página só sobre isso: <a href="/jogar-com-amigos/">jogar com os amigos</a>.</p>
+
+${fig('sala-resenha', 'A sala do Modo Resenha enchendo — cada treinador no seu aparelho')}
+
+<h2>A carreira não recomeça do zero</h2>
+<p>O save fica na nuvem, ligado à sua conta. E a carreira tem memória: os pontos que você soma atravessam as temporadas,
+cada taça entra na <strong>sala de troféus</strong>, clubes maiores começam a sondar quem vai bem, e o
+<a href="/ranking/">ranking de treinadores</a> coloca todo mundo na mesma régua — com cada título valendo o peso real da
+competição que ele é.</p>
+
+${fig('ranking', 'O ranking de treinadores: carreira somada ao peso real de cada título')}
+
+<h2>No celular funciona igual</h2>
+<p>A tela se adapta: no telefone o jogo vira uma coluna, com a faixa de estado (forma, moral, janela de transferências)
+logo abaixo do cabeçalho. É a mesma carreira, o mesmo save, o mesmo clube — muda só o tamanho da tela.</p>
+
+<p><a href="/"><strong>Abra o RetroFoot e pegue o seu clube</strong></a> — é de graça, roda no navegador, e a primeira
+rodada é agora.</p>
 `.trim(),
   },
 
   // ======================= P1: JOGO DE TREINADOR ONLINE =======================
   {
-    slug: 'jogo-treinador-futebol-online', ready: true, priority: 0.9, lastmod: '2026-09-06',
-    title: 'Jogo de Treinador de Futebol Online com Jogadores Reais',
-    description: 'Assuma um clube de verdade, escale o time, defina a tática e dispute o campeonato. Jogadores reais, online e grátis. Comece agora, no navegador.',
-    h1: 'Jogo de treinador de futebol online com jogadores reais',
-    keywords: 'jogo de treinador de futebol online, jogo de treinador de futebol online com jogadores reais, jogo de ser tecnico de futebol, jogo de tecnico de futebol',
+    slug: 'jogo-treinador-futebol-online', ready: true, priority: 0.9, lastmod: '2026-09-20',
+    title: 'Jogo de treinador de futebol online com elencos reais — RetroFoot',
+    description: 'No RetroFoot você é o técnico: escala, define a tática, negocia no mercado mundial e administra o clube. Elencos brasileiros reais, partida ao vivo, no navegador e de graça.',
+    h1: 'Jogo de treinador de futebol online: você no banco, não com a bola',
+    keywords: 'jogo de treinador de futebol online, jogo de treinador de futebol com jogadores reais, jogo de ser tecnico de futebol, jogo de tecnico de futebol, retrofoot',
     resumo: [
-      'Você é o <strong>técnico</strong>: escala, negocia, cuida do caixa e briga por acesso.',
-      'Elencos e clubes <strong>reais</strong>, das quatro divisões às copas continentais.',
-      'Roda no navegador, de graça — sozinho ou com amigos.',
+      'Você é o <strong>técnico</strong>: escala, define a tática, negocia e cuida do caixa.',
+      'Clubes e elencos brasileiros das <strong>quatro divisões</strong>, mais Copa do Brasil e continentais.',
+      'O <strong>mercado é mundial</strong>: dá para comprar lá fora e vender para o exterior.',
+      'Roda no navegador, de graça, no <strong>Modo Solo</strong> ou no <strong>Modo Resenha</strong>.',
     ],
     faq: [
-      { q:'O que faz um jogo de treinador de futebol?', a:'<p>Em vez de controlar a bola, você comanda o clube: escolhe a tática e o time titular, negocia jogadores, administra salários e bilheteria e disputa a temporada rodada a rodada.</p>' },
-      { q:'É difícil de aprender?', a:'<p>Não. A pegada do RetroFoot é a dos clássicos: em poucos minutos você entende a tela e já escala o time. O <a href="/guia/">guia do jogo</a> cobre o resto.</p>' },
-      { q:'Quanto custa?', a:'<p>Nada. É gratuito e roda no navegador.</p>' },
+      { q:'O que faz um jogo de treinador de futebol?', a:'<p>Em vez de controlar a bola, você comanda o clube: escolhe a tática e o time titular, negocia jogadores, administra salários, bilheteria e estádio, e disputa a temporada rodada a rodada.</p>' },
+      { q:'É difícil de aprender?', a:'<p>Não. Em poucos minutos você entende a tela e já escala o time — a formação entra arrastando o jogador para a posição. O <a href="/guia/">guia do jogo</a> cobre o resto, como fazer dinheiro no mercado e que formação usar em cada divisão.</p>' },
+      { q:'Dá para contratar jogador de fora do Brasil?', a:'<p>Dá, desde a primeira temporada. O mercado do RetroFoot é <strong>mundial</strong>: você procura em qualquer país com elenco no jogo, e clubes de fora também aparecem oferecendo pelos seus jogadores.</p>' },
+      { q:'Quanto custa?', a:'<p>O <strong>Modo Solo</strong> é gratuito e sem prazo. O <strong>Modo Resenha</strong>, com a turma, vem liberado por 7 dias quando você cria a conta e depois passa a ser do plano.</p>' },
     ],
         body: `
-<p class="lead">Procurando um <strong>jogo de treinador de futebol online com jogadores reais</strong>? É exatamente
-isso que o RetroFoot faz — e sem precisar baixar nada. Você é o técnico: monta o elenco, define a tática e briga
-pelo título rodada a rodada.</p>
+<p class="lead">Existe quem queira driblar, e existe quem queira <strong>decidir</strong>. Se você é do segundo time —
+o que olha a escalação do técnico e pensa "eu faria diferente" — o RetroFoot é jogo para você. Aqui ninguém controla o
+jogador com a bola no pé: você comanda o clube inteiro, e a partida é a consequência das suas decisões.</p>
 
-<h2>Você no comando</h2>
-<p>Nada de controlar o jogador com a bola no pé. Aqui o seu jogo é a <strong>cabeça do técnico</strong>: escalação,
-esquema tático, substituições, negociações e finanças. Escolha a formação certa, ajuste no intervalo e veja o resultado
-sair na partida ao vivo.</p>
+<h2>A semana do técnico</h2>
+<p>Entre uma rodada e outra, é isso que passa pela sua mesa:</p>
+<ul>
+  <li><strong>Escalação e tática</strong> — quem entra, em que posição, em que formação, e como o time se comporta em casa e fora.</li>
+  <li><strong>Mercado</strong> — comprar, vender, responder proposta, fazer contraproposta, disputar reforço no leilão.</li>
+  <li><strong>Elenco e base</strong> — quem está em forma, quem está com a moral em baixa, que garoto da base já dá para subir.</li>
+  <li><strong>Finanças</strong> — folha, bilheteria, patrocínio e a hora certa de ampliar o estádio.</li>
+  <li><strong>E-mail</strong> — diretoria, imprensa e propostas chegam por ali, e a sua resposta tem efeito.</li>
+</ul>
 
-${fig('formacao', 'Escale o time e escolha a tática antes de entrar em campo')}
+${fig('formacao', 'A escalação: campo, banco e formação na mesma tela')}
 
-<h2>Clubes e jogadores reais</h2>
-<p>Comande um clube de verdade, com elencos reais das divisões brasileiras (Séries A a D) e das copas continentais.
-É a fantasia de todo torcedor: pegar o time do coração — ou um azarão — e levar do fundo da tabela ao topo.</p>
+<h2>Cada jogador é um jogador, não um número</h2>
+<p>A ficha traz atributos, posição, idade, contrato, moral, forma e valor de mercado — e o valor é <strong>vivo</strong>:
+ele se move com a força do jogador, a idade, o potencial, o comportamento e o momento dele. Um garoto em ascensão
+valoriza; um veterano em má fase desvaloriza. Quem lê isso bem faz dinheiro no mercado.</p>
 
-${fig('formacao', 'Cada jogador tem seus atributos, contrato e valor de mercado')}
+${fig('ficha-jogador', 'A ficha do jogador: atributos, contrato, forma e valor de mercado')}
 
-<h2>Online, grátis e com os amigos</h2>
-<p>Jogue sozinho contra a máquina ou monte uma liga no <a href="/jogar-com-amigos/">modo Resenha</a> com a galera.
-Tudo roda no navegador, de graça. Se você curtia o clima do <a href="/elifoot-online/">Elifoot online</a>, vai se sentir em casa.</p>
+<h2>O mercado é o mundo</h2>
+<p>Você joga no Brasil, mas não negocia só no Brasil. Desde a primeira temporada dá para <strong>procurar reforço em
+qualquer país</strong> com elenco no jogo — e o caminho é de mão dupla: clubes de fora aparecem oferecendo pelos seus
+jogadores, e vender bem para o exterior é uma das formas mais rápidas de arrumar o caixa de um clube pequeno.</p>
 
-<p><a href="/">Assuma um clube agora — é de graça.</a></p>
+${fig('mercado', 'O mercado: quem está à venda, por quanto, e o que o seu caixa aguenta')}
+
+<h2>A partida é o resultado do que você decidiu</h2>
+<p>Quando a rodada roda, ela roda ao vivo: placar andando minuto a minuto, público reagindo, lesão que obriga a mexer,
+expulsão que muda o jogo, pênalti em que você escolhe o batedor. No intervalo dá para trocar peça e ajustar a tática —
+e em mata-mata empatado a disputa de pênaltis é cobrança a cobrança.</p>
+
+${fig('partida', 'A rodada ao vivo: o placar andando, o público e os lances acontecendo')}
+
+<h2>A carreira é sua, não do save</h2>
+<p>O treinador é um personagem que atravessa temporadas: acumula pontos de carreira, guarda as taças na sala de troféus,
+recebe sondagens de clubes maiores quando vai bem — e aparece no <a href="/ranking/">ranking de treinadores</a>, onde cada
+título vale o peso real da competição que ele é.</p>
+
+${fig('carreira', 'A carreira do treinador: temporadas, campanhas e a segurança no cargo')}
+
+<h2>Sozinho ou com a turma</h2>
+<p>No <strong>Modo Solo</strong> você enfrenta a máquina no seu ritmo, de graça e sem prazo. No
+<strong>Modo Resenha</strong>, até 8 treinadores disputam o mesmo campeonato, cada um no seu aparelho — é a
+<a href="/jogar-com-amigos/">liga da sua turma</a>. Os dois rodam no navegador, sem instalar nada.</p>
+
+<p><a href="/"><strong>Assuma um clube e comece a sua carreira</strong></a> — ou veja antes o
+<a href="/manager-futebol-brasileiro/">que tem de futebol brasileiro no jogo</a>.</p>
 `.trim(),
   },
 
   // ======================= P1: MANAGER BRASILEIRO =======================
   {
-    slug: 'manager-futebol-brasileiro', ready: true, priority: 0.8, lastmod: '2026-09-06',
-    title: 'Manager de Futebol Brasileiro Online — Séries A à D',
-    description: 'Comande um clube brasileiro de verdade: Séries A, B, C e D, Copa do Brasil e Libertadores com elencos reais. Online, grátis e no navegador.',
-    h1: 'Manager de futebol brasileiro: Séries A, B, C, D e Copa do Brasil',
-    keywords: 'jogo de manager de futebol brasileiro, simulador de futebol brasileiro, jogo de gerenciar futebol brasileiro, jogo de tecnico de futebol brasileiro',
+    slug: 'manager-futebol-brasileiro', ready: true, priority: 0.8, lastmod: '2026-09-20',
+    title: 'Manager de futebol brasileiro online: Séries A, B, C e D — RetroFoot',
+    description: 'Comande um clube brasileiro de verdade no RetroFoot: as quatro divisões, Copa do Brasil, Libertadores e Sul-Americana, com acesso e rebaixamento. Online, grátis, no navegador.',
+    h1: 'Manager de futebol brasileiro: as quatro divisões, as copas e o acesso',
+    keywords: 'jogo de manager de futebol brasileiro, simulador de futebol brasileiro, jogo de gerenciar futebol brasileiro, jogo de tecnico de futebol brasileiro, serie d, copa do brasil',
     resumo: [
-      'Séries <strong>A, B, C e D</strong> do Brasil, com clubes e elencos reais.',
-      'Copa do Brasil, <strong>Libertadores</strong> e Sul-Americana no mesmo calendário.',
+      'Séries <strong>A, B, C e D</strong>, com clubes e elencos brasileiros.',
+      '<strong>Copa do Brasil</strong>, Libertadores e Sul-Americana no mesmo calendário.',
       'Acesso e rebaixamento de verdade: dá para subir da quarta divisão até a elite.',
+      'O <strong>mercado é mundial</strong> — mesmo comandando um clube brasileiro.',
     ],
     faq: [
-      { q:'Quais campeonatos brasileiros estão no jogo?', a:'<p>As quatro divisões nacionais (Séries A, B, C e D) e a Copa do Brasil, além das continentais Libertadores e Sul-Americana.</p>' },
-      { q:'Os elencos são reais?', a:'<p>São: cada clube entra com o elenco dele, e o mercado movimenta esses nomes ao longo da temporada.</p>' },
-      { q:'Dá para começar na Série D?', a:'<p>Dá — e é o caminho mais divertido: pegar um clube pequeno e subir divisão por divisão.</p>' },
+      { q:'Quais campeonatos brasileiros estão no jogo?', a:'<p>As quatro divisões nacionais — <strong>Séries A, B, C e D</strong> — e a <strong>Copa do Brasil</strong>, além das continentais <strong>Libertadores</strong> e <strong>Sul-Americana</strong>, tudo num calendário só.</p>' },
+      { q:'Dá para começar na Série D?', a:'<p>Dá — e é o caminho mais divertido: pegar um clube pequeno, arrumar o caixa e subir divisão por divisão. Lembrando que o clube vem por <strong>sorteio</strong>: você escolhe a divisão, não o time.</p>' },
+      { q:'Dá para jogar com ligas de outros países?', a:'<p>Na versão atual o clube que você comanda é <strong>brasileiro</strong> — a carreira acontece nas quatro divisões daqui. As ligas estrangeiras existem e rodam ao fundo, e o <strong>mercado de transferências é mundial</strong>: você compra e vende com o exterior normalmente.</p>' },
+      { q:'Tem futebol feminino?', a:'<p>Tem. Logo no começo da carreira você escolhe comandar o elenco masculino ou o feminino — mesmos clubes, mesmo calendário, mesmas competições.</p>' },
     ],
         body: `
-<p class="lead">Quer um <strong>manager de futebol brasileiro</strong> de verdade? No RetroFoot você começa lá embaixo,
-na Série D, e tem a missão de subir divisão após divisão até brigar pelo título nacional e por uma vaga na Libertadores.</p>
+<p class="lead">Um manager brasileiro de verdade não começa na Série A. Começa lá embaixo, com o caixa curto, um elenco
+que ninguém quer e a tabela inteira pela frente. No RetroFoot você escolhe em que divisão quer sofrer — e o resto é com
+você.</p>
 
-<h2>As quatro divisões, de verdade</h2>
-<p>Séries A, B, C e D com <strong>clubes e elencos reais</strong>. Cada divisão tem seu equilíbrio: na D o buraco é mais embaixo,
-o dinheiro é curto e cada contratação conta; na A, você encara os gigantes. Subir de divisão muda tudo — receita, torcida, elenco.</p>
+<h2>As quatro divisões, com o buraco mais embaixo</h2>
+<p><strong>Séries A, B, C e D</strong>, com clubes e elencos brasileiros. E cada divisão é um jogo diferente: na Série D
+o dinheiro é curto e cada contratação pesa; na Série A você encara os gigantes com orçamento de gigante. Subir de divisão
+muda tudo de uma vez — receita, torcida, o nível de quem aceita jogar no seu clube.</p>
+<p>Detalhe que muda a graça: <strong>o clube vem por sorteio</strong>. Você escolhe a divisão, o sorteio escolhe o time.
+O desafio é o que você faz com o que caiu na sua mão.</p>
 
-${fig('copa', 'Escolha o país e a liga — o Brasil com suas quatro divisões')}
+${fig('classificacao', 'A tabela da sua divisão — acesso em cima, rebaixamento embaixo')}
 
-<h2>Copa do Brasil e Libertadores</h2>
-<p>Não é só o campeonato de pontos corridos: tem mata-mata de Copa do Brasil e as competições continentais
-(Libertadores e Sul-Americana), com chaveamento e aquele frio na barriga do jogo de volta.</p>
+<h2>Copa do Brasil, Libertadores e Sul-Americana</h2>
+<p>Não é só pontos corridos. Tem <strong>Copa do Brasil</strong> em mata-mata, com o frio na barriga do jogo de volta, e
+tem as continentais — <strong>Libertadores</strong> e <strong>Sul-Americana</strong> — para quem conquistou a vaga na
+temporada anterior. Cada competição tem o seu chaveamento, o seu sorteio e a sua premiação: copa dá dinheiro a cada fase
+disputada, e as continentais pagam quando acabam.</p>
 
-${fig('classificacao', 'Acompanhe as competições, tabelas e o chaveamento das copas')}
+${fig('copa', 'Minhas competições: liga, copa e continentais no mesmo lugar')}
 
-<h2>Suba de divisão e faça história</h2>
-<p>Gerencie o caixa, monte um elenco competitivo, acerte a tática e leve seu clube ao topo. Quando quiser acelerar,
-dê uma olhada no <a href="/guia/">guia do técnico</a> pra saber como fazer dinheiro e subir mais fácil — ou chame os amigos
-pra uma <a href="/jogar-com-amigos/">Resenha</a>.</p>
+<h2>Um calendário que se comporta como calendário</h2>
+<p>Liga, copa e continental não atropelam umas às outras: cada rodada tem o seu dia, e o jogo vai dizendo o que vem a
+seguir. Dá para abrir o calendário e ver a temporada inteira — onde estão as finais, quando aperta, em que semana você
+vai jogar três vezes.</p>
 
-<p><a href="/">Escolha seu clube brasileiro e comece — é grátis.</a></p>
+${fig('calendario', 'O calendário da temporada: liga, copa e continental, cada uma no seu dia')}
+
+<h2>O clube é brasileiro, o mercado é o mundo</h2>
+<p>Você comanda um clube do Brasil, mas não negocia só aqui dentro. Desde a primeira temporada o
+<strong>mercado é mundial</strong>: dá para procurar reforço em qualquer país com elenco no jogo, e clubes estrangeiros
+aparecem oferecendo pelos seus jogadores. Para clube pequeno, vender bem para fora costuma ser o atalho que arruma o
+caixa de uma temporada inteira.</p>
+
+${fig('leilao', 'O leilão: quando mais de um clube quer o mesmo jogador, decide o lance')}
+
+<h2>Base, estádio e as contas do fim do mês</h2>
+<p>Clube brasileiro se sustenta assim: <strong>revela da base</strong>, cuida do <strong>estádio</strong> para a
+bilheteria crescer, segura a folha e negocia bem. Tudo isso está na sua mão — inclusive a decisão de gastar agora para
+receber depois, que é a mais difícil de todas.</p>
+
+${fig('financas', 'As finanças do clube: receita, folha, bilheteria e o saldo da temporada')}
+
+<h2>Masculino ou feminino</h2>
+<p>Logo no começo da carreira você escolhe qual elenco vai comandar: <strong>masculino ou feminino</strong>. São os mesmos
+clubes, o mesmo calendário e as mesmas competições — muda quem entra em campo.</p>
+
+<p><a href="/"><strong>Escolha a sua divisão e receba o seu clube</strong></a> — ou leia antes o
+<a href="/guia/">guia do técnico</a>, que ensina a fazer dinheiro e a subir de série.</p>
 `.trim(),
   },
 
   // ======================= P1: JOGAR COM AMIGOS =======================
   {
-    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-06',
-    title: 'Jogo de Futebol Manager Online com Amigos — Modo Resenha',
-    description: 'Crie uma liga com os amigos e dispute a rodada em tempo real no modo Resenha. Manager de futebol online, grátis e no navegador.',
-    h1: 'Dispute um campeonato de manager com seus amigos',
-    keywords: 'jogo de futebol online com amigos, elifoot multiplayer, jogo de manager de futebol online, jogo de futebol manager com amigos',
+    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-18',
+    title: 'Jogar manager de futebol com amigos: o Modo Resenha do RetroFoot',
+    description: 'No Modo Resenha do RetroFoot, até 8 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Grátis para experimentar.',
+    h1: 'Modo Resenha: um campeonato de verdade com a sua turma',
+    keywords: 'jogo de futebol online com amigos, manager de futebol multiplayer, jogo de treinador com amigos, modo resenha, retrofoot resenha, liga com amigos online',
     resumo: [
-      'O <strong>Modo Resenha</strong> põe até <strong>20 treinadores</strong> na mesma liga.',
-      'Todo mundo joga a <strong>mesma rodada ao vivo</strong>, com tabela e mercado compartilhados.',
-      'Tem <strong>chat em tempo real</strong> durante os jogos.',
-      'Basta um código de sala para convidar a turma — sem instalar nada.',
+      'O <strong>Modo Resenha</strong> põe até <strong>8 treinadores</strong> no mesmo campeonato, cada um no seu aparelho.',
+      'O <strong>sorteio distribui os clubes</strong> com todo mundo assistindo — ninguém escolhe time.',
+      'A semana <strong>só fecha quando todos jogarem</strong>: ninguém é simulado pelas suas costas.',
+      'Convite por <strong>código de sala</strong>, sem instalar nada. Sete dias liberados ao criar a conta.',
     ],
     faq: [
-      { q:'Quantas pessoas podem jogar juntas?', a:'<p>Até <strong>20 treinadores</strong> na mesma competição, cada um com o seu clube.</p>' },
-      { q:'Como convido meus amigos?', a:'<p>Você cria a sala e compartilha o código. Quem receber entra pelo navegador, escolhe um clube e já está na liga.</p>' },
-      { q:'Todo mundo precisa estar online ao mesmo tempo?', a:'<p>A rodada roda quando os treinadores estão prontos; quem não aparecer é escalado automaticamente, então a liga não trava por causa de um ausente.</p>' },
+      { q:'Quantas pessoas podem jogar juntas?', a:'<p>Até <strong>8 treinadores</strong> na mesma sala, cada um com o seu clube.</p>' },
+      { q:'Como convido meus amigos?', a:'<p>Você abre a sala e compartilha o <strong>código</strong>. Quem recebe entra pelo navegador, digita o código e ocupa um assento — sem baixar nada.</p>' },
+      { q:'Todo mundo precisa estar online ao mesmo tempo?', a:'<p>Não precisa ser ao mesmo tempo, mas <strong>todo mundo precisa jogar a sua partida</strong> para a semana virar: a rodada só fecha quando o último assento jogar. Enquanto isso você continua no jogo — vendo a tabela, mexendo no elenco, negociando. É de propósito: ninguém tem o time simulado pelas costas por ter demorado.</p>' },
+      { q:'Dá para jogar no celular?', a:'<p>Dá. Cada treinador entra do aparelho que quiser — celular, tablet ou computador — e o save fica na conta. O <strong>chat da sala</strong>, esse sim, só aparece no computador.</p>' },
+      { q:'Preciso pagar para abrir uma sala?', a:'<p>Ao criar a conta você ganha <strong>7 dias</strong> de Modo Resenha para experimentar com a turma. Depois disso, abrir sala passa a ser do plano — é ele que paga o servidor que roda a rodada de todo mundo. O <strong>Modo Solo</strong> continua de graça, sem prazo.</p>' },
     ],
         body: `
-<p class="lead">O melhor do manager sempre foi a resenha com os amigos. No RetroFoot isso virou o coração do jogo:
-o <strong>modo Resenha</strong>, onde cada um comanda o seu clube e a rodada roda pra todos ao mesmo tempo, online.</p>
+<p class="lead">O RetroFoot tem dois modos. No <strong>Modo Solo</strong> você pega um clube e enfrenta a máquina. No
+<strong>Modo Resenha</strong>, a liga é da sua turma: até <strong>8 treinadores</strong> no mesmo campeonato, cada um no
+seu aparelho, disputando a mesma tabela — e é aqui que o jogo fica bom de verdade.</p>
 
-<h2>Como funciona</h2>
-<p>Você cria uma sala, convida a galera pelo link, cada um pega o seu time e o campeonato começa. Não é mais um PC só
-passando o teclado — é <strong>multiplayer de verdade</strong>, cada um no seu aparelho, do celular ao computador.</p>
+<h2>Como a sala nasce</h2>
+<ol>
+  <li><strong>Você abre a sala</strong> e ela ganha um código.</li>
+  <li><strong>Manda o código para a turma</strong> — no grupo, no direct, onde vocês já conversam.</li>
+  <li><strong>Cada um entra pelo navegador</strong>, digita o código e ocupa um assento.</li>
+</ol>
+<p>Ninguém instala nada, ninguém precisa do mesmo aparelho, ninguém precisa estar na mesma cidade.</p>
 
-${fig('classificacao', 'Crie a sala e convide os amigos para a sua Resenha')}
+${fig('resenha-criar', 'Abrir a sala do Modo Resenha — ela nasce com um código para você repassar')}
 
-<h2>O sorteio e a disputa</h2>
-<p>Os times entram no sorteio, todo mundo escala o seu, e a rodada acontece em tempo real — com direito a zoação no chat,
-viradas no fim e aquela treta saudável de quem terminou em primeiro.</p>
+<h2>O sorteio: ninguém escolhe clube</h2>
+<p>Essa é uma regra da casa, e faz diferença. Quando a sala fecha, o <strong>sorteio roda para todo mundo ao mesmo
+tempo</strong> — cada treinador recebe o clube que o sorteio deu, com a turma inteira assistindo à cerimônia. Não tem
+escolher o grandão, não tem combinar por fora. O que você faz com o time que caiu na sua mão é o jogo.</p>
 
-${fig('copa', 'O sorteio dos times entre os amigos antes de começar')}
+${fig('sala-resenha', 'A sala enchendo antes do sorteio — cada treinador no seu aparelho')}
 
-<h2>Rodada ao vivo, juntos</h2>
-<p>Todo mundo assiste à própria partida ao mesmo tempo, e a classificação atualiza pra todos ao fim da rodada. É a resenha
-de sempre, só que agora à distância e sem complicação. Curtiu a ideia? Veja também
-<a href="/elifoot-online/">o Elifoot online</a> e a <a href="/historia-do-elifoot/">história por trás desse tipo de jogo</a>.</p>
+<h2>A semana só fecha quando todos jogarem</h2>
+<p>Esta é a regra que segura a liga de pé, e vale explicar porque ela é uma escolha, não uma limitação: a rodada
+<strong>não avança enquanto houver assento sem jogar</strong>. Ninguém tem o time escalado no automático nem o resultado
+decidido pelas costas por ter demorado meio dia para abrir o jogo.</p>
+<p>Enquanto a turma joga, você não fica parado olhando para uma tela de espera: dá para ver a tabela, mexer no elenco,
+negociar no mercado, responder e-mail. Quando o último jogar, a semana vira para todo mundo junto.</p>
 
-<p><a href="/">Chame os amigos e crie sua Resenha — é grátis.</a></p>
+${fig('pos-rodada', 'Fechada a rodada, a classificação atualiza para a sala inteira')}
+
+<h2>Modo Camarote: o seu jogo em tela cheia</h2>
+<p>Na hora da partida, o <strong>Modo Camarote</strong> põe só o seu confronto ocupando a tela, com narração lance a lance
+e as estatísticas do jogo. É o formato de quem quer assistir à própria partida como quem assiste à TV — e é o que a
+galera que transmite a resenha costuma deixar ligado.</p>
+
+${fig('camarote', 'O Modo Camarote: o seu jogo em tela cheia, com narração lance a lance')}
+
+<h2>O chat da sala</h2>
+<p>Tem chat entre os treinadores da sala, e ele é de propósito discreto: fica como uma bolha no canto, mostra uma linha
+de cada vez quando chega mensagem, e abre em painel quando você quiser. <strong>Durante a partida ao vivo e no Modo
+Camarote ele fica em silêncio total</strong> — o contador continua contando, mas nada interrompe o jogo. No celular o
+chat não aparece: numa tela de 375px, um painel abrindo por engano atrapalha mais do que ajuda.</p>
+
+<h2>A disputa continua fora da rodada</h2>
+<p>O campeonato é o placar óbvio, mas não é o único. Cada taça conquistada entra na sua <strong>sala de troféus</strong>,
+a carreira acumula pontos temporada após temporada, e o <a href="/ranking/">ranking de treinadores</a> coloca todo mundo
+na mesma régua — com o peso de cada título valendo o que a competição vale. Dá para a resenha durar anos de jogo.</p>
+
+<h2>O que você precisa para começar</h2>
+<ul>
+  <li><strong>Uma conta</strong> — é ela que guarda a sua sala, o seu assento e o seu clube.</li>
+  <li><strong>Um navegador</strong> — no celular, no tablet ou no computador. Nada para instalar.</li>
+  <li><strong>A turma</strong> — de 3 a 8 treinadores por sala.</li>
+</ul>
+<p>Ao criar a conta, o Modo Resenha vem liberado por <strong>7 dias</strong> para vocês experimentarem. Depois disso,
+abrir sala passa a ser do plano; o <strong>Modo Solo</strong> segue de graça e sem prazo.</p>
+
+<p><a href="/"><strong>Abra a sua sala e chame a turma</strong></a> — ou veja antes
+<a href="/elifoot-online/">como o jogo funciona no navegador</a> e a
+<a href="/historia-do-elifoot/">história da resenha nos managers brasileiros</a>.</p>
 `.trim(),
   },
 
   // ======================= P2: MELHORES JOGOS =======================
   {
-    slug: 'melhores-jogos-treinador-futebol', ready: true, priority: 0.7, lastmod: '2026-09-06',
-    title: 'Melhores Jogos de Treinador de Futebol em 2026 (Grátis e Online)',
-    description: 'Os melhores jogos de manager de futebol em 2026: grátis, online, para celular e clássicos. Veja qual tipo combina com você e comece a jogar.',
+    slug: 'melhores-jogos-treinador-futebol', ready: true, priority: 0.7, lastmod: '2026-09-20',
+    title: 'Melhores jogos de treinador de futebol em 2026 (grátis e online)',
+    description: 'Os melhores jogos de manager de futebol em 2026, por perfil de jogador: simulação profunda, clássico direto e online com amigos. Veja onde o RetroFoot entra — grátis, no navegador.',
     h1: 'Os melhores jogos de treinador de futebol em 2026',
-    keywords: 'melhor jogo de treinador de futebol, qual o melhor jogo de treinador de futebol, melhor jogo de manager de futebol, melhor jogo de manager de futebol para celular',
+    keywords: 'melhor jogo de treinador de futebol, qual o melhor jogo de treinador de futebol, melhor jogo de manager de futebol, melhor jogo de manager de futebol para celular, jogo de manager gratis',
     resumo: [
-      'O gênero tem três perfis: <strong>simulação profunda</strong>, <strong>clássico direto</strong> e <strong>online com amigos</strong>.',
-      'Football Manager domina a simulação; Elifoot e Brasfoot, a escola clássica.',
-      'Para jogar hoje, de graça e sem instalar, a opção é o <strong>RetroFoot</strong>.',
+      'O gênero tem três perfis: <strong>simulação profunda</strong>, <strong>clássico direto</strong> e <strong>online com a turma</strong>.',
+      'Football Manager domina a simulação; Elifoot e Brasfoot fundaram a escola clássica brasileira.',
+      'Para jogar hoje, de graça e sem instalar nada, a opção é o <strong>RetroFoot</strong>, no navegador.',
+      'Nenhum é "o melhor" no absoluto — o melhor é o que combina com o tempo que você tem.',
     ],
     refs: [
-      { nome:'Football Manager (SEGA)', desc:'A simulação mais profunda do gênero — paga, e exige PC.', url:'https://www.footballmanager.com/' },
+      { nome:'Football Manager (SEGA)', desc:'A simulação mais profunda do gênero — paga, e pede PC.', url:'https://www.footballmanager.com/' },
       { nome:'Elifoot (site oficial)', desc:'O clássico de André Elias, referência de simplicidade.', url:'https://www.elifoot.com/' },
-      { nome:'Brasfoot (site oficial)', desc:'Clássico brasileiro, forte em ligas e patches.', url:'https://www.brasfoot.com/' },
+      { nome:'Brasfoot (site oficial)', desc:'Clássico brasileiro, forte em ligas e em patches da comunidade.', url:'https://www.brasfoot.com/' },
     ],
     faq: [
-      { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros reais e multiplayer para até 20 treinadores.</p>' },
-      { q:'Tem algum que rode no celular sem baixar?', a:'<p>Tem: o RetroFoot roda no navegador do celular, e o save fica na nuvem.</p>' },
-      { q:'Football Manager é grátis?', a:'<p>Não — é um jogo pago, com versões para PC e console. É a escolha de quem quer simulação profunda e não se importa em instalar.</p>' },
+      { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros das quatro divisões e um modo para jogar com a turma. O <strong>Modo Solo</strong> é gratuito e sem prazo.</p>' },
+      { q:'Tem algum que rode no celular sem baixar?', a:'<p>Tem: o RetroFoot roda no navegador do celular, e o save fica na nuvem — dá para começar no computador e continuar no telefone.</p>' },
+      { q:'Football Manager é grátis?', a:'<p>Não — é um jogo pago, com versões para PC e console. É a escolha de quem quer simulação profunda e não se importa em instalar e aprender.</p>' },
+      { q:'Qual é o melhor para jogar com os amigos?', a:'<p>Depende de como a turma se organiza. Se todo mundo puder estar no mesmo lugar, qualquer clássico serve. Se cada um está numa cidade, você precisa de multiplayer online de verdade — é o que o <a href="/jogar-com-amigos/">Modo Resenha</a> do RetroFoot faz, com até 8 treinadores na mesma liga.</p>' },
     ],
         body: `
-<p class="lead">Existe jogo de treinador de futebol pra todo gosto: uns pesados e cheios de menus, outros leves e diretos,
-uns pagos, outros grátis. Aqui vai um guia rápido pra achar o <strong>melhor jogo de treinador de futebol</strong> pro seu estilo em 2026.</p>
+<p class="lead">Não existe "o melhor jogo de treinador de futebol" no absoluto — existe o que combina com o tempo que
+você tem, o aparelho que você usa e a vontade de aprender menu. Abaixo, o gênero dividido por perfil, com o que cada
+caminho entrega e o que cobra.</p>
 
-<h2>Por tipo de jogador</h2>
+<h2>Três perfis, três caminhos</h2>
+<h3>1. Simulação profunda</h3>
+<p>É a linha do <strong>Football Manager</strong>: scouting minucioso, dezenas de ligas, tática em camadas, relatório de
+olheiro, coletiva de imprensa. Entrega o máximo de profundidade que o gênero tem. Cobra em preço, em instalação e,
+principalmente, em <strong>tempo</strong> — não é jogo de trinta minutos.</p>
+
+<h3>2. Clássico direto</h3>
+<p>É a escola brasileira, fundada pelo <a href="/historia-do-elifoot/"><strong>Elifoot</strong></a> e pelo
+<strong>Brasfoot</strong>: você entende a tela em minutos, escala, negocia e joga. O Elifoot ficou conhecido pela
+simplicidade e pela resenha; o Brasfoot, pela quantidade de ligas e pela comunidade de patches que mantém os elencos em
+dia. Quem quiser a comparação lado a lado: <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>
+
+<h3>3. Online, com a turma, sem instalar</h3>
+<p>É onde o <strong>RetroFoot</strong> vive. A ideia é tirar toda a fricção da frente: abre no navegador, o save fica na
+nuvem, e a liga com os amigos acontece com cada um no seu aparelho — sem marcar de estar todo mundo na mesma sala.</p>
+
+${fig('hub', 'A tela do técnico no RetroFoot: o essencial à vista, sem menu escondido')}
+
+<h2>O que o RetroFoot entrega</h2>
 <ul>
-  <li><strong>Quer algo leve, grátis e sem baixar nada</strong> → um manager que roda no navegador é o ideal. É por aqui que o RetroFoot se encaixa.</li>
-  <li><strong>Quer jogar com os amigos</strong> → procure suporte a <em>multiplayer online</em> de verdade (o modo Resenha), não só "passar o teclado".</li>
-  <li><strong>Quer profundidade máxima</strong> → os simuladores completos entregam isso, mas cobram em tempo, preço e curva de aprendizado.</li>
-  <li><strong>Quer no celular, offline</strong> → há boas opções de app, embora a maioria peça download e às vezes pagamento.</li>
+  <li><strong>Grátis no Modo Solo</strong>, sem prazo e sem instalação — abre como qualquer site.</li>
+  <li><strong>Clubes brasileiros das Séries A, B, C e D</strong>, mais Copa do Brasil, Libertadores e Sul-Americana.</li>
+  <li><strong>Modo Resenha</strong> — até 8 treinadores na mesma liga, cada um no seu aparelho.</li>
+  <li><strong>Mercado mundial</strong> — compra e venda com clubes de fora desde a primeira temporada.</li>
+  <li><strong>Carreira de treinador</strong> — pontos, sala de troféus, sondagens e <a href="/ranking/">ranking</a>.</li>
+  <li><strong>Partida ao vivo</strong> — com lesão, expulsão, pênalti e disputa por cobranças.</li>
 </ul>
 
-<h2>Por que o RetroFoot entra na lista</h2>
-<p>Ele resolve o combo que costuma faltar: é <strong>grátis</strong>, roda <strong>no navegador</strong> (celular ou PC, sem instalar),
-tem <strong>clubes e jogadores reais</strong> das divisões brasileiras e copas, e um <strong>multiplayer online</strong> pensado pra
-resenha com os amigos. Tudo isso com aquela pegada retrô de quem cresceu jogando <a href="/elifoot-online/">Elifoot</a>.</p>
+${fig('partida', 'A rodada ao vivo: placar andando, público e os lances acontecendo')}
 
-${fig('hub', 'Interface direta e leve — o essencial do técnico na tela')}
+<h2>O que ele não é</h2>
+<p>Vale dizer, porque poupa o seu tempo: o RetroFoot <strong>não</strong> é um simulador de dezenas de ligas jogáveis —
+na versão atual o clube que você comanda é brasileiro, e as ligas estrangeiras rodam ao fundo (embora o mercado negocie
+com elas). Se o que você quer é sentar em um clube da Inglaterra ou da Espanha, hoje o caminho é outro jogo.</p>
 
-<h2>Qual escolher?</h2>
-<p>Se você quer começar a jogar <em>agora</em>, de graça e sem fricção, comece por um manager de navegador e evolua dali.
-Vale também comparar com os <a href="/jogos-parecidos-com-elifoot/">jogos parecidos com o Elifoot</a> e o clássico
-<a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>
+<h2>Como escolher em uma pergunta</h2>
+<p><em>Quanto tempo você quer gastar antes da primeira partida?</em> Se a resposta for "uma tarde aprendendo", vá de
+simulação profunda. Se for "um minuto", abra um manager de navegador. Vale também olhar os
+<a href="/jogos-parecidos-com-elifoot/">jogos parecidos com o Elifoot</a>.</p>
 
-<p><a href="/">Testar agora, de graça, no navegador.</a></p>
+<p><a href="/"><strong>Testar o RetroFoot agora</strong></a> — é de graça e roda no navegador.</p>
 `.trim(),
   },
 
   // ======================= P2: JOGOS PARECIDOS =======================
   {
-    slug: 'jogos-parecidos-com-elifoot', ready: true, priority: 0.7, lastmod: '2026-09-06',
-    title: 'Jogos Parecidos com Elifoot: Alternativas para 2026',
-    description: 'Procura um jogo tipo Elifoot? Veja alternativas de manager de futebol para jogar online e no navegador em 2026 — incluindo o RetroFoot, grátis e multiplayer.',
+    slug: 'jogos-parecidos-com-elifoot', ready: true, priority: 0.7, lastmod: '2026-09-20',
+    title: 'Jogos parecidos com Elifoot: as alternativas de 2026',
+    description: 'Procura um jogo tipo Elifoot? Veja as alternativas de manager de futebol em 2026 e o que faz um jogo ter essa pegada — incluindo o RetroFoot, que roda no navegador, de graça.',
     h1: 'Jogos parecidos com o Elifoot para jogar em 2026',
-    keywords: 'jogo tipo elifoot, jogos parecidos elifoot, elifoot alternativa, games like elifoot, jogo tipo elifoot online',
+    keywords: 'jogo tipo elifoot, jogos parecidos elifoot, elifoot alternativa, games like elifoot, jogo tipo elifoot online, manager simples de futebol',
     resumo: [
       'Quem procura "jogo parecido com Elifoot" quer três coisas: <strong>simples</strong>, <strong>rápido</strong> e <strong>com amigos</strong>.',
-      'Os clássicos do gênero ainda existem — e cada um puxa para um lado.',
-      'O <strong>RetroFoot</strong> é a opção que roda no navegador, de graça, sem instalar.',
+      'Os clássicos do gênero seguem vivos — e cada um puxa para um lado diferente.',
+      'O <strong>RetroFoot</strong> é a opção que roda no navegador, de graça, sem instalar nada.',
+      'O <strong>Modo Resenha</strong> resolve o que nenhum clássico resolvia em 1998: a turma jogando à distância.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'O original de André Elias, o "pai dos managers" em português.', url:'https://www.elifoot.com/' },
@@ -341,205 +589,301 @@ Vale também comparar com os <a href="/jogos-parecidos-com-elifoot/">jogos parec
       { nome:'Football Manager (SEGA)', desc:'A referência internacional do gênero, com simulação profunda e paga.', url:'https://www.footballmanager.com/' },
     ],
     faq: [
-      { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot</strong> roda no navegador, é gratuito e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque o jogo fica gravado na nuvem.</p>' },
-      { q:'Preciso baixar alguma coisa?', a:'<p>Não. Abre o site e joga. É a diferença principal em relação aos clássicos de PC, que precisam de download e instalação.</p>' },
-      { q:'Tem clubes e jogadores reais?', a:'<p>Tem: Séries A, B, C e D do Brasil, além de Copa do Brasil, Libertadores e Sul-Americana, com elencos de verdade.</p>' },
+      { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot</strong> roda no navegador, é gratuito no <strong>Modo Solo</strong> e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque a carreira fica gravada na nuvem.</p>' },
+      { q:'Preciso baixar alguma coisa?', a:'<p>Não. Abre o site e joga. É a diferença principal em relação aos clássicos de PC, que pedem download e instalação.</p>' },
+      { q:'Tem clubes e jogadores reais?', a:'<p>Tem: Séries A, B, C e D do Brasil, além de Copa do Brasil, Libertadores e Sul-Americana. E o mercado é mundial — dá para comprar e vender com clubes de fora.</p>' },
+      { q:'Dá para jogar com os amigos como era antigamente?', a:'<p>Dá, e sem o teclado passando de mão em mão: no <a href="/jogar-com-amigos/">Modo Resenha</a> até 8 treinadores disputam a mesma liga, cada um no seu aparelho.</p>' },
     ],
         body: `
-<p class="lead">Se você sente falta do <a href="/elifoot-online/">Elifoot</a> e procura um <strong>jogo parecido</strong>,
-a lista abaixo ajuda a achar a alternativa certa — de olho no que importa: ser leve, ter clubes reais e dar pra jogar com os amigos.</p>
-
-<h2>Alternativas de manager de futebol</h2>
-<ul>
-  <li><strong>RetroFoot</strong> — o mais próximo da experiência clássica: retrô, leve, com clubes reais do Brasil,
-      <em>online no navegador</em>, grátis e com multiplayer (Resenha). Sem baixar nada.</li>
-  <li><strong>Brasfoot</strong> — outro clássico brasileiro do gênero; veja a comparação em <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</li>
-  <li><strong>Simuladores completos</strong> — entregam muita profundidade tática e de scouting, mas pesam mais e têm curva de aprendizado.</li>
-  <li><strong>Managers de celular</strong> — práticos, porém a maioria exige download e às vezes compras dentro do app.</li>
-</ul>
+<p class="lead">Se você procura um <strong>jogo parecido com o Elifoot</strong>, provavelmente não está atrás de gráficos.
+Está atrás de uma sensação: abrir, entender em dois minutos, escalar o time e brigar por uma vaga — de preferência
+zoando os amigos no caminho. Esta página é sobre onde encontrar isso hoje.</p>
 
 <h2>O que faz um jogo ser "tipo Elifoot"</h2>
-<p>Três coisas: <strong>simplicidade</strong> (você entende em minutos), <strong>foco no técnico</strong> (tática, elenco, dinheiro)
-e <strong>resenha com os amigos</strong>. É essa combinação que o RetroFoot busca recriar — com a vantagem de rodar direto no navegador.</p>
+<p>Três coisas, e elas andam juntas:</p>
+<ul>
+  <li><strong>Simplicidade</strong> — a tela se explica sozinha, sem tutorial de meia hora.</li>
+  <li><strong>Foco no técnico</strong> — tática, elenco e dinheiro decidem o jogo; ninguém controla a bola.</li>
+  <li><strong>Resenha</strong> — a graça mesmo é ter com quem disputar e de quem tirar sarro na segunda-feira.</li>
+</ul>
+<p>Um jogo que tem as três é "tipo Elifoot", independentemente de quando foi feito.</p>
 
-${fig('partida', 'Os lances da partida ao vivo, com os detalhes de cada acontecimento')}
+<h2>As alternativas, e para quem cada uma serve</h2>
+<h3>RetroFoot</h3>
+<p>É o mais próximo dessa combinação hoje, e o único da lista que <strong>não pede instalação</strong>: abre no navegador,
+no celular ou no PC. Tem clubes brasileiros das quatro divisões, Copa do Brasil e continentais, mercado mundial, partida
+ao vivo e o <strong>Modo Resenha</strong> — até 8 treinadores na mesma liga, cada um no seu aparelho. O
+<strong>Modo Solo</strong> é gratuito e sem prazo.</p>
 
-<p>Quer ir direto ao ponto? <a href="/">Jogue agora, de graça</a> — ou entenda a
-<a href="/historia-do-elifoot/">história desse tipo de jogo</a>.</p>
+${fig('formacao', 'A tela do técnico: escalação, banco, próximo jogo e caixa — tudo à vista')}
+
+<h3>Brasfoot</h3>
+<p>O outro clássico brasileiro, e a escolha de quem gosta de <strong>coleção</strong>: muitas ligas, temporadas novas
+todo ano e uma comunidade de patches que mantém os elencos atualizados. A comparação completa está em
+<a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>
+
+<h3>O próprio Elifoot</h3>
+<p>Continua existindo, com o criador dele. Se é o Elifoot em si que você quer, o site oficial está nas referências no
+fim desta página — vale a visita.</p>
+
+<h3>Simuladores completos</h3>
+<p>Entregam profundidade tática e de scouting que nenhum clássico alcança, mas pesam mais, custam e têm curva de
+aprendizado. Outro tipo de prazer, para outro tipo de tarde.</p>
+
+<h2>O que mudou desde 1998</h2>
+<p>A parte que envelheceu dos clássicos nunca foi a ideia — foi a tecnologia em volta. Instalar, guardar registro e
+senha, o save preso naquele computador, e "multiplayer" querendo dizer o mesmo teclado. É exatamente essa lista que um
+manager de navegador apaga.</p>
+
+${fig('sala-resenha', 'O Modo Resenha: a turma na mesma liga, cada um no seu aparelho')}
+
+<p>Quer ir direto ao ponto? <a href="/"><strong>Abra o RetroFoot e pegue um clube</strong></a> — ou entenda antes a
+<a href="/historia-do-elifoot/">história desse tipo de jogo no Brasil</a>.</p>
 `.trim(),
   },
 
   // ======================= P2: ELIFOOT VS BRASFOOT =======================
   {
-    slug: 'elifoot-vs-brasfoot', ready: true, priority: 0.6, lastmod: '2026-09-06',
-    title: 'Elifoot vs Brasfoot: qual o melhor manager de futebol?',
-    description: 'Elifoot ou Brasfoot? Comparamos os dois clássicos do futebol manager brasileiro — e mostramos a opção online e grátis para jogar hoje mesmo.',
-    h1: 'Elifoot vs Brasfoot: qual escolher?',
-    keywords: 'elifoot vs brasfoot, elifoot ou brasfoot, brasfoot ou elifoot',
+    slug: 'elifoot-vs-brasfoot', ready: true, priority: 0.6, lastmod: '2026-09-20',
+    title: 'Elifoot vs Brasfoot: as duas escolas do manager brasileiro',
+    description: 'Elifoot ou Brasfoot? Um comparativo honesto entre os dois clássicos do manager de futebol brasileiro — o que cada um faz melhor, e onde entra o RetroFoot, que roda no navegador.',
+    h1: 'Elifoot vs Brasfoot: duas escolas, e o que cada uma faz melhor',
+    keywords: 'elifoot vs brasfoot, elifoot ou brasfoot, brasfoot ou elifoot, melhor manager brasileiro, retrofoot',
     resumo: [
-      'São duas escolas: o <strong>Elifoot</strong> aposta na simplicidade e na resenha; o <strong>Brasfoot</strong>, em ligas e patches.',
-      'Elifoot tem curva de aprendizado mais baixa — dá para entender em minutos.',
-      'Brasfoot atrai quem gosta de gerenciar muitas ligas e atualizar elencos.',
-      'O <strong>RetroFoot</strong> junta as duas pontas: simples como o Elifoot, com clubes reais e multiplayer online, no navegador.',
+      'São duas escolas: o <strong>Elifoot</strong> é a da simplicidade e da resenha; o <strong>Brasfoot</strong>, a da coleção — muitas ligas e patches.',
+      'Elifoot tem a curva mais baixa: dá para entender em minutos.',
+      'Brasfoot ganha em quantidade de ligas e na comunidade que mantém os elencos em dia.',
+      'O <strong>RetroFoot</strong> é uma terceira opção, não um juiz: simples como a primeira escola, com a resenha online que nenhuma das duas tinha em 1998.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'Site do criador André Elias, com o histórico e as versões do jogo original.', url:'https://www.elifoot.com/' },
       { nome:'Brasfoot (site oficial)', desc:'Página oficial do Brasfoot, com temporadas, registros e a comunidade de patches.', url:'https://www.brasfoot.com/' },
     ],
     faq: [
-      { q:'Qual é melhor: Elifoot ou Brasfoot?', a:'<p>Depende do que você procura. Se quer sentar e jogar em minutos, com foco em tática e resenha, a pegada do <strong>Elifoot</strong> combina mais. Se gosta de gerenciar muitas ligas e atualizar elencos com patches, o <strong>Brasfoot</strong> entrega mais profundidade nesse ponto.</p>' },
-      { q:'Os dois são pagos?', a:'<p>Os dois têm versões gratuitas e versões/registros pagos, que variam por edição. O <a href="/">RetroFoot</a> é gratuito e roda no navegador, sem instalação nem registro pago.</p>' },
-      { q:'Dá para jogar com amigos?', a:'<p>No RetroFoot sim, e é o centro do jogo: até 20 treinadores na mesma liga, disputando a mesma rodada ao vivo, com chat. Veja <a href="/jogar-com-amigos/">como funciona o Modo Resenha</a>.</p>' },
+      { q:'Qual é melhor: Elifoot ou Brasfoot?', a:'<p>Depende do que você procura, e os dois são bons no que se propõem. Se quer sentar e jogar em minutos, com foco em tática e resenha, a pegada do <strong>Elifoot</strong> combina mais. Se gosta de gerenciar muitas ligas e manter elencos atualizados com patches, o <strong>Brasfoot</strong> entrega mais nesse ponto.</p>' },
+      { q:'Os dois são pagos?', a:'<p>Os dois têm versões gratuitas e versões ou registros pagos, que variam por edição — o melhor é conferir nos sites oficiais, linkados nesta página.</p>' },
+      { q:'E o RetroFoot, onde entra?', a:'<p>É um <strong>jogo próprio</strong>, sem ligação com nenhum dos dois. Ele fica na mesma escola da simplicidade, e acrescenta o que a internet de hoje permite: roda no navegador sem instalar, o save fica na nuvem, e o <a href="/jogar-com-amigos/">Modo Resenha</a> põe até 8 treinadores na mesma liga, cada um no seu aparelho.</p>' },
+      { q:'Dá para jogar com ligas de outros países no RetroFoot?', a:'<p>Na versão atual, não: o clube que você comanda é <strong>brasileiro</strong>, nas quatro divisões. As ligas estrangeiras rodam ao fundo e o mercado negocia com elas, mas sentar num clube de fora ainda não dá. Nesse quesito, quem quer muitas ligas jogáveis se serve melhor no Brasfoot.</p>' },
     ],
         body: `
-<p class="lead">Duas gerações de brasileiros discutem isso até hoje: <strong>Elifoot ou Brasfoot?</strong> Os dois são clássicos
-do manager de futebol, cada um com sua turma fiel. Vamos ao que interessa.</p>
+<p class="lead">Duas gerações discutem isso até hoje: <strong>Elifoot ou Brasfoot?</strong> A resposta honesta é que eles
+não disputam a mesma coisa. São <strong>duas escolas</strong> do manager brasileiro, com virtudes diferentes — e vale
+saber qual delas é a sua antes de escolher.</p>
 
 <h2>O que cada um representa</h2>
-<p>O <a href="/historia-do-elifoot/"><strong>Elifoot</strong></a> é o "Pai dos Managers": nasceu em 1987, ganhou o Brasil a partir
-de 1998 e ficou conhecido pela simplicidade e pela resenha com os amigos. O <strong>Brasfoot</strong> chegou depois e conquistou
-espaço com foco no futebol brasileiro e nas ligas do mundo, com atualizações de elenco e patches da comunidade.</p>
+<p>O <a href="/historia-do-elifoot/"><strong>Elifoot</strong></a> é o "pai dos managers": nasceu em 1987, ganhou o Brasil
+a partir de 1998 e ficou conhecido por duas coisas — você entende o jogo em minutos, e a graça está na resenha com os
+amigos. É a <strong>escola da simplicidade</strong>.</p>
+<p>O <strong>Brasfoot</strong> chegou depois e fundou a outra: muitas ligas, temporadas novas a cada ano e uma
+<strong>comunidade de patches</strong> que mantém os elencos em dia por conta própria. É a <strong>escola da
+coleção</strong> — e essa comunidade é um patrimônio que nenhum jogo compra pronto.</p>
 
-<h2>Comparando o essencial</h2>
-<h3>Ponto a ponto</h3>
+<h2>Ponto a ponto</h2>
 <table>
-  <thead><tr><th>Critério</th><th>Estilo Elifoot</th><th>Estilo Brasfoot</th><th>RetroFoot</th></tr></thead>
+  <thead><tr><th>Critério</th><th>Escola Elifoot</th><th>Escola Brasfoot</th><th>RetroFoot</th></tr></thead>
   <tbody>
-    <tr><td>Pegada</td><td>Simples, direto, retrô</td><td>Foco em ligas e patches</td><td>Retrô, com clubes reais</td></tr>
+    <tr><td>Pegada</td><td>Simples, direta, retrô</td><td>Muitas ligas e patches</td><td>Retrô, com clubes reais do Brasil</td></tr>
     <tr><td>Curva de aprendizado</td><td>Baixa (entende em minutos)</td><td>Média</td><td>Baixa</td></tr>
-    <tr><td>Resenha com amigos</td><td>É a alma do jogo</td><td>Presente</td><td>Até 20 na mesma liga, ao vivo</td></tr>
-    <tr><td>Precisa instalar?</td><td>Sim (PC)</td><td>Sim (PC/celular)</td><td>Não — roda no navegador</td></tr>
-    <tr><td>Preço</td><td>Versões grátis e pagas</td><td>Versões grátis e pagas</td><td>Grátis</td></tr>
-    <tr><td>Salva onde?</td><td>No computador</td><td>No aparelho</td><td>Na nuvem (continua em qualquer tela)</td></tr>
+    <tr><td>Ligas jogáveis</td><td>Varia por edição</td><td><strong>Muitas — é o forte dele</strong></td><td>Só o Brasil (4 divisões); mercado mundial</td></tr>
+    <tr><td>Elencos atualizados</td><td>Por versão</td><td><strong>Patches da comunidade</strong></td><td>Atualização do próprio jogo</td></tr>
+    <tr><td>Jogar com amigos</td><td>É a alma do jogo</td><td>Presente</td><td>Modo Resenha: até 8, online, cada um no seu aparelho</td></tr>
+    <tr><td>Precisa instalar?</td><td>Sim (PC)</td><td>Sim (PC/celular)</td><td><strong>Não — roda no navegador</strong></td></tr>
+    <tr><td>Onde fica o save</td><td>No computador</td><td>No aparelho</td><td>Na nuvem — continua em qualquer tela</td></tr>
   </tbody>
 </table>
-<h3>Em uma frase</h3>
+
+<h2>Em uma frase cada</h2>
 <ul>
   <li><strong>Elifoot:</strong> a escola da simplicidade — senta e joga.</li>
   <li><strong>Brasfoot:</strong> a escola da coleção — muitas ligas, muitos elencos, muitos patches.</li>
-  <li><strong>RetroFoot:</strong> a simplicidade do primeiro, com a resenha online que nenhum dos dois tinha em 1998.</li>
+  <li><strong>RetroFoot:</strong> a simplicidade da primeira, com a resenha online que nenhuma das duas tinha em 1998.</li>
 </ul>
 
-${fig('formacao', 'A escalação do RetroFoot: campo, banco e formação na mesma tela', 'Tela de formação do RetroFoot com o campo, os titulares e o banco de reservas')}
+<h2>Onde o RetroFoot entra — e onde não entra</h2>
+<p>O <strong>RetroFoot</strong> é um jogo próprio, escrito do zero, sem ligação com Elifoot nem com Brasfoot. Ele fica na
+escola da simplicidade e acrescenta o que a internet de hoje permite: abre no navegador sem instalar nada, o save fica na
+nuvem, o <strong>mercado é mundial</strong>, a carreira do treinador atravessa temporadas com troféus e
+<a href="/ranking/">ranking</a>, e o <strong>Modo Resenha</strong> põe até 8 treinadores na mesma liga, cada um no seu
+aparelho, com o sorteio distribuindo os clubes para todo mundo ao mesmo tempo.</p>
+<p>E onde ele não entra, para ser justo: <strong>se o que você quer é sentar num clube da Europa</strong>, ou colecionar
+dezenas de ligas jogáveis, o RetroFoot ainda não faz isso — a carreira acontece nas quatro divisões brasileiras. Nesse
+ponto o Brasfoot serve melhor, e não há problema nenhum em dizer isso.</p>
 
-<h2>E se desse pra ter o melhor dos dois, online e de graça?</h2>
-<p>É essa a proposta do <strong>RetroFoot</strong>: a simplicidade e a resenha do Elifoot, com clubes e jogadores reais do
-Brasil (Séries A–D, Copa do Brasil, Libertadores), rodando <strong>no navegador, sem baixar, de graça</strong> e com
-<a href="/jogar-com-amigos/">multiplayer online</a>. Em vez de escolher entre um e outro, dá pra simplesmente jogar.</p>
+${fig('formacao', 'A escalação do RetroFoot: campo, banco e formação na mesma tela', null, 'Tela de formação do RetroFoot com o campo, os titulares e o banco de reservas')}
 
-<p><a href="/">Jogar agora, de graça, no navegador.</a></p>
+<h2>Não precisa escolher um só</h2>
+<p>Os três são jogos diferentes, de gente diferente, e os dois clássicos seguem com os donos deles — os sites oficiais
+estão logo abaixo. Se hoje a sua vontade é abrir uma aba e escalar um time em um minuto, o caminho mais curto é este:</p>
+
+<p><a href="/"><strong>Abrir o RetroFoot e pegar um clube</strong></a> — de graça, no navegador.</p>
 `.trim(),
   },
 
   // ======================= GUIA / DOCUMENTAÇÃO =======================
   {
-    slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-09-06',
-    title: 'Guia do RetroFoot: Como Jogar, Melhores Táticas e Dicas para Vencer',
-    description: 'Domine o RetroFoot: melhores formações por divisão e situação, como ganhar dinheiro comprando e vendendo jogadores, ampliar o estádio e subir de divisão.',
+    slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-09-20',
+    title: 'Guia do RetroFoot: como jogar, táticas e como subir de divisão',
+    description: 'O guia do técnico no RetroFoot: como escalar, que formação usar em cada situação, como fazer dinheiro no mercado, quando ampliar o estádio e como subir de série.',
     h1: 'Guia do técnico: como jogar e vencer no RetroFoot',
-    keywords: 'como jogar, elifoot como ganhar, melhores taticas, melhores formações, dicas, como subir de divisão, como fazer dinheiro, ampliar estadio',
+    keywords: 'como jogar retrofoot, melhores taticas, melhores formações, dicas, como subir de divisão, como fazer dinheiro, ampliar estadio, guia do treinador',
     resumo: [
       'Escale pensando em <strong>força e energia</strong>: jogador cansado rende menos.',
-      'O <strong>mercado</strong> é onde se ganha dinheiro — compre barato quem tem ritmo de evolução.',
-      'Ajuste a <strong>formação</strong> ao adversário: um meio-campista a mais segura jogo fora de casa.',
+      'O <strong>mercado</strong> é onde se ganha dinheiro — e ele é mundial desde a primeira temporada.',
+      'Ajuste a <strong>formação</strong> ao jogo: um meio-campista a mais segura partida fora de casa.',
       'Suba de divisão com o caixa no azul: folha alta derruba clube pequeno.',
     ],
     faq: [
-      { q:'Qual a melhor formação no RetroFoot?', a:'<p>Não existe uma só. Contra times fortes fora de casa, um meio-campo mais povoado (4-5-1 ou 4-4-2) segura melhor; em casa e contra times fracos, 4-3-3 e 3-4-3 criam mais.</p>' },
-      { q:'Como ganhar dinheiro no jogo?', a:'<p>Venda quem já chegou ao teto e aposte em jovens com ritmo de evolução alto; fique de olho no leilão e evite folha salarial acima do que a bilheteria sustenta.</p>' },
-      { q:'O que é a energia do jogador?', a:'<p>É o quanto ele tem de gás para a próxima partida. Abaixo de 70% o rendimento cai — dá para usar "Selecionar descansados" para escalar priorizando quem está inteiro.</p>' },
+      { q:'Qual a melhor formação no RetroFoot?', a:'<p>Não existe uma só. Contra times fortes e fora de casa, um meio-campo mais povoado (4-5-1 ou 4-4-2) segura melhor; em casa e contra adversários mais fracos, 4-3-3 e 3-4-3 criam mais. A escolha certa é a que responde ao jogo daquele dia.</p>' },
+      { q:'Como ganhar dinheiro no jogo?', a:'<p>Venda quem já chegou ao teto e aposte em jovens com espaço para evoluir — o valor de mercado é vivo e se move com força, idade, potencial, comportamento e momento. Fique de olho no leilão, venda para o exterior quando a proposta for boa, e não deixe a folha passar do que a bilheteria sustenta.</p>' },
+      { q:'O que é a energia do jogador?', a:'<p>É o quanto ele tem de gás para a próxima partida. Abaixo de 70% o rendimento cai — dá para usar "Selecionar descansados" e escalar priorizando quem está inteiro.</p>' },
+      { q:'Dá para contratar jogador de fora do Brasil?', a:'<p>Dá, desde a primeira temporada: o mercado é mundial, de ida e de volta. Vender bem para o exterior costuma ser o atalho que arruma o caixa de um clube pequeno.</p>' },
     ],
         body: `
-<p class="lead">O RetroFoot foi pensado pra ser <strong>equilibrado</strong>: não existe fórmula mágica que ganha sozinha,
-mas existem boas decisões que aumentam (e muito) as suas chances. Este guia reúne os princípios do jogo e dicas práticas —
-sem revelar as contas por trás do motor, só o que você precisa pra jogar melhor.</p>
+<p class="lead">O RetroFoot recompensa <strong>decisão</strong>, não sorte. Não existe fórmula que ganha sozinha, mas
+existem escolhas que aumentam muito as suas chances — e é disso que este guia trata: os princípios do jogo, sem revelar
+as contas do motor.</p>
 
-<h2>A filosofia: futebol é decisão, não sorte</h2>
-<p>Cada rodada é a soma de escolhas: a formação certa pro contexto, o elenco com profundidade nas posições certas, o caixa
-saudável e a moral do grupo em dia. O jogo recompensa consistência — quem gerencia bem ao longo da temporada, colhe.</p>
+<h2>A escalação: força, energia e função</h2>
+<p>Três coisas decidem quem entra. A <strong>força</strong> do jogador para a posição, a <strong>energia</strong> com que
+ele chega ao jogo (abaixo de 70% o rendimento cai) e a <strong>moral</strong>, que sobe com vitória e título e desce com
+sequência ruim. Um titular cansado costuma render menos que um reserva inteiro — e o botão "Selecionar descansados"
+existe justamente para essa conta.</p>
 
-<h2>Melhores formações por situação</h2>
-<p>Não existe "a melhor tática" fixa; existe a melhor <em>para cada momento</em>. Alguns princípios que funcionam:</p>
+${fig('formacao', 'A escalação: arraste o jogador para a posição e feche a formação')}
+
+<h2>Formação: a melhor é a do dia</h2>
+<p>Não existe tática fixa que resolva a temporada. O que funciona é ler o contexto:</p>
 <ul>
-  <li><strong>Jogando fora e contra um time mais forte:</strong> priorize solidez — mais gente no meio e na defesa, saída rápida.</li>
-  <li><strong>Em casa, precisando do resultado:</strong> ouse mais no ataque, mas sem se expor a contra-ataques.</li>
-  <li><strong>Segurando uma vantagem no fim:</strong> proteja o meio-campo e use as substituições pra dar fôlego.</li>
-  <li><strong>Elenco curto/cansado:</strong> uma formação mais compacta poupa energia e reduz o risco de lesão e cartão.</li>
+  <li><strong>Fora de casa, contra time mais forte:</strong> povoe o meio e a defesa, saia rápido. 4-5-1 e 4-4-2 seguram melhor.</li>
+  <li><strong>Em casa, precisando do resultado:</strong> ouse no ataque — 4-3-3 e 3-4-3 criam mais —, sem se expor ao contra-ataque.</li>
+  <li><strong>Segurando vantagem no fim:</strong> proteja o meio-campo e gaste substituição para dar fôlego.</li>
+  <li><strong>Elenco curto ou cansado:</strong> formação mais compacta poupa energia e reduz risco de lesão e cartão.</li>
+</ul>
+<p>E dá para corrigir no meio: no <strong>intervalo</strong> você troca peça e muda o esquema, com o placar já na sua frente.</p>
+
+${fig('substituicao', 'No intervalo dá para trocar peça e ajustar o esquema com o placar à vista')}
+
+<h2>Mercado: é aqui que se faz dinheiro</h2>
+<p>O valor de um jogador é <strong>vivo</strong> — se move com a força dele, a idade, o potencial, o comportamento e o
+momento. Quem lê isso bem transforma elenco em caixa:</p>
+<ul>
+  <li><strong>Compre barato quem ainda tem para onde crescer</strong> e venda quem já chegou ao teto.</li>
+  <li><strong>Olhe as propostas recebidas:</strong> às vezes vale vender um titular por um valor alto e voltar com duas peças.</li>
+  <li><strong>Use o leilão:</strong> quando mais de um clube quer o mesmo jogador, quem decide é o lance — e dá para vender assim também.</li>
+  <li><strong>Negocie com o mundo:</strong> o mercado é mundial desde a primeira temporada, e clube de fora costuma pagar melhor.</li>
+  <li><strong>Respeite a janela</strong> e não desmonte o time: elenco fraco derruba resultado, e resultado ruim derruba bilheteria.</li>
 </ul>
 
-${fig('formacao', 'Escolha a formação e a tática de acordo com o jogo — em casa, fora, atrás ou na frente do placar')}
+${fig('leilao', 'O leilão: quando mais de um clube quer o mesmo jogador, decide o lance')}
 
-<h2>Como fazer dinheiro comprando e vendendo jogadores</h2>
-<p>O mercado é uma das maiores fontes de receita — se você jogar bem:</p>
+<h2>Base e treino especial: reforço que não custa passe</h2>
+<p>A <strong>base</strong> é a fonte mais barata de elenco que existe: garoto promovido não custa transferência. E o
+<strong>treino especial</strong> serve para trabalhar quem tem potencial e ainda não chegou lá. Para clube de Série C ou
+D, essa costuma ser a diferença entre completar o elenco e não completar.</p>
+
+${fig('base', 'A base: quem já dá para subir, e quem precisa de mais uma temporada')}
+
+<h2>Estádio: ampliar na hora certa</h2>
+<p>Bilheteria é receita recorrente, então ampliar é bom — mas é gastar agora para receber depois. A regra prática:
+amplie quando você <strong>já estiver enchendo o que tem</strong> e o caixa aguentar a obra sem sufocar a folha. Crescer
+junto com a torcida, subindo de divisão, costuma ser mais seguro do que apostar tudo de uma vez.</p>
+
+${fig('estadio', 'Ampliar o estádio é decisão de caixa: mais bilheteria depois, menos dinheiro agora')}
+
+<h2>Copas também pagam</h2>
+<p>Não jogue a copa como se fosse peso. A <strong>Copa do Brasil</strong> paga por fase disputada, tem bilheteria
+própria, e as <strong>continentais</strong> pagam ao fim da campanha. Para clube pequeno, uma campanha boa de copa
+financia a temporada inteira — além de valer muito no <a href="/ranking/">ranking de treinadores</a>.</p>
+
+<h2>Como subir de divisão</h2>
 <ul>
-  <li><strong>Compre barato, valorize, venda caro:</strong> jovens com espaço pra crescer tendem a valorizar jogando bem.</li>
-  <li><strong>Fique de olho nas propostas recebidas:</strong> às vezes vale vender um titular por um valor alto e reinvestir em duas peças.</li>
-  <li><strong>Respeite a janela:</strong> as transferências abrem em períodos específicos da temporada — planeje antes de fechar.</li>
-  <li><strong>Não desmonte o time:</strong> vender demais enfraquece o elenco e derruba os resultados (e a bilheteria).</li>
+  <li><strong>Profundidade antes de luxo:</strong> garanta duas opções por posição antes de buscar estrela.</li>
+  <li><strong>Caixa no azul:</strong> dívida trava o mercado; o contador do clube avisa quando o buraco está crescendo.</li>
+  <li><strong>Constância vale mais que goleada:</strong> pontuar sempre sobe a tabela; golear uma vez não.</li>
+  <li><strong>Suba com estrutura:</strong> chegar na divisão de cima com elenco curto é o caminho mais rápido de voltar.</li>
 </ul>
 
-${fig('leilao', 'Negocie e venda jogadores — o mercado bem trabalhado vira caixa')}
+${fig('classificacao', 'A tabela da divisão: acesso em cima, rebaixamento embaixo')}
 
-<h2>Estádio: quando ampliar</h2>
-<p>A bilheteria é receita recorrente. Ampliar o estádio faz sentido quando você já enche o que tem e o caixa aguenta o
-investimento sem sufocar a folha. Crescer junto com a torcida — subindo de divisão — costuma ser mais sustentável do que
-gastar tudo de uma vez.</p>
+<h2>O jogo continua mudando</h2>
+<p>O equilíbrio do RetroFoot é medido e ajustado com o tempo, para que boas decisões sejam recompensadas e nenhuma
+escolha vire atalho garantido. Se você achar algo desequilibrado, a caixa de opinião dentro do jogo é o caminho mais
+curto até quem mexe no motor.</p>
 
-${fig('hub', 'Amplie o estádio para aumentar a bilheteria — no momento certo do caixa')}
-
-<h2>Como subir de divisão mais fácil</h2>
-<ul>
-  <li><strong>Base sólida antes de luxo:</strong> garanta qualidade e profundidade em todas as posições antes de contratar estrelas.</li>
-  <li><strong>Caixa no azul:</strong> dívida alta trava o mercado e a evolução; equilibre folha e receita.</li>
-  <li><strong>Constância &gt; heroísmo:</strong> pontuar sempre vale mais do que uma goleada isolada.</li>
-  <li><strong>Aproveite a base:</strong> subir jovens das categorias de base reforça o elenco sem pesar no caixa.</li>
-</ul>
-
-${fig('classificacao', 'A classificação das divisões ao fim de cada rodada — seu placar da temporada')}
-
-<h2>Feito pra ser justo — e pra melhorar sempre</h2>
-<p>O equilíbrio do RetroFoot é calibrado continuamente pra que boas decisões sejam recompensadas e nenhuma tática seja
-"quebrada". O jogo está em evolução constante, ouvindo a comunidade. Agora é com você: <a href="/">assuma um clube e comece a subir</a>.</p>
+<p><a href="/"><strong>Assuma um clube e comece a subir</strong></a> — ou veja como funciona o
+<a href="/ranking/">ranking de treinadores</a>.</p>
 `.trim(),
   },
 
   // ======================= RANKING (descritiva — sem PII) =======================
   {
-    slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-09-06',
-    title: 'Ranking de Treinadores do RetroFoot — Pontos e Troféus',
-    description: 'Como funciona o ranking de treinadores do RetroFoot: pontuação por carreira, com os troféus como principal critério de desempate. Suba no ranking geral.',
-    h1: 'Ranking de treinadores: pontos de carreira e troféus',
-    keywords: 'ranking retrofoot, ranking de treinadores, ranking elifoot, melhores treinadores',
+    slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-09-20',
+    title: 'Ranking de treinadores do RetroFoot: como os pontos são contados',
+    description: 'Como funciona o ranking de treinadores do RetroFoot: pontos de carreira somados ao peso real de cada título — uma Libertadores vale muito mais que um acesso na Série D.',
+    h1: 'Ranking de treinadores: como os pontos são contados',
+    keywords: 'ranking retrofoot, ranking de treinadores, melhores treinadores, pontos de carreira, sala de trofeus',
     resumo: [
-      'Cada temporada rende <strong>pontos de carreira</strong> por título, acesso e campanha.',
-      'O histórico do treinador é <strong>público</strong> — clube a clube, temporada a temporada.',
-      'O topo da tabela abre vaga nas <strong>Ligas Oficiais</strong>.',
+      'A pontuação soma os <strong>pontos de carreira</strong> de todas as temporadas com o <strong>peso dos títulos</strong>.',
+      'Cada taça vale o que a competição vale: <strong>Libertadores 20</strong>, Série A 15, Copa do Brasil 12, Série D 0,5.',
+      'Título pesa muito mais que campanha — mas regularidade continua subindo degraus.',
+      'O aproveitamento aparece na tabela e é <strong>informativo</strong>: quem tem menos jogos não sobe por isso.',
     ],
     faq: [
-      { q:'Como funcionam os pontos do ranking?', a:'<p>Você soma pontos pelo desempenho da temporada: título, acesso, campanha na copa e posição final. Quanto mais difícil o feito, mais ele vale.</p>' },
-      { q:'O ranking zera todo ano?', a:'<p>A tabela da temporada fecha e é premiada, mas o seu histórico de carreira continua — ele é o retrato de tudo o que você já fez.</p>' },
-      { q:'O que são as Ligas Oficiais?', a:'<p>Competições fechadas entre os treinadores mais bem colocados do ranking, com premiação real. A vaga vem por mérito, não por compra.</p>' },
+      { q:'Como funcionam os pontos do ranking?', a:'<p>São duas moedas somadas: os <strong>pontos que você fez em campo</strong> ao longo de toda a carreira (todas as temporadas mais a atual) e o <strong>peso dos títulos</strong> conquistados. O peso do título entra multiplicado, então uma taça mexe bem mais no ranking do que uma boa campanha.</p>' },
+      { q:'Todos os títulos valem a mesma coisa?', a:'<p>Não, e é de propósito. Cada competição tem o seu peso: <strong>Libertadores 20</strong>, <strong>Série A 15</strong>, <strong>Copa do Brasil 12</strong>, <strong>Sul-Americana 10</strong>, <strong>Série B 3</strong>, <strong>Série C 1</strong> e <strong>Série D 0,5</strong>. Ganhar a Série D é uma conquista, mas não é uma Libertadores.</p>' },
+      { q:'O ranking zera todo ano?', a:'<p>Não. A temporada fecha e é premiada, mas o seu histórico de carreira continua — ele é o retrato de tudo o que você já fez, clube a clube, temporada a temporada.</p>' },
+      { q:'Por que quem joga mais aparece na frente?', a:'<p>Porque metade da pontuação são pontos feitos em campo, e eles se acumulam. O <strong>aproveitamento</strong> aparece na tabela para você comparar rendimento, mas ele não empurra ninguém para cima: quem jogou pouco não sobe por ter um percentual alto.</p>' },
     ],
         body: `
-<p class="lead">Toda boa resenha tem um pódio. No RetroFoot existe um <strong>ranking de treinadores</strong> que mede quem
-construiu a melhor carreira ao longo das temporadas — e, claro, quem levantou mais taças.</p>
+<p class="lead">Toda boa resenha tem um pódio. No RetroFoot existe um <strong>ranking de treinadores</strong> que mede
+carreira, e não temporada solta: ele soma o que você fez em campo ao longo de todas as temporadas e acrescenta o peso
+das taças que você levantou.</p>
 
-<h2>Como a pontuação funciona</h2>
-<p>A posição no ranking é definida pelos <strong>pontos de carreira</strong> acumulados (temporadas disputadas, campanhas e
-desempenho ao longo do tempo). No desempate, o critério de maior peso são os <strong>troféus</strong>: quem venceu mais fica na frente.
-É a forma de valorizar tanto a regularidade quanto a glória.</p>
+<h2>A conta, sem mistério</h2>
+<p>São duas moedas na mesma balança:</p>
+<ul>
+  <li><strong>Pontos de campanha</strong> — os pontos que os seus times somaram, de todas as temporadas mais a atual.</li>
+  <li><strong>Peso dos títulos</strong> — cada taça vale o que a competição vale, e entra com multiplicador.</li>
+</ul>
+<p>O efeito prático é o que se espera de um ranking de treinador: <strong>ganhar pesa mais do que somar</strong>, mas
+quem faz campanha consistente temporada após temporada continua subindo degraus.</p>
 
-${fig('classificacao', 'O ranking de treinadores dentro do jogo')}
+${fig('ranking', 'O ranking: pontos de carreira somados ao peso real de cada título')}
 
-<h2>Seu ranking e o ranking geral</h2>
-<p>Você acompanha a sua evolução e se compara com os outros técnicos da comunidade. Quanto mais temporadas você joga e mais
-títulos conquista, mais alto você chega. É o incentivo perfeito pra voltar a cada temporada e brigar por mais uma taça.</p>
+<h2>Quanto vale cada taça</h2>
+<table>
+  <thead><tr><th>Competição</th><th>Peso do título</th></tr></thead>
+  <tbody>
+    <tr><td>Libertadores</td><td>20</td></tr>
+    <tr><td>Série A</td><td>15</td></tr>
+    <tr><td>Copa do Brasil</td><td>12</td></tr>
+    <tr><td>Sul-Americana</td><td>10</td></tr>
+    <tr><td>Série B</td><td>3</td></tr>
+    <tr><td>Série C</td><td>1</td></tr>
+    <tr><td>Série D</td><td>0,5</td></tr>
+  </tbody>
+</table>
+<p>É por isso que o ranking não recompensa quem fica colecionando acesso na base da pirâmide: subir da Série D é bonito,
+mas o que separa o topo é taça grande.</p>
 
-<h2>Comece a sua carreira</h2>
-<p>Todo treinador de topo começou pegando um clube lá embaixo. Escolha o seu, veja o <a href="/guia/">guia do técnico</a>
-pra acelerar a evolução e comece a somar pontos e troféus.</p>
+<h2>O aproveitamento é informação, não atalho</h2>
+<p>A tabela mostra o seu aproveitamento — a proporção de pontos que você fez em relação ao que era possível. Ele serve
+para você comparar rendimento entre treinadores, mas <strong>não empurra ninguém para cima</strong>: quem tem poucos
+jogos não sobe no ranking por ter um percentual alto. Carreira se mede em temporadas.</p>
 
-<p><a href="/">Começar minha carreira de treinador — é grátis.</a></p>
+<h2>A sala de troféus e a história da carreira</h2>
+<p>Cada taça conquistada entra na sua <strong>sala de troféus</strong>, e cada temporada vira uma linha no histórico da
+carreira — clube, divisão, campanha, o que aconteceu. É o currículo que os clubes olham: ir bem abre
+<strong>sondagens</strong> de times maiores, e a segurança no seu cargo sobe quando você ganha.</p>
+
+${fig('trofeus', 'A sala de troféus: o que você já levantou, taça a taça')}
+
+<h2>Começar a somar</h2>
+<p>Todo treinador de topo começou pegando um clube lá embaixo. Escolha a sua divisão, receba o seu clube no sorteio e
+comece a construir a carreira — o <a href="/guia/">guia do técnico</a> ajuda a acelerar, e o
+<a href="/jogar-com-amigos/">Modo Resenha</a> é onde a disputa com a turma fica interessante de verdade.</p>
+
+<p><a href="/"><strong>Começar a minha carreira de treinador</strong></a> — é de graça no Modo Solo.</p>
 `.trim(),
   },
 ];

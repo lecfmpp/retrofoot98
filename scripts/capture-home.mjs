@@ -5,7 +5,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const CHROME='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const BASE='http://localhost:5199/';
+const BASE=process.env.RF_URL||'http://localhost:5199/';
 const OUT=resolve(process.cwd(),'public/img/home');
 mkdirSync(OUT,{recursive:true});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
