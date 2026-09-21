@@ -13,17 +13,24 @@
    ===================================================================== */
 
 /* ===== CADA ITEM TEM DOIS ROTULOS =====
-   Os oito rotulos por extenso somam 773px, e o cabecalho so' tem ~1200px depois da marca e das
-   accoes: abaixo de 1280px a caixa dos links comecava a ROLAR — com a barra de rolagem escondida
-   por CSS, entao os ultimos itens ("Planos", "Embaixadores") simplesmente deixavam de existir para
-   quem nao soubesse arrastar. Item de menu que ninguem ve nao e' menu.
    O segundo rotulo e' a forma curta do mesmo destino, e quem escolhe entre os dois e' o CSS, por
-   largura de ecra (ver .rf-lp-link-l / .rf-lp-link-c). Nada e' escondido: o rotulo encolhe. */
+   largura de ecra (ver .rf-lp-link-l / .rf-lp-link-c). Nada e' escondido: o rotulo encolhe.
+
+   POR QUE ISTO EXISTE: com oito itens os rotulos por extenso somavam 773px, e o cabecalho so'
+   tem ~1200px depois da marca e das accoes — abaixo de 1280px a caixa dos links comecava a
+   ROLAR, com a barra escondida por CSS, e os ultimos itens simplesmente deixavam de existir
+   para quem nao soubesse arrastar. Item de menu que ninguem ve nao e' menu.
+
+   AGORA SAO CINCO (pedido do dono, 20/09/2026). Sairam "Momentos", "Ganhar com a resenha" e
+   "Embaixadores": o menu do topo passa a levar so' ao que explica o JOGO — o que ele e', como e'
+   por dentro, o Modo Resenha, o seu jogador e os planos. AS SECOES CONTINUAM NA PAGINA e com os
+   mesmos `id`, entao quem rola chega nelas e todo link `#rf-lp-momentos`, `#rf-lp-grana` ou
+   `#rf-lp-ligas` que ja exista por ai (campanha, e-mail, post) continua a funcionar — o que saiu
+   foi a porta do topo, nao o conteudo. Para religar, basta devolver a linha aqui. */
 const RF_LP_NAV=[
   ['jogo','O jogo','O jogo'],['telas','Por dentro','Por dentro'],['resenha','Modo Resenha','Resenha'],
-  ['momentos','Momentos','Momentos'],['oficial','Seu jogador','Jogador'],
-  ['grana','Ganhar com a resenha','Ganhar'],
-  ['planos','Planos','Planos'],['ligas','Embaixadores','Embaixador'],
+  ['oficial','Seu jogador','Jogador'],
+  ['planos','Planos','Planos'],
 ];
 
 /* ===== A CONTA VIVE NO CABEÇALHO, EM TODA A TELA =====

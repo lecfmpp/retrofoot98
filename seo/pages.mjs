@@ -56,6 +56,8 @@ export const pages = [
       { q:'Quem criou o Elifoot?', a:'<p>O português <strong>André Elias</strong>, programador (e piloto de avião), que lançou a primeira versão em 1987 no ZX Spectrum e seguiu atualizando o jogo por décadas.</p>' },
       { q:'Em que ano o Elifoot foi lançado?', a:'<p>A primeira versão é de <strong>1987</strong>. O "Elifoot II" saiu em 1989, e a explosão no Brasil veio a partir de <strong>1998</strong>, quando o jogo ganhou clubes e elencos brasileiros.</p>' },
       { q:'O Elifoot acabou?', a:'<p>Não. O jogo original seguiu recebendo versões, e o gênero está mais vivo do que nunca. Se o que você procura é jogar hoje, sem instalar nada, o <a href="/elifoot-online/">RetroFoot abre no navegador</a>.</p>' },
+      { q:'Qual a diferença entre o RetroFoot e o Brasfoot?', a:'<p>São propostas diferentes. O <strong>Brasfoot</strong> é forte em <strong>quantidade</strong>: muitas ligas jogáveis, temporadas novas todo ano e uma comunidade de patches que mantém os elencos em dia. O <strong>RetroFoot</strong> é forte em <strong>fricção zero e resenha</strong>: abre no navegador sem instalar, o save fica na nuvem, e o Modo Resenha põe até 10 treinadores na mesma liga, cada um no seu aparelho. Hoje o RetroFoot só tem o Brasil como país jogável — nesse ponto o Brasfoot entrega mais. O comparativo completo está em <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>' },
+      { q:'O RetroFoot é pago?', a:'<p>O <strong>Modo Solo</strong> é gratuito e sem prazo, no plano <strong>Peladeiro</strong>: dá para começar até 3 carreiras por mês, nas quatro divisões. O <strong>Modo Resenha</strong> vem liberado por 7 dias ao criar a conta; depois disso ele é dos planos pagos. Entrar na sala de um amigo, aliás, não custa nada em plano nenhum — quem paga é quem <em>abre</em> a sala.</p>' },
     ],
         body: `
 <p class="lead">No Brasil, quem gosta de futebol e de mexer com números tem uma história em comum: em algum momento
@@ -109,7 +111,7 @@ No computador ou no celular, e o save fica na nuvem — dá para começar no PC 
 ${fig('formacao', 'A tela do seu clube: escalação no campo, banco, próximo jogo e o caixa — tudo à vista')}
 
 <h2>A resenha deixou de caber numa sala só</h2>
-<p>O <strong>Modo Resenha</strong> é o multiplayer online: você abre uma sala, chama a turma (até <strong>8 treinadores</strong>),
+<p>O <strong>Modo Resenha</strong> é o multiplayer online: você abre uma sala, chama a turma (até <strong>10 treinadores</strong>),
 e o sorteio distribui os clubes com todo mundo assistindo — ninguém escolhe time. Dali em diante cada um comanda o seu do
 próprio aparelho, e a rodada só fecha quando todos jogarem. É a mesma resenha de sempre, sem o teclado passando de mão em mão.
 Tem uma página só sobre isso: <a href="/jogar-com-amigos/">jogar com os amigos</a>.</p>
@@ -151,7 +153,7 @@ hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui
 <p>Se bateu a vontade de escalar um time agora: o RetroFoot <strong>abre no navegador e é de graça</strong>.
 <a href="/"><strong>Comece a sua carreira de treinador</strong></a> — ou veja antes
 <a href="/elifoot-online/">como jogar sem instalar nada</a> e o que é o
-<a href="/jogo-treinador-futebol-online/">jogo de treinador com elencos reais</a>.</p>
+<a href="/jogo-treinador-futebol-online/">jogo de treinador por dentro</a>.</p>
 
 <!-- O CONVITE FECHA AQUI, NA PRÓPRIA FRASE. O texto antigo terminava em "ou simplesmente…" a
      apontar para o botão — só que o botão (a playbar do build-seo.mjs) entra DEPOIS das
@@ -169,7 +171,7 @@ hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui
     resumo: [
       'O <strong>RetroFoot</strong> roda <strong>no navegador</strong>: sem download, sem instalação, sem emulador.',
       'Funciona no celular, no tablet e no PC — e o save fica na nuvem.',
-      'Dois modos: <strong>Modo Solo</strong>, contra a máquina, e <strong>Modo Resenha</strong>, com até <strong>8 treinadores</strong> na mesma liga.',
+      'Dois modos: <strong>Modo Solo</strong>, contra a máquina, e <strong>Modo Resenha</strong>, com até <strong>10 treinadores</strong> na mesma liga.',
       'É <strong>gratuito</strong> para começar e jogar a sua carreira no <strong>Modo Solo</strong>.',
     ],
     refs: [
@@ -182,6 +184,10 @@ hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui
       { q:'Funciona no celular?', a:'<p>Funciona. O layout se adapta à tela e o save fica na nuvem, então dá para começar no computador e continuar no celular — a carreira é a mesma.</p>' },
       { q:'Preciso criar conta?', a:'<p>No <strong>Modo Solo</strong>, dá para começar rápido. Para o Modo Resenha (com amigos) a conta é necessária, porque é ela que guarda a sua sala e o seu clube.</p>' },
       { q:'É pago?', a:'<p>Começar e jogar a sua carreira no <strong>Modo Solo</strong> é de graça, sem prazo. O <strong>Modo Resenha</strong> — o multiplayer, em que o servidor roda a rodada de todo mundo — vem liberado por <strong>7 dias</strong> quando você cria a conta, para experimentar com a turma; depois disso ele passa a ser do plano.</p>' },
+      { q:'Preciso de internet o tempo todo?', a:'<p>Precisa: o RetroFoot roda no navegador e a sua carreira fica gravada na nuvem, ligada à conta. Não existe versão para jogar sem conexão.</p>' },
+      { q:'Em que navegadores funciona?', a:'<p>Nos navegadores atuais de celular e computador — Chrome, Safari, Edge, Firefox. Não há instalador, extensão nem plugin: é uma página que carrega.</p>' },
+      { q:'Quantas carreiras posso ter?', a:'<p>Depende do plano. No <strong>Peladeiro</strong> (grátis) você começa até <strong>3 carreiras por mês</strong>; no plano <strong>Resenha</strong>, até 10; no <strong>Embaixador</strong>, sem cota. Atenção a uma letra miúda: a conta é de carreiras <em>começadas</em> no mês, então apagar uma que acabou não devolve a vaga.</p>' },
+      { q:'Dá para jogar mais rápido?', a:'<p>Dá: a partida ao vivo tem ritmos <strong>Curto, Médio e Longo</strong>, e o Curto já resolve um jogo em pouco mais de meio minuto. Quem assina tem também o <strong>Ultrassônico</strong>, em que a partida inteira passa em cerca de dez segundos — é o ritmo de quem quer atravessar várias temporadas.</p>' },
     ],
         body: `
 <p class="lead">Se você quer sentar, pegar um clube e <strong>ser o técnico</strong> — escalar, negociar, fechar as contas,
@@ -243,7 +249,7 @@ e quando marca pênalti é você que escolhe o batedor. Em mata-mata empatado, a
 ${fig('partida', 'A rodada ao vivo: o placar andando, o público e os lances acontecendo')}
 
 <h2>Com a turma: o Modo Resenha</h2>
-<p>É aqui que o jogo fica melhor. Você abre uma sala, chama até <strong>8 treinadores</strong>, e o sorteio distribui os
+<p>É aqui que o jogo fica melhor. Você abre uma sala, chama até <strong>10 treinadores</strong>, e o sorteio distribui os
 clubes com todo mundo assistindo ao mesmo tempo. Dali em diante cada um comanda o seu do próprio aparelho — celular,
 tablet ou PC — e a semana só fecha quando todos jogarem. Ninguém precisa estar na mesma sala, nem na mesma cidade.
 Tem uma página só sobre isso: <a href="/jogar-com-amigos/">jogar com os amigos</a>.</p>
@@ -270,13 +276,13 @@ rodada é agora.</p>
   // ======================= P1: JOGO DE TREINADOR ONLINE =======================
   {
     slug: 'jogo-treinador-futebol-online', ready: true, priority: 0.9, lastmod: '2026-09-20',
-    title: 'Jogo de treinador de futebol online com elencos reais — RetroFoot',
-    description: 'No RetroFoot você é o técnico: escala, define a tática, negocia no mercado mundial e administra o clube. Elencos brasileiros reais, partida ao vivo, no navegador e de graça.',
+    title: 'Jogo de treinador de futebol online — RetroFoot, grátis no navegador',
+    description: 'No RetroFoot você é o técnico: escala, define a tática, negocia no mercado mundial e administra o clube. Clubes brasileiros das quatro divisões, partida ao vivo, no navegador e de graça.',
     h1: 'Jogo de treinador de futebol online: você no banco, não com a bola',
-    keywords: 'jogo de treinador de futebol online, jogo de treinador de futebol com jogadores reais, jogo de ser tecnico de futebol, jogo de tecnico de futebol, retrofoot',
+    keywords: 'jogo de treinador de futebol online, jogo de ser tecnico de futebol, jogo de tecnico de futebol, manager de futebol gratis, retrofoot',
     resumo: [
       'Você é o <strong>técnico</strong>: escala, define a tática, negocia e cuida do caixa.',
-      'Clubes e elencos brasileiros das <strong>quatro divisões</strong>, mais Copa do Brasil e continentais.',
+      'Clubes brasileiros das <strong>quatro divisões</strong>, mais Copa do Brasil e continentais.',
       'O <strong>mercado é mundial</strong>: dá para comprar lá fora e vender para o exterior.',
       'Roda no navegador, de graça, no <strong>Modo Solo</strong> ou no <strong>Modo Resenha</strong>.',
     ],
@@ -285,6 +291,10 @@ rodada é agora.</p>
       { q:'É difícil de aprender?', a:'<p>Não. Em poucos minutos você entende a tela e já escala o time — a formação entra arrastando o jogador para a posição. O <a href="/guia/">guia do jogo</a> cobre o resto, como fazer dinheiro no mercado e que formação usar em cada divisão.</p>' },
       { q:'Dá para contratar jogador de fora do Brasil?', a:'<p>Dá, desde a primeira temporada. O mercado do RetroFoot é <strong>mundial</strong>: você procura em qualquer país com elenco no jogo, e clubes de fora também aparecem oferecendo pelos seus jogadores.</p>' },
       { q:'Quanto custa?', a:'<p>O <strong>Modo Solo</strong> é gratuito e sem prazo. O <strong>Modo Resenha</strong>, com a turma, vem liberado por 7 dias quando você cria a conta e depois passa a ser do plano.</p>' },
+      { q:'Os clubes e os jogadores são os de verdade?', a:'<p>Os <strong>clubes são os de verdade</strong>, com o escudo e as cores de cada um — só que aparecem pelo <strong>apelido da torcida</strong> em vez do nome oficial: o ABC é o <em>Elefante Potiguar</em>. Os <strong>elencos também são os reais</strong>, jogador por jogador, com <strong>nomes fictícios</strong>. É a mesma razão pela qual os clássicos do gênero sempre dependeram de patches da comunidade: nome de clube e de atleta é marca registrada, e licenciar isso num jogo gratuito não se paga.</p>' },
+      { q:'Posso escolher o meu time do coração?', a:'<p>Não — e isso é de propósito. Você escolhe a <strong>divisão</strong>, e o <strong>sorteio</strong> escolhe o clube. A graça é o que você faz com o time que caiu na sua mão, e no Modo Resenha isso mantém a liga justa: ninguém pega o grandão por combinação.</p>' },
+      { q:'Quanto tempo dura uma partida?', a:'<p>Você decide o ritmo: no <strong>Curto</strong> a partida dá pouco mais de meio minuto, e há ainda <strong>Médio</strong> e <strong>Longo</strong> para quem quer acompanhar lance a lance. Quem assina tem o <strong>Ultrassônico</strong>, de cerca de dez segundos por jogo.</p>' },
+      { q:'Tem futebol feminino?', a:'<p>Tem. Logo no começo da carreira, no passo <strong>Modalidade</strong>, você escolhe comandar o elenco masculino ou o feminino — mesmos clubes, mesmo calendário e mesmas competições. A escolha vale para aquela carreira e não muda depois do sorteio dos clubes.</p>' },
     ],
         body: `
 <p class="lead">Existe quem queira driblar, e existe quem queira <strong>decidir</strong>. Se você é do segundo time —
@@ -333,7 +343,7 @@ ${fig('carreira', 'A carreira do treinador: temporadas, campanhas e a segurança
 
 <h2>Sozinho ou com a turma</h2>
 <p>No <strong>Modo Solo</strong> você enfrenta a máquina no seu ritmo, de graça e sem prazo. No
-<strong>Modo Resenha</strong>, até 8 treinadores disputam o mesmo campeonato, cada um no seu aparelho — é a
+<strong>Modo Resenha</strong>, até 10 treinadores disputam o mesmo campeonato, cada um no seu aparelho — é a
 <a href="/jogar-com-amigos/">liga da sua turma</a>. Os dois rodam no navegador, sem instalar nada.</p>
 
 <p><a href="/"><strong>Assuma um clube e comece a sua carreira</strong></a> — ou veja antes o
@@ -349,7 +359,7 @@ ${fig('carreira', 'A carreira do treinador: temporadas, campanhas e a segurança
     h1: 'Manager de futebol brasileiro: as quatro divisões, as copas e o acesso',
     keywords: 'jogo de manager de futebol brasileiro, simulador de futebol brasileiro, jogo de gerenciar futebol brasileiro, jogo de tecnico de futebol brasileiro, serie d, copa do brasil',
     resumo: [
-      'Séries <strong>A, B, C e D</strong>, com clubes e elencos brasileiros.',
+      'Séries <strong>A, B, C e D</strong>, com os clubes do Brasil e os elencos de cada um.',
       '<strong>Copa do Brasil</strong>, Libertadores e Sul-Americana no mesmo calendário.',
       'Acesso e rebaixamento de verdade: dá para subir da quarta divisão até a elite.',
       'O <strong>mercado é mundial</strong> — mesmo comandando um clube brasileiro.',
@@ -359,6 +369,9 @@ ${fig('carreira', 'A carreira do treinador: temporadas, campanhas e a segurança
       { q:'Dá para começar na Série D?', a:'<p>Dá — e é o caminho mais divertido: pegar um clube pequeno, arrumar o caixa e subir divisão por divisão. Lembrando que o clube vem por <strong>sorteio</strong>: você escolhe a divisão, não o time.</p>' },
       { q:'Dá para jogar com ligas de outros países?', a:'<p>Na versão atual o clube que você comanda é <strong>brasileiro</strong> — a carreira acontece nas quatro divisões daqui. As ligas estrangeiras existem e rodam ao fundo, e o <strong>mercado de transferências é mundial</strong>: você compra e vende com o exterior normalmente.</p>' },
       { q:'Tem futebol feminino?', a:'<p>Tem. Logo no começo da carreira você escolhe comandar o elenco masculino ou o feminino — mesmos clubes, mesmo calendário, mesmas competições.</p>' },
+      { q:'Por que os clubes aparecem pelo apelido?', a:'<p>Porque nome de clube é marca registrada. Os clubes são os de verdade, com escudo e cores, e aparecem pelo <strong>apelido da torcida</strong> — o ABC é o <em>Elefante Potiguar</em>. Os elencos são os reais de cada clube, com nomes fictícios. É o mesmo motivo pelo qual os clássicos do gênero sempre viveram de patches.</p>' },
+      { q:'Posso escolher o meu time?', a:'<p>Você escolhe a <strong>divisão</strong>; o <strong>sorteio</strong> escolhe o clube. É uma regra da casa: o desafio é o que você faz com o time que recebeu — e numa liga com amigos é o que impede alguém de pegar o grandão por combinação.</p>' },
+      { q:'Quanto custa jogar?', a:'<p>Nada para começar: o <strong>Modo Solo</strong> é gratuito e sem prazo, com até 3 carreiras por mês. O <strong>Modo Resenha</strong> é liberado por 7 dias ao criar a conta e depois passa a ser dos planos pagos — mas entrar na sala de um amigo continua sem custar nada.</p>' },
     ],
         body: `
 <p class="lead">Um manager brasileiro de verdade não começa na Série A. Começa lá embaixo, com o caixa curto, um elenco
@@ -417,25 +430,29 @@ clubes, o mesmo calendário e as mesmas competições — muda quem entra em cam
   {
     slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-18',
     title: 'Jogar manager de futebol com amigos: o Modo Resenha do RetroFoot',
-    description: 'No Modo Resenha do RetroFoot, até 8 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Grátis para experimentar.',
+    description: 'No Modo Resenha do RetroFoot, até 10 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Grátis para experimentar.',
     h1: 'Modo Resenha: um campeonato de verdade com a sua turma',
     keywords: 'jogo de futebol online com amigos, manager de futebol multiplayer, jogo de treinador com amigos, modo resenha, retrofoot resenha, liga com amigos online',
     resumo: [
-      'O <strong>Modo Resenha</strong> põe até <strong>8 treinadores</strong> no mesmo campeonato, cada um no seu aparelho.',
+      'O <strong>Modo Resenha</strong> põe até <strong>10 treinadores</strong> no mesmo campeonato, cada um no seu aparelho.',
       'O <strong>sorteio distribui os clubes</strong> com todo mundo assistindo — ninguém escolhe time.',
       'A semana <strong>só fecha quando todos jogarem</strong>: ninguém é simulado pelas suas costas.',
       'Convite por <strong>código de sala</strong>, sem instalar nada. Sete dias liberados ao criar a conta.',
     ],
     faq: [
-      { q:'Quantas pessoas podem jogar juntas?', a:'<p>Até <strong>8 treinadores</strong> na mesma sala, cada um com o seu clube.</p>' },
+      { q:'Quantas pessoas podem jogar juntas?', a:'<p>Até <strong>10 treinadores</strong> na mesma sala, cada um com o seu clube.</p>' },
       { q:'Como convido meus amigos?', a:'<p>Você abre a sala e compartilha o <strong>código</strong>. Quem recebe entra pelo navegador, digita o código e ocupa um assento — sem baixar nada.</p>' },
       { q:'Todo mundo precisa estar online ao mesmo tempo?', a:'<p>Não precisa ser ao mesmo tempo, mas <strong>todo mundo precisa jogar a sua partida</strong> para a semana virar: a rodada só fecha quando o último assento jogar. Enquanto isso você continua no jogo — vendo a tabela, mexendo no elenco, negociando. É de propósito: ninguém tem o time simulado pelas costas por ter demorado.</p>' },
       { q:'Dá para jogar no celular?', a:'<p>Dá. Cada treinador entra do aparelho que quiser — celular, tablet ou computador — e o save fica na conta. O <strong>chat da sala</strong>, esse sim, só aparece no computador.</p>' },
-      { q:'Preciso pagar para abrir uma sala?', a:'<p>Ao criar a conta você ganha <strong>7 dias</strong> de Modo Resenha para experimentar com a turma. Depois disso, abrir sala passa a ser do plano — é ele que paga o servidor que roda a rodada de todo mundo. O <strong>Modo Solo</strong> continua de graça, sem prazo.</p>' },
+      { q:'Meus amigos precisam pagar para entrar na minha sala?', a:'<p><strong>Não.</strong> Entrar na resenha de alguém funciona em qualquer plano, inclusive no grátis — basta o código da sala. Quem precisa de plano é o <strong>anfitrião</strong>, quem abre a sala e chama a turma.</p>' },
+      { q:'Quanto custa abrir uma sala?', a:'<p>Abrir sala é do plano <strong>Embaixador</strong>: <strong>R$ 49,90 por mês</strong> ou R$ 399,00 por ano. Além de ser anfitrião de salas de 2 a 10 treinadores, ele dá carreiras ilimitadas no Modo Solo, o seu retrato por IA dentro do jogo e o selo no perfil. Há também o plano <strong>Resenha</strong> (R$ 19,90/mês), que tira o prazo de 7 dias e deixa você entrar na sala de qualquer anfitrião — mas não abre sala. E antes de qualquer assinatura: ao criar a conta, o Modo Resenha vem liberado por <strong>7 dias</strong>, justamente para a turma experimentar.</p>' },
+      { q:'E se alguém sumir no meio do campeonato?', a:'<p>A rodada espera, porque a semana só fecha quando todos os assentos jogarem. Enquanto isso ninguém fica preso numa tela de espera: dá para ver a tabela, mexer no elenco e negociar. Se a pessoa sumiu de vez, quem organiza a sala é quem resolve — vale combinar isso com a turma antes de começar o campeonato.</p>' },
+      { q:'Dá para jogar todo mundo no mesmo aparelho?', a:'<p>Dá: existe o modo de <strong>passar o aparelho</strong>, em que os treinadores da sala jogam em fila no mesmo celular ou computador, um de cada vez. É o jeito clássico, para quando a turma está junta na mesma mesa — mas o normal é cada um no seu aparelho, de onde estiver.</p>' },
+      { q:'Precisamos combinar horário?', a:'<p>Não. Cada um joga a sua partida quando puder; a semana vira quando o último jogar. Combinar horário só vale a pena se vocês quiserem assistir juntos — e aí o <strong>Modo Camarote</strong> ajuda, porque põe o jogo em tela cheia com narração lance a lance.</p>' },
     ],
         body: `
 <p class="lead">O RetroFoot tem dois modos. No <strong>Modo Solo</strong> você pega um clube e enfrenta a máquina. No
-<strong>Modo Resenha</strong>, a liga é da sua turma: até <strong>8 treinadores</strong> no mesmo campeonato, cada um no
+<strong>Modo Resenha</strong>, a liga é da sua turma: até <strong>10 treinadores</strong> no mesmo campeonato, cada um no
 seu aparelho, disputando a mesma tabela — e é aqui que o jogo fica bom de verdade.</p>
 
 <h2>Como a sala nasce</h2>
@@ -486,7 +503,7 @@ na mesma régua — com o peso de cada título valendo o que a competição vale
 <ul>
   <li><strong>Uma conta</strong> — é ela que guarda a sua sala, o seu assento e o seu clube.</li>
   <li><strong>Um navegador</strong> — no celular, no tablet ou no computador. Nada para instalar.</li>
-  <li><strong>A turma</strong> — de 3 a 8 treinadores por sala.</li>
+  <li><strong>A turma</strong> — de 2 a 10 treinadores por sala.</li>
 </ul>
 <p>Ao criar a conta, o Modo Resenha vem liberado por <strong>7 dias</strong> para vocês experimentarem. Depois disso,
 abrir sala passa a ser do plano; o <strong>Modo Solo</strong> segue de graça e sem prazo.</p>
@@ -519,7 +536,9 @@ abrir sala passa a ser do plano; o <strong>Modo Solo</strong> segue de graça e 
       { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros das quatro divisões e um modo para jogar com a turma. O <strong>Modo Solo</strong> é gratuito e sem prazo.</p>' },
       { q:'Tem algum que rode no celular sem baixar?', a:'<p>Tem: o RetroFoot roda no navegador do celular, e o save fica na nuvem — dá para começar no computador e continuar no telefone.</p>' },
       { q:'Football Manager é grátis?', a:'<p>Não — é um jogo pago, com versões para PC e console. É a escolha de quem quer simulação profunda e não se importa em instalar e aprender.</p>' },
-      { q:'Qual é o melhor para jogar com os amigos?', a:'<p>Depende de como a turma se organiza. Se todo mundo puder estar no mesmo lugar, qualquer clássico serve. Se cada um está numa cidade, você precisa de multiplayer online de verdade — é o que o <a href="/jogar-com-amigos/">Modo Resenha</a> do RetroFoot faz, com até 8 treinadores na mesma liga.</p>' },
+      { q:'Qual é o melhor para jogar com os amigos?', a:'<p>Depende de como a turma se organiza. Se todo mundo puder estar no mesmo lugar, qualquer clássico serve. Se cada um está numa cidade, você precisa de multiplayer online de verdade — é o que o <a href="/jogar-com-amigos/">Modo Resenha</a> do RetroFoot faz, com até 10 treinadores na mesma liga.</p>' },
+      { q:'Por que o RetroFoot não usa os nomes reais dos jogadores?', a:'<p>Porque nome de clube e de atleta é marca registrada, e licenciar isso num jogo gratuito não se paga. Os clubes aparecem pelo <strong>apelido da torcida</strong> (o ABC é o <em>Elefante Potiguar</em>) e os elencos são os reais com <strong>nomes fictícios</strong>. É exatamente a lacuna que, nos clássicos do gênero, a comunidade sempre preencheu com patches.</p>' },
+      { q:'Qual é o melhor para quem tem pouco tempo?', a:'<p>Um manager de navegador, porque o custo de entrar é zero: não há instalação nem atualização, e dá para jogar uma rodada em minutos. No RetroFoot a partida no ritmo Curto dura pouco mais de meio minuto, e quem assina tem o Ultrassônico, de cerca de dez segundos.</p>' },
     ],
         body: `
 <p class="lead">Não existe "o melhor jogo de treinador de futebol" no absoluto — existe o que combina com o tempo que
@@ -548,7 +567,7 @@ ${fig('hub', 'A tela do técnico no RetroFoot: o essencial à vista, sem menu es
 <ul>
   <li><strong>Grátis no Modo Solo</strong>, sem prazo e sem instalação — abre como qualquer site.</li>
   <li><strong>Clubes brasileiros das Séries A, B, C e D</strong>, mais Copa do Brasil, Libertadores e Sul-Americana.</li>
-  <li><strong>Modo Resenha</strong> — até 8 treinadores na mesma liga, cada um no seu aparelho.</li>
+  <li><strong>Modo Resenha</strong> — até 10 treinadores na mesma liga, cada um no seu aparelho.</li>
   <li><strong>Mercado mundial</strong> — compra e venda com clubes de fora desde a primeira temporada.</li>
   <li><strong>Carreira de treinador</strong> — pontos, sala de troféus, sondagens e <a href="/ranking/">ranking</a>.</li>
   <li><strong>Partida ao vivo</strong> — com lesão, expulsão, pênalti e disputa por cobranças.</li>
@@ -591,8 +610,9 @@ simulação profunda. Se for "um minuto", abra um manager de navegador. Vale tam
     faq: [
       { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot</strong> roda no navegador, é gratuito no <strong>Modo Solo</strong> e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque a carreira fica gravada na nuvem.</p>' },
       { q:'Preciso baixar alguma coisa?', a:'<p>Não. Abre o site e joga. É a diferença principal em relação aos clássicos de PC, que pedem download e instalação.</p>' },
-      { q:'Tem clubes e jogadores reais?', a:'<p>Tem: Séries A, B, C e D do Brasil, além de Copa do Brasil, Libertadores e Sul-Americana. E o mercado é mundial — dá para comprar e vender com clubes de fora.</p>' },
-      { q:'Dá para jogar com os amigos como era antigamente?', a:'<p>Dá, e sem o teclado passando de mão em mão: no <a href="/jogar-com-amigos/">Modo Resenha</a> até 8 treinadores disputam a mesma liga, cada um no seu aparelho.</p>' },
+      { q:'Os clubes e os jogadores são os de verdade?', a:'<p>Os <strong>clubes são os de verdade</strong> — as quatro divisões brasileiras, com o escudo e as cores de cada um —, só que aparecem pelo <strong>apelido da torcida</strong> em vez do nome oficial: o ABC é o <em>Elefante Potiguar</em>. Os <strong>elencos também são os reais</strong>, jogador por jogador, com <strong>nomes fictícios</strong>. É a mesma razão pela qual os clássicos do gênero dependiam de patches: nome de clube e de atleta é marca registrada, e licenciar tudo isso num jogo gratuito não se paga.</p>' },
+      { q:'Dá para jogar com os amigos como era antigamente?', a:'<p>Dá, e sem o teclado passando de mão em mão: no <a href="/jogar-com-amigos/">Modo Resenha</a> até 10 treinadores disputam a mesma liga, cada um no seu aparelho.</p>' },
+      { q:'Quanto custa?', a:'<p>O <strong>Modo Solo</strong> é grátis e sem prazo (até 3 carreiras por mês). O <strong>Modo Resenha</strong> vem liberado por 7 dias ao criar a conta; depois é dos planos — mas entrar na sala de um amigo nunca custa nada.</p>' },
     ],
         body: `
 <p class="lead">Se você procura um <strong>jogo parecido com o Elifoot</strong>, provavelmente não está atrás de gráficos.
@@ -612,7 +632,7 @@ zoando os amigos no caminho. Esta página é sobre onde encontrar isso hoje.</p>
 <h3>RetroFoot</h3>
 <p>É o mais próximo dessa combinação hoje, e o único da lista que <strong>não pede instalação</strong>: abre no navegador,
 no celular ou no PC. Tem clubes brasileiros das quatro divisões, Copa do Brasil e continentais, mercado mundial, partida
-ao vivo e o <strong>Modo Resenha</strong> — até 8 treinadores na mesma liga, cada um no seu aparelho. O
+ao vivo e o <strong>Modo Resenha</strong> — até 10 treinadores na mesma liga, cada um no seu aparelho. O
 <strong>Modo Solo</strong> é gratuito e sem prazo.</p>
 
 ${fig('formacao', 'A tela do técnico: escalação, banco, próximo jogo e caixa — tudo à vista')}
@@ -662,8 +682,11 @@ ${fig('sala-resenha', 'O Modo Resenha: a turma na mesma liga, cada um no seu apa
     faq: [
       { q:'Qual é melhor: Elifoot ou Brasfoot?', a:'<p>Depende do que você procura, e os dois são bons no que se propõem. Se quer sentar e jogar em minutos, com foco em tática e resenha, a pegada do <strong>Elifoot</strong> combina mais. Se gosta de gerenciar muitas ligas e manter elencos atualizados com patches, o <strong>Brasfoot</strong> entrega mais nesse ponto.</p>' },
       { q:'Os dois são pagos?', a:'<p>Os dois têm versões gratuitas e versões ou registros pagos, que variam por edição — o melhor é conferir nos sites oficiais, linkados nesta página.</p>' },
-      { q:'E o RetroFoot, onde entra?', a:'<p>É um <strong>jogo próprio</strong>, sem ligação com nenhum dos dois. Ele fica na mesma escola da simplicidade, e acrescenta o que a internet de hoje permite: roda no navegador sem instalar, o save fica na nuvem, e o <a href="/jogar-com-amigos/">Modo Resenha</a> põe até 8 treinadores na mesma liga, cada um no seu aparelho.</p>' },
+      { q:'E o RetroFoot, onde entra?', a:'<p>É um <strong>jogo próprio</strong>, sem ligação com nenhum dos dois. Ele fica na mesma escola da simplicidade, e acrescenta o que a internet de hoje permite: roda no navegador sem instalar, o save fica na nuvem, e o <a href="/jogar-com-amigos/">Modo Resenha</a> põe até 10 treinadores na mesma liga, cada um no seu aparelho.</p>' },
       { q:'Dá para jogar com ligas de outros países no RetroFoot?', a:'<p>Na versão atual, não: o clube que você comanda é <strong>brasileiro</strong>, nas quatro divisões. As ligas estrangeiras rodam ao fundo e o mercado negocia com elas, mas sentar num clube de fora ainda não dá. Nesse quesito, quem quer muitas ligas jogáveis se serve melhor no Brasfoot.</p>' },
+      { q:'Por que o Brasfoot tem os nomes reais e o RetroFoot não?', a:'<p>Não é falta de dados, é licença: nome de clube e de atleta é marca registrada. No Brasfoot, quem historicamente resolve isso é a <strong>comunidade de patches</strong>, por fora do jogo. No RetroFoot os clubes aparecem pelo <strong>apelido da torcida</strong> — o ABC é o <em>Elefante Potiguar</em> — e os elencos são os reais de cada clube com <strong>nomes fictícios</strong>.</p>' },
+      { q:'Qual deles dá para jogar com os amigos à distância?', a:'<p>O <strong>Modo Resenha</strong> do RetroFoot foi feito para isso: até <strong>10 treinadores</strong> na mesma liga, cada um no seu aparelho, com sorteio dos clubes para todo mundo ao mesmo tempo e a semana fechando só quando o último jogar. Nos clássicos, jogar junto quase sempre queria dizer o mesmo computador.</p>' },
+      { q:'Quanto custa cada um?', a:'<p>Elifoot e Brasfoot têm versões gratuitas e registros pagos que variam por edição — confira nos sites oficiais, aqui nesta página. No RetroFoot, o <strong>Modo Solo</strong> é gratuito e sem prazo; o <strong>Modo Resenha</strong> tem 7 dias liberados e depois entra nos planos (R$ 19,90/mês para jogar nas salas dos outros, R$ 49,90/mês para abrir a sua).</p>' },
     ],
         body: `
 <p class="lead">Duas gerações discutem isso até hoje: <strong>Elifoot ou Brasfoot?</strong> A resposta honesta é que eles
@@ -682,7 +705,7 @@ coleção</strong> — e essa comunidade é um patrimônio que nenhum jogo compr
 <table>
   <thead><tr><th>Critério</th><th>Escola Elifoot</th><th>Escola Brasfoot</th><th>RetroFoot</th></tr></thead>
   <tbody>
-    <tr><td>Pegada</td><td>Simples, direta, retrô</td><td>Muitas ligas e patches</td><td>Retrô, com clubes reais do Brasil</td></tr>
+    <tr><td>Pegada</td><td>Simples, direta, retrô</td><td>Muitas ligas e patches</td><td>Retrô, com os clubes do Brasil pelo apelido</td></tr>
     <tr><td>Curva de aprendizado</td><td>Baixa (entende em minutos)</td><td>Média</td><td>Baixa</td></tr>
     <tr><td>Ligas jogáveis</td><td>Varia por edição</td><td><strong>Muitas — é o forte dele</strong></td><td>Só o Brasil (4 divisões); mercado mundial</td></tr>
     <tr><td>Elencos atualizados</td><td>Por versão</td><td><strong>Patches da comunidade</strong></td><td>Atualização do próprio jogo</td></tr>
@@ -703,7 +726,7 @@ coleção</strong> — e essa comunidade é um patrimônio que nenhum jogo compr
 <p>O <strong>RetroFoot</strong> é um jogo próprio, escrito do zero, sem ligação com Elifoot nem com Brasfoot. Ele fica na
 escola da simplicidade e acrescenta o que a internet de hoje permite: abre no navegador sem instalar nada, o save fica na
 nuvem, o <strong>mercado é mundial</strong>, a carreira do treinador atravessa temporadas com troféus e
-<a href="/ranking/">ranking</a>, e o <strong>Modo Resenha</strong> põe até 8 treinadores na mesma liga, cada um no seu
+<a href="/ranking/">ranking</a>, e o <strong>Modo Resenha</strong> põe até 10 treinadores na mesma liga, cada um no seu
 aparelho, com o sorteio distribuindo os clubes para todo mundo ao mesmo tempo.</p>
 <p>E onde ele não entra, para ser justo: <strong>se o que você quer é sentar num clube da Europa</strong>, ou colecionar
 dezenas de ligas jogáveis, o RetroFoot ainda não faz isso — a carreira acontece nas quatro divisões brasileiras. Nesse
@@ -737,6 +760,9 @@ estão logo abaixo. Se hoje a sua vontade é abrir uma aba e escalar um time em 
       { q:'Como ganhar dinheiro no jogo?', a:'<p>Venda quem já chegou ao teto e aposte em jovens com espaço para evoluir — o valor de mercado é vivo e se move com força, idade, potencial, comportamento e momento. Fique de olho no leilão, venda para o exterior quando a proposta for boa, e não deixe a folha passar do que a bilheteria sustenta.</p>' },
       { q:'O que é a energia do jogador?', a:'<p>É o quanto ele tem de gás para a próxima partida. Abaixo de 70% o rendimento cai — dá para usar "Selecionar descansados" e escalar priorizando quem está inteiro.</p>' },
       { q:'Dá para contratar jogador de fora do Brasil?', a:'<p>Dá, desde a primeira temporada: o mercado é mundial, de ida e de volta. Vender bem para o exterior costuma ser o atalho que arruma o caixa de um clube pequeno.</p>' },
+      { q:'Quantas carreiras posso começar?', a:'<p>No <strong>Peladeiro</strong> (grátis), até <strong>3 por mês</strong>; no plano <strong>Resenha</strong>, até 10; no <strong>Embaixador</strong>, sem cota. A conta é de carreiras <em>começadas</em> no mês — apagar uma que acabou não devolve a vaga, então vale pensar antes de abrir uma carreira só para testar.</p>' },
+      { q:'Perco o meu save se trocar de aparelho?', a:'<p>Não. A carreira fica na nuvem, ligada à sua conta: dá para começar no computador, continuar no celular e voltar, sempre no mesmo ponto.</p>' },
+      { q:'Dá para acelerar a partida?', a:'<p>Dá. Os ritmos <strong>Curto, Médio e Longo</strong> estão disponíveis para todo mundo, e o Curto resolve um jogo em pouco mais de meio minuto. Quem assina tem o <strong>Ultrassônico</strong>, de cerca de dez segundos por partida — útil para atravessar temporadas sem abrir mão de ver o jogo.</p>' },
     ],
         body: `
 <p class="lead">O RetroFoot recompensa <strong>decisão</strong>, não sorte. Não existe fórmula que ganha sozinha, mas
@@ -833,6 +859,8 @@ curto até quem mexe no motor.</p>
       { q:'Todos os títulos valem a mesma coisa?', a:'<p>Não, e é de propósito. Cada competição tem o seu peso: <strong>Libertadores 20</strong>, <strong>Série A 15</strong>, <strong>Copa do Brasil 12</strong>, <strong>Sul-Americana 10</strong>, <strong>Série B 3</strong>, <strong>Série C 1</strong> e <strong>Série D 0,5</strong>. Ganhar a Série D é uma conquista, mas não é uma Libertadores.</p>' },
       { q:'O ranking zera todo ano?', a:'<p>Não. A temporada fecha e é premiada, mas o seu histórico de carreira continua — ele é o retrato de tudo o que você já fez, clube a clube, temporada a temporada.</p>' },
       { q:'Por que quem joga mais aparece na frente?', a:'<p>Porque metade da pontuação são pontos feitos em campo, e eles se acumulam. O <strong>aproveitamento</strong> aparece na tabela para você comparar rendimento, mas ele não empurra ninguém para cima: quem jogou pouco não sobe por ter um percentual alto.</p>' },
+      { q:'Ganhar a Série D conta pouco mesmo?', a:'<p>Conta 0,5 contra os 20 de uma Libertadores — mas isso é só o ranking. O acesso continua mudando a sua carreira de verdade: sobe a receita, sobe o nível do elenco que aceita jogar no clube, sobe a sua segurança no cargo, e abre a porta para as taças que pesam.</p>' },
+      { q:'O ranking conta o Modo Solo e o Modo Resenha?', a:'<p>A sua carreira de treinador acumula nos dois modos: as temporadas jogadas e as taças conquistadas entram no seu histórico e na sua sala de troféus. A disputa fica mais interessante no <a href="/jogar-com-amigos/">Modo Resenha</a>, onde a turma inteira está na mesma régua.</p>' },
     ],
         body: `
 <p class="lead">Toda boa resenha tem um pódio. No RetroFoot existe um <strong>ranking de treinadores</strong> que mede
