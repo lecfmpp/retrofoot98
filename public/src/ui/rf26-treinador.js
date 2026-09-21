@@ -360,8 +360,9 @@ function rfTrRankingHTML(){
     </div>
     <div class="rf-card">
       <div class="rf-label"><span class="rf-label-t">COMO O RANKING É CALCULADO</span></div>
-      <span class="rf-tr-texto">Os pontos de toda a carreira somados aos da temporada em curso, com
-        ${BONUS} de bônus por título — ganhar pesa mais do que somar. O aproveitamento é informativo:
+      <span class="rf-tr-texto">Os pontos de toda a carreira somados aos da temporada em curso, mais o
+        peso dos títulos — e cada taça vale o que ela é: uma Libertadores conta muito acima de um
+        acesso na Série D. Ganhar pesa mais do que somar. O aproveitamento é informativo:
         quem tem menos jogos não sobe por isso.</span>
     </div>`;
 }
