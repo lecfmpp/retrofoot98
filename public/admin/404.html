@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Endereço não encontrado — Painel RetroFoot</title>
+<!-- ESTA PÁGINA NÃO USA admin.css DE PROPÓSITO.
+     Ela aparece justamente quando alguma coisa não foi encontrada — e um 404 que
+     depende de outro ficheiro para se desenhar é um 404 que pode aparecer sem
+     estilo nenhum no dia em que o problema for o próprio CSS. O pouco que ela
+     precisa está aqui dentro. -->
+<style>
+  :root{ color-scheme: light dark; --bg:#f4f6f3; --card:#fff; --t1:#12181f; --t2:#5a6672; --l:#e2e7e1; --az:#14458c; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0f1318; --card:#161c23; --t1:#eef2f6; --t2:#9aa7b4; --l:#252d36; --az:#7ea6ec; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+       background:var(--bg);color:var(--t2);
+       font:400 16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .cx{background:var(--card);border:1px solid var(--l);border-radius:16px;
+      padding:32px;max-width:460px;width:100%}
+  h1{margin:0 0 10px;font-size:22px;line-height:1.25;color:var(--t1);letter-spacing:-.01em}
+  p{margin:0 0 18px}
+  code{background:var(--bg);border:1px solid var(--l);border-radius:6px;padding:1px 6px;font-size:14px}
+  a{color:var(--az);font-weight:600;text-decoration:none}
+  a:hover{text-decoration:underline}
+  .rod{margin:18px 0 0;padding-top:16px;border-top:1px solid var(--l);font-size:13.5px}
+</style>
+</head>
+<body>
+  <main class="cx">
+    <h1>Esse endereço não existe no painel</h1>
+    <p>O painel dos sócios vive todo na raiz — em <code>/</code>. Se você chegou aqui
+       por um link antigo ou por um endereço digitado à mão, é só voltar ao começo.</p>
+    <p><a href="/">← Voltar ao painel</a></p>
+    <p class="rod">Se o link veio de dentro do painel e você acha que devia funcionar,
+       vale avisar: é sinal de link quebrado, não de engano seu.</p>
+  </main>
+</body>
+</html>

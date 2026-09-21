@@ -130,15 +130,13 @@
       "public": "public/admin",
       "ignore": [
         "firebase.json",
-        "**/.*",
+        "**/.DS_Store",
+        "**/.git/**",
+        "**/.env*",
         "**/node_modules/**"
       ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ],
+      "//sem-catch-all": "O painel vive TODO na raiz: nao ha um unico link com caminho proprio em index.html nem em admin.js, o convite viaja em ?convite=<token> (query, nao caminho) e o replaceState so' reescreve para o pathname atual. O catch-all '**' que estava aqui, portanto, nao servia rota nenhuma — so' fazia endereco errado devolver 200 com o painel inteiro, que e' o mesmo defeito que quase matou os /.well-known no site do jogo. Sem ele, o Firebase serve o 404.html desta pasta.",
+      "rewrites": [],
       "headers": [
         {
           "source": "**",
@@ -169,13 +167,16 @@
       "public": "dist",
       "ignore": [
         "firebase.json",
-        "**/.*",
+        "**/.DS_Store",
+        "**/.git/**",
+        "**/.env*",
         "**/node_modules/**"
       ],
+      "//espelha-o-jogo": "O beta serve o MESMO dist do alvo jogo, entao tem de se comportar como ele — senao deixa de servir para testar. Duas correcoes de uma vez: (1) ganha o rewrite do /convite/**, que nunca teve. Sem ele o link de convite caia no catch-all e abria o JOGO em vez do convite.html, ou seja, o cartao do WhatsApp era justamente o que NAO dava para testar aqui. (2) perde o catch-all '**', pelo mesmo motivo do alvo jogo: endereco inexistente passa a responder 404 de verdade, servindo o dist/404.html que o build ja gera.",
       "rewrites": [
         {
-          "source": "**",
-          "destination": "/index.html"
+          "source": "/convite/**",
+          "destination": "/convite.html"
         }
       ],
       "headers": [
