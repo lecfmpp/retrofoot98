@@ -174,7 +174,7 @@ function pageHtml(p){
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');</script>
 <title>${esc(p.title)} | RetroFoot</title>
 <meta name="description" content="${esc(p.description)}">
-<meta name="robots" content="${p.legal?'index, follow':'index, follow, max-image-preview:large'}">
+<meta name="robots" content="${p.noindex?'noindex, follow':p.legal?'index, follow':'index, follow, max-image-preview:large'}">
 ${p.keywords?`<meta name="keywords" content="${esc(p.keywords)}">\n`:''}<link rel="canonical" href="${url}">
 ${p.soMiolo?'':`<!-- A MESMA PÁGINA EM MARKDOWN, para quem lê por agente. É assim que ela se
      descobre: o Firebase serve ficheiro estático e não faz negociação por
@@ -492,6 +492,44 @@ writeFileSync(resolve(WK, 'ai-catalog.json'),
 writeFileSync(resolve(WK, 'agent-skills', 'index.json'),
   JSON.stringify(agentSkillsIndex({ site: SITE, skillPath: SKILL_SRC }), null, 2));
 console.log('AGENT ✓ /.well-known/ai-catalog.json (' + (paraCatalogo.length+3) + ' entradas) + agent-skills/index.json');
+
+/* ===== 404 DE VERDADE =====
+   O site devolvia 200 com a home para QUALQUER endereço inexistente, por causa do
+   catch-all no firebase.json ("**" -> /index.html). Isso é o "soft 404": para o
+   buscador, cada link errado, cada URL inventada por um robô e cada erro de
+   digitação viravam mais uma cópia da home no índice — e soft 404 conta como
+   problema de qualidade do site inteiro, não daquela página.
+
+   O catch-all foi embora (ver firebase.json: em produção só o /convite/** precisa
+   de rewrite, e ele tem o seu, próprio e anterior). Sem ele, o Firebase serve este
+   ficheiro com o status 404 de verdade.
+
+   A PÁGINA É GERADA COM A MESMA CASCA DAS OUTRAS de propósito: um 404 escrito à
+   mão vira, em três meses, a única página do site com o desenho antigo. Ela não
+   entra no sitemap nem na conferência do rodapé — `ready` continua sendo a lista
+   das páginas publicáveis, e esta não é uma delas. */
+writeFileSync(resolve(DIST, '404.html'), pageHtml({
+  slug: '404', lastmod: new Date().toISOString().slice(0,10),
+  title: 'Página não encontrada',
+  description: 'Este endereço não existe no RetroFoot. O jogo continua a um clique daqui.',
+  h1: 'Esse endereço não existe',
+  /* noindex num 404 é cinto e suspensório: o status 404 já basta, mas se algum dia
+     este ficheiro for servido com 200 por engano, o meta segura. */
+  noindex: true,
+  body: `
+<p class="lead">O link que te trouxe aqui está quebrado, ou o endereço veio com um deslize de
+digitação. Nada de grave — o jogo está inteiro, e é de graça.</p>
+<p><a href="/"><strong>Ir para o RetroFoot e pegar um clube</strong></a></p>
+<h2>Talvez você estivesse procurando</h2>
+<ul>
+  <li><a href="/guia/">Guia do técnico</a> — formações, mercado e como subir de divisão.</li>
+  <li><a href="/jogar-com-amigos/">Modo Resenha</a> — a liga com a sua turma, online.</li>
+  <li><a href="/manager-futebol-brasileiro/">Futebol brasileiro</a> — as quatro divisões e as copas.</li>
+  <li><a href="/ranking/">Ranking de treinadores</a> — como os pontos são contados.</li>
+  <li><a href="/historia-do-elifoot/">A história do manager no Brasil</a>.</li>
+</ul>`.trim(),
+}));
+console.log('SEO   ✓ /404.html (status 404 de verdade — ver firebase.json)');
 
 writeFileSync(resolve(DIST, 'sitemap.xml'), sitemapXml(ready));
 // mantém public/sitemap.xml em sincronia (fonte que o Vite copia em builds futuros)

@@ -14,15 +14,12 @@
       ],
       "rewrites": [
         {
-          "//": "CONVITE DA RESENHA — página própria só por causa da pré-visualização do WhatsApp, que lê o HTML no servidor (ver public/convite.html). TEM de vir antes do catch-all: as rewrites são avaliadas por ordem.",
+          "//": "CONVITE DA RESENHA — página própria só por causa da pré-visualização do WhatsApp, que lê o HTML no servidor (ver public/convite.html). É o ÚNICO rewrite do site — ver a nota //sem-catch-all logo abaixo.",
           "source": "/convite/**",
           "destination": "/convite.html"
-        },
-        {
-          "source": "**",
-          "destination": "/index.html"
         }
       ],
+      "//sem-catch-all": "AQUI HAVIA UM '**' -> /index.html, e ele era a causa do SOFT 404: qualquer endereco inexistente respondia 200 com a home. Para o buscador, cada link quebrado e cada URL inventada viravam mais uma copia da home no indice. Foi verificado antes de sair: o unico caminho que o jogo constroi em producao e' /convite/<codigo> (local-transport.js), que tem o rewrite acima; o /s/RF-0000 so' existe no atalho de bancada e o harness usa ?sala=. Tudo o mais que o site serve e' ficheiro de verdade no dist. Sem o catch-all, o Firebase serve o 404.html (gerado por scripts/build-seo.mjs) com o status 404 a valer. Se um dia o jogo passar a ter rota por caminho, ela entra aqui como rewrite PROPRIO, nomeado — nao como um '**' que apanha tudo.",
       "headers": [
         {
           "source": "**",
