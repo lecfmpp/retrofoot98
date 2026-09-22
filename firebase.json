@@ -40,6 +40,66 @@
           ]
         },
         {
+          "//": "PAGINAS DE CONTEUDO (/guia/, /ranking/, ...). Cinco minutos de frescura e um dia de stale-while-revalidate: uma correcao de texto chega rapido ao visitante, e o robo deixa de receber no-store numa pagina que muda uma vez por mes. NAO apanha a home, que tem um unico barra e nao casa com este padrao -- e, por seguranca, a trava do fim reafirma no-store nela.",
+          "source": "/*/",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=300, stale-while-revalidate=86400"
+            }
+          ]
+        },
+        {
+          "//": "A versao markdown segue a mesma politica da pagina HTML que ela espelha.",
+          "source": "**/*.md",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=300, stale-while-revalidate=86400"
+            }
+          ]
+        },
+        {
+          "//": "IMAGENS. Um dia, e nao immutable: os nomes nao levam hash (hub.webp e sempre hub.webp), entao uma captura regerada tem de poder chegar. Estavam com no-store, ou seja, cada visita rebaixava as ~30 capturas de novo.",
+          "source": "/img/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "//": "Ficheiros que os robos buscam muito. Uma hora.",
+          "source": "@(/robots.txt|/sitemap.xml|/llms.txt|/ads.txt)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "//": "ARD e indice de skills: mudam no build, uma hora de cache basta.",
+          "source": "/.well-known/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "//": "TRAVA, DE PROPOSITO REDUNDANTE. O HTML do jogo NAO PODE ser guardado: ele carrega o JavaScript do motor, e um cliente com a folha de ontem no meio de uma rodada de Resenha e exatamente o desacordo cliente-servidor que o projeto inteiro combate. As regras de cache acima nao deviam apanhar a home -- mas 'nao deviam' nao e garantia, e o custo de errar aqui e alto. Como a regra mais abaixo vence, esta reafirma no-store depois de todas elas.",
+          "source": "@(/|/index.html|/404.html|/convite.html)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
           "source": "/",
           "headers": [
             {
