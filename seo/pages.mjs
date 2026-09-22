@@ -563,6 +563,29 @@ nuvem, e a liga com os amigos acontece com cada um no seu aparelho — sem marca
 
 ${fig('hub', 'A tela do técnico no RetroFoot: o essencial à vista, sem menu escondido')}
 
+<h2>Os três perfis, critério por critério</h2>
+<p>As colunas são <strong>perfis</strong>, não produtos: cada jogo tem a sua edição, o seu preço e a sua versão do
+ano, e comparar nome a nome envelhece em um mês. O que não envelhece é o feitio de cada caminho.</p>
+<table>
+  <thead><tr><th>Critério</th><th>Simulação profunda</th><th>Clássico de PC</th><th>RetroFoot (navegador)</th></tr></thead>
+  <tbody>
+    <tr><td>Onde roda</td><td>PC ou console, com instalação</td><td>PC ou celular, com instalação</td><td><strong>No navegador, sem instalar</strong></td></tr>
+    <tr><td>Tempo até a primeira partida</td><td>Uma tarde aprendendo a tela</td><td>Minutos</td><td><strong>Menos de um minuto</strong></td></tr>
+    <tr><td>Custo para começar</td><td>Pago</td><td>Versões grátis e pagas, varia por edição</td><td><strong>Modo Solo grátis, sem prazo</strong></td></tr>
+    <tr><td>Ligas jogáveis</td><td><strong>Dezenas</strong></td><td><strong>Muitas</strong> — é o forte do Brasfoot</td><td>Só o Brasil: Séries A, B, C e D</td></tr>
+    <tr><td>Elencos em dia</td><td>Atualização oficial</td><td>Patches da comunidade</td><td>Atualização do próprio jogo</td></tr>
+    <tr><td>Nomes de clube e de atleta</td><td>Licenciados</td><td>Reais nos patches da comunidade</td><td>Clube pelo apelido, jogador com nome fictício</td></tr>
+    <tr><td>Jogar com a turma à distância</td><td>Existe, com sessão combinada</td><td>Historicamente, o mesmo computador</td><td><strong>Modo Resenha: até 10, cada um no seu aparelho</strong></td></tr>
+    <tr><td>Onde fica o save</td><td>No computador</td><td>No aparelho</td><td><strong>Na nuvem</strong> — troca de tela sem perder nada</td></tr>
+    <tr><td>Duração de uma partida</td><td>Longa, é parte do prazer</td><td>Rápida</td><td>~30s no ritmo Curto; ~10s no Ultrassônico (plano)</td></tr>
+    <tr><td>Profundidade tática</td><td><strong>Máxima do gênero</strong></td><td>Média</td><td>Média: formação, tática por contexto, ajuste no intervalo</td></tr>
+  </tbody>
+</table>
+<p>Lendo as colunas de cima a baixo, o desenho fica claro: <strong>simulação profunda</strong> ganha em profundidade e
+em número de ligas, <strong>clássico de PC</strong> ganha em coleção e em elenco atualizado pela comunidade, e o
+<strong>RetroFoot</strong> ganha em começar rápido e em jogar com a turma de longe. Nenhuma das três colunas ganha
+todas as linhas — se ganhasse, não haveria três escolas.</p>
+
 <h2>O que o RetroFoot entrega</h2>
 <ul>
   <li><strong>Grátis no Modo Solo</strong>, sem prazo e sem instalação — abre como qualquer site.</li>
@@ -574,6 +597,14 @@ ${fig('hub', 'A tela do técnico no RetroFoot: o essencial à vista, sem menu es
 </ul>
 
 ${fig('partida', 'A rodada ao vivo: placar andando, público e os lances acontecendo')}
+
+<h2>A linha que mais separa: jogar junto de longe</h2>
+<p>Esse é o critério em que a diferença não é de grau, é de natureza. Nos clássicos, "vários jogadores" quase sempre
+quis dizer <em>o mesmo teclado, passando de mão em mão</em> — o que exige a turma na mesma sala, no mesmo horário.
+No <a href="/jogar-com-amigos/">Modo Resenha</a> cada um entra do próprio aparelho, de onde estiver, e a semana só
+fecha quando o último jogar: ninguém tem o time simulado pelas costas por ter demorado.</p>
+
+${fig('sala-resenha', 'A sala do Modo Resenha enchendo — cada treinador no seu aparelho')}
 
 <h2>O que ele não é</h2>
 <p>Vale dizer, porque poupa o seu tempo: o RetroFoot <strong>não</strong> é um simulador de dezenas de ligas jogáveis —
