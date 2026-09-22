@@ -70,8 +70,35 @@
           ]
         },
         {
-          "//": "Ficheiros que os robos buscam muito. Uma hora.",
-          "source": "@(/robots.txt|/sitemap.xml|/llms.txt|/ads.txt)",
+          "//": "UMA REGRA POR FICHEIRO, e nao um @(a|b|c). A alternacao extglob com barra a abrir foi tentada e NAO CASOU: as duas regras existiam, o deploy passava e o cabecalho simplesmente nao aparecia -- erro que so' se ve conferindo o cabecalho no ar. As regras de um caminho so' (as de Content-Type mais abaixo) sempre funcionaram, entao e' essa a forma.",
+          "source": "/robots.txt",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "source": "/sitemap.xml",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "source": "/llms.txt",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        },
+        {
+          "source": "/ads.txt",
           "headers": [
             {
               "key": "Cache-Control",
@@ -90,8 +117,35 @@
           ]
         },
         {
-          "//": "TRAVA, DE PROPOSITO REDUNDANTE. O HTML do jogo NAO PODE ser guardado: ele carrega o JavaScript do motor, e um cliente com a folha de ontem no meio de uma rodada de Resenha e exatamente o desacordo cliente-servidor que o projeto inteiro combate. As regras de cache acima nao deviam apanhar a home -- mas 'nao deviam' nao e garantia, e o custo de errar aqui e alto. Como a regra mais abaixo vence, esta reafirma no-store depois de todas elas.",
-          "source": "@(/|/index.html|/404.html|/convite.html)",
+          "//": "TRAVA, DE PROPOSITO REDUNDANTE. O HTML do jogo NAO PODE ser guardado: ele carrega o JavaScript do motor, e um cliente com a folha de ontem no meio de uma rodada de Resenha e exatamente o desacordo cliente-servidor que o projeto combate. A regra '**' do topo ja poe no-store nestes caminhos; esta reafirma DEPOIS das regras de cache, porque em Firebase Hosting a regra mais abaixo vence e 'as de cima nao deviam apanhar a home' nao e garantia.",
+          "source": "/",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/index.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/404.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/convite.html",
           "headers": [
             {
               "key": "Cache-Control",
