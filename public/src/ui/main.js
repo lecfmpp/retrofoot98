@@ -1014,6 +1014,9 @@ const LANDING_PAGINAS=[
   ['melhores-jogos-treinador-futebol','Melhores jogos de treinador','O que existe hoje, e qual combina com o tempo que você tem.'],
   ['jogos-parecidos-com-elifoot','Jogos parecidos com o Elifoot','O que faz um jogo ter essa pegada — e onde achar hoje.'],
   ['elifoot-vs-brasfoot','Elifoot vs Brasfoot','As duas escolas do manager brasileiro, comparadas sem torcida.'],
+  ['brasfoot-vs-retrofoot','Brasfoot vs RetroFoot','Um pede Windows; o outro abre no navegador. Comparativo por critério.'],
+  ['retrofoot-vs-football-manager','RetroFoot vs Football Manager','20 GB e US$ 59,99 contra uma aba do navegador.'],
+  ['brasfoot-vs-football-manager','Brasfoot vs Football Manager','Leve e grátis, ou profundo e pago — e a terceira via.'],
 ];
 /* ===== AS PAGINAS LEGAIS SAO OUTRA LISTA =====
    Nao entram em LANDING_PAGINAS de proposito: aquela lista alimenta TAMBEM a grelha "Conheca o

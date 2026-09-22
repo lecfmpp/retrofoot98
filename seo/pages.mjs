@@ -773,6 +773,328 @@ estão logo abaixo. Se hoje a sua vontade é abrir uma aba e escalar um time em 
 `.trim(),
   },
 
+  // ======================= P2: BRASFOOT VS RETROFOOT =======================
+  {
+    slug: 'brasfoot-vs-retrofoot', ready: true, priority: 0.7, lastmod: '2026-09-21',
+    title: 'Brasfoot ou RetroFoot? Comparativo completo (2026)',
+    description: 'Brasfoot vs RetroFoot: instalação, plataformas, celular, nomes de jogador, competições brasileiras e atualizações. Um precisa de Windows; o outro abre no navegador e é grátis.',
+    h1: 'Brasfoot ou RetroFoot: qual manager jogar hoje?',
+    keywords: 'brasfoot vs retrofoot, brasfoot ou retrofoot, brasfoot online, brasfoot no celular, brasfoot sem baixar, alternativa ao brasfoot, retrofoot',
+    resumo: [
+      'O <strong>Brasfoot</strong> é jogo de <strong>Windows</strong>: baixa, instala e joga naquele computador.',
+      'O <strong>RetroFoot</strong> abre no <strong>navegador</strong> — sem baixar, sem instalar, e também no celular.',
+      'Os dois têm o forte deles: o Brasfoot, muitas ligas e a comunidade de patches; o RetroFoot, o <strong>Modo Resenha</strong> online com até 10 treinadores.',
+      'A última edição oficial do Brasfoot é a <strong>22-23</strong>; o RetroFoot é atualizado continuamente.',
+    ],
+    refs: [
+      { nome:'Brasfoot (site oficial)', desc:'A página oficial, com as edições, o registro e a comunidade de patches.', url:'https://www.brasfoot.com/' },
+    ],
+    faq: [
+      { q:'Dá para jogar Brasfoot no celular?', a:'<p>O Brasfoot é um jogo para <strong>Windows</strong> — o próprio site diz que roda em qualquer computador com Windows. Não há versão de celular. Se o que você procura é um manager para jogar no telefone sem instalar nada, o <a href="/">RetroFoot abre no navegador</a> do celular.</p>' },
+      { q:'Dá para jogar Brasfoot online, sem baixar?', a:'<p>Não: ele precisa ser baixado e instalado, e o save fica naquele computador. O <strong>RetroFoot</strong> é o contrário por desenho — roda no navegador, a carreira fica na nuvem, e dá para começar no PC e continuar no celular.</p>' },
+      { q:'O Brasfoot ainda é atualizado?', a:'<p>A última edição oficial é a <strong>Brasfoot 22-23</strong>, e o site oficial avisa explicitamente que <em>"não existe uma versão chamada Brasfoot 2026"</em>. A comunidade segue publicando patches de elenco, que é uma das forças históricas do jogo. Vale conferir a situação atual no site oficial, linkado nesta página.</p>' },
+      { q:'Qual dos dois tem os nomes reais dos jogadores?', a:'<p>Nenhum dos dois traz os nomes oficiais de fábrica, e o motivo é o mesmo: nome de clube e de atleta é marca registrada. No <strong>Brasfoot</strong> quem resolve isso é a <strong>comunidade de patches</strong>, por fora do jogo, com um editor de nomes próprio. No <strong>RetroFoot</strong> os clubes aparecem pelo <strong>apelido da torcida</strong> (o ABC é o <em>Elefante Potiguar</em>) e os elencos são os reais com nomes fictícios. Vale dizer que nem o Football Manager escapa: por licenciamento, ele mostra os clubes brasileiros como sigla de três letras.</p>' },
+      { q:'Qual é melhor para jogar com os amigos?', a:'<p>O <strong>RetroFoot</strong>, e por uma diferença de natureza: o <a href="/jogar-com-amigos/">Modo Resenha</a> põe até <strong>10 treinadores</strong> no mesmo campeonato, cada um no <strong>seu</strong> aparelho, de onde estiver, com a semana fechando só quando o último jogar. Nos clássicos de PC, jogar junto quase sempre quis dizer o mesmo computador.</p>' },
+      { q:'Quanto custa cada um?', a:'<p>O Brasfoot é gratuito para jogar, com registro opcional e gratuito que libera recursos — confira as condições da edição atual no site oficial. No RetroFoot, o <strong>Modo Solo</strong> é grátis e sem prazo; o <strong>Modo Resenha</strong> vem liberado por 7 dias ao criar a conta e depois entra nos planos, sendo que <strong>entrar na sala de um amigo nunca custa nada</strong>.</p>' },
+      { q:'O RetroFoot tem tantas ligas quanto o Brasfoot?', a:'<p>Não, e é honesto dizer: hoje o clube que você comanda no RetroFoot é <strong>brasileiro</strong>, nas quatro divisões. Muitas ligas jogáveis é justamente o forte do Brasfoot. O que o RetroFoot tem é <strong>mercado mundial</strong> — compra e venda com clubes de fora desde a primeira temporada — e as continentais.</p>' },
+    ],
+        body: `
+<p class="lead">Se você jogou <strong>Brasfoot</strong>, conhece o ritual: baixar, instalar, procurar o patch da
+temporada, e jogar naquele computador. O <strong>RetroFoot</strong> nasceu para tirar esse ritual da frente — abre no
+navegador e a primeira partida acontece em menos de um minuto. Abaixo, os dois lado a lado, com o que cada um faz
+melhor.</p>
+
+<h2>Comparativo, critério por critério</h2>
+<table>
+  <thead><tr><th>Critério</th><th>Brasfoot</th><th>RetroFoot</th></tr></thead>
+  <tbody>
+    <tr><td>Precisa instalar?</td><td>Sim — baixa e instala</td><td><strong>Não — abre no navegador</strong></td></tr>
+    <tr><td>Tamanho do download</td><td>Instalador de PC (leve, mas é download)</td><td><strong>Nenhum</strong> — é uma página que carrega</td></tr>
+    <tr><td>Onde roda</td><td>Windows</td><td><strong>Qualquer navegador atual</strong> — Windows, Mac, Linux, celular, tablet</td></tr>
+    <tr><td>Celular</td><td>Não tem versão de celular</td><td><strong>Sim</strong> (o desktop mostra mais recursos de uma vez)</td></tr>
+    <tr><td>Onde fica o save</td><td>Naquele computador</td><td><strong>Na nuvem</strong> — troca de aparelho sem perder a carreira</td></tr>
+    <tr><td>Um jogador</td><td>Sim</td><td>Sim — <strong>Modo Solo</strong>, grátis e sem prazo</td></tr>
+    <tr><td>Vários jogadores</td><td>Historicamente, o mesmo computador</td><td><strong>Modo Resenha: até 10, online, cada um no seu aparelho</strong></td></tr>
+    <tr><td>Ligas jogáveis</td><td><strong>Muitas — é o forte dele</strong></td><td>Brasil: Séries A, B, C e D</td></tr>
+    <tr><td>Competições brasileiras</td><td>Presentes</td><td>Quatro divisões + Copa do Brasil + Libertadores + Sul-Americana</td></tr>
+    <tr><td>Mercado de transferências</td><td>Dentro das ligas do jogo</td><td><strong>Mundial</strong> desde a 1ª temporada, de ida e de volta</td></tr>
+    <tr><td>Nomes reais de jogador</td><td>Editor próprio + <strong>patches da comunidade</strong></td><td>Elencos reais com nomes fictícios; clubes pelo apelido</td></tr>
+    <tr><td>Estilo e gráficos</td><td>2D, direto, foco em tabela e números</td><td>2D retrô, com partida ao vivo lance a lance</td></tr>
+    <tr><td>Atualização oficial</td><td>Última edição: <strong>22-23</strong></td><td><strong>Contínua</strong></td></tr>
+    <tr><td>Futebol feminino</td><td>—</td><td><strong>Sim</strong>, mesmos clubes e calendário</td></tr>
+    <tr><td>Custo para começar</td><td>Grátis, com registro gratuito opcional</td><td><strong>Modo Solo grátis, sem prazo</strong></td></tr>
+  </tbody>
+</table>
+<p class="nota-dados">Dados do Brasfoot conferidos no site oficial em 21/09/2026. Edição, plataformas e condições
+mudam — confirme na fonte antes de decidir.</p>
+
+<h2>A diferença que pesa mais: não precisar instalar</h2>
+<p>Parece detalhe e não é. Sem instalação, o jogo funciona no computador do trabalho, no notebook emprestado, no
+celular na fila do banco — e continua a mesma carreira, porque o save mora na nuvem e não naquela máquina. Some o
+"depois eu baixo", que é onde morre a maior parte da vontade de jogar.</p>
+<p>E some também a dependência de sistema operacional: o Brasfoot pede <strong>Windows</strong>. Quem está num Mac, num
+Chromebook ou só no telefone não tem por onde entrar.</p>
+
+${fig('formacao', 'A tela do técnico no RetroFoot: escalação, banco, próximo jogo e caixa')}
+
+<h2>A resenha deixou de precisar de uma sala só</h2>
+<p>Nos managers de PC, "vários jogadores" quase sempre significou <em>o mesmo teclado, passando de mão em mão</em>: exige
+a turma junta, no mesmo horário. O <a href="/jogar-com-amigos/">Modo Resenha</a> resolve isso — cada um entra do próprio
+aparelho, o sorteio distribui os clubes com todo mundo assistindo, e a semana só vira quando o último jogar. Ninguém
+tem o time simulado pelas costas por ter demorado.</p>
+
+${fig('sala-resenha', 'A sala do Modo Resenha enchendo — cada treinador no seu aparelho')}
+
+<h2>Onde o Brasfoot ganha</h2>
+<p>Seria desonesto fingir que não: <strong>ligas jogáveis</strong>. O Brasfoot é a escola da coleção, e sentar num clube
+de fora do Brasil é algo que ele faz e o RetroFoot ainda não. E tem um patrimônio que nenhum jogo compra pronto: a
+<strong>comunidade de patches</strong>, que mantém elencos em dia por conta própria há anos.</p>
+<p>Se o que você quer é colecionar ligas e times do mundo inteiro, ele serve melhor. O comparativo dele com o Football
+Manager está em <a href="/brasfoot-vs-football-manager/">Brasfoot vs Football Manager</a>.</p>
+
+<h2>Onde o RetroFoot ganha</h2>
+<ul>
+  <li><strong>Zero instalação</strong> — abre como qualquer site, em qualquer sistema.</li>
+  <li><strong>Multiplayer online de verdade</strong> — até 10 treinadores, cada um no seu aparelho.</li>
+  <li><strong>Celular</strong> — a mesma carreira no telefone, com o save na nuvem.</li>
+  <li><strong>Mercado mundial</strong> — negocia com clubes de fora desde a primeira temporada.</li>
+  <li><strong>Carreira com memória</strong> — troféus, sondagens e <a href="/ranking/">ranking de treinadores</a>.</li>
+  <li><strong>Atualização contínua</strong>, sem esperar a edição do ano.</li>
+</ul>
+
+${fig('ranking', 'O ranking de treinadores: carreira somada ao peso real de cada título')}
+
+<h2>Sobre os nomes, que é a dúvida mais comum</h2>
+<p>Nenhum manager gratuito traz os nomes oficiais de fábrica, porque nome de clube e de atleta é marca registrada. No
+Brasfoot, quem preenche essa lacuna é a comunidade de patches. No RetroFoot, os clubes aparecem pelo
+<strong>apelido da torcida</strong> — o ABC é o <em>Elefante Potiguar</em> — e os elencos são os reais de cada clube com
+nomes fictícios.</p>
+<p>E não é só coisa de jogo grátis: o <strong>Football Manager</strong>, que custa quase R$ 300, mostra os clubes
+brasileiros como <strong>sigla de três letras</strong> — "GRE" em vez de Grêmio — da Série A até a C, também por
+licenciamento. É uma restrição do gênero, não um atalho de quem faz o jogo.</p>
+
+<h2>Em uma frase</h2>
+<ul>
+  <li><strong>Brasfoot:</strong> a escola da coleção — muitas ligas, patches da comunidade, no seu Windows.</li>
+  <li><strong>RetroFoot:</strong> a escola de abrir e jogar — navegador, celular, save na nuvem e a turma na mesma liga.</li>
+</ul>
+
+<p><a href="/"><strong>Abrir o RetroFoot e pegar um clube</strong></a> — de graça, sem baixar nada. Ou veja o
+<a href="/retrofoot-vs-football-manager/">comparativo com o Football Manager</a>.</p>
+`.trim(),
+  },
+  // ======================= P2: RETROFOOT VS FOOTBALL MANAGER =======================
+  {
+    slug: 'retrofoot-vs-football-manager', ready: true, priority: 0.7, lastmod: '2026-09-21',
+    title: 'RetroFoot vs Football Manager: comparativo honesto (2026)',
+    description: 'Football Manager 26 custa US$ 59,99 e pede 20 GB; no celular, só para assinantes Netflix. O RetroFoot abre no navegador, de graça. Comparativo por critério, incluindo onde o FM ganha.',
+    h1: 'RetroFoot vs Football Manager: o que cada um entrega',
+    keywords: 'retrofoot vs football manager, football manager alternativa gratis, football manager sem baixar, football manager no celular, manager de futebol online gratis, fm26',
+    resumo: [
+      'O <strong>Football Manager 26</strong> custa <strong>US$ 59,99</strong> e pede <strong>20 GB</strong> de disco.',
+      'No celular, o FM26 é <strong>exclusivo para assinantes Netflix</strong> (ou Apple Arcade, na versão Touch).',
+      'O <strong>RetroFoot</strong> abre no navegador, sem baixar nada, e o <strong>Modo Solo</strong> é grátis.',
+      'O FM ganha em profundidade e em número de ligas — e nem ele escapa do licenciamento: mostra os clubes brasileiros como sigla de três letras.',
+    ],
+    refs: [
+      { nome:'Football Manager (site oficial)', desc:'A página oficial do FM26, com plataformas, preço e edições.', url:'https://www.footballmanager.com/' },
+    ],
+    faq: [
+      { q:'Existe alternativa grátis ao Football Manager?', a:'<p>Existe, e roda sem instalar nada: o <a href="/">RetroFoot</a> abre no navegador e o <strong>Modo Solo</strong> é gratuito, sem prazo. Não é um substituto de profundidade — o FM entrega muito mais camada tática e dezenas de ligas. É outra proposta: começar em um minuto e jogar com a turma de longe.</p>' },
+      { q:'Quanto custa o Football Manager 26?', a:'<p><strong>US$ 59,99</strong> nos Estados Unidos ou <strong>£45</strong> no Reino Unido, com desconto de 10% na pré-venda. Está incluído no Xbox Game Pass Ultimate e no PC Game Pass desde o lançamento. Dados conferidos em 21/09/2026 — confirme no site oficial.</p>' },
+      { q:'Dá para jogar Football Manager no celular?', a:'<p>Dá, mas com condição: o <strong>FM26 Mobile</strong> é <strong>exclusivo para assinantes da Netflix</strong> no Android e no iOS, e a versão <strong>Touch</strong> vem pelo Apple Arcade. Ou seja, no telefone você depende de uma assinatura de terceiro. O RetroFoot abre no navegador do celular, sem assinatura e sem instalar.</p>' },
+      { q:'Quanto espaço o Football Manager ocupa?', a:'<p><strong>20 GB</strong> de espaço livre, tanto no mínimo quanto no recomendado, em Windows e macOS. O RetroFoot não ocupa nada: é uma página que carrega.</p>' },
+      { q:'O Football Manager tem os clubes brasileiros com nome real?', a:'<p>Nem ele. Por licenciamento, o FM26 mostra os clubes brasileiros como <strong>sigla de três letras</strong> — "GRE" em vez de Grêmio —, e isso vai da Série A até a C. A comunidade corrige com os chamados <em>real names fix</em>, que só valem em save novo. É a mesma restrição que faz o RetroFoot usar o apelido da torcida: nome de clube é marca registrada.</p>' },
+      { q:'Qual é melhor para jogar com amigos?', a:'<p>Depende de como a turma se organiza. O FM tem modo online, com sessão combinada entre os jogadores. O <a href="/jogar-com-amigos/">Modo Resenha</a> do RetroFoot foi desenhado para o caso contrário: <strong>ninguém precisa marcar horário</strong> — cada um joga a sua partida quando puder, e a semana só fecha quando o último jogar.</p>' },
+      { q:'Em que o Football Manager é melhor?', a:'<p>Em <strong>profundidade</strong>, e não é pouco: scouting minucioso, tática em camadas, dezenas de ligas jogáveis pelo mundo, motor de partida em 3D, relatório de olheiro, coletiva de imprensa. Se você quer o simulador mais completo do gênero e não se importa em instalar, pagar e aprender, é ele. O RetroFoot não disputa esse terreno.</p>' },
+    ],
+        body: `
+<p class="lead">Esses dois não disputam a mesma coisa, e é melhor dizer isso na primeira linha. O
+<strong>Football Manager</strong> é o simulador mais profundo do gênero — e cobra em preço, em disco e em tempo de
+aprendizado. O <strong>RetroFoot</strong> aposta no oposto: abrir no navegador e estar em campo em menos de um minuto.
+Abaixo, o que cada um entrega, incluindo as linhas em que o FM ganha.</p>
+
+<h2>Comparativo, critério por critério</h2>
+<table>
+  <thead><tr><th>Critério</th><th>Football Manager 26</th><th>RetroFoot</th></tr></thead>
+  <tbody>
+    <tr><td>Preço</td><td>US$ 59,99 / £45 (ou Game Pass)</td><td><strong>Modo Solo grátis, sem prazo</strong></td></tr>
+    <tr><td>Precisa instalar?</td><td>Sim</td><td><strong>Não — abre no navegador</strong></td></tr>
+    <tr><td>Espaço em disco</td><td><strong>20 GB</strong></td><td><strong>Nenhum</strong></td></tr>
+    <tr><td>Onde roda</td><td>Windows, macOS, Xbox Series X/S, PS5, Switch</td><td><strong>Qualquer navegador atual</strong>, em qualquer sistema</td></tr>
+    <tr><td>Celular</td><td>FM26 Mobile: <strong>só para assinantes Netflix</strong>; Touch via Apple Arcade</td><td><strong>Sim, no navegador</strong> (o desktop mostra mais recursos de uma vez)</td></tr>
+    <tr><td>Onde fica o save</td><td>No aparelho / na nuvem da plataforma</td><td><strong>Na nuvem</strong>, ligado à conta</td></tr>
+    <tr><td>Um jogador</td><td>Sim, é o foco</td><td>Sim — <strong>Modo Solo</strong></td></tr>
+    <tr><td>Vários jogadores</td><td>Modo online, com sessão combinada</td><td><strong>Modo Resenha: até 10, sem marcar horário</strong></td></tr>
+    <tr><td>Ligas jogáveis</td><td><strong>Dezenas, pelo mundo</strong></td><td>Brasil: Séries A, B, C e D</td></tr>
+    <tr><td>Profundidade tática</td><td><strong>Máxima do gênero</strong></td><td>Média: formação, tática por contexto, ajuste no intervalo</td></tr>
+    <tr><td>Gráficos da partida</td><td><strong>Motor 3D</strong></td><td>2D retrô, lance a lance, com Modo Camarote</td></tr>
+    <tr><td>Clubes brasileiros</td><td>Sigla de 3 letras por licenciamento ("GRE"); comunidade corrige</td><td>Apelido da torcida ("Elefante Potiguar")</td></tr>
+    <tr><td>Nomes reais de jogador</td><td>Licenciados na maior parte das ligas</td><td>Elencos reais com nomes fictícios</td></tr>
+    <tr><td>Tempo até a 1ª partida</td><td>Uma tarde, entre baixar e aprender</td><td><strong>Menos de um minuto</strong></td></tr>
+    <tr><td>Duração de uma partida</td><td>Longa — é parte do prazer</td><td>~30s no Curto; ~10s no Ultrassônico (plano)</td></tr>
+    <tr><td>Atualização oficial</td><td>Edição nova por temporada</td><td><strong>Contínua</strong></td></tr>
+    <tr><td>Futebol feminino</td><td>Presente em edições recentes</td><td><strong>Sim</strong>, mesmos clubes e calendário</td></tr>
+  </tbody>
+</table>
+<p class="nota-dados">Preço, plataformas e requisitos do FM26 conferidos no site oficial e na Steam em 21/09/2026 —
+confirme na fonte, porque mudam a cada edição.</p>
+
+<h2>Onde o Football Manager ganha, e ganha claro</h2>
+<p>Profundidade. O FM tem scouting de verdade, tática em camadas, relatório de olheiro, coletiva de imprensa, dezenas
+de ligas jogáveis e um motor de partida em <strong>3D</strong>. Se o seu prazer é passar a tarde ajustando instruções
+individuais e lendo relatório de olheiro, nenhum manager de navegador vai substituir isso — e o RetroFoot não tenta.</p>
+<p>Também ganha em <strong>abrangência</strong>: sentar num clube da Inglaterra, da Espanha ou do Japão é algo que ele
+faz e o RetroFoot ainda não.</p>
+
+<h2>Onde o RetroFoot ganha</h2>
+<h3>Não precisa de 20 GB nem de cartão</h3>
+<p>O FM26 pede <strong>20 GB</strong> de espaço livre e custa <strong>US$ 59,99</strong>. O RetroFoot é uma página: abre
+e joga, e o <strong>Modo Solo</strong> é grátis sem prazo. A barreira entre a vontade de jogar e a primeira rodada é de
+um minuto, não de uma tarde.</p>
+
+${fig('formacao', 'A tela do técnico: escalação, banco, próximo jogo e caixa — tudo à vista')}
+
+<h3>No celular, sem depender de assinatura de terceiro</h3>
+<p>Essa linha surpreende quem não acompanha: o <strong>FM26 Mobile é exclusivo para assinantes da Netflix</strong> no
+Android e no iOS, e a versão Touch vem pelo Apple Arcade. Ou seja, para jogar FM no telefone você precisa de uma
+assinatura que não é do jogo. O RetroFoot abre no navegador do celular, com a mesma carreira que você tem no
+computador, porque o save mora na nuvem.</p>
+<p>Uma ressalva honesta: o jogo <strong>funciona</strong> no telefone, mas a experiência recomendada é o
+<strong>desktop</strong> — a tela maior mostra elenco, tabela, finanças e próximo jogo ao mesmo tempo, e é ali que dá
+para trabalhar o time com conforto.</p>
+
+<h3>Jogar com a turma sem marcar horário</h3>
+<p>O FM tem modo online, mas ele pressupõe sessão combinada. O <a href="/jogar-com-amigos/">Modo Resenha</a> foi
+desenhado para a vida real de adulto com trabalho: até <strong>10 treinadores</strong>, cada um joga a sua partida
+quando puder, e a semana só fecha quando o último jogar. Ninguém tem o time simulado pelas costas.</p>
+
+${fig('sala-resenha', 'A sala do Modo Resenha enchendo — cada treinador no seu aparelho')}
+
+<h2>O licenciamento não poupa nem quem cobra</h2>
+<p>Se você já viu "GRE" no lugar de Grêmio, sabe do que se trata. Por <strong>licenciamento</strong>, o FM26 exibe os
+clubes brasileiros como sigla de três letras, da Série A até a C, e a comunidade corrige com os <em>real names fix</em> —
+que só valem em save novo.</p>
+<p>É exatamente a mesma restrição que faz o RetroFoot usar o <strong>apelido da torcida</strong> (o ABC é o
+<em>Elefante Potiguar</em>) e nomes fictícios de jogador sobre os elencos reais. Nome de clube e de atleta é marca
+registrada, e isso vale para o jogo grátis e para o de US$ 59,99.</p>
+
+<h2>Como escolher, em duas perguntas</h2>
+<ol>
+  <li><strong>Quanto tempo você quer gastar antes da primeira partida?</strong> Uma tarde → Football Manager. Um minuto → RetroFoot.</li>
+  <li><strong>A sua turma consegue marcar horário?</strong> Se sim, qualquer um serve. Se cada um joga quando dá, o Modo Resenha resolve.</li>
+</ol>
+
+<p><a href="/"><strong>Testar o RetroFoot agora</strong></a> — grátis, no navegador. Ou compare com o
+<a href="/brasfoot-vs-retrofoot/">Brasfoot</a>.</p>
+`.trim(),
+  },
+  // ======================= P2: BRASFOOT VS FOOTBALL MANAGER =======================
+  {
+    slug: 'brasfoot-vs-football-manager', ready: true, priority: 0.6, lastmod: '2026-09-21',
+    title: 'Brasfoot vs Football Manager: qual escolher em 2026?',
+    description: 'Brasfoot é grátis e leve, só para Windows; Football Manager 26 custa US$ 59,99 e pede 20 GB. Comparativo por critério — e a terceira opção que roda no navegador, sem instalar.',
+    h1: 'Brasfoot vs Football Manager: leve e grátis, ou profundo e pago?',
+    keywords: 'brasfoot vs football manager, brasfoot ou football manager, football manager gratis, manager de futebol leve, brasfoot football manager diferenca',
+    resumo: [
+      'O <strong>Brasfoot</strong> é grátis, leve e roda em <strong>Windows</strong>; a última edição oficial é a <strong>22-23</strong>.',
+      'O <strong>Football Manager 26</strong> custa <strong>US$ 59,99</strong>, pede <strong>20 GB</strong> e tem o motor mais profundo do gênero.',
+      'Os dois precisam de <strong>instalação</strong>, e os dois dependem da comunidade para os nomes brasileiros.',
+      'Há uma terceira via: o <strong>RetroFoot</strong> roda no navegador, sem baixar nada, com Modo Solo grátis.',
+    ],
+    refs: [
+      { nome:'Brasfoot (site oficial)', desc:'A página oficial, com as edições, o registro e a comunidade de patches.', url:'https://www.brasfoot.com/' },
+      { nome:'Football Manager (site oficial)', desc:'A página oficial do FM26, com plataformas, preço e edições.', url:'https://www.footballmanager.com/' },
+    ],
+    faq: [
+      { q:'Qual é mais leve: Brasfoot ou Football Manager?', a:'<p>O <strong>Brasfoot</strong>, com folga. Ele é um programa de PC enxuto, enquanto o <strong>Football Manager 26</strong> pede <strong>20 GB</strong> de espaço livre. Se o critério é máquina modesta, o Brasfoot leva — e quem não quer instalar nada tem o <a href="/">RetroFoot</a>, que roda no navegador.</p>' },
+      { q:'O Football Manager vale o preço se eu jogo Brasfoot?', a:'<p>Depende do que você procura. O FM26 (<strong>US$ 59,99</strong>) entrega profundidade que o Brasfoot não tenta: scouting minucioso, tática em camadas, dezenas de ligas e motor de partida em 3D. Se o seu prazer é a partida rápida e a tabela, o Brasfoot já resolve — e de graça.</p>' },
+      { q:'Os dois rodam no celular?', a:'<p>O <strong>Brasfoot</strong> não tem versão de celular: é jogo de Windows. O <strong>FM26 Mobile</strong> existe no Android e no iOS, mas é <strong>exclusivo para assinantes da Netflix</strong> (a versão Touch vem pelo Apple Arcade). Para jogar no telefone sem instalar e sem assinatura de terceiro, o caminho é um manager de navegador.</p>' },
+      { q:'Qual tem os clubes brasileiros com nome real?', a:'<p>Nenhum dos dois de fábrica, e o motivo é o mesmo: licenciamento. No <strong>FM26</strong> os clubes brasileiros aparecem como <strong>sigla de três letras</strong> — "GRE" em vez de Grêmio — da Série A até a C. No <strong>Brasfoot</strong> há editor próprio e uma forte <strong>comunidade de patches</strong>. Em ambos, quem resolve na prática é a comunidade.</p>' },
+      { q:'O Brasfoot ainda recebe edição nova?', a:'<p>A última edição oficial é a <strong>Brasfoot 22-23</strong>, e o site oficial avisa que <em>"não existe uma versão chamada Brasfoot 2026"</em>. O Football Manager, por comparação, lança edição por temporada — o FM26 saiu em novembro de 2025. Confirme a situação atual nos dois sites oficiais, linkados aqui.</p>' },
+      { q:'Existe opção sem instalar nada?', a:'<p>Existe: o <strong>RetroFoot</strong> abre no navegador, no computador ou no celular, com o <strong>Modo Solo</strong> grátis e sem prazo, e um <a href="/jogar-com-amigos/">Modo Resenha</a> com até 10 treinadores online. Em troca, hoje só o Brasil é jogável — nesse ponto os dois desta página entregam mais ligas.</p>' },
+    ],
+        body: `
+<p class="lead">É a comparação entre dois extremos do gênero. O <strong>Brasfoot</strong> é leve, gratuito e direto; o
+<strong>Football Manager</strong> é o simulador mais profundo que existe, e cobra por isso em dinheiro, disco e tempo.
+Os dois, porém, têm uma coisa em comum que vale notar: <strong>precisam ser instalados</strong>.</p>
+
+<h2>Comparativo, critério por critério</h2>
+<table>
+  <thead><tr><th>Critério</th><th>Brasfoot</th><th>Football Manager 26</th></tr></thead>
+  <tbody>
+    <tr><td>Preço</td><td><strong>Grátis</strong>, com registro gratuito opcional</td><td>US$ 59,99 / £45 (ou Game Pass)</td></tr>
+    <tr><td>Precisa instalar?</td><td>Sim</td><td>Sim</td></tr>
+    <tr><td>Espaço em disco</td><td><strong>Leve</strong> — programa de PC enxuto</td><td>20 GB</td></tr>
+    <tr><td>Onde roda</td><td>Windows</td><td><strong>Windows, macOS, Xbox Series X/S, PS5, Switch</strong></td></tr>
+    <tr><td>Celular</td><td>Não tem</td><td>FM26 Mobile: só para assinantes Netflix; Touch via Apple Arcade</td></tr>
+    <tr><td>Ligas jogáveis</td><td><strong>Muitas</strong> — é o forte dele</td><td><strong>Dezenas, pelo mundo</strong></td></tr>
+    <tr><td>Profundidade tática</td><td>Média — partida rápida, foco em tabela</td><td><strong>Máxima do gênero</strong></td></tr>
+    <tr><td>Gráficos da partida</td><td>2D, direto</td><td><strong>Motor 3D</strong></td></tr>
+    <tr><td>Clubes brasileiros</td><td>Editor próprio + patches da comunidade</td><td>Sigla de 3 letras por licenciamento; comunidade corrige</td></tr>
+    <tr><td>Tempo até a 1ª partida</td><td>Minutos, depois de instalar</td><td>Uma tarde, entre baixar e aprender</td></tr>
+    <tr><td>Atualização oficial</td><td>Última edição: <strong>22-23</strong></td><td><strong>Edição por temporada</strong> (FM26 em nov/2025)</td></tr>
+    <tr><td>Vários jogadores</td><td>Historicamente, o mesmo computador</td><td>Modo online, com sessão combinada</td></tr>
+  </tbody>
+</table>
+<p class="nota-dados">Dados conferidos nos sites oficiais e na Steam em 21/09/2026. Preço, plataformas, edição e
+requisitos mudam — confirme na fonte.</p>
+
+<h2>Escolha o Brasfoot se…</h2>
+<ul>
+  <li>Você quer <strong>gastar zero</strong> e tem um Windows à mão.</li>
+  <li>A máquina é modesta e 20 GB não é opção.</li>
+  <li>Você gosta de <strong>colecionar ligas</strong> e de mexer com patches da comunidade.</li>
+  <li>O seu prazer é a partida rápida e a tabela, não o relatório de olheiro.</li>
+</ul>
+
+<h2>Escolha o Football Manager se…</h2>
+<ul>
+  <li>Você quer o <strong>simulador mais completo</strong> do gênero, e topa pagar por isso.</li>
+  <li>Curte scouting, tática em camadas e <strong>motor de partida em 3D</strong>.</li>
+  <li>Quer sentar num clube de qualquer lugar do mundo.</li>
+  <li>Tem uma tarde para aprender a tela — e outras tantas para jogar.</li>
+</ul>
+
+<h2>A terceira via: não instalar nada</h2>
+<p>Há uma coisa que os dois pedem e que nem todo mundo pode dar: <strong>instalação</strong>. Um exige Windows; o outro,
+20 GB de disco. Quem está num Mac, num Chromebook, no computador do trabalho ou só com o celular na mão fica sem porta
+de entrada em ambos.</p>
+<p>É aí que entra o <strong>RetroFoot</strong>: abre no navegador, como qualquer site, e a primeira partida acontece em
+menos de um minuto. O <strong>Modo Solo</strong> é grátis e sem prazo, a carreira fica na nuvem, e dá para começar no
+computador e continuar no telefone.</p>
+
+${fig('formacao', 'A tela do técnico no RetroFoot: escalação, banco, próximo jogo e caixa')}
+
+<p>E o que ele tem que nenhum dos dois faz do mesmo jeito: o <a href="/jogar-com-amigos/">Modo Resenha</a>, com até
+<strong>10 treinadores</strong> no mesmo campeonato, cada um no seu aparelho, <strong>sem precisar marcar horário</strong>
+— a semana só fecha quando o último jogar.</p>
+
+${fig('sala-resenha', 'A sala do Modo Resenha enchendo — cada treinador no seu aparelho')}
+
+<p>Em troca, é justo dizer onde ele perde para os dois desta página: hoje o clube que você comanda no RetroFoot é
+<strong>brasileiro</strong>, nas quatro divisões. Colecionar ligas do mundo é terreno deles.</p>
+
+<h2>Sobre os nomes brasileiros, que atinge os três</h2>
+<p>Vale registrar, porque é a dúvida que mais aparece: <strong>nenhum</strong> dos três traz os nomes oficiais de
+fábrica. O FM26 mostra os clubes brasileiros como sigla de três letras por licenciamento; o Brasfoot tem editor próprio
+e vive de patches; o RetroFoot usa o <strong>apelido da torcida</strong> sobre os elencos reais. Nome de clube e de
+atleta é marca registrada — a diferença está em quem preenche a lacuna, não em quem tem a licença.</p>
+
+<h2>Em uma frase cada</h2>
+<ul>
+  <li><strong>Brasfoot:</strong> grátis, leve e cheio de ligas — se você tem Windows.</li>
+  <li><strong>Football Manager:</strong> o mais profundo que existe — se você tem 20 GB, US$ 59,99 e uma tarde.</li>
+  <li><strong>RetroFoot:</strong> abre e joga, no navegador ou no celular, com a turma na mesma liga.</li>
+</ul>
+
+<p><a href="/"><strong>Abrir o RetroFoot</strong></a> — sem baixar, sem instalar, Modo Solo de graça. Comparativos
+diretos: <a href="/brasfoot-vs-retrofoot/">Brasfoot vs RetroFoot</a> ·
+<a href="/retrofoot-vs-football-manager/">RetroFoot vs Football Manager</a> ·
+<a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>
+`.trim(),
+  },
+
   // ======================= GUIA / DOCUMENTAÇÃO =======================
   {
     slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-09-20',

@@ -49,6 +49,9 @@ const CURTO = {
   'melhores-jogos-treinador-futebol':'Melhores jogos de treinador',
   'jogos-parecidos-com-elifoot':'Jogos parecidos com o Elifoot',
   'elifoot-vs-brasfoot':'Elifoot vs Brasfoot',
+  'brasfoot-vs-retrofoot':'Brasfoot vs RetroFoot',
+  'retrofoot-vs-football-manager':'RetroFoot vs Football Manager',
+  'brasfoot-vs-football-manager':'Brasfoot vs Football Manager',
 };
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
