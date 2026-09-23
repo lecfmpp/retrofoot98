@@ -875,6 +875,7 @@ function clAuthDoSignup(){ const n=CL.net; if(!(n.email&&n.password&&n.name)) re
   (async ()=>{ try {
     await NET.authSignUp(n.email, n.password, n.name, rfWaMeta(n));
     toastC('Conta criada!');
+    try{ if(typeof rfWppPosCadastro==='function') rfWppPosCadastro(); }catch(e){}
     if(clSegueEntradaPorLink()) return;   // idem ao login: o convite nao pode parar aqui
     cdraw();
   } catch(e) {

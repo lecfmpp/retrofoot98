@@ -697,6 +697,7 @@ function rfSidebarHTML(){
     <nav class="rf-sb-nav">${itens}</nav>
     <div class="rf-sb-sp"></div>
     ${proximo}
+    ${typeof rfWppSidebarHTML==='function' ? rfWppSidebarHTML() : ''}
     <div class="rf-sb-pe">
       <button type="button" class="rf-sb-toggle" onclick="rfToggleSidebar()"
         aria-expanded="${recolhida?'false':'true'}"

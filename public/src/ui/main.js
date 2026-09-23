@@ -863,6 +863,8 @@ function devolveRolagem(m){
      Resenha). Com o painel aberto a funcao sai na primeira linha — um innerHTML
      novo apagaria o que a pessoa esta a escrever. */
   try{ if(typeof rfOpiniaoRender==='function') rfOpiniaoRender(); }catch(e){}
+  /* o grupo do WhatsApp tambem vive fora do #c-root (ver ui/rf26-grupo-wpp.js) */
+  try{ if(typeof rfWppRender==='function') rfWppRender(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
   /* as vagas aprovadas entram tambem no save JA' ABERTO — comparacao de strings quando nada
@@ -2042,6 +2044,7 @@ function clLoginSignup(){ const a=CL.auth; if(!a||!(a.email&&a.password&&a.name)
       }catch(err){ CL._fotoPendente=a.foto; console.warn('foto do cadastro:', err&&err.message); }
     }
     clLoginAfter(a.name); toastC('Conta criada!');
+    try{ if(typeof rfWppPosCadastro==='function') rfWppPosCadastro(); }catch(e){}
   } catch(e){
     if(e.code==='DUPLICATE_ACCOUNT'){ CL.auth.mode='login'; cdraw(); }
     toastC('⚠ '+e.message);

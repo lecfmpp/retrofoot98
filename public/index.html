@@ -975,6 +975,9 @@ function teamMorale(id,players){
 <script src="src/ui/rf26-formacao.js"></script>
 <!-- aba de opiniao: elemento fixo, vive fora do #c-root (ver o cabecalho do arquivo) -->
 <script src="src/ui/rf26-opiniao.js"></script>
+<!-- Grupo do WhatsApp: modal pos-cadastro, aba das paginas publicas e botao da area logada.
+     O mesmo ficheiro e' carregado pelas paginas de SEO (scripts/build-seo.mjs). -->
+<script src="src/ui/rf26-grupo-wpp.js"></script>
 <!-- entrega dos espaços publicitários (o painel dos sócios publica, o jogo lê por chave).
      Depois do main.js porque chama cdraw() quando o inventário chega; antes dos adapters
      de rede porque não depende de nenhum deles (faz fetch cru, ver ads.js). -->

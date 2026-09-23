@@ -438,6 +438,9 @@ ${p.css||''}
   </div>
 </footer>
 ${p.script?`<script>${p.script}</script>`:''}
+${/* GRUPO DO WHATSAPP (aba 1b): o mesmo ficheiro do jogo, que traz o proprio CSS e o link.
+   Fora do media kit, que e' pagina comercial para marcas, nao para jogador. */
+  p.soMiolo ? '' : '<script src="/src/ui/rf26-grupo-wpp.js" defer></script>'}
 </body></html>`;
 }
 
