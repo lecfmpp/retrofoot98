@@ -9,9 +9,8 @@
         net/local-transport.js). Fecha no ✕, no Esc e no clique fora.
         Desktop: cartão centrado. Abaixo de 760px: bottom sheet.
    1b · ABA DAS PÁGINAS PÚBLICAS — a home (CL.screen 'abertura') e as páginas
-        estáticas de SEO (scripts/build-seo.mjs carrega ESTE ficheiro). Desktop:
-        aba vertical na borda direita com painel no hover. Telefone: pílula no
-        canto inferior direito.
+        estáticas de SEO (scripts/build-seo.mjs carrega ESTE ficheiro). Pílula no
+        canto inferior direito, no desktop e no telefone; o clique abre o grupo.
    1c · ÁREA LOGADA — desktop: botão no pé da barra lateral (rfSidebarHTML chama
         rfWppSidebarHTML): um cartão só, que abre o grupo direto. Telefone: lingueta na borda
         direita, acima da barra do Jogar.
@@ -90,33 +89,19 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
 @keyframes rf-wpp-treme-x{0%,100%{transform:translateX(0)}15%{transform:translateX(-2px)}30%{transform:translateX(2px)}
   45%{transform:translateX(-1.5px)}60%{transform:translateX(1px)}75%{transform:translateX(-.5px)}}
 .rf-wpp-treme.tremendo{animation:rf-wpp-treme .6s ease-in-out both}
-.rf-wpp-pub-tab.tremendo{animation-name:rf-wpp-treme-x}
 @media (prefers-reduced-motion:reduce){.rf-wpp-treme.tremendo{animation:none}}
 
 /* ===== 1b · aba das páginas públicas ===== */
 #rf-wpp-pub{position:fixed;z-index:45}
-.rf-wpp-pub-desk{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:45;display:flex;align-items:stretch;
-  border-radius:16px 0 0 16px;overflow:hidden;box-shadow:0 18px 40px -16px rgba(8,18,12,.7)}
-.rf-wpp-pub-painel{display:none;width:236px;background:#12321f;padding:18px 18px 18px 20px;flex-direction:column;gap:10px}
-.rf-wpp-pub-desk:hover .rf-wpp-pub-painel,.rf-wpp-pub-desk:focus-visible .rf-wpp-pub-painel{display:flex}
-.rf-wpp-pub-desk:hover .rf-wpp-pub-tab.tremendo{animation:none}
-.rf-wpp-eyebrow{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;letter-spacing:.12em;color:#F2B90C}
-.rf-wpp-pub-tit{font-size:17px;font-weight:700;line-height:1.2;color:#fff;letter-spacing:-.01em;text-wrap:pretty}
-.rf-wpp-pub-cta{display:flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:8px 10px;
-  text-align:center;line-height:1.2;border-radius:11px;background:#25D366;color:#0b2e17;font-size:14px;font-weight:700}
-.rf-wpp-pub-desk:hover .rf-wpp-pub-cta{background:#1fc05b}
-.rf-wpp-pub-tab{width:52px;background:#25D366;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;padding:16px 0;color:#fff}
-.rf-wpp-pub-tab .rf-wpp-ic{font-size:22px}
-.rf-wpp-pub-rot{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px;font-weight:700;letter-spacing:.02em;
-  color:#0b2e17;white-space:nowrap}
-.rf-wpp-pub-tel{display:none;position:fixed;right:14px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:45;
+/* SÓ A PÍLULA, NO DESKTOP E NO TELEFONE (23/09): a aba vertical com painel no hover
+   saiu — um elemento só, e o clique já abre o grupo. No desktop ela ganha mais margem. */
+.rf-wpp-pub-tel{display:flex;position:fixed;right:24px;bottom:24px;z-index:45;
   align-items:center;gap:9px;height:50px;padding:0 18px 0 8px;border-radius:25px;background:#25D366;color:#0b2e17;
   font-size:14px;font-weight:700;box-shadow:0 14px 30px -12px rgba(8,18,12,.7)}
 .rf-wpp-pub-tel:hover{background:#1fc05b}
 .rf-wpp-bola{width:36px;height:36px;border-radius:50%;background:#12321f;color:#fff;display:flex;align-items:center;
   justify-content:center;font-size:17px;flex:0 0 auto}
-@media (max-width:760px){.rf-wpp-pub-desk{display:none}.rf-wpp-pub-tel{display:flex}}
+@media (max-width:760px){.rf-wpp-pub-tel{right:14px;bottom:calc(18px + env(safe-area-inset-bottom,0px))}}
 
 /* ===== 1c · área logada: pé da barra lateral (desktop) ===== */
 /* STICKY: a barra lateral já rola (o card do patrocinador é alto) — sem isto o botão
@@ -280,14 +265,7 @@ window.rfWppEntrou=function(origem){
 
 /* ===================== 1b · PÁGINAS PÚBLICAS ===================== */
 function pubHTML(){
-  return aLink('publica','rf-wpp-pub-desk',`
-      <span class="rf-wpp-pub-painel">
-        <span class="rf-wpp-eyebrow">GRUPO DO WHATSAPP</span>
-        <span class="rf-wpp-pub-tit">Ache sua turma pra jogar a Resenha</span>
-        <span class="rf-wpp-pub-cta">${CTA}</span>
-      </span>
-      <span class="rf-wpp-pub-tab rf-wpp-treme">${ICONE}<span class="rf-wpp-pub-rot">Grupo do WhatsApp</span></span>`)
-    + aLink('publica','rf-wpp-pub-tel rf-wpp-treme',`<span class="rf-wpp-bola">${ICONE}</span><span>Grupo da resenha</span>`);
+  return aLink('publica','rf-wpp-pub-tel rf-wpp-treme',`<span class="rf-wpp-bola">${ICONE}</span><span>Grupo da resenha</span>`);
 }
 
 /* ===================== 1c · ÁREA LOGADA ===================== */
