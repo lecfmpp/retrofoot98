@@ -9862,7 +9862,24 @@ function seasonEndDialog(){
   // TELA PORTADA (telas/Fim de Temporada): rfStage 1080px, sem modal.
   overlayC(rfFimTemporadaHTML());
 }
+/* ===== A VIRADA RODA UMA VEZ, E SO' SOBRE UMA TEMPORADA JOGADA =====
+   O save do GRINGO (23/09) virou 2026 -> 2029 com 3 cliques: a virada que sobe de divisao espera
+   a rede (loadRealDivisionClubs), a tela de fim reabria pelo Avancar e cada clique extra entrava
+   na fila e rodava newSeasonReset outra vez, sobre a temporada nova e VAZIA. Tabela zerada = sobe
+   e desce por ordem alfabetica do id: o Periquito, campeao da D, caiu da C sem jogar, e o elenco
+   envelheceu 3 anos. Duas travas: um clique por vez, e nada de virar temporada com 0 jogos.
+   A guarda e' pelos jogos, nao por S.finished: se o endSeason falhar a meio, o finished nao
+   liga e o jogador ficaria preso na tela de fim. */
 function clAdvanceSeason(){
+  if(CL._virandoTemporada) return;
+  const meu=(S.table&&S.clubId&&S.table[S.clubId])||null;
+  if(!(S.round>0 || (meu&&meu.P>0))){
+    clCloseOverlay();
+    toastC('A temporada '+(S.season||'')+' já começou. Jogue as rodadas para avançar.');
+    try{ CL.screen='main'; CL.tab='jogo'; cdraw(); }catch(e){}
+    return;
+  }
+  CL._virandoTemporada=true;
   clCloseOverlay();
   const nd=pendingDivisionChange();
   const goingReal = nd!==S.division && nd!=='A';
@@ -9886,7 +9903,7 @@ function clAdvanceSeason(){
     console.error('Erro ao avançar de temporada:', err);
     toastC('⚠ Erro ao avançar de temporada: '+(err&&err.message||'desconhecido')+'. Tentando recuperar...');
     try{ CL.screen='main'; CL.tab='jogo'; cdraw(); }catch(e2){ console.error('Falha também ao recuperar:', e2); }
-  });
+  }).finally(()=>{ CL._virandoTemporada=false; });
 }
 /* ---- FIM DE TEMPORADA no ONLINE (server-authoritative) ----
    Cerimônia de premiação do PRÓPRIO clube: posição na divisão DELE + prêmios que ELE recebeu,
