@@ -39,7 +39,7 @@
 /* ===== O LINK DO GRUPO =====
    Colar aqui o convite (https://chat.whatsapp.com/...). Vazio = widget desligado
    em produção. É o único lugar: o jogo e as páginas de SEO leem este ficheiro. */
-const RF_WHATSAPP_URL = '';
+const RF_WHATSAPP_URL = 'https://chat.whatsapp.com/H1AuqFrKDqn4Dd2BicnXqV?mode=gi_t';
 window.RF_WHATSAPP_URL = window.RF_WHATSAPP_URL || RF_WHATSAPP_URL;
 
 const K_VISTO  = 'rf_wpp_modal_visto';
