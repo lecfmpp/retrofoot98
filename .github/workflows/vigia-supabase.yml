@@ -8,9 +8,9 @@
 # manda e-mail e notificação no app). Continua caído -> não repete. Voltou -> comenta
 # "voltou" e fecha a issue. Assim chegam dois avisos por queda, não um a cada rodada.
 #
-# INTERVALO: 30 min. O repositório é privado e cada execução conta 1 minuto de Actions
-# (~1.450 min/mês); de 5 em 5 minutos passaria da cota gratuita de 2.000. Para encurtar,
-# mudar o cron abaixo sabendo o custo. O agendamento do GitHub pode atrasar alguns minutos.
+# INTERVALO: de hora em hora (decisão do dono, 24/09). O repositório é privado e cada
+# execução conta 1 minuto de Actions (~730 min/mês); de 5 em 5 minutos passaria da cota
+# gratuita de 2.000. Para encurtar, mudar o cron abaixo sabendo o custo. O agendamento do GitHub pode atrasar alguns minutos.
 #
 # A chave usada é a PUBLICÁVEL, a mesma que já vai no JavaScript do site — não é segredo.
 # Para testar o caminho da queda: Actions -> "Vigia do Supabase" -> Run workflow ->
@@ -19,7 +19,7 @@ name: Vigia do Supabase
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       simular_falha:
