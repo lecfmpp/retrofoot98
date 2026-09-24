@@ -13,7 +13,7 @@
         aba vertical na borda direita com painel no hover. Telefone: pílula no
         canto inferior direito.
    1c · ÁREA LOGADA — desktop: botão no pé da barra lateral (rfSidebarHTML chama
-        rfWppSidebarHTML) com mini-card ao clicar. Telefone: lingueta na borda
+        rfWppSidebarHTML): um cartão só, que abre o grupo direto. Telefone: lingueta na borda
         direita, acima da barra do Jogar.
 
    QUATRO REGRAS QUE MANDAM NO DESENHO:
@@ -123,33 +123,23 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
    ficava abaixo da dobra num ecrã de 800px. Preso ao pé, está sempre à vista. */
 .rf-wpp-sb{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;position:sticky;bottom:0;z-index:2;
   background:var(--surface-card,#fff);padding-top:8px;margin-top:-8px;box-shadow:0 -10px 12px -8px var(--surface-card,#fff)}
-.rf-wpp-sb-card{display:none;background:#1b4a2d;border:1px solid rgba(37,211,102,.45);border-radius:14px;padding:14px;
-  flex-direction:column;gap:10px}
-.rf-wpp-sb.aberto .rf-wpp-sb-card{display:flex}
-.rf-wpp-sb-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.rf-wpp-sb-tit{font-size:14px;font-weight:700;line-height:1.25;color:#fff;text-wrap:pretty}
-.rf-wpp-sb-x{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;
-  font-size:11px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0}
-.rf-wpp-sb-x:hover{background:rgba(255,255,255,.24)}
+.rf-wpp-sb-card{display:flex;background:#1b4a2d;border:1px solid rgba(37,211,102,.45);border-radius:14px;padding:14px;
+  flex-direction:column;gap:12px;cursor:pointer}
+.rf-wpp-sb-card:hover{background:#1f5534}
+.rf-wpp-sb-card.tremendo{animation-name:rf-wpp-treme-x}
+.rf-wpp-sb-hd{display:flex;align-items:center;gap:10px}
+.rf-wpp-sb-tit{flex:1;min-width:0;font-size:14px;font-weight:700;line-height:1.25;color:#fff;text-wrap:pretty}
 .rf-wpp-sb-cta{display:flex;align-items:center;justify-content:center;min-height:38px;padding:8px 10px;text-align:center;
   line-height:1.2;border-radius:10px;background:#25D366;color:#0b2e17;font-size:13px;font-weight:700}
-.rf-wpp-sb-cta:hover{background:#1fc05b}
-/* a barra lateral do jogo é CLARA (o desenho supunha escura): o texto do botão
-   passa a verde-escuro para continuar legível; o resto das medidas é o do pacote */
-.rf-wpp-sb-btn{display:flex;align-items:center;gap:8px;height:46px;width:100%;padding:0 8px 0 6px;border-radius:12px;
-  border:1px solid rgba(37,211,102,.5);background:rgba(37,211,102,.14);color:#12321f;font-family:inherit;font-size:13px;
-  font-weight:600;cursor:pointer;text-align:left}
-.rf-wpp-sb-btn:hover{background:rgba(37,211,102,.24)}
+.rf-wpp-sb-card:hover .rf-wpp-sb-cta{background:#1fc05b}
 .rf-wpp-sb-quad{flex:0 0 auto;width:34px;height:34px;border-radius:10px;background:#25D366;color:#fff;display:flex;
   align-items:center;justify-content:center;font-size:16px}
-.rf-wpp-sb-l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rf-wpp-sb-pt{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:#25D366}
 /* recolhida (68px) ou "já entrou": só o ícone, e o clique leva direto ao grupo */
 .rf-wpp-sb-mini{display:flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:12px;
   border:1px solid rgba(37,211,102,.5);background:rgba(37,211,102,.14)}
 .rf-wpp-sb-mini:hover{background:rgba(37,211,102,.24)}
 .rf-app.collapsed .rf-wpp-sb{align-items:center}
-.rf-app.collapsed .rf-wpp-sb-card,.rf-app.collapsed .rf-wpp-sb-btn{display:none}
+.rf-app.collapsed .rf-wpp-sb-card{display:none}
 .rf-wpp-sb .rf-wpp-sb-mini{display:none}
 .rf-app.collapsed .rf-wpp-sb .rf-wpp-sb-mini,.rf-wpp-sb.compacto .rf-wpp-sb-mini{display:flex}
 @media (max-width:760px){.rf-wpp-sb{display:none}}
@@ -286,7 +276,6 @@ document.addEventListener('keydown',e=>{
   if(e.key!=='Escape') return;
   if(document.getElementById('rf-wpp-modal')){ fecharModal(); return; }
   if(logAberto){ logAberto=false; render(true); }
-  if(sbAberto){ window.rfWppSbAlternar(false); }
 });
 
 /* ===================== clique em qualquer "Entrar" ===================== */
@@ -309,38 +298,26 @@ function pubHTML(){
 }
 
 /* ===================== 1c · ÁREA LOGADA ===================== */
-let sbAberto=false, logAberto=false;
-/* desktop: vai DENTRO da barra lateral (rfSidebarHTML), que o cdraw() reescreve —
-   por isso o estado aberto mora aqui, e não no DOM */
+let logAberto=false;
+/* desktop: vai DENTRO da barra lateral (rfSidebarHTML).
+   UM ELEMENTO SÓ, E UM PASSO SÓ (pedido do dono, 23/09): era um botão "Grupo do
+   WhatsApp" que abria um mini-card por cima — dois elementos na tela ao mesmo tempo e
+   um clique a mais. Agora é só o cartão verde-escuro, sempre à vista, com o ícone para
+   ser reconhecido de relance; o cartão INTEIRO é o link e abre o grupo direto. */
 window.rfWppSidebarHTML=function(){
   if(!link()) return '';
-  const mini=aLink('logada','rf-wpp-sb-mini rf-wpp-treme',`<span class="rf-wpp-sb-quad" style="width:34px;height:34px">${ICONE}</span>`)
+  const mini=aLink('logada','rf-wpp-sb-mini rf-wpp-treme',`<span class="rf-wpp-sb-quad">${ICONE}</span>`)
     .replace('<a ','<a title="Grupo do WhatsApp" aria-label="Grupo do WhatsApp" ');
   if(ENTROU_ANTES) return `<div class="rf-wpp-sb compacto">${mini.replace(' rf-wpp-treme','')}</div>`;
-  return `<div class="rf-wpp-sb${sbAberto?' aberto':''}">
-    <div class="rf-wpp-sb-card" id="rf-wpp-sb-card">
-      <div class="rf-wpp-sb-hd">
+  return `<div class="rf-wpp-sb">
+    ${aLink('logada','rf-wpp-sb-card rf-wpp-treme',`
+      <span class="rf-wpp-sb-hd">
+        <span class="rf-wpp-sb-quad">${ICONE}</span>
         <span class="rf-wpp-sb-tit">Resenha rola no grupo entre as rodadas</span>
-        <button type="button" class="rf-wpp-sb-x" aria-label="Recolher" onclick="rfWppSbAlternar(false)">✕</button>
-      </div>
-      ${aLink('logada','rf-wpp-sb-cta',CTA)}
-    </div>
-    <button type="button" class="rf-wpp-sb-btn rf-wpp-treme" aria-expanded="${sbAberto?'true':'false'}" aria-controls="rf-wpp-sb-card"
-      onclick="rfWppSbAlternar()">
-      <span class="rf-wpp-sb-quad">${ICONE}</span>
-      <span class="rf-wpp-sb-l">Grupo do WhatsApp</span>
-      <span class="rf-wpp-sb-pt" aria-hidden="true"></span>
-    </button>
+      </span>
+      <span class="rf-wpp-sb-cta">${CTA}</span>`)}
     ${mini}
   </div>`;
-};
-/* abre/fecha sem cdraw(): mexe só na classe, e o estado fica para o próximo desenho */
-window.rfWppSbAlternar=function(forcar){
-  sbAberto=(typeof forcar==='boolean')?forcar:!sbAberto;
-  document.querySelectorAll('.rf-wpp-sb').forEach(el=>{
-    el.classList.toggle('aberto',sbAberto);
-    const b=el.querySelector('.rf-wpp-sb-btn'); if(b) b.setAttribute('aria-expanded',sbAberto?'true':'false');
-  });
 };
 
 /* telefone: lingueta própria, fora do #c-root */
