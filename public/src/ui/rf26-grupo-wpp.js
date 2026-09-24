@@ -82,12 +82,14 @@ const CSS = `
 html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto .rf-wpp-sb{visibility:hidden}
 
 /* ---- a tremida ---- */
-@keyframes rf-wpp-treme{0%,100%{transform:translate(0,0) rotate(0)}12%{transform:translate(-2px,0) rotate(-5deg)}
-  24%{transform:translate(2px,0) rotate(5deg)}36%{transform:translate(-2px,0) rotate(-4deg)}
-  48%{transform:translate(2px,0) rotate(3deg)}60%{transform:translate(-1px,0) rotate(-2deg)}72%{transform:translate(1px,0) rotate(1deg)}}
-@keyframes rf-wpp-treme-x{0%,100%{transform:translateX(0)}12%{transform:translateX(-4px)}24%{transform:translateX(3px)}
-  36%{transform:translateX(-3px)}48%{transform:translateX(2px)}60%{transform:translateX(-1px)}72%{transform:translateX(1px)}}
-.rf-wpp-treme.tremendo{animation:rf-wpp-treme .8s ease-in-out both}
+/* SUTIL (pedido do dono, 23/09): metade da amplitude de antes — ±2° e 1px no ícone,
+   2px na aba vertical — e um pouco mais curta. Chama o olho sem parecer defeito. */
+@keyframes rf-wpp-treme{0%,100%{transform:translate(0,0) rotate(0)}15%{transform:translate(-1px,0) rotate(-2deg)}
+  30%{transform:translate(1px,0) rotate(2deg)}45%{transform:translate(-1px,0) rotate(-1.5deg)}
+  60%{transform:translate(0,0) rotate(1deg)}75%{transform:rotate(-.5deg)}}
+@keyframes rf-wpp-treme-x{0%,100%{transform:translateX(0)}15%{transform:translateX(-2px)}30%{transform:translateX(2px)}
+  45%{transform:translateX(-1.5px)}60%{transform:translateX(1px)}75%{transform:translateX(-.5px)}}
+.rf-wpp-treme.tremendo{animation:rf-wpp-treme .6s ease-in-out both}
 .rf-wpp-pub-tab.tremendo{animation-name:rf-wpp-treme-x}
 @media (prefers-reduced-motion:reduce){.rf-wpp-treme.tremendo{animation:none}}
 
