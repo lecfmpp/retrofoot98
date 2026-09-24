@@ -26,25 +26,36 @@
 
 /* ---------- estado ---------- */
 function rfRankEstado(){
-  CL._rank = CL._rank || { escopo:0, periodo:1, aberto:20, dados:null, carregando:false };
+  CL._rank = CL._rank || { escopo:0, periodo:RF_RANK_SEMPRE, aberto:20, dados:{}, carregando:{} };
   return CL._rank;
 }
 const RF_RANK_ESCOPOS=['Global','Amigos','Minhas resenhas'];
-const RF_RANK_PERIODOS=['Semana','Temporada','Sempre'];
-function rfRankSet(k,v){ const e=rfRankEstado(); e[k]=v; cdraw(); }
+/* ===== OS PERIODOS SAO DE VERDADE (23/09) =====
+   Eram tres rotulos (Semana/Temporada/Sempre) sobre a MESMA lista de todos os tempos. Agora cada
+   um e' uma pergunta ao servidor: Dia/Semana/Mes = os pontos GANHOS no periodo (total agora menos
+   a foto diaria do inicio dele — ver rf_ranking/coach_ranking_dia), Sempre = o total. "Temporada"
+   saiu: cada treinador esta' numa temporada diferente, nao ha' um "esta temporada" comum. */
+const RF_RANK_PERIODOS=['Dia','Semana','Mês','Sempre'];
+const RF_RANK_PERIODO_CHAVE=['dia','semana','mes','sempre'];
+const RF_RANK_PERIODO_NO=['NO DIA','NA SEMANA','NO MÊS','GERAL'];
+const RF_RANK_SEMPRE=3;
+function rfRankSet(k,v){ const e=rfRankEstado(); e[k]=v; if(k==='periodo') e.aberto=20; cdraw(); }
 
 /* ---------- dados ----------
    Uma leitura por visita: a RPC é pública e barata, mas redesenhar a página
    (um clique num filtro) não pode ser uma ida à rede. `null` = ainda não
    perguntei; `[]` = perguntei e não há ninguém. A tela diz coisas diferentes
    para os dois — vazio não pode ler como "a carregar". */
-function rfRankCarregar(){
+/* UMA CACHE POR PERIODO: trocar de aba pergunta uma vez e volta a' que ja' veio. A faixa do topo
+   le' SEMPRE o total (periodo 'sempre'), seja qual for a aba escolhida na pagina. */
+function rfRankCarregar(periodo){
   const e=rfRankEstado();
-  if(e.dados!==null || e.carregando) return e.dados;
-  e.carregando=true;
-  const pronto=(linhas)=>{ e.dados=linhas||[]; e.carregando=false; cdraw(); };
+  const k=RF_RANK_PERIODO_CHAVE[periodo!=null?periodo:e.periodo]||'sempre';
+  if(e.dados[k]!==undefined || e.carregando[k]) return e.dados[k]||null;
+  e.carregando[k]=true;
+  const pronto=(linhas)=>{ e.dados[k]=linhas||[]; e.carregando[k]=false; cdraw(); };
   if(typeof NET!=='undefined' && NET.ranking){
-    Promise.resolve(NET.ranking('geral',100)).then(pronto).catch(()=>pronto([]));
+    Promise.resolve(NET.ranking('geral',100,k)).then(pronto).catch(()=>pronto([]));
   } else pronto([]);
   return null;
 }
@@ -78,8 +89,8 @@ function rfRankClube(id, nomeDoServidor){
   const escudo=(c && typeof clubCrestUrl==='function') ? clubCrestUrl(c) : null;
   return { clube:nome, escudo:escudo };
 }
-function rfRankLinhas(){
-  const d=rfRankCarregar();
+function rfRankLinhas(periodo){
+  const d=rfRankCarregar(periodo);
   if(!d) return null;
   return d.map(r=>({
     pos:r.pos, treinador:r.treinador,
@@ -172,11 +183,11 @@ function rfRankTabelaHTML(linhas){
   const vis=linhas.slice(0, e.aberto);
   return `<div class="rf-rk-card">
     <div class="rf-rk-card-hd">
-      <span class="rf-rk-rot">CLASSIFICAÇÃO GERAL</span>
+      <span class="rf-rk-rot">${e.periodo===RF_RANK_SEMPRE?'CLASSIFICAÇÃO GERAL':'PONTOS '+RF_RANK_PERIODO_NO[e.periodo]}</span>
       <span class="rf-rk-tot">${rfRankNum(linhas.length)} ${linhas.length===1?'TREINADOR':'TREINADORES'}</span>
     </div>
     <div class="rf-rk-th">
-      <span>POS</span><span>SEMANA</span><span>TREINADOR</span>
+      <span>POS</span><span>${e.periodo===RF_RANK_SEMPRE?'SEMANA':''}</span><span>TREINADOR</span>
       <span>ÚLTIMO SAVE</span><span class="dir">TÍTULOS</span><span class="dir">CAMPANHA</span><span class="dir">TOTAL</span>
     </div>
     ${vis.map(l=>`<div class="rf-rk-tr ${l.souEu?'eu':''}" id="${l.souEu?'rf-rk-eu':''}">
@@ -203,7 +214,9 @@ function rfRankTabelaHTML(linhas){
     <div class="rf-rk-ft">
       ${linhas.length>e.aberto?`<button type="button" class="rf-rk-bt" onclick="rfRankSet('aberto',${e.aberto+20})">Ver mais 20</button>`:''}
       ${linhas.some(l=>l.souEu)?`<button type="button" class="rf-rk-bt" onclick="rfRankIrParaMim()">Ir para a minha posição</button>`:''}
-      <span class="rf-rk-nota">O total soma os <b>títulos</b> (com o peso de cada competição) e a <b>campanha</b> (os pontos que o time fez, pesados pela divisão). O ranking é do Modo Resenha.</span>
+      <span class="rf-rk-nota">${e.periodo===RF_RANK_SEMPRE
+        ? 'O total soma a <b>campanha</b> (cada vitória vale 3 e cada empate 1, na liga e nas copas, mais 10 por temporada terminada) e os <b>títulos</b>, que são o que mais vale. Conta o Modo Solo e o Modo Resenha.'
+        : 'Os pontos ganhos '+RF_RANK_PERIODO_NO[e.periodo].toLowerCase()+' (o período começa à meia-noite de Brasília): vitórias, empates, temporadas terminadas e títulos. Conta o Modo Solo e o Modo Resenha.'}</span>
     </div>
   </div>`;
 }
@@ -218,8 +231,9 @@ function rfRankSubHTML(){
   const eu=(l||[]).find(x=>x.souEu);
   const base=RF_RANK_ESCOPOS[e.escopo]+' · '+RF_RANK_PERIODOS[e.periodo];
   if(!l) return base+' · a carregar…';
-  if(!l.length) return base+' · ninguém pontuou ainda';
-  return base + (eu ? (' · você em '+eu.pos+'º com '+rfRankNum(eu.pts)+' pontos') : ' · você ainda não pontuou');
+  const no=e.periodo===RF_RANK_SEMPRE?'':(' '+RF_RANK_PERIODO_NO[e.periodo].toLowerCase());
+  if(!l.length) return base+' · ninguém pontuou'+no+' ainda';
+  return base + (eu ? (' · você em '+eu.pos+'º com '+rfRankNum(eu.pts)+' pontos'+no) : (' · você ainda não pontuou'+no));
 }
 function rfRankAcoesHTML(){
   const e=rfRankEstado();
@@ -231,8 +245,10 @@ function rfRankHTML(){
   const l=rfRankLinhas();
   if(l===null) return `<div class="rf-rk"><div class="rf-rk-card"><span class="rf-rk-nota">A carregar o ranking…</span></div></div>`;
   if(!l.length) return `<div class="rf-rk"><div class="rf-rk-card">
-      <span class="rf-rk-rot">CLASSIFICAÇÃO GERAL</span>
-      <span class="rf-rk-nota" style="padding-top:10px">Ninguém pontuou ainda. O ranking é do <b>Modo Resenha</b>: o primeiro título numa sala abre a lista.</span>
+      <span class="rf-rk-rot">${rfRankEstado().periodo===RF_RANK_SEMPRE?'CLASSIFICAÇÃO GERAL':'PONTOS '+RF_RANK_PERIODO_NO[rfRankEstado().periodo]}</span>
+      <span class="rf-rk-nota" style="padding-top:10px">${rfRankEstado().periodo===RF_RANK_SEMPRE
+        ? 'Ninguém pontuou ainda. Cada vitória e cada empate, no Modo Solo ou no Modo Resenha, já entra na lista.'
+        : 'Ninguém pontuou '+RF_RANK_PERIODO_NO[rfRankEstado().periodo].toLowerCase()+' ainda. Cada vitória e cada empate já entram aqui.'}</span>
     </div></div>`;
   return `<div class="rf-rk">
     ${rfRankPodioHTML(l)}
@@ -279,7 +295,7 @@ function rfFitaSemTicker(tres, eu){
   </div>`;
 }
 function rfFitaHTML(){
-  const l=rfRankLinhas();
+  const l=rfRankLinhas(RF_RANK_SEMPRE);          // a faixa e' sempre o total, seja qual for a aba
   if(!l || !l.length) return '';                 // sem ranking não há faixa
   const tres=l.slice(0,3), resto=l.slice(3);
   const eu=l.find(x=>x.souEu);

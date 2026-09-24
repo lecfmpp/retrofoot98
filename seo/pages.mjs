@@ -1196,61 +1196,61 @@ curto até quem mexe no motor.</p>
 
   // ======================= RANKING (descritiva — sem PII) =======================
   {
-    slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-09-20',
+    slug: 'ranking', ready: true, priority: 0.7, lastmod: '2026-09-23',
     title: 'Ranking de treinadores do RetroFoot: como os pontos são contados',
-    description: 'Como funciona o ranking de treinadores do RetroFoot: pontos de carreira somados ao peso real de cada título — uma Libertadores vale muito mais que um acesso na Série D.',
+    description: 'Como funciona o ranking de treinadores do RetroFoot: cada vitória e cada empate contam, na liga e nas copas, e o título é o maior prêmio. Com ranking do dia, da semana, do mês e de todos os tempos.',
     h1: 'Ranking de treinadores: como os pontos são contados',
-    keywords: 'ranking retrofoot, ranking de treinadores, melhores treinadores, pontos de carreira, sala de trofeus',
+    keywords: 'ranking retrofoot, ranking de treinadores, melhores treinadores, pontos de carreira, ranking semanal, sala de trofeus',
     resumo: [
-      'A pontuação soma os <strong>pontos de carreira</strong> de todas as temporadas com o <strong>peso dos títulos</strong>.',
-      'Cada taça vale o que a competição vale: <strong>Libertadores 20</strong>, Série A 15, Copa do Brasil 12, Série D 0,5.',
-      'Título pesa muito mais que campanha — mas regularidade continua subindo degraus.',
-      'O aproveitamento aparece na tabela e é <strong>informativo</strong>: quem tem menos jogos não sobe por isso.',
+      'Cada <strong>vitória vale 3</strong> e cada <strong>empate vale 1</strong> — na liga e nas copas, em todas as temporadas.',
+      'Temporada terminada vale <strong>+10</strong>. Quem joga mais, sobe.',
+      'O <strong>título é o maior prêmio</strong>: Série D 43, Série A 130, Copa do Brasil 112, Libertadores 160.',
+      'Tem ranking do <strong>dia</strong>, da <strong>semana</strong>, do <strong>mês</strong> e de <strong>sempre</strong>.',
     ],
     faq: [
-      { q:'Como funcionam os pontos do ranking?', a:'<p>São duas moedas somadas: os <strong>pontos que você fez em campo</strong> ao longo de toda a carreira (todas as temporadas mais a atual) e o <strong>peso dos títulos</strong> conquistados. O peso do título entra multiplicado, então uma taça mexe bem mais no ranking do que uma boa campanha.</p>' },
-      { q:'Todos os títulos valem a mesma coisa?', a:'<p>Não, e é de propósito. Cada competição tem o seu peso: <strong>Libertadores 20</strong>, <strong>Série A 15</strong>, <strong>Copa do Brasil 12</strong>, <strong>Sul-Americana 10</strong>, <strong>Série B 3</strong>, <strong>Série C 1</strong> e <strong>Série D 0,5</strong>. Ganhar a Série D é uma conquista, mas não é uma Libertadores.</p>' },
-      { q:'O ranking zera todo ano?', a:'<p>Não. A temporada fecha e é premiada, mas o seu histórico de carreira continua — ele é o retrato de tudo o que você já fez, clube a clube, temporada a temporada.</p>' },
-      { q:'Por que quem joga mais aparece na frente?', a:'<p>Porque metade da pontuação são pontos feitos em campo, e eles se acumulam. O <strong>aproveitamento</strong> aparece na tabela para você comparar rendimento, mas ele não empurra ninguém para cima: quem jogou pouco não sobe por ter um percentual alto.</p>' },
-      { q:'Ganhar a Série D conta pouco mesmo?', a:'<p>Conta 0,5 contra os 20 de uma Libertadores — mas isso é só o ranking. O acesso continua mudando a sua carreira de verdade: sobe a receita, sobe o nível do elenco que aceita jogar no clube, sobe a sua segurança no cargo, e abre a porta para as taças que pesam.</p>' },
-      { q:'O ranking conta o Modo Solo e o Modo Resenha?', a:'<p>A sua carreira de treinador acumula nos dois modos: as temporadas jogadas e as taças conquistadas entram no seu histórico e na sua sala de troféus. A disputa fica mais interessante no <a href="/jogar-com-amigos/">Modo Resenha</a>, onde a turma inteira está na mesma régua.</p>' },
+      { q:'Como funcionam os pontos do ranking?', a:'<p>São duas partes somadas. A <strong>campanha</strong>: cada vitória vale 3 e cada empate vale 1, na liga e nas copas, e cada temporada terminada soma mais 10. E os <strong>títulos</strong>, que são o que mais vale: nenhuma temporada vale mais do que a taça dela.</p>' },
+      { q:'Jogo de copa conta?', a:'<p>Conta. Vitória e empate na copa valem o mesmo que na Série A — fase de grupos e mata-mata. Jogo decidido nos pênaltis conta como empate. Chegar longe numa copa rende mais porque são mais jogos, e levantar a taça rende o título por cima.</p>' },
+      { q:'A divisão muda alguma coisa?', a:'<p>Um pouco, só na liga: os pontos valem 100% na Série A, 90% na B, 80% na C e 70% na D. É o suficiente para subir de divisão compensar — e pouco o bastante para quem está começando lá embaixo somar de verdade.</p>' },
+      { q:'Todos os títulos valem a mesma coisa?', a:'<p>Não. <strong>Libertadores 160</strong>, <strong>Série A 130</strong>, <strong>Copa do Brasil 112</strong>, <strong>Sul-Americana 100</strong>, <strong>Série B 58</strong>, <strong>Série C 46</strong> e <strong>Série D 43</strong>. As ligas de outros países seguem o tamanho de cada liga.</p>' },
+      { q:'O que é o ranking do dia, da semana e do mês?', a:'<p>São os pontos que cada treinador <strong>ganhou naquele período</strong> — vitórias, empates, temporadas terminadas e títulos. O dia começa à meia-noite de Brasília, a semana na segunda-feira e o mês no dia 1º. O ranking de <strong>sempre</strong> é a carreira inteira.</p>' },
+      { q:'O ranking conta o Modo Solo e o Modo Resenha?', a:'<p>Conta os dois. As temporadas jogadas e as taças conquistadas no <strong>Modo Solo</strong> e no <a href="/jogar-com-amigos/">Modo Resenha</a> entram na mesma carreira.</p>' },
     ],
         body: `
 <p class="lead">Toda boa resenha tem um pódio. No RetroFoot existe um <strong>ranking de treinadores</strong> que mede
-carreira, e não temporada solta: ele soma o que você fez em campo ao longo de todas as temporadas e acrescenta o peso
-das taças que você levantou.</p>
+carreira: cada jogo que você vence ou empata soma, e cada taça que você levanta soma muito mais.</p>
 
 <h2>A conta, sem mistério</h2>
-<p>São duas moedas na mesma balança:</p>
 <ul>
-  <li><strong>Pontos de campanha</strong> — os pontos que os seus times somaram, de todas as temporadas mais a atual.</li>
-  <li><strong>Peso dos títulos</strong> — cada taça vale o que a competição vale, e entra com multiplicador.</li>
+  <li><strong>Campanha</strong> — vitória vale 3, empate vale 1, na liga e nas copas. Na liga, a divisão ajusta de leve
+  (Série A 100%, B 90%, C 80%, D 70%). Cada temporada terminada soma <strong>+10</strong>.</li>
+  <li><strong>Títulos</strong> — o maior prêmio. Cada taça vale o que a competição vale.</li>
 </ul>
-<p>O efeito prático é o que se espera de um ranking de treinador: <strong>ganhar pesa mais do que somar</strong>, mas
-quem faz campanha consistente temporada após temporada continua subindo degraus.</p>
+<p>O efeito prático: <strong>quem joga mais, sobe</strong> — e quem ganha, sobe mais. Uma temporada de Série A com 80
+pontos rende 90 no ranking; o título dessa mesma Série A rende 130 por cima.</p>
 
-${fig('ranking', 'O ranking: pontos de carreira somados ao peso real de cada título')}
+${fig('ranking', 'O ranking: a campanha de cada temporada somada aos títulos')}
 
 <h2>Quanto vale cada taça</h2>
 <table>
-  <thead><tr><th>Competição</th><th>Peso do título</th></tr></thead>
+  <thead><tr><th>Competição</th><th>Pontos do título</th></tr></thead>
   <tbody>
-    <tr><td>Libertadores</td><td>20</td></tr>
-    <tr><td>Série A</td><td>15</td></tr>
-    <tr><td>Copa do Brasil</td><td>12</td></tr>
-    <tr><td>Sul-Americana</td><td>10</td></tr>
-    <tr><td>Série B</td><td>3</td></tr>
-    <tr><td>Série C</td><td>1</td></tr>
-    <tr><td>Série D</td><td>0,5</td></tr>
+    <tr><td>Libertadores</td><td>160</td></tr>
+    <tr><td>Série A</td><td>130</td></tr>
+    <tr><td>Copa do Brasil</td><td>112</td></tr>
+    <tr><td>Sul-Americana</td><td>100</td></tr>
+    <tr><td>Série B</td><td>58</td></tr>
+    <tr><td>Série C</td><td>46</td></tr>
+    <tr><td>Série D</td><td>43</td></tr>
   </tbody>
 </table>
-<p>É por isso que o ranking não recompensa quem fica colecionando acesso na base da pirâmide: subir da Série D é bonito,
-mas o que separa o topo é taça grande.</p>
+<p>Subir da Série D já vale: o título da D rende mais do que uma temporada inteira nela. Mas o que separa o topo
+continua sendo taça grande.</p>
 
-<h2>O aproveitamento é informação, não atalho</h2>
-<p>A tabela mostra o seu aproveitamento — a proporção de pontos que você fez em relação ao que era possível. Ele serve
-para você comparar rendimento entre treinadores, mas <strong>não empurra ninguém para cima</strong>: quem tem poucos
-jogos não sobe no ranking por ter um percentual alto. Carreira se mede em temporadas.</p>
+<h2>Dia, semana, mês e sempre</h2>
+<p>O ranking de <strong>sempre</strong> é a carreira inteira. Os rankings do <strong>dia</strong>, da
+<strong>semana</strong> e do <strong>mês</strong> mostram só o que cada treinador ganhou naquele período — é onde quem
+está jogando agora aparece na frente, mesmo sem ter a estante cheia. O dia começa à meia-noite de Brasília, a semana
+na segunda-feira e o mês no dia 1º.</p>
 
 <h2>A sala de troféus e a história da carreira</h2>
 <p>Cada taça conquistada entra na sua <strong>sala de troféus</strong>, e cada temporada vira uma linha no histórico da
@@ -1260,9 +1260,9 @@ carreira — clube, divisão, campanha, o que aconteceu. É o currículo que os 
 ${fig('trofeus', 'A sala de troféus: o que você já levantou, taça a taça')}
 
 <h2>Começar a somar</h2>
-<p>Todo treinador de topo começou pegando um clube lá embaixo. Escolha a sua divisão, receba o seu clube no sorteio e
-comece a construir a carreira — o <a href="/guia/">guia do técnico</a> ajuda a acelerar, e o
-<a href="/jogar-com-amigos/">Modo Resenha</a> é onde a disputa com a turma fica interessante de verdade.</p>
+<p>Todo treinador de topo começou pegando um clube lá embaixo — e agora cada jogo lá embaixo já conta. Escolha a sua
+divisão, receba o seu clube no sorteio e comece a construir a carreira — o <a href="/guia/">guia do técnico</a> ajuda
+a acelerar, e o <a href="/jogar-com-amigos/">Modo Resenha</a> é onde a disputa com a turma fica interessante de verdade.</p>
 
 <p><a href="/"><strong>Começar a minha carreira de treinador</strong></a> — é de graça no Modo Solo.</p>
 `.trim(),

@@ -5117,7 +5117,7 @@ function enviarTitulos(modo, origem){
   const campeoes=(S.coachHistory||[]).filter(h=>h && h.type==='campeao' && h.comp && h.season!=null);
   if(!campeoes.length) return;
   const ult=campeoes[campeoes.length-1];
-  const assinatura=modo+'|'+origem+'|'+campeoes.length+'|'+ult.season+'|'+ult.comp;
+  const assinatura=RANKING_REGRA+'|'+modo+'|'+origem+'|'+campeoes.length+'|'+ult.season+'|'+ult.comp;
   if(typeof CL!=='undefined'){
     if(CL._titulosEnviados===assinatura) return;
     CL._titulosEnviados=assinatura;
@@ -5128,110 +5128,152 @@ function enviarTitulos(modo, origem){
     /* `pontos` PODE SER 0 de verdade (uma Serie D de um pais fraco), e 0 e' diferente de "nao
        sei" — por isso vai sempre um numero, nunca null: o null do servidor significa
        "ninguem calculou ainda" e e' o que o backfill deixou la'. */
-    pontos:(typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(h.comp,h.uni,h.div))||0 : 0
+    pontos:(typeof pontosDeTituloRanking==='function') ? Number(pontosDeTituloRanking(h.comp,h.uni,h.div))||0 : 0,
+    regra:RANKING_REGRA                          // ver RANKING_REGRA: v2 = 40 + 6 × peso da taca
   }));
   try{ Promise.resolve(NET.enviarTitulos(modo, origem, nome, lista)).catch(()=>{}); }catch(e){}
 }
+/* ===== A REGRA DO RANKING (v2, 23/09/2026) — QUEM JOGA MAIS, SOBE =====
+   A v1 media a campanha pelo PESO DO TITULO da divisao (Serie D = 0,5): uma temporada inteira
+   na Serie D valia 0,1 ponto, e 15 temporadas jogadas valiam menos que uma Libertadores. Quem
+   passava mais tempo no jogo — e quase todo mundo comeca la' embaixo — nao subia nada.
+
+   A v2 tem duas moedas na MESMA escala, e o dono escolheu os numeros:
+     · CAMPO: cada vitoria 3, cada empate 1 — na liga (o `Pts` da tabela) e nas COPAS (fase de
+       grupos e mata-mata; decisao por penaltis conta como empate). A liga e' ajustada de leve
+       pela divisao (A 1,0 · B 0,9 · C 0,8 · D 0,7) so' para subir de divisao compensar; a copa
+       vale 1,0 para todos, porque e' a vitrine onde o pequeno enfrenta o grande. Temporada
+       FECHADA ganha +10.
+     · TITULO: 40 + 6 × pontosDeTitulo — Serie D 43, Serie A 130, Libertadores 160. Continua a
+       ser o que mais vale: nenhuma temporada vale mais que o titulo dela (um campeao da Serie A
+       faz ~80 + 10 de campo, contra 130 da taca).
+
+   `pontosDeTitulo` NAO muda: ele tambem move a moral, a cadeira e a sondagem do exterior. A
+   regra do ranking e' uma camada por cima dele, e vive AQUI (nunca em SQL — ver enviarTitulos).
+   RANKING_REGRA vai em cada linha enviada: o servidor so' deixa uma linha v2 ser sobrescrita
+   por outra v2, para um cliente antigo em cache nao desfazer a regra nova. */
+const RANKING_REGRA='v2';
+const RANKING_FATOR_DIVISAO=[1.0, 0.9, 0.8, 0.7];   // por nivel na piramide; mais fundo usa o ultimo
+const RANKING_FATOR_COPA=1.0;
+const RANKING_BONUS_TEMPORADA=10;
+const RANKING_TITULO_BASE=40, RANKING_TITULO_MULT=6;
+function pontosDeTituloRanking(comp, uni, div){
+  if(comp==null) return 0;
+  return RANKING_TITULO_BASE + RANKING_TITULO_MULT*(Number(pontosDeTitulo(comp, uni, div))||0);
+}
+function fatorDivisaoRanking(uni, div){
+  let nivel=0;
+  try{ if(div && typeof WORLD_CONFIG!=='undefined' && WORLD_CONFIG.nivelDaDivisao) nivel=WORLD_CONFIG.nivelDaDivisao(uni||'brasil', div)||0; }catch(e){}
+  return RANKING_FATOR_DIVISAO[Math.max(0, Math.min(nivel, RANKING_FATOR_DIVISAO.length-1))];
+}
+/* Vitorias/empates de UM clube em todas as copas de um objeto de copas (S.cups ao vivo, ou as
+   chaves da temporada anterior). Aceita os dois formatos: mata-mata puro (o objeto E' a chave)
+   e grupo+mata-mata ({group, bracket}). Placar da chave e' o de 90'+prorrogacao; empate nele
+   foi para os penaltis e conta 1, como na liga. */
+function jogosDeCopaDoClube(cups, clubId){
+  const r={P:0, W:0, D:0, pts:0};
+  if(!cups || !clubId) return r;
+  const vistos=new Set();
+  Object.keys(cups).forEach(k=>{
+    const c=cups[k]; if(!c || typeof c!=='object') return;
+    const grupo=c.group, chave=(c.champion!==undefined) ? c : c.bracket;
+    if(grupo && grupo.groups) Object.values(grupo.groups).forEach(g=>{
+      const t=g && g.table && g.table[clubId];
+      if(t){ r.P+=t.P||0; r.W+=t.W||0; r.D+=t.D||0; }
+    });
+    if(chave){
+      const ties=[].concat(...((chave.history||[]).map(h=>(h&&h.ties)||[])), chave.ties||[]);
+      ties.forEach(t=>{
+        if(!t || vistos.has(t) || t.hg==null || t.ag==null) return;
+        if(t.h!==clubId && t.a!==clubId) return;
+        vistos.add(t);
+        const meus=t.h===clubId?t.hg:t.ag, deles=t.h===clubId?t.ag:t.hg;
+        r.P++; if(meus>deles) r.W++; else if(meus===deles) r.D++;
+      });
+    }
+  });
+  r.pts=3*r.W+r.D;
+  return r;
+}
+/* O valor de UMA temporada no ranking. Funcao pura, de proposito: e' a mesma que o
+   `enviarTemporadas` usa e a que a bancada usa para recalcular as linhas antigas do livro com
+   os dados que ele ja' guarda (divisao, pais, posicao, pontos de liga). Devolve null quando a
+   linha nao tem como ser medida.
+
+   PONTOS DE LIGA: os reais (`myPts`) quando existem. Temporadas antigas so' guardaram a
+   POSICAO; ai' estima-se os pontos pela fraccao da v1 (com o 0,7 que aproxima um vice real de
+   ~65% dos pontos possiveis) — pior que o numero real, mas e' o que aquele save guardou. */
+function pontosDeTemporadaRanking(t){
+  if(!t || !t.div) return null;
+  const uni=t.uni||'brasil';
+  let n=20;
+  try{ const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
+       if(cfg && cfg.size && cfg.size[t.div]) n=cfg.size[t.div]; }catch(e){}
+  const maximo=(n-1)*2*3;                            // turno e returno, 3 pontos por vitoria
+  let liga=Number(t.ptsLiga);
+  if(!(isFinite(liga) && liga>0)){
+    const pos=Number(t.pos);
+    if(isFinite(pos) && pos>=1 && n>1) liga=Math.round(Math.max(0, ((n-pos)/(n-1))*0.7)*maximo);
+    else liga=0;
+  }
+  const copa=Math.max(0, Number(t.ptsCopa)||0);
+  if(!(liga>0) && !(copa>0) && !t.fechada) return null;
+  const total=liga*fatorDivisaoRanking(uni, t.div) + copa*RANKING_FATOR_COPA
+            + (t.fechada ? RANKING_BONUS_TEMPORADA : 0);
+  return Math.round(total*100)/100;
+}
 /* ===== A CAMPANHA TAMBEM PONTUA =====
-   O ranking somava so' titulos, e quem faz uma grande temporada sem levantar taca
-   valia zero. Agora a campanha conta — e conta MENOS que o titulo, que continua a
-   ser a conquista.
-
-   MEDIDA PELA POSICAO, E NAO PELOS PONTOS DA LIGA. A primeira versao disto lia
-   `h.pts` do historico e teria enviado SEMPRE lista vazia: `S.history` guarda
-   `season`, `division`, `myPos` e o clube — os pontos da tabela nao ficam la'
-   (`rankingFinal` vem nulo nos 55 saves em producao, conferido). A posicao final
-   e' o que o jogo de facto regista, entao e' com ela que se mede.
-
-   O PESO DEPENDE DA DIVISAO, e tem de depender: um vice na Serie D nao pode valer
-   o que um vice na Serie A, senao SUBIR DE DIVISAO PIORA o ranking de quem sobe.
-   O peso sai da mesma escala dos titulos (pontosDeTitulo da competicao daquela
-   divisao).
-
-     contribuicao = peso(divisao) × ((N - pos) / (N - 1)) × CAMPANHA_FATOR
-
-   Com N = clubes da divisao. O 1º tira o maximo, o ultimo tira zero. Na Serie A
-   (peso 15, 20 clubes) um vice vale ~5,7 e um 10º ~3,2, contra 15 do titulo — a
-   campanha nunca passa o titulo dela, que e' a regra que o dono pediu.
-   CAMPANHA_FATOR e' a UNICA coisa a mexer para a campanha pesar mais ou menos. */
-const CAMPANHA_FATOR = 0.4;
+   Uma linha por temporada da carreira, com a chave (conta, carreira, temporada) no servidor.
+   As fechadas saem de S.history; a em curso sai da tabela e das copas AO VIVO e vai sendo
+   actualizada a cada gravacao (o fecho escreve por cima com o numero final). */
 function enviarTemporadas(modo, origem, nome){
   if(typeof NET==='undefined' || !NET.enviarTemporadas || !origem) return;
-  if(typeof S==='undefined' || !S || !Array.isArray(S.history) || !S.history.length) return;
+  if(typeof S==='undefined' || !S) return;
   const lista=[];
-  S.history.forEach(h=>{
+  const pv=S._prevSeason||null;
+  (Array.isArray(S.history)?S.history:[]).forEach(h=>{
     if(!h || h.season==null) return;
     const div=h.division||h.div||null;
-    const pos=Number(h.myPos!=null?h.myPos:h.pos);
     if(!div) return;
     const uni=h.uni||(S.intlUniverse||'brasil');
-    let peso=0, n=20;
-    try{
-      const comp=(typeof divisionCompKeyFor==='function') ? divisionCompKeyFor(div) : null;
-      peso=(comp && typeof pontosDeTitulo==='function') ? Number(pontosDeTitulo(comp, uni, div))||0 : 0;
-      const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
-      if(cfg && cfg.size && cfg.size[div]) n=cfg.size[div];
-    }catch(e){}
-    /* DOIS CAMINHOS, e o primeiro e' o que o dono pediu: os PONTOS que o time fez.
-       Temporadas fechadas a partir de agora trazem `myPts`; as antigas nao o tem
-       (o campo nasceu hoje) e sobra a POSICAO, que e' uma aproximacao pior mas e'
-       o que aquele save guardou. Os dois caem na mesma escala — a fraccao do
-       maximo possivel — para uma carreira antiga e uma nova nao pontuarem em
-       reguas diferentes. */
+    const pos=Number(h.myPos!=null?h.myPos:h.pos);
     const ptsReais=Number(h.myPts);
-    let fracao;
-    if(isFinite(ptsReais) && ptsReais>0){
-      const maximo=(n-1)*2*3;                        // turno e returno, 3 pontos por vitoria
-      fracao=Math.max(0, Math.min(1, ptsReais/maximo));
-    } else if(isFinite(pos) && pos>=1 && n>1){
-      /* O 0,7 APROXIMA AS DUAS REGUAS. `(n-pos)/(n-1)` da 0,95 ao vice, mas um vice
-         real faz ~65% dos pontos possiveis — sem o ajuste, uma carreira ANTIGA (que
-         so' tem posicao) pontuava visivelmente mais que uma nova com a mesma
-         campanha. Medido na Serie A: vice dava 5,68 por posicao contra 3,79 por
-         pontos; com o ajuste fica 3,98. */
-      fracao=Math.max(0, ((n-pos)/(n-1)) * 0.7);
-    } else return;
-    lista.push({ season:h.season, div:div, uni:uni,
-      pos:(isFinite(pos)?pos:null), ptsLiga:(isFinite(ptsReais)?Math.round(ptsReais):null),
-      pontos: Math.round(peso*fracao*CAMPANHA_FATOR*100)/100 });
+    /* COPA: gravada no fecho a partir da v2 (`myCupPts`). A temporada que acabou de fechar
+       antes disso ainda tem as chaves em S._prevSeason — aproveita-se; as mais antigas o jogo
+       nunca guardou e ficam so' com a liga. */
+    let ptsCopa=Number(h.myCupPts);
+    if(!isFinite(ptsCopa)){
+      ptsCopa=0;
+      try{ if(pv && pv.season===h.season && typeof prevSeasonCupBrackets==='function')
+             ptsCopa=jogosDeCopaDoClube(prevSeasonCupBrackets(), h.clubId||S.clubId).pts; }catch(e){}
+    }
+    const linha={ div, uni, pos:(isFinite(pos)?pos:null),
+      ptsLiga:(isFinite(ptsReais)&&ptsReais>0?Math.round(ptsReais):null), ptsCopa, fechada:true };
+    const pontos=pontosDeTemporadaRanking(linha);
+    if(pontos==null) return;
+    lista.push({ season:h.season, div, uni, pos:linha.pos, ptsLiga:linha.ptsLiga,
+      ptsCopa:Math.round(ptsCopa), pontos, regra:RANKING_REGRA });
   });
-  /* ===== A TEMPORADA EM CURSO TAMBEM PONTUA =====
-     Ela nao esta' em `S.history` — so' entra la' quando fecha — e sem isto um
-     treinador com 33 rodadas jogadas e 35 pontos valia zero no ranking ate' virar
-     o ano. Vai com os pontos REAIS da tabela, pela mesma escala das fechadas.
-
-     A CHAVE DO SERVIDOR E' (conta, carreira, temporada), entao esta linha vai
-     sendo ACTUALIZADA a cada gravacao enquanto a temporada corre, e no fecho a
-     entrada do historico escreve por cima com o numero final. Uma linha por
-     temporada, do inicio ao fim — nao duas.
-
-     O EFEITO COLATERAL ACEITE: a pontuacao de quem esta' a meio do ano SOBE ao
-     longo da temporada. E' o preco de contar a campanha em curso, e foi decisao
-     do dono para o ranking ter gente desde ja'. */
+  /* A TEMPORADA EM CURSO: sem isto um treinador com 33 rodadas jogadas valia zero ate' virar o
+     ano. Sem o bonus de temporada fechada — esse so' vem no fecho. */
   try{
     const meu=(S.table&&S.clubId)?S.table[S.clubId]:null;
-    const ptsAgora=meu?Number(meu.Pts):NaN;
+    const ptsAgora=meu?Number(meu.Pts)||0:0;
+    const copaAgora=jogosDeCopaDoClube(S.cups, S.clubId).pts;
     const divAgora=S.division;
-    if(isFinite(ptsAgora) && ptsAgora>0 && divAgora && !lista.some(x=>x.season===S.season)){
+    if((ptsAgora>0 || copaAgora>0) && divAgora && !lista.some(x=>x.season===S.season)){
       const uni=S.intlUniverse||'brasil';
-      let peso=0, n=20;
-      const comp=(typeof divisionCompKeyFor==='function')?divisionCompKeyFor(divAgora):null;
-      peso=(comp && typeof pontosDeTitulo==='function')?Number(pontosDeTitulo(comp, uni, divAgora))||0:0;
-      const cfg=(typeof UNI_CONFIGS!=='undefined') && UNI_CONFIGS[uni];
-      if(cfg && cfg.size && cfg.size[divAgora]) n=cfg.size[divAgora];
-      const fr=Math.max(0, Math.min(1, ptsAgora/((n-1)*2*3)));
-      lista.push({ season:S.season, div:divAgora, uni:uni,
-        pos:(typeof tablePos==='function')?tablePos(S.clubId):null,
-        ptsLiga:Math.round(ptsAgora),
-        pontos:Math.round(peso*fr*CAMPANHA_FATOR*100)/100 });
+      const pos=(typeof tablePos==='function')?tablePos(S.clubId):null;
+      const pontos=pontosDeTemporadaRanking({ div:divAgora, uni, ptsLiga:ptsAgora, ptsCopa:copaAgora, fechada:false });
+      if(pontos!=null) lista.push({ season:S.season, div:divAgora, uni, pos,
+        ptsLiga:Math.round(ptsAgora), ptsCopa:copaAgora, pontos, regra:RANKING_REGRA });
     }
   }catch(e){}
   if(!lista.length) return;
   const ult=lista[lista.length-1];
-  /* a assinatura inclui os PONTOS da ultima linha: a temporada em curso muda de
-     valor a cada rodada, e sem isso o guard achava que "nada mudou" e a campanha
-     ficava congelada no primeiro envio. */
-  const assinatura=modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.pos+'|'+ult.ptsLiga;
+  /* a assinatura inclui a REGRA e os pontos da ultima linha: a temporada em curso muda a cada
+     rodada, e a troca de regra tem de fazer todo save reenviar o historico uma vez. */
+  const assinatura=RANKING_REGRA+'|'+modo+'|'+origem+'|t'+lista.length+'|'+ult.season+'|'+ult.pos+'|'+ult.ptsLiga+'|'+ult.ptsCopa;
   if(typeof CL!=='undefined'){
     if(CL._temporadasEnviadas===assinatura) return;
     CL._temporadasEnviadas=assinatura;
@@ -6656,6 +6698,9 @@ function registerPrevSeasonTitles(){
     /* AS PARTIDAS TAMBEM. Mesmo motivo dos pontos: a tabela zera na virada, e sem isto o
        painel dos socios so' consegue dizer quantas partidas houve NESTA temporada. */
     myP:(myTable.find(t=>t.id===CL.clubId)||{}).P||0,
+    /* E AS COPAS, pelo mesmo motivo: S.cups zera na virada. E' o que o ranking conta como
+       pontos de campo da copa (ver jogosDeCopaDoClube). */
+    myCupPts:jogosDeCopaDoClube(brackets, CL.clubId).pts,
     myPos, myClubShort:shortOf(CL.clubId), cups, myCups, qualifiedFor:[] });
   // taças do MEU treinador — o que a Sala de Troféus lê
   S.coachHistory=S.coachHistory||[];
@@ -6949,6 +6994,7 @@ function endSeason(){
     artilheiro:arty?`${arty[0]} (${arty[1]})`:'—',
     myPts:((S.table&&S.table[S.clubId])||{}).Pts||0,   // ver a nota na outra entrada de historico
     myP:((S.table&&S.table[S.clubId])||{}).P||0,       // idem, para as partidas
+    myCupPts:jogosDeCopaDoClube(S.cups, S.clubId).pts, // idem, para as copas (ranking v2)
     myPos:tablePos(S.clubId),
     myClubShort:clubOf(S.clubId).short,
     cups, myCups, qualifiedFor});

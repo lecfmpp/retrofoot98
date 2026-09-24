@@ -1513,10 +1513,12 @@ async function netEnviarTitulos(modo, origem, treinador, titulos){
 /* O RANKING PUBLICO. `rf_ranking` e' SECURITY DEFINER e devolve nome e totais —
    nunca user_id, nunca e-mail (ver a migracao). Leitura publica: funciona sem
    sessao, que e' o que permite a faixa do topo existir antes do login. */
-async function netRanking(modo, limite){
+async function netRanking(modo, limite, periodo){
   if(!sb) await netInitSupabase();
   if(!sb) return [];
-  const { data, error } = await sb.rpc('rf_ranking', { p_modo:modo||'geral', p_limite:limite||100 });
+  /* `periodo`: 'sempre' (o total de todos os tempos), ou 'dia'/'semana'/'mes' — os pontos
+     GANHOS no periodo, contra a foto diaria do servidor (coach_ranking_dia). */
+  const { data, error } = await sb.rpc('rf_ranking', { p_modo:modo||'geral', p_limite:limite||100, p_periodo:periodo||'sempre' });
   if(error){ console.warn('ranking:', error.message||error); return []; }
   return data||[];
 }
