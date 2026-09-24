@@ -6,7 +6,7 @@
 
    1a · MODAL PÓS-CADASTRO — uma vez só, logo depois de a conta ser criada
         (Solo: clLoginSignup em main.js; Resenha: clAuthDoSignup em
-        net/local-transport.js). Fecha no ✕, no Esc e no clique fora.
+        net/local-transport.js). SÓ UM BOTÃO (23/09): o ✕ saiu; fecha no Esc e no clique fora.
         Desktop: cartão centrado. Abaixo de 760px: bottom sheet.
    1b · ABA DAS PÁGINAS PÚBLICAS — a home (CL.screen 'abertura') e as páginas
         estáticas de SEO (scripts/build-seo.mjs carrega ESTE ficheiro). Pílula no
@@ -145,10 +145,6 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
 @keyframes rf-wpp-sobe{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .rf-wpp-md{position:relative;width:100%;max-width:440px;background:#fff;border-radius:22px;overflow:hidden;
   box-shadow:0 40px 90px -40px rgba(8,18,12,.8)}
-.rf-wpp-md-x{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;font-size:16px;line-height:1;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
-.rf-wpp-md-x:hover{background:rgba(255,255,255,.24)}
 .rf-wpp-md-topo{position:relative;background:#12321f;padding:30px 28px 26px;display:flex;flex-direction:column;gap:14px}
 .rf-wpp-md-alca{display:none;position:absolute;top:8px;left:50%;margin-left:-18px;width:36px;height:4px;border-radius:2px;
   background:rgba(255,255,255,.25)}
@@ -175,9 +171,8 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
   #rf-wpp-modal{align-items:flex-end;padding:0}
   .rf-wpp-md{max-width:none;border-radius:22px 22px 0 0;animation:rf-wpp-sobe .22s ease}
   .rf-wpp-md-alca{display:block}
-  .rf-wpp-md-x{width:40px;height:40px}
   .rf-wpp-md-topo{padding:24px 20px 20px;gap:12px}
-  .rf-wpp-md-id{gap:12px;padding-right:36px}
+  .rf-wpp-md-id{gap:12px}
   .rf-wpp-md-quad{width:50px;height:50px;border-radius:15px;font-size:24px;box-shadow:none}
   .rf-wpp-md-tit{font-size:21px;line-height:1.14}
   .rf-wpp-md-sub{font-size:13.5px}
@@ -202,7 +197,6 @@ function copy(desk, tel){ return `<span class="rf-wpp-desk-so">${desk}</span><sp
 function modalHTML(){
   const bem=(ic,d,t)=>`<div class="rf-wpp-bem"><span class="rf-wpp-bem-ic" aria-hidden="true">${ic}</span><span class="rf-wpp-bem-t">${copy(d,t)}</span></div>`;
   return `<div class="rf-wpp-md" role="dialog" aria-modal="true" aria-labelledby="rf-wpp-md-tit" onclick="event.stopPropagation()">
-    <button type="button" class="rf-wpp-md-x" aria-label="Fechar" onclick="rfWppFecharModal()">✕</button>
     <div class="rf-wpp-md-topo">
       <span class="rf-wpp-md-alca" aria-hidden="true"></span>
       <span class="rf-wpp-selo">✓ CONTA CRIADA!</span>
@@ -235,7 +229,7 @@ function abrirModal(){
   document.body.appendChild(m);
   gravar(K_VISTO,'1');
   ev('wpp_modal_view','modal');
-  try{ m.querySelector('.rf-wpp-md-x').focus({preventScroll:true}); }catch(e){}
+  try{ m.querySelector('.rf-wpp-md-cta').focus({preventScroll:true}); }catch(e){}
   agendar();
 }
 function fecharModal(porClique){
