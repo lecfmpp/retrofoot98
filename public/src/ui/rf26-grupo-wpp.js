@@ -29,8 +29,9 @@
       pênaltis ou partida ao vivo. Os modais que abrem sem cdraw() (overlayC,
       planos, pagamento) são apanhados por um MutationObserver no <body>.
    4. A TREMIDA É DE 10 EM 10 SEGUNDOS, e só nas peças recolhidas e visíveis.
-      Quem já clicou em "Entrar" (rf_wpp_entrou) não é mais chamado: na área
-      logada a peça encolhe para o ícone e para de tremer nas sessões seguintes.
+      Quem já clicou em "Entrar" (rf_wpp_entrou) para de ver a tremida nas sessões
+      seguintes. A peça NÃO encolhe mais (pedido do dono, 23/09: o cartão verde-escuro
+      da barra lateral fica sempre inteiro).
    ===================================================================== */
 (function(){
 'use strict';
@@ -54,8 +55,7 @@ function link(){
 }
 function ler(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function gravar(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-/* "nas sessões seguintes": o estado é lido UMA vez, ao carregar. Clicar agora não
-   faz a peça sumir debaixo do dedo — ela encolhe na próxima visita. */
+/* "nas sessões seguintes": o estado é lido UMA vez, ao carregar — só desliga a tremida */
 const ENTROU_ANTES = ler(K_ENTROU) === '1';
 
 function ev(nome, origem){ try{ if(typeof gtag==='function') gtag('event', nome, origem?{origem}:{}); }catch(e){} }
@@ -126,7 +126,7 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
 .rf-app.collapsed .rf-wpp-sb{align-items:center}
 .rf-app.collapsed .rf-wpp-sb-card{display:none}
 .rf-wpp-sb .rf-wpp-sb-mini{display:none}
-.rf-app.collapsed .rf-wpp-sb .rf-wpp-sb-mini,.rf-wpp-sb.compacto .rf-wpp-sb-mini{display:flex}
+.rf-app.collapsed .rf-wpp-sb .rf-wpp-sb-mini{display:flex}
 @media (max-width:760px){.rf-wpp-sb{display:none}}
 
 /* ===== 1c · área logada: lingueta do telefone ===== */
@@ -135,7 +135,6 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
 #rf-wpp-log{position:fixed;right:0;bottom:calc(var(--rf-wpp-piso,0px) + 12px);z-index:45;display:flex;align-items:stretch}
 .rf-wpp-lg-aba{width:44px;min-height:56px;border:0;border-radius:14px 0 0 14px;background:#25D366;color:#fff;display:flex;
   align-items:center;justify-content:center;font-size:20px;cursor:pointer;padding:0;box-shadow:0 12px 26px -12px rgba(8,18,12,.8)}
-#rf-wpp-log.compacto .rf-wpp-lg-aba{min-height:44px}
 @media (min-width:761px){#rf-wpp-log{display:none}}
 
 /* ===== 1a · modal pós-cadastro ===== */
@@ -272,7 +271,6 @@ window.rfWppSidebarHTML=function(){
   if(!link()) return '';
   const mini=aLink('logada','rf-wpp-sb-mini rf-wpp-treme',`<span class="rf-wpp-sb-quad">${ICONE}</span>`)
     .replace('<a ','<a title="Grupo do WhatsApp" aria-label="Grupo do WhatsApp" ');
-  if(ENTROU_ANTES) return `<div class="rf-wpp-sb compacto">${mini.replace(' rf-wpp-treme','')}</div>`;
   return `<div class="rf-wpp-sb">
     ${aLink('logada','rf-wpp-sb-card rf-wpp-treme',`
       <span class="rf-wpp-sb-hd">
@@ -354,7 +352,7 @@ function render(forcar){
     const sig=u+'|'+(ENTROU_ANTES?1:0);
     if(forcar || log.dataset.sig!==sig){
       log.dataset.sig=sig;
-      log.className=ENTROU_ANTES?'compacto':'';
+      log.className='';
       log.innerHTML=logHTML();
     }
   } else if(log) log.remove();
