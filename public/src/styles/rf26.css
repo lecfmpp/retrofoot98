@@ -11091,6 +11091,18 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 .rf-rk-seg{display:flex;gap:3px;background:#fff;border:1px solid #dde7db;border-radius:12px;padding:4px}
 .rf-rk-sg{font-size:12px;font-weight:500;color:#5d6c62;background:transparent;border:0;border-radius:9px;padding:7px 12px;white-space:nowrap;cursor:pointer;font-family:inherit}
 .rf-rk-sg.on{background:#17458F;color:#fff;font-weight:700}
+/* O CABECALHO DO RANKING QUEBRA LINHA em vez de encavalar (23/09). Com os quatro periodos
+   (Dia/Semana/Mes/Sempre) os filtros nao cabem ao lado do titulo em ~800px: o titulo encolhia
+   (min-width:0) e os botoes passavam por cima dele. Agora o titulo tem largura minima e, sem
+   espaco, os filtros descem para a linha de baixo, encostados a' direita. */
+.rf-pagehead-top:has(> .rf-rk-filtros){flex-wrap:wrap;row-gap:10px}
+.rf-pagehead-top:has(> .rf-rk-filtros) > .rf-pagehead-id{flex:1 1 280px}
+.rf-pagehead-top > .rf-rk-filtros{margin-left:auto;justify-content:flex-end}
+/* no celular o cabecalho e' coluna: a base de 280px viraria ALTURA (vao enorme sob o titulo) */
+@media (max-width:760px){
+  .rf-pagehead-top:has(> .rf-rk-filtros) > .rf-pagehead-id{flex:none}
+  .rf-pagehead-top > .rf-rk-filtros{margin-left:0;justify-content:flex-start}
+}
 /* pill de variação */
 .rf-rk-pill{display:inline-flex;align-items:center;gap:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;
   font-size:10px;font-weight:700;border-radius:99px;padding:2px 7px;white-space:nowrap;flex:0 0 auto;
