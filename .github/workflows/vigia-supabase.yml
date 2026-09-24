@@ -1,0 +1,104 @@
+# Vigia do Supabase: testa o login e a API do jogo e abre uma issue quando cair.
+#
+# POR QUE existe: a 24/09/2026 a instância do Supabase (Investbola) parou às 02:59 UTC e
+# ficou ~12 horas fora — login, cadastro, painel admin e saves com 522 — enquanto o
+# painel do Supabase dizia ACTIVE_HEALTHY. Ninguém soube até os usuários reclamarem.
+#
+# COMO AVISA: falhou -> abre UMA issue com o rótulo `vigia` e menciona o dono (o GitHub
+# manda e-mail e notificação no app). Continua caído -> não repete. Voltou -> comenta
+# "voltou" e fecha a issue. Assim chegam dois avisos por queda, não um a cada rodada.
+#
+# INTERVALO: 30 min. O repositório é privado e cada execução conta 1 minuto de Actions
+# (~1.450 min/mês); de 5 em 5 minutos passaria da cota gratuita de 2.000. Para encurtar,
+# mudar o cron abaixo sabendo o custo. O agendamento do GitHub pode atrasar alguns minutos.
+#
+# A chave usada é a PUBLICÁVEL, a mesma que já vai no JavaScript do site — não é segredo.
+# Para testar o caminho da queda: Actions -> "Vigia do Supabase" -> Run workflow ->
+# simular_falha = true (abre a issue); depois rodar sem a opção (fecha a issue).
+name: Vigia do Supabase
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      simular_falha:
+        description: 'Forçar uma falha para testar o aviso'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: vigia-supabase
+  cancel-in-progress: false
+
+jobs:
+  vigiar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SB_URL: https://alxwgqvjmetjbbqtjkhx.supabase.co
+      SB_KEY: sb_publishable_WxYyZVfS-ER00kl2q5bBHg_qifOGq5k
+      SITE: https://retrofoot.com.br/
+      DONO: lecfmpp
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SIMULAR: ${{ inputs.simular_falha || false }}
+    steps:
+      - name: Testar login, API e site
+        id: teste
+        run: |
+          set -u
+          falhas=""
+          # Tenta 3 vezes com 20s entre elas: um soluço de rede não é queda.
+          testar() {
+            nome="$1"; shift
+            for tentativa in 1 2 3; do
+              codigo=$(curl -s -m 20 -o /tmp/resp.txt -w '%{http_code}' "$@" || echo 000)
+              if [ "$codigo" = "200" ]; then echo "OK   $nome"; return 0; fi
+              echo "..   $nome: HTTP $codigo (tentativa $tentativa)"
+              [ "$tentativa" -lt 3 ] && sleep 20
+            done
+            falhas="${falhas}- **${nome}**: HTTP ${codigo} — $(head -c 160 /tmp/resp.txt | tr '\n' ' ')"$'\n'
+            echo "FALHA $nome"
+          }
+          testar "Login (auth/v1/health)" -H "apikey: $SB_KEY" "$SB_URL/auth/v1/health"
+          testar "API do jogo (rpc rf_ranking)" -X POST -H "apikey: $SB_KEY" \
+            -H "Content-Profile: elifoot_v3" -H "Content-Type: application/json" \
+            -d '{"p_limite":1}' "$SB_URL/rest/v1/rpc/rf_ranking"
+          testar "Site (retrofoot.com.br)" "$SITE"
+          if [ "$SIMULAR" = "true" ]; then
+            falhas="${falhas}- **Teste manual**: falha simulada pelo workflow_dispatch"$'\n'
+          fi
+          {
+            echo 'falhas<<FIM'
+            printf '%s' "$falhas"
+            echo 'FIM'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Avisar ou dar baixa
+        env:
+          FALHAS: ${{ steps.teste.outputs.falhas }}
+        run: |
+          set -eu
+          gh label create vigia --color B60205 --description "Alerta automático do vigia do Supabase" --force >/dev/null
+          aberta=$(gh issue list --label vigia --state open --json number --jq '.[0].number // empty')
+          agora=$(TZ=America/Sao_Paulo date '+%d/%m %H:%M')
+          if [ -n "$FALHAS" ]; then
+            if [ -z "$aberta" ]; then
+              corpo=$(printf '@%s o vigia encontrou falha às **%s (Brasília)**:\n\n%s\nExecução: %s/%s/actions/runs/%s\n\nO que fazer: dashboard do Supabase -> projeto Investbola -> Project Settings -> General -> Restart project. Se não voltar, abrir chamado no suporte com o horário acima. Esta issue fecha sozinha quando o teste passar de novo.' \
+                "$DONO" "$agora" "$FALHAS" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
+              gh issue create --label vigia --title "🚨 RetroFoot fora do ar ($agora)" --body "$corpo"
+            else
+              echo "Issue #$aberta já está aberta — não repito o aviso."
+            fi
+            exit 1
+          fi
+          if [ -n "$aberta" ]; then
+            gh issue comment "$aberta" --body "✅ @$DONO voltou: login, API e site respondendo às **$agora (Brasília)**."
+            gh issue close "$aberta"
+          fi
+          echo "Tudo no ar."
