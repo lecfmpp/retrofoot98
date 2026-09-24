@@ -127,14 +127,16 @@ jobs:
           gh label create vigia --color B60205 --description "Alerta automático do vigia do Supabase" --force >/dev/null
           aberta=$(gh issue list --label vigia --state open --json number --jq '.[0].number // empty')
           agora=$(TZ=America/Sao_Paulo date '+%d/%m %H:%M')
+          # teste manual vem marcado, para ninguém no grupo achar que caiu de verdade
+          tag=""; [ "$SIMULAR" = "true" ] && tag="[TESTE] "
           if [ -n "$FALHAS" ]; then
             if [ -z "$aberta" ]; then
               corpo=$(printf '@%s o vigia encontrou falha às **%s (Brasília)**:\n\n%s\nExecução: %s/%s/actions/runs/%s\n\nO que fazer: dashboard do Supabase -> projeto Investbola -> Project Settings -> General -> Restart project. Se não voltar, abrir chamado no suporte com o horário acima. Esta issue fecha sozinha quando o teste passar de novo.' \
                 "$DONO" "$agora" "$FALHAS" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
-              url=$(gh issue create --label vigia --title "🚨 RetroFoot fora do ar ($agora)" --body "$corpo")
+              url=$(gh issue create --label vigia --title "${tag}🚨 RetroFoot fora do ar ($agora)" --body "$corpo")
               echo "$url"
-              whatsapp "$(printf '🚨 *RetroFoot fora do ar* — %s (Brasília)\n\n%s\nO que fazer: Supabase → Investbola → Project Settings → General → Restart project.\n\nDetalhes: %s' \
-                "$agora" "$(printf '%s' "$FALHAS" | sed 's/\*\*//g')" "$url")"
+              whatsapp "$(printf '%s🚨 *RetroFoot fora do ar* — %s (Brasília)\n\n%s\nO que fazer: Supabase → Investbola → Project Settings → General → Restart project.\n\nDetalhes: %s' \
+                "$tag" "$agora" "$(printf '%s' "$FALHAS" | sed 's/\*\*//g')" "$url")"
             else
               echo "Issue #$aberta já está aberta — não repito o aviso."
             fi
