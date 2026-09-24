@@ -148,14 +148,8 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
 /* assenta ACIMA do rodapé do jogo (medido). Ocupa o canto que era do selo da
    Opinião — a aba de Opinião saiu em 23/09 (o grupo faz esse trabalho). */
 #rf-wpp-log{position:fixed;right:0;bottom:calc(var(--rf-wpp-piso,0px) + 12px);z-index:45;display:flex;align-items:stretch}
-.rf-wpp-lg-painel{width:220px;background:#12321f;border-radius:14px 0 0 14px;padding:14px;display:flex;flex-direction:column;
-  gap:10px;box-shadow:0 16px 36px -14px rgba(8,18,12,.8)}
-.rf-wpp-lg-tit{font-size:14px;font-weight:700;line-height:1.25;color:#fff}
-.rf-wpp-lg-cta{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px 10px;text-align:center;
-  line-height:1.2;border-radius:11px;background:#25D366;color:#0b2e17;font-size:14px;font-weight:700}
 .rf-wpp-lg-aba{width:44px;min-height:56px;border:0;border-radius:14px 0 0 14px;background:#25D366;color:#fff;display:flex;
   align-items:center;justify-content:center;font-size:20px;cursor:pointer;padding:0;box-shadow:0 12px 26px -12px rgba(8,18,12,.8)}
-#rf-wpp-log.aberto .rf-wpp-lg-aba{border-radius:0;color:#0b2e17;font-size:16px}
 #rf-wpp-log.compacto .rf-wpp-lg-aba{min-height:44px}
 @media (min-width:761px){#rf-wpp-log{display:none}}
 
@@ -275,7 +269,6 @@ window.rfWppFecharModal=()=>fecharModal();
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape') return;
   if(document.getElementById('rf-wpp-modal')){ fecharModal(); return; }
-  if(logAberto){ logAberto=false; render(true); }
 });
 
 /* ===================== clique em qualquer "Entrar" ===================== */
@@ -298,7 +291,6 @@ function pubHTML(){
 }
 
 /* ===================== 1c · ÁREA LOGADA ===================== */
-let logAberto=false;
 /* desktop: vai DENTRO da barra lateral (rfSidebarHTML).
    UM ELEMENTO SÓ, E UM PASSO SÓ (pedido do dono, 23/09): era um botão "Grupo do
    WhatsApp" que abria um mini-card por cima — dois elementos na tela ao mesmo tempo e
@@ -321,23 +313,12 @@ window.rfWppSidebarHTML=function(){
 };
 
 /* telefone: lingueta própria, fora do #c-root */
+/* UM ELEMENTO SÓ, E UM PASSO SÓ (23/09, igual à barra lateral do desktop): a lingueta
+   era um botão que abria um painel com outro botão dentro. Agora ela É o link. */
 function logHTML(){
-  if(ENTROU_ANTES) return aLink('logada','rf-wpp-lg-aba',ICONE).replace('<a ','<a aria-label="Grupo do WhatsApp" ');
-  return (logAberto?`<div class="rf-wpp-lg-painel" id="rf-wpp-lg-painel">
-      <span class="rf-wpp-lg-tit">Resenha rola no grupo entre as rodadas</span>
-      ${aLink('logada','rf-wpp-lg-cta',CTA)}
-    </div>`:'')
-    + `<button type="button" class="rf-wpp-lg-aba${logAberto?'':' rf-wpp-treme'}" aria-label="Grupo do WhatsApp"
-        aria-expanded="${logAberto?'true':'false'}" onclick="rfWppLogAlternar(event)">${logAberto?'✕':ICONE}</button>`;
+  return aLink('logada','rf-wpp-lg-aba'+(ENTROU_ANTES?'':' rf-wpp-treme'),ICONE)
+    .replace('<a ','<a aria-label="Grupo do WhatsApp" title="Grupo do WhatsApp" ');
 }
-window.rfWppLogAlternar=function(e){ if(e) e.stopPropagation(); logAberto=!logAberto; render(true); };
-function fecharLogFora(e){
-  if(!logAberto) return;
-  const h=document.getElementById('rf-wpp-log');
-  if(h && !h.contains(e.target)){ logAberto=false; render(true); }
-}
-document.addEventListener('mousedown',fecharLogFora);
-document.addEventListener('touchstart',fecharLogFora,{passive:true});
 
 /* ONDE ACABA A TELA E COMEÇA O RODAPÉ DO JOGO (mesma medida da Opinião) */
 const RODAPES='.rf-bottomnav,.rf-srt-foot,.rf-pg-cta,.rf-ad-anchor,.rf-adph.rf-anchor';
@@ -398,13 +379,13 @@ function render(forcar){
   if(lugar==='logada' && noTelefone()){
     medirPiso();
     if(!log){ log=document.createElement('div'); log.id='rf-wpp-log'; document.body.appendChild(log); forcar=true; }
-    const sig=u+'|'+(logAberto?1:0)+'|'+(ENTROU_ANTES?1:0);
+    const sig=u+'|'+(ENTROU_ANTES?1:0);
     if(forcar || log.dataset.sig!==sig){
       log.dataset.sig=sig;
-      log.className=(logAberto?'aberto':'')+(ENTROU_ANTES?' compacto':'');
+      log.className=ENTROU_ANTES?'compacto':'';
       log.innerHTML=logHTML();
     }
-  } else if(log){ log.remove(); logAberto=false; }
+  } else if(log) log.remove();
 }
 window.rfWppRender=()=>render(false);
 
