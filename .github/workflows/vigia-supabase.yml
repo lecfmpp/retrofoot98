@@ -12,6 +12,19 @@
 # execução conta 1 minuto de Actions (~730 min/mês); de 5 em 5 minutos passaria da cota
 # gratuita de 2.000. Para encurtar, mudar o cron abaixo sabendo o custo. O agendamento do GitHub pode atrasar alguns minutos.
 #
+# WHATSAPP (grupo dos desenvolvedores, NÃO o grupo público): além da issue, a queda e a
+# volta vão para o grupo pela Green-API (plano Developer, grátis: até 3 conversas). Só
+# envia quando há problema — nunca relatório de rotina. Sem os secrets, o passo é pulado.
+#   SETUP (uma vez, pelo dono):
+#     1. console.green-api.com -> criar instância Developer -> escanear o QR com um
+#        WhatsApp que ESTEJA no grupo dos devs (de preferência um número secundário:
+#        a Green-API não é a API oficial da Meta).
+#     2. Secrets do repositório: GREEN_API_URL (ex.: https://7105.api.greenapi.com),
+#        GREEN_API_ID (idInstance) e GREEN_API_TOKEN (apiTokenInstance).
+#     3. Run workflow com listar_grupos = true -> o log mostra os grupos e o chatId
+#        (termina em @g.us). Guardar o do grupo dos devs na VARIÁVEL (não secret)
+#        WHATSAPP_GRUPO: gh variable set WHATSAPP_GRUPO --body '...@g.us'
+#
 # A chave usada é a PUBLICÁVEL, a mesma que já vai no JavaScript do site — não é segredo.
 # Para testar o caminho da queda: Actions -> "Vigia do Supabase" -> Run workflow ->
 # simular_falha = true (abre a issue); depois rodar sem a opção (fecha a issue).
@@ -24,6 +37,10 @@ on:
     inputs:
       simular_falha:
         description: 'Forçar uma falha para testar o aviso'
+        type: boolean
+        default: false
+      listar_grupos:
+        description: 'Só listar os grupos do WhatsApp conectado (para achar o chatId)'
         type: boolean
         default: false
 
@@ -47,9 +64,22 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       SIMULAR: ${{ inputs.simular_falha || false }}
+      WA_URL: ${{ secrets.GREEN_API_URL }}
+      WA_ID: ${{ secrets.GREEN_API_ID }}
+      WA_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
+      WA_GRUPO: ${{ vars.WHATSAPP_GRUPO }}
     steps:
+      - name: Listar grupos do WhatsApp (setup)
+        if: ${{ inputs.listar_grupos }}
+        run: |
+          set -eu
+          [ -n "$WA_URL" ] && [ -n "$WA_ID" ] && [ -n "$WA_TOKEN" ] || { echo "Faltam os secrets GREEN_API_URL/ID/TOKEN."; exit 1; }
+          curl -s -m 30 "$WA_URL/waInstance$WA_ID/getContacts/$WA_TOKEN" \
+            | jq -r '.[] | select(.type=="group") | "\(.id)  \(.name)"'
+
       - name: Testar login, API e site
         id: teste
+        if: ${{ !inputs.listar_grupos }}
         run: |
           set -u
           falhas=""
@@ -80,10 +110,20 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Avisar ou dar baixa
+        if: ${{ !inputs.listar_grupos }}
         env:
           FALHAS: ${{ steps.teste.outputs.falhas }}
         run: |
           set -eu
+          # WhatsApp do grupo dos devs: best-effort — falhar aqui não pode esconder a issue.
+          whatsapp() {
+            if [ -z "$WA_URL" ] || [ -z "$WA_ID" ] || [ -z "$WA_TOKEN" ] || [ -z "$WA_GRUPO" ]; then
+              echo "WhatsApp não configurado — pulando."; return 0; fi
+            jq -n --arg c "$WA_GRUPO" --arg m "$1" '{chatId:$c, message:$m, linkPreview:false}' \
+              | curl -s -m 30 -o /tmp/wa.txt -w 'WhatsApp -> HTTP %{http_code}\n' -X POST \
+                  -H 'Content-Type: application/json' --data @- \
+                  "$WA_URL/waInstance$WA_ID/sendMessage/$WA_TOKEN" || echo "WhatsApp falhou (rede)."
+          }
           gh label create vigia --color B60205 --description "Alerta automático do vigia do Supabase" --force >/dev/null
           aberta=$(gh issue list --label vigia --state open --json number --jq '.[0].number // empty')
           agora=$(TZ=America/Sao_Paulo date '+%d/%m %H:%M')
@@ -91,7 +131,10 @@ jobs:
             if [ -z "$aberta" ]; then
               corpo=$(printf '@%s o vigia encontrou falha às **%s (Brasília)**:\n\n%s\nExecução: %s/%s/actions/runs/%s\n\nO que fazer: dashboard do Supabase -> projeto Investbola -> Project Settings -> General -> Restart project. Se não voltar, abrir chamado no suporte com o horário acima. Esta issue fecha sozinha quando o teste passar de novo.' \
                 "$DONO" "$agora" "$FALHAS" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")
-              gh issue create --label vigia --title "🚨 RetroFoot fora do ar ($agora)" --body "$corpo"
+              url=$(gh issue create --label vigia --title "🚨 RetroFoot fora do ar ($agora)" --body "$corpo")
+              echo "$url"
+              whatsapp "$(printf '🚨 *RetroFoot fora do ar* — %s (Brasília)\n\n%s\nO que fazer: Supabase → Investbola → Project Settings → General → Restart project.\n\nDetalhes: %s' \
+                "$agora" "$(printf '%s' "$FALHAS" | sed 's/\*\*//g')" "$url")"
             else
               echo "Issue #$aberta já está aberta — não repito o aviso."
             fi
@@ -100,5 +143,6 @@ jobs:
           if [ -n "$aberta" ]; then
             gh issue comment "$aberta" --body "✅ @$DONO voltou: login, API e site respondendo às **$agora (Brasília)**."
             gh issue close "$aberta"
+            whatsapp "✅ *RetroFoot voltou* — login, API e site respondendo às $agora (Brasília)."
           fi
           echo "Tudo no ar."
