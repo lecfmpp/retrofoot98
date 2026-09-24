@@ -91,8 +91,64 @@ async function autoSaveGuardar(tipo){
     const {st}=await autoSaveTx('readwrite');
     await autoSavePedido(st.add(foto));
     await autoSavePodar(chave);
+    autoSaveListaMudou();
     return foto;
-  }catch(e){ console.warn('autoSave guardar:', e&&e.message); return null; }
+  }catch(e){ console.warn('autoSave guardar:', e&&e.message); autoSaveAvisarFalha(e); return null; }
+}
+
+/* ===== A FALHA TEM DE APARECER =====
+   Um save grande (o do GRINGO tem 12 MB em JSON) estoura o espaco do navegador — no celular,
+   sobretudo — e a foto falhava so' com um aviso na consola: o jogador descobria que nao havia
+   ponto nenhum no dia em que precisava dele. Agora avisa UMA vez por sessao, e a pagina de
+   Configuracoes mostra o motivo (CL._autoSaveErro). */
+function autoSaveAvisarFalha(e){
+  if(typeof CL==='undefined') return;
+  const cheio=!!(e && (e.name==='QuotaExceededError' || /quota|space|espa/i.test(String(e.message||''))));
+  CL._autoSaveErro = cheio
+    ? 'Sem espaço neste navegador para guardar os pontos de rodada.'
+    : 'Este navegador não deixou guardar os pontos de rodada.';
+  if(CL._autoSaveAvisou) return;
+  CL._autoSaveAvisou=true;
+  const nuvem=!CL.online ? ' O fim de cada temporada continua guardado na nuvem.' : '';
+  if(typeof toastC==='function') toastC('⚠ '+CL._autoSaveErro+nuvem);
+}
+/* a lista de Configuracoes guarda o que leu (ver rfOpPontos); qualquer foto nova a invalida */
+function autoSaveListaMudou(){ if(typeof CL!=='undefined') CL._opPts=undefined; }
+
+/* ===== FIM DE TEMPORADA NA NUVEM (so' Modo Solo) =====
+   A foto local mora num navegador so': trocou de aparelho, limpou os dados, ficou sem espaco — e
+   nao ha para onde voltar. A de fim de temporada vai tambem para o Supabase (solo_save_fotos),
+   tirada na virada, ANTES de newSeasonReset: e' o estado com a temporada fechada e o resumo
+   pronto, e voltar para ela deixa o jogador na tela de fim de temporada. `copia` e' um S ja'
+   clonado pelo chamador — a copia tem de ser sincrona, o envio nao. Nunca lanca. */
+async function autoSaveNuvemFimDeTemporada(copia){
+  try{
+    if(!autoSaveLigado() || !copia) return false;
+    if(typeof CL==='undefined' || CL.online || !CL.save) return false;
+    if(typeof NET==='undefined' || !NET.saveSoloFoto) return false;
+    const ok=await NET.saveSoloFoto({ save_name:CL.save, seed:copia.seed||'x', club_id:CL.clubId||copia.clubId||null,
+      season:copia.season||0, round:copia.round||0, state:copia });
+    if(ok){ autoSaveListaMudou(); console.log('auto-save: fim da temporada '+(copia.season||'?')+' guardado na nuvem'); }
+    return ok;
+  }catch(e){ console.warn('autoSave nuvem:', e&&e.message); return false; }
+}
+
+/* A LISTA QUE A TELA MOSTRA: fotos locais + fotos de fim de temporada da nuvem. Os ids viram
+   texto com prefixo ('l' local, 'n' nuvem) para os dois nao colidirem. Quando ha' as duas fotos
+   do fim da mesma temporada, fica a da nuvem: vale em qualquer aparelho e foi tirada ja' com a
+   temporada fechada. */
+async function autoSaveListaCompleta(){
+  const locais=(await autoSaveLista()).map(f=>Object.assign({}, f, {id:'l'+f.id, S:undefined}));
+  let nuvem=[];
+  try{
+    const online=(typeof CL!=='undefined' && CL.online);
+    if(!online && typeof NET!=='undefined' && NET.listSoloFotos && typeof S!=='undefined' && S && CL.save)
+      nuvem=(await NET.listSoloFotos(CL.save, S.seed||'x')).map(r=>({ id:'n'+r.id, nuvem:true, tipo:'temporada',
+        season:r.season, round:r.round, clubId:r.club_id, quando:new Date(r.criado_em).getTime() }));
+  }catch(e){ console.warn('autoSave lista nuvem:', e&&e.message); }
+  const naNuvem=new Set(nuvem.map(f=>f.season));
+  return locais.filter(f=>!(f.tipo==='temporada' && naNuvem.has(f.season))).concat(nuvem)
+    .sort((a,b)=>b.quando-a.quando);
 }
 
 /* poda: mantém as N fotos de rodada mais recentes e as N de fim de temporada mais recentes */
@@ -126,6 +182,7 @@ async function autoSaveFixarFimDeTemporada(temporadaQueFechou){
     alvo.tipo='temporada';
     await autoSavePedido(st.put(alvo));
     await autoSavePodar(chave);
+    autoSaveListaMudou();
     console.log('auto-save: foto da temporada '+temporadaQueFechou+' (jornada '+alvo.round+') fixada');
     return alvo;
   }catch(e){ console.warn('autoSave fixar:', e&&e.message); return null; }
@@ -155,11 +212,23 @@ async function autoSaveRestaurar(id){
   const online=!!(typeof CL!=='undefined' && CL.online);
   if(online && !(typeof NET!=='undefined' && NET.isHost)) return {ok:false, erro:'só o Anfitrião pode voltar a sala'};
   let foto=null;
-  try{
-    const {st}=await autoSaveTx('readonly');
-    foto=await autoSavePedido(st.get(id));
-  }catch(e){ return {ok:false, erro:e&&e.message}; }
-  if(!foto || foto.save!==chave) return {ok:false, erro:'foto não encontrada'};
+  const txt=String(id);
+  if(txt.charAt(0)==='n'){
+    /* da nuvem: o estado vem agora (a lista nao o trouxe). Confere a carreira pela semente —
+       o mesmo nome de save pode ser um jogo novo. */
+    if(online) return {ok:false, erro:'a nuvem guarda só saves do Modo Solo'};
+    try{
+      const r=(typeof NET!=='undefined' && NET.loadSoloFoto) ? await NET.loadSoloFoto(Number(txt.slice(1))) : null;
+      if(!r || !r.state || r.save_name!==CL.save || String(r.seed)!==String(S.seed||'x')) return {ok:false, erro:'foto não encontrada'};
+      foto={ S:r.state, season:r.state.season, round:r.state.round, tipo:'temporada', nuvem:true };
+    }catch(e){ return {ok:false, erro:(e&&e.message)||'sem ligação'}; }
+  } else {
+    try{
+      const {st}=await autoSaveTx('readonly');
+      foto=await autoSavePedido(st.get(Number(txt.charAt(0)==='l'?txt.slice(1):txt)));
+    }catch(e){ return {ok:false, erro:e&&e.message}; }
+    if(!foto || foto.save!==chave) return {ok:false, erro:'foto não encontrada'};
+  }
   try{
     // limpa o S no lugar (outros módulos guardam a referência do objeto, não podem vê-la trocada)
     Object.keys(S).forEach(k=>{ delete S[k]; });
@@ -173,6 +242,7 @@ async function autoSaveRestaurar(id){
       if(NET.rewindDayPointer) await NET.rewindDayPointer(S.round||0);
       if(NET.reopenReady) NET.reopenReady();
     } else if(typeof saveV3==='function') saveV3();
+    autoSaveListaMudou();
     console.log('auto-save: estado restaurado — temporada '+(S.season||'?')+', rodada '+(S.round||0));
     return {ok:true, foto};
   }catch(e){ return {ok:false, erro:e&&e.message}; }
@@ -184,7 +254,7 @@ function autoSaveRotulo(f){
   const dd=String(quando.getDate()).padStart(2,'0')+'/'+String(quando.getMonth()+1).padStart(2,'0');
   const hh=String(quando.getHours()).padStart(2,'0')+':'+String(quando.getMinutes()).padStart(2,'0');
   const que=(f.tipo==='temporada')
-    ? ('Fim da temporada '+(f.season||'?'))
+    ? ((f.nuvem?'☁️ ':'')+'Fim da temporada '+(f.season||'?'))
     : ('Temporada '+(f.season||'?')+' · rodada '+((f.round||0)+1));
-  return { que, quando:dd+' '+hh, fixa:f.tipo==='temporada' };
+  return { que, quando:dd+' '+hh, fixa:f.tipo==='temporada', nuvem:!!f.nuvem };
 }

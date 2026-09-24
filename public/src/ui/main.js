@@ -9880,6 +9880,12 @@ function clAdvanceSeason(){
     return;
   }
   CL._virandoTemporada=true;
+  /* foto do fim da temporada na nuvem, ANTES da virada (ver autoSaveNuvemFimDeTemporada). A copia
+     e' aqui, sincrona; o envio corre por fora e nunca segura a virada. */
+  if(typeof autoSaveNuvemFimDeTemporada==='function'){
+    let copia=null; try{ copia=JSON.parse(JSON.stringify(S)); }catch(e){}
+    if(copia) autoSaveNuvemFimDeTemporada(copia);
+  }
   clCloseOverlay();
   const nd=pendingDivisionChange();
   const goingReal = nd!==S.division && nd!=='A';
@@ -11835,8 +11841,8 @@ function clOpcoesGravar(){
    natureza — o que veio depois do ponto some —, então a confirmação diz exatamente o que se
    perde, e na Resenha avisa que a sala inteira volta junto. */
 function clAutoSaveAbrir(){
-  if(typeof autoSaveLista!=='function'){ toastC('Salvamento automático indisponível.'); return; }
-  autoSaveLista().then(fotos=>{
+  if(typeof autoSaveListaCompleta!=='function'){ toastC('Salvamento automático indisponível.'); return; }
+  autoSaveListaCompleta().then(fotos=>{
     const online=!!(CL.online), souAnfitriao=(typeof NET!=='undefined' && NET.isHost);
     const trava = (online && !souAnfitriao)
       ? '<div class="cl-opt-teste">🔒 Só o <b>Anfitrião</b> pode voltar a sala a um ponto guardado — o jogo dos dois volta junto.</div>' : '';
@@ -11844,7 +11850,7 @@ function clAutoSaveAbrir(){
       ? '<div class="cl-opt-teste">⚠️ Voltar a sala afeta <b>os dois jogadores</b>: tudo que aconteceu depois do ponto escolhido é descartado.</div>' : '';
     const linhas = fotos.length ? fotos.map(f=>{
       const r=autoSaveRotulo(f);
-      const acao=(online && !souAnfitriao) ? '' : btn('Voltar aqui','clAutoSaveVoltar('+f.id+')',{icon:'⏪'});
+      const acao=(online && !souAnfitriao) ? '' : btn('Voltar aqui',"clAutoSaveVoltar('"+f.id+"')",{icon:'⏪'});
       return `<div class="cl-orow"><span>${r.fixa?'📌 ':''}${escC(r.que)}<br><i>guardado em ${escC(r.quando)}</i></span>${acao}</div>`;
     }).join('') : '<div class="cl-orow"><span>Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima rodada.</span></div>';
     overlayC(dlg('Pontos guardados', `<div class="cl-opt"><div class="cl-opanel">${trava}${aviso}${linhas}</div>
@@ -11853,14 +11859,15 @@ function clAutoSaveAbrir(){
   });
 }
 function clAutoSaveVoltar(id){
-  autoSaveLista().then(fotos=>{
-    const f=fotos.find(x=>x.id===id); if(!f){ toastC('Ponto não encontrado.'); return; }
+  id=String(id);
+  autoSaveListaCompleta().then(fotos=>{
+    const f=fotos.find(x=>String(x.id)===id); if(!f){ toastC('Ponto não encontrado.'); return; }
     const r=autoSaveRotulo(f);
     const extra=CL.online?' O jogo dos <b>dois jogadores</b> da sala volta junto.':'';
     overlayC(dlg('Voltar para este ponto?', `<div class="cl-opt"><div class="cl-opanel">
       <div class="cl-orow"><span>Você vai voltar para <b>${escC(r.que)}</b>, guardado em ${escC(r.quando)}.<br>
       Tudo que aconteceu depois disso é descartado e não dá para desfazer.${extra}</span></div></div>
-      <div class="cl-oside">${btn('Voltar aqui','clAutoSaveVoltarOk('+id+')',{icon:'⏪',cls:'cl-btn-ok'})}${btn('Cancelar','clAutoSaveAbrir()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
+      <div class="cl-oside">${btn('Voltar aqui',"clAutoSaveVoltarOk('"+id+"')",{icon:'⏪',cls:'cl-btn-ok'})}${btn('Cancelar','clAutoSaveAbrir()',{icon:'✖',cls:'cl-btn-cancel'})}</div>
     </div>`,{w:640,bodyClass:'cl-body-gray',min:true}));
   });
 }

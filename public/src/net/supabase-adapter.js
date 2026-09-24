@@ -1533,7 +1533,37 @@ async function netDeleteSoloSave(name){
   if(!sb || !SB_AUTH_USER) return false;
   const { error } = await sb.from('solo_saves').delete().eq('save_name', name);
   if(error){ console.error('deleteSoloSave erro:', error); return false; }
+  try{ await sb.from('solo_save_fotos').delete().eq('save_name', name); }catch(e){}   // as fotos vao com o save
   return true;
+}
+/* ---- FOTO DE FIM DE TEMPORADA NA NUVEM (ver autosave.js e supabase/sql/solo-save-fotos.sql) ----
+   A lista nao baixa o estado (3 MB cada): so' o que o rotulo precisa. O estado vem a pedido, na
+   hora de voltar. A poda (3 temporadas por carreira) e' do trigger, nao daqui. */
+async function netSaveSoloFoto(f){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return false;
+  const { error } = await sb.from('solo_save_fotos').upsert(
+    { user_id:SB_UID(), save_name:f.save_name, seed:String(f.seed), club_id:f.club_id||null,
+      season:f.season, round:f.round||0, state:f.state, criado_em:new Date().toISOString() },
+    { onConflict:'user_id,save_name,seed,season' });
+  if(error){ console.warn('saveSoloFoto:', error.message||error); return false; }
+  return true;
+}
+async function netListSoloFotos(saveName, seed){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER || !saveName) return [];
+  const { data, error } = await sb.from('solo_save_fotos')
+    .select('id,season,round,club_id,criado_em')
+    .eq('save_name', saveName).eq('seed', String(seed)).order('season',{ascending:false});
+  if(error){ console.warn('listSoloFotos:', error.message||error); return []; }
+  return data||[];
+}
+async function netLoadSoloFoto(id){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
+  const { data, error } = await sb.from('solo_save_fotos').select('state,save_name,seed').eq('id', id).maybeSingle();
+  if(error) throw error;
+  return data||null;
 }
 
 /* ---- REALTIME: postgres_changes + presence ---- */
@@ -2008,6 +2038,9 @@ NET.perfilSemFoto = netPerfilSemFoto;
 NET.perfilLer = netPerfilLer;
 NET.perfilRanking = netPerfilRanking;
 NET.deleteSoloSave = netDeleteSoloSave;
+NET.saveSoloFoto = netSaveSoloFoto;
+NET.listSoloFotos = netListSoloFotos;
+NET.loadSoloFoto = netLoadSoloFoto;
 
 /* ===== AVATAR DO TREINADOR =====
    Tres operacoes, todas por conta (nao por save): ler o que ja' existe, gravar

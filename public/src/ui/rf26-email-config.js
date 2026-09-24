@@ -414,16 +414,23 @@ function rfPerfilRanking(){
   Promise.resolve(NET.perfilRanking(novo)).catch(()=>{});
 }
 function rfOpSec(i){ CL._opSec = (CL._opSec===i) ? -1 : i; cdraw(); }
-function rfOpPonto(id){ CL._opPonto = (CL._opPonto===id) ? null : id; cdraw(); }
-/* Os pontos guardados vivem em IndexedDB e `autoSaveLista()` é assíncrona; esta
-   página é desenhada de forma síncrona. Carrega uma vez por visita e redesenha —
-   `null` é "ainda não perguntei", `[]` é "não há nenhum", e a tela diz coisas
-   diferentes para os dois. */
+function rfOpPonto(id){ id=String(id); CL._opPonto = (CL._opPonto===id) ? null : id; cdraw(); }
+/* Os pontos guardados vivem em IndexedDB (e o fim de temporada tambem na nuvem) e a leitura é
+   assíncrona; esta página é desenhada de forma síncrona. `null` é "ainda não perguntei", `[]` é
+   "não há nenhum", e a tela diz coisas diferentes para os dois.
+   A LISTA FICAVA PRESA: carregava uma vez e nada a limpava — quem abria Configurações antes de
+   entrar no save, ou noutro save, via "Nenhum ponto guardado" até recarregar a página. Agora a
+   leitura vale só para o save em que foi feita (autoSaveKey), e cada foto nova, ou uma volta,
+   a invalida (autoSaveListaMudou). */
 function rfOpPontos(){
-  if(CL._opPts !== undefined) return CL._opPts;
-  CL._opPts = null;
-  if(typeof autoSaveLista === 'function'){
-    autoSaveLista().then(f => { CL._opPts = f || []; cdraw(); }).catch(() => { CL._opPts = []; });
+  const chave = (typeof autoSaveKey === 'function') ? autoSaveKey() : null;
+  if(CL._opPts !== undefined && CL._opPtsChave === chave) return CL._opPts;
+  CL._opPts = null; CL._opPtsChave = chave; CL._opPonto = null;
+  const ler = (typeof autoSaveListaCompleta === 'function') ? autoSaveListaCompleta
+            : (typeof autoSaveLista === 'function') ? autoSaveLista : null;
+  if(ler){
+    ler().then(f => { if(CL._opPtsChave !== chave) return; CL._opPts = f || []; cdraw(); })
+         .catch(() => { CL._opPts = []; cdraw(); });
   } else CL._opPts = [];
   return CL._opPts;
 }
@@ -512,16 +519,17 @@ function rfCfOpcoesHTML(){
   const linhasPts = (pts===null)
     ? `<div class="rf-op-n" style="padding:8px 0">A carregar os pontos guardados…</div>`
     : (!pts.length
-        ? `<div class="rf-op-n" style="padding:8px 0">Nenhum ponto guardado ainda. A primeira foto sai ao fim da próxima rodada.</div>`
+        ? `<div class="rf-op-n" style="padding:8px 0">Nenhum ponto guardado neste aparelho ainda. A primeira foto sai ao fim da próxima rodada, e o fim de cada temporada fica também na nuvem.</div>`
         : `<div class="rf-op-pts">${pts.map(f=>{
              const r = (typeof autoSaveRotulo==='function') ? autoSaveRotulo(f) : {que:'Ponto', quando:'', fixa:false};
              const on = sel===f.id;
-             return `<button type="button" class="rf-op-pt ${on?'on':''}" onclick="rfOpPonto(${f.id})">
+             return `<button type="button" class="rf-op-pt ${on?'on':''}" onclick="rfOpPonto('${escC(String(f.id))}')">
                <i></i><span class="rf-op-pt-id">
                  <span class="rf-op-pt-t">${r.fixa?'📌 ':''}${escC(r.que)}</span>
                  <span class="rf-op-pt-q">${escC(r.quando||'')}</span></span>
-               <span class="rf-op-tag ${r.fixa?'man':''}">${r.fixa?'MANUAL':'AUTO'}</span></button>`;
-           }).join('')}</div>`);
+               <span class="rf-op-tag ${r.fixa?'man':''}">${r.nuvem?'NUVEM':(r.fixa?'TEMPORADA':'AUTO')}</span></button>`;
+           }).join('')}</div>`)
+    + (CL._autoSaveErro ? `<div class="rf-op-n" style="padding:8px 0;color:#b45309">⚠ ${escC(CL._autoSaveErro)}${CL.online?'':' O fim de cada temporada continua guardado na nuvem.'}</div>` : '');
   const alvo = (pts||[]).find(f=>f.id===sel);
   const rotAlvo = alvo && typeof autoSaveRotulo==='function' ? autoSaveRotulo(alvo).que : '';
   const gravacao =
@@ -535,7 +543,7 @@ function rfCfOpcoesHTML(){
          <button type="button" class="rf-op-bt" onclick="rfAcGravar()">💾 Gravar agora</button>
          ${sel==null
            ? `<button type="button" class="rf-op-bt morto" disabled>Escolha um ponto acima</button>`
-           : `<button type="button" class="rf-op-bt perigo" onclick="clAutoSaveVoltar(${sel})">Voltar para ${escC(rotAlvo)}</button>`}
+           : `<button type="button" class="rf-op-bt perigo" onclick="clAutoSaveVoltar('${escC(String(sel))}')">Voltar para ${escC(rotAlvo)}</button>`}
        </div>`;
 
   /* ---- CONTA ---- */
