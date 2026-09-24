@@ -14,7 +14,7 @@
         canto inferior direito.
    1c · ÁREA LOGADA — desktop: botão no pé da barra lateral (rfSidebarHTML chama
         rfWppSidebarHTML) com mini-card ao clicar. Telefone: lingueta na borda
-        direita, acima da barra do Jogar e do selo da Opinião.
+        direita, acima da barra do Jogar.
 
    QUATRO REGRAS QUE MANDAM NO DESENHO:
 
@@ -153,9 +153,9 @@ html.rf-wpp-oculto #rf-wpp-pub,html.rf-wpp-oculto #rf-wpp-log,html.rf-wpp-oculto
 @media (max-width:760px){.rf-wpp-sb{display:none}}
 
 /* ===== 1c · área logada: lingueta do telefone ===== */
-/* assenta ACIMA do rodapé do jogo (medido, como na Opinião) e ACIMA do selo da
-   Opinião, que ocupa piso+12 .. piso+58 na mesma borda */
-#rf-wpp-log{position:fixed;right:0;bottom:calc(var(--rf-wpp-piso,0px) + 68px);z-index:45;display:flex;align-items:stretch}
+/* assenta ACIMA do rodapé do jogo (medido). Ocupa o canto que era do selo da
+   Opinião — a aba de Opinião saiu em 23/09 (o grupo faz esse trabalho). */
+#rf-wpp-log{position:fixed;right:0;bottom:calc(var(--rf-wpp-piso,0px) + 12px);z-index:45;display:flex;align-items:stretch}
 .rf-wpp-lg-painel{width:220px;background:#12321f;border-radius:14px 0 0 14px;padding:14px;display:flex;flex-direction:column;
   gap:10px;box-shadow:0 16px 36px -14px rgba(8,18,12,.8)}
 .rf-wpp-lg-tit{font-size:14px;font-weight:700;line-height:1.25;color:#fff}
