@@ -64,3 +64,16 @@ O feedback e o link vão para o WhatsApp do dono (+1 647 862 3292) pelo mesmo ca
 - Teste de 16/09: as 6 contas pagas estão `free`; restaurar pelo `bkp_user_plans_20260916` (fundadores viram Pro).
 - 3 assinaturas de fundadores seguem nos preços antigos no Stripe — decidir se migram para o preço Pro.
 - 1 Embaixador pago por Pix: vira Pro até o `until` atual.
+
+## Estado (25/09)
+- Fase 1 (banco) aplicada e DESLIGADA — `scripts/sql/planos_gratis_pro.sql`. Ligar: `select elifoot_v3.planos_lancar();`
+- Stripe (live, conta Retrofoot): produto `prod_VKGHkYMPFeZVyp` "RetroFoot Pro";
+  `price_1UJbl3G6vHgCiPOGzjaIjGuj` R$ 19,90/mês (`plano=pro ciclo=mes`),
+  `price_1UJbl4G6vHgCiPOGjPxG2XSa` R$ 178,80/ano (`plano=pro ciclo=ano`).
+- Assinaturas dos fundadores canceladas no Stripe pelo dono (25/09); eles ficam no gratuito.
+- Decidido: depoimento = +1 temporada; post/vídeo = +1; aviso vai ao grupo de sempre ("PB Games"), liberação automática.
+
+## Checklist do dia do lançamento
+1. Publicar edge functions (checkout/webhook com `pro`) e o jogo com o paywall.
+2. `select elifoot_v3.planos_lancar();` (grava veteranos e liga as travas).
+3. Arquivar no Stripe os preços de Resenha/Embaixador (mensal e anual) e o cupom beta.
