@@ -902,7 +902,7 @@ function rfSairHTML(){
    continua ligada — quem quer sair da conta usa o outro caminho. */
 async function rfSairSaveGo(){
   rfAcFechar();
-  try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
+  try{ if(typeof rfGravar==='function') await rfGravar(true); }catch(e){}
   CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
   cdraw();
   toastC('Jogo gravado. Até a próxima.','success');
@@ -930,13 +930,13 @@ function rfApagarSaveGo(){
    continua na sala de troféus", então é exatamente isso que faz. Carimba o
    fim no save, grava, e devolve à abertura. O save continua na lista, para
    consulta, como está escrito. */
-function rfEncerrarCarreiraGo(){
+async function rfEncerrarCarreiraGo(){
   rfAcFechar();
   S.careerClosed={ season:S.season, round:S.round, at:Date.now(),
     clubId:CL.clubId, mgr:(typeof rfTreinadorNome==='function')?rfTreinadorNome():CL.mgr };
   S.roundNews=S.roundNews||[];
   S.roundNews.push('🎓 Carreira encerrada em '+(S.season||'')+'.');
-  try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
+  try{ if(typeof rfGravar==='function') await rfGravar(true); }catch(e){}
   CL.online=false; CL.live=null; CL.screen='abertura'; CL.landingView='home';
   cdraw();
   toastC('Carreira encerrada. O histórico fica guardado no save.','success');
@@ -1105,7 +1105,7 @@ function rfTrocarSenhaGo(){
 /* grava o que dá, encerra a sessão e volta para a abertura */
 async function rfSairContaGo(){
   rfAcFechar();
-  try{ if(typeof rfGravar==='function') rfGravar(); }catch(e){}
+  try{ if(typeof rfGravar==='function') await rfGravar(true); }catch(e){}
   try{ if(typeof netAuthSignOut==='function') await netAuthSignOut(); }catch(e){}
   CL.soloSaves=null; CL.online=false; CL.net=null;
   CL.screen='abertura'; cdraw();

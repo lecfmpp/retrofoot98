@@ -50,7 +50,8 @@ async function baixar(){
   return { id, t:Date.now(), v };
 }
 
-function squads(p){ return p.v.filter(e => e.patch && Array.isArray(e.patch.squad)).length; }
+/* `squad` é um objeto {nome real (##N) → nome novo}, ver aplicar() no dados.js */
+function squads(p){ return p.v.filter(e => e.patch && e.patch.squad && Object.keys(e.patch.squad).length).length; }
 
 function lerAtual(){
   if(!fs.existsSync(DESTINO)) return null;

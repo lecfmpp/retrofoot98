@@ -1784,9 +1784,12 @@ const RF_LISTA_PASSOS=[20,50,100];
 
    Daqui para a frente há um nome só. Ele grava local SEMPRE e tenta a nuvem por
    cima; a nuvem continua livre de decidir que não é a altura. */
-function rfGravar(){
+/* `agora`: grava na nuvem JÁ e devolve a promessa (saídas: sair do save, da conta, encerrar
+   carreira). Sem ele é auto-save, que o saveV3 junta e espaça (no máximo a cada 2 min). */
+function rfGravar(agora){
   try{ if(typeof save==='function') save(); }catch(e){}
-  try{ if(typeof saveV3==='function') saveV3(); }catch(e){}
+  try{ if(typeof saveV3==='function') return saveV3(!!agora); }catch(e){}
+  return Promise.resolve();
 }
 
 /* AS OFERTAS DE EMPREGO VIVEM EM `S.pendingJobOffers`.
