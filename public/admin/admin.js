@@ -852,10 +852,11 @@ function kpiHTML(k){
     <div class="d" ${k.dc?`style="color:${k.dc}"`:''}>${h(k.d||'')}</div></div>`;
 }
 const CAT_NOMES = { softwares:'Softwares', creditos_ia:'Créditos de IA', banco_dados:'Banco de dados',
-  servidor:'Servidor', publicidade:'Publicidade', assinaturas:'Assinaturas', aportes:'Aportes' };
+  servidor:'Servidor', taxas:'Taxas de pagamento',
+  publicidade:'Publicidade', assinaturas:'Assinaturas', aportes:'Aportes' };
 function catNome(c){ return CAT_NOMES[c] || c; }
 const CAT_TAG = { softwares:'t-azul', creditos_ia:'t-roxo', banco_dados:'t-warn', servidor:'t-dim',
-  publicidade:'t-azul', assinaturas:'t-ok', aportes:'t-roxo' };
+  taxas:'t-warn', publicidade:'t-azul', assinaturas:'t-ok', aportes:'t-roxo' };
 
 /* ============================ USUÁRIOS ============================ */
 /* SOLO E RESENHA LADO A LADO. Somar os dois num número só escondia o que a página
@@ -1871,7 +1872,7 @@ async function pgEspera(forcar, senha = pedirDesenho()){
 }
 
 /* ============================ FINANÇAS ============================ */
-const CATS_DESPESA = ['softwares','creditos_ia','banco_dados','servidor'];
+const CATS_DESPESA = ['softwares','creditos_ia','banco_dados','servidor','taxas'];
 const CATS_RECEITA = ['publicidade','assinaturas','aportes'];
 
 /* ===== O GASTO DE IA E A FATURA QUE MANDA NELE =====
@@ -2030,17 +2031,145 @@ async function sincronizarDespesaIA(porMes, faturas){
   }
 }
 
+/* ===== A FATURA DA OPENAI VEM SOZINHA =====
+   Conciliar era um ritual: entrar em platform.openai.com, Usage → Export, baixar
+   o CSV, largar na página. Enquanto ninguém o cumpria, o mês fechado ficava
+   lançado pela ESTIMATIVA, que subestima (agosto/2026: US$ 239,35 contra US$
+   260,83 de fatura). Um fecho de mês não pode depender de alguém lembrar.
+
+   Agora a edge function `openai-custos` pergunta à própria OpenAI
+   (/v1/organization/costs, que já devolve DÓLARES, não tokens) e o resultado
+   entra no mesmo `adm_config['openai_faturas']` onde o CSV entrava. Tudo o que
+   vem depois — a regra de "só fecha o mês inteiro", o câmbio congelado, a
+   despesa lançada — é o caminho que já existia, e não muda.
+
+   O CSV FICA. Se a Admin key não estiver configurada, ou a OpenAI recusar, a
+   página diz o que houve e o botão de largar o ficheiro continua ali.
+
+   UMA VEZ POR HORA, e não a cada desenho: é uma ida à OpenAI mais uma escrita.
+   O botão "Puxar agora" força, para quem acabou de configurar a chave. */
+let OPENAI_PUXADA_EM = 0;
+async function puxarFaturaOpenAI(forcar){
+  if(!podeEditar('financas')) return;
+  if(!forcar && Date.now() - OPENAI_PUXADA_EM < 3600e3) return;
+  OPENAI_PUXADA_EM = Date.now();
+  D.openaiErro = '';
+  let data, error;
+  try{ ({ data, error } = await sb.functions.invoke('openai-custos', { body:{} })); }
+  catch(e){ error = e; }
+  /* a função devolve o motivo no corpo mesmo quando falha; `invoke` só entrega o
+     status. Sem isto, "falta o secret OPENAI-ADMIN" virava "Edge Function
+     returned a non-2xx status code" e ninguém saberia o que configurar. */
+  if(error){
+    let msg = erroMsg(error);
+    try{ const c = await error.context.json(); if(c && c.error) msg = c.error; }catch(e2){}
+    D.openaiErro = msg; return;
+  }
+  if(!data || !data.meses) return;
+
+  const faturas = Object.assign({}, D.faturasIA);
+  let mudou = false;
+  for(const [m, f] of Object.entries(data.meses)){
+    const antes = D.faturasIA[m];
+    /* o câmbio de um mês JÁ FECHADO não se toca: ele é o do dia em que a despesa
+       entrou no extrato, e um mês encerrado não muda de valor em reais porque o
+       dólar de hoje é outro. O que a API pode mexer é o dólar da fatura — custo
+       lançado com atraso pela OpenAI —, e aí a despesa é mesmo relançada. */
+    const cambio = faturaFechada(m, antes) ? (Number(antes.cambio) || 0) : 0;
+    const nova = { usd:Number(f.usd)||0, de:f.de, ate:f.ate, dias:f.dias,
+                   fonte:'api', importado_em: data.buscado_em };
+    if(cambio) nova.cambio = cambio;
+    /* uma fatura importada à mão (CSV) que cubra MAIS do que a API conhece não é
+       substituída por uma cobertura menor — senão um mês fechado reabriria */
+    if(antes && antes.ate > nova.ate && antes.fonte !== 'api') continue;
+    if(antes && antes.usd === nova.usd && antes.ate === nova.ate && antes.fonte === 'api') continue;
+    faturas[m] = nova; mudou = true;
+  }
+  if(!mudou) return;
+  const { error: eCfg } = await sb.from('adm_config').upsert({ chave:'openai_faturas', valor: faturas });
+  if(eCfg){ D.openaiErro = erroMsg(eCfg); return; }
+  D.faturasIA = faturas;
+}
+
+/* ===== A RECEITA DO STRIPE ENTRA SOZINHA =====
+   Era digitada a mão: alguém olhava o painel do Stripe e escrevia "+ Receita"
+   mês a mês. Enquanto ninguém escrevia, a página mostrava prejuízo com o
+   dinheiro já na conta.
+
+   O webhook passou a gravar cada cobrança paga em `admin_rf98.stripe_pagamentos`
+   (uma linha por compra, com o id do Stripe como chave — reenvio de evento não
+   soma duas vezes), e `stripe_receita_mes()` soma no banco, como a IA.
+
+   DUAS LINHAS POR MÊS, e não uma: o BRUTO é receita e a TAXA do Stripe é
+   despesa. Lançar só o líquido esconderia o custo de vender, que é real, cresce
+   com o faturamento e é exatamente o número que decide se vale mudar de
+   gateway. O reembolso abate a receita, porque esse dinheiro voltou. */
+const DESC_STRIPE = 'Assinaturas e Pix — Stripe';
+const DESC_STRIPE_TAXA = 'Taxas do Stripe';
+
+/* soma as linhas do banco por mês, já em centavos de REAL. Moeda que não é o
+   real é convertida pela cotação do dia — na prática não acontece (o checkout é
+   em BRL), mas guardar a moeda e ignorá-la é como se somam maçãs com laranjas. */
+function agruparStripe(linhas, cot){
+  const porMes = {};
+  for(const r of (linhas||[])){
+    const emBRL = (v) => r.moeda === 'brl' ? Math.round(Number(v)||0)
+                                           : Math.round((Number(v)||0) * (cot||1));
+    const m = porMes[r.mes] || (porMes[r.mes] = { bruto:0, taxa:0, reembolso:0, n:0, moedas:new Set() });
+    m.bruto += emBRL(r.bruto); m.taxa += emBRL(r.taxa); m.reembolso += emBRL(r.reembolso);
+    m.n += Number(r.n)||0; m.moedas.add(r.moeda);
+  }
+  for(const m of Object.values(porMes)) m.receita = Math.max(0, m.bruto - m.reembolso);
+  return porMes;
+}
+
+/* uma linha por mês, criada na primeira vez e ATUALIZADA depois — o mês corrente
+   cresce a cada cobrança, e o mês fechado ainda pode mexer se entrar um
+   reembolso. Casa pela descrição + mês, que é a mesma chave que a IA usa. */
+async function lancarAutomatico(tipo, descricao, categoria, mes, centavos){
+  const existente = D.lancamentos.find(l =>
+    l.tipo===tipo && l.descricao===descricao && String(l.data).slice(0,7)===mes);
+  if(!existente){
+    if(!(centavos > 0)) return;
+    const ins = await sb.from('adm_lancamentos').insert({
+      data: mes+'-01', descricao, categoria, tipo, valor_centavos: centavos }).select().single();
+    if(!ins.error && ins.data) D.lancamentos.unshift(ins.data);
+    return;
+  }
+  if(Math.abs(existente.valor_centavos - centavos) < 1) return;
+  const up = await sb.from('adm_lancamentos').update({ valor_centavos: centavos }).eq('id', existente.id);
+  if(!up.error) existente.valor_centavos = centavos;
+}
+
+/* Pelo mesmo motivo da sincronia da IA: é MANUTENÇÃO DE DADOS, não desenho.
+   Corre ao abrir a página e no máximo uma vez por minuto — presa ao redesenho,
+   cada troca de filtro esperaria por uma sequência de escritas. */
+let STRIPE_SINCRONIZADO_EM = 0;
+async function sincronizarReceitaStripe(porMes){
+  if(!podeEditar('financas')) return;
+  if(Date.now() - STRIPE_SINCRONIZADO_EM < 60000) return;
+  STRIPE_SINCRONIZADO_EM = Date.now();
+  for(const [m, v] of Object.entries(porMes||{})){
+    await lancarAutomatico('receita', DESC_STRIPE, 'assinaturas', m, v.receita);
+    await lancarAutomatico('despesa', DESC_STRIPE_TAXA, 'taxas', m, v.taxa);
+  }
+}
+
 async function pgFinancas(forcar, senha = pedirDesenho()){
   // recorrência mensal/anual materializa os meses em falta antes de somar
   try{ await sb.rpc('gerar_recorrencias'); }catch(e){}
   /* `ia_custos` passou de 4800 linhas: lida direto, o `select()` sem `range()`
      devolvia as primeiras mil e o painel somava um quinto do gasto — sem erro e
      sem aviso. A soma passou para o banco (admin_rf98.ia_custos_mes). */
-  const [ov, lanc, iaMes, cfgFat] = await Promise.all([
+  const [ov, lanc, iaMes, cfgFat, stMes] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
     sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(PAGINA_SB),
     sb.rpc('ia_custos_mes'),
-    sb.from('adm_config').select('valor').eq('chave','openai_faturas').maybeSingle()
+    sb.from('adm_config').select('valor').eq('chave','openai_faturas').maybeSingle(),
+    /* a receita do Stripe também é somada NO BANCO: são uma linha por cobrança,
+       e ler a tabela inteira cairia na mesma armadilha do `select()` sem
+       `range()` que já fez o painel somar um quinto do gasto de IA */
+    sb.rpc('stripe_receita_mes')
   ]);
   if(ov.error) throw ov.error;
   if(lanc.error) throw lanc.error;
@@ -2048,6 +2177,8 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   D.iaMes = iaMes.error ? [] : (iaMes.data||[]);
   D.iaErro = iaMes.error ? erroMsg(iaMes.error) : '';
   D.faturasIA = (cfgFat.data && cfgFat.data.valor) || {};
+  D.stripeMes = stMes.error ? [] : (stMes.data||[]);
+  D.stripeErro = stMes.error ? erroMsg(stMes.error) : '';
 
   const mes = new Date().toISOString().slice(0,7);
 
@@ -2092,8 +2223,22 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     const f = iaPorFonte[r.fonte] || (iaPorFonte[r.fonte] = { usd:0, n:0 });
     f.usd += usdR; f.n += nR;
   }
+  /* ORDEM IMPORTA: a fatura tem de chegar ANTES de a despesa ser lançada, senão
+     o mês fecha pela estimativa e só na abertura seguinte é corrigido. */
+  const cot = await cotacaoUSD();
+  try{ await puxarFaturaOpenAI(forcar === 'openai'); }
+  catch(e){ console.warn('fatura da OpenAI:', e && e.message); }
   try{ await sincronizarDespesaIA(iaPorMes, D.faturasIA); }
   catch(e){ console.warn('sincronia da despesa de IA:', e && e.message); }
+
+  const stripePorMes = agruparStripe(D.stripeMes, cot);
+  try{ await sincronizarReceitaStripe(stripePorMes); }
+  catch(e){ console.warn('sincronia da receita do Stripe:', e && e.message); }
+  const stripeNoPeriodo = Object.entries(stripePorMes)
+    .filter(([m]) => ST.finMes ? m === ST.finMes : m.startsWith(ST.finAno))
+    .reduce((a,[,v]) => ({ bruto:a.bruto+v.bruto, taxa:a.taxa+v.taxa,
+                           reembolso:a.reembolso+v.reembolso, receita:a.receita+v.receita,
+                           n:a.n+v.n }), { bruto:0, taxa:0, reembolso:0, receita:0, n:0 });
 
   const doMes = D.lancamentos.filter(noPeriodo);
   const desp = doMes.filter(l=>l.tipo==='despesa');
@@ -2109,6 +2254,7 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
      inteiro selecionado, tDesp são doze meses de despesa e a conta daria N/12 */
   const custoFixo = (ST.finMes ? tDesp : Math.round(tDesp / Math.max(1, mesesDoAno.length))) || 1;
   const editar = podeEditar('financas');
+  const plural = (n,s) => `${n} ${s}${n===1?'':'s'}`;
 
   /* a data vem com o ANO quando a lista atravessa meses (a aba Despesas mostra
      os últimos gastos, não só os do período) — "28/08" sozinho não diz de que
@@ -2158,7 +2304,6 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   const iaTot = Object.values(iaPorTipo).reduce((a,t)=>a+t.usd, 0);
   const iaN   = Object.values(iaPorTipo).reduce((a,t)=>a+t.n, 0);
 
-  const cot = await cotacaoUSD();
   const usd  = v => 'US$ ' + (Number(v)||0).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
   const emRe = (v, c) => 'R$ ' + ((Number(v)||0)*(c||cot)).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2});
   const mesRot = (m) => { const [a,b]=String(m).split('-'); return b+'/'+a; };
@@ -2174,9 +2319,10 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     const fat = D.faturasIA[m];
     const vale = faturaFechada(m, fat);
     const dif = fat ? Number(fat.usd) - est : 0;
+    const origem = fat && fat.fonte === 'api' ? 'pela API' : 'pela fatura';
     const comoFoi = vale
-      ? `pela fatura, <b class="mono">${usd(fat.usd)}</b> × R$ ${Number(fat.cambio||cot).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`
-      : fat ? `fatura só até <b>${h(dmy(fat.ate))}</b> — vale a estimativa`
+      ? `${origem}, <b class="mono">${usd(fat.usd)}</b> × R$ ${Number(fat.cambio||cot).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+      : fat ? `só até <b>${h(dmy(fat.ate))}</b> — vale a estimativa`
       : m === mes ? 'mês em curso — vale a estimativa'
       : 'ainda por conciliar';
     return `<div class="row" style="grid-template-columns:86px 1fr 1fr 1fr 1.25fr">
@@ -2217,6 +2363,38 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
       </div>`}
     </div>`;
 
+  /* ===== O QUE ENTROU, SEM NINGUÉM DIGITAR =====
+     O card não é decoração: ele é a PROVA do lançamento automático. A receita
+     aparece no extrato como uma linha só por mês ("Assinaturas e Pix — Stripe"),
+     e sem este bloco não haveria como ver de que cobranças ela é feita, nem
+     quanto o Stripe levou pelo caminho. */
+  const stripeCards = `
+    <div class="card" style="margin-top:16px;overflow:hidden">
+      <div class="card-h" style="flex-wrap:wrap;gap:10px">
+        <b>Receita do Stripe — ${h(rotuloPeriodo)}</b>
+        <span class="st" style="margin:0;flex:1">assinaturas e Pix · lançada sozinha a cada
+          cobrança confirmada — a taxa do Stripe entra como despesa</span>
+        ${editar?`<span class="btn btn-sm btn-ghost" id="f-stripe-backfill"
+          title="Traz do Stripe as cobranças anteriores a esta página existir. Pode correr as vezes que quiser: nada é contado duas vezes."
+          >Importar histórico</span>`:''}
+      </div>
+      ${D.stripeErro ? `<div class="erro" style="margin:16px 20px">Não deu para somar a receita do Stripe: ${h(D.stripeErro)}</div>` : `
+      <div style="padding:16px 20px">
+        ${stripeNoPeriodo.n ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px">
+          ${kpiHTML({ l:'Cobrado', v:brl(stripeNoPeriodo.bruto),
+            d:`${plural(stripeNoPeriodo.n,'cobrança')} · ${brl(Math.round(stripeNoPeriodo.bruto/stripeNoPeriodo.n))} em média` })}
+          ${kpiHTML({ l:'Reembolsado', v:brl(stripeNoPeriodo.reembolso),
+            d: stripeNoPeriodo.reembolso ? 'dinheiro que voltou ao cliente' : 'nenhum reembolso',
+            c: stripeNoPeriodo.reembolso ? 'var(--ambar)' : '' })}
+          ${kpiHTML({ l:'Taxa do Stripe', v:brl(stripeNoPeriodo.taxa),
+            d: stripeNoPeriodo.bruto ? pct(stripeNoPeriodo.taxa, stripeNoPeriodo.bruto)+'% do cobrado — lançada como despesa'
+                                     : 'ainda não contada', c:'var(--vermelho)' })}
+          ${kpiHTML({ l:'Entrou na conta', v:brl(stripeNoPeriodo.receita - stripeNoPeriodo.taxa),
+            d:`receita de ${brl(stripeNoPeriodo.receita)} menos a taxa`, c:'var(--verde2)' })}
+        </div>` : `<div class="vazio">Nenhuma cobrança do Stripe em ${h(rotuloPeriodo)}.</div>`}
+      </div>`}
+    </div>`;
+
   /* ===== O FAQ DO FATURAMENTO =====
      `<details>` nativo: abre e fecha no clique sem uma linha de JavaScript, e
      nasce fechado — quem abre a página de finanças quer os números, não a
@@ -2229,13 +2407,17 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
         <span style="font-size:13px;font-weight:700">Como funciona o gasto e o pagamento da OpenAI</span>
         <span class="st" style="margin:0;flex:1">estimativa × fatura, o preço por imagem, o câmbio
           e a conciliação mês a mês</span>
-        ${editar?`<span class="btn btn-sm btn-ghost" id="f-openai">Conciliar com a fatura</span>`:''}
+        ${editar?`<span class="btn btn-sm btn-ghost" id="f-openai-api">Puxar da OpenAI</span>
+                  <span class="btn btn-sm btn-ghost" id="f-openai">Conciliar por CSV</span>`:''}
         <span style="color:var(--dim2);font-size:12px;display:flex;align-items:center;gap:5px;flex:0 0 auto">
           detalhes <i class="faq-seta" style="display:inline-block;font-style:normal">▾</i></span>
       </summary>
 
       <div style="padding:0 20px 18px;font-size:12.5px;line-height:1.7;color:var(--dim);
                   border-top:1px solid var(--bd);padding-top:16px">
+
+        ${D.openaiErro ? `<div class="erro" style="margin:0 0 14px">Não deu para puxar a fatura da OpenAI:
+          ${h(D.openaiErro)} — até resolver, o mês fecha pela estimativa, e o CSV continua a valer.</div>` : ''}
 
         <b style="color:var(--fg2)">A OpenAI cobra por TOKEN, não por imagem.</b>
         Cada geração gasta tokens de texto (o prompt), às vezes tokens de imagem (quando o pedido
@@ -2251,6 +2433,13 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
         (<i>platform.openai.com → Usage → Export</i>), que é o que vai ser cobrado. Divergem quando a
         geração é cobrada mas não chega a ser registrada: pedido que falha depois de a imagem sair,
         tentativa repetida, ou chamada feita antes de o registro de custo existir.
+
+        <div style="height:12px"></div>
+        <b style="color:var(--fg2)">A fatura chega sozinha.</b>
+        Ao abrir esta página (no máximo uma vez por hora) o painel pergunta à OpenAI, por API, quanto
+        cada dia custou — em dólares, já como vai ser cobrado. Antes isso dependia de alguém baixar o
+        CSV do export; enquanto ninguém baixava, o mês fechava pela estimativa, que subestima. O CSV
+        continua a valer para quem quiser conferir ou corrigir um mês.
 
         <div style="height:12px"></div>
         <b style="color:var(--fg2)">Parte da estimativa é um piso, não o preço.</b>
@@ -2287,7 +2476,6 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
       ${mesesIA.map(linhaConcil).join('') || '<div class="vazio">Nenhum gasto de IA ainda.</div>'}
     </details>`;
 
-  const plural = (n,s) => `${n} ${s}${n===1?'':'s'}`;
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="card card-p" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 20px">
@@ -2312,6 +2500,7 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
                  d: ativos? `${usdDeCentavos(Math.round(tDesp/ativos))} de custo · receita ${brl(Math.round(tRec/ativos))}` : 'sem ativos no período'})}
     </div>
     ${iaCards}
+    ${stripeCards}
     <div class="card card-p">
       ${/* ESTE BLOCO NÃO SEGUE O FILTRO, e isso é de propósito: ele é a TENDÊNCIA
            dos últimos seis meses, que só existe se olhar vários meses de uma vez.
@@ -2396,11 +2585,58 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   el('desp-filtro').onchange = () => { ST.despFiltro = el('desp-filtro').value; redesenhar(pgFinancas); };
 
   if(editar){
+    if(el('f-openai-api')) el('f-openai-api').onclick = (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      toast('Perguntando à OpenAI…');
+      /* 'openai' fura a espera de uma hora: quem carrega no botão acabou de
+         configurar a chave, ou quer ver o efeito agora */
+      redesenhar(pgFinancas, 'openai');
+    };
     if(el('f-openai')) el('f-openai').onclick = (ev) => {
       /* mora dentro do <summary>: sem isto, o clique abriria/fecharia o FAQ
          debaixo do modal que acabou de abrir */
       ev.preventDefault(); ev.stopPropagation();
       modalFaturaOpenAI(iaPorMes, cot);
+    };
+    /* ===== O HISTÓRICO ANTERIOR AO WEBHOOK =====
+       O webhook só grava o que acontece depois de ele existir. As cobranças de
+       antes estão no Stripe e em lado nenhum nosso — sem esta passagem, os meses
+       velhos fecham com despesa cheia e receita zero. Correr de novo não soma
+       nada: a linha tem o id do Stripe como chave. */
+    if(el('f-stripe-backfill')) el('f-stripe-backfill').onclick = async () => {
+      const bt = el('f-stripe-backfill');
+      if(bt.dataset.correndo) return;
+      bt.dataset.correndo = '1'; bt.textContent = 'Importando…';
+      try{
+        const { data, error } = await sb.functions.invoke('stripe-backfill', { body:{} });
+        if(error){
+          let msg = erroMsg(error);
+          try{ const c = await error.context.json(); if(c && c.error) msg = c.error; }catch(e2){}
+          throw new Error(msg);
+        }
+        registrar('stripe.backfill', `${data.de||'—'} a ${data.ate||'—'}`, data);
+        /* ===== LER E NÃO GRAVAR NÃO É SUCESSO =====
+           A função devolve `erros` por linha, e o toast só mostrava o contador:
+           quando faltou o GRANT na tabela, ela leu as 4 cobranças de setembro,
+           gravou zero e a tela disse "0 importadas" — indistinguível de "não há
+           cobrança nenhuma". Quem leu mas não gravou tem de gritar. */
+        if(data.lidas && !data.gravadas){
+          throw new Error(`Leu ${plural(data.lidas,'cobrança')} e não gravou nenhuma` +
+            (data.erros && data.erros.length ? ` — ${data.erros[0]}` : '.'));
+        }
+        toast(`${data.gravadas} cobrança${data.gravadas===1?'':'s'} importada${data.gravadas===1?'':'s'}` +
+              (data.de?` (${dmy(data.de)} a ${dmy(data.ate)})`:'') + '.');
+        if(data.erros && data.erros.length)
+          setTimeout(() => toast(`${plural(data.erros.length,'cobrança')} com erro: ${data.erros[0]}`, true), 4000);
+        /* a receita entrou mesmo sem a taxa — o aviso não pode sumir no toast de
+           sucesso, senão a despesa de taxa fica em falta e ninguém sabe porquê */
+        if(data.aviso) setTimeout(() => toast(data.aviso, true), 4000);
+        /* a receita só entra no extrato na sincronia seguinte, e ela tem trava de
+           um minuto — aqui a trava cai, senão o número importado não aparece */
+        STRIPE_SINCRONIZADO_EM = 0;
+        redesenhar(pgFinancas);
+      }catch(e){ toast(erroMsg(e), true); }
+      finally{ delete bt.dataset.correndo; bt.textContent = 'Importar histórico'; }
     };
     el('f-nova-desp').onclick = () => modalLancamento('despesa');
     el('f-nova-rec').onclick  = () => modalLancamento('receita');

@@ -15,6 +15,19 @@
    · customer.subscription.deleted     -> cancelamento
    · checkout.session.completed (mode payment, forma pix) e
      checkout.session.async_payment_succeeded -> Pix avulso pago: prazo de 1 mes/1 ano
+   · invoice.paid                      -> a cobranca da assinatura (primeira e renovacoes)
+   · charge.refunded                   -> reembolso, que abate a receita do mes
+
+   O DINHEIRO TAMBEM FICA REGISTRADO. Ate' aqui o webhook usava o evento so' para
+   conceder plano e deitava fora o VALOR — e a pagina de Financas ficava com a
+   receita por digitar a mao, mes a mes. Agora cada cobranca paga vira uma linha
+   em `admin_rf98.stripe_pagamentos` (ver supabase/sql/stripe-receita.sql), com o
+   id do Stripe como chave: reenvio de evento nao soma duas vezes.
+
+   REGISTRAR DINHEIRO NUNCA DERRUBA O WEBHOOK. O plano e' o que a pessoa pagou
+   para ter; a linha de receita e' contabilidade nossa. Se a segunda falhar, o
+   erro fica no log e o plano entra na mesma — devolver 500 aqui poria o Stripe a
+   reenviar o evento (e a regravar o plano) por causa de um numero de relatorio.
 
    DE QUEM E' A ASSINATURA: do user_id carimbado em subscription.metadata pelo
    checkout. Se faltar (assinatura criada a mao no painel do Stripe), cai na
@@ -265,12 +278,83 @@ Deno.serve(async (req) => {
     await gravar(uid, plano, new Date(fim.getTime() + FOLGA_MS).toISOString(), "stripe_pix", marca);
   }
 
+  /* ===== A RECEITA, LINHA A LINHA =====
+     `upsert` sobre o id da cobranca: o Stripe reenvia eventos quando quer, e
+     somar duas vezes a mesma venda e' pior do que nao somar nenhuma — um numero
+     errado ninguem desconfia, um numero em falta aparece.
+     `ignoreDuplicates` fica FALSE de proposito: a reentrega costuma trazer mais
+     informacao do que a primeira (a taxa do Stripe, por exemplo, so' existe
+     depois de a transacao assentar), entao a linha e' atualizada. */
+  async function registrarPagamento(p: {
+    id: string; cobranca_id?: string | null; tipo: string; user_id?: string | null;
+    plano?: string | null; moeda: string; bruto: number; taxa?: number | null;
+    liquido?: number | null; pago_em: number; evento: string;
+  }) {
+    if (!p.id || !(p.bruto > 0)) return;
+    const { error } = await admin.schema("admin_rf98").from("stripe_pagamentos").upsert({
+      id: p.id, cobranca_id: p.cobranca_id ?? null,
+      tipo: p.tipo, user_id: p.user_id ?? null, plano: p.plano ?? null,
+      moeda: String(p.moeda || "brl").toLowerCase(),
+      bruto_centavos: Math.round(p.bruto),
+      taxa_centavos: p.taxa == null ? null : Math.round(p.taxa),
+      liquido_centavos: p.liquido == null ? null : Math.round(p.liquido),
+      pago_em: new Date(p.pago_em * 1000).toISOString(),
+      evento: p.evento, atualizado_em: new Date().toISOString(),
+    }, { onConflict: "id" });
+    if (error) console.error("receita nao registrada:", p.id, error.message);
+    else console.log(`receita ${p.id}: ${p.bruto} ${p.moeda} (${p.tipo})`);
+  }
+
+  /* A TAXA DO STRIPE SO' EXISTE NA BALANCE TRANSACTION, e ler essa exige
+     `charge_read` na chave restrita. Sem a permissao (ou com a transacao ainda
+     por assentar) volta null — e o banco entende null como "ainda nao contada",
+     lancando a receita bruta sem taxa em vez de fingir que a taxa e' zero. */
+  async function taxaDaCobranca(cobranca?: string | null) {
+    if (!cobranca) return { taxa: null as number | null, liquido: null as number | null };
+    try {
+      const ch = await stripe.charges.retrieve(cobranca, { expand: ["balance_transaction"] });
+      const bt: any = ch.balance_transaction;
+      if (bt && typeof bt === "object" && Number.isFinite(Number(bt.fee))) {
+        return { taxa: Number(bt.fee), liquido: Number(bt.net) };
+      }
+    } catch (e) {
+      console.log("sem ler a taxa do Stripe (segue sem ela):", (e as Error)?.message);
+    }
+    return { taxa: null as number | null, liquido: null as number | null };
+  }
+
+  /* O Pix e o checkout de assinatura chegam como SESSAO; o id que vale para nao
+     duplicar e' o da sessao, que e' unico por compra. */
+  async function registrarSessao(s: Stripe.Checkout.Session, tipo: string) {
+    const bruto = Number(s.amount_total) || 0;
+    if (!bruto) return;
+    const pi = typeof s.payment_intent === "string" ? s.payment_intent : s.payment_intent?.id;
+    let cobranca: string | null = null;
+    if (pi) {
+      try {
+        const intent: any = await stripe.paymentIntents.retrieve(pi);
+        cobranca = intent?.latest_charge || null;
+      } catch (e) { console.log("sem ler o payment_intent:", (e as Error)?.message); }
+    }
+    const { taxa, liquido } = await taxaDaCobranca(cobranca);
+    await registrarPagamento({
+      id: s.id, cobranca_id: cobranca, tipo, moeda: String(s.currency || "brl"), bruto, taxa, liquido,
+      user_id: (s.client_reference_id as string) || (s.metadata?.user_id as string) || null,
+      plano: (s.metadata?.plano as string) || null,
+      pago_em: Number(s.created) || Math.floor(Date.now() / 1000),
+      evento: evento.type,
+    });
+  }
+
   try {
     switch (evento.type) {
       /* Pix confirmado depois do fecho da sessao (pagamento assincrono). */
       case "checkout.session.async_payment_succeeded": {
         const s = evento.data.object as Stripe.Checkout.Session;
-        if (s.mode === "payment" && s.metadata?.forma === "pix") await concederPix(s);
+        if (s.mode === "payment" && s.metadata?.forma === "pix") {
+          await concederPix(s);
+          await registrarSessao(s, "pix");
+        }
         break;
       }
 
@@ -290,9 +374,12 @@ Deno.serve(async (req) => {
         /* Pix: so' concede com o dinheiro dentro. `unpaid` quer dizer QR gerado e ainda nao
            pago — a confirmacao vem depois, no `async_payment_succeeded`. */
         if (s.mode === "payment" && s.metadata?.forma === "pix") {
-          if (s.payment_status === "paid") await concederPix(s);
+          if (s.payment_status === "paid") { await concederPix(s); await registrarSessao(s, "pix"); }
           break;
         }
+        /* A ASSINATURA NAO E' REGISTRADA AQUI, e' no `invoice.paid`. Somar a
+           sessao E a fatura contaria a primeira cobranca duas vezes; e so' a
+           fatura chega nas RENOVACOES, que sao a maior parte da receita. */
         if (s.mode !== "subscription" || !s.subscription) break;
         const subId = typeof s.subscription === "string" ? s.subscription : s.subscription.id;
         const uid = (s.client_reference_id as string) || (s.metadata?.user_id as string) || null;
@@ -324,6 +411,70 @@ Deno.serve(async (req) => {
         await gravar(uid, plano, until, "stripe", carimbar(subId, c?.id === subId ? c.t : criada));
         const cust = typeof s.customer === "string" ? s.customer : s.customer?.id;
         if (cust) await cancelarAntigas(cust, subId);
+        break;
+      }
+
+      /* ===== A COBRANCA DA ASSINATURA =====
+         `invoice.paid` e' o unico evento que cobre TODA a vida da assinatura: a
+         primeira cobranca, cada renovacao mensal, e a diferenca cobrada numa
+         troca de plano. Nao mexe em plano nenhum — quem concede continua a ser
+         o checkout e o `subscription.updated`; aqui so' entra o dinheiro.
+         Faturas de valor zero (cortesia, credito de rateio que cobre tudo) sao
+         ignoradas pelo proprio `registrarPagamento`. */
+      case "invoice.paid": {
+        const inv = evento.data.object as Stripe.Invoice;
+        const bruto = Number(inv.amount_paid) || 0;
+        if (!bruto) break;
+        const cobranca = (inv as any).charge
+          ?? (inv as any).payments?.data?.[0]?.payment?.charge
+          ?? null;
+        const { taxa, liquido } = await taxaDaCobranca(typeof cobranca === "string" ? cobranca : null);
+        const sub: any = (inv as any).subscription;
+        let uid: string | null = (inv as any).subscription_details?.metadata?.user_id
+          ?? (inv.metadata?.user_id as string) ?? null;
+        if (!uid) {
+          const cust = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+          if (cust) {
+            const { data } = await admin.schema("elifoot_v3")
+              .from("stripe_customers").select("user_id").eq("customer_id", cust).maybeSingle();
+            uid = data?.user_id || null;
+          }
+        }
+        await registrarPagamento({
+          id: inv.id!, cobranca_id: typeof cobranca === "string" ? cobranca : null,
+          tipo: "assinatura", user_id: uid,
+          plano: (inv as any).subscription_details?.metadata?.plano
+              ?? inv.lines?.data?.[0]?.price?.metadata?.plano ?? null,
+          moeda: String(inv.currency || "brl"), bruto, taxa, liquido,
+          pago_em: Number((inv as any).status_transitions?.paid_at) || Number(inv.created)
+                   || Math.floor(Date.now() / 1000),
+          evento: evento.type,
+        });
+        if (sub) console.log(`fatura ${inv.id} paga (assinatura ${typeof sub === "string" ? sub : sub.id})`);
+        break;
+      }
+
+      /* ===== O REEMBOLSO ABATE O MES =====
+         Fica na MESMA linha da cobranca, e nao numa linha negativa: o que a
+         pagina precisa e' "quanto ficou", e uma linha negativa solta obrigaria
+         cada leitura a casar as duas. `amount_refunded` e' acumulado — reembolso
+         parcial seguido de outro nao soma duas vezes. */
+      case "charge.refunded": {
+        const ch = evento.data.object as Stripe.Charge;
+        const abate = { reembolsado_centavos: Number(ch.amount_refunded) || 0,
+                        atualizado_em: new Date().toISOString() };
+        const tab = () => admin.schema("admin_rf98").from("stripe_pagamentos");
+        /* pela COBRANCA, que e' o que o evento traz. A fatura e' a reserva: sem
+           `charge_read` a linha pode ter ficado sem `cobranca_id`, e ai' o id da
+           compra (a propria fatura) ainda a encontra. */
+        let { data, error } = await tab().update(abate).eq("cobranca_id", ch.id).select("id");
+        const fatura = (ch as any).invoice;
+        if (!error && !data?.length && typeof fatura === "string") {
+          ({ data, error } = await tab().update(abate).eq("id", fatura).select("id"));
+        }
+        if (error) console.error("reembolso nao registrado:", ch.id, error.message);
+        else if (!data?.length) console.error(`reembolso de ${ch.amount_refunded} sem linha de receita: ${ch.id}`);
+        else console.log(`reembolso de ${ch.amount_refunded} na cobranca ${ch.id}`);
         break;
       }
 

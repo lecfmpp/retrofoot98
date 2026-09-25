@@ -375,7 +375,7 @@ O painel tem **duas contas do mesmo dinheiro**, e elas não valem o mesmo:
 | | De onde vem | Quando vale |
 |---|---|---|
 | **Estimativa** | `elifoot_v3.ia_custos` — uma linha por geração, escrita pela edge function a partir do `usage` que a própria OpenAI devolve (`custo_fonte='tokens'`) ou, quando ele não vem, de uma tabela de preço por imagem (`'tabela'`) | sempre; é diária e está sempre em dia |
-| **Fatura** | export de uso da plataforma (*platform.openai.com → Usage → Export*), guardado em `adm_config['openai_faturas']` | quando cobre o **mês inteiro** |
+| **Fatura** | a API de custos da organização (`/v1/organization/costs`, via a edge function `openai-custos`), ou o export de uso (*Usage → Export*) largado à mão. Os dois vão para `adm_config['openai_faturas']` | quando cobre o **mês inteiro** |
 
 As duas batem quase sempre — a estimativa usa os mesmos tokens e a mesma tabela de preços
 (`TOK_USD` na edge function = `OPENAI_TOK_USD` no painel; **mexeu numa, mexa na outra**).
@@ -390,9 +390,109 @@ dois parágrafos no meio da página de finanças, e ninguém a lia. Quem abre Fi
 números; a explicação é procurada depois, quando a dúvida aparece — e é lá que ela está, junto da
 conciliação mês a mês.
 
-**Conciliar** é largar o CSV do export em *Finanças → FAQ → Conciliar com a fatura*. O
-ficheiro traz **tokens, não dólares**: o custo é calculado com a tabela de preços, que é como a
-própria fatura o faz. A tela mostra os dois números lado a lado antes de gravar.
+**A fatura chega sozinha.** Ao abrir Finanças — no máximo uma vez por hora (`OPENAI_PUXADA_EM`) —
+`puxarFaturaOpenAI()` chama a edge function `openai-custos`, que pergunta à OpenAI quanto cada dia
+custou. O endpoint devolve **dólares**, já como vão ser cobrados, e não tokens: não há tabela de
+preços pelo meio. O resultado entra no mesmo `adm_config['openai_faturas']` onde o CSV entrava, e
+tudo o que vem depois — "só fecha o mês inteiro", câmbio congelado, despesa lançada — é o caminho
+que já existia. O botão *Puxar da OpenAI* fura a espera de uma hora.
+
+**Qual chave.** A função tenta primeiro a do Estúdio (`OPENAI-RETROFOOT`), que já está
+configurada — não faz sentido exigir uma chave nova antes de saber se a que existe serve. Mas
+`/v1/organization/*` é endpoint de **organização**, e a OpenAI documenta que ele quer uma **Admin
+key** (`sk-admin-…`, em *platform.openai.com → Settings → Organization → Admin keys*): uma chave de
+projeto costuma levar 401 ali. Quando isso acontece, o FAQ mostra exatamente essa frase e o que
+fazer — guardar a Admin key no secret **`OPENAI-ADMIN`**, que tem prioridade quando existe. Nenhuma
+das duas passa pelo browser; é por isso que a edge function existe em vez de o painel falar com a
+OpenAI direto (que, além da chave, esbarra no CORS). Enquanto a fatura não vier, o mês fecha pela
+estimativa — nada quebra.
+
+**Conciliar à mão continua a existir**, em *Finanças → FAQ → Conciliar por CSV*. O ficheiro traz
+**tokens, não dólares**: o custo é calculado com a tabela de preços, que é como a própria fatura o
+faz. A tela mostra os dois números lado a lado antes de gravar. Uma importação manual que cubra
+**mais** do que a API conhece não é substituída por ela — senão um mês fechado reabriria.
+
+---
+
+## 4c. Receita — o Stripe lança sozinho
+
+A receita era **digitada à mão**: alguém olhava o painel do Stripe e escrevia *+ Receita* mês a
+mês. Enquanto ninguém escrevia, a página mostrava prejuízo com o dinheiro já na conta.
+
+**Quem grava é o webhook.** `stripe-webhook` já era o único sítio que sabe, com prova de
+assinatura, que uma cobrança foi paga — só que usava o evento para conceder plano e deitava fora o
+**valor**. Agora cada cobrança paga vira uma linha em `admin_rf98.stripe_pagamentos`
+(`supabase/sql/stripe-receita.sql`):
+
+| Evento | O que grava |
+|---|---|
+| `invoice.paid` | a cobrança da assinatura — a primeira, cada renovação e a diferença de uma troca de plano |
+| `checkout.session.completed` / `async_payment_succeeded` (Pix) | a compra avulsa, quando o dinheiro entra |
+| `charge.refunded` | o reembolso, na **mesma** linha da cobrança (`amount_refunded` é acumulado) |
+
+**Os dois eventos novos têm de estar ligados no endpoint do Stripe** (*Developers → Webhooks →
+o endpoint → Update details*): `invoice.paid` e `charge.refunded`. Sem eles a tabela fica vazia e
+a receita volta a ser manual, sem erro nenhum na tela.
+
+**A assinatura é registrada no `invoice.paid`, não no `checkout.session.completed`.** Somar a
+sessão *e* a fatura contaria a primeira cobrança duas vezes; e só a fatura chega nas **renovações**,
+que são a maior parte da receita.
+
+**O id do Stripe é a chave primária.** O Stripe reenvia eventos quando quer, e um `upsert` sobre o
+id faz a reentrega não somar nada. Somar duas vezes a mesma venda é pior do que não somar nenhuma:
+um número errado ninguém desconfia, um número em falta aparece.
+
+**Registrar dinheiro nunca derruba o webhook.** O plano é o que a pessoa pagou para ter; a linha de
+receita é contabilidade nossa. Se a segunda falhar, o erro fica no log e o plano entra na mesma —
+devolver 500 poria o Stripe a reenviar o evento (e a regravar o plano) por causa de um relatório.
+
+**Duas linhas por mês no extrato, e não uma:**
+
+| Linha | Tipo | Categoria | Valor |
+|---|---|---|---|
+| `Assinaturas e Pix — Stripe` | receita | `assinaturas` | bruto − reembolsos |
+| `Taxas do Stripe` | despesa | `taxas` | a taxa da adquirente |
+
+Lançar só o líquido esconderia o **custo de vender**, que é real, cresce com o faturamento e é
+exatamente o número que decide se vale mudar de gateway. A taxa vem da *balance transaction* da
+cobrança e exige `charge_read` na chave restrita; sem a permissão ela fica `null` — o banco entende
+isso como *"ainda não contada"* e lança a receita bruta sem taxa, em vez de fingir que a taxa é zero.
+
+**A soma é trabalho de banco** (`admin_rf98.stripe_receita_mes()`), pelo mesmo motivo de
+`ia_custos_mes()`: `select()` sem `range()` para em 1000 linhas sem avisar, e o painel somaria um
+pedaço da receita sem erro nenhum. O mês é cortado em **UTC**, como o da IA — os dois números do
+mesmo mês têm de ser cortados no mesmo sítio, ou o fecho nunca bate.
+
+**A sincronia corre ao abrir a página e no máximo uma vez por minuto**
+(`STRIPE_SINCRONIZADO_EM`), como a da IA e pela mesma razão: é manutenção de dados, não desenho.
+
+### O histórico anterior ao webhook
+
+O webhook só grava o que acontece **depois de ele existir** (deploy de 21/09/2026). As cobranças
+antigas estão no Stripe e em lado nenhum nosso — sem elas, os meses velhos fecham com despesa cheia
+e receita zero. O botão **Importar histórico**, no card *Receita do Stripe*, chama a edge function
+`stripe-backfill` (só sócio), que percorre as cobranças e grava o que faltava.
+
+Ela percorre **`charges`**, e não faturas: uma volta apanha as assinaturas *e* os Pix, e a
+`balance_transaction` vem expandida na mesma listagem — a taxa entra sem uma ida extra por cobrança.
+
+**As permissões da chave restrita.** A `rk_live_…` do projeto nasceu só com o que o webhook
+precisava para conceder plano. Para o dinheiro, ligue em *Dashboard → Developers → API keys → a
+chave → Edit*:
+
+| Permissão | Para quê | Sem ela |
+|---|---|---|
+| **Charges and Refunds → Read** | listar as cobranças | o backfill não corre de todo |
+| **Balance transactions → Read** | a taxa e o líquido | receita entra, taxa fica `null` (avisa na tela) |
+| **Checkout Sessions → Read** | casar um Pix antigo com a sessão dele | o Pix entra com o id da cobrança |
+| **Payment Intents → Read** | o mesmo caminho, no webhook | a taxa do Pix novo não é lida |
+
+**A chave de cada linha é a mesma que o webhook escreve**: id da *fatura* para assinatura, id da
+*sessão* para Pix (achada pelo `payment_intent`). Se fosse o id da cobrança, correr o backfill
+depois de o webhook já ter gravado criaria uma segunda linha para o mesmo dinheiro e o mês
+apareceria com o dobro da receita. Com a mesma chave, o `upsert` só atualiza — **pode correr as
+vezes que for**. Uma cobrança sem sessão (feita à mão no painel do Stripe) usa o próprio id, que o
+webhook nunca escreve: também não duplica.
 
 **Uma fatura só substitui a estimativa se cobrir o mês inteiro** (`ate` ≥ último dia do mês).
 Um export baixado hoje leva o mês corrente pela metade; tomá-lo como fatura fecharia setembro com
@@ -427,6 +527,37 @@ está a acontecer.
 ---
 
 ## 5. Deploy
+
+### As edge functions das finanças
+
+A fatura da OpenAI e a receita do Stripe não vivem no painel — vivem em duas funções. Depois de
+mexer em qualquer uma delas:
+
+```bash
+supabase functions deploy openai-custos --project-ref alxwgqvjmetjbbqtjkhx
+```
+
+```bash
+supabase functions deploy stripe-backfill --project-ref alxwgqvjmetjbbqtjkhx
+```
+
+```bash
+supabase functions deploy stripe-webhook --no-verify-jwt --project-ref alxwgqvjmetjbbqtjkhx
+```
+
+O `--no-verify-jwt` do webhook **não é opcional**: quem chama é o Stripe, que não tem sessão. A
+porta dele é a assinatura HMAC, não o JWT.
+
+O secret da Admin key, **se** a chave do Estúdio levar 401 no endpoint de custos:
+
+```bash
+supabase secrets set OPENAI-ADMIN=sk-admin-... --project-ref alxwgqvjmetjbbqtjkhx
+```
+
+E no Stripe, em *Developers → Webhooks*, o endpoint tem de ouvir também `invoice.paid` e
+`charge.refunded` — sem eles a receita não chega.
+
+### O painel
 
 O painel é um site Firebase próprio no mesmo projeto (`elifoot-d368d`). O `firebase.json` já
 está com os dois targets; falta criar o site e apontar o domínio:
