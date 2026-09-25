@@ -995,130 +995,308 @@ function whatsHTML(num, pais){
             title="Abrir conversa no WhatsApp">${flag?flag+' ':''}${h(txt)}</a>`;
 }
 
+/* ===== A TABELA DE USUÁRIOS (refeita em 25/09/2026) =====
+   Era um grid de 13 colunas espremido na largura da tela: e-mail, WhatsApp e referral saíam
+   cortados com "…", nenhuma coluna ordenava, e a busca ia ao banco a cada tecla e redesenhava a
+   página inteira (o campo perdia o texto e o cursor no meio da digitação). Agora:
+     · <table> de verdade, com rolagem horizontal e cabeçalho fixo — NADA é cortado; o que não
+       cabe na largura empurra a tabela, e o WhatsApp vai inteiro em fonte menor;
+     · os dados vêm uma vez (admin_rf98.usuarios) e busca, filtros e ordenação rodam aqui, na hora,
+       redesenhando só as linhas;
+     · todo cabeçalho explica a coluna num tooltip, e as células dão o detalhe ao passar o mouse;
+     · colunas de COMPORTAMENTO: tempo nos últimos 7 dias e dias ativos em 7/30 dias (login ou
+       jogada — a mesma regra do "Ativos (7 dias)" do painel inicial). */
+const US_ESTADO = { ativo:'Ativo (até 2 dias)', parado:'Parado (3 a 13 dias)', perdido:'Perdido (14 dias ou mais)' };
+const US_MODO = { solo:'Só Modo Solo', resenha:'Só Modo Resenha', ambos:'Solo e Resenha', nunca:'Nunca jogou' };
+const US_PLANO_ORD = { free:0, resenha:1, embaixador:2 };
+function usFiltros(){
+  if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', whats:'', ord:'acesso', dir:-1 };
+  return ST.us;
+}
+/* números derivados de uma conta, calculados uma vez por carga */
+function usDeriv(u){
+  const n = k => Number(u[k])||0;
+  const carreiras = n('saves_solo') + n('salas_resenha');
+  const jogou = carreiras > 0 || n('minutos') > 0;
+  const solo = n('saves_solo') > 0, res = n('salas_resenha') > 0;
+  const dAc = dias(u.ultimo_acesso);
+  return {
+    carreiras, jogou,
+    modo: !jogou ? 'nunca' : solo && res ? 'ambos' : res ? 'resenha' : 'solo',
+    temporadas: n('temporadas_solo') + n('temporadas_resenha'),
+    partidas: n('jogos_solo') + n('jogos_resenha'),
+    titulos: n('titulos_solo') + n('titulos_resenha'),
+    /* melhor campanha como número ordenável: divisão mais alta primeiro, depois a posição */
+    campanha: u.melhor_pos ? (({A:1,B:2,C:3,D:4})[u.melhor_div]||5) * 100 + (+u.melhor_pos) : 9999,
+    estado: dAc <= 2 ? 'ativo' : dAc <= 13 ? 'parado' : 'perdido',
+    whats: String(u.whatsapp||'').replace(/\D/g,''),
+    busca: [u.nome, u.email, clube(u.clube), u.clube, u.referral, u.parceiro]
+             .map(x => String(x||'').toLowerCase()).join(' | ')
+  };
+}
+const US_ORD = {
+  nome:      u => String(u.nome||'').toLowerCase(),
+  whats:     u => u._d.whats ? 1 : 0,
+  plano:     u => US_PLANO_ORD[u.plano||'free'] ?? 0,
+  origem:    u => String(u.parceiro||u.referral||'').toLowerCase(),
+  carreiras: u => u._d.carreiras,
+  temporadas:u => u._d.temporadas,
+  partidas:  u => u._d.partidas,
+  titulos:   u => u._d.titulos,
+  campanha:  u => -u._d.campanha,             // "maior" = melhor campanha
+  tempo:     u => +u.minutos||0,
+  tempo7:    u => +u.minutos_7||0,
+  freq:      u => (+u.dias_ativos_30||0) * 100 + (+u.dias_ativos_7||0),
+  cadastro:  u => u.criado_em ? new Date(u.criado_em).getTime() : 0,
+  acesso:    u => u.ultimo_acesso ? new Date(u.ultimo_acesso).getTime() : 0,
+  estado:    u => u.ultimo_acesso ? new Date(u.ultimo_acesso).getTime() : 0,   // mesma base, coluna própria
+};
+/* colunas: chave de ordenação, rótulo, alinhamento e o que o tooltip explica */
+const US_COLS = [
+  { k:'nome', l:'Técnico', tip:'Nome do técnico no jogo (ou o do cadastro), clube do save mais recente e e-mail da conta.\nClique na linha para ver a carreira completa.' },
+  { k:'whats', l:'WhatsApp', tip:'Número informado no cadastro. Clique para abrir a conversa.\nContas antigas, de antes do campo existir, não têm.' },
+  { k:'plano', l:'Plano', tip:'Peladeiro (grátis), Resenha ou Embaixador.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
+  { k:'origem', l:'Origem', tip:'Orgânico, ou o parceiro e o código de indicação usados no cadastro.' },
+  { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
+  { k:'temporadas', l:'Temporadas', a:'c', tip:'Temporadas que chegaram ao fim (Solo / Resenha).' },
+  { k:'partidas', l:'Partidas', a:'c', tip:'Partidas de liga na carreira toda (Solo / Resenha).\n"parcial": há save antigo com temporadas fechadas sem os números guardados — o total real é maior.' },
+  { k:'titulos', l:'Títulos', a:'c', tip:'Títulos conquistados (Solo / Resenha), pelo livro de títulos do ranking.' },
+  { k:'campanha', l:'Campanha', a:'c', tip:'Melhor campanha: a divisão mais alta em que terminou uma temporada, e a melhor posição nela.' },
+  { k:'tempo', l:'Tempo', a:'r', tip:'Tempo com o jogo aberto e visível dentro de um jogo (não conta a tela inicial nem aba em segundo plano).\nEmbaixo: só os últimos 7 dias.' },
+  { k:'freq', l:'Dias ativos', a:'c', tip:'Dias com login ou jogada (Jogar, Pronto, Avançar dia):\nnos últimos 7 dias · nos últimos 30 dias.\nAntes de 26/09/2026 conta o dia com tempo de jogo.' },
+  { k:'cadastro', l:'Cadastro', a:'r', tip:'Quando a conta foi criada.' },
+  { k:'acesso', l:'Último acesso', a:'r', tip:'O mais recente entre: último login, último save do Modo Solo e última jogada.\nAbrir o jogo já logado, sem jogar, não conta.' },
+  { k:'estado', l:'Estado', a:'c', tip:'Pelo último acesso:\nAtivo — até 2 dias\nParado — de 3 a 13 dias\nPerdido — 14 dias ou mais' },
+  { l:'Senha', a:'r', tip:'Envia para o e-mail da pessoa um link para criar uma senha nova. O painel nunca vê a senha.' },
+];
+
+function usFiltrar(us){
+  const f = usFiltros();
+  const q = f.q.trim().toLowerCase(), qd = q.replace(/\D/g,'');
+  const r = us.filter(u => {
+    const d = u._d;
+    if(q && !(d.busca.includes(q) || (qd.length >= 3 && d.whats.includes(qd)))) return false;
+    if(f.estado && d.estado !== f.estado) return false;
+    if(f.modo && d.modo !== f.modo) return false;
+    if(f.plano === 'pagos' ? !ehPago(u) : f.plano && (u.plano||'free') !== f.plano) return false;
+    if(f.origem === 'organico' && u.referral) return false;
+    if(f.origem === 'indicacao' && !u.referral) return false;
+    if(f.whats === 'com' && !d.whats) return false;
+    if(f.whats === 'sem' && d.whats) return false;
+    return true;
+  });
+  const chave = US_ORD[f.ord] || US_ORD.acesso;
+  return r.sort((a, b) => {
+    const x = chave(a), y = chave(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * f.dir || String(a.nome||'').localeCompare(String(b.nome||''));
+  });
+}
+
+/* célula "solo / res" — zero apagado para a coluna não virar um paredão de zeros */
+function usDupla(a, b, rotA, rotB, trofeu){
+  const na = Number(a)||0, nb = Number(b)||0;
+  const cor = n => n ? (trofeu ? 'var(--ambar)' : 'var(--fg)') : 'var(--dim3)';
+  return `<span data-tip="${h(`${na} ${rotA} · ${nb} ${rotB}`)}"><b style="color:${cor(na)}">${na}</b><i class="us-bar">/</i><b style="color:${cor(nb)}">${nb}</b></span>`;
+}
+function usWhats(u){
+  if(!u._d.whats) return '<span class="us-nada" data-tip="Sem WhatsApp no cadastro">—</span>';
+  const d = u._d.whats, pais = u.whatsapp_pais;
+  let txt = '+' + d;
+  if(pais === 'BR' && d.startsWith('55') && (d.length === 12 || d.length === 13)){
+    const n = d.slice(4);
+    txt = `+55 (${d.slice(2,4)}) ${n.slice(0, n.length-4)}-${n.slice(-4)}`;
+  }
+  /* sem bandeira: emoji de bandeira não existe no Windows (vira duas letras ou um quadrado),
+     e o +DDI já diz o país */
+  return `<a class="us-wpp mono" href="https://wa.me/${h(d)}" target="_blank" rel="noopener"
+            data-tip="${h('Abrir conversa no WhatsApp' + (pais ? '\nPaís do cadastro: ' + pais : ''))}">${h(txt)}</a>`;
+}
+function usDataHora(d){ return d ? dmy(d) + ' ' + horaHM(d) : '—'; }
+
+function usLinhaHTML(u, podeApagar){
+  const d = u._d, e = estadoAcesso(u.ultimo_acesso), pl = planoAdm(u.plano);
+  const fonte = [
+    'Último login: ' + usDataHora(u.ultimo_login),
+    'Última jogada: ' + usDataHora(u.ultima_jogada),
+  ].join('\n');
+  const parcial = u.incompleto ? ' <small class="us-parcial" data-tip="Há save antigo com temporadas fechadas sem os números guardados: o total real é maior.">parcial</small>' : '';
+  return `<tr data-detalhe="${h(u.id)}">
+    <td class="us-fix">
+      <div class="us-tec">
+        ${podeApagar ? `<input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''} data-tip="Selecionar para apagar">` : ''}
+        <i class="av" style="width:28px;height:28px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
+        <span><b>${h(u.nome)}</b>
+          <small>${u.clube ? `<span data-tip="Clube do save mais recente">${h(clube(u.clube))}</span> · ` : ''}<span data-tip="E-mail da conta">${h(u.email)}</span></small></span>
+      </div></td>
+    <td>${usWhats(u)}</td>
+    <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
+    <td>${u.referral
+      ? `<b class="us-ref" data-tip="Indicação: ${h(u.parceiro||u.referral)} (código ${h(u.referral)})">${h(u.parceiro||u.referral)}</b><small class="us-sub mono">${h(u.referral)}</small>`
+      : '<span class="us-nada" data-tip="Chegou sem código de indicação">orgânico</span>'}</td>
+    <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
+    <td class="c mono">${usDupla(u.temporadas_solo, u.temporadas_resenha, 'temporada(s) fechada(s) no Solo', 'na Resenha')}</td>
+    <td class="c mono">${usDupla(u.jogos_solo, u.jogos_resenha, 'partida(s) no Solo', 'na Resenha')}${parcial}</td>
+    <td class="c mono">${usDupla(u.titulos_solo, u.titulos_resenha, 'título(s) no Solo', 'na Resenha', true)}</td>
+    <td class="c mono">${u.melhor_pos
+      ? `<span data-tip="${h(`Melhor campanha: ${u.melhor_pos}º na ${divAdm(u.melhor_div)}`)}"><b style="color:${+u.melhor_pos===1?'var(--ambar)':'var(--fg)'}">${h(u.melhor_pos)}º</b><small class="us-sub">${h(divAdm(u.melhor_div))}</small></span>`
+      : '<span class="us-nada">—</span>'}</td>
+    <td class="r mono"><span data-tip="${h(`Total: ${hm(u.minutos)}\nÚltimos 7 dias: ${hm(u.minutos_7)}`)}">${hm(u.minutos)}<small class="us-sub">${+u.minutos_7 ? hm(u.minutos_7) + ' em 7d' : '—'}</small></span></td>
+    <td class="c mono"><span data-tip="${h(`${+u.dias_ativos_7||0} de 7 dias com login ou jogada\n${+u.dias_ativos_30||0} de 30 dias`)}"><b style="color:${+u.dias_ativos_7?'var(--fg)':'var(--dim3)'}">${+u.dias_ativos_7||0}</b><i class="us-bar">/7</i>
+      <small class="us-sub">${+u.dias_ativos_30||0}/30</small></span></td>
+    <td class="r mono"><span data-tip="${h('Conta criada em ' + usDataHora(u.criado_em))}">${h(dmy(u.criado_em))}</span></td>
+    <td class="r mono"><span data-tip="${h(fonte)}">${h(ha(u.ultimo_acesso))}<small class="us-sub">${h(usDataHora(u.ultimo_acesso))}</small></span></td>
+    <td class="c"><span class="us-est" data-tip="${h(US_ESTADO[d.estado])}"><i style="background:${e.c}"></i>${e.t}</span></td>
+    <td class="r"><span class="link" data-reset="${h(u.email)}" data-nome="${h(u.nome)}"
+          data-tip="${h('Enviar link de nova senha para ' + u.email)}">Reenviar</span></td>
+  </tr>`;
+}
+
 async function pgUsuarios(forcar, senha = pedirDesenho()){
-  const { data, error } = await sb.rpc('usuarios', { p_busca: ST.busca || null, p_limite: 500 });
+  const { data, error } = await sb.rpc('usuarios', { p_busca: null, p_limite: 5000 });
   if(error) throw error;
   D.usuarios = data || [];
   const us = D.usuarios;
+  us.forEach(u => { u._d = usDeriv(u); });
   const pagos = us.filter(ehPago);
   const porPlano = (k) => us.filter(u => (u.plano||'free') === k).length;
   const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
   const minutos = us.reduce((a,u)=>a+ +u.minutos, 0);
+  const minutos7 = us.reduce((a,u)=>a+ (+u.minutos_7||0), 0);
+  const ativos7 = us.filter(u => +u.dias_ativos_7 > 0).length;
   const podeApagar = ME.papel==='socio';
   SEL.contas = SEL.contas || new Set();
   const vivos = new Set(us.map(u=>u.id));
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
+  const f = usFiltros();
 
-  /* ===== OS NUMEROS DE JOGO, COM O NOME CERTO E A FONTE CERTA =====
-     A lista mostrava "Jogos / Pontos / Titulos" e nenhum dos tres era o que o nome dizia:
-     "Jogos" era o numero de SAVES e de SALAS; "Pontos" somava os pontos da temporada EM CURSO
-     de cada save — campeonatos diferentes empilhados, e as temporadas fechadas de fora; e os
-     titulos da Resenha liam o historico da SALA, que nunca e' preenchido, e davam zero sempre.
-     Agora (ver admin_rf98.usuarios):
-       CARREIRAS  saves / salas
-       TEMPORADAS temporadas fechadas
-       PARTIDAS   de carreira, pelas passagens do tecnico — "parcial" quando algum save antigo
-                  tem temporadas fechadas sem os numeros guardados
-       TITULOS    o livro elifoot_v3.coach_titles, um por linha
-       CAMPANHA   a divisao mais alta em que terminou uma temporada, e nela a melhor posicao
-     Os PONTOS ficam no detalhe (clicar na linha): la' sao de uma carreira so', e fazem sentido. */
-  const col = `${podeApagar?'30px ':''}1.4fr .95fr .5fr .8fr .62fr .66fr .74fr .62fr .72fr .6fr .7fr .62fr 72px`;
+  const opt = (v, rot, atual) => `<option value="${h(v)}" ${v===atual?'selected':''}>${h(rot)}</option>`;
+  const sel = (id, tip, atual, ops) => `<select class="us-sel ${atual?'on':''}" id="${id}" data-tip="${h(tip)}">${ops}</select>`;
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Contas totais', v:num(us.length), d:`${num(us.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
-      ${kpiHTML({l:'Peladeiro', v:num(porPlano('free')), d:'plano grátis'})}
+      ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, us.length)}% das contas · login ou jogada`})}
       ${kpiHTML({l:'Assinantes', v:num(pagos.length),
                  d:`${num(porPlano('resenha'))} Resenha · ${num(porPlano('embaixador'))} Embaixador${mrr?' · '+brl(mrr)+' de MRR':''}`})}
-      ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:'somado de todas as contas'})}
+      ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:`${hm(minutos7)} nos últimos 7 dias`})}
     </div>
-    <div class="card" style="overflow:hidden">
-      <div class="card-h">
-        <b>Usuários no jogo</b>
-        ${podeApagar?`<span class="st" style="margin:0">selecionar:
-          <span class="link" data-sel-contas="nunca">nunca jogaram</span> ·
-          <span class="link" data-sel-contas="90">sumidos 90d+</span> ·
-          <span class="link" data-sel-contas="nenhuma">limpar</span></span>`:''}
-        <input class="busca" id="u-busca" placeholder="Procurar técnico, clube, e-mail ou WhatsApp…" value="${h(ST.busca)}">
-        <span class="mono" style="font-size:12px;color:var(--dim2)">${num(us.length)} contas</span>
+    <div class="card us-card">
+      <div class="us-barra">
+        <input class="busca us-busca" id="u-busca" placeholder="Nome, e-mail, clube, WhatsApp…" value="${h(f.q)}"
+               data-tip="Procura em nome, e-mail, clube, parceiro e código de indicação.\nCom 3 dígitos ou mais, procura também no WhatsApp.">
+        ${sel('uf-estado', 'Estado pelo último acesso', f.estado,
+          opt('', 'Estado: todos', f.estado) + Object.entries(US_ESTADO).map(([k,v]) => opt(k, v, f.estado)).join(''))}
+        ${sel('uf-modo', 'Em que modo a pessoa joga', f.modo,
+          opt('', 'Modo: todos', f.modo) + Object.entries(US_MODO).map(([k,v]) => opt(k, v, f.modo)).join(''))}
+        ${sel('uf-plano', 'Plano da conta', f.plano,
+          opt('', 'Plano: todos', f.plano) + opt('pagos', 'Só assinantes', f.plano)
+          + Object.entries(PLANOS_ADM).map(([k,v]) => opt(k, v.nome, f.plano)).join(''))}
+        ${sel('uf-origem', 'Como a pessoa chegou', f.origem,
+          opt('', 'Origem: todas', f.origem) + opt('organico', 'Orgânico', f.origem) + opt('indicacao', 'Por indicação', f.origem))}
+        ${sel('uf-whats', 'Se informou WhatsApp no cadastro', f.whats,
+          opt('', 'WhatsApp: todos', f.whats) + opt('com', 'Com WhatsApp', f.whats) + opt('sem', 'Sem WhatsApp', f.whats))}
+        <span class="link" id="uf-limpar" data-tip="Tira a busca e todos os filtros">limpar filtros</span>
+        <span class="us-cont mono" id="u-cont"></span>
       </div>
-      <div class="rowh" style="grid-template-columns:${col}">
-        ${podeApagar?'<span><input type="checkbox" id="sel-todas-contas" title="Selecionar todas"></span>':''}
-        <span>Técnico</span><span title="Informado no cadastro (contas antigas não têm)">WhatsApp</span><span>Plano</span><span>Referral</span>
-        <span style="text-align:center" title="Saves no Solo / salas de Resenha">Carreiras</span>
-        <span style="text-align:center" title="Temporadas que chegaram ao fim">Temporadas</span>
-        <span style="text-align:center" title="Partidas de liga na carreira toda">Partidas</span>
-        <span style="text-align:center">Títulos</span>
-        <span style="text-align:center" title="Divisão mais alta em que terminou uma temporada, e a melhor posição nela">Campanha</span>
-        <span style="text-align:right">Tempo</span><span style="text-align:right">Últ. acesso</span>
-        <span style="text-align:center">Estado</span><span style="text-align:right">Senha</span>
+      ${podeApagar?`<div class="us-selbar st">Selecionar para apagar:
+        <span class="link" data-sel-contas="visiveis" data-tip="Marca todas as contas que aparecem com os filtros atuais">as que estão na lista</span> ·
+        <span class="link" data-sel-contas="nunca" data-tip="Sem carreira nenhuma e sem tempo de jogo">nunca jogaram</span> ·
+        <span class="link" data-sel-contas="90" data-tip="Último acesso há 90 dias ou mais">sumidos 90d+</span> ·
+        <span class="link" data-sel-contas="nenhuma">limpar seleção</span></div>`:''}
+      <div class="us-wrap">
+        <table class="us-tbl">
+          <thead><tr>${US_COLS.map(c => `<th class="${c.a||''} ${c.k?'ord':''}" ${c.k?`data-ord="${c.k}"`:''} data-tip="${h(c.tip)}">${h(c.l)}${c.k?'<i class="seta"></i>':''}</th>`).join('')}</tr></thead>
+          <tbody id="u-tb"></tbody>
+        </table>
       </div>
-      ${us.length ? us.map(u => {
-        const e = estadoAcesso(u.ultimo_acesso);
-        return `<div class="row" data-detalhe="${h(u.id)}" style="grid-template-columns:${col};cursor:pointer"
-                     title="Ver a carreira de ${h(u.nome)}">
-          ${podeApagar?`<span><input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''}></span>`:''}
-          <span style="display:flex;align-items:center;gap:10px;min-width:0">
-            <i class="av" style="width:26px;height:26px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
-            <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(u.nome)}</b>
-            <small style="font-size:11.5px;color:var(--dim2)">${h(clube(u.clube))} · ${h(u.email)}</small></span>
-          </span>
-          ${whatsHTML(u.whatsapp, u.whatsapp_pais)}
-          <span class="tag ${planoAdm(u.plano).tag}" style="justify-self:start"
-                title="${h(u.plano_ate ? 'até '+dmy(u.plano_ate) : 'sem prazo')}${u.plano_origem?' · '+h(u.plano_origem):''}">${
-            h(planoAdm(u.plano).nome)}</span>
-          <span style="min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis">${u.referral
-            ? `<b style="font-weight:600;color:var(--fg2)">${h(u.parceiro||u.referral)}</b>
-               <small class="mono" style="display:block;font-size:10.5px;color:var(--verde2)">${h(u.referral)}</small>`
-            : '<span style="color:var(--dim3)">orgânico</span>'}</span>
-          ${duplaHTML(u.saves_solo, u.salas_resenha, 'save solo', 'sala de Resenha')}
-          ${duplaHTML(u.temporadas_solo, u.temporadas_resenha, 'temporada fechada no Solo', 'temporada fechada na Resenha')}
-          ${partidasHTML(u)}
-          ${duplaHTML(u.titulos_solo, u.titulos_resenha, 'título no Solo', 'título na Resenha', true)}
-          ${campanhaHTML(u.melhor_div, u.melhor_pos)}
-          <span class="mono" style="font-size:12.5px;text-align:right">${hm(u.minutos)}</span>
-          <span class="mono" style="font-size:12.5px;text-align:right;color:var(--dim2)">${h(ha(u.ultimo_acesso))}</span>
-          <span style="justify-self:center;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)">
-            <i style="width:7px;height:7px;border-radius:99px;background:${e.c};display:block"></i>${e.t}</span>
-          <span style="text-align:right">
-            <span class="link" data-reset="${h(u.email)}" data-nome="${h(u.nome)}"
-                  style="font-size:11.5px" title="Enviar link de nova senha para ${h(u.email)}">Reenviar</span></span>
-        </div>`;
-      }).join('') : '<div class="vazio">Nenhuma conta encontrada.</div>'}
     </div>`;
 
-  const b = el('u-busca');
-  let t=null;
-  b.oninput = () => { clearTimeout(t); t = setTimeout(()=>{ ST.busca = b.value.trim(); pgUsuarios(); }, 350); };
+  /* só as linhas: filtros e ordenação nunca redesenham a barra (o campo de busca mantém o foco) */
+  function desenharLinhas(){
+    const vis = usFiltrar(us);
+    D.usuariosVisiveis = vis;
+    el('u-tb').innerHTML = vis.length ? vis.map(u => usLinhaHTML(u, podeApagar)).join('')
+      : `<tr><td colspan="${US_COLS.length}" class="vazio">Nenhuma conta com esses filtros.</td></tr>`;
+    el('u-cont').textContent = vis.length === us.length ? `${num(us.length)} contas` : `${num(vis.length)} de ${num(us.length)} contas`;
+    document.querySelectorAll('.us-tbl th[data-ord]').forEach(th => {
+      const on = th.dataset.ord === f.ord;
+      th.classList.toggle('on', on);
+      const s = th.querySelector('.seta'); if(s) s.textContent = on ? (f.dir > 0 ? '▲' : '▼') : '↕';
+    });
+    ['estado','modo','plano','origem','whats'].forEach(k => { const s = el('uf-'+k); if(s) s.classList.toggle('on', !!f[k]); });
+    if(podeApagar){
+      document.querySelectorAll('[data-conta]').forEach(c => c.onchange = () => {
+        if(c.checked) SEL.contas.add(c.dataset.conta); else SEL.contas.delete(c.dataset.conta);
+        barraSelecao();
+      });
+    }
+    document.querySelectorAll('#u-tb [data-reset]').forEach(a =>
+      a.onclick = () => modalResetSenha(a.dataset.reset, a.dataset.nome));
+  }
+  desenharLinhas();
+  tipIniciar();
 
-  document.querySelectorAll('[data-reset]').forEach(a =>
-    a.onclick = () => modalResetSenha(a.dataset.reset, a.dataset.nome));
-  document.querySelectorAll('[data-detalhe]').forEach(r => r.onclick = (ev) => {
-    if(ev.target.closest('input,[data-reset],a,button')) return;
-    modalUsuario(r.dataset.detalhe);
+  const b = el('u-busca');
+  let t = null;
+  b.oninput = () => { clearTimeout(t); t = setTimeout(() => { f.q = b.value; desenharLinhas(); }, 150); };
+  ['estado','modo','plano','origem','whats'].forEach(k => {
+    el('uf-'+k).onchange = (ev) => { f[k] = ev.target.value; desenharLinhas(); };
   });
+  el('uf-limpar').onclick = () => {
+    Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', whats:'' });
+    b.value = ''; ['estado','modo','plano','origem','whats'].forEach(k => { el('uf-'+k).value = ''; });
+    desenharLinhas();
+  };
+  document.querySelectorAll('.us-tbl th[data-ord]').forEach(th => th.onclick = () => {
+    const k = th.dataset.ord;
+    if(f.ord === k) f.dir = -f.dir;
+    else { f.ord = k; f.dir = (k === 'nome' || k === 'origem') ? 1 : -1; }   // texto A→Z; número maior primeiro
+    desenharLinhas();
+  });
+  el('u-tb').onclick = (ev) => {
+    if(ev.target.closest('input,[data-reset],a,button')) return;
+    const r = ev.target.closest('[data-detalhe]');
+    if(r) modalUsuario(r.dataset.detalhe);
+  };
 
   if(podeApagar){
-    document.querySelectorAll('[data-conta]').forEach(c => c.onchange = () => {
-      if(c.checked) SEL.contas.add(c.dataset.conta); else SEL.contas.delete(c.dataset.conta);
-      barraSelecao();
-    });
-    const todas = el('sel-todas-contas');
-    if(todas) todas.onchange = () => {
-      us.forEach(u => { if(todas.checked) SEL.contas.add(u.id); else SEL.contas.delete(u.id); });
-      marcarCaixas(); barraSelecao();
-    };
     document.querySelectorAll('[data-sel-contas]').forEach(a => a.onclick = () => {
       const q = a.dataset.selContas;
       if(q==='nenhuma') SEL.contas.clear();
-      // "nunca jogaram" = sem clube, sem pontos e sem tempo: conta criada e abandonada
-      else if(q==='nunca') us.filter(u => !u.clube && !((+u.jogos_solo||0)+(+u.jogos_resenha||0)) && !u.minutos).forEach(u=>SEL.contas.add(u.id));
+      else if(q==='visiveis') (D.usuariosVisiveis||[]).forEach(u => SEL.contas.add(u.id));
+      // "nunca jogaram" = sem carreira e sem tempo: conta criada e abandonada
+      else if(q==='nunca') us.filter(u => !u._d.jogou).forEach(u=>SEL.contas.add(u.id));
       else us.filter(u => dias(u.ultimo_acesso) >= Number(q)).forEach(u=>SEL.contas.add(u.id));
       marcarCaixas(); barraSelecao();
     });
   }
   barraSelecao();
+}
+
+/* TOOLTIP DO PAINEL — um balão só, posicionado junto do elemento com `data-tip`. O `title`
+   nativo demora a aparecer, não quebra linha e some dentro de tabela com rolagem; este aparece
+   na hora, aceita várias linhas e fica sempre dentro da janela. */
+function tipIniciar(){
+  if(window.__tip) return;
+  const t = document.createElement('div');
+  t.className = 'tip'; document.body.appendChild(t); window.__tip = t;
+  let alvo = null;
+  const esconder = () => { alvo = null; t.classList.remove('on'); };
+  document.addEventListener('mouseover', ev => {
+    const a = ev.target.closest && ev.target.closest('[data-tip]');
+    if(!a){ if(alvo) esconder(); return; }
+    if(a === alvo) return;
+    alvo = a; t.textContent = a.getAttribute('data-tip');
+    t.classList.add('on');
+    const r = a.getBoundingClientRect(), tw = t.offsetWidth, th = t.offsetHeight;
+    let x = r.left + r.width/2 - tw/2, y = r.bottom + 8;
+    if(y + th > innerHeight - 8) y = r.top - th - 8;
+    t.style.left = Math.max(8, Math.min(x, innerWidth - tw - 8)) + 'px';
+    t.style.top = Math.max(8, y) + 'px';
+  });
+  document.addEventListener('scroll', esconder, true);
+  document.addEventListener('mousedown', esconder, true);
 }
 
 /* REENVIAR SENHA — usa a MESMA edge function que o "Esqueci a senha" do jogo

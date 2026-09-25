@@ -553,3 +553,54 @@ details > summary::-webkit-details-marker{ display:none }
 details > summary::marker{ content:'' }
 details > summary:hover{ background:rgba(255,255,255,.02) }
 details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rótulo ficaria de cabeça para baixo */
+
+/* ===== TABELA DE USUÁRIOS (25/09/2026) — ver pgUsuarios em admin.js =====
+   Tabela de verdade: nada é cortado. O que não cabe empurra a tabela e a caixa rola na
+   horizontal; o cabeçalho e a coluna do técnico ficam fixos durante a rolagem. */
+.us-card{overflow:hidden}
+.us-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid var(--bd)}
+.us-busca{width:260px;max-width:100%}
+.us-sel{background:var(--bg);border:1px solid var(--bd2);border-radius:8px;padding:8px 10px;color:var(--fg2);
+  font-size:12.5px;outline:none;cursor:pointer}
+.us-sel:focus{border-color:var(--verde)}
+.us-sel.on{border-color:var(--verde-bd);background:var(--verde-bg);color:var(--verde2)}
+.us-cont{margin-left:auto;font-size:12px;color:var(--dim2)}
+.us-barra .link{font-size:12px;white-space:nowrap}
+.us-selbar{padding:10px 20px;border-bottom:1px solid var(--bd3);margin:0}
+.us-wrap{overflow:auto;max-height:calc(100vh - 290px);min-height:240px}
+.us-tbl{border-collapse:separate;border-spacing:0;width:100%;min-width:1480px;font-size:12.5px}
+.us-tbl th{position:sticky;top:0;z-index:2;background:var(--card);text-align:left;white-space:nowrap;
+  padding:11px 12px;font-size:11px;font-weight:700;color:var(--dim2);text-transform:uppercase;
+  letter-spacing:.5px;border-bottom:1px solid var(--bd);user-select:none}
+.us-tbl th.ord{cursor:pointer}
+.us-tbl th.ord:hover{color:var(--fg2)}
+.us-tbl th.on{color:var(--verde2)}
+.us-tbl th .seta{font-style:normal;margin-left:5px;font-size:10px;opacity:.45}
+.us-tbl th.on .seta{opacity:1}
+.us-tbl td{padding:10px 12px;border-top:1px solid var(--bd3);vertical-align:middle;white-space:nowrap;
+  font-variant-numeric:tabular-nums;background:var(--card)}
+.us-tbl .c{text-align:center} .us-tbl .r{text-align:right}
+.us-tbl tbody tr{cursor:pointer}
+.us-tbl tbody tr:hover td{background:#14201a}
+.us-tbl .us-fix{position:sticky;left:0;z-index:1;border-right:1px solid var(--bd3)}
+.us-tbl th:first-child{left:0;z-index:3;border-right:1px solid var(--bd3)}
+.us-tec{display:flex;align-items:center;gap:10px}
+.us-tec input{margin:0;cursor:pointer}
+.us-tec b{display:block;font-size:13px;font-weight:600;color:var(--fg)}
+.us-tec small{display:block;font-size:11.5px;color:var(--dim2);margin-top:2px}
+.us-sub{display:block;font-size:10.5px;color:var(--dim2);margin-top:3px;font-weight:500}
+.us-bar{font-style:normal;color:var(--dim3);margin:0 3px}
+.us-nada{color:var(--dim3)}
+.us-ref{display:block;font-weight:600;color:var(--fg2)}
+.us-tbl td .us-sub.mono{color:var(--verde2)}
+.us-wpp{font-size:11.5px;color:var(--fg2);white-space:nowrap}
+.us-wpp:hover{color:var(--verde2)}
+.us-parcial{display:block;font-size:10px;color:var(--ambar);margin-top:2px}
+.us-est{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+.us-est i{width:7px;height:7px;border-radius:99px;display:block}
+/* balão de ajuda de todo o painel (tipIniciar) */
+.tip{position:fixed;z-index:9999;max-width:340px;background:#0a0f0d;border:1px solid var(--bd2);border-radius:8px;
+  padding:8px 11px;font-size:12px;line-height:1.55;color:var(--fg2);white-space:pre-line;pointer-events:none;
+  opacity:0;transition:opacity .12s;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.tip.on{opacity:1}
+@media (max-width:720px){ .us-busca{width:100%} .us-cont{margin-left:0} .us-wrap{max-height:none} }
