@@ -32,7 +32,7 @@
 // enquanto declarado no texto, com a validação no jogo por fazer).
 // ============================================================================
 
-const ATUALIZADO = '5 de setembro de 2026';
+const ATUALIZADO = '25 de setembro de 2026';
 const CONTATO = 'suporte@retrofoot.com.br';
 
 /* o rodapé de cada página legal aponta para as outras duas: quem chega aos Termos
@@ -55,7 +55,7 @@ export const legal = [
 
   // ============================== PRIVACIDADE ==============================
   {
-    slug: 'privacidade', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-06',
+    slug: 'privacidade', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-25',
     title: 'Política de Privacidade',
     description: 'Como o RetroFoot coleta, usa, guarda e protege os dados de quem joga — incluindo a foto do Plano Embaixador, que é apagada logo depois de gerar o avatar.',
     h1: 'Política de Privacidade',
@@ -94,6 +94,8 @@ melhorar o desempenho do jogo, prevenir fraudes e abusos e cumprir obrigações 
 com a sua autorização. Você pode deixar de recebê-las a qualquer momento.</p>
 
 <h2>Plano Embaixador: a sua foto e o seu jogador</h2>
+<p>O Plano Embaixador não está mais disponível para novas contratações; esta seção vale para quem já
+o contratou.</p>
 <p>Quem assina o Plano Embaixador pode, se quiser, enviar uma fotografia própria para que seja criado
 um jogador personalizado inspirado na sua aparência. <strong>O envio é opcional</strong> e o recurso é
 destinado exclusivamente a maiores de 18 anos.</p>
@@ -169,7 +171,7 @@ ${verTambem('privacidade')}`,
 
   // ================================ TERMOS ================================
   {
-    slug: 'termos', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-06',
+    slug: 'termos', ready: true, legal: true, priority: 0.3, lastmod: '2026-09-25',
     title: 'Termos de Uso',
     description: 'As regras de uso do RetroFoot: conta, planos e assinaturas, o jogador personalizado do Plano Embaixador, convivência no Modo Resenha e integridade do jogo.',
     h1: 'Termos de Uso',
@@ -198,14 +200,25 @@ RetroFoot.</p>
 <p>O RetroFoot oferece modalidades gratuitas e pagas, com benefícios e funcionalidades diferentes. O
 preço, o período de cobrança, os recursos incluídos e as condições de renovação são apresentados
 antes da contratação.</p>
+<p>Hoje são dois planos. No <strong>Peladeiro</strong>, o plano gratuito, o usuário joga uma carreira no Modo Solo, com a
+primeira temporada completa. O <strong>Pro</strong> é uma assinatura mensal ou anual que libera
+temporadas e carreiras ilimitadas no Modo Solo, o Modo Resenha e os demais recursos informados na
+página de planos.</p>
+<p>O RetroFoot pode oferecer temporadas adicionais gratuitas no plano Peladeiro em troca de um
+depoimento sobre o jogo ou de uma publicação nas redes sociais. O depoimento e o endereço da
+publicação são enviados à equipe do RetroFoot e podem ser usados para melhorar o jogo. Essas
+cortesias são limitadas e podem ser alteradas ou encerradas a qualquer momento.</p>
 <p>Os pagamentos são processados pela <strong>Stripe</strong>. Assinaturas recorrentes podem ser
-canceladas conforme as condições informadas na área da conta: o cancelamento impede novas cobranças,
-observadas as regras do ciclo já contratado.</p>
+canceladas a qualquer momento em <strong>Minha Conta › Gerir assinatura</strong>: o cancelamento
+impede novas cobranças e o plano continua valendo até o fim do período já pago. Pagamentos via Pix
+valem pelo período pago, sem renovação automática.</p>
 <p>Quando aplicável, o consumidor pode exercer os direitos previstos na legislação brasileira,
 inclusive o <strong>direito de arrependimento</strong> em contratações realizadas fora do
 estabelecimento comercial, nos termos do art. 49 do Código de Defesa do Consumidor.</p>
 
 <h2>Plano Embaixador e jogador personalizado</h2>
+<p>O Plano Embaixador não está mais disponível para novas contratações. As condições abaixo continuam
+valendo para quem já o contratou, enquanto a assinatura estiver ativa.</p>
 <p>O Plano Embaixador pode incluir a possibilidade de enviar uma fotografia própria para a criação de
 um jogador personalizado inspirado na sua aparência. O recurso é destinado a
 <strong>maiores de 18 anos</strong>.</p>

@@ -383,9 +383,9 @@ function rfAvatarBlocoHTML(){
   const cartaoIA=`<div class="rf-esc rf-av-ia ${usaIA?'on escolhido':''} ${pro?'':'off'}"
       onclick="${acaoIA}" role="button" tabindex="0"
       aria-pressed="${usaIA?'true':'false'}"
-      title="${pro?(jaGerou?'Usar o seu retrato gerado':'Crie o seu retrato com IA — uma geração por conta'):'O retrato por IA é do plano Embaixador'}">
+      title="${pro?(jaGerou?'Usar o seu retrato gerado':'Crie o seu retrato com IA — uma geração por conta'):'O retrato por IA vem aí, como item à parte'}">
     ${usaIA?rfAvSeloHTML:''}
-    ${pro?'':'<span class="rf-esc-tag">Embaixador</span>'}
+    ${pro?'':'<span class="rf-esc-tag">Em breve</span>'}
     <span class="rf-av-face ${usaIA?'rf-av-ajusta':''}" ${usaIA?'onpointerdown="rfAvatarAjustarIni(event)" title="Arraste para enquadrar"':''}>${
       meu?`<img src="${escC(meu)}" alt=""${(typeof rfAjusteFoto==='function')?rfAjusteFoto(meu):''}>`+rfAvCamadasHTML(null):(pro?'✦':'🔒')}</span>
     <span class="rf-av-l">${jaGerou?'O meu retrato<br>de IA':'Criar com IA<br>(1 por conta)'}</span>

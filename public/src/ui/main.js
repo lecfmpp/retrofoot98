@@ -2328,7 +2328,7 @@ function scModoChoice(){
           <div class="cl-mc-t">Modo Resenha</div>
           <div class="cl-mc-d">Monte a liga do grupo do trabalho ou da comunidade. Até 20 treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.</div>
           ${RESENHA_EM_BREVE?`<div class="rf-mc-lock">🔒 Não disponível na versão beta.</div>`
-            :(!rfPodeResenha()?`<div class="rf-mc-lock">🔒 Os seus 7 dias de Resenha acabaram — toque para ver os planos.</div>`:'')}
+            :(!rfPodeResenha()?`<div class="rf-mc-lock">🔒 Exclusivo do Pro na versão Beta — toque para ver.</div>`:'')}
         </div>
       </div>`
   });
@@ -2381,7 +2381,7 @@ function scModoSolo(){
           ${travado?'<span class="rf-selo-plano">🔒 Plano</span>':'<span class="cl-mc-badge">NEW</span>'}
           <div class="cl-mc-t">Novo jogo</div>
           <div class="cl-mc-d">${travado
-            ? `Você já tem ${n} carreiras salvas — o máximo do seu plano. Apague uma para abrir espaço, ou suba de plano.`
+            ? `O Peladeiro tem uma carreira, e a sua já está salva. Carreiras ilimitadas são do Pro.`
             : 'Comece uma carreira nova do zero, contra a máquina.'}</div>
         </div>
         <div class="cl-mc-card" onclick="clPickSolo()">
@@ -3849,6 +3849,12 @@ async function _saveV3Enviar(explicit){
        pessoa jogaria uma temporada inteira sem nada estar a ser gravado e so'
        daria por isso ao voltar no dia seguinte. Aqui a janela abre mesmo sem
        ser um "Gravar" explicito. */
+    /* TETO DE TEMPORADAS do plano gratuito (25/09): a virada passou pelo paywall sem resposta do
+       servidor e o banco recusou. O popup abre com a saída grátis (ou o Pro) desta carreira. */
+    if(/PLANO_TEMPORADAS/.test((e&&e.message)||'') && typeof rfPwRecusado==='function'){
+      if(explicit) clCloseOverlay();
+      rfPwRecusado(); return false;
+    }
     if(/PLANO_SAVES/.test((e&&e.message)||'') && typeof rfTrava==='function'){
       if(explicit) clCloseOverlay();
       rfTrava('saves'); return false;
@@ -9936,6 +9942,9 @@ function clAdvanceSeason(){
     try{ CL.screen='main'; CL.tab='jogo'; cdraw(); }catch(e){}
     return;
   }
+  /* PAYWALL DO PLANO GRATUITO (25/09): quem não é Pro passa pelo rf26-paywall antes de a virada
+     mexer em qualquer coisa. Se ele liberar, chama esta função outra vez com CL._pwLiberado. */
+  if(typeof rfPwAntesDaVirada==='function' && rfPwAntesDaVirada()) return;
   CL._virandoTemporada=true;
   /* foto do fim da temporada na nuvem, ANTES da virada (ver autoSaveNuvemFimDeTemporada). A copia
      e' aqui, sincrona; o envio corre por fora e nunca segura a virada. */

@@ -57,7 +57,7 @@ export const pages = [
       { q:'Em que ano o Elifoot foi lançado?', a:'<p>A primeira versão é de <strong>1987</strong>. O "Elifoot II" saiu em 1989, e a explosão no Brasil veio a partir de <strong>1998</strong>, quando o jogo ganhou clubes e elencos brasileiros.</p>' },
       { q:'O Elifoot acabou?', a:'<p>Não. O jogo original seguiu recebendo versões, e o gênero está mais vivo do que nunca. Se o que você procura é jogar hoje, sem instalar nada, o <a href="/elifoot-online/">RetroFoot abre no navegador</a>.</p>' },
       { q:'Qual a diferença entre o RetroFoot e o Brasfoot?', a:'<p>São propostas diferentes. O <strong>Brasfoot</strong> é forte em <strong>quantidade</strong>: muitas ligas jogáveis, temporadas novas todo ano e uma comunidade de patches que mantém os elencos em dia. O <strong>RetroFoot</strong> é forte em <strong>fricção zero e resenha</strong>: abre no navegador sem instalar, o save fica na nuvem, e o Modo Resenha põe até 10 treinadores na mesma liga, cada um no seu aparelho. Hoje o RetroFoot só tem o Brasil como país jogável — nesse ponto o Brasfoot entrega mais. O comparativo completo está em <a href="/elifoot-vs-brasfoot/">Elifoot vs Brasfoot</a>.</p>' },
-      { q:'O RetroFoot é pago?', a:'<p>O <strong>Modo Solo</strong> é gratuito e sem prazo, no plano <strong>Peladeiro</strong>: dá para começar até 3 carreiras por mês, nas quatro divisões. O <strong>Modo Resenha</strong> vem liberado por 7 dias ao criar a conta; depois disso ele é dos planos pagos. Entrar na sala de um amigo, aliás, não custa nada em plano nenhum — quem paga é quem <em>abre</em> a sala.</p>' },
+      { q:'O RetroFoot é pago?', a:'<p>Dá para jogar de graça: no <strong>Peladeiro</strong>, o plano grátis, você joga uma carreira no <strong>Modo Solo</strong>, com a 1ª temporada inteira — táticas, mercado, copas e finanças. Para continuar a carreira nas temporadas seguintes, ter carreiras ilimitadas e ter acesso exclusivo ao <strong>Modo Resenha</strong> quando lançarmos a versão Beta, existe o <strong>Pro</strong>: <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual).</p>' },
     ],
         body: `
 <p class="lead">No Brasil, quem gosta de futebol e de mexer com números tem uma história em comum: em algum momento
@@ -172,7 +172,7 @@ hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui
       'O <strong>RetroFoot</strong> roda <strong>no navegador</strong>: sem download, sem instalação, sem emulador.',
       'Funciona no celular, no tablet e no PC — e o save fica na nuvem.',
       'Dois modos: <strong>Modo Solo</strong>, contra a máquina, e <strong>Modo Resenha</strong>, com até <strong>10 treinadores</strong> na mesma liga.',
-      'É <strong>gratuito</strong> para começar e jogar a sua carreira no <strong>Modo Solo</strong>.',
+      'É <strong>gratuito</strong> para começar: a 1ª temporada da sua carreira no <strong>Modo Solo</strong> sai de graça, no plano <strong>Peladeiro</strong>.',
     ],
     refs: [
       { nome:'Elifoot (site oficial)', desc:'Se o que você procura é o Elifoot em si, ele fica aqui, com o criador dele.', url:'https://www.elifoot.com/' },
@@ -183,10 +183,10 @@ hoje a partir daquilo que eles ensinaram. Os sites oficiais dos dois estão aqui
       { q:'O RetroFoot é o Elifoot online?', a:'<p>Não. O RetroFoot é um <strong>jogo próprio</strong>, escrito do zero, sem ligação com o Elifoot. Os dois são managers de futebol e dividem a mesma escola — a de ser o técnico e decidir — mas são jogos diferentes, de gente diferente. O site oficial do Elifoot está nas referências desta página.</p>' },
       { q:'Funciona no celular?', a:'<p>Funciona. O layout se adapta à tela e o save fica na nuvem, então dá para começar no computador e continuar no celular — a carreira é a mesma.</p>' },
       { q:'Preciso criar conta?', a:'<p>No <strong>Modo Solo</strong>, dá para começar rápido. Para o Modo Resenha (com amigos) a conta é necessária, porque é ela que guarda a sua sala e o seu clube.</p>' },
-      { q:'É pago?', a:'<p>Começar e jogar a sua carreira no <strong>Modo Solo</strong> é de graça, sem prazo. O <strong>Modo Resenha</strong> — o multiplayer, em que o servidor roda a rodada de todo mundo — vem liberado por <strong>7 dias</strong> quando você cria a conta, para experimentar com a turma; depois disso ele passa a ser do plano.</p>' },
+      { q:'É pago?', a:'<p>A 1ª temporada da sua carreira no <strong>Modo Solo</strong> é de graça. Temporadas seguintes, carreiras ilimitadas e o <strong>Modo Resenha</strong> — o multiplayer, em que o servidor roda a rodada de todo mundo — são do plano <strong>Pro</strong>, por <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual).</p>' },
       { q:'Preciso de internet o tempo todo?', a:'<p>Precisa: o RetroFoot roda no navegador e a sua carreira fica gravada na nuvem, ligada à conta. Não existe versão para jogar sem conexão.</p>' },
       { q:'Em que navegadores funciona?', a:'<p>Nos navegadores atuais de celular e computador — Chrome, Safari, Edge, Firefox. Não há instalador, extensão nem plugin: é uma página que carrega.</p>' },
-      { q:'Quantas carreiras posso ter?', a:'<p>Depende do plano. No <strong>Peladeiro</strong> (grátis) você começa até <strong>3 carreiras por mês</strong>; no plano <strong>Resenha</strong>, até 10; no <strong>Embaixador</strong>, sem cota. Atenção a uma letra miúda: a conta é de carreiras <em>começadas</em> no mês, então apagar uma que acabou não devolve a vaga.</p>' },
+      { q:'Quantas carreiras posso ter?', a:'<p>Depende do plano. No <strong>Peladeiro</strong> (grátis) você joga <strong>uma carreira</strong>, com a 1ª temporada inteira. No <strong>Pro</strong>, carreiras e temporadas são ilimitadas.</p>' },
       { q:'Dá para jogar mais rápido?', a:'<p>Dá: a partida ao vivo tem ritmos <strong>Curto, Médio e Longo</strong>, e o Curto já resolve um jogo em pouco mais de meio minuto. Quem assina tem também o <strong>Ultrassônico</strong>, em que a partida inteira passa em cerca de dez segundos — é o ritmo de quem quer atravessar várias temporadas.</p>' },
     ],
         body: `
@@ -290,7 +290,7 @@ rodada é agora.</p>
       { q:'O que faz um jogo de treinador de futebol?', a:'<p>Em vez de controlar a bola, você comanda o clube: escolhe a tática e o time titular, negocia jogadores, administra salários, bilheteria e estádio, e disputa a temporada rodada a rodada.</p>' },
       { q:'É difícil de aprender?', a:'<p>Não. Em poucos minutos você entende a tela e já escala o time — a formação entra arrastando o jogador para a posição. O <a href="/guia/">guia do jogo</a> cobre o resto, como fazer dinheiro no mercado e que formação usar em cada divisão.</p>' },
       { q:'Dá para contratar jogador de fora do Brasil?', a:'<p>Dá, desde a primeira temporada. O mercado do RetroFoot é <strong>mundial</strong>: você procura em qualquer país com elenco no jogo, e clubes de fora também aparecem oferecendo pelos seus jogadores.</p>' },
-      { q:'Quanto custa?', a:'<p>O <strong>Modo Solo</strong> é gratuito e sem prazo. O <strong>Modo Resenha</strong>, com a turma, vem liberado por 7 dias quando você cria a conta e depois passa a ser do plano.</p>' },
+      { q:'Quanto custa?', a:'<p>A 1ª temporada no <strong>Modo Solo</strong> é gratuita. Para seguir a carreira nas temporadas seguintes e jogar o <strong>Modo Resenha</strong> com a turma, o plano é o <strong>Pro</strong>: <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual).</p>' },
       { q:'Os clubes e os jogadores são os de verdade?', a:'<p>Os <strong>clubes são os de verdade</strong>, com o escudo e as cores de cada um — só que aparecem pelo <strong>apelido da torcida</strong> em vez do nome oficial: o ABC é o <em>Elefante Potiguar</em>. Os <strong>elencos também são os reais</strong>, jogador por jogador, com <strong>nomes fictícios</strong>. É a mesma razão pela qual os clássicos do gênero sempre dependeram de patches da comunidade: nome de clube e de atleta é marca registrada, e licenciar isso num jogo gratuito não se paga.</p>' },
       { q:'Posso escolher o meu time do coração?', a:'<p>Não — e isso é de propósito. Você escolhe a <strong>divisão</strong>, e o <strong>sorteio</strong> escolhe o clube. A graça é o que você faz com o time que caiu na sua mão, e no Modo Resenha isso mantém a liga justa: ninguém pega o grandão por combinação.</p>' },
       { q:'Quanto tempo dura uma partida?', a:'<p>Você decide o ritmo: no <strong>Curto</strong> a partida dá pouco mais de meio minuto, e há ainda <strong>Médio</strong> e <strong>Longo</strong> para quem quer acompanhar lance a lance. Quem assina tem o <strong>Ultrassônico</strong>, de cerca de dez segundos por jogo.</p>' },
@@ -342,7 +342,7 @@ título vale o peso real da competição que ele é.</p>
 ${fig('carreira', 'A carreira do treinador: temporadas, campanhas e a segurança no cargo')}
 
 <h2>Sozinho ou com a turma</h2>
-<p>No <strong>Modo Solo</strong> você enfrenta a máquina no seu ritmo, de graça e sem prazo. No
+<p>No <strong>Modo Solo</strong> você enfrenta a máquina no seu ritmo — a 1ª temporada é de graça. No
 <strong>Modo Resenha</strong>, até 10 treinadores disputam o mesmo campeonato, cada um no seu aparelho — é a
 <a href="/jogar-com-amigos/">liga da sua turma</a>. Os dois rodam no navegador, sem instalar nada.</p>
 
@@ -371,7 +371,7 @@ ${fig('carreira', 'A carreira do treinador: temporadas, campanhas e a segurança
       { q:'Tem futebol feminino?', a:'<p>Tem. Logo no começo da carreira você escolhe comandar o elenco masculino ou o feminino — mesmos clubes, mesmo calendário, mesmas competições.</p>' },
       { q:'Por que os clubes aparecem pelo apelido?', a:'<p>Porque nome de clube é marca registrada. Os clubes são os de verdade, com escudo e cores, e aparecem pelo <strong>apelido da torcida</strong> — o ABC é o <em>Elefante Potiguar</em>. Os elencos são os reais de cada clube, com nomes fictícios. É o mesmo motivo pelo qual os clássicos do gênero sempre viveram de patches.</p>' },
       { q:'Posso escolher o meu time?', a:'<p>Você escolhe a <strong>divisão</strong>; o <strong>sorteio</strong> escolhe o clube. É uma regra da casa: o desafio é o que você faz com o time que recebeu — e numa liga com amigos é o que impede alguém de pegar o grandão por combinação.</p>' },
-      { q:'Quanto custa jogar?', a:'<p>Nada para começar: o <strong>Modo Solo</strong> é gratuito e sem prazo, com até 3 carreiras por mês. O <strong>Modo Resenha</strong> é liberado por 7 dias ao criar a conta e depois passa a ser dos planos pagos — mas entrar na sala de um amigo continua sem custar nada.</p>' },
+      { q:'Quanto custa jogar?', a:'<p>Nada para começar: no <strong>Peladeiro</strong>, o plano grátis, você joga uma carreira no <strong>Modo Solo</strong>, com a 1ª temporada inteira. O <strong>Pro</strong> libera temporadas e carreiras ilimitadas e dá acesso exclusivo ao <strong>Modo Resenha</strong> na versão Beta, por <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual).</p>' },
     ],
         body: `
 <p class="lead">Um manager brasileiro de verdade não começa na Série A. Começa lá embaixo, com o caixa curto, um elenco
@@ -430,7 +430,7 @@ clubes, o mesmo calendário e as mesmas competições — muda quem entra em cam
   {
     slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-20',
     title: 'Jogar manager de futebol com amigos: o Modo Resenha do RetroFoot',
-    description: 'No Modo Resenha do RetroFoot, até 10 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Grátis para experimentar.',
+    description: 'No Modo Resenha do RetroFoot, até 10 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Exclusivo do plano Pro na versão Beta.',
     h1: 'Modo Resenha: um campeonato de verdade com a sua turma',
     keywords: 'jogo de futebol online com amigos, manager de futebol multiplayer, jogo de treinador com amigos, modo resenha, retrofoot resenha, liga com amigos online',
     resumo: [
@@ -444,8 +444,8 @@ clubes, o mesmo calendário e as mesmas competições — muda quem entra em cam
       { q:'Como convido meus amigos?', a:'<p>Você abre a sala e compartilha o <strong>código</strong>. Quem recebe entra pelo navegador, digita o código e ocupa um assento — sem baixar nada.</p>' },
       { q:'Todo mundo precisa estar online ao mesmo tempo?', a:'<p>Não precisa ser ao mesmo tempo, mas <strong>todo mundo precisa jogar a sua partida</strong> para a semana virar: a rodada só fecha quando o último assento jogar. Enquanto isso você continua no jogo — vendo a tabela, mexendo no elenco, negociando. É de propósito: ninguém tem o time simulado pelas costas por ter demorado.</p>' },
       { q:'Dá para jogar no celular?', a:'<p>Dá. Cada treinador entra do aparelho que quiser — celular, tablet ou computador — e o save fica na conta. O <strong>chat da sala</strong>, esse sim, só aparece no computador.</p>' },
-      { q:'Meus amigos precisam pagar para entrar na minha sala?', a:'<p><strong>Não.</strong> Entrar na resenha de alguém funciona em qualquer plano, inclusive no grátis — basta o código da sala. Quem precisa de plano é o <strong>anfitrião</strong>, quem abre a sala e chama a turma.</p>' },
-      { q:'Quanto custa abrir uma sala?', a:'<p>Abrir sala é do plano <strong>Embaixador</strong>: <strong>R$ 49,90 por mês</strong> ou R$ 399,00 por ano. Além de ser anfitrião de salas de 2 a 10 treinadores, ele dá carreiras ilimitadas no Modo Solo, o seu retrato por IA dentro do jogo e o selo no perfil. Há também o plano <strong>Resenha</strong> (R$ 19,90/mês), que tira o prazo de 7 dias e deixa você entrar na sala de qualquer anfitrião — mas não abre sala. E antes de qualquer assinatura: ao criar a conta, o Modo Resenha vem liberado por <strong>7 dias</strong>, justamente para a turma experimentar.</p>' },
+      { q:'Meus amigos precisam pagar para entrar na minha sala?', a:'<p><strong>Sim.</strong> Na versão Beta, o Modo Resenha é exclusivo do plano <strong>Pro</strong> — tanto para abrir a sala quanto para entrar na de um amigo. O Modo Solo continua com a 1ª temporada grátis, no plano Peladeiro.</p>' },
+      { q:'Quanto custa abrir uma sala?', a:'<p>Na versão Beta, o <strong>Modo Resenha</strong> — abrir a sua sala ou entrar na de um amigo — é exclusivo do plano <strong>Pro</strong>: <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual). Ele também dá temporadas e carreiras ilimitadas no Modo Solo, o save na nuvem e o selo Pro no perfil. Salas de 2 a 10 treinadores.</p>' },
       { q:'E se alguém sumir no meio do campeonato?', a:'<p>A rodada espera, porque a semana só fecha quando todos os assentos jogarem. Enquanto isso ninguém fica preso numa tela de espera: dá para ver a tabela, mexer no elenco e negociar. Se a pessoa sumiu de vez, quem organiza a sala é quem resolve — vale combinar isso com a turma antes de começar o campeonato.</p>' },
       { q:'Dá para jogar todo mundo no mesmo aparelho?', a:'<p>Dá: existe o modo de <strong>passar o aparelho</strong>, em que os treinadores da sala jogam em fila no mesmo celular ou computador, um de cada vez. É o jeito clássico, para quando a turma está junta na mesma mesa — mas o normal é cada um no seu aparelho, de onde estiver.</p>' },
       { q:'Precisamos combinar horário?', a:'<p>Não. Cada um joga a sua partida quando puder; a semana vira quando o último jogar. Combinar horário só vale a pena se vocês quiserem assistir juntos — e aí o <strong>Modo Camarote</strong> ajuda, porque põe o jogo em tela cheia com narração lance a lance.</p>' },
@@ -505,8 +505,8 @@ na mesma régua — com o peso de cada título valendo o que a competição vale
   <li><strong>Um navegador</strong> — no celular, no tablet ou no computador. Nada para instalar.</li>
   <li><strong>A turma</strong> — de 2 a 10 treinadores por sala.</li>
 </ul>
-<p>Ao criar a conta, o Modo Resenha vem liberado por <strong>7 dias</strong> para vocês experimentarem. Depois disso,
-abrir sala passa a ser do plano; o <strong>Modo Solo</strong> segue de graça e sem prazo.</p>
+<p>Na versão Beta, o Modo Resenha é exclusivo do plano <strong>Pro</strong> (R$ 19,90 por mês, ou R$ 14,90 por mês no anual). A 1ª temporada do
+<strong>Modo Solo</strong> segue de graça, para você conhecer o jogo antes.</p>
 
 <p><a href="/"><strong>Abra a sua sala e chame a turma</strong></a> — ou veja antes
 <a href="/elifoot-online/">como o jogo funciona no navegador</a> e a
@@ -533,7 +533,7 @@ abrir sala passa a ser do plano; o <strong>Modo Solo</strong> segue de graça e 
       { nome:'Brasfoot (site oficial)', desc:'Clássico brasileiro, forte em ligas e em patches da comunidade.', url:'https://www.brasfoot.com/' },
     ],
     faq: [
-      { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros das quatro divisões e um modo para jogar com a turma. O <strong>Modo Solo</strong> é gratuito e sem prazo.</p>' },
+      { q:'Qual o melhor jogo de treinador de futebol grátis?', a:'<p>Entre os gratuitos e sem instalação, o <strong>RetroFoot</strong> é a opção mais direta: roda no navegador, tem clubes brasileiros das quatro divisões e um modo para jogar com a turma. A 1ª temporada do <strong>Modo Solo</strong> é gratuita, no plano Peladeiro.</p>' },
       { q:'Tem algum que rode no celular sem baixar?', a:'<p>Tem: o RetroFoot roda no navegador do celular, e o save fica na nuvem — dá para começar no computador e continuar no telefone.</p>' },
       { q:'Football Manager é grátis?', a:'<p>Não — é um jogo pago, com versões para PC e console. É a escolha de quem quer simulação profunda e não se importa em instalar e aprender.</p>' },
       { q:'Qual é o melhor para jogar com os amigos?', a:'<p>Depende de como a turma se organiza. Se todo mundo puder estar no mesmo lugar, qualquer clássico serve. Se cada um está numa cidade, você precisa de multiplayer online de verdade — é o que o <a href="/jogar-com-amigos/">Modo Resenha</a> do RetroFoot faz, com até 10 treinadores na mesma liga.</p>' },
@@ -571,7 +571,7 @@ ano, e comparar nome a nome envelhece em um mês. O que não envelhece é o feit
   <tbody>
     <tr><td>Onde roda</td><td>PC ou console, com instalação</td><td>PC ou celular, com instalação</td><td><strong>No navegador, sem instalar</strong></td></tr>
     <tr><td>Tempo até a primeira partida</td><td>Uma tarde aprendendo a tela</td><td>Minutos</td><td><strong>Menos de um minuto</strong></td></tr>
-    <tr><td>Custo para começar</td><td>Pago</td><td>Versões grátis e pagas, varia por edição</td><td><strong>Modo Solo grátis, sem prazo</strong></td></tr>
+    <tr><td>Custo para começar</td><td>Pago</td><td>Versões grátis e pagas, varia por edição</td><td><strong>1ª temporada do Modo Solo grátis</strong></td></tr>
     <tr><td>Ligas jogáveis</td><td><strong>Dezenas</strong></td><td><strong>Muitas</strong> — é o forte do Brasfoot</td><td>Só o Brasil: Séries A, B, C e D</td></tr>
     <tr><td>Elencos em dia</td><td>Atualização oficial</td><td>Patches da comunidade</td><td>Atualização do próprio jogo</td></tr>
     <tr><td>Nomes de clube e de atleta</td><td>Licenciados</td><td>Reais nos patches da comunidade</td><td>Clube pelo apelido, jogador com nome fictício</td></tr>
@@ -588,7 +588,7 @@ todas as linhas — se ganhasse, não haveria três escolas.</p>
 
 <h2>O que o RetroFoot entrega</h2>
 <ul>
-  <li><strong>Grátis no Modo Solo</strong>, sem prazo e sem instalação — abre como qualquer site.</li>
+  <li><strong>1ª temporada grátis no Modo Solo</strong>, sem instalação — abre como qualquer site.</li>
   <li><strong>Clubes brasileiros das Séries A, B, C e D</strong>, mais Copa do Brasil, Libertadores e Sul-Americana.</li>
   <li><strong>Modo Resenha</strong> — até 10 treinadores na mesma liga, cada um no seu aparelho.</li>
   <li><strong>Mercado mundial</strong> — compra e venda com clubes de fora desde a primeira temporada.</li>
@@ -639,11 +639,11 @@ simulação profunda. Se for "um minuto", abra um manager de navegador. Vale tam
       { nome:'Football Manager (SEGA)', desc:'A referência internacional do gênero, com simulação profunda e paga.', url:'https://www.footballmanager.com/' },
     ],
     faq: [
-      { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot</strong> roda no navegador, é gratuito no <strong>Modo Solo</strong> e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque a carreira fica gravada na nuvem.</p>' },
+      { q:'Existe algum jogo tipo Elifoot grátis e online?', a:'<p>Sim: o <strong>RetroFoot</strong> roda no navegador, tem a 1ª temporada do <strong>Modo Solo</strong> grátis e não exige instalação — dá para jogar no celular ou no PC e continuar de onde parou, porque a carreira fica gravada na nuvem.</p>' },
       { q:'Preciso baixar alguma coisa?', a:'<p>Não. Abre o site e joga. É a diferença principal em relação aos clássicos de PC, que pedem download e instalação.</p>' },
       { q:'Os clubes e os jogadores são os de verdade?', a:'<p>Os <strong>clubes são os de verdade</strong> — as quatro divisões brasileiras, com o escudo e as cores de cada um —, só que aparecem pelo <strong>apelido da torcida</strong> em vez do nome oficial: o ABC é o <em>Elefante Potiguar</em>. Os <strong>elencos também são os reais</strong>, jogador por jogador, com <strong>nomes fictícios</strong>. É a mesma razão pela qual os clássicos do gênero dependiam de patches: nome de clube e de atleta é marca registrada, e licenciar tudo isso num jogo gratuito não se paga.</p>' },
       { q:'Dá para jogar com os amigos como era antigamente?', a:'<p>Dá, e sem o teclado passando de mão em mão: no <a href="/jogar-com-amigos/">Modo Resenha</a> até 10 treinadores disputam a mesma liga, cada um no seu aparelho.</p>' },
-      { q:'Quanto custa?', a:'<p>O <strong>Modo Solo</strong> é grátis e sem prazo (até 3 carreiras por mês). O <strong>Modo Resenha</strong> vem liberado por 7 dias ao criar a conta; depois é dos planos — mas entrar na sala de um amigo nunca custa nada.</p>' },
+      { q:'Quanto custa?', a:'<p>A 1ª temporada no <strong>Modo Solo</strong> é grátis. Temporadas seguintes, carreiras ilimitadas e o <strong>Modo Resenha</strong> são do <strong>Pro</strong>, por <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual).</p>' },
     ],
         body: `
 <p class="lead">Se você procura um <strong>jogo parecido com o Elifoot</strong>, provavelmente não está atrás de gráficos.
@@ -664,7 +664,7 @@ zoando os amigos no caminho. Esta página é sobre onde encontrar isso hoje.</p>
 <p>É o mais próximo dessa combinação hoje, e o único da lista que <strong>não pede instalação</strong>: abre no navegador,
 no celular ou no PC. Tem clubes brasileiros das quatro divisões, Copa do Brasil e continentais, mercado mundial, partida
 ao vivo e o <strong>Modo Resenha</strong> — até 10 treinadores na mesma liga, cada um no seu aparelho. O
-<strong>Modo Solo</strong> é gratuito e sem prazo.</p>
+<strong>Modo Solo</strong> tem a 1ª temporada grátis.</p>
 
 ${fig('formacao', 'A tela do técnico: escalação, banco, próximo jogo e caixa — tudo à vista')}
 
@@ -717,7 +717,7 @@ ${fig('sala-resenha', 'O Modo Resenha: a turma na mesma liga, cada um no seu apa
       { q:'Dá para jogar com ligas de outros países no RetroFoot?', a:'<p>Na versão atual, não: o clube que você comanda é <strong>brasileiro</strong>, nas quatro divisões. As ligas estrangeiras rodam ao fundo e o mercado negocia com elas, mas sentar num clube de fora ainda não dá. Nesse quesito, quem quer muitas ligas jogáveis se serve melhor no Brasfoot.</p>' },
       { q:'Por que o Brasfoot tem os nomes reais e o RetroFoot não?', a:'<p>Não é falta de dados, é licença: nome de clube e de atleta é marca registrada. No Brasfoot, quem historicamente resolve isso é a <strong>comunidade de patches</strong>, por fora do jogo. No RetroFoot os clubes aparecem pelo <strong>apelido da torcida</strong> — o ABC é o <em>Elefante Potiguar</em> — e os elencos são os reais de cada clube com <strong>nomes fictícios</strong>.</p>' },
       { q:'Qual deles dá para jogar com os amigos à distância?', a:'<p>O <strong>Modo Resenha</strong> do RetroFoot foi feito para isso: até <strong>10 treinadores</strong> na mesma liga, cada um no seu aparelho, com sorteio dos clubes para todo mundo ao mesmo tempo e a semana fechando só quando o último jogar. Nos clássicos, jogar junto quase sempre queria dizer o mesmo computador.</p>' },
-      { q:'Quanto custa cada um?', a:'<p>Elifoot e Brasfoot têm versões gratuitas e registros pagos que variam por edição — confira nos sites oficiais, aqui nesta página. No RetroFoot, o <strong>Modo Solo</strong> é gratuito e sem prazo; o <strong>Modo Resenha</strong> tem 7 dias liberados e depois entra nos planos (R$ 19,90/mês para jogar nas salas dos outros, R$ 49,90/mês para abrir a sua).</p>' },
+      { q:'Quanto custa cada um?', a:'<p>Elifoot e Brasfoot têm versões gratuitas e registros pagos que variam por edição — confira nos sites oficiais, aqui nesta página. No RetroFoot, a 1ª temporada no <strong>Modo Solo</strong> é gratuita; temporadas seguintes, carreiras ilimitadas e o <strong>Modo Resenha</strong> são do plano <strong>Pro</strong> (R$ 19,90/mês, ou R$ 14,90/mês no anual).</p>' },
     ],
         body: `
 <p class="lead">Duas gerações discutem isso até hoje: <strong>Elifoot ou Brasfoot?</strong> A resposta honesta é que eles
@@ -795,7 +795,7 @@ estão logo abaixo. Se hoje a sua vontade é abrir uma aba e escalar um time em 
       { q:'O Brasfoot ainda é atualizado?', a:'<p>A última edição oficial é a <strong>Brasfoot 22-23</strong>, e o site oficial avisa explicitamente que <em>"não existe uma versão chamada Brasfoot 2026"</em>. A comunidade segue publicando patches de elenco, que é uma das forças históricas do jogo. Vale conferir a situação atual no site oficial, linkado nesta página.</p>' },
       { q:'Qual dos dois tem os nomes reais dos jogadores?', a:'<p>Nenhum dos dois traz os nomes oficiais de fábrica, e o motivo é o mesmo: nome de clube e de atleta é marca registrada. No <strong>Brasfoot</strong> quem resolve isso é a <strong>comunidade de patches</strong>, por fora do jogo, com um editor de nomes próprio. No <strong>RetroFoot</strong> os clubes aparecem pelo <strong>apelido da torcida</strong> (o ABC é o <em>Elefante Potiguar</em>) e os elencos são os reais com nomes fictícios. Vale dizer que nem o Football Manager escapa: por licenciamento, ele mostra os clubes brasileiros como sigla de três letras.</p>' },
       { q:'Qual é melhor para jogar com os amigos?', a:'<p>O <strong>RetroFoot</strong>, e por uma diferença de natureza: o <a href="/jogar-com-amigos/">Modo Resenha</a> põe até <strong>10 treinadores</strong> no mesmo campeonato, cada um no <strong>seu</strong> aparelho, de onde estiver, com a semana fechando só quando o último jogar. Nos clássicos de PC, jogar junto quase sempre quis dizer o mesmo computador.</p>' },
-      { q:'Quanto custa cada um?', a:'<p>O Brasfoot é gratuito para jogar, com registro opcional e gratuito que libera recursos — confira as condições da edição atual no site oficial. No RetroFoot, o <strong>Modo Solo</strong> é grátis e sem prazo; o <strong>Modo Resenha</strong> vem liberado por 7 dias ao criar a conta e depois entra nos planos, sendo que <strong>entrar na sala de um amigo nunca custa nada</strong>.</p>' },
+      { q:'Quanto custa cada um?', a:'<p>O Brasfoot é gratuito para jogar, com registro opcional e gratuito que libera recursos — confira as condições da edição atual no site oficial. No RetroFoot, a 1ª temporada no <strong>Modo Solo</strong> é grátis; para continuar a carreira e jogar o <strong>Modo Resenha</strong> com os amigos, o plano é o <strong>Pro</strong>, por <strong>R$ 19,90 por mês</strong> (ou R$ 14,90 por mês no anual).</p>' },
       { q:'O RetroFoot tem tantas ligas quanto o Brasfoot?', a:'<p>Não, e é honesto dizer: hoje o clube que você comanda no RetroFoot é <strong>brasileiro</strong>, nas quatro divisões. Muitas ligas jogáveis é justamente o forte do Brasfoot. O que o RetroFoot tem é <strong>mercado mundial</strong> — compra e venda com clubes de fora desde a primeira temporada — e as continentais.</p>' },
     ],
         body: `
@@ -813,7 +813,7 @@ melhor.</p>
     <tr><td>Onde roda</td><td>Windows</td><td><strong>Qualquer navegador atual</strong> — Windows, Mac, Linux, celular, tablet</td></tr>
     <tr><td>Celular</td><td>Não tem versão de celular</td><td><strong>Sim</strong> (o desktop mostra mais recursos de uma vez)</td></tr>
     <tr><td>Onde fica o save</td><td>Naquele computador</td><td><strong>Na nuvem</strong> — troca de aparelho sem perder a carreira</td></tr>
-    <tr><td>Um jogador</td><td>Sim</td><td>Sim — <strong>Modo Solo</strong>, grátis e sem prazo</td></tr>
+    <tr><td>Um jogador</td><td>Sim</td><td>Sim — <strong>Modo Solo</strong>, com a 1ª temporada grátis</td></tr>
     <tr><td>Vários jogadores</td><td>Historicamente, o mesmo computador</td><td><strong>Modo Resenha: até 10, online, cada um no seu aparelho</strong></td></tr>
     <tr><td>Ligas jogáveis</td><td><strong>Muitas — é o forte dele</strong></td><td>Brasil: Séries A, B, C e D</td></tr>
     <tr><td>Competições brasileiras</td><td>Presentes</td><td>Quatro divisões + Copa do Brasil + Libertadores + Sul-Americana</td></tr>
@@ -822,7 +822,7 @@ melhor.</p>
     <tr><td>Estilo e gráficos</td><td>2D, direto, foco em tabela e números</td><td>2D retrô, com partida ao vivo lance a lance</td></tr>
     <tr><td>Atualização oficial</td><td>Última edição: <strong>22-23</strong></td><td><strong>Contínua</strong></td></tr>
     <tr><td>Futebol feminino</td><td>—</td><td><strong>Sim</strong>, mesmos clubes e calendário</td></tr>
-    <tr><td>Custo para começar</td><td>Grátis, com registro gratuito opcional</td><td><strong>Modo Solo grátis, sem prazo</strong></td></tr>
+    <tr><td>Custo para começar</td><td>Grátis, com registro gratuito opcional</td><td><strong>1ª temporada do Modo Solo grátis</strong></td></tr>
   </tbody>
 </table>
 <p class="nota-dados">Dados do Brasfoot conferidos no site oficial em 21/09/2026. Edição, plataformas e condições
@@ -893,14 +893,14 @@ licenciamento. É uma restrição do gênero, não um atalho de quem faz o jogo.
     resumo: [
       'O <strong>Football Manager 26</strong> custa <strong>US$ 59,99</strong> e pede <strong>20 GB</strong> de disco.',
       'No celular, o FM26 é <strong>exclusivo para assinantes Netflix</strong> (ou Apple Arcade, na versão Touch).',
-      'O <strong>RetroFoot</strong> abre no navegador, sem baixar nada, e o <strong>Modo Solo</strong> é grátis.',
+      'O <strong>RetroFoot</strong> abre no navegador, sem baixar nada, e a 1ª temporada do <strong>Modo Solo</strong> é grátis.',
       'O FM ganha em profundidade e em número de ligas — e nem ele escapa do licenciamento: mostra os clubes brasileiros como sigla de três letras.',
     ],
     refs: [
       { nome:'Football Manager (site oficial)', desc:'A página oficial do FM26, com plataformas, preço e edições.', url:'https://www.footballmanager.com/' },
     ],
     faq: [
-      { q:'Existe alternativa grátis ao Football Manager?', a:'<p>Existe, e roda sem instalar nada: o <a href="/">RetroFoot</a> abre no navegador e o <strong>Modo Solo</strong> é gratuito, sem prazo. Não é um substituto de profundidade — o FM entrega muito mais camada tática e dezenas de ligas. É outra proposta: começar em um minuto e jogar com a turma de longe.</p>' },
+      { q:'Existe alternativa grátis ao Football Manager?', a:'<p>Existe, e roda sem instalar nada: o <a href="/">RetroFoot</a> abre no navegador e a 1ª temporada do <strong>Modo Solo</strong> é gratuita. Não é um substituto de profundidade — o FM entrega muito mais camada tática e dezenas de ligas. É outra proposta: começar em um minuto e jogar com a turma de longe.</p>' },
       { q:'Quanto custa o Football Manager 26?', a:'<p><strong>US$ 59,99</strong> nos Estados Unidos ou <strong>£45</strong> no Reino Unido, com desconto de 10% na pré-venda. Está incluído no Xbox Game Pass Ultimate e no PC Game Pass desde o lançamento. Dados conferidos em 21/09/2026 — confirme no site oficial.</p>' },
       { q:'Dá para jogar Football Manager no celular?', a:'<p>Dá, mas com condição: o <strong>FM26 Mobile</strong> é <strong>exclusivo para assinantes da Netflix</strong> no Android e no iOS, e a versão <strong>Touch</strong> vem pelo Apple Arcade. Ou seja, no telefone você depende de uma assinatura de terceiro. O RetroFoot abre no navegador do celular, sem assinatura e sem instalar.</p>' },
       { q:'Quanto espaço o Football Manager ocupa?', a:'<p><strong>20 GB</strong> de espaço livre, tanto no mínimo quanto no recomendado, em Windows e macOS. O RetroFoot não ocupa nada: é uma página que carrega.</p>' },
@@ -918,7 +918,7 @@ Abaixo, o que cada um entrega, incluindo as linhas em que o FM ganha.</p>
 <table>
   <thead><tr><th>Critério</th><th>Football Manager 26</th><th>RetroFoot</th></tr></thead>
   <tbody>
-    <tr><td>Preço</td><td>US$ 59,99 / £45 (ou Game Pass)</td><td><strong>Modo Solo grátis, sem prazo</strong></td></tr>
+    <tr><td>Preço</td><td>US$ 59,99 / £45 (ou Game Pass)</td><td><strong>1ª temporada do Modo Solo grátis</strong></td></tr>
     <tr><td>Precisa instalar?</td><td>Sim</td><td><strong>Não — abre no navegador</strong></td></tr>
     <tr><td>Espaço em disco</td><td><strong>20 GB</strong></td><td><strong>Nenhum</strong></td></tr>
     <tr><td>Onde roda</td><td>Windows, macOS, Xbox Series X/S, PS5, Switch</td><td><strong>Qualquer navegador atual</strong>, em qualquer sistema</td></tr>
@@ -950,7 +950,7 @@ faz e o RetroFoot ainda não.</p>
 <h2>Onde o RetroFoot ganha</h2>
 <h3>Não precisa de 20 GB nem de cartão</h3>
 <p>O FM26 pede <strong>20 GB</strong> de espaço livre e custa <strong>US$ 59,99</strong>. O RetroFoot é uma página: abre
-e joga, e o <strong>Modo Solo</strong> é grátis sem prazo. A barreira entre a vontade de jogar e a primeira rodada é de
+e joga, e a 1ª temporada do <strong>Modo Solo</strong> é grátis. A barreira entre a vontade de jogar e a primeira rodada é de
 um minuto, não de uma tarde.</p>
 
 ${fig('formacao', 'A tela do técnico: escalação, banco, próximo jogo e caixa — tudo à vista')}
@@ -1012,7 +1012,7 @@ registrada, e isso vale para o jogo grátis e para o de US$ 59,99.</p>
       { q:'Os dois rodam no celular?', a:'<p>O <strong>Brasfoot</strong> não tem versão de celular: é jogo de Windows. O <strong>FM26 Mobile</strong> existe no Android e no iOS, mas é <strong>exclusivo para assinantes da Netflix</strong> (a versão Touch vem pelo Apple Arcade). Para jogar no telefone sem instalar e sem assinatura de terceiro, o caminho é um manager de navegador.</p>' },
       { q:'Qual tem os clubes brasileiros com nome real?', a:'<p>Nenhum dos dois de fábrica, e o motivo é o mesmo: licenciamento. No <strong>FM26</strong> os clubes brasileiros aparecem como <strong>sigla de três letras</strong> — "GRE" em vez de Grêmio — da Série A até a C. No <strong>Brasfoot</strong> há editor próprio e uma forte <strong>comunidade de patches</strong>. Em ambos, quem resolve na prática é a comunidade.</p>' },
       { q:'O Brasfoot ainda recebe edição nova?', a:'<p>A última edição oficial é a <strong>Brasfoot 22-23</strong>, e o site oficial avisa que <em>"não existe uma versão chamada Brasfoot 2026"</em>. O Football Manager, por comparação, lança edição por temporada — o FM26 saiu em novembro de 2025. Confirme a situação atual nos dois sites oficiais, linkados aqui.</p>' },
-      { q:'Existe opção sem instalar nada?', a:'<p>Existe: o <strong>RetroFoot</strong> abre no navegador, no computador ou no celular, com o <strong>Modo Solo</strong> grátis e sem prazo, e um <a href="/jogar-com-amigos/">Modo Resenha</a> com até 10 treinadores online. Em troca, hoje só o Brasil é jogável — nesse ponto os dois desta página entregam mais ligas.</p>' },
+      { q:'Existe opção sem instalar nada?', a:'<p>Existe: o <strong>RetroFoot</strong> abre no navegador, no computador ou no celular, com a 1ª temporada do <strong>Modo Solo</strong> grátis e um <a href="/jogar-com-amigos/">Modo Resenha</a> com até 10 treinadores online. Em troca, hoje só o Brasil é jogável — nesse ponto os dois desta página entregam mais ligas.</p>' },
     ],
         body: `
 <p class="lead">É a comparação entre dois extremos do gênero. O <strong>Brasfoot</strong> é leve, gratuito e direto; o
@@ -1061,7 +1061,7 @@ requisitos mudam — confirme na fonte.</p>
 20 GB de disco. Quem está num Mac, num Chromebook, no computador do trabalho ou só com o celular na mão fica sem porta
 de entrada em ambos.</p>
 <p>É aí que entra o <strong>RetroFoot</strong>: abre no navegador, como qualquer site, e a primeira partida acontece em
-menos de um minuto. O <strong>Modo Solo</strong> é grátis e sem prazo, a carreira fica na nuvem, e dá para começar no
+menos de um minuto. A 1ª temporada do <strong>Modo Solo</strong> é grátis, a carreira fica na nuvem, e dá para começar no
 computador e continuar no telefone.</p>
 
 ${fig('formacao', 'A tela do técnico no RetroFoot: escalação, banco, próximo jogo e caixa')}
@@ -1113,7 +1113,7 @@ diretos: <a href="/brasfoot-vs-retrofoot/">Brasfoot vs RetroFoot</a> ·
       { q:'Como ganhar dinheiro no jogo?', a:'<p>Venda quem já chegou ao teto e aposte em jovens com espaço para evoluir — o valor de mercado é vivo e se move com força, idade, potencial, comportamento e momento. Fique de olho no leilão, venda para o exterior quando a proposta for boa, e não deixe a folha passar do que a bilheteria sustenta.</p>' },
       { q:'O que é a energia do jogador?', a:'<p>É o quanto ele tem de gás para a próxima partida. Abaixo de 70% o rendimento cai — dá para usar "Selecionar descansados" e escalar priorizando quem está inteiro.</p>' },
       { q:'Dá para contratar jogador de fora do Brasil?', a:'<p>Dá, desde a primeira temporada: o mercado é mundial, de ida e de volta. Vender bem para o exterior costuma ser o atalho que arruma o caixa de um clube pequeno.</p>' },
-      { q:'Quantas carreiras posso começar?', a:'<p>No <strong>Peladeiro</strong> (grátis), até <strong>3 por mês</strong>; no plano <strong>Resenha</strong>, até 10; no <strong>Embaixador</strong>, sem cota. A conta é de carreiras <em>começadas</em> no mês — apagar uma que acabou não devolve a vaga, então vale pensar antes de abrir uma carreira só para testar.</p>' },
+      { q:'Quantas carreiras posso começar?', a:'<p>No <strong>Peladeiro</strong> (grátis), <strong>uma</strong> — com a 1ª temporada inteira. No <strong>Pro</strong>, quantas você quiser, e cada uma com temporadas ilimitadas.</p>' },
       { q:'Perco o meu save se trocar de aparelho?', a:'<p>Não. A carreira fica na nuvem, ligada à sua conta: dá para começar no computador, continuar no celular e voltar, sempre no mesmo ponto.</p>' },
       { q:'Dá para acelerar a partida?', a:'<p>Dá. Os ritmos <strong>Curto, Médio e Longo</strong> estão disponíveis para todo mundo, e o Curto resolve um jogo em pouco mais de meio minuto. Quem assina tem o <strong>Ultrassônico</strong>, de cerca de dez segundos por partida — útil para atravessar temporadas sem abrir mão de ver o jogo.</p>' },
     ],

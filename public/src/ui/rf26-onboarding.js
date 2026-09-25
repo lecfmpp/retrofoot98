@@ -395,7 +395,7 @@ function rfOb2(){
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
           <span class="rf-modo-d">${(!RESENHA_EM_BREVE&&!rfPodeResenha())
-            ? 'Os seus 7 dias de Resenha no plano Peladeiro terminaram. O Modo Solo continua seu, sem prazo — o Resenha volta com qualquer plano pago.'
+            ? 'Na versão Beta, o Modo Resenha é exclusivo do plano Pro: entre na sala dos amigos ou abra a sua. O Modo Solo continua seu.'
             : `Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.`}</span>
           <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${
             RESENHA_EM_BREVE ? rfIcone('coroa',16)+' Entrar na lista de espera'

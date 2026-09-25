@@ -320,7 +320,7 @@ function rfResenhaComecarHTML(){
   const podeHosp=(typeof rfPodeHospedar!=='function')||rfPodeHospedar();
   const cartao=(o)=>`
     <button type="button" class="rf-rc-card ${o.destaque?'on':''} ${o.travado?'rf-travado':''}" onclick="${o.on}">
-      ${o.travado?'<span class="rf-selo-plano">🔒 Embaixador</span>':''}
+      ${o.travado?'<span class="rf-selo-plano">🔒 Pro</span>':''}
       <span class="rf-rc-ic" aria-hidden="true">${o.ic}</span>
       <span class="rf-rc-t">${escC(o.t)}</span>
       <span class="rf-rc-d">${escC(o.d)}</span>

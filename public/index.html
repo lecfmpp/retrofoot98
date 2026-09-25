@@ -69,7 +69,11 @@
   "applicationCategory": "GameApplication",
   "operatingSystem": "Qualquer (navegador web)",
   "playMode": ["SinglePlayer", "MultiPlayer"],
-  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" }
+  "offers": [
+    { "@type": "Offer", "name": "Grátis", "price": "0", "priceCurrency": "BRL" },
+    { "@type": "Offer", "name": "Pro (mensal)", "price": "19.90", "priceCurrency": "BRL" },
+    { "@type": "Offer", "name": "Pro (anual)", "price": "178.80", "priceCurrency": "BRL" }
+  ]
 }
 </script>
 <link rel="stylesheet" href="src/styles/main.css">
@@ -964,6 +968,7 @@ function teamMorale(id,players){
 <script src="src/ui/rf26-meujogador.js"></script>
 <script src="src/ui/rf26-pagamento.js"></script>
 <script src="src/ui/rf26-planos.js"></script>
+<script src="src/ui/rf26-paywall.js"></script>
 <!-- Leva 5: as cinco abas de Finanças (ver src/ui/rf26-financas.js) -->
 <script src="src/ui/rf26-financas.js"></script>
 <!-- O contador do clube: alerta de endividamento nas decisões e painel em Finanças (ver src/ui/rf26-contador.js) -->

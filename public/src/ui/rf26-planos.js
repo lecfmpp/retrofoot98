@@ -22,22 +22,21 @@
    com a escolha cartao/Pix ja' feita aqui dentro (linha "PAGAR COM" dos popups).
    ===================================================================== */
 
-const RF_UP_ORDEM = ['peladeiro','resenha','embaixador'];
+/* dois degraus desde 25/09 (Grátis × Pro) */
+const RF_UP_ORDEM = ['gratis','pro'];
 /* a arte dos popups ainda nao existe: quando chegar, o endereco entra aqui e a caixa (mesma
    altura, raio 14) passa a mostra-la. Vazio = placeholder. */
-const RF_UP_ARTE = { resenha:'', embaixador:'' };
+const RF_UP_ARTE = { pro:'' };
 const RF_UP = { ciclo:'mes', forma:'cartao', aberto:null };
 
 function rfUpDef(key){ return (typeof RF_PLANOS!=='undefined' && RF_PLANOS.find(p=>p.key===key)) || null; }
 
-/* o plano da conta, na lingua dos degraus. `free` (e qualquer coisa desconhecida) e' o
-   Peladeiro; `pro` e' o nome antigo do plano de cima. */
+/* o plano da conta, na lingua dos degraus: `free` (e qualquer coisa desconhecida) e' o Grátis;
+   `pro` e os antigos pagos `resenha`/`embaixador` sao o Pro. */
 function rfUpPlanoAtual(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   const p=st.plan||st.plano;
-  if(p==='embaixador'||p==='pro') return 'embaixador';
-  if(p==='resenha') return 'resenha';
-  return 'peladeiro';
+  return (p==='pro'||p==='resenha'||p==='embaixador') ? 'pro' : 'gratis';
 }
 function rfUpIdx(key){ return Math.max(0, RF_UP_ORDEM.indexOf(key)); }
 
@@ -86,14 +85,12 @@ function rfUpItensHTML(p, max){
    A VITRINE — faixa do plano atual, ciclo, tres cartoes
    ===================================================================== */
 const RF_UP_RESUMO = {
-  peladeiro:'Você joga o Modo Solo com 3 carreiras por mês e tem 7 dias de Resenha nas salas dos outros.',
-  resenha:'Modo Resenha sem prazo e 10 carreiras por mês. Falta abrir sala como anfitrião.',
-  embaixador:'Tudo liberado: você abre as salas, tem carreiras ilimitadas e o seu jogador na base oficial.',
+  gratis:'Você joga uma carreira no Modo Solo, com a 1ª temporada inteira de graça.',
+  pro:'Tudo liberado: temporadas e carreiras ilimitadas, save na nuvem e acesso exclusivo ao Modo Resenha no lançamento do Beta.',
 };
 const RF_UP_SUB = {
-  peladeiro:'Você está no Peladeiro, o plano grátis. Veja o que muda ao subir.',
-  resenha:'Você está no Resenha. Falta um degrau para virar anfitrião.',
-  embaixador:'Você está no Embaixador, o plano mais completo. Nada a fazer aqui.',
+  gratis:'Você está no Peladeiro, o plano grátis. Veja o que muda com o Pro.',
+  pro:'Você é Pro. Nada a fazer aqui — só jogar.',
 };
 
 function rfUpPaginaHTML(){
@@ -174,7 +171,7 @@ function rfUpPaginaHTML(){
     </div>
     <div class="rf-up-ciclo-linha">
       ${rfUpCicloHTML('rfUpPaginaCiclo')}
-      <span class="rf-up-beta"><span class="rf-up-emo">🔨</span><span>${escC(rfUpBetaTexto())}</span></span>
+      ${(typeof RF_BETA!=='undefined'&&RF_BETA.on)?`<span class="rf-up-beta"><span class="rf-up-emo">🔨</span><span>${escC(rfUpBetaTexto())}</span></span>`:''}
       <span class="rf-sp"></span>
       <span class="rf-up-cobranca"><span class="rf-up-emo">🔒</span><span>Cobrança pelo Stripe, no cartão ou no Pix. Cancela quando quiser.</span></span>
     </div>
@@ -254,7 +251,6 @@ function rfUpArteHTML(key){
 function rfUpPopupPlano(key, trava){
   const p=rfUpDef(key); if(!p || !p.mes || !p.venda) return;
   RF_UP.aberto={tipo:'plano', key, trava:trava||null};
-  const outro = key==='resenha' ? rfUpDef('embaixador') : rfUpDef('resenha');
   const beta=(typeof rfBetaVale==='function') && rfBetaVale(p);
   const qM=rfUpPreco(p,'mes'), qA=rfUpPreco(p,'ano');
   const economia=Math.round((p.mes*12-p.ano)*100/(p.mes*12));
@@ -266,7 +262,7 @@ function rfUpPopupPlano(key, trava){
   ];
   const q = RF_UP.ciclo==='ano' ? qA : qM;
   const pix = RF_UP.forma==='pix';
-  const cta = `${key==='embaixador'?'<span class="rf-up-emo">👑</span>':''}<span>${escC(p.cta)} — ${escC(q.final)}/${RF_UP.ciclo==='ano'?'ano':'mês'}</span>`;
+  const cta = `${key==='pro'?'<span class="rf-up-emo">👑</span>':''}<span>${escC(p.cta)} — ${escC(q.final)}/${RF_UP.ciclo==='ano'?'ano':'mês'}</span>`;
   const periodo = RF_UP.ciclo==='ano' ? 'um ano' : 'um mês';
   const ctaNota = pix
     ? `Um Pix de ${q.final}, vale por ${periodo}. Sem renovação automática.`
@@ -275,10 +271,6 @@ function rfUpPopupPlano(key, trava){
                 : `Um pagamento de ${q.final}. Renova daqui a um ano.`)
         : (beta ? `Paga ${q.final} nos ${RF_BETA.meses} primeiros meses, depois ${rfBRL(p.mes)}.`
                 : 'Renova todo mês. Cancela quando quiser.'));
-  const precoOutro = outro ? rfUpPreco(outro,'mes').final : '';
-  const cross = key==='resenha'
-    ? `Quer <b>abrir a sua própria sala</b>? Quem abre é o Embaixador, por ${escC(precoOutro)}/mês — <button type="button" class="rf-up-link" onclick="rfUpPopupPlano('embaixador')">ver o plano →</button>`
-    : `Só quer <b>entrar nas salas</b> dos amigos, sem abrir a sua? O Resenha faz isso por ${escC(precoOutro)}/mês — <button type="button" class="rf-up-link" onclick="rfUpPopupPlano('resenha')">ver o plano →</button>`;
 
   rfUpMostrar(`
     <div class="rf-up-venda">
@@ -312,7 +304,6 @@ function rfUpPopupPlano(key, trava){
             <span class="rf-up-emo">⚡</span><span>Pix</span></button>
         </div>
       </div>
-      <div class="rf-up-cross"><span>💬</span><span>${cross}</span></div>
       <div class="rf-up-pe">
         <button type="button" class="rf-up-cta" onclick="rfUpPagar('${key}', ${trava?`'${escC(trava)}'`:'null'})">${cta}</button>
         <span class="rf-up-cta-nota">${escC(ctaNota)}</span>
@@ -332,27 +323,24 @@ function rfUpPopupPlano(key, trava){
    seu caso", dizem qual e' o proximo degrau.
    ===================================================================== */
 const RF_UP_MOTIVOS = {
-  anfitriao:{ trava:true, alvo:'embaixador', selo:'ABRIR SALA É DOS PLANOS PAGOS',
-    titulo:'Pra chamar a turma, você precisa ser o anfitrião.',
-    sub:'No Peladeiro você entra nas salas dos outros por 7 dias. Quem abre a sala, escolhe os clubes e manda no calendário é o Embaixador.' },
-  saves:{ trava:true, alvo:'resenha', selo:'VOCÊ USOU AS CARREIRAS DO MÊS',
-    titulo:'Sua cota de carreiras acabou este mês.',
-    sub:'Apagar uma carreira não devolve a vaga. Com um plano pago você começa 10 por mês — ou quantas quiser.' },
-  prazo:{ trava:true, alvo:'resenha', selo:'SEUS 7 DIAS DE RESENHA TERMINARAM',
-    titulo:'O Modo Resenha saiu da sua conta.',
-    sub:'O Modo Solo continua seu, sem prazo. O Resenha volta com qualquer plano pago — e aí não tem mais contagem.' },
+  anfitriao:{ trava:true, alvo:'pro', selo:'O MODO RESENHA É DO PRO',
+    titulo:'Pra chamar a turma, você precisa ser Pro.',
+    sub:'O Modo Resenha — abrir a sala, escolher os clubes e jogar a mesma semana com os amigos — é exclusivo do Pro quando lançarmos a versão Beta. E o Pro já traz temporadas e carreiras ilimitadas no Modo Solo.' },
+  saves:{ trava:true, alvo:'pro', selo:'O PELADEIRO TEM UMA CARREIRA',
+    titulo:'Quer começar outra carreira?',
+    sub:'No Peladeiro você joga uma carreira, com a 1ª temporada inteira. No Pro são quantas carreiras e temporadas você quiser.' },
+  prazo:{ trava:true, alvo:'pro', selo:'O MODO RESENHA É DO PRO',
+    titulo:'Jogar com a turma é do Pro.',
+    sub:'O Modo Solo continua seu. O Modo Resenha — entrar na sala dos amigos ou abrir a sua — é exclusivo do Pro quando lançarmos a versão Beta.' },
   inicio:{ selo:'TEMPORADA NOVA', icone:'🏁',
-    titulo:'Temporada nova, turma nova?',
-    sub:'Com um plano pago o Modo Resenha fica sem prazo: a liga com os amigos vai até a última rodada.' },
+    titulo:'Essa temporada pode ser só o começo.',
+    sub:'No Pro a carreira não para: temporadas ilimitadas, save na nuvem e acesso exclusivo ao Modo Resenha quando lançarmos a versão Beta.' },
   turno:{ selo:'VIRADA DO TURNO', icone:'🔄',
     titulo:'Metade do campeonato já foi.',
-    sub:'Se a turma quer jogar o returno junto, o Resenha não tem contagem de 7 dias — e o Embaixador abre a sala.' },
+    sub:'No Peladeiro a carreira termina no fim desta temporada. Com o Pro você segue para a próxima — e para quantas quiser.' },
   reta:{ selo:'RETA FINAL', icone:'🏆',
-    titulo:'A reta final é melhor com a turma olhando.',
-    sub:'Chame os amigos para a próxima temporada: o Resenha entra em qualquer sala, o Embaixador abre a sua.' },
-  fim:{ selo:'FIM DE TEMPORADA', icone:'🎉',
-    titulo:'Temporada fechada. A próxima pode ser com a galera.',
-    sub:'Mais carreiras no Modo Solo e o Modo Resenha sem prazo, a partir do primeiro mês.' },
+    titulo:'A reta final decide o ano.',
+    sub:'Subiu, ficou ou caiu: com o Pro você disputa a próxima temporada com o mesmo clube e o mesmo elenco.' },
 };
 function rfUpPopupDois(motivo){
   const m=RF_UP_MOTIVOS[motivo]||RF_UP_MOTIVOS.anfitriao;
@@ -360,18 +348,9 @@ function rfUpPopupDois(motivo){
   const atual=rfUpPlanoAtual(), iA=rfUpIdx(atual);
   /* o destaque: numa trava, o plano que resolve; num marco, o proximo degrau */
   /* quem ja' tem o plano que "resolve" (um Resenha sem cota) so' sai pelo degrau de cima */
-  let alvo = m.trava ? m.alvo : (RF_UP_ORDEM[iA+1]||'embaixador');
-  if(rfUpIdx(alvo)<=iA) alvo = RF_UP_ORDEM[iA+1]||'embaixador';
-  let sub = m.sub;
-  if(motivo==='saves' && atual==='resenha')
-    sub = 'Apagar uma carreira não devolve a vaga. No Embaixador não há cota: você começa quantas quiser.';
-  /* a trava de "saves" diz quantas carreiras eram — o numero vem do plano, nao do texto */
-  let selo=m.selo;
-  if(motivo==='saves'){
-    const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
-    if(st.savesMax) selo=`VOCÊ USOU AS ${st.savesMax} CARREIRAS DO MÊS`;
-  }
-  const planos=['resenha','embaixador'].map(k=>{
+  const alvo='pro';
+  const sub=m.sub, selo=m.selo;
+  const planos=RF_UP_ORDEM.map(k=>{
     const p=rfUpDef(k); if(!p) return '';
     const q=rfUpPreco(p, RF_UP.ciclo);
     const eAlvo=k===alvo, jaTem=rfUpIdx(k)<=iA;
@@ -393,7 +372,7 @@ function rfUpPopupDois(motivo){
       ${btn}
     </div>`;
   }).join('');
-  const fica = atual==='peladeiro' ? 'Continuar no Peladeiro' : 'Agora não';
+  const fica = atual==='gratis' ? 'Continuar no Peladeiro' : 'Agora não';
   rfUpMostrar(`
     <div class="rf-up-dtopo">
       <button type="button" class="rf-up-x claro" aria-label="Fechar" onclick="rfUpFechar()">✕</button>
@@ -403,7 +382,7 @@ function rfUpPopupDois(motivo){
     </div>
     <div class="rf-up-dbarra">
       ${rfUpCicloHTML('rfUpCicloPop')}
-      <span class="rf-up-beta"><span class="rf-up-emo">🔨</span><span>${escC(rfUpBetaTexto())}</span></span>
+      ${(typeof RF_BETA!=='undefined'&&RF_BETA.on)?`<span class="rf-up-beta"><span class="rf-up-emo">🔨</span><span>${escC(rfUpBetaTexto())}</span></span>`:''}
     </div>
     <div class="rf-up-dplanos">${planos}</div>
     <div class="rf-up-dpe">
@@ -447,7 +426,7 @@ function rfUpCarimbar(marco, temporada){
 function rfUpPodeVender(){
   if(typeof S==='undefined' || !S) return false;
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
-  return !!st.loggedIn && rfUpPlanoAtual()!=='embaixador';
+  return !!st.loggedIn && rfUpPlanoAtual()!=='pro';
 }
 /* a tela esta' livre? — so' o clube parado, sem nada aberto por cima */
 function rfUpTelaLivre(){
@@ -458,10 +437,7 @@ function rfUpTelaLivre(){
   if(document.querySelector('.rf-up-fundo, .rf-pg-fundo, .rf-ac-fundo, .rf-teatro')) return false;
   return true;
 }
-function rfUpMostrarMarco(marco){
-  if(rfUpPlanoAtual()==='resenha') rfUpPopupPlano('embaixador');
-  else rfUpPopupDois(marco);
-}
+function rfUpMostrarMarco(marco){ rfUpPopupDois(marco); }
 /* qual marco esta' devido agora, pela rodada. So' o mais adiantado aparece: quem abre um save
    no meio da temporada ve a virada do turno, e o inicio fica carimbado sem ser mostrado. */
 function rfUpMarcoDaRodada(){
@@ -504,14 +480,14 @@ function rfUpMarcoRodada(){
   }catch(e){ console.warn('marco de planos:', e); }
 }
 /* chamado quando o jogador avanca para a temporada nova: `temporada` e' a que acabou */
-function rfUpMarcoFim(temporada){
-  try{ if(rfUpPodeVender()) rfUpAgendar('fim', temporada); }catch(e){}
-}
+/* O FIM DE TEMPORADA SAIU DOS MARCOS (25/09): quem não é Pro já passa pelo paywall de
+   temporada (rf26-paywall.js) antes de virar — um segundo popup logo depois seria repetir. */
+function rfUpMarcoFim(temporada){}
 
 /* =====================================================================
    AS TRAVAS: o popup de gatilho substitui a janela antiga em tres delas
    ===================================================================== */
-const RF_UP_TRAVA_MOTIVO = { hospedar:'anfitriao', saves:'saves', savesResenha:'saves', resenha:'prazo' };
+const RF_UP_TRAVA_MOTIVO = { hospedar:'anfitriao', saves:'saves', resenha:'prazo' };
 function rfUpTrava(chave){
   const m=RF_UP_TRAVA_MOTIVO[chave];
   if(!m) return false;

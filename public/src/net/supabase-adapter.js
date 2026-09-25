@@ -1440,6 +1440,32 @@ async function netLoadGame(){
    ligado no projeto, a função responde 503 com esse motivo e quem chamou volta
    para a lista de espera, que é o comportamento de hoje. Botão nenhum morre no
    meio do caminho. */
+/* ===== TEMPORADAS DO GRÁTIS (25/09, ver rf26-paywall.js) =====
+   rf_temporadas: teto da carreira, se é veterano da fase Beta e que saídas grátis já usou.
+   null = não deu para perguntar (quem chamou deixa a virada seguir: a trava do banco segura). */
+async function netTemporadas(save){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER || !save) return null;
+  try{
+    const { data, error } = await sb.rpc('rf_temporadas', { p_save:String(save) });
+    if(error) throw error;
+    return (Array.isArray(data) ? data[0] : data) || null;
+  }catch(e){ console.warn('temporadas do plano:', e && e.message); return null; }
+}
+/* +1 temporada por depoimento (texto) ou post (link). O servidor libera na hora e avisa a equipe. */
+async function netLiberarTemporada(save, tipo, texto, link, resumo){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
+  const { data, error } = await sb.rpc('rf_liberar_temporada', {
+    p_save:String(save), p_tipo:tipo, p_texto:texto||null, p_link:link||null, p_resumo:resumo||null });
+  if(error){
+    const m=String(error.message||'');
+    const cod=(m.match(/DEPOIMENTO_CURTO|LINK_INVALIDO|JA_USADO|NAO_SE_APLICA|SAVE_INEXISTENTE/)||[])[0]||'falhou';
+    return { erro:cod };
+  }
+  return { teto:Number(data)||0 };
+}
+
 /* ===== PORTAL DA ASSINATURA (25/09) =====
    "Gerir assinatura" em Minha Conta: cancelar, trocar mensal/anual, trocar cartão, ver faturas.
    O portal é do Stripe (edge function portal-assinatura); quem muda o plano continua a ser só o
@@ -2049,6 +2075,8 @@ NET.authStatus = netAuthStatus;
 NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
 NET.criarCheckout = netCriarCheckout;   // devolve {url} ou {erro}
 NET.abrirPortal = netAbrirPortal;       // devolve {url} ou {erro}
+NET.temporadas = netTemporadas;         // rf_temporadas(save) ou null
+NET.liberarTemporada = netLiberarTemporada; // {teto} ou {erro}
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;

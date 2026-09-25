@@ -606,11 +606,9 @@ function rfMjHTML(){
   const e=rfMjEstado();
   if(!rfMjEhEmbaixador()){
     return rfCol(rfCard('O seu jogador na base oficial', `
-      <div class="rf-empty">Pôr o seu nome e a sua cara num jogador da base é do plano
-        <b>Embaixador</b>. Ele nasce nos elencos, é escalado, leva cartão e faz gol nos jogos
-        de todos os outros treinadores.</div>
-      <div class="rf-mj-pe"><button type="button" class="rf-mj-bt-cta"
-        onclick="rfPlanoCta('embaixador',null,'mes')">Quero ser Embaixador</button></div>`));
+      <div class="rf-empty">Pôr o seu nome e a sua cara num jogador da base oficial — ele nasce
+        nos elencos, é escalado, leva cartão e faz gol nos jogos de todos os outros treinadores —
+        vai ser um item à parte, e chega em breve.</div>`));
   }
   if(e.minha===undefined || (e.minha===null && !e._perguntou)){ e._perguntou=true; rfMjCarregarMinha(); }
   if(e.minha){

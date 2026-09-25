@@ -29,7 +29,6 @@
    foi a porta do topo, nao o conteudo. Para religar, basta devolver a linha aqui. */
 const RF_LP_NAV=[
   ['jogo','O jogo','O jogo'],['telas','Por dentro','Por dentro'],['resenha','Modo Resenha','Resenha'],
-  ['oficial','Seu jogador','Jogador'],
   ['planos','Planos','Planos'],
 ];
 
@@ -71,12 +70,12 @@ function rfPlanoAtual(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
   return st.plan || 'free';
 }
-/* O plano gratis chama-se 'free' no banco e 'peladeiro' na pagina (a chave em
-   RF_PLANOS). Os dois pagos tem o mesmo nome dos dois lados. Esta ponte existe
-   para nao haver um `plan==='peladeiro'` nunca verdadeiro escondido algures. */
+/* O plano gratis chama-se 'free' no banco e 'gratis' na pagina (a chave em RF_PLANOS); os
+   pagos — 'pro' e os antigos 'resenha'/'embaixador' — sao todos 'pro' na pagina. */
 function rfPlanoCartao(plano){
   const k=plano||rfPlanoAtual();
-  return (k==='free') ? 'peladeiro' : k;
+  /* os pagos antigos (Resenha, Embaixador) valem como Pro desde 25/09 */
+  return (k==='resenha'||k==='embaixador'||k==='pro') ? 'pro' : 'gratis';
 }
 function rfSavesTeto(){
   const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
@@ -166,27 +165,22 @@ function rfResenhaDiasRestantes(){
    trouxe a pessoa ate' aqui ("jogo · saves · Resenha"), que e' o que depois
    diz qual das travas de facto converte. */
 const RF_TRAVAS={
-  /* NAO MANDA APAGAR. O texto antigo dizia "apague uma que ja' acabou" — e desde
-     que a cota passou a ser de CRIACOES no mes, apagar nao devolve vaga
-     nenhuma. Mandar alguem apagar uma carreira para destrancar o jogo, e o
-     jogo continuar trancado depois, e' o pior desfecho possivel desta janela. */
-  saves:{ tier:'resenha', titulo:'A sua cota de carreiras acabou',
-    texto:(n)=>`O plano Peladeiro começa ${n?`até <b>${n}</b> carreira${n>1?'s':''}`:'um número limitado de carreiras'} por mês <b>no Modo Solo</b>, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga — a carreira já foi começada.`,
-    saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
-  savesResenha:{ tier:'embaixador', titulo:'A sua cota de carreiras acabou',
-    texto:(n)=>`O plano Resenha começa ${n?`até <b>${n}</b> carreiras`:'um número limitado de carreiras'} por mês <b>no Modo Solo</b>, e você já usou ${n?'todas':'a sua cota'} neste mês. Apagar uma que acabou <b>não</b> devolve a vaga. No Embaixador não há cota.`,
-    saida:()=>{ const q=rfSavesRenovaEm(); return q?`A cota vira no dia ${q}. Até lá, as carreiras que você já tem continuam inteiras.`:'As carreiras que você já tem continuam inteiras.'; } },
-  hospedar:{ tier:'embaixador', titulo:'Abrir a sala é do Embaixador',
-    texto:()=>'Entrar na resenha dos outros dá em qualquer plano, inclusive no grátis. <b>Abrir a sua</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é do plano Embaixador.',
-    saida:'Já tem o código de alguém? Volte e entre na sala dele: isso não custa nada.' },
-  resenha:{ tier:'resenha', titulo:'Os seus 7 dias de Resenha acabaram',
-    texto:()=>'O Peladeiro joga o Modo Resenha por <b>7 dias</b>, para provar como é jogar a mesma semana com a turma. O seu prazo terminou — e com ele o seu lugar nas salas.',
-    saida:'O Modo Solo continua seu, sem prazo: as suas carreiras contra a máquina estão intactas.' },
-  velocidade:{ tier:'resenha', titulo:'O ritmo Ultrassônico é de quem assina',
+  saves:{ tier:'pro', titulo:'O Peladeiro tem uma carreira',
+    texto:()=>'No <b>Peladeiro</b> você joga <b>uma carreira</b> no Modo Solo, com a 1ª temporada inteira. Carreiras e temporadas ilimitadas são do <b>Pro</b>.',
+    saida:'A carreira que você já tem continua inteira.' },
+  hospedar:{ tier:'pro', titulo:'O Modo Resenha é do Pro',
+    texto:()=>'<b>Abrir a sua sala</b> — ser o anfitrião, chamar a turma pelo código e mandar no ritmo da liga — é <b>exclusivo do Pro</b> quando lançarmos a versão Beta do Modo Resenha.',
+    saida:'O Modo Solo continua seu: a sua carreira contra a máquina está intacta.' },
+  resenha:{ tier:'pro', titulo:'O Modo Resenha é do Pro',
+    texto:()=>'Jogar a mesma semana com a turma, na sala de um amigo ou na sua, é <b>exclusivo do Pro</b> quando lançarmos a versão Beta do Modo Resenha.',
+    saida:'O Modo Solo continua seu: a sua carreira contra a máquina está intacta.' },
+  velocidade:{ tier:'pro', titulo:'O ritmo Ultrassônico é do Pro',
     texto:()=>'No <b>Ultrassônico</b> a partida inteira passa em cerca de dez segundos — é o ritmo de quem quer atravessar a temporada sem perder o jogo de vista. No Peladeiro, a semana ao vivo corre em Curto, Médio ou Longo.',
     saida:'Curto já é rápido: a partida dá pouco mais de meio minuto, e você continua vendo tudo — inclusive o Modo Camarote.' },
-  avatar:{ tier:'embaixador', titulo:'O retrato por IA é do Embaixador',
-    texto:()=>'O Embaixador põe a sua cara dentro do jogo: retrato gerado a partir de uma foto sua, na beira do campo e na ficha de treinador.',
+  /* O AVATAR POR IA SAIU DO PLANO (25/09): vira item avulso, com venda própria. Enquanto ela
+     não existe, a trava explica e não oferece plano nenhum — o Pro não traz o avatar. */
+  avatar:{ tier:null, titulo:'O retrato por IA vem aí',
+    texto:()=>'Pôr a <b>sua cara</b> dentro do jogo — retrato gerado a partir de uma foto sua, na beira do campo e na ficha de treinador — vai ser um item à parte, e chega em breve.',
     saida:'As caras prontas continuam à sua disposição, de graça.' },
 };
 function rfTrava(chave){
@@ -197,32 +191,32 @@ function rfTrava(chave){
      quem esta no Peladeiro sobe para o Resenha, quem ja esta no Resenha so'
      resolve com o Embaixador. Oferecer a alguem o plano que ele ja tem e' o
      jeito mais rapido de perder a venda. */
-  if(chave==='saves' && rfPlanoAtual()==='resenha') chave='savesResenha';
   const t=RF_TRAVAS[chave]; if(!t) return;
   const p=RF_PLANOS.find(x=>x.key===t.tier)||{};
+  const semPlano=!t.tier;
   /* O PRECO SAI DA MESMA FUNCAO DOS CARTOES. Ele era lido de `p.preco`, campo
      que deixou de existir quando os precos viraram centavos para o seletor
      mensal/anual — a janela passou a abrir com o lugar do preco em branco, que
      e' o pior sitio possivel para faltar um numero. */
-  const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
+  const q=semPlano?{}:rfPlanoPrecoPartes(p, RF_LP_CICLO);
   const itens=(p.itens||[]).map(i=>`<li><span class="rf-lp-tick">✓</span>${escC(i)}</li>`).join('');
   const corpo=`<div class="rf-trava ${p.destaque?'ouro':''}">
     ${/* TETO INFINITO OU DESCONHECIDO NAO VIRA NUMERO NA FRASE. Sem esta guarda a
           janela dizia "ate' Infinity carreiras por mes" — o que acontecia a quem
           nao tem sessao, porque sem plano lido o teto e' Infinity. */''}
     <p class="rf-trava-p">${t.texto(Number.isFinite(rfSavesTeto())?rfSavesTeto():null)}</p>
-    <div class="rf-trava-plano ${p.destaque?'ouro':''}">
+    ${semPlano?'':`<div class="rf-trava-plano ${p.destaque?'ouro':''}">
       <div class="rf-trava-hd">
         <span class="rf-trava-n">${p.destaque?'<i class="rf-trava-coroa">👑</i>':''}${escC(p.nome||'')}</span>
         <span class="rf-trava-v">${q.cheio?`<s class="rf-trava-cheio">${escC(q.cheio)}</s>`:''}${escC(q.v)}<i>${escC(q.c)}</i></span>
       </div>
       <ul class="rf-trava-l">${itens}</ul>
       <span class="rf-trava-a">${escC(q.nota)}</span>
-    </div>
+    </div>`}
     <span class="rf-trava-saida">${escC(typeof t.saida==='function'?t.saida():t.saida)}</span>
     <div class="rf-trava-bts">
-      <button type="button" class="rf-trava-bt-2" onclick="clCloseOverlay()">Agora não</button>
-      <button type="button" class="rf-trava-bt" onclick="clCloseOverlay();rfPlanoCta('${t.tier}','${chave}')">${escC(p.cta||'Quero assinar')}</button>
+      <button type="button" class="rf-trava-bt-2" onclick="clCloseOverlay()">${semPlano?'Entendi':'Agora não'}</button>
+      ${semPlano?'':`<button type="button" class="rf-trava-bt" onclick="clCloseOverlay();rfPlanoCta('${t.tier}','${chave}')">${escC(p.cta||'Quero assinar')}</button>`}
     </div>
   </div>`;
   if(typeof overlayC==='function' && typeof dlg==='function')
@@ -269,9 +263,9 @@ function rfContaChipHTML(minimo){
      na barra lateral), Embaixador no dourado com a coroa, como sempre foi.
      O nome sai de RF_PLANOS, a mesma lista que a pagina de precos usa: um plano novo entra
      aqui sozinho, e so' a cor precisa de uma linha de CSS. */
-  const chave=rfPlanoCartao();                       // 'peladeiro' | 'resenha' | 'embaixador'
+  const chave=rfPlanoCartao();                       // 'gratis' | 'pro'
   const selo=(RF_PLANOS.find(p=>p.key===chave)||{}).nome||'Peladeiro';
-  const glifo={ resenha:'🍺', embaixador:'👑' }[chave]||'';
+  const glifo={ pro:'👑' }[chave]||'';
   /* O NOME E O BOTAO DE JOGAR. Com sessao aberta o cabecalho ficava sem
      nenhuma porta de entrada: o "Entrar" some (ja esta dentro) e sobrava um
      cracha passivo com o nome. */
@@ -589,56 +583,43 @@ function rfLpMomentosHTML(){
    já vê essa cor no próprio nome depois de entrar, e a página promete
    exatamente o que o jogo entrega.
    ===================================================================== */
+/* ===== GRÁTIS × PRO (25/09, docs/plano-gratis-pro.md) =====
+   Eram três (Peladeiro, Resenha, Embaixador) com cotas mensais e prazos que ninguém entendia.
+   Agora são dois: o Grátis joga a carreira inteira da 1ª temporada; o Pro continua a carreira
+   para sempre. As chaves antigas `resenha` e `embaixador` continuam a existir no banco (quem as
+   pagou) e contam como Pro — ver rfPlanoCartao. */
 const RF_PLANOS=[
-  { key:'peladeiro', nome:'Peladeiro', icone:'⚽', mes:0, ano:0, ciclo:'pra sempre',
-    resumo:'Pra sentir o gostinho e entender por que ninguém larga isso.',
-    itens:['Começa até 3 carreiras por mês no Modo Solo','As quatro divisões brasileiras, com elenco completo','Modo Resenha por 7 dias, nas salas dos outros'],
-    falta:['Não abre sala como anfitrião'],
-    /* ===== RESSALVA NAO E' ITEM DE LISTA =====
-       "Apagar uma carreira nao devolve a vaga do mes" e "Depois dos 7 dias o Resenha sai" nao
-       sao coisas que o plano NAO TEM — sao a letra miuda de duas coisas que ele TEM (a cota
-       mensal e os 7 dias). Como item de lista, com um X vermelho ao lado, liam-se como tres
-       ausencias e faziam o cartao gratuito parecer pior do que e'. */
-    nota:'A vaga do mês não volta se você apagar a carreira, e o Resenha sai depois dos 7 dias.',
-    cta:'Começar de graça' },
+  /* O GRÁTIS CHAMA-SE PELADEIRO (pedido do dono, 25/09): o nome é a graça do plano — a pelada
+     de fim de semana, sem compromisso — e vende melhor que "Grátis". A chave continua 'gratis'. */
+  { key:'gratis', nome:'Peladeiro', icone:'⚽', mes:0, ano:0, ciclo:'pra sempre',
+    resumo:'A pelada de fim de semana: pega um clube, escala o time e joga a temporada inteira — sem pagar nada.',
+    itens:['Modo Solo completo: Séries A, B, C e D, com os elencos de verdade',
+           'Uma temporada inteira, do apito inicial à última rodada',
+           'Mercado, táticas, copas e finanças — tudo liberado',
+           'Direto no navegador: sem instalar, sem cartão'],
+    falta:['Da 2ª temporada em diante, só no Pro'],
+    cta:'Bater a primeira pelada' },
 
-  { key:'resenha', nome:'Resenha', icone:'💬', mes:1990, ano:19900,
-    resumo:'Pra quem joga direto com a turma e não quer os 7 dias acabando.',
-    /* O PRIMEIRO ITEM E' O PLANO DE BAIXO INTEIRO: sem ele, cada cartao parecia uma lista
-       solta e quem lia tinha de comparar linha a linha para perceber que os planos se
-       empilham. */
-    itens:['Tudo do Peladeiro','Começa até 10 carreiras por mês no Modo Solo','Modo Resenha sem prazo: entra na sala de qualquer anfitrião'],
-    falta:['Não abre sala como anfitrião'],
-    cta:'Assinar o Resenha',
+  { key:'pro', nome:'Pro', icone:'👑', mes:1990, ano:17880,
+    destaque:true, selo:'Mais popular',
+    resumo:'Pra quem quer subir de divisão, construir uma dinastia e nunca perder um save.',
+    /* a ordem importa: o popup de dois planos mostra só os 4 primeiros (rfUpItensHTML) */
+    itens:['Tudo o que está no Peladeiro',
+           'Temporadas ilimitadas: jogue quantos anos quiser',
+           'Acesso exclusivo ao Modo Resenha quando lançarmos a versão Beta',
+           'Carreiras ilimitadas no Modo Solo',
+           'Sua carreira salva na nuvem, de qualquer aparelho',
+           'Velocidade Ultrassônico e Selo Pro no seu perfil'],
+    cta:'Assinar o Pro',
     /* ===== A VENDA DO POPUP (ver rf26-planos.js) =====
-       Quatro beneficios de UMA linha de titulo + uma de texto: o popup tem altura travada e
-       nao rola, entao texto mais comprido empurra o botao para fora do cartao. Ao mudar a
-       copia, conferir `scrollHeight <= height` do cartao numa janela de 540px. */
-    venda:{ titulo:'O campeonato com a sua turma',
-      frase:'Todo mundo jogando a mesma semana, com resenha no grupo entre as rodadas. Sem contagem de 7 dias, sem sair da sala no meio do campeonato.',
+       Quatro benefícios de UMA linha de título + uma de texto: o popup tem altura travada. */
+    venda:{ titulo:'A carreira não para na 1ª temporada',
+      frase:'Suba de divisão, defenda o título e monte uma dinastia — temporada após temporada, com o save guardado na nuvem. E acesso exclusivo ao Modo Resenha no lançamento do Beta.',
       beneficios:[
-        {icone:'⏳', titulo:'Acaba a contagem dos 7 dias', texto:'No Peladeiro o Resenha vai embora no meio do campeonato. Aqui ele fica.'},
-        {icone:'🚪', titulo:'Entra na sala de qualquer anfitrião', texto:'Seus amigos abrem a liga, você entra pelo código.'},
-        {icone:'💾', titulo:'10 carreiras por mês no Modo Solo', texto:'Três viram dez: testa clube, divisão e tática.'},
-        {icone:'⚽', titulo:'E tudo o que você já tinha', texto:'As quatro divisões brasileiras, com elenco completo.'} ] } },
-
-  { key:'embaixador', nome:'Embaixador', icone:'👑', mes:4990, ano:39900,
-    destaque:true, selo:'O mais completo',
-    resumo:'Pra quem monta a liga, chama a galera e quer a cara dentro do jogo.',
-    itens:['Tudo do Resenha',
-           'Você é o anfitrião: abre salas de 2 a 10 treinadores (no Beta)',
-           'Carreiras ilimitadas no Modo Solo, sem cota mensal',
-           'Seu jogador na base de dados oficial, com avatar na sua cara',
-           'Selo de Embaixador no seu perfil',
-           'Código pra passar aos seus seguidores — e monetizar com ele (depois do Beta)'],
-    cta:'Quero ser Embaixador',
-    venda:{ titulo:'Você abre a liga e chama a galera',
-      frase:'O anfitrião escolhe os clubes, manda no calendário e recebe todo mundo pelo seu código. Nada fica trancado.',
-      beneficios:[
-        {icone:'🏟️', titulo:'Você é o anfitrião da sala', texto:'Abre salas de 2 a 10 treinadores e manda no calendário.'},
-        {icone:'♾️', titulo:'Carreiras ilimitadas no Modo Solo', texto:'Sem cota mensal: começa quantas quiser.'},
-        {icone:'🧑', titulo:'Seu jogador na base oficial', texto:'Com avatar na sua cara e o selo no perfil.'},
-        {icone:'🎟️', titulo:'Código pra passar aos seguidores', texto:'E monetizar com ele depois do Beta. Tudo do Resenha incluído.'} ] } },
+        {icone:'♾️', titulo:'Temporadas e carreiras ilimitadas', texto:'Jogue quantos anos quiser, com quantos clubes quiser.'},
+        {icone:'☁️', titulo:'Save na nuvem', texto:'Continue de onde parou, no PC ou no celular.'},
+        {icone:'🍺', titulo:'Acesso exclusivo ao Modo Resenha', texto:'Quando lançarmos a versão Beta, só quem é Pro joga com os amigos.'},
+        {icone:'⚡', titulo:'Ultrassônico e Selo Pro', texto:'A partida em dez segundos e o selo no seu perfil.'} ] } },
 ];
 
 /* ===== O PRECO EM CENTAVOS, E O RESTO CALCULADO =====
@@ -659,7 +640,9 @@ const RF_PLANOS=[
    cupom é procurado por metadata `beta`). Se divergirem, a página promete um
    desconto que a cobrança não faz — e é a mesma regra que já vale para os
    centavos dos preços, logo abaixo. */
-const RF_BETA = { on:true, pct:50, meses:3 };
+/* DESLIGADO em 25/09 com o Grátis × Pro: o Pro nasceu sem desconto de Beta, e o cupom do Stripe
+   é arquivado no dia do lançamento. */
+const RF_BETA = { on:false, pct:50, meses:3 };
 function rfBetaVale(p){ return !!(RF_BETA.on && p && p.mes); }   // o grátis não entra
 function rfBetaCent(cent){ return Math.round(cent * (100-RF_BETA.pct) / 100); }
 function rfBRL(cent, comCentavos){
@@ -689,7 +672,7 @@ function rfPlanoPrecoPartes(p, ciclo){
      limitado, essa frase passa a esconder justamente a pegadinha que ela nega.
      O Solo é que é para sempre, e é isso que ela diz agora. */
   if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre', cheio:null,
-                      nota:'Solo pra sempre · Resenha por 7 dias · sem cartão' };
+                      nota:'A temporada inteira de graça · sem cartão' };
   const e = rfPlanoEconomia(p);
   /* NO BETA, O NÚMERO GRANDE É O QUE SE PAGA. O preço cheio não desaparece — vai
      ao lado, riscado, porque é ele que dá tamanho ao desconto. Mostrar só o
@@ -792,7 +775,7 @@ function rfPlanoCta(key, trava, ciclo, forma){
      decide a aba (ver rfOb1) — 'solo' calhava de abrir o cadastro por nao ser 'login', o que
      e' o resultado certo pela razao errada. Quem ja tem sessao cai na mesma tela, que com
      sessao mostra a conta e o caminho para dentro do jogo (rfOb1Logado). */
-  if(key==='peladeiro'){
+  if(key==='gratis'){
     if(typeof clGoModo==='function') return clGoModo('signup');
     return paraLista();
   }
@@ -904,7 +887,7 @@ function rfLpPlanosHTML(){
       <span class="rf-lp-eyebrow">Planos</span>
       <h2 class="rf-lp-h2">Escolha o seu banco de reservas.</h2>
       ${RF_BETA.on?`<div class="rf-lp-beta"><b>Fase Beta</b><span>${RF_BETA.pct}% de desconto em todos os planos pagos, nos ${RF_BETA.meses} primeiros meses</span></div>`:''}
-      <p class="rf-lp-p">O Modo Solo é de graça pra sempre. Os planos pagos existem pra quem quer manter o Modo Resenha depois dos 7 dias, abrir a liga da turma, guardar mais carreiras e pôr o próprio nome num jogador da base.</p>
+      <p class="rf-lp-p">Todo treinador começa no <b>Peladeiro</b>: a 1ª temporada inteira de graça — tática, mercado, copas e finanças. Pegou gosto? O <b>Pro</b> continua a sua carreira por quantas temporadas você quiser.</p>
       <div class="rf-lp-ciclo" role="radiogroup" aria-label="Como você quer pagar"
            data-ciclo="${RF_LP_CICLO}">
         <span class="rf-lp-ciclo-pilula" aria-hidden="true"></span>
@@ -915,11 +898,7 @@ function rfLpPlanosHTML(){
           <span class="rf-lp-ciclo-selo">economize ${pct}%</span></button>
       </div>
       <div class="rf-lp-plano-grade">${cartoes}</div>
-      ${/* A COTA E' DE CARREIRAS DO SOLO, e a lista dos cartoes agora di-lo em cada plano.
-           Esta linha diz a outra metade: entrar numa Resenha nao gasta cota nenhuma — que e' a
-           pergunta que a cota levanta e que a lista, sozinha, deixava por responder. */''}
-      <span class="rf-lp-nota">A cota mensal conta só as carreiras que você <b>começa no Modo Solo</b> — entrar numa sala do Modo Resenha não gasta cota.</span>
-      <span class="rf-lp-nota">Cancele quando quiser. Seus saves continuam seus — o Modo Solo não tem prazo em nenhum plano.</span>
+      <span class="rf-lp-nota">Cancele quando quiser, direto em Minha Conta. Cobrança pelo Stripe, no cartão ou no Pix.</span>
     </div>
   </section>`;
 }
@@ -950,9 +929,9 @@ function rfCicloTrocar(c){
        mensal riscado ao lado do anual, que é a comparação errada */
     if(ch){ ch.textContent=q.cheio||''; ch.hidden=!q.cheio; }
   });
-  /* o botão de ouro lá embaixo repete o preço do Embaixador */
+  /* o botão de ouro lá embaixo repete o preço do Pro */
   const ouro=document.querySelector('.rf-lp-bt-ouro');
-  if(ouro) ouro.innerHTML='👑 Ser Embaixador — '+escC(rfPlanoPreco('embaixador'));
+  if(ouro) ouro.innerHTML='👑 Assinar o Pro — '+escC(rfPlanoPreco('pro'));
 }
 
 
@@ -1038,7 +1017,7 @@ function rfLpResenhaHTML(){
         </div>
       </div>
 
-      <span class="rf-lp-nota">Entrar na sala dos outros dá em qualquer plano — no grátis, por 7 dias. <b>Abrir a sua</b> é do Embaixador.</span>
+      <span class="rf-lp-nota">Quando lançarmos a versão Beta, o Modo Resenha é <b>exclusivo do Pro</b>: entre na sala dos amigos ou abra a sua.</span>
     </div>
   </section>`;
 }
@@ -1206,17 +1185,15 @@ function rfLpGranaHTML(){
    porque alguém cobra depois. Agora cada cartão é UM item do plano
    Embaixador, palavra por palavra do que RF_PLANOS promete.
    ===================================================================== */
+/* Desde 25/09 a secção é do PRO — o que ele dá, item por item de RF_PLANOS. (O nome da
+   constante e o id #rf-lp-ligas ficam: links antigos continuam a cair aqui.) */
 const RF_LP_EMBAIXADOR=[
-  ['👑','Você é o anfitrião','Abre salas de 3 a 8 treinadores e chama quem quiser. Nos outros planos você só entra na sala dos outros.'],
-  ['♾️','Saves ilimitados','Quantas carreiras você quiser, no solo e no Resenha. Sem ter de apagar uma pra começar outra.'],
-  ['🧍','Seu jogador no jogo','Nome seu, rosto seu, ficha sua — dentro da base oficial, para todo mundo escalar.'],
-  ['🏅','Selo de Embaixador','No seu perfil e ao lado do seu nome. Quem joga com você sabe quem você é.'],
-  ['📊','Campanha que conta em dobro','Sem cota mensal, cada carreira que você começa entra no ranking — e o ranking soma a campanha de todas elas.'],
-  /* ===== O QUE AINDA NAO EXISTE VAI MARCADO =====
-     O quarto elemento e' a etiqueta de "ainda nao". Vender seis coisas quando cinco estao no ar
-     e' prometer a mais, e a que falta e' justamente a que envolve dinheiro do outro lado. O
-     cartao fica — a promessa e' verdadeira, so' nao e' de hoje —, mas diz quando. */
-  ['💰','Código pra monetizar','Um código só seu pra passar aos seus seguidores — e ganhar com quem entrar por ele.','Ainda não no Beta'],
+  ['♾️','Temporadas ilimitadas','Suba de divisão, defenda o título e monte uma dinastia. A carreira não para na 1ª temporada.'],
+  ['🗂️','Carreiras ilimitadas','Quantos clubes você quiser no Modo Solo, cada um com a sua história.'],
+  ['☁️','Save na nuvem','Continue de onde parou, no PC ou no celular. Sua carreira nunca se perde.'],
+  ['🍺','Acesso exclusivo ao Modo Resenha','Quando lançarmos a versão Beta, só quem é Pro entra: a turma inteira na mesma liga, até 10 treinadores.'],
+  ['⚡','Velocidade Ultrassônico','A partida inteira em dez segundos, pra atravessar a temporada sem perder o jogo de vista.'],
+  ['🏅','Selo Pro','A coroa dourada ao lado do seu nome, no perfil de treinador.'],
 ];
 /* o preço sai de RF_PLANOS — digitado outra vez aqui, um dia os dois discordam */
 function rfPlanoPreco(key){
@@ -1233,12 +1210,12 @@ function rfLpLigasHTML(){
   </div>`).join('');
   return `<section class="rf-lp-ligas rf-lp-f-creme" id="rf-lp-ligas">
     <div class="rf-lp-ligas-in">
-      <span class="rf-lp-selo-emb">👑 Plano Embaixador</span>
+      <span class="rf-lp-selo-emb">👑 Plano Pro</span>
       <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
-      <p class="rf-lp-p">Seis coisas que só existem no plano de cima — e nenhuma delas é enfeite. Cinco já estão no ar; o código de monetização entra depois do Beta.</p>
+      <p class="rf-lp-p">R$ 19,90 por mês — ou R$ 14,90 por mês no anual. Cancele quando quiser.</p>
       <div class="rf-lp-embc-grade">${cartoes}</div>
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('embaixador',null,RF_LP_CICLO)">
-        👑 Ser Embaixador — ${escC(rfPlanoPreco('embaixador'))}</button>
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('pro',null,RF_LP_CICLO)">
+        👑 Assinar o Pro — ${escC(rfPlanoPreco('pro'))}</button>
     </div>
   </section>`;
 }
@@ -1263,7 +1240,7 @@ function rfLandingHTML(){
         <div class="rf-lp-ctas">
           <button type="button" class="rf-wiz-cta" onclick="${rfLpComecarOn()}">${rfIcone('jogar',16)} ${RF_LP_CTA_TXT}</button>
         </div>
-        <span class="rf-lp-nota">Tem plano <b>Peladeiro grátis</b>: Modo Solo pra sempre e 7 dias de Resenha. Sem instalar nada, sem cartão.</span>
+        <span class="rf-lp-nota">Comece no <b>Peladeiro</b>: a 1ª temporada inteira de graça, com o Modo Solo completo. Sem instalar nada, sem cartão.</span>
       </div>
       <div class="rf-lp-hero-art">
         ${rfLpHeroVideoHTML()}
@@ -1299,9 +1276,9 @@ function rfLandingHTML(){
 
     ${rfLpMomentosHTML()}
 
-    ${rfLpJogadorOficialHTML()}
-
-    ${rfLpGranaHTML()}
+    ${/* JOGADOR OFICIAL E CÓDIGO DE MONETIZAÇÃO eram do Embaixador e saíram da vitrine em 25/09
+         (Grátis × Pro). Quem já os tem mantém; as secções ficam escritas para voltarem quando
+         virarem item avulso. */''}
 
     ${rfLpPlanosHTML()}
 
@@ -1383,7 +1360,7 @@ function rfLpRodapeHTML(){
         ['Modo Resenha',"rfLpIr('resenha')"],
         ['Por dentro do jogo',"rfLpIr('telas')"],
         ['Planos',"rfLpIr('planos')"],
-        ['Embaixadores',"rfLpIr('ligas')"],
+        ['Plano Pro',"rfLpIr('ligas')"],
       ])}
       ${col('Para marcas',[
         ['Media kit','/media-kit/'],

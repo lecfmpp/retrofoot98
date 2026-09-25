@@ -24,6 +24,17 @@
    ===================================================================== */
 
 const RF_PG_CONTEUDO = {
+  /* o plano que se vende desde 25/09 (Grátis × Pro). Resenha e Embaixador ficam para quem os
+     comprou antes e ainda renova. */
+  pro: {
+    kicker:'PAGAMENTO CONFIRMADO',
+    titulo:'Agora a carreira não para, treinador.',
+    sub:'Temporadas e carreiras ilimitadas, save na nuvem e acesso exclusivo ao Modo Resenha no lançamento do Beta. Bora para a próxima temporada.',
+    emoji:'👑',
+    cta:'Voltar para a minha carreira',
+    acao:()=>{ if(typeof clGoModo==='function') clGoModo('solo'); },
+    legal:'Cobrança recorrente. Cancele quando quiser em Minha Conta › Gerir assinatura.',
+  },
   resenha: {
     kicker:'PAGAMENTO CONFIRMADO',
     titulo:'A resenha é sua agora, treinador.',
@@ -54,6 +65,7 @@ const RF_PG_CONTEUDO = {
    companhia. A festa fica identica em toda abertura — bom para o teste e para gravar video — e
    nao ha' re-sorteio a cada redesenho. Cai uma vez (`forwards`) e nao repete. */
 const RF_PG_PALETA = {
+  pro:        ['#F2B90C','#ffe07a','#ffffff','#c9971a','#8fd4a0'],
   resenha:    ['#F2B90C','#ffffff','#5fd98b','#8fabd6','#ff9b8f'],
   embaixador: ['#F2B90C','#ffe07a','#ffffff','#c9971a','#8fd4a0'],
 };
@@ -142,7 +154,7 @@ function rfPgCorpoHTML(plano, st){
           <span class="rf-pg-mono">${pix?'pago no Pix':(ciclo==='ano'?'/ano':'/mês')}</span></span>`:''}
       </div>
 
-      <span class="rf-pg-rot">${plano==='embaixador'?'A SUA CADEIRA CATIVA INCLUI':'O QUE ABRIU PARA VOCÊ'}</span>
+      <span class="rf-pg-rot">${plano==='embaixador'||plano==='pro'?'A SUA CADEIRA CATIVA INCLUI':'O QUE ABRIU PARA VOCÊ'}</span>
       <div class="rf-pg-bens">${itens.map(i=>`
         <div class="rf-pg-bem"><span class="rf-pg-tick">✓</span><span>${escC(i)}</span></div>`).join('')}</div>
 
@@ -253,7 +265,7 @@ function rfPgVerificar(){
      responde nem faria sentido festejar — podia ser o link de outra pessoa. */
   if(st.loggedIn===false){ rfPgDesenhar(rfPgSemSessaoHTML()); return; }
   const plano = st.plan || st.plano;
-  const chegou = RF_PG_ALVO ? (plano===RF_PG_ALVO) : (plano==='resenha' || plano==='embaixador');
+  const chegou = RF_PG_ALVO ? (plano===RF_PG_ALVO) : (plano==='pro' || plano==='resenha' || plano==='embaixador');
   if(chegou){
     const legal = RF_PG_FORMA==='pix'
       ? 'Pagamento único via Pix, sem renovação automática. Quando o prazo acabar, é só pagar outro Pix.'
@@ -268,7 +280,7 @@ function rfPgVerificar(){
 function rfPgAbrir(alvo, forma){
   RF_PG_TENTATIVAS=0;
   RF_PG_FORMA = forma==='pix' ? 'pix' : null;
-  RF_PG_ALVO=(alvo==='resenha'||alvo==='embaixador')?alvo:null;
+  RF_PG_ALVO=(alvo==='pro'||alvo==='resenha'||alvo==='embaixador')?alvo:null;
   rfPgDesenhar(rfPgEsperandoHTML());
   rfPgVerificar();
 }

@@ -74,5 +74,13 @@ com nome, e-mail e WhatsApp do jogador; a liberação é automática, pela RPC `
 
 ## Checklist do dia do lançamento
 1. Publicar edge functions (checkout/webhook com `pro`) e o jogo com o paywall.
-2. `select elifoot_v3.planos_lancar();` (grava veteranos e liga as travas).
+2. Aplicar `scripts/sql/planos_gratis_pro_my_plan.sql` e rodar `select elifoot_v3.planos_lancar();`
+   (grava veteranos e liga as travas) — os dois juntos.
 3. Arquivar no Stripe os preços de Resenha/Embaixador (mensal e anual) e o cupom beta.
+
+## Fase 4 (25/09, local)
+- `RF_PLANOS` com Grátis e Pro; `RF_BETA.on=false`; vitrine em 2 colunas; secção do Pro no lugar da do Embaixador.
+- Secções "Seu jogador" e "Monte a sua resenha e ganhe" (código de monetização) saíram da página e do menu;
+  o código ficou (rfLpJogadorOficialHTML / rfLpGranaHTML) para voltarem como item avulso.
+- Travas, popups de upgrade (2 degraus), Minha Conta, crachá, modal de pagamento, SEO, termos e JSON-LD.
+- Selo Pro NO RANKING ficou de fora (exige mudar rf_ranking no banco); o selo aparece no perfil/cabeçalho.
