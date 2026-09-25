@@ -1452,6 +1452,18 @@ async function netTemporadas(save){
     return (Array.isArray(data) ? data[0] : data) || null;
   }catch(e){ console.warn('temporadas do plano:', e && e.message); return null; }
 }
+/* MEDIÇÃO DO PAYWALL (25/09): exibido, clicou no Pro, abriu opinião/post, fechou, seguiu grátis,
+   virou Pro. Vai para elifoot_v3.paywall_eventos (funil em admin_rf98.paywall_funil). Dispara e
+   esquece: medir nunca pode segurar o jogo. */
+function netPaywallEvento(evento, dados){
+  try{
+    if(!sb || !SB_AUTH_USER) return;
+    const d=dados||{};
+    sb.rpc('rf_paywall_evento', { p_evento:evento, p_save:d.save||null, p_variante:d.variante||null,
+      p_situacao:d.situacao||null, p_divisao:d.divisao||null, p_temporada:d.temporada||null })
+      .then(()=>{}, ()=>{});
+  }catch(e){}
+}
 /* +1 temporada por depoimento (texto) ou post (link). O servidor libera na hora e avisa a equipe. */
 async function netLiberarTemporada(save, tipo, texto, link, resumo){
   if(!sb) await netInitSupabase();
@@ -2077,6 +2089,7 @@ NET.criarCheckout = netCriarCheckout;   // devolve {url} ou {erro}
 NET.abrirPortal = netAbrirPortal;       // devolve {url} ou {erro}
 NET.temporadas = netTemporadas;         // rf_temporadas(save) ou null
 NET.liberarTemporada = netLiberarTemporada; // {teto} ou {erro}
+NET.paywallEvento = netPaywallEvento;   // medição do paywall, dispara e esquece
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;

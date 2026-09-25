@@ -197,17 +197,32 @@ function rfPwSeguir(){
   if(typeof clAdvanceSeason==='function') clAdvanceSeason();
 }
 
+/* ---------- medição (NET.paywallEvento) ----------
+   Não mede a bancada (rfPwDemo) nem o modo de teste ('rf98:pwTeste'). */
+function rfPwReg(evento){
+  try{
+    const c=RF_PW.ctx; if(!c || c.demo || rfPwTeste()) return;
+    if(typeof NET!=='undefined' && NET.paywallEvento)
+      NET.paywallEvento(evento, { save:CL.save, variante:c.variante, situacao:c.sit&&c.sit.k,
+        divisao:S&&S.division, temporada:S&&S.season });
+  }catch(e){}
+}
+
 /* ---------- o popup ---------- */
 function rfPwAbrir(variante, st){
   const sit=rfPwSituacao();
-  RF_PW.ctx={ variante, st:st||{}, sit, txt:rfPwTextos(sit), dicas:rfPwDicas(sit) };
+  RF_PW.ctx={ variante, st:st||{}, sit, txt:rfPwTextos(sit), dicas:rfPwDicas(sit), demo:!!RF_PW.demo };
   RF_PW.vista='pro'; RF_PW.erro=''; RF_PW.enviando=false;
   if(variante==='beta') rfPwMarcarBeta();
   const velho=document.querySelector('.rf-up-pop.rf-pw'); if(velho) delete velho.dataset.vista;  // popup novo abre no topo
   rfPwDesenhar();
+  rfPwReg('exibido');
 }
-function rfPwFechar(){ rfPwParar(); RF_PW.ctx=null; if(typeof rfUpFechar==='function') rfUpFechar(); }
-function rfPwVista(v){ RF_PW.vista=v; RF_PW.erro=''; rfPwDesenhar(); }
+function rfPwFechar(){ rfPwReg('fechou'); rfPwParar(); RF_PW.ctx=null; if(typeof rfUpFechar==='function') rfUpFechar(); }
+function rfPwVista(v){
+  if(v==='depoimento'||v==='post') rfPwReg('abriu_'+v);
+  RF_PW.vista=v; RF_PW.erro=''; rfPwDesenhar();
+}
 function rfPwCiclo(k){ RF_UP.ciclo = k==='ano'?'ano':'mes'; rfPwDesenhar(); }
 function rfPwForma(k){ RF_UP.forma = k==='pix'?'pix':'cartao'; rfPwDesenhar(); }
 
@@ -271,7 +286,7 @@ function rfPwProHTML(c){
   const fica = c.variante==='bloqueio' ? 'Voltar ao resumo'
     : c.variante==='ultima' ? 'Jogar a última temporada grátis'
     : `Continuar grátis${restam?` (${restam} temporada${restam>1?'s':''})`:''}`;
-  const ficaAcao = c.variante==='bloqueio' ? 'rfPwFechar()' : 'rfPwSeguir()';
+  const ficaAcao = c.variante==='bloqueio' ? 'rfPwFechar()' : "rfPwReg('seguiu_gratis');rfPwSeguir()";
   return `
       <div class="rf-pw-topo"><span class="rf-up-mono">${escC(topo.selo)}</span><b>${escC(topo.t)}</b>
         ${aviso?`<span>${escC(aviso)}</span>`:''}</div>
@@ -313,7 +328,7 @@ function rfPwBarraHTML(c){
     ? `<button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwVista('${saida}')"><span class="rf-up-emo">${saida==='depoimento'?'💬':'📣'}</span>
         <span>${saida==='depoimento'?'Ganhar 1 temporada grátis — dar minha opinião':'Ganhar 1 temporada grátis — postar sobre o jogo'}</span></button>`
     : c.variante!=='bloqueio'
-      ? `<button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwSeguir()"><span>${c.variante==='ultima'?'Jogar a última temporada grátis':'Continuar grátis'}</span></button>`
+      ? `<button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwReg('seguiu_gratis');rfPwSeguir()"><span>${c.variante==='ultima'?'Jogar a última temporada grátis':'Continuar grátis'}</span></button>`
       : '';
   return `<div class="rf-pw-barra">
       <button type="button" class="rf-up-cta" onclick="rfPwPagar()"><span>Assinar o Pro — ${escC(preco)}/${ciclo==='ano'?'ano':'mês'}</span></button>
@@ -367,7 +382,7 @@ function rfPwDesenhar(){
   const c=RF_PW.ctx; if(!c) return;
   const dir = RF_PW.vista==='depoimento' || RF_PW.vista==='post' ? rfPwFormHTML(RF_PW.vista)
     : RF_PW.vista==='espera' ? rfPwEsperaHTML() : rfPwProHTML(c);
-  const fecha = c.variante==='bloqueio' || RF_PW.vista==='espera' ? 'rfPwFechar()' : 'rfPwSeguir()';
+  const fecha = c.variante==='bloqueio' || RF_PW.vista==='espera' ? 'rfPwFechar()' : "rfPwReg('seguiu_gratis');rfPwSeguir()";
   /* trocar mensal/anual ou cartão/Pix redesenha tudo: sem guardar a rolagem, no celular a
      janela pulava de volta para o topo a cada toque */
   const velho=document.querySelector('.rf-up-pop.rf-pw');
@@ -417,6 +432,7 @@ function rfPwEnviar(tipo){
 }
 function rfPwPagar(){
   if(typeof rfPlanoCta!=='function') return;
+  rfPwReg('clicou_pro');
   rfPlanoCta('pro', 'temporada', RF_UP.ciclo, RF_UP.forma);
   RF_PW.vista='espera'; rfPwDesenhar();
   rfPwParar();
@@ -428,7 +444,7 @@ async function rfPwConferir(clicou){
   try{
     if(NET && NET.carregarPlano) await NET.carregarPlano();
     const st=(NET&&NET.authStatus)?NET.authStatus():{};
-    if(st.pro){ toastC('✓ Bem-vindo ao Pro! Bora para a próxima temporada.'); return rfPwSeguir(); }
+    if(st.pro){ rfPwReg('virou_pro'); toastC('✓ Bem-vindo ao Pro! Bora para a próxima temporada.'); return rfPwSeguir(); }
     if(clicou) toastC('O pagamento ainda não chegou. Se acabou de pagar, espere alguns segundos.','warn');
   }catch(e){ if(clicou) toastC('Não consegui conferir agora. Tente de novo.','warn'); }
 }
@@ -449,7 +465,8 @@ function rfPwDemo(sitK, variante, saida){
   variante=variante||'bloqueio';
   const st={ ligado:true, pro:false, teto:rfPwIniciadas()+(variante==='bloqueio'?0:1), veterano:variante!=='bloqueio',
     depoimento_usado:saida==='post'||saida==='pro', post_usado:saida==='pro' };
-  rfPwAbrir(variante, st);
+  RF_PW.demo=true; rfPwAbrir(variante, st); RF_PW.demo=false;
+  if(RF_PW.ctx) RF_PW.ctx.demo=true;
   if(sitK){
     const sit={k:sitK, pos:({titulo:1,acesso:3,quase:6,meio:11,rebaixado:19})[sitK]||rfPwSituacao().pos};
     RF_PW.ctx.sit=sit; RF_PW.ctx.txt=rfPwTextos(sit); RF_PW.ctx.dicas=rfPwDicas(sit);
