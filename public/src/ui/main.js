@@ -3823,7 +3823,8 @@ async function _saveV3Enviar(explicit){
     clubShort:_c.short||_c.name||null,
     clubCrest:(typeof clubCrestUrl==='function'?clubCrestUrl(_c):null)||null,
     modalidade:_modalidade,
-    currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
+    currency:CL.currency, ticket:CL.ticket, humans:CL.humans,
+    S:(typeof semVitrine==='function')?semVitrine(S):S };   // clubes só olhados ficam fora (ver core.js)
   if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return null; }
   let finishSavingOverlay=null;
   if(explicit) finishSavingOverlay=showSavingOverlay();
@@ -5113,7 +5114,7 @@ function clMarketDivision(division,country){
 /* ---- elenco do clube escolhido ---- */
 function clMarketSquad(clubId,country){
   const division=(CL.market&&CL.market.division)||S.division;
-  if(country) ensureBgClubMaterialized(clubId); // materializa o elenco real do clube de background
+  if(country) ensureBgClubMaterialized(clubId, true); // materializa o elenco real do clube de background — só para olhar (vitrine, ver semVitrine)
   CL.market={step:'squad',clubId,division,country};
   // MESMA tabela do meu elenco (squadTableHTML): cabeçalho visível e as mesmas colunas/valores,
   // em vez da lista própria que existia aqui. O valor de mercado do jogador aparece ao clicar

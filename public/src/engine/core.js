@@ -3004,9 +3004,10 @@ function foreignClubById(pais,id){
   return foreignClubsOf(pais).find(c=>String(c.id)===String(id))||null;
 }
 /* materializa UM clube do exterior no mundo (idempotente) — pré-condição de negociar com ele */
-function ensureForeignClub(pais,id){
+function ensureForeignClub(pais,id,soVer){
   const c=(S.clubPool&&S.clubPool[id])||foreignClubById(pais,id); if(!c) return false;
   S.clubPool=S.clubPool||{}; S.squads=S.squads||{};
+  const _poolNovo=!S.clubPool[id], _novo=!S.squads[id];
   if(pais==='Brasil' && !c.country && typeof CONMEBOL_COUNTRIES!=='undefined') c.country=CONMEBOL_COUNTRIES.BRA;
   else if(!c.country) c.country=pais;
   if(!S.clubPool[id]) S.clubPool[id]=c;
@@ -3022,6 +3023,7 @@ function ensureForeignClub(pais,id){
       });
     }catch(e){}
   }
+  _marcarVitrine(id, _novo, _poolNovo, soVer);
   return true;
 }
 function initConmebolCups(){
@@ -3602,18 +3604,55 @@ function checkForeignQuota(p){
   if(cur>=cfg.foreignMax) return {ok:false, msg:`Cota de estrangeiros cheia (${cur} de ${cfg.foreignMax} no futebol ${cfg.country?('de '+cfg.country):'brasileiro'}). Venda/dispense um estrangeiro ou contrate um nacional.`};
   return {ok:true};
 }
+/* CLUBES DE VITRINE (25/09/2026). Olhar um clube (mercado, ficha de jogador) materializa o elenco
+   inteiro no S — e ele nunca mais saía do save: era um dos motivos de o save do Solo chegar a
+   18 MB. Agora quem só OLHA passa `soVer`: o clube é materializado igual (as telas precisam dele
+   em S.squads), mas fica marcado em S._vitrine e `semVitrine` o deixa FORA do que vai para a
+   nuvem enquanto ele não for usado de verdade. Qualquer chamada sem `soVer` (proposta,
+   transferência da CPU, oferta) tira a marca. Valor: 1 = só o elenco veio da vitrine,
+   2 = o clubPool também (então também sai). */
+function _marcarVitrine(id, criado, poolCriado, soVer){
+  if(!soVer){ if(S._vitrine) delete S._vitrine[id]; return; }
+  if(!criado) return;                       // já existia: não vira vitrine
+  S._vitrine=S._vitrine||{}; S._vitrine[id]=poolCriado?2:1;
+}
+/* S para gravar: sem os clubes de vitrine que continuam intocados. Fica no save (e perde a marca)
+   quem é CITADO fora dos elencos (copa, proposta, leilão, notícia com id) ou cujo elenco já não
+   é o do catálogo (alguém entrou ou saiu). Na dúvida, fica — o erro barato é gravar a mais. */
+function semVitrine(S0){
+  const v=S0 && S0._vitrine; if(!v) return S0;
+  const ids=Object.keys(v); if(!ids.length) return S0;
+  const resto={}; for(const k in S0) if(k!=='squads' && k!=='clubPool' && k!=='bgLeagues' && k!=='_vitrine') resto[k]=S0[k];
+  const txt=JSON.stringify(resto);
+  const tirar=[];
+  ids.forEach(id=>{
+    const sq=S0.squads&&S0.squads[id], club=S0.clubPool&&S0.clubPool[id];
+    if(!sq || !club || txt.indexOf('"'+id+'"')>=0){ delete v[id]; return; }
+    let base=null; try{ base=gkSquad(club).map(p=>p.n); }catch(e){}
+    const agora=sq.map(p=>p.n);
+    const igual = base && base.length===agora.length && (()=>{ const b=new Set(base); return agora.every(n=>b.has(n)); })();
+    if(igual) tirar.push(id); else delete v[id];
+  });
+  if(!tirar.length) return S0;
+  const squads=Object.assign({}, S0.squads), clubPool=Object.assign({}, S0.clubPool);
+  tirar.forEach(id=>{ delete squads[id]; if(v[id]===2) delete clubPool[id]; });
+  return Object.assign({}, S0, { squads, clubPool, _vitrine:{} });
+}
 /* materializa o elenco de um clube de background sob demanda (pra ver/negociar no mercado) */
-function ensureBgClubMaterialized(clubId){
-  if(S.squads[clubId]) return true;
+function ensureBgClubMaterialized(clubId, soVer){
+  if(S.squads[clubId]){ _marcarVitrine(clubId, false, false, soVer); return true; }
   // bgClubById (não intlClubById) pra cobrir também o BRASIL como liga de background — os
   // clubes brasileiros ficam no bgBrazilIndex, fora do índice intl (por isso "sem jogadores"
   // ao buscar brasileiros jogando num universo europeu).
   const club=bgClubById(clubId); if(!club||!club.squad) return false;
-  S.clubPool=S.clubPool||{}; S.clubPool[clubId]=club;
+  S.clubPool=S.clubPool||{};
+  const _poolNovo=!S.clubPool[clubId];
+  S.clubPool[clubId]=club;
   // divisão do clube na liga de background -> remapeia a força na faixa certa (item 4)
   let dv=null; const bg=S.bgLeagues||{};
   for(const co in bg){ for(const d in bg[co].divs){ if((bg[co].divs[d].clubIds||[]).indexOf(clubId)>=0){ dv=d; break; } } if(dv) break; }
   S.squads[clubId]=gkSquad(club).map(p=>attachAttrs(initStats({...p}), dv||undefined));
+  _marcarVitrine(clubId, true, _poolNovo, soVer);
   return true;
 }
 /* config do universo ativo — reatribuída por setUniverse(); os bindings abaixo são 'let'

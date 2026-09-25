@@ -108,7 +108,7 @@ function rfMkClube(id, cObj, pais){
     onclick="event.stopPropagation();${acao}">${rfCrest(c,22)}<span>${escC(c.short)}</span></span>`;
 }
 function rfMkVerClubeFora(pais,id){
-  if(typeof ensureForeignClub==='function') ensureForeignClub(pais,id);
+  if(typeof ensureForeignClub==='function') ensureForeignClub(pais,id,true);   // só olhar: vitrine
   if(typeof clViewTeam==='function') clViewTeam(id);
 }
 function rfMkPos(p){ return `<span class="rf-mkt-pos">${escC(rfPosInicial(p.s))}</span>`; }

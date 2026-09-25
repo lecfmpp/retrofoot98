@@ -751,7 +751,7 @@ function rfMdVerJogador(nome){
   const cid=(typeof findPlayerClub==='function')?findPlayerClub(nome):null;
   if(!cid){ toastC(`Não achei em que clube ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('esse')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} está.`); return; }
   if(cid===CL.clubId && typeof clGoSquad==='function'){ clGoSquad(); return; }
-  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
+  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid, true);   // só olhar: vitrine
   const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
   if(typeof clViewTeam==='function') clViewTeam(cid);
   if(p && typeof clViewSelPlayer==='function') clViewSelPlayer(p.pid);

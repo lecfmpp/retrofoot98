@@ -483,8 +483,9 @@ function rfVerFichaJogador(nome, clubId){
            if(typeof rfSetTab==='function') rfSetTab('elenco','ficha'); }
     return;
   }
-  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid);
-  if(typeof ensureForeignClub==='function' && arguments.length>2 && arguments[2]) ensureForeignClub(arguments[2], cid);
+  /* só olhar a ficha: vitrine (ver semVitrine em core.js) */
+  if(typeof ensureBgClubMaterialized==='function') ensureBgClubMaterialized(cid, true);
+  if(typeof ensureForeignClub==='function' && arguments.length>2 && arguments[2]) ensureForeignClub(arguments[2], cid, true);
   const p=((typeof squad==='function')?squad(cid):[]).find(x=>x.n===nome);
   /* jogador de OUTRO clube: perfil limitado em MODAL, sem sair da página */
   if(typeof rfAcAbrir==='function') rfAcAbrir('jogador-perfil', { clubId:cid, pid:p?p.pid:null, nome });
