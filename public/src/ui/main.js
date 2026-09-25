@@ -14055,6 +14055,8 @@ function clCancelRight(){ CL.rightMode=null; cdraw(); }
 /* acha o clube de um jogador só pelo nome — útil em telas que só guardam o nome (artilheiros, notícias) */
 function findPlayerClub(name){
   for(const cid of Object.keys(S.squads||{})){ if(S.squads[cid].some(p=>p.n===name)) return cid; }
+  /* negociado pela CPU para um clube de fundo que ninguém abriu (ver S.bgMoves em core.js) */
+  const mv=S.bgMoves||[]; for(let i=mv.length-1;i>=0;i--){ if(mv[i].n===name) return mv[i].para; }
   return null;
 }
 function clScorers(){ CL.menu=null;

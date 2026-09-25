@@ -812,6 +812,14 @@ function cpuBackgroundTransfers(R){
     S.roundNews.push(`🔄 ${t.player} foi negociado do ${de} pro ${para} por ${fmt(t.fee)}.`);
   });
 }
+/* movimento com os DOIS clubes materializados (e nenhum deles de vitrine) já está nos elencos
+   gravados — não precisa mais da linha. Vitrine fica: o clube pode sair do save e voltar do
+   catálogo, e aí o movimento tem de estar lá para ser reaplicado. */
+function _podarMovimentos(){
+  const mv=S.bgMoves; if(!mv||!mv.length) return;
+  const vit=S._vitrine||{};
+  S.bgMoves=mv.filter(m=>!(S.squads[m.de] && S.squads[m.para] && !vit[m.de] && !vit[m.para]));
+}
 /* ---- mercado das LIGAS DE BACKGROUND: os clubes estrangeiros negociam entre si (compra e
    venda), dando vida às ligas que rodam sozinhas. Mesma cadência do mercado da liga do
    usuário (0-2 por país/rodada, só na janela). Materializa os clubes envolvidos sob demanda.
@@ -830,10 +838,14 @@ function bgCpuTransfers(R){
     const nT=R.random()<0.2?2:1;              // quase sempre 1, raramente 2
     for(let i=0;i<nT;i++){
       const sellerId=sellers[Math.floor(R.random()*sellers.length)];
-      if(!ensureBgClubMaterialized(sellerId)) continue;
-      const sq=S.squads[sellerId]; if(!sq || sq.length<=18) continue; // não esvazia o elenco
+      /* SEM MATERIALIZAR (ver _movimentosDoClube): o elenco do vendedor é lido como seria, e o
+         negócio vira uma linha em S.bgMoves. Clube já materializado muda na hora, como antes. */
+      const sellerVivo=!!S.squads[sellerId];
+      const sq=_elencoDeFundo(sellerId); if(!sq || sq.length<=18) continue; // não esvazia o elenco
       const sorted=sq.slice().sort((a,b)=>b.f-a.f);
-      const pool=sorted.slice(Math.ceil(sorted.length*0.5)).filter(x=>canReleaseFromSquad(sellerId,x).ok); // metade mais fraca, respeitando o piso de elenco
+      const piso=x=>{ if(sellerVivo) return canReleaseFromSquad(sellerId,x).ok;
+        const min=SQUAD_FLOOR[(x&&x.s)||'']; return !min || sq.filter(y=>y.s===x.s).length>min; };
+      const pool=sorted.slice(Math.ceil(sorted.length*0.5)).filter(piso); // metade mais fraca, respeitando o piso de elenco
       if(!pool.length) continue;
       const p=pool[Math.floor(R.random()*pool.length)];
       // comprador: às vezes de OUTRO país (transferência entre países), como na vida real
@@ -844,10 +856,13 @@ function bgCpuTransfers(R){
       }
       const buyers=clubsByCountry[buyerCountry];
       const buyerId=buyers[Math.floor(R.random()*buyers.length)];
-      if(buyerId===sellerId || !ensureBgClubMaterialized(buyerId)) continue;
+      if(buyerId===sellerId || !bgClubById(buyerId)) continue;
       const fee=Math.round(liveMV(p)*(0.6+R.random()*0.6));
-      S.squads[sellerId]=sq.filter(x=>x.n!==p.n);
-      S.squads[buyerId]=S.squads[buyerId]||[]; S.squads[buyerId].push(p);
+      if(sellerVivo) S.squads[sellerId]=S.squads[sellerId].filter(x=>x.n!==p.n);
+      if(S.squads[buyerId]) S.squads[buyerId].push(p);
+      S.bgMoves=S.bgMoves||[];
+      S.bgMoves.push(sellerVivo ? { n:p.n, de:sellerId, para:buyerId, p } : { n:p.n, de:sellerId, para:buyerId });
+      _podarMovimentos();
       const fromShort=(intlClubById(sellerId)||{}).short||sellerId, toShort=(intlClubById(buyerId)||{}).short||buyerId;
       // registra a transferência nos DOIS países envolvidos (origem e destino)
       const entry={ player:p.n, from:fromShort, to:toShort, fee, season:S.season, cross:buyerCountry!==country };
@@ -3622,7 +3637,7 @@ function _marcarVitrine(id, criado, poolCriado, soVer){
 function semVitrine(S0){
   const v=S0 && S0._vitrine; if(!v) return S0;
   const ids=Object.keys(v); if(!ids.length) return S0;
-  const resto={}; for(const k in S0) if(k!=='squads' && k!=='clubPool' && k!=='bgLeagues' && k!=='_vitrine') resto[k]=S0[k];
+  const resto={}; for(const k in S0) if(k!=='squads' && k!=='clubPool' && k!=='bgLeagues' && k!=='bgMoves' && k!=='_vitrine') resto[k]=S0[k];   // bgMoves: gkSquad já os aplica na comparação
   const txt=JSON.stringify(resto);
   const tirar=[];
   ids.forEach(id=>{
@@ -3638,6 +3653,18 @@ function semVitrine(S0){
   tirar.forEach(id=>{ delete squads[id]; if(v[id]===2) delete clubPool[id]; });
   return Object.assign({}, S0, { squads, clubPool, _vitrine:{} });
 }
+function _bgDivDe(clubId){
+  const bg=S.bgLeagues||{};
+  for(const co in bg){ for(const d in bg[co].divs){ if((bg[co].divs[d].clubIds||[]).indexOf(clubId)>=0) return d; } }
+  return null;
+}
+/* o elenco de um clube de fundo como ele seria materializado — SEM gravar em S.squads */
+function _elencoDeFundo(clubId){
+  if(S.squads[clubId]) return S.squads[clubId];
+  const club=bgClubById(clubId); if(!club||!club.squad) return null;
+  const dv=_bgDivDe(clubId);
+  return gkSquad(club).map(p=>attachAttrs(initStats({...p}), dv||undefined));
+}
 /* materializa o elenco de um clube de background sob demanda (pra ver/negociar no mercado) */
 function ensureBgClubMaterialized(clubId, soVer){
   if(S.squads[clubId]){ _marcarVitrine(clubId, false, false, soVer); return true; }
@@ -3649,8 +3676,7 @@ function ensureBgClubMaterialized(clubId, soVer){
   const _poolNovo=!S.clubPool[clubId];
   S.clubPool[clubId]=club;
   // divisão do clube na liga de background -> remapeia a força na faixa certa (item 4)
-  let dv=null; const bg=S.bgLeagues||{};
-  for(const co in bg){ for(const d in bg[co].divs){ if((bg[co].divs[d].clubIds||[]).indexOf(clubId)>=0){ dv=d; break; } } if(dv) break; }
+  const dv=_bgDivDe(clubId);
   S.squads[clubId]=gkSquad(club).map(p=>attachAttrs(initStats({...p}), dv||undefined));
   _marcarVitrine(clubId, true, _poolNovo, soVer);
   return true;
@@ -4074,7 +4100,37 @@ function rfVagasNoSaveSeMudou(){
   RF_VAGAS_MARCA=marca;
   try{ rfVagasNoSave(); }catch(e){ console.warn('vagas no save:', e&&e.message); }
 }
+/* O ELENCO DE CATÁLOGO JÁ COM AS TRANSFERÊNCIAS DA CPU (25/09/2026). As ligas de fundo negociam
+   entre si (bgCpuTransfers) e antes cada negócio materializava o elenco INTEIRO do vendedor e do
+   comprador no save — centenas de clubes por temporada, o grosso dos 18 MB. Agora o negócio só
+   anota o movimento em S.bgMoves ({n, de, para, p?}) e quem monta o elenco de um clube (esta
+   função: materialização, lista do mercado, conferência da vitrine) já o recebe aplicado, na
+   ordem em que aconteceu — o jogador que foi de A para B e depois para C sai de A, passa por B
+   e fica em C. `p` só existe quando o vendedor estava materializado: é o jogador como estava
+   (evoluído); sem ele, o jogador vem do catálogo de onde começou a cadeia. */
+function _movimentosDoClube(clubId, lista){
+  const mv=(typeof S!=='undefined' && S && S.bgMoves) || null;
+  if(!mv || !mv.length || clubId==null) return lista;
+  let out=null;
+  for(let i=0;i<mv.length;i++){
+    const m=mv[i];
+    if(m.de===clubId){ out=out||lista.slice(); const k=out.findIndex(x=>x.n===m.n); if(k>=0) out.splice(k,1); }
+    if(m.para===clubId){ const pj=_jogadorDoMovimento(i); if(pj){ out=out||lista.slice(); out.push(pj); } }
+  }
+  return out||lista;
+}
+function _jogadorDoMovimento(i){
+  const m=S.bgMoves[i];
+  if(m.p) return Object.assign({}, m.p);
+  for(let j=i-1;j>=0;j--){ const a=S.bgMoves[j]; if(a.para===m.de && a.n===m.n) return _jogadorDoMovimento(j); }
+  const c=(S.clubPool&&S.clubPool[m.de]) || bgClubById(m.de);
+  const x=c ? (_gkSquadBase(c)||[]).find(q=>q.n===m.n) : null;
+  return x ? Object.assign({}, x) : null;
+}
 function gkSquad(club){
+  return _movimentosDoClube(club && club.id, _gkSquadBase(club));
+}
+function _gkSquadBase(club){
   const fem = modalidadeAtiva()==='fem';
   if(fem) femSemearNomes();                          // antes de ensureClubPositions: ver femSemearNomes
   else mascSemearNomes();                            // idem, pelo mesmo motivo — ver mascSemearNomes
