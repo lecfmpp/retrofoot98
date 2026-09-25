@@ -40,8 +40,8 @@ e UMA saída grátis por vez (escada, para não poluir o modal):
 Situações da mensagem: campeão · subiu (G4) · brigou pelo acesso e não subiu · meio de tabela · rebaixado.
 Dicas por sinal da temporada (escolher até 3): caixa/dívida, força do elenco vs. liga, queda cedo na copa,
 lesões/cansaço sem rodízio, poucas contratações, defesa vazada.
-O feedback e o link vão para o WhatsApp do dono (+1 647 862 3292) pelo mesmo caminho do aviso do grupo
-(tabela → pg_net → Green-API), e a liberação é uma RPC no servidor (trava do save respeita).
+O depoimento e o link vão para o grupo dos devs ("PB Games", o mesmo dos avisos: tabela → pg_net → Green-API),
+com nome, e-mail e WhatsApp do jogador; a liberação é automática, pela RPC `rf_liberar_temporada`.
 
 ## Fases
 
@@ -60,10 +60,9 @@ O feedback e o link vão para o WhatsApp do dono (+1 647 862 3292) pelo mesmo ca
    `rf26-pagamento.js`, travas antigas (`RF_TRAVAS`), textos de cota mensal.
 5. **(Depois, opcional)** save local para o Grátis + telemetria leve.
 
-## Pendências antes de ligar
-- Teste de 16/09: as 6 contas pagas estão `free`; restaurar pelo `bkp_user_plans_20260916` (fundadores viram Pro).
-- 3 assinaturas de fundadores seguem nos preços antigos no Stripe — decidir se migram para o preço Pro.
-- 1 Embaixador pago por Pix: vira Pro até o `until` atual.
+## Contas pagas
+- Fundadores e parceiro (teste de 16/09) FICAM no gratuito, para viver a experiência do jogador grátis.
+- 1 Embaixador pago por Pix: lido como Pro até o `until` atual.
 
 ## Estado (25/09)
 - Fase 1 (banco) aplicada e DESLIGADA — `scripts/sql/planos_gratis_pro.sql`. Ligar: `select elifoot_v3.planos_lancar();`
