@@ -811,6 +811,7 @@ function rfCoachAvatarUrl(){
   return (window.RF_TREINADORES&&window.RF_TREINADORES[a])||null;
 }
 function rfJogar(){
+  try{ if(typeof NET!=='undefined' && NET.marcarInteracao) NET.marcarInteracao('jogar'); }catch(e){}   // Pronto e Avançar dia também contam
   if(typeof estouPronto==='function' && estouPronto()){ clCancelarPronto(); return; }
   /* dia sem nada em campo: o botao passa o dia (ver rfNadaParaJogar e o rotulo).
      So no SOLO — na Resenha quem manda na rodada e o servidor, e adiantar o dia

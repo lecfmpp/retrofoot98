@@ -6431,6 +6431,7 @@ function onlineJogarGate(){
   return true;
 }
 function clJogar(){
+  try{ if(typeof NET!=='undefined' && NET.marcarInteracao) NET.marcarInteracao('jogar'); }catch(e){}   // "Ativo" do painel = jogada, não aba aberta
   /* ===== UMA PARTIDA DE CADA VEZ =====
      `clJogar` reentra: a cerimônia de sorteio chama-o de volta no fim (`checkPendingCupDraws(
      ()=>clJogar())`), e o onDone dispara mais de uma vez. Sem esta porta, a primeira volta abria

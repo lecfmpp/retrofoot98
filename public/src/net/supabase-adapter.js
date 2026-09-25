@@ -2356,6 +2356,22 @@ function netStartHeartbeat(){
 NET.startHeartbeat = netStartHeartbeat;
 netStartHeartbeat();
 
+/* ---- MARCA DE INTERAÇÃO (25/09/2026) ----
+   O "Ativo" da página de Usuários do painel vinha também do last_seen da Resenha, carimbado a cada
+   15 s com a sala só ABERTA (mesmo em segundo plano). Agora conta o login e isto: o clique em
+   Jogar / Pronto / Avançar dia (ver clJogar e rfJogar). No máximo uma chamada por minuto daqui, e
+   o banco também só regrava após 1 min (elifoot_v3.rf_interacao). Falhar aqui não importa. */
+let INTER_T = 0;
+async function netMarcarInteracao(tipo){
+  try{
+    if(!sb || !SB_AUTH_USER) return;
+    if(Date.now() - INTER_T < 60000) return;
+    INTER_T = Date.now();
+    await sb.rpc('rf_interacao', { p_tipo: tipo || 'rodada' });
+  }catch(e){}
+}
+NET.marcarInteracao = netMarcarInteracao;
+
 /* token da sessão — o seletor de patch precisa dele para listar os patches QUE A CONTA
    tem (pack_users é protegido por RLS; o patch oficial é público e vem sem token) */
 NET.accessToken = async function(){
