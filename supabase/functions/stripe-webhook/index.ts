@@ -276,6 +276,8 @@ Deno.serve(async (req) => {
     if (ciclo === "ano") fim.setUTCFullYear(fim.getUTCFullYear() + 1);
     else fim.setUTCMonth(fim.getUTCMonth() + 1);
     await gravar(uid, plano, new Date(fim.getTime() + FOLGA_MS).toISOString(), "stripe_pix", marca);
+    await avisarGrupo("pix:" + s.id, "pix",
+      `💠 Pix pago — ${NOME_PLANO[plano]} (${ciclo === "ano" ? "1 ano" : "1 mês"}) — ${reais(Number(s.amount_total) || 0, s.currency)}`, uid);
   }
 
   /* ===== A RECEITA, LINHA A LINHA =====
@@ -346,6 +348,51 @@ Deno.serve(async (req) => {
     });
   }
 
+  /* ===== AVISO NO GRUPO DOS DEVS (WhatsApp, 25/09/2026) =====
+     Cada pagamento que muda alguma coisa vira uma mensagem curta no grupo interno "PB Games":
+     assinatura nova, Pix, renovacao, cancelamento e reembolso. Quem envia e' o banco
+     (admin_rf98.avisar_grupo -> tabela avisos_grupo -> pg_net -> Green-API; ver
+     scripts/sql/avisos_grupo_whatsapp.sql). A CHAVE e' o id do que foi pago/cancelado: o Stripe
+     reenvia eventos e o mesmo Pix chega por dois, e a chave repetida nem entra.
+     NUNCA derruba o webhook: o plano ja' foi gravado, o aviso e' so' conforto. */
+  const NOME_PLANO: Record<string, string> = { resenha: "Resenha", embaixador: "Embaixador" };
+  const reais = (centavos: number, moeda?: string | null) =>
+    String(moeda || "brl").toLowerCase() === "brl"
+      ? "R$ " + (centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : (centavos / 100).toFixed(2) + " " + String(moeda).toUpperCase();
+  function foneLegivel(d: string): string {
+    if (/^55\d{10,11}$/.test(d)) return `+55 (${d.slice(2, 4)}) ${d.slice(4, d.length - 4)}-${d.slice(-4)}`;
+    return "+" + d;
+  }
+  async function quemE(uid: string | null): Promise<string> {
+    if (!uid) return "Conta: não identificada";
+    try {
+      const { data } = await admin.auth.admin.getUserById(uid);
+      const u = data?.user;
+      const m: any = u?.user_metadata || {};
+      const zap = String(m.whatsapp || "").replace(/\D/g, "");
+      return `Nome: ${m.name || m.nome || "—"}\nE-mail: ${u?.email || "—"}\nWhatsApp: ${zap ? foneLegivel(zap) : "—"}`;
+    } catch (_e) {
+      return `Conta: ${uid}`;
+    }
+  }
+  async function avisarGrupo(chave: string, tipo: string, titulo: string, uid: string | null) {
+    try {
+      const texto = `${titulo}\n${await quemE(uid)}`;
+      const { error } = await admin.schema("admin_rf98")
+        .rpc("avisar_grupo", { p_tipo: tipo, p_texto: texto, p_chave: chave });
+      if (error) console.error("aviso no grupo:", error.message);
+    } catch (e) {
+      console.error("aviso no grupo:", (e as Error)?.message);
+    }
+  }
+  async function donoDoCliente(cust: string | null | undefined): Promise<string | null> {
+    if (!cust) return null;
+    const { data } = await admin.schema("elifoot_v3")
+      .from("stripe_customers").select("user_id").eq("customer_id", cust).maybeSingle();
+    return data?.user_id || null;
+  }
+
   try {
     switch (evento.type) {
       /* Pix confirmado depois do fecho da sessao (pagamento assincrono). */
@@ -409,6 +456,8 @@ Deno.serve(async (req) => {
           break;
         }
         await gravar(uid, plano, until, "stripe", carimbar(subId, c?.id === subId ? c.t : criada));
+        await avisarGrupo("assinatura:" + subId, "assinatura",
+          `💳 Nova assinatura — ${NOME_PLANO[plano]}${Number(s.amount_total) ? " — " + reais(Number(s.amount_total), s.currency) : ""}`, uid);
         const cust = typeof s.customer === "string" ? s.customer : s.customer?.id;
         if (cust) await cancelarAntigas(cust, subId);
         break;
@@ -451,6 +500,14 @@ Deno.serve(async (req) => {
           evento: evento.type,
         });
         if (sub) console.log(`fatura ${inv.id} paga (assinatura ${typeof sub === "string" ? sub : sub.id})`);
+        /* so' a RENOVACAO: a primeira fatura ('subscription_create') ja' foi avisada como
+           assinatura nova, e a de troca de plano ('subscription_update') e' so' a diferenca */
+        if ((inv as any).billing_reason === "subscription_cycle") {
+          const pl = String((inv as any).subscription_details?.metadata?.plano
+            ?? inv.lines?.data?.[0]?.price?.metadata?.plano ?? "");
+          await avisarGrupo("renovacao:" + inv.id, "renovacao",
+            `🔁 Renovação — ${NOME_PLANO[pl] || "plano"} — ${reais(bruto, inv.currency)}`, uid);
+        }
         break;
       }
 
@@ -475,6 +532,12 @@ Deno.serve(async (req) => {
         if (error) console.error("reembolso nao registrado:", ch.id, error.message);
         else if (!data?.length) console.error(`reembolso de ${ch.amount_refunded} sem linha de receita: ${ch.id}`);
         else console.log(`reembolso de ${ch.amount_refunded} na cobranca ${ch.id}`);
+        {
+          const custR = typeof ch.customer === "string" ? ch.customer : ch.customer?.id;
+          const uidR = (ch.metadata?.user_id as string) || await donoDoCliente(custR);
+          await avisarGrupo(`reembolso:${ch.id}:${ch.amount_refunded}`, "reembolso",
+            `↩️ Reembolso — ${reais(Number(ch.amount_refunded) || 0, ch.currency)}${ch.amount_refunded < ch.amount ? " (parcial, de " + reais(ch.amount, ch.currency) + ")" : ""}`, uidR);
+        }
         break;
       }
 
@@ -504,6 +567,8 @@ Deno.serve(async (req) => {
         const ok = await avaliarAssinatura(uid, sub);
         if (!ok) break;
         await gravar(uid, "free", null, "stripe", ok.note);
+        await avisarGrupo("cancelamento:" + sub.id, "cancelamento",
+          `❌ Assinatura cancelada — ${NOME_PLANO[planoDaAssinatura(sub) || ""] || "plano"}`, uid);
         break;
       }
 

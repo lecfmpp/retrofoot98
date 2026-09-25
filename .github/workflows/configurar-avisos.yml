@@ -1,0 +1,57 @@
+# Leva as credenciais da Green-API (WhatsApp) para o Vault do Supabase.
+#
+# POR QUE existe: os avisos no grupo dos devs (cadastro, pagamento, media kit — ver
+# scripts/sql/avisos_grupo_whatsapp.sql) são enviados pelo PRÓPRIO BANCO, via pg_net, e o banco
+# lê as credenciais do Vault. Elas já existem como secrets deste repositório (as mesmas do
+# vigia-supabase.yml); este workflow só as copia, sem que ninguém veja os valores.
+# Rodar de novo sempre que um desses secrets mudar (troca de número, token novo).
+#
+# `testar` manda UMA mensagem "[TESTE]" para o grupo, para conferir o caminho inteiro.
+name: Configurar avisos no WhatsApp
+
+on:
+  workflow_dispatch:
+    inputs:
+      testar:
+        description: 'Mandar uma mensagem [TESTE] para o grupo no fim'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  vault:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_REF: alxwgqvjmetjbbqtjkhx
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      WA_URL: ${{ secrets.GREEN_API_URL }}
+      WA_ID: ${{ secrets.GREEN_API_ID }}
+      WA_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
+      WA_GRUPO: ${{ vars.WHATSAPP_GRUPO }}
+    steps:
+      - name: Gravar no Vault
+        run: |
+          set -e
+          for v in WA_URL WA_ID WA_TOKEN WA_GRUPO; do
+            [ -n "${!v}" ] || { echo "Falta $v (secrets GREEN_API_* e variável WHATSAPP_GRUPO)."; exit 1; }
+          done
+          # os valores entram entre $v$ ... $v$ (dollar quoting): nada a escapar
+          sql="select manutencao.guardar_segredo('green_api_url', \$v\$${WA_URL}\$v\$);
+               select manutencao.guardar_segredo('green_api_id', \$v\$${WA_ID}\$v\$);
+               select manutencao.guardar_segredo('green_api_token', \$v\$${WA_TOKEN}\$v\$);
+               select manutencao.guardar_segredo('whatsapp_grupo', \$v\$${WA_GRUPO}\$v\$);"
+          code=$(jq -n --arg q "$sql" '{query:$q}' | curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
+            "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @-)
+          echo "Vault -> HTTP $code"
+          [ "$code" = "201" ] || [ "$code" = "200" ] || { head -c 300 /tmp/r.txt; exit 1; }
+
+      - name: Mensagem de teste
+        if: ${{ inputs.testar }}
+        run: |
+          sql="select admin_rf98.avisar_grupo('teste', '[TESTE] Avisos do RetroFoot ligados: cadastro, pagamento e media kit chegam aqui.', 'teste:' || now()::text);"
+          jq -n --arg q "$sql" '{query:$q}' | curl -s -o /tmp/r.txt -w 'teste -> HTTP %{http_code}\n' -X POST \
+            "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @-
