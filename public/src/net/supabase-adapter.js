@@ -279,6 +279,7 @@ async function netAuthSignUp(email, password, name, extra){
   }
   SB_AUTH_USER = data.user;
   await netAtribuirReferral();
+  setTimeout(()=>{ try{ netMarcarInteracao('cadastro'); }catch(e){} }, 0);   // conta nova já entra ativa
   return SB_AUTH_USER;
 }
 
@@ -304,6 +305,7 @@ async function netAuthSignIn(email, password){
     throw new Error(authErrPt(error));
   }
   SB_AUTH_USER = data.user;
+  setTimeout(()=>{ try{ netMarcarInteracao('login'); }catch(e){} }, 0);   // login conta como ativo
   return SB_AUTH_USER;
 }
 
@@ -2359,7 +2361,8 @@ netStartHeartbeat();
 /* ---- MARCA DE INTERAÇÃO (25/09/2026) ----
    O "Ativo" da página de Usuários do painel vinha também do last_seen da Resenha, carimbado a cada
    15 s com a sala só ABERTA (mesmo em segundo plano). Agora conta o login e isto: o clique em
-   Jogar / Pronto / Avançar dia (ver clJogar e rfJogar). No máximo uma chamada por minuto daqui, e
+   Jogar / Pronto / Avançar dia (ver clJogar e rfJogar) e o login/cadastro. Cada marca também soma
+   no contador do DIA (user_activity.interacoes), que o painel usa para "ativos em 7 dias". No máximo uma chamada por minuto daqui, e
    o banco também só regrava após 1 min (elifoot_v3.rf_interacao). Falhar aqui não importa. */
 let INTER_T = 0;
 async function netMarcarInteracao(tipo){
@@ -2367,7 +2370,8 @@ async function netMarcarInteracao(tipo){
     if(!sb || !SB_AUTH_USER) return;
     if(Date.now() - INTER_T < 60000) return;
     INTER_T = Date.now();
-    await sb.rpc('rf_interacao', { p_tipo: tipo || 'rodada' });
+    await sb.rpc('rf_interacao', { p_tipo: tipo || 'rodada',
+      p_modo: (typeof CL!=='undefined' && CL && CL.online) ? 'resenha' : 'solo' });
   }catch(e){}
 }
 NET.marcarInteracao = netMarcarInteracao;
