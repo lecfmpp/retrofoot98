@@ -44,7 +44,7 @@ function rfUpIdx(key){ return Math.max(0, RF_UP_ORDEM.indexOf(key)); }
    Devolve o que as tres telas precisam: o valor final, a legenda, o cheio riscado com o chip de
    desconto (quando ha'), e a nota de baixo. No anual o riscado e' contra os 12 meses cheios. */
 function rfUpPreco(p, ciclo){
-  if(!p || !p.mes) return { cent:0, final:'R$ 0', legenda:'pra sempre', cheio:'', desconto:'',
+  if(!p || !p.mes) return { cent:0, final:'R$ 0', legenda:'na 1ª temporada', cheio:'', desconto:'',
     nota:'Sem cartão, sem pegadinha.', notaTom:'' };
   const beta = (typeof rfBetaVale==='function') && rfBetaVale(p);
   const corte = c => beta ? rfBetaCent(c) : c;
@@ -117,7 +117,7 @@ function rfUpPaginaHTML(){
     let btn, btnNota, btnCls, acao='';
     if(eu){
       btn='✓ Seu plano atual'; btnCls='atual';
-      btnNota = p.mes ? `Renova ${ciclo==='ano'?'todo ano':'todo mês'}. Cancela quando quiser.` : 'Sem prazo para acabar.';
+      btnNota = p.mes ? `Renova ${ciclo==='ano'?'todo ano':'todo mês'}. Cancela quando quiser.` : 'A 1ª temporada inteira, sem cartão.';
     } else if(abaixo){
       btn='Plano abaixo do seu'; btnCls='abaixo'; btnNota='Você já tem tudo isso.';
     } else {

@@ -1,4 +1,4 @@
--- GRÁTIS × PRO — 25/09/2026 (plano em docs/plano-gratis-pro.md)
+-- PELADEIRO × PRO (antes 'Grátis × Pro') — 25/09/2026 (plano em docs/plano-gratis-pro.md)
 --
 -- Só dois planos: Grátis (1 carreira, 1 temporada por carreira) e Pro (ilimitado, Modo Resenha).
 -- `resenha` e `embaixador` deixam de ser vendidos e são lidos como Pro.
@@ -225,10 +225,15 @@ begin
     v_msg := case when p_tipo = 'depoimento' then '💬 *Depoimento no RetroFoot*' else '📣 *Post/vídeo sobre o RetroFoot*' end
       || chr(10) || coalesce(v_nome, '?') || ' (' || coalesce(v_email, '?') || ' · ' || coalesce(v_fone, '—') || ')'
       || case when p_tipo = 'depoimento' then ' deixou depoimento' else ' publicou sobre o jogo' end
-      || ' e estendeu a carreira' || coalesce(' no ' || v_clube, '') || ' por mais 1 temporada no modo gratuito.'
+      || ' e estendeu a carreira' || coalesce(' no ' || v_clube, '') || ' por mais 1 temporada no Peladeiro.'
       || coalesce(chr(10) || 'Temporada: ' || p_resumo, '')
       || case when p_tipo = 'depoimento' then chr(10) || chr(10) || '"' || left(btrim(p_texto), 2000) || '"'
               else chr(10) || chr(10) || btrim(p_link) end;
+    -- marca a equipe no grupo (lista no Vault: 'whatsapp_marcar', números separados por vírgula)
+    select v_msg || coalesce(chr(10) || chr(10) || string_agg('@' || btrim(n), ' '), '')
+      into v_msg
+      from vault.decrypted_secrets d, unnest(string_to_array(d.decrypted_secret, ',')) n
+     where d.name = 'whatsapp_marcar' and btrim(n) <> '';
     perform admin_rf98.avisar_grupo(p_tipo, v_msg, 'temporada:' || v_uid || ':' || p_tipo);
   exception when others then null;
   end;

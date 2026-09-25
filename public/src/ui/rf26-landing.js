@@ -591,7 +591,8 @@ function rfLpMomentosHTML(){
 const RF_PLANOS=[
   /* O GRÁTIS CHAMA-SE PELADEIRO (pedido do dono, 25/09): o nome é a graça do plano — a pelada
      de fim de semana, sem compromisso — e vende melhor que "Grátis". A chave continua 'gratis'. */
-  { key:'gratis', nome:'Peladeiro', icone:'⚽', mes:0, ano:0, ciclo:'pra sempre',
+  /* sem "pra sempre" (pedido do dono, 25/09): o Peladeiro é a 1ª temporada, e é isso que o preço diz */
+  { key:'gratis', nome:'Peladeiro', icone:'⚽', mes:0, ano:0, ciclo:'na 1ª temporada',
     resumo:'A pelada de fim de semana: pega um clube, escala o time e joga a temporada inteira — sem pagar nada.',
     itens:['Modo Solo completo: Séries A, B, C e D, com os elencos de verdade',
            'Uma temporada inteira, do apito inicial à última rodada',
@@ -671,7 +672,7 @@ function rfPlanoPrecoPartes(p, ciclo){
      era verdade quando o Peladeiro não tinha prazo nenhum; com o Resenha
      limitado, essa frase passa a esconder justamente a pegadinha que ela nega.
      O Solo é que é para sempre, e é isso que ela diz agora. */
-  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'pra sempre', cheio:null,
+  if(!p.mes) return { v:'R$ 0', c:p.ciclo||'na 1ª temporada', cheio:null,
                       nota:'A temporada inteira de graça · sem cartão' };
   const e = rfPlanoEconomia(p);
   /* NO BETA, O NÚMERO GRANDE É O QUE SE PAGA. O preço cheio não desaparece — vai
