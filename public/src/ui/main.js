@@ -2305,7 +2305,9 @@ function rfTrilhaHTML(passo, modo){
    Para voltar a esconder da beta pública, basta trocar de novo para `true`:
    é a ÚNICA chave, e as duas peles (rf26-onboarding e o main antigo) leem
    daqui. */
-const RESENHA_EM_BREVE=false;
+/* DE VOLTA A `true` EM 25/09 (pedido do dono): o Modo Resenha chega em breve, em versão Beta, com
+   acesso exclusivo para quem é Pro. O cartão mostra "Em breve" e vende o Pro (rf26-onboarding). */
+const RESENHA_EM_BREVE=true;
 function scModoChoice(){
   return wizShell({ step:rfPasso('Modo','solo'), modo:'solo', title:'Escolher modo', back:'clGoAbertura()', backLabel:'Voltar ao início',
     contentCls:'cl-wiz-center', actionCls:'cl-wiz-action-c',

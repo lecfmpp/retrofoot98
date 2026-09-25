@@ -390,15 +390,21 @@ function rfOb2(){
         <div class="rf-modo-veu"></div>
         <div class="rf-modo-txt">
           <span class="rf-modo-tags">
-            <span class="rf-modo-tag rec">Online</span>
+            ${RESENHA_EM_BREVE?'<span class="rf-modo-tag rec">Em breve</span>':'<span class="rf-modo-tag rec">Online</span>'}
             <span class="rf-modo-tag">Multi-player</span>
           </span>
           <span class="rf-modo-t">Modo Resenha</span>
-          <span class="rf-modo-d">${(!RESENHA_EM_BREVE&&!rfPodeResenha())
+          <span class="rf-modo-d">${RESENHA_EM_BREVE
+            ? `Chega em breve, em versão Beta — com acesso exclusivo para quem é Pro. Até ${rfTetoHumanos()} treinadores na mesma liga, jogando a mesma semana ao vivo.`
+            : (!rfPodeResenha())
             ? 'Na versão Beta, o Modo Resenha é exclusivo do plano Pro: entre na sala dos amigos ou abra a sua. O Modo Solo continua seu.'
             : `Monte a liga do grupo do trabalho ou da comunidade. Até ${rfTetoHumanos()} treinadores jogam a mesma semana ao vivo, com tabela, mercado e zoeira no chat.`}</span>
-          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE?"clWaitlistOpen('onboarding')":'clPickResenha()'}">${
-            RESENHA_EM_BREVE ? rfIcone('coroa',16)+' Entrar na lista de espera'
+          ${/* EM BREVE (25/09): o botão vende o Pro, que é quem entra no Beta. Quem já é Pro só
+                ouve que o lugar está guardado — não há lista de espera a preencher. */''}
+          <button type="button" class="rf-modo-cta" onclick="event.stopPropagation();${RESENHA_EM_BREVE
+            ? (rfContaEhPro() ? "toastC('Você é Pro: o seu acesso ao Modo Resenha está garantido no lançamento do Beta.')" : "rfUpPopupPlano('pro')")
+            : 'clPickResenha()'}">${
+            RESENHA_EM_BREVE ? (rfContaEhPro() ? '✓ Acesso garantido no lançamento' : rfIcone('coroa',16)+' Garantir acesso com o Pro')
             : (!rfPodeResenha() ? '🔒 Ver os planos'
             : rfIcone('chat',16)+' Jogar com a galera')}</button>
         </div>
@@ -416,7 +422,7 @@ function rfOb2(){
   return rfWiz({passo:rfPasso('Modo'), corpo,
     sobre:'Como você quer jogar', titulo:'Como você quer jogar?',
     sub:RESENHA_EM_BREVE
-      ? 'O Modo Resenha, para jogar com a turma, chega em novembro. Na beta, o Solo já está completo.'
+      ? 'O Modo Resenha chega em breve, em versão Beta, com acesso exclusivo para quem é Pro. O Modo Solo já está completo.'
       : 'Você pode mudar de modo depois, a qualquer momento.',
     voltar:'clGoAbertura()', voltarLabel:'‹ Voltar'});
 }

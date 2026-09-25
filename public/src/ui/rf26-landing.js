@@ -999,7 +999,7 @@ function rfLpResenhaHTML(){
     <span class="rf-lp-passo-d">${escC(d)}</span></div>`;
   return `<section class="rf-lp-resenha rf-lp-f-creme" id="rf-lp-resenha">
     <div class="rf-lp-resenha-in">
-      <span class="rf-lp-eyebrow">Modo Resenha</span>
+      <span class="rf-lp-eyebrow">Modo Resenha · em breve</span>
       <h2 class="rf-lp-h2">A liga é sua. A zoeira é do grupo.</h2>
       <p class="rf-lp-p">Você abre a sala, manda o link no grupo e cada um pega um clube no sorteio — ninguém escolhe, ninguém reclama. Daí em diante todo mundo joga a mesma semana, na mesma tabela, com o mesmo mercado.</p>
 
