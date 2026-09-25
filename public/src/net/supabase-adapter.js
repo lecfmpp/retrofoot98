@@ -1456,6 +1456,48 @@ async function netCriarCheckout(plano, ciclo, forma){
   return url ? { url } : { erro:'sem_url' };
 }
 
+/* ---- SAVE COMPRIMIDO (formato 'gz1', 25/09/2026) ----
+   O S do Solo chega a 18 MB de JSON (13 MB são elencos de ~480 clubes) e subia assim ao banco —
+   foi o que deixou o Postgres sem memória. Agora o S completo vai em `Sz` (gzip + base64, ~1/8
+   do tamanho) e o `S` gravado fica só com o RESUMO que o servidor lê sem descomprimir:
+     · colunas geradas de solo_saves  -> S.season, S.round, S.division, S.history, S.table
+     · carreira_resumo (trigger)      -> S.coachSpells, S.history, S.table
+     · painel admin (jogos/overview)  -> S.division, S.season, S.table
+     · lista de saves do jogo         -> S.season, S.division, S.round
+   Mexeu no que o servidor lê? Acrescente a chave aqui, senão ela some do banco sem erro.
+   Save sem `Sz` (antigo, ou navegador sem CompressionStream) é lido como sempre foi. */
+const SZ_RESUMO_S = ['season','round','division','history','table','coachSpells','intlUniverse','seed'];
+async function _gzBase64(txt){
+  const blob = await new Response(new Blob([txt]).stream()
+    .pipeThrough(new CompressionStream('gzip'))).blob();
+  const url = await new Promise((ok, erro)=>{ const r=new FileReader();
+    r.onload=()=>ok(r.result); r.onerror=()=>erro(r.error); r.readAsDataURL(blob); });
+  return String(url).slice(String(url).indexOf(',')+1);
+}
+async function _gunzipBase64(b64){
+  const bin = await (await fetch('data:application/octet-stream;base64,'+b64)).blob();
+  return new Response(bin.stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+function _szDisponivel(){ return typeof CompressionStream!=='undefined' && typeof DecompressionStream!=='undefined'; }
+function _resumoS(S){
+  const r = { _comprimido:1 };
+  SZ_RESUMO_S.forEach(k=>{ if(S[k]!==undefined) r[k]=S[k]; });
+  return r;
+}
+/* save inteiro {…, S} -> {…, S:resumo, Sz, fmt}. Sem suporte no navegador, vai como estava. */
+async function empacotarSave(state){
+  if(!state || !state.S || state.Sz || !_szDisponivel()) return state;
+  const Sz = await _gzBase64(JSON.stringify(state.S));
+  return Object.assign({}, state, { S:_resumoS(state.S), Sz, fmt:'gz1' });
+}
+async function desempacotarSave(state){
+  if(!state || typeof state.Sz!=='string') return state;
+  const S = JSON.parse(await _gunzipBase64(state.Sz));
+  const r = Object.assign({}, state, { S });
+  delete r.Sz; delete r.fmt;
+  return r;
+}
+
 /* ---- SAVES DO MODO SOLO (só nuvem, por usuário) ---- */
 async function netListSoloSaves(){
   if(!sb) await netInitSupabase();
@@ -1480,11 +1522,12 @@ async function netLoadSoloSave(name){
   if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
   const { data, error } = await sb.from('solo_saves').select('state').eq('save_name', name).maybeSingle();
   if(error) throw error;
-  return data ? data.state : null;
+  return data ? desempacotarSave(data.state) : null;
 }
 async function netSaveSoloGame(name, state){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
+  state = await empacotarSave(state);
   const { error } = await sb.from('solo_saves').upsert(
     { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,save_name' });
@@ -1546,7 +1589,10 @@ async function netSaveSoloFoto(f){
   if(!sb || !SB_AUTH_USER) return false;
   const { error } = await sb.from('solo_save_fotos').upsert(
     { user_id:SB_UID(), save_name:f.save_name, seed:String(f.seed), club_id:f.club_id||null,
-      season:f.season, round:f.round||0, state:f.state, criado_em:new Date().toISOString() },
+      season:f.season, round:f.round||0,
+      /* a foto guarda o S puro; comprimido vai como {S:resumo, Sz} e volta S no netLoadSoloFoto */
+      state:(f.state && _szDisponivel()) ? await empacotarSave({ S:f.state }) : f.state,
+      criado_em:new Date().toISOString() },
     { onConflict:'user_id,save_name,seed,season' });
   if(error){ console.warn('saveSoloFoto:', error.message||error); return false; }
   return true;
@@ -1565,6 +1611,7 @@ async function netLoadSoloFoto(id){
   if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
   const { data, error } = await sb.from('solo_save_fotos').select('state,save_name,seed').eq('id', id).maybeSingle();
   if(error) throw error;
+  if(data && data.state && typeof data.state.Sz==='string') data.state = (await desempacotarSave(data.state)).S;
   return data||null;
 }
 
