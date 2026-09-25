@@ -531,12 +531,19 @@ function buscarVagasAprovadas(){
 let PACOTE_OFICIAL = null;
 const aplicados = new Set();
 
-/* 1) CACHE, SÍNCRONO — o pacote oficial da visita anterior entra antes de o motor
+/* 1) CACHE OU CÓPIA EMBUTIDA, SÍNCRONO — o pacote oficial entra antes de o motor
       montar qualquer coisa. Sem isto, quem criasse um jogo nos primeiros milissegundos
-      pegaria o catálogo sem correção. */
+      pegaria o catálogo sem correção.
+      A cópia embutida (src/data/pacote-oficial.js, gerada no build) é o que garante os
+      nomes fictícios a quem NÃO tem cache quando o Supabase está fora — em 24/09/2026 um
+      jogo novo nasceu com nomes e escudos reais por isso. Das duas, vale a mais nova. */
 try{
-  const c = JSON.parse(localStorage.getItem(CACHE)||'null');
-  if(c && Array.isArray(c.v)){ aplicar(c.v); PACOTE_OFICIAL = c.id||null; aplicados.add('oficial'); }
+  let c = null;
+  try{ c = JSON.parse(localStorage.getItem(CACHE)||'null'); }catch(e){}
+  if(!c || !Array.isArray(c.v)) c = null;
+  const emb = window.RF_PACOTE_OFICIAL;
+  if(emb && Array.isArray(emb.v) && (!c || (emb.t||0) > (c.t||0))) c = emb;
+  if(c){ aplicar(c.v); PACOTE_OFICIAL = c.id||null; aplicados.add('oficial'); }
 }catch(e){}
 
 /* 2) REDE — atualiza para a próxima visita (e para esta, se ainda der tempo) */
