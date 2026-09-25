@@ -14,7 +14,11 @@
    sem publicar nada. Quatro `price_...` espalhados pelo codigo seriam quatro
    sitios para esquecer de mudar.
 
-   Body: { plano:'resenha'|'embaixador', ciclo:'mes'|'ano', forma?:'cartao'|'pix', origem?: url }
+   Desde 25/09 so' se vende o `pro` (docs/plano-gratis-pro.md). `resenha` e `embaixador` ficam
+   aceites ate' o dia do lancamento, quando os precos deles sao arquivados no Stripe — sem preco
+   activo, a busca abaixo ja' os recusa sozinha.
+
+   Body: { plano:'pro'|'resenha'|'embaixador', ciclo:'mes'|'ano', forma?:'cartao'|'pix', origem?: url }
 
    ===== PIX E' PAGAMENTO AVULSO, NAO ASSINATURA =====
    O Stripe so' faz Pix recorrente (Pix Automatico) fora do Brasil, e por convite. Conta
@@ -42,7 +46,7 @@ function resp(status: number, body: unknown) {
   });
 }
 
-const PLANOS = new Set(["resenha", "embaixador"]);
+const PLANOS = new Set(["pro", "resenha", "embaixador"]);
 const CICLOS = new Set(["mes", "ano"]);
 const SITE_PADRAO = "https://retrofoot.com.br";
 
@@ -170,7 +174,8 @@ Deno.serve(async (req) => {
        `coupons.list` e' a unica via: cupons nao entram no `search` do Stripe.
        Sao poucos por conta, entao uma pagina chega. */
     let cupomBeta: string | undefined;
-    try {
+    /* o Pro nasceu sem o desconto do beta (decisao do dono, 25/09): nem procura cupom */
+    if (plano !== "pro") try {
       const cupons = await stripe.coupons.list({ limit: 100 });
       const bom = cupons.data.filter((c) =>
         c.valid && c.metadata?.beta === "true" &&

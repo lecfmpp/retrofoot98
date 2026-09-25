@@ -12347,6 +12347,10 @@ button.rf-up-btn{cursor:pointer}
 .rf-up-btn.upgrade:hover{background:var(--up-navy)}
 .rf-up-btn.atual{background:var(--up-verde-wash);border-color:var(--up-verde-line);color:var(--up-verde-ink);cursor:default}
 .rf-up-btn.abaixo{background:rgba(255,255,255,.85);border-color:rgba(18,32,26,.18);color:var(--text-3);cursor:default}
+/* "Gerir assinatura", na faixa escura do plano atual */
+.rf-up-btn.gerir{flex:0 0 auto;height:40px;background:transparent;border-color:rgba(255,255,255,.4);color:var(--up-on-dark)}
+.rf-up-btn.gerir:hover{background:rgba(255,255,255,.1)}
+.rf-up-btn.gerir:disabled{opacity:.6;cursor:progress}
 .rf-up-btn-nota{text-align:center;font-size:11.5px;color:var(--ink-3);min-height:16px}
 .rf-up-barra{display:none}
 

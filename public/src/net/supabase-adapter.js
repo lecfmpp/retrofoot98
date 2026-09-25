@@ -1440,6 +1440,25 @@ async function netLoadGame(){
    ligado no projeto, a função responde 503 com esse motivo e quem chamou volta
    para a lista de espera, que é o comportamento de hoje. Botão nenhum morre no
    meio do caminho. */
+/* ===== PORTAL DA ASSINATURA (25/09) =====
+   "Gerir assinatura" em Minha Conta: cancelar, trocar mensal/anual, trocar cartão, ver faturas.
+   O portal é do Stripe (edge function portal-assinatura); quem muda o plano continua a ser só o
+   webhook. `sem_assinatura` = a conta nunca comprou nada no Stripe (cortesia da equipe). */
+async function netAbrirPortal(){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
+  const res = await netInvokeFn('portal-assinatura', {
+    origem: (typeof location!=='undefined' ? location.origin : '')
+  });
+  if(res.error){
+    let motivo='falhou';
+    try{ const c = await res.error.context?.json?.(); if(c && c.motivo) motivo=c.motivo; }catch(e){}
+    return { erro: motivo };
+  }
+  const url = res.data && res.data.url;
+  return url ? { url } : { erro:'sem_url' };
+}
+
 async function netCriarCheckout(plano, ciclo, forma){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
@@ -2029,6 +2048,7 @@ NET.isOnlineUser = netIsOnline;
 NET.authStatus = netAuthStatus;
 NET.carregarPlano = netCarregarPlano;   // releitura a pedido (ex.: depois de comprar o PRO)
 NET.criarCheckout = netCriarCheckout;   // devolve {url} ou {erro}
+NET.abrirPortal = netAbrirPortal;       // devolve {url} ou {erro}
 NET.authSignUp = netAuthSignUp;
 NET.authSignIn = netAuthSignIn;
 NET.authSignOut = netAuthSignOut;

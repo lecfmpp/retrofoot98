@@ -168,6 +168,7 @@ function rfUpPaginaHTML(){
         <span class="rf-up-faixa-ico">${defA.icone||''}</span>
         <span class="rf-up-faixa-id"><span class="rf-up-mono">SEU PLANO ATUAL</span><b>${escC(defA.nome||'')}</b></span>
         <span class="rf-up-faixa-r">${escC(RF_UP_RESUMO[atual])}</span>
+        ${rfContaEhPro()?`<button type="button" class="rf-up-btn gerir" onclick="rfUpGerirAssinatura(this)">Gerir assinatura</button>`:''}
       </div>
       <div class="rf-up-escada">${escada}</div>
     </div>
@@ -180,6 +181,20 @@ function rfUpPaginaHTML(){
     <div class="rf-up-cards">${cartoes}</div>
     ${barra}
   </div>`;
+}
+/* "Gerir assinatura": abre o portal do Stripe noutra aba (como o checkout dentro do jogo, para o
+   save seguir aberto aqui). Quem tem plano por cortesia da equipe não tem nada no Stripe. */
+function rfUpGerirAssinatura(btn){
+  if(!(typeof NET!=='undefined' && NET.abrirPortal)) return;
+  const aba=window.open('', '_blank');
+  if(btn){ btn.disabled=true; btn.textContent='Abrindo…'; }
+  NET.abrirPortal().then(r=>{
+    if(r && r.url){ if(aba) aba.location.href=r.url; else location.href=r.url; return; }
+    if(aba) aba.close();
+    toastC(r && r.erro==='sem_assinatura'
+      ? 'Seu plano não tem cobrança no Stripe — não há assinatura para gerir.'
+      : 'Não foi possível abrir a sua assinatura agora. Tente de novo em instantes.');
+  }).finally(()=>{ if(btn){ btn.disabled=false; btn.textContent='Gerir assinatura'; } });
 }
 /* o subtitulo da pagina Minha Conta fora de uma sala: o e-mail e o plano */
 function rfUpContaSub(){

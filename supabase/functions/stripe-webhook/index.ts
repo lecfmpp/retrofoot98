@@ -72,11 +72,18 @@ const FOLGA_MS = 2 * 24 * 60 * 60 * 1000;
    trocou de cartao. Quando desistir, manda `canceled` e cai aqui. */
 const VIVOS = new Set(["active", "trialing", "past_due"]);
 
+/* planos que o Stripe vende ou ja' vendeu. Desde 25/09 so' se vende o `pro`; `resenha` e
+   `embaixador` ficam porque ha' quem os pagou e as renovacoes/cancelamentos continuam a chegar. */
+const PLANOS_PAGOS = new Set(["resenha", "embaixador", "pro"]);
+function planoValido(p: unknown): string | null {
+  const s = String(p || "");
+  return PLANOS_PAGOS.has(s) ? s : null;
+}
+
 function planoDaAssinatura(sub: Stripe.Subscription): string | null {
   const doItem = sub.items?.data?.[0]?.price?.metadata?.plano;
   const daSub = sub.metadata?.plano;
-  const p = String(doItem || daSub || "");
-  return (p === "resenha" || p === "embaixador") ? p : null;
+  return planoValido(doItem || daSub);
 }
 
 Deno.serve(async (req) => {
@@ -223,7 +230,9 @@ Deno.serve(async (req) => {
        `updated`, nem um cancelamento feito a mao no painel do Stripe.
        Nao derruba o webhook se falhar: o plano ja' foi gravado, e um erro aqui deixaria o Stripe
        a repetir o evento e a regravar o plano em ciclo. O log fica. */
-    if (plano !== "embaixador") {
+    /* O Pro (25/09) NAO traz jogador no banco oficial, mas quem ja' tem a vaga a mantem: um
+       Embaixador que passa para o Pro nao perde o jogador. So' larga quem cai para o gratis. */
+    if (plano !== "embaixador" && plano !== "pro") {
       const { data: n, error: eVaga } = await admin.schema("elifoot_v3")
         .rpc("vaga_liberar_do_usuario", { p_user: uid });
       if (eVaga) console.error("libertar vaga de jogador:", eVaga.message);
@@ -259,8 +268,7 @@ Deno.serve(async (req) => {
      da sessao fica em `note`; chegando de novo, nao se soma nada. */
   async function concederPix(s: Stripe.Checkout.Session) {
     const uid = (s.client_reference_id as string) || (s.metadata?.user_id as string) || null;
-    const pm = String(s.metadata?.plano || "");
-    const plano = (pm === "resenha" || pm === "embaixador") ? pm : null;
+    const plano = planoValido(s.metadata?.plano);
     const ciclo = s.metadata?.ciclo === "ano" ? "ano" : "mes";
     if (!uid || !plano) { console.error("pix sem dono ou sem plano", s.id); return; }
 
@@ -355,7 +363,7 @@ Deno.serve(async (req) => {
      scripts/sql/avisos_grupo_whatsapp.sql). A CHAVE e' o id do que foi pago/cancelado: o Stripe
      reenvia eventos e o mesmo Pix chega por dois, e a chave repetida nem entra.
      NUNCA derruba o webhook: o plano ja' foi gravado, o aviso e' so' conforto. */
-  const NOME_PLANO: Record<string, string> = { resenha: "Resenha", embaixador: "Embaixador" };
+  const NOME_PLANO: Record<string, string> = { resenha: "Resenha", embaixador: "Embaixador", pro: "Pro" };
   const reais = (centavos: number, moeda?: string | null) =>
     String(moeda || "brl").toLowerCase() === "brl"
       ? "R$ " + (centavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -430,8 +438,7 @@ Deno.serve(async (req) => {
         if (s.mode !== "subscription" || !s.subscription) break;
         const subId = typeof s.subscription === "string" ? s.subscription : s.subscription.id;
         const uid = (s.client_reference_id as string) || (s.metadata?.user_id as string) || null;
-        const pm = String(s.metadata?.plano || "");
-        const plano = (pm === "resenha" || pm === "embaixador") ? pm : null;
+        const plano = planoValido(s.metadata?.plano);
         if (!uid || !plano) { console.error("checkout sem dono ou sem plano", s.id); break; }
 
         let until: string | null = null;
