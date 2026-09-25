@@ -3754,9 +3754,53 @@ function scHandoff(){
    etc.) era engolido num console.warn — o jogador só via um aviso genérico sem saber
    por quê. Agora é de verdade assíncrono/esperado, mostra progresso real (indeterminado,
    já que não dá pra saber % de upload) e tenta dar uma pista honesta do motivo do erro. */
+/* AUTO-SAVE COM FREIO (25/09/2026). O save do Solo tem 8-16 MB e subia INTEIRO a cada rodada,
+   escalação, lance — vários em paralelo, sem esperar o anterior. Com 10-15 pessoas a jogar, o
+   Postgres ficava sem memória e reiniciava a cada 2-5 min (login sumindo, "CORS", pacote de nomes
+   sem chegar). Agora:
+     · um envio de cada vez — pedido que chega com outro em voo só marca "sujo";
+     · auto-save no máximo a cada SAVE_AUTO_MS; o que acontecer no meio vai no próximo envio,
+       montado na hora em que sai (é sempre o estado mais recente);
+     · falhou por servidor/rede → a espera dobra (até SAVE_AUTO_MAX_MS) e tenta de novo sozinho;
+     · explícito ("Gravar jogo", sair) grava JÁ: espera o envio em voo e cancela o agendado. */
+const SAVE_AUTO_MS = 120000, SAVE_AUTO_MAX_MS = 600000;
+const _sv = { voo:null, sujo:false, ult:0, espera:SAVE_AUTO_MS, timer:null };
+function _svAgendar(){
+  if(_sv.timer || _sv.voo) return;
+  const falta = Math.max(0, _sv.ult + _sv.espera - Date.now());
+  _sv.timer = setTimeout(()=>{ _sv.timer=null; if(_sv.sujo) saveV3(); }, falta);
+}
+/* aba escondida (trocou de aba, minimizou, vai fechar) com algo por gravar: sai JÁ, sem esperar
+   o intervalo — é o que encurta a perda de quem fecha sem usar "Gravar jogo". Raro o bastante
+   para não pesar no banco. */
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden || !_sv.sujo || _sv.voo) return;
+  if(_sv.timer){ clearTimeout(_sv.timer); _sv.timer=null; }
+  _sv.ult = 0; saveV3();
+});
 async function saveV3(explicit){
   if(CL._seatContext) return; // hotseat: contexto trocado pro assento — NÃO persistir (seria salvo com o clube errado como primário)
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
+  if(typeof S==='undefined' || !S || !CL.clubId) return;
+  if(!explicit){
+    _sv.sujo = true;
+    if(_sv.voo || _sv.timer) return;                       // já há envio em voo ou agendado
+    if(Date.now() - _sv.ult < _sv.espera){ _svAgendar(); return; }
+  }else{
+    if(_sv.timer){ clearTimeout(_sv.timer); _sv.timer=null; }
+    if(_sv.voo){ try{ await _sv.voo; }catch(e){} }
+  }
+  _sv.sujo = false; _sv.ult = Date.now();
+  const p = _saveV3Enviar(explicit);
+  _sv.voo = p;
+  let ok = false;
+  try{ ok = await p; }finally{ _sv.voo = null; }
+  if(ok) _sv.espera = SAVE_AUTO_MS;
+  else if(ok === null){ _sv.espera = Math.min(_sv.espera*2, SAVE_AUTO_MAX_MS); _sv.sujo = true; }
+  if(_sv.sujo) _svAgendar();
+}
+/* devolve true (gravou), null (falha passageira: servidor/rede — tentar de novo) ou false */
+async function _saveV3Enviar(explicit){
   const name = CL.save||CL.mgr||'SAVE';
   // identidade do clube junto do save: é o que a lista de saves mostra sem baixar o estado
   // inteiro (clubShort/clubCrest via state->>, ver netListSoloSaves)
@@ -3773,7 +3817,7 @@ async function saveV3(explicit){
     clubCrest:(typeof clubCrestUrl==='function'?clubCrestUrl(_c):null)||null,
     modalidade:_modalidade,
     currency:CL.currency, ticket:CL.ticket, humans:CL.humans, S };
-  if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return; }
+  if(typeof NET==='undefined' || !NET.saveSoloGame){ if(explicit&&typeof toastC==='function') toastC('⚠ Sem conexão pra gravar.'); return null; }
   let finishSavingOverlay=null;
   if(explicit) finishSavingOverlay=showSavingOverlay();
   try{
@@ -3788,6 +3832,7 @@ async function saveV3(explicit){
       await new Promise(r=>setTimeout(r,350));
       clCloseOverlay(); toastC('✓ Jogo gravado na nuvem.');
     }
+    return true;
   } catch(e){
     console.warn('saveSolo erro:', e);
     /* TETO DE SAVES — ESTE ERRO NAO PODE SER SILENCIOSO. O trigger do banco
@@ -3798,7 +3843,7 @@ async function saveV3(explicit){
        ser um "Gravar" explicito. */
     if(/PLANO_SAVES/.test((e&&e.message)||'') && typeof rfTrava==='function'){
       if(explicit) clCloseOverlay();
-      rfTrava('saves'); return;
+      rfTrava('saves'); return false;
     }
     if(explicit){
       clCloseOverlay();
@@ -3808,6 +3853,9 @@ async function saveV3(explicit){
         ? '⚠ Sessão expirada — faça login novamente pra gravar na nuvem.'
         : '⚠ Não foi possível gravar na nuvem'+(msg?' ('+msg+')':'.')+'.');
     }
+    /* sessão/permissão não passa sozinha; o resto (5xx, 52x, rede caída) passa */
+    const m=(e&&(e.message||e.code))?String(e.message||e.code):'';
+    return /jwt|auth|session|401|403|42501/i.test(m) ? false : null;
   }
 }
 /* barra de "Gravando..." — visual e animação IDÊNTICOS à barra usada ao criar um save novo
