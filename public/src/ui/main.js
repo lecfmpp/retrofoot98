@@ -2869,7 +2869,7 @@ function clEntrar(){
   if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
   CL.humans={}; CL.draw.forEach(d=>CL.humans[d.clubId]=d.name);
   CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
-  saveV3();
+  saveV3('criacao');
   // BOAS-VINDAS -> SORTEIOS -> TELA DO CLUBE. Todos os sorteios de abertura acontecem aqui, no
   // começo do jogo, um depois do outro (ver cupSeasonDrawDays: todos no dia 1) — é a partir deles
   // que o calendário da temporada inteira está montado, pra todos os clubes do save. Antes cada
@@ -3768,7 +3768,7 @@ const _sv = { voo:null, sujo:false, ult:0, espera:SAVE_AUTO_MS, timer:null };
 function _svAgendar(){
   if(_sv.timer || _sv.voo) return;
   const falta = Math.max(0, _sv.ult + _sv.espera - Date.now());
-  _sv.timer = setTimeout(()=>{ _sv.timer=null; if(_sv.sujo) saveV3(); }, falta);
+  _sv.timer = setTimeout(()=>{ _sv.timer=null; if(_sv.sujo) saveV3('rodada'); }, falta);
 }
 /* aba escondida (trocou de aba, minimizou, vai fechar) com algo por gravar: sai JÁ, sem esperar
    o intervalo — é o que encurta a perda de quem fecha sem usar "Gravar jogo". Raro o bastante
@@ -3776,13 +3776,20 @@ function _svAgendar(){
 document.addEventListener('visibilitychange', ()=>{
   if(!document.hidden || !_sv.sujo || _sv.voo) return;
   if(_sv.timer){ clearTimeout(_sv.timer); _sv.timer=null; }
-  _sv.ult = 0; saveV3();
+  _sv.ult = 0; saveV3('rodada');
 });
-async function saveV3(explicit){
+/* QUEM GRAVA NA NUVEM (25/09/2026, pedido do dono): SÓ o fim de rodada ('rodada'), a criação do
+   jogo ('criacao') e o jogador (true: "Gravar jogo", sair do save/da conta, encerrar carreira).
+   Qualquer outra chamada — escalação, mercado, e-mail, opções, `rfGravar()` sem argumento — não
+   grava: o que mudou vai junto no save da próxima rodada. As chamadas ficaram no código de
+   propósito, para voltar atrás ser só mudar esta porta. */
+async function saveV3(modo){
+  const explicit = (modo === true);
+  if(!explicit && modo !== 'rodada' && modo !== 'criacao') return;
   if(CL._seatContext) return; // hotseat: contexto trocado pro assento — NÃO persistir (seria salvo com o clube errado como primário)
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
   if(typeof S==='undefined' || !S || !CL.clubId) return;
-  if(!explicit){
+  if(modo === 'rodada'){
     _sv.sujo = true;
     if(_sv.voo || _sv.timer) return;                       // já há envio em voo ou agendado
     if(Date.now() - _sv.ult < _sv.espera){ _svAgendar(); return; }
@@ -10724,7 +10731,7 @@ function _commitLeagueRound(RL, userResult, humanResults, allEvents, _auditPaylo
   // a tática/formação escolhida agora PERSISTE entre rodadas — antes forçava reescolher
   // toda vez (CL.tacticChosen=false), obrigando o usuário a voltar ao menu Seleccionar
   // a cada rodada só pra liberar o botão Jogar de novo. saveV3() já grava o estado atual.
-  saveV3();
+  saveV3('rodada');
   // salva em Supabase se online
   if(CL.online && typeof NET!=='undefined' && NET.saveGame){
     commitBudget();   // write-back no mundo + publica no assento (só o write-back não bastava: o
@@ -10895,7 +10902,7 @@ function finishCupLiveMatch(){
     const outcome=userGF>userGA?'Vitória':userGF<userGA?'Derrota':'Empate';
     resultMsg = `${outcome} por ${userGF}×${userGA} pela fase de grupos da ${compShort}.`;
   }
-  saveV3();
+  saveV3('rodada');
   // Resenha (online): saveV3() é no-op nesse modo — persiste no Supabase igual finishLiveRound()
   // já faz pra rodada de liga (só grava de fato se quem está jogando for o anfitrião da
   // sala; característica já existente da arquitetura online, não nova pra copa).
