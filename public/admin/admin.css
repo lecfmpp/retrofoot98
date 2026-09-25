@@ -588,6 +588,8 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
 .us-tec input{margin:0;cursor:pointer}
 .us-tec b{display:block;font-size:13px;font-weight:600;color:var(--fg)}
 .us-tec small{display:block;font-size:11.5px;color:var(--dim2);margin-top:2px}
+.us-clube{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--fg2);vertical-align:middle}
+.us-esc{width:16px;height:16px;object-fit:contain;display:block}
 .us-sub{display:block;font-size:10.5px;color:var(--dim2);margin-top:3px;font-weight:500}
 .us-bar{font-style:normal;color:var(--dim3);margin:0 3px}
 .us-nada{color:var(--dim3)}
@@ -604,3 +606,18 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
   opacity:0;transition:opacity .12s;box-shadow:0 8px 28px rgba(0,0,0,.5)}
 .tip.on{opacity:1}
 @media (max-width:720px){ .us-busca{width:100%} .us-cont{margin-left:0} .us-wrap{max-height:none} }
+
+/* modal da carreira do usuário (modalUsuario): tabelas que rolam em vez de cortar */
+.md-wrap{overflow-x:auto}
+.md-tbl{min-width:760px}
+.md-tbl th{position:static}
+.md-tbl tbody tr{cursor:default}
+.md-fatos{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.md-fato{border:1px solid var(--bd);border-radius:10px;padding:9px 12px;background:var(--card2);min-width:0}
+.md-fato span:first-child{display:block;font-size:11px;font-weight:600;color:var(--dim2);margin-bottom:4px}
+.md-fato b{font-size:13px;font-weight:700;color:var(--fg)}
+.md-tit{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--bd)}
+.md-tit > b{font-size:12px;min-width:44px}
+.md-tit > span{font-size:12.5px;flex:1;min-width:160px}
+.md-tit small{color:var(--dim2)}
+.md-tit .md-tit-o{flex:none;min-width:0;font-size:11px;color:var(--dim2)}

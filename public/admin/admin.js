@@ -899,7 +899,7 @@ const COMP_ADM = { serieA:'Série A', serieB:'Série B', serieC:'Série C', seri
    lista eles juntam campeonatos diferentes. A consulta e' so' deste usuario (usuario_detalhe). */
 async function modalUsuario(id){
   const u = (D.usuarios||[]).find(x => x.id === id) || {};
-  abrirModal(`<h3>${h(u.nome||'Usuário')}</h3><div class="st">Carregando a carreira…</div>`);
+  abrirModal(`<h3>${h(u.nome||'Usuário')}</h3><div class="st">Carregando a carreira…</div>`, 'xl');
   const { data, error } = await sb.rpc('usuario_detalhe', { p_user: id });
   if(!el('modais').innerHTML) return;          // fechou enquanto carregava
   if(error){ abrirModal(`<h3>${h(u.nome||'')}</h3><div class="erro">${h(erroMsg(error))}</div>
@@ -909,60 +909,68 @@ async function modalUsuario(id){
   const parcial = x => x.completa===false
     ? ' <b class="mono" style="font-size:10px;color:var(--ambar)" title="Temporadas fechadas antes de o jogo guardar os números por passagem: o total está abaixo do real.">parcial</b>' : '';
   const campanha = x => x.melhor_pos ? `${x.melhor_pos}º ${h(divAdm(x.melhor_div))}` : '—';
-  const colS = 'minmax(0,1.1fr) minmax(0,1.2fr) .9fr .8fr .8fr .9fr .6fr .9fr';
-  const colR = 'minmax(0,.8fr) minmax(0,1.2fr) .7fr .8fr .8fr .9fr .6fr .9fr';
-  const tabSolo = saves.length ? `
-    <div class="rowh" style="grid-template-columns:${colS}">
-      <span>Save</span><span>Clube</span><span>Agora</span>
-      <span style="text-align:right">Partidas</span><span style="text-align:right">Pontos</span>
-      <span style="text-align:center">V-E-D</span><span style="text-align:center">Temp.</span><span>Campanha</span></div>
-    ${saves.map(x => `<div class="row" style="grid-template-columns:${colS}">
-      <b class="mono" style="font-size:12px;overflow:hidden;text-overflow:ellipsis">${h(x.nome)}</b>
-      <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis">${h(x.clube||'—')}</span>
-      <span class="mono" style="font-size:11.5px;color:var(--dim2)">${h(divAdm(x.divisao))} · ${h(x.temporada||'—')}
-        <small style="display:block;color:var(--dim3)">rodada ${num(x.rodada||0)} · ${h(ha(x.atualizado))}</small></span>
-      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.jogos||0)}${parcial(x)}</span>
-      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.pontos||0)}</span>
-      <span class="mono" style="font-size:12px;text-align:center;color:var(--dim)">${ved(x)}</span>
-      <span class="mono" style="font-size:12px;text-align:center">${num(x.temporadas_fechadas||0)}</span>
-      <span class="mono" style="font-size:12px">${campanha(x)}</span></div>`).join('')}`
+  /* TABELAS DE VERDADE, QUE ROLAM EM VEZ DE CORTAR (25/09/2026). O modal abria com 440px e o
+     miolo pedia 940px: a coluna "Agora", a campanha e até o aviso "Não está em nenhuma sala"
+     saíam pela borda. Agora o modal é o largo (xl) e cada tabela rola na horizontal se precisar. */
+  const cab = (cols) => `<thead><tr>${cols.map(([t, a, tip]) =>
+    `<th class="${a||''}" ${tip?`data-tip="${h(tip)}"`:''}>${h(t)}</th>`).join('')}</tr></thead>`;
+  const COLS = (primeira, terceira, tipTerceira) => [[primeira], ['Clube'], [terceira, '', tipTerceira],
+    ['Partidas','r','Partidas de liga nesta carreira'], ['Pontos','r','Pontos de liga nesta carreira'],
+    ['V-E-D','c','Vitórias, empates e derrotas'], ['Temp.','c','Temporadas fechadas'],
+    ['Campanha','','Melhor campanha: divisão mais alta em que terminou uma temporada, e a posição']];
+  const numeros = x => `
+      <td class="r mono">${num(x.jogos||0)}${parcial(x)}</td>
+      <td class="r mono">${num(x.pontos||0)}</td>
+      <td class="c mono" style="color:var(--dim)">${ved(x)}</td>
+      <td class="c mono">${num(x.temporadas_fechadas||0)}</td>
+      <td class="mono">${campanha(x)}</td>`;
+  const tabSolo = saves.length ? `<div class="md-wrap"><table class="us-tbl md-tbl">
+    ${cab(COLS('Save', 'Agora', 'Divisão e temporada em que o save está, a rodada e quando foi gravado'))}
+    <tbody>${saves.map(x => `<tr>
+      <td><b class="mono">${h(x.nome)}</b></td>
+      <td>${h(x.clube||'—')}</td>
+      <td class="mono"><span data-tip="${h('Gravado em ' + usDataHora(x.atualizado))}">${h(divAdm(x.divisao))} · ${h(x.temporada||'—')}
+        <small class="us-sub">rodada ${num(x.rodada||0)} · ${h(ha(x.atualizado))}</small></span></td>
+      ${numeros(x)}</tr>`).join('')}</tbody></table></div>`
     : '<div class="vazio">Nenhum save no Modo Solo.</div>';
-  const tabRes = salas.length ? `
-    <div class="rowh" style="grid-template-columns:${colR}">
-      <span>Sala</span><span>Clube</span><span>Fase</span>
-      <span style="text-align:right">Partidas</span><span style="text-align:right">Pontos</span>
-      <span style="text-align:center">V-E-D</span><span style="text-align:center">Temp.</span><span>Campanha</span></div>
-    ${salas.map(x => `<div class="row" style="grid-template-columns:${colR}">
-      <b class="mono" style="font-size:12px">${h(x.sala)}</b>
-      <span style="font-size:12.5px;overflow:hidden;text-overflow:ellipsis">${h(x.clube||'—')}</span>
-      <span class="mono" style="font-size:11.5px;color:var(--dim2)">${h(x.fase||'—')}
-        <small style="display:block;color:var(--dim3)">${h(ha(x.visto))}</small></span>
-      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.jogos||0)}${parcial(x)}</span>
-      <span class="mono" style="font-size:12.5px;text-align:right">${num(x.pontos||0)}</span>
-      <span class="mono" style="font-size:12px;text-align:center;color:var(--dim)">${ved(x)}</span>
-      <span class="mono" style="font-size:12px;text-align:center">${num(x.temporadas_fechadas||0)}</span>
-      <span class="mono" style="font-size:12px">${campanha(x)}</span></div>`).join('')}`
+  const tabRes = salas.length ? `<div class="md-wrap"><table class="us-tbl md-tbl">
+    ${cab(COLS('Sala', 'Fase', 'Fase da sala e a última vez que esteve nela'))}
+    <tbody>${salas.map(x => `<tr>
+      <td><b class="mono">${h(x.sala)}</b></td>
+      <td>${h(x.clube||'—')}</td>
+      <td class="mono">${h(x.fase||'—')}<small class="us-sub" data-tip="Última presença nesta sala">${h(ha(x.visto))}</small></td>
+      ${numeros(x)}</tr>`).join('')}</tbody></table></div>`
     : '<div class="vazio">Não está em nenhuma sala de Resenha.</div>';
   const tabTit = tits.length
-    ? tits.map(t => `<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--bd)">
-        <b class="mono" style="font-size:12px;min-width:44px">${h(t.temporada||'—')}</b>
-        <span style="font-size:12.5px;flex:1;min-width:0">🏆 ${h(COMP_ADM[t.comp]||t.comp||'—')}
-          <small style="color:var(--dim2)"> · ${h(t.clube||'—')}</small></span>
-        <span class="mono" style="font-size:11px;color:var(--dim2)">${t.modo==='resenha'?'Resenha':'Solo'} · ${h(t.origem||'')}</span>
+    ? tits.map(t => `<div class="md-tit">
+        <b class="mono">${h(t.temporada||'—')}</b>
+        <span>🏆 ${h(COMP_ADM[t.comp]||t.comp||'—')} <small>· ${h(t.clube||'—')}</small></span>
+        <span class="mono md-tit-o">${t.modo==='resenha'?'Resenha':'Solo'} · ${h(t.origem||'')}</span>
       </div>`).join('')
     : '<div class="vazio">Nenhum título ainda.</div>';
   const totJ = saves.reduce((a,x)=>a+(+x.jogos||0),0) + salas.reduce((a,x)=>a+(+x.jogos||0),0);
   const totT = saves.reduce((a,x)=>a+(+x.temporadas_fechadas||0),0) + salas.reduce((a,x)=>a+(+x.temporadas_fechadas||0),0);
+  const pl = planoAdm(u.plano);
+  const fato = (rot, val, tip) => `<div class="md-fato" ${tip?`data-tip="${h(tip)}"`:''}><span>${h(rot)}</span><b>${val}</b></div>`;
   abrirModal(`
     <h3>${h(u.nome||'Usuário')} <small class="mono" style="font-size:12px;color:var(--dim2);font-weight:400">${h(u.email||'')}</small></h3>
-    <div class="col" style="width:min(940px,88vw);gap:14px">
+    <div class="col" style="width:100%;gap:14px">
+      <div class="md-fatos">
+        ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo')}
+        ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
+        ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
+        ${fato('Último acesso', h(ha(u.ultimo_acesso)), 'Último login: ' + usDataHora(u.ultimo_login) + '\nÚltima jogada: ' + usDataHora(u.ultima_jogada))}
+        ${fato('Tempo de jogo', h(hm(u.minutos)), 'Últimos 7 dias: ' + hm(u.minutos_7))}
+        ${fato('Dias ativos', `${num(u.dias_ativos_7||0)}/7 · ${num(u.dias_ativos_30||0)}/30`, 'Dias com login ou jogada nos últimos 7 e 30 dias')}
+      </div>
       <div class="st" style="margin:0">${num(saves.length)} save${saves.length===1?'':'s'} · ${num(salas.length)} sala${salas.length===1?'':'s'} ·
         ${num(totT)} temporada${totT===1?'':'s'} fechada${totT===1?'':'s'} · ${num(totJ)} partidas · ${num(tits.length)} título${tits.length===1?'':'s'}</div>
       <div class="card" style="overflow:hidden"><div class="card-h"><b>Modo Solo</b></div>${tabSolo}</div>
-      <div class="card" style="overflow:hidden"><div class="card-h"><b>Resenha</b></div>${tabRes}</div>
+      <div class="card" style="overflow:hidden"><div class="card-h"><b>Modo Resenha</b></div>${tabRes}</div>
       <div class="card card-p"><div class="tt" style="margin-bottom:6px">Títulos</div>${tabTit}</div>
       <div class="acoes"><button class="btn btn-ghost" data-fechar>Fechar</button></div>
-    </div>`);
+    </div>`, 'xl');
+  tipIniciar();
 }
 
 /* ===== OS TRES PLANOS, COM O NOME QUE O JOGADOR VE' =====
@@ -1030,7 +1038,7 @@ function usDeriv(u){
     campanha: u.melhor_pos ? (({A:1,B:2,C:3,D:4})[u.melhor_div]||5) * 100 + (+u.melhor_pos) : 9999,
     estado: dAc <= 2 ? 'ativo' : dAc <= 13 ? 'parado' : 'perdido',
     whats: String(u.whatsapp||'').replace(/\D/g,''),
-    busca: [u.nome, u.email, clube(u.clube), u.clube, u.referral, u.parceiro]
+    busca: [u.nome, u.email, u.clube_nome, u.referral, u.parceiro]
              .map(x => String(x||'').toLowerCase()).join(' | ')
   };
 }
@@ -1111,6 +1119,16 @@ function usWhats(u){
   return `<a class="us-wpp mono" href="https://wa.me/${h(d)}" target="_blank" rel="noopener"
             data-tip="${h('Abrir conversa no WhatsApp' + (pais ? '\nPaís do cadastro: ' + pais : ''))}">${h(txt)}</a>`;
 }
+/* CLUBE DO SAVE MAIS RECENTE — escudo + 3 letras, com o nome FICTÍCIO do pacote oficial (o mesmo
+   que o jogo mostra) no tooltip. Nunca o id do clube: "br_A_flamengo" sem prefixo é o nome real. */
+function usClube(u){
+  const nome = u.clube_nome;
+  if(!nome && !u.clube) return '';
+  const sigla = String(nome || '—').normalize('NFD').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || '—';
+  const esc = u.clube_escudo
+    ? `<img class="us-esc" src="${h(u.clube_escudo)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  return `<span class="us-clube" data-tip="${h('Clube do save mais recente: ' + (nome || 'sem nome no pacote'))}">${esc}${h(sigla)}</span> · `;
+}
 function usDataHora(d){ return d ? dmy(d) + ' ' + horaHM(d) : '—'; }
 
 function usLinhaHTML(u, podeApagar){
@@ -1126,7 +1144,7 @@ function usLinhaHTML(u, podeApagar){
         ${podeApagar ? `<input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''} data-tip="Selecionar para apagar">` : ''}
         <i class="av" style="width:28px;height:28px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
         <span><b>${h(u.nome)}</b>
-          <small>${u.clube ? `<span data-tip="Clube do save mais recente">${h(clube(u.clube))}</span> · ` : ''}<span data-tip="E-mail da conta">${h(u.email)}</span></small></span>
+          <small>${usClube(u)}<span data-tip="E-mail da conta">${h(u.email)}</span></small></span>
       </div></td>
     <td>${usWhats(u)}</td>
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
