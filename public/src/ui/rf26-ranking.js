@@ -49,13 +49,13 @@ function rfRankSet(k,v){ const e=rfRankEstado(); e[k]=v; if(k==='periodo') e.abe
    para os dois — vazio não pode ler como "a carregar". */
 /* UMA CACHE POR PERIODO: trocar de aba pergunta uma vez e volta a' que ja' veio. A faixa do topo
    le' SEMPRE o total (periodo 'sempre'), seja qual for a aba escolhida na pagina. */
-/* ===== A LISTA VALE 60 SEGUNDOS (26/09) =====
+/* ===== A LISTA VALE 10 MINUTOS (26/09) =====
    Era "uma leitura por visita" — e a visita durava a sessão inteira: quem jogava horas sem
    recarregar via o ranking congelado no primeiro clique, inclusive os próprios pontos (relato de
    um jogador, 26/09). Agora a lista envelhece: passado RF_RANK_VALIDADE, a próxima vez que a tela
    se desenhar pergunta de novo — e enquanto a resposta não chega, continua a mostrar a anterior
    (nada de piscar "a carregar" em cima de uma lista que já estava na tela). */
-const RF_RANK_VALIDADE = 60*1000;
+const RF_RANK_VALIDADE = 10*60*1000;   // 10 minutos (decisão do dono, 26/09)
 function rfRankCarregar(periodo){
   const e=rfRankEstado();
   const k=RF_RANK_PERIODO_CHAVE[periodo!=null?periodo:e.periodo]||'sempre';
