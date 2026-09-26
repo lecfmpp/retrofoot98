@@ -481,9 +481,19 @@ Deno.serve(async (req) => {
         const inv = evento.data.object as Stripe.Invoice;
         const bruto = Number(inv.amount_paid) || 0;
         if (!bruto) break;
-        const cobranca = (inv as any).charge
+        let cobranca = (inv as any).charge
           ?? (inv as any).payments?.data?.[0]?.payment?.charge
           ?? null;
+        /* O EVENTO CHEGA NA VERSAO DO ENDPOINT, NAO NA DO SDK (26/09). O endpoint do webhook esta'
+           numa API mais nova, em que a fatura nao traz mais `charge` — a linha nascia sem
+           cobranca_id e sem taxa, e o reembolso depois nao a achava (o do teste do Pro, 25/09).
+           As chamadas deste SDK usam a versao fixada acima (acacia), onde a fatura ainda tem
+           `charge`: pergunta-se de novo. */
+        if (typeof cobranca !== "string" && inv.id) {
+          try { const cheia: any = await stripe.invoices.retrieve(inv.id);
+                cobranca = typeof cheia.charge === "string" ? cheia.charge : (cheia.charge?.id ?? null); }
+          catch (e) { console.error("fatura sem cobranca:", inv.id, (e as Error)?.message); }
+        }
         const { taxa, liquido } = await taxaDaCobranca(typeof cobranca === "string" ? cobranca : null);
         const sub: any = (inv as any).subscription;
         let uid: string | null = (inv as any).subscription_details?.metadata?.user_id
@@ -532,7 +542,14 @@ Deno.serve(async (req) => {
            `charge_read` a linha pode ter ficado sem `cobranca_id`, e ai' o id da
            compra (a propria fatura) ainda a encontra. */
         let { data, error } = await tab().update(abate).eq("cobranca_id", ch.id).select("id");
-        const fatura = (ch as any).invoice;
+        let fatura = (ch as any).invoice;
+        /* mesma historia da fatura (ver invoice.paid): na versao do endpoint a cobranca nao traz
+           `invoice`; relida pelo SDK (acacia), traz. */
+        if (!error && !data?.length && typeof fatura !== "string") {
+          try { const cheia: any = await stripe.charges.retrieve(ch.id);
+                fatura = typeof cheia.invoice === "string" ? cheia.invoice : (cheia.invoice?.id ?? null); }
+          catch (e) { console.error("cobranca sem fatura:", ch.id, (e as Error)?.message); }
+        }
         if (!error && !data?.length && typeof fatura === "string") {
           ({ data, error } = await tab().update(abate).eq("id", fatura).select("id"));
         }
