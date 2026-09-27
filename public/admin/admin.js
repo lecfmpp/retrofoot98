@@ -959,6 +959,7 @@ async function modalUsuario(id){
         ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo')}
         ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
         ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
+        ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
         ${fato('Último acesso', h(ha(u.ultimo_acesso)), 'Último login: ' + usDataHora(u.ultimo_login) + '\nÚltima jogada: ' + usDataHora(u.ultima_jogada))}
         ${fato('Tempo de jogo', h(hm(u.minutos)), 'Últimos 7 dias: ' + hm(u.minutos_7))}
         ${fato('Dias ativos', `${num(u.dias_ativos_7||0)}/7 · ${num(u.dias_ativos_30||0)}/30`, 'Dias com login ou jogada nos últimos 7 e 30 dias')}
@@ -1021,6 +1022,54 @@ function usFiltros(){
   if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', whats:'', ord:'acesso', dir:-1 };
   return ST.us;
 }
+/* ORIGEM DO CADASTRO (27/09/2026). O jogo grava nos metadados da conta o primeiro toque e o último
+   antes do cadastro (UTM, gclid/fbclid, referrer, página de entrada — ver public/src/net/origem.js),
+   e o SQL classifica em canal (admin_rf98.origem_canal). O canal mostrado é o do ÚLTIMO toque, o
+   que levou ao cadastro; a indicação de parceiro, que já existia, continua mandando quando há. */
+function usCanal(u){ return u.referral ? 'Parceiro' : (u.canal || 'Desconhecido'); }
+function usToqueTxt(t){
+  if(!t) return '—';
+  const l = [];
+  if(t.source || t.medium || t.campaign)
+    l.push('UTM: ' + [t.source, t.medium, t.campaign].map(x => x || '—').join(' / ') + '  (source / medium / campaign)');
+  if(t.content) l.push('Conteúdo: ' + t.content);
+  if(t.term) l.push('Termo: ' + t.term);
+  if(t.gclid) l.push('Clique de anúncio do Google (gclid)');
+  if(t.fbclid) l.push('Clique vindo do Facebook/Instagram (fbclid)');
+  if(t.ref) l.push('Código de parceiro: ' + t.ref);
+  if(t.sala) l.push('Link de convite da Resenha');
+  if(t.referrer) l.push('Veio de: ' + t.referrer);
+  l.push('Entrou por: ' + (t.pagina || '/'));
+  if(t.em) l.push('Quando: ' + usDataHora(t.em));
+  return l.join('\n');
+}
+/* linha de baixo da célula: o detalhe mais útil do último toque */
+function usOrigemSub(u){
+  if(u.referral) return u.parceiro ? u.parceiro + ' · ' + u.referral : u.referral;
+  const t = (u.origem || {}).ultimo;
+  if(!t) return '';
+  if(t.campaign || t.source) return [t.source, t.campaign].filter(Boolean).join(' · ');
+  if(t.referrer) return t.referrer.split('/')[0];
+  return t.pagina && t.pagina !== '/' ? t.pagina : '';
+}
+function usOrigemTip(u){
+  const o = u.origem || {}, c = usCanal(u);
+  if(!u.origem && !u.referral) return 'Origem desconhecida: a conta foi criada antes de 27/09/2026,\nquando o jogo começou a gravar de onde a pessoa veio.';
+  let t = 'Canal do cadastro: ' + c;
+  if(u.referral) t += '\nIndicação: ' + (u.parceiro || u.referral) + ' (código ' + u.referral + ')';
+  if(o.ultimo) t += '\n\nO QUE LEVOU AO CADASTRO\n' + usToqueTxt(o.ultimo);
+  if(o.primeiro && JSON.stringify(o.primeiro) !== JSON.stringify(o.ultimo))
+    t += '\n\nPRIMEIRA VISITA (' + (u.canal_1 || '—') + ')\n' + usToqueTxt(o.primeiro);
+  if(o.ga) t += '\n\nID do Google Analytics: ' + o.ga;
+  return t;
+}
+function usOrigemCel(u){
+  const c = usCanal(u), sub = usOrigemSub(u);
+  return c === 'Desconhecido'
+    ? `<span class="us-nada" data-tip="${h(usOrigemTip(u))}">desconhecida</span>`
+    : `<span data-tip="${h(usOrigemTip(u))}"><b class="us-ref">${h(c)}</b>${sub ? `<small class="us-sub mono">${h(sub)}</small>` : ''}</span>`;
+}
+
 /* números derivados de uma conta, calculados uma vez por carga */
 function usDeriv(u){
   const n = k => Number(u[k])||0;
@@ -1038,7 +1087,9 @@ function usDeriv(u){
     campanha: u.melhor_pos ? (({A:1,B:2,C:3,D:4})[u.melhor_div]||5) * 100 + (+u.melhor_pos) : 9999,
     estado: dAc <= 2 ? 'ativo' : dAc <= 13 ? 'parado' : 'perdido',
     whats: String(u.whatsapp||'').replace(/\D/g,''),
-    busca: [u.nome, u.email, u.clube_nome, u.referral, u.parceiro]
+    canal: usCanal(u),
+    busca: [u.nome, u.email, u.clube_nome, u.referral, u.parceiro, usCanal(u),
+            ...['source','campaign','referrer'].map(k => ((u.origem||{}).ultimo||{})[k])]
              .map(x => String(x||'').toLowerCase()).join(' | ')
   };
 }
@@ -1046,7 +1097,7 @@ const US_ORD = {
   nome:      u => String(u.nome||'').toLowerCase(),
   whats:     u => u._d.whats ? 1 : 0,
   plano:     u => US_PLANO_ORD[u.plano||'free'] ?? 0,
-  origem:    u => String(u.parceiro||u.referral||'').toLowerCase(),
+  origem:    u => (u._d.canal === 'Desconhecido' ? '~' : '') + u._d.canal.toLowerCase(),
   carreiras: u => u._d.carreiras,
   temporadas:u => u._d.temporadas,
   partidas:  u => u._d.partidas,
@@ -1064,7 +1115,7 @@ const US_COLS = [
   { k:'nome', l:'Técnico', tip:'Nome do técnico no jogo (ou o do cadastro), clube do save mais recente e e-mail da conta.\nClique na linha para ver a carreira completa.' },
   { k:'whats', l:'WhatsApp', tip:'Número informado no cadastro. Clique para abrir a conversa.\nContas antigas, de antes do campo existir, não têm.' },
   { k:'plano', l:'Plano', tip:'Peladeiro (grátis), Resenha ou Embaixador.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
-  { k:'origem', l:'Origem', tip:'Orgânico, ou o parceiro e o código de indicação usados no cadastro.' },
+  { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
   { k:'temporadas', l:'Temporadas', a:'c', tip:'Temporadas que chegaram ao fim (Solo / Resenha).' },
   { k:'partidas', l:'Partidas', a:'c', tip:'Partidas de liga na carreira toda (Solo / Resenha).\n"parcial": há save antigo com temporadas fechadas sem os números guardados — o total real é maior.' },
@@ -1087,8 +1138,7 @@ function usFiltrar(us){
     if(f.estado && d.estado !== f.estado) return false;
     if(f.modo && d.modo !== f.modo) return false;
     if(f.plano === 'pagos' ? !ehPago(u) : f.plano && (u.plano||'free') !== f.plano) return false;
-    if(f.origem === 'organico' && u.referral) return false;
-    if(f.origem === 'indicacao' && !u.referral) return false;
+    if(f.origem && d.canal !== f.origem) return false;
     if(f.whats === 'com' && !d.whats) return false;
     if(f.whats === 'sem' && d.whats) return false;
     return true;
@@ -1148,9 +1198,7 @@ function usLinhaHTML(u, podeApagar){
       </div></td>
     <td>${usWhats(u)}</td>
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
-    <td>${u.referral
-      ? `<b class="us-ref" data-tip="Indicação: ${h(u.parceiro||u.referral)} (código ${h(u.referral)})">${h(u.parceiro||u.referral)}</b><small class="us-sub mono">${h(u.referral)}</small>`
-      : '<span class="us-nada" data-tip="Chegou sem código de indicação">orgânico</span>'}</td>
+    <td>${usOrigemCel(u)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
     <td class="c mono">${usDupla(u.temporadas_solo, u.temporadas_resenha, 'temporada(s) fechada(s) no Solo', 'na Resenha')}</td>
     <td class="c mono">${usDupla(u.jogos_solo, u.jogos_resenha, 'partida(s) no Solo', 'na Resenha')}${parcial}</td>
@@ -1186,6 +1234,14 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   const vivos = new Set(us.map(u=>u.id));
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
   const f = usFiltros();
+  /* cadastros por canal: total e últimos 30 dias, maior primeiro, "Desconhecido" sempre no fim */
+  const porCanal = {};
+  us.forEach(u => {
+    const c = porCanal[u._d.canal] || (porCanal[u._d.canal] = { n:0, n30:0 });
+    c.n++; if(dias(u.criado_em) <= 29) c.n30++;
+  });
+  const canais = Object.entries(porCanal)
+    .sort((a, b) => (a[0]==='Desconhecido') - (b[0]==='Desconhecido') || b[1].n30 - a[1].n30 || b[1].n - a[1].n);
 
   const opt = (v, rot, atual) => `<option value="${h(v)}" ${v===atual?'selected':''}>${h(rot)}</option>`;
   const sel = (id, tip, atual, ops) => `<select class="us-sel ${atual?'on':''}" id="${id}" data-tip="${h(tip)}">${ops}</select>`;
@@ -1210,12 +1266,16 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         ${sel('uf-plano', 'Plano da conta', f.plano,
           opt('', 'Plano: todos', f.plano) + opt('pagos', 'Só assinantes', f.plano)
           + Object.entries(PLANOS_ADM).map(([k,v]) => opt(k, v.nome, f.plano)).join(''))}
-        ${sel('uf-origem', 'Como a pessoa chegou', f.origem,
-          opt('', 'Origem: todas', f.origem) + opt('organico', 'Orgânico', f.origem) + opt('indicacao', 'Por indicação', f.origem))}
+        ${sel('uf-origem', 'Canal que trouxe a pessoa até o cadastro', f.origem,
+          opt('', 'Origem: todas', f.origem) + canais.map(([c]) => opt(c, c, f.origem)).join(''))}
         ${sel('uf-whats', 'Se informou WhatsApp no cadastro', f.whats,
           opt('', 'WhatsApp: todos', f.whats) + opt('com', 'Com WhatsApp', f.whats) + opt('sem', 'Sem WhatsApp', f.whats))}
         <span class="link" id="uf-limpar" data-tip="Tira a busca e todos os filtros">limpar filtros</span>
         <span class="us-cont mono" id="u-cont"></span>
+      </div>
+      <div class="us-canais" id="u-canais"><span class="us-canais-t" data-tip="Canal que trouxe cada conta até o cadastro.\nNúmero grande: total · embaixo: cadastros nos últimos 30 dias.\nClique para filtrar a tabela.">Cadastros por canal</span>
+        ${canais.map(([c, v]) => `<span class="us-canal ${f.origem===c?'on':''}" data-canal="${h(c)}"
+          data-tip="${h(`${c}: ${v.n} conta(s), ${v.n30} nos últimos 30 dias\nClique para filtrar`)}"><b>${h(c)}</b> <i class="mono">${num(v.n)}</i><small class="mono">${num(v.n30)} em 30d</small></span>`).join('')}
       </div>
       ${podeApagar?`<div class="us-selbar st">Selecionar para apagar:
         <span class="link" data-sel-contas="visiveis" data-tip="Marca todas as contas que aparecem com os filtros atuais">as que estão na lista</span> ·
@@ -1243,6 +1303,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       const s = th.querySelector('.seta'); if(s) s.textContent = on ? (f.dir > 0 ? '▲' : '▼') : '↕';
     });
     ['estado','modo','plano','origem','whats'].forEach(k => { const s = el('uf-'+k); if(s) s.classList.toggle('on', !!f[k]); });
+    document.querySelectorAll('#u-canais [data-canal]').forEach(x => x.classList.toggle('on', x.dataset.canal === f.origem));
     if(podeApagar){
       document.querySelectorAll('[data-conta]').forEach(c => c.onchange = () => {
         if(c.checked) SEL.contas.add(c.dataset.conta); else SEL.contas.delete(c.dataset.conta);
@@ -1260,6 +1321,11 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   b.oninput = () => { clearTimeout(t); t = setTimeout(() => { f.q = b.value; desenharLinhas(); }, 150); };
   ['estado','modo','plano','origem','whats'].forEach(k => {
     el('uf-'+k).onchange = (ev) => { f[k] = ev.target.value; desenharLinhas(); };
+  });
+  document.querySelectorAll('#u-canais [data-canal]').forEach(x => x.onclick = () => {
+    f.origem = f.origem === x.dataset.canal ? '' : x.dataset.canal;
+    el('uf-origem').value = f.origem;
+    desenharLinhas();
   });
   el('uf-limpar').onclick = () => {
     Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', whats:'' });

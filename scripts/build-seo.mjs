@@ -175,6 +175,7 @@ function pageHtml(p){
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');</script>
+<script src="/src/net/origem.js"></script>
 <title>${esc(p.title)} | RetroFoot</title>
 <meta name="description" content="${esc(p.description)}">
 <meta name="robots" content="${p.noindex?'noindex, follow':p.legal?'index, follow':'index, follow, max-image-preview:large'}">

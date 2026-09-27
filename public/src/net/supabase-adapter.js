@@ -255,7 +255,14 @@ function authErrPt(error){
 async function netAuthSignUp(email, password, name, extra){
   if(!sb) await netInitSupabase();
   if(!sb) throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente de novo.');
-  const { data, error } = await sb.auth.signUp({ email, password, options:{ data:{ ...(extra||{}), name } } });
+  /* origem (UTM/referrer, ver net/origem.js) vai NOS METADADOS, e não numa chamada depois:
+     assim nasce junto com a conta, mesmo quando o cadastro pede confirmação de e-mail e não
+     devolve sessão (caminho em que o netAtribuirReferral abaixo nem chega a rodar). */
+  let origem = null;
+  try{ origem = window.RF_ORIGEM ? window.RF_ORIGEM() : null; }catch(e){}
+  const meta = { ...(extra||{}), name };
+  if(origem) meta.origem = origem;
+  const { data, error } = await sb.auth.signUp({ email, password, options:{ data: meta } });
   if(error){
     const msg = (error.message||'').toLowerCase();
     if(msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')){
