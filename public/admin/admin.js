@@ -227,6 +227,7 @@ function erroMsg(e){
 
 /* ============================ ligação ============================ */
 async function init(){
+  cartoesMobileVigiar();
   if(!window.supabase){ document.body.innerHTML = '<p style="padding:40px">Falha ao carregar o SDK do Supabase.</p>'; return; }
   sb = window.supabase.createClient(SB_URL, SB_KEY, {
     db:{ schema: SCHEMA }, auth:{ persistSession:true, autoRefreshToken:true }
@@ -577,6 +578,51 @@ function emailHTML(e){
   const c = emailCurto(e);
   if(c === e) return h(e);
   return `<span class="em-l">${h(e)}</span><span class="em-s" title="${h(e)}">${h(c)}</span>`;
+}
+/* ===== LISTAS EM CARTÃO NO CELULAR, EM TODAS AS PÁGINAS (27/09/2026) =====
+   As listas do painel são linhas .row com colunas fixas inline e um cabeçalho .rowh acima. No
+   telefone as colunas espremiam tudo (o e-mail quebrava letra a letra). Em vez de refazer página
+   por página, isto lê os títulos do .rowh e marca cada .row que vem depois:
+     · células à esquerda SEM título (caixa de seleção, escudo, avatar) → .rc-lead, no canto;
+     · a primeira célula COM título (a sala, a pessoa, o clube) → .rc-id, a linha de cima inteira;
+     · as outras com título → data-l, que o CSS mostra como rótulo em cima do valor;
+     · a última sem título (o ✕ de apagar) → .rc-act, no canto direito.
+   Só marca — no desktop nada muda; o cartão é todo CSS (admin.css, max-width:720px). Roda depois
+   de cada desenho de #page (MutationObserver). Linhas que já têm cartão próprio (Registro, Lista
+   de espera: .rowh-mob-some) ficam de fora. */
+function cartoesMobile(raiz){
+  raiz.querySelectorAll('.rowh:not(.rowh-mob-some):not(.rowh-auto)').forEach(hd => {
+    const rot = [...hd.children].map(c => c.querySelector('input') ? '' : c.textContent.replace(/\s+/g, ' ').trim());
+    if(rot.filter(Boolean).length < 3) return;          // lista de 1–2 colunas já cabe
+    hd.classList.add('rowh-auto');
+    if(!hd.querySelector('input')) hd.classList.add('rowh-sem-input');
+    const idx = rot.findIndex(Boolean);
+    for(let r = hd.nextElementSibling; r && !r.classList.contains('rowh') && !r.classList.contains('card-h'); r = r.nextElementSibling){
+      if(!r.classList.contains('row') || r.classList.contains('row-auto')) continue;
+      r.classList.add('row-auto');
+      const cs = [...r.children];
+      let leads = 0;
+      cs.forEach((c, i) => {
+        const l = rot[i];
+        if(i < idx){ c.classList.add('rc-lead'); c.style.setProperty('--i', leads++); }
+        else if(i === idx) c.classList.add('rc-id');
+        else if(c.classList.contains('tag')) c.classList.add('rc-tag');   // a etiqueta já diz o que é; rótulo dentro dela quebrava a pílula
+        else if(l){ if(!c.hasAttribute('data-l')) c.setAttribute('data-l', l); }
+        else if(i === cs.length - 1 && i < rot.length) c.classList.add('rc-act');
+        else c.classList.add('rc-full');
+      });
+      r.style.setProperty('--leads', leads);
+    }
+  });
+}
+function cartoesMobileVigiar(){
+  const pg = el('page'); if(!pg || pg.dataset.cartoes) return;
+  pg.dataset.cartoes = '1';
+  let pend = false;
+  new MutationObserver(() => {
+    if(pend) return; pend = true;
+    requestAnimationFrame(() => { pend = false; try{ cartoesMobile(pg); }catch(e){ console.warn('cartões:', e); } });
+  }).observe(pg, { childList:true, subtree:true });
 }
 /* ===== BUSCA QUE REDESENHA A PÁGINA (27/09/2026) =====
    Em Lista de espera, Funcionalidades, Editor e Estúdio a busca redesenha a página inteira, o
@@ -1073,7 +1119,7 @@ async function modalUsuario(id){
     <h3>${h(u.nome||'Usuário')} <small class="mono" style="font-size:12px;color:var(--dim2);font-weight:400">${emailHTML(u.email||'')}</small></h3>
     <div class="col" style="width:100%;gap:14px">
       <div class="md-fatos">
-        ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo')}
+        ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, (pl.antigo ? 'Assinatura antiga: ' + pl.antigo + ' (conta como Pro)\n' : '') + (u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'))}
         ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
         ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
         ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
@@ -1098,13 +1144,18 @@ async function modalUsuario(id){
    o jogo ja' os distinguia: quem operava aqui nao tinha como saber se a conta
    era Resenha ou Embaixador — que e' justamente a diferenca entre poder abrir
    sala e nao poder. As chaves sao as do banco (elifoot_v3.user_plans). */
+/* ATUALIZADO EM 27/09/2026: SÓ DOIS PLANOS — Peladeiro (banco 'free') e Pro ('pro'). As chaves
+   antigas 'resenha' e 'embaixador' ainda existem em assinaturas de antes da troca e contam como
+   Pro (são pagas e têm tudo do Pro); o selo diz Pro e o tooltip avisa que é assinatura antiga.
+   Antes disto a conta 'pro' caía no fallback e aparecia como Peladeiro. */
 const PLANOS_ADM = {
-  free:       { nome:'Peladeiro',  tag:'t-dim',  preco:0 },
-  resenha:    { nome:'Resenha',    tag:'t-azul', preco:1990 },
-  embaixador: { nome:'Embaixador', tag:'t-warn', preco:4990 },
+  free: { nome:'Peladeiro', tag:'t-dim', preco:0 },
+  pro:  { nome:'Pro',       tag:'t-ok',  preco:1990 },
 };
-const planoAdm = (k) => PLANOS_ADM[k] || PLANOS_ADM.free;
-const ehPago   = (u) => !!u.plano && u.plano !== 'free';
+const PLANOS_ANTIGOS = { resenha:'Resenha', embaixador:'Embaixador' };
+const planoChave = (k) => (!k || k === 'free') ? 'free' : 'pro';
+const planoAdm = (k) => Object.assign({}, PLANOS_ADM[planoChave(k)], { antigo: PLANOS_ANTIGOS[k] || '' });
+const ehPago   = (u) => planoChave(u.plano) === 'pro';
 
 /* WHATSAPP DO CADASTRO — vem de auth.users.raw_user_meta_data (ver src/ui/rf-whatsapp.js no
    jogo), sempre como +<ddi><numero>. Bandeira pelo ISO do pais; Brasil com a mascara local.
@@ -1138,7 +1189,7 @@ const US_ESTADO = { ativo:'Ativo (até 2 dias)', parado:'Parado (3 a 13 dias)', 
 const US_MODO = { solo:'Só Modo Solo', resenha:'Só Modo Resenha', ambos:'Solo e Resenha', nunca:'Nunca jogou' };
 const US_FK = ['estado','modo','plano','origem','grupo','whats'];   // os filtros da barra, na ordem
 const US_FK_ROT = { estado:'Estado', modo:'Modo', plano:'Plano', origem:'Origem', grupo:'Grupo', whats:'WhatsApp' };
-const US_PLANO_ORD = { free:0, resenha:1, embaixador:2 };
+const US_PLANO_ORD = { free:0, pro:1 };
 function usFiltros(){
   if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'', ord:'acesso', dir:-1 };
   if(!ST.us.per) Object.assign(ST.us, { per:'tudo', de:'', ate:'', perCampo:'cadastro' });
@@ -1232,7 +1283,7 @@ const US_ORD = {
   nome:      u => String(u.nome||'').toLowerCase(),
   whats:     u => u._d.whats ? 1 : 0,
   grupo:     u => u.grupo_em ? new Date(u.grupo_em).getTime() : 0,
-  plano:     u => US_PLANO_ORD[u.plano||'free'] ?? 0,
+  plano:     u => US_PLANO_ORD[planoChave(u.plano)],
   origem:    u => (u._d.canal === 'Desconhecido' ? '~' : '') + u._d.canal.toLowerCase(),
   carreiras: u => u._d.carreiras,
   temporadas:u => u._d.temporadas,
@@ -1251,7 +1302,7 @@ const US_COLS = [
   { k:'nome', l:'Técnico', tip:'Nome do técnico no jogo (ou o do cadastro), clube do save mais recente e e-mail da conta.\nClique na linha para ver a carreira completa.' },
   { k:'whats', l:'WhatsApp', tip:'Número informado no cadastro. Clique para abrir a conversa.\nContas antigas, de antes do campo existir, não têm.' },
   { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
-  { k:'plano', l:'Plano', tip:'Peladeiro (grátis), Resenha ou Embaixador.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
+  { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nAssinaturas antigas (Resenha, Embaixador) contam como Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
   { k:'temporadas', l:'Temporadas', a:'c', tip:'Temporadas que chegaram ao fim (Solo / Resenha).' },
@@ -1315,7 +1366,7 @@ function usFiltrar(us){
     if(q && !(d.busca.includes(q) || (qd.length >= 3 && d.whats.includes(qd)))) return false;
     if(f.estado && d.estado !== f.estado) return false;
     if(f.modo && d.modo !== f.modo) return false;
-    if(f.plano === 'pagos' ? !ehPago(u) : f.plano && (u.plano||'free') !== f.plano) return false;
+    if(f.plano && planoChave(u.plano) !== (f.plano === 'pagos' ? 'pro' : f.plano)) return false;
     if(f.origem && d.canal !== f.origem) return false;
     if(f.grupo === 'sim' ? !u.grupo_botao : f.grupo === 'nao' ? !!u.grupo_botao : f.grupo && u.grupo_botao !== f.grupo) return false;
     if(f.whats === 'com' && !d.whats) return false;
@@ -1382,7 +1433,7 @@ function usLinhaTds(u, podeApagar){
       </div></td>
     <td>${usWhats(u)}</td>
     <td>${usGrupoCel(u)}</td>
-    <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
+    <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}${pl.antigo ? ' (assinatura antiga: ' + pl.antigo + ')' : ''}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
     <td class="c mono">${usDupla(u.temporadas_solo, u.temporadas_resenha, 'temporada(s) fechada(s) no Solo', 'na Resenha')}</td>
@@ -1418,7 +1469,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   function kpisHTML(){
     const l = usP(), perOn = !!usIntervalo(f);
     const pagos = l.filter(ehPago);
-    const porPlano = (k) => l.filter(u => (u.plano||'free') === k).length;
+    const antigos = pagos.filter(u => PLANOS_ANTIGOS[u.plano]).length;
     const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
     const minutos = l.reduce((a,u)=>a+ +u.minutos, 0);
     const minutos7 = l.reduce((a,u)=>a+ (+u.minutos_7||0), 0);
@@ -1429,7 +1480,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         : {l:'Contas totais', v:num(l.length), d:`${num(l.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
       ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, l.length)}% ${perOn?'destas':'das'} contas · login ou jogada`})}
       ${kpiHTML({l:'Assinantes', v:num(pagos.length),
-                 d:`${num(porPlano('resenha'))} Resenha · ${num(porPlano('embaixador'))} Embaixador${mrr?' · '+brl(mrr)+' de MRR':''}`})}
+                 d:`${pct(pagos.length, l.length)}% no Pro${antigos?' · '+num(antigos)+' de plano antigo':''}${mrr?' · '+brl(mrr)+' de MRR':''}`})}
       ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:`${hm(minutos7)} nos últimos 7 dias`})}`;
   }
   /* cadastros por canal, maior primeiro, "Desconhecido" sempre no fim. Sem período: total e
@@ -1481,8 +1532,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         ${sel('uf-modo', 'Em que modo a pessoa joga', f.modo,
           opt('', 'Modo: todos', f.modo) + Object.entries(US_MODO).map(([k,v]) => opt(k, v, f.modo)).join(''))}
         ${sel('uf-plano', 'Plano da conta', f.plano,
-          opt('', 'Plano: todos', f.plano) + opt('pagos', 'Só assinantes', f.plano)
-          + Object.entries(PLANOS_ADM).map(([k,v]) => opt(k, v.nome, f.plano)).join(''))}
+          opt('', 'Plano: todos', f.plano) + Object.entries(PLANOS_ADM).map(([k,v]) => opt(k, v.nome, f.plano)).join(''))}
         ${sel('uf-origem', 'Canal que trouxe a pessoa até o cadastro', f.origem,
           opt('', 'Origem: todas', f.origem) + canais.map(([c]) => opt(c, c, f.origem)).join(''))}
         ${sel('uf-grupo', 'Se clicou em entrar no grupo do WhatsApp, e por qual botão', f.grupo,
@@ -1799,7 +1849,7 @@ async function pgJogos(forcar, senha = pedirDesenho()){
             <i class="av" style="width:26px;height:26px;background:${corAv(u.tecnico)};color:#0c1210;font-size:11px">${h(iniciais(u.tecnico))}</i>
             <b style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${h(u.tecnico)}</b>
           </span>
-          <span style="font-size:12px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis">${h(u.dono||'—')}</span>
+          <span style="font-size:12px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis">${u.dono ? emailHTML(u.dono) : '—'}</span>
           <span class="mono" style="font-size:13px;font-weight:700;text-align:center">${u.saves}${
             marcados&&marcados<meus.length?`<small style="color:var(--verde2);font-weight:500"> (${marcados} sel.)</small>`:''}</span>
           <span class="mono" style="font-size:12.5px;text-align:center;color:${+u.parados?'var(--vermelho)':'var(--dim3)'}">${u.parados}</span>
@@ -2112,7 +2162,7 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
     { n:'Contas criadas', v:+f.contas, nota:'base do jogo' },
     { n:'Primeiro jogo concluído', v:+f.jogaram, nota:'tem save solo ou assento numa sala' },
     { n:'Assinantes', v:+f.pagos,
-      nota:`${+f.resenha||0} Resenha · ${+f.embaixador||0} Embaixador` }
+      nota:'Pro (inclui assinaturas antigas)' }
   ].filter(Boolean);
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página

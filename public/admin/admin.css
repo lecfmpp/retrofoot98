@@ -741,3 +741,26 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
     letter-spacing:.5px;text-transform:uppercase;color:var(--dim3);margin-bottom:3px}
   .row-esp > :last-child:not([data-l]){grid-column:1 / -1;padding-left:0 !important}
 }
+
+/* ===== LISTAS EM CARTÃO NO CELULAR (cartoesMobile em admin.js) ===== */
+@media (max-width:720px){
+  .rowh.rowh-auto{display:flex !important;gap:8px;padding-top:8px;padding-bottom:8px}
+  .rowh.rowh-auto > :not(:has(input)){display:none}
+  .rowh.rowh-auto.rowh-sem-input{display:none !important}
+  .row.row-auto{position:relative;grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:10px 12px;
+    padding:12px 14px !important;align-items:start}
+  .row-auto > *{min-width:0;text-align:left !important;justify-self:stretch;justify-content:flex-start}
+  .row-auto > .rc-lead{position:absolute;top:12px;left:calc(14px + var(--i,0) * 34px)}
+  .row-auto > .rc-id{grid-column:1 / -1;padding-left:calc(var(--leads,0) * 34px);padding-right:34px;min-height:26px}
+  .row-auto > .rc-act{position:absolute;top:12px;right:14px;text-align:right !important}
+  .row-auto > .rc-full{grid-column:1 / -1}
+  .row-auto > .rc-tag{justify-self:start !important;align-self:end}
+  .row-auto > [data-l]::before{content:attr(data-l);display:block;font-family:Manrope,system-ui,sans-serif;
+    font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--dim3);margin-bottom:3px}
+  .row-auto > [data-l]:empty::after{content:'—';color:var(--dim3)}
+  /* título da seção ocupa a linha inteira; seletores e contadores descem para a linha de baixo */
+  .card-h > b:first-child{flex:1 1 100%}
+  .rowh.rowh-auto > span:has(input){display:inline-flex;align-items:center;gap:8px}
+  .rowh.rowh-auto > span:has(input)::after{content:'selecionar todos';font-size:11px;font-weight:600;
+    text-transform:none;letter-spacing:0;color:var(--dim2)}
+}
