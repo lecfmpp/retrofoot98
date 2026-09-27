@@ -76,7 +76,7 @@ com nome, e-mail e WhatsApp do jogador; a liberação é automática, pela RPC `
 1. Publicar edge functions (checkout/webhook com `pro`) e o jogo com o paywall.
 2. Aplicar `scripts/sql/planos_gratis_pro_my_plan.sql` e rodar `select elifoot_v3.planos_lancar();`
    (grava veteranos e liga as travas) — os dois juntos.
-3. Arquivar no Stripe os preços de Resenha/Embaixador (mensal e anual) e o cupom beta.
+3. **EM ESPERA (decisão do dono, 27/09):** NÃO arquivar ainda os preços de Resenha/Embaixador nem o cupom beta `retrofootbetav1` — o dono avisa quando.
 
 ## Fase 4 (25/09, local)
 - `RF_PLANOS` com Grátis e Pro; `RF_BETA.on=false`; vitrine em 2 colunas; secção do Pro no lugar da do Embaixador.
