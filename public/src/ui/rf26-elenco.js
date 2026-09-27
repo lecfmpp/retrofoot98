@@ -64,8 +64,13 @@ function rfFotoDe(p, clubId){
   const daBase = p._youthSeason != null   // ja' promovido (confirmYouthPromotion)
               || p.ag === 'Base'           // ainda candidato: `ag` e' a agencia,
                                            // e so' o garoto da base tem 'Base'
+              || p._rostoBase                    // já recebeu rosto do acervo antes
               || (Number(p.age) > 0 && Number(p.age) <= 22);
   if(!daBase) return null;
+  /* O ROSTO NÃO ENVELHECE PARA FORA. A regra da idade é olhada a cada desenho: sem o carimbo, o
+     garoto de 22 que fizesse 23 voltava à imagem padrão. Na primeira vez que ele ganha um rosto do
+     acervo, fica marcado — o carimbo vai com o save e o mesmo rosto o acompanha pela carreira. */
+  if(!p._rostoBase && p._youthSeason == null && p.ag !== 'Base'){ try{ p._rostoBase = 1; }catch(e){} }
   return (typeof rfFaceDaBase==='function') ? rfFaceDaBase(p) : null;
 }
 function rfElCamisa(num, tam, p, clubId){

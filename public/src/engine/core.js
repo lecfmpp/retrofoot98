@@ -7270,7 +7270,7 @@ function retirementReplacement(position, division, seedExtra){
   const lg=MARKET.divisionToLeague(division);
   return { n:pickProcPlayerName(R), p:position, s:position, f, rawF, _rb:1, _div:division, age, lg, mv:REBAL.value(f,age),
     ft:R.random()<0.8?'R':'L', num:String(Math.floor(R.random()*40)+1), nat:domesticNat(), ag:'—',
-    moral:70, energy:100 };
+    moral:70, energy:100, _rostoBase:1 };   // sem foto propria: rosto do acervo da base (rfFotoDe)
 }
 /* envelhecimento + aposentadoria + reancoragem de valorização — uma vez por temporada,
    pra cada clube com elenco materializado (S.squads = a divisão atual do usuário; as
