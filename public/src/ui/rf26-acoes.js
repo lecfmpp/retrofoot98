@@ -59,7 +59,7 @@ function rfAcFotoDoJogador(p){
   /* A MESMA REGRA DO ELENCO, e não uma cópia dela (27/09): a cópia não conhecia o acervo da base,
      então o diálogo de "Promover" mostrava a camisa vazia para o garoto que, no elenco, já tinha
      rosto. rfFotoDe cobre retrato montado, foto do Estúdio e o acervo da base. */
-  if(typeof rfFotoDe==='function') return rfFotoDe(p, CL.clubId);
+  if(typeof rfFotoOuPadrao==='function') return rfFotoOuPadrao(p, CL.clubId);
   return null;
 }
 /* A CAMADA DE LINGUAGEM, com rede: genero.js so' existe onde o universo feminino existe, e o
@@ -718,7 +718,7 @@ const RF_ACOES = {
   const ask=(typeof playerAsk==='function')?playerAsk(p,cid):vm;
   const sal=(p.contract&&p.contract.salary)||p.salary||0;
   const hex=(typeof rfFxMotorHTML==='function')?rfFxMotorHTML(p):'';
-  const foto=(typeof rfFotoDe==='function')?rfFotoDe(p,cid):null;
+  const foto=(typeof rfFotoOuPadrao==='function')?rfFotoOuPadrao(p,cid):null;
   const linha=(rot,val,sub)=>`<div class="rf-jp-l"><span>${escC(rot)}</span><b>${escC(String(val))}</b>${sub?`<i>${escC(sub)}</i>`:''}</div>`;
   return rfAcao({
     kicker:(c.short?escC(c.short).toUpperCase()+' · ':'')+'PERFIL DO JOGADOR', titulo:p.n, w:640,

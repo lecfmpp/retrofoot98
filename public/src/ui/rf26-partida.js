@@ -127,7 +127,7 @@ function rfPlLinhaHTML(p, opts){
   return `<div class="rf-pl ${opts.sel?'sel':''} ${opts.off?'off':''} ${opts.marca?'trocou '+opts.marca:''}"
       ${opts.on?`onclick="${opts.on}"`:''}>
     ${(function(){ const n=nums[p.pid]||p.num||'';
-        const f=(typeof rfFotoDe==='function')?rfFotoDe(p, CL.clubId):null;
+        const f=(typeof rfFotoOuPadrao==='function')?rfFotoOuPadrao(p, CL.clubId):null;
         /* mesma miniatura padrão das outras telas (foto + número dentro);
            sem foto, o crachá numérico de sempre */
         return (f && typeof rfFotoNumHTML==='function')

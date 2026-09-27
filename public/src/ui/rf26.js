@@ -2797,7 +2797,7 @@ function rfCardJogadorHTML(p, num, clubId){
   const th = (typeof clubTheme==='function') ? clubTheme(cid) : {};
   const c1 = th.col || '#17458F', c2 = th.col2 || '#F2B90C';
   const crest = (typeof clubCrestUrl==='function') ? clubCrestUrl(cl) : (cl.crest||null);
-  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, cid) : null;
+  const foto = (typeof rfFotoOuPadrao==='function') ? rfFotoOuPadrao(p, cid) : null;
   /* SO' FOTO RECORTADA PODE AFASTAR-SE. A montada em camadas e a nova de card
      tem fundo transparente, entao afastar deixa as listras aparecerem em
      volta. As antigas sao opacas: afasta-las poria um retangulo cinza

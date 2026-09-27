@@ -1278,7 +1278,7 @@ function rfVerTimeHTML(clubId){
              nome, e clicar num jogador de OUTRO clube abre direto o modal de
              transferência (o mesmo Propor do Mercado, que já valida janela,
              trava de negociado etc.). No próprio clube a linha segue inerte. */
-          const foto=(typeof rfFotoDe==='function')?rfFotoDe(p, clubId):null;
+          const foto=(typeof rfFotoOuPadrao==='function')?rfFotoOuPadrao(p, clubId):null;
           const deOutro = clubId!==CL.clubId;
           /* o clique abre a FICHA (a proposta mora dentro dela) */
           const clique = ` onclick="rfAcAbrir('jogador-perfil',{clubId:'${escC(String(clubId))}',pid:'${escC(p.pid)}',nome:'${escC(p.n)}'})" title="Ver o perfil de ${escC(p.n)}"`;

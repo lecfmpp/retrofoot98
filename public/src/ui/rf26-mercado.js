@@ -137,7 +137,7 @@ function rfMkCamisaHTML(num, p){ return rfElCamisa(num,'m', p); }
 /* miniatura de foto nas TABELAS do mercado (comprar/leilão): entra antes do
    nome quando o jogador tem foto do Estúdio; sem foto, nada muda */
 function rfMkFotoMini(p, clubId){
-  const foto = (typeof rfFotoDe==='function') ? rfFotoDe(p, clubId) : null;
+  const foto = (typeof rfFotoOuPadrao==='function') ? rfFotoOuPadrao(p, clubId) : null;
   if(!foto) return '';
   /* foto e nome levam ao MESMO lugar: a ficha do jogador (a proposta é só
      pelo botão Propor da linha ou pelo botão dentro da ficha) */

@@ -75,7 +75,7 @@ function rfFotoDe(p, clubId){
 }
 function rfElCamisa(num, tam, p, clubId){
   const cls = tam===true ? 'g' : (tam||'');
-  const foto = rfFotoDe(p, clubId);
+  const foto = p ? rfFotoOuPadrao(p, clubId) : null;
   if(foto) return rfFotoNumHTML(foto, num, 'el');
   return `<span class="rf-el-camisa ${cls}">
     <i class="c-corpo"></i><i class="c-mgesq"></i><i class="c-mgdir"></i><i class="c-gola"></i>
@@ -171,8 +171,16 @@ function rfFxFotoComposta(p){
    procurava a foto no clube errado. Agora e' so' uma casca do `rfFotoDe` com o
    avatar generico no fim, para os chamadores que precisam de algo sempre. */
 function rfFxFoto(p, clubId){
-  const f = rfFotoDe(p, clubId!=null ? clubId : rfElClubeAtivo());
-  return f || 'img/jogador-perfil.png';
+  return rfFotoOuPadrao(p, clubId!=null ? clubId : rfElClubeAtivo());
+}
+/* ===== TODO JOGADOR TEM ROSTO NA TELA (27/09, pedido do dono) =====
+   Quem não tem foto (estrangeiros, veteranos de clubes gerados) aparecia de um jeito diferente em
+   cada tela: camisa vazia no elenco, crachá de número na partida, NADA no mercado, na formação e no
+   perfil. Agora todas as telas de retrato usam a mesma imagem padrão. `rfFotoDe` continua a devolver
+   null quando não há foto de verdade — quem precisa saber disso (a vaga do Meu jogador) usa ele. */
+const RF_FOTO_PADRAO = 'img/jogador-perfil.png';
+function rfFotoOuPadrao(p, clubId){
+  return (p && rfFotoDe(p, clubId)) || RF_FOTO_PADRAO;
 }
 function rfElnEnCor(v){ return v>=80?'#35b34a':v>=55?'#8dc63f':'#f2b90c'; }
 function rfElnFormaHTML(p){

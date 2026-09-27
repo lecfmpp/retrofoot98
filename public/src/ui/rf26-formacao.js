@@ -26,7 +26,7 @@ function rfNotasHTML(){
   /* a foto entra GRANDE aqui: é um cartão de destaque, não uma tabela — e o
      nome/foto levam ao perfil do jogador, como no resto do jogo */
   const linha=(rot,nome,sub,valor,p)=>{
-    const foto=(p&&typeof rfFotoDe==='function')?rfFotoDe(p, CL.clubId):null;
+    const foto=(p&&typeof rfFotoOuPadrao==='function')?rfFotoOuPadrao(p, CL.clubId):null;
     const nums=(typeof clubShirtNumbers==='function')?clubShirtNumbers(CL.clubId):{};
     const retrato=(foto&&typeof rfFotoNumHTML==='function')
       ? `<span class="rf-nota-foto">${rfFotoNumHTML(foto, (p&&(nums[p.pid]||p.num))||'', 'nota')}</span>` : '';
