@@ -212,6 +212,9 @@ function rfUpPaginaCiclo(k){
    rola e o CTA nunca sai da tela. Esc, o ✕, "Agora nao" e o clique no fundo fecham.
    ===================================================================== */
 function rfUpFechar(){
+  /* o paywall recusado pelo banco (rf26-paywall) não pode só sumir pelo Esc/fundo: fechar ali
+     volta ao último ponto salvo, e isso é o rfPwFechar que faz */
+  if(typeof RF_PW!=='undefined' && RF_PW.ctx && RF_PW.ctx.recusado && !RF_PW.fechando) return rfPwFechar();
   const f=document.querySelector('.rf-up-fundo');
   if(f) f.remove();
   RF_UP.aberto=null;

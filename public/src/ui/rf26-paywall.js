@@ -170,7 +170,7 @@ function rfPwAntesDaVirada(){
   if(CL.online) return false;                                   // Resenha: o servidor vira
   const teste=rfPwTeste();
   const st0=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{};
-  if(!teste && (!st0.loggedIn || st0.pro)) return false;         // Pro (ou sem sessão) nem espera
+  if(!teste && !st0.loggedIn) return false;                      // sem sessão não há plano a checar
   const decidir=st=>{
     const v=rfPwDecidir(st);
     if(!v) return rfPwSeguir();
@@ -178,12 +178,19 @@ function rfPwAntesDaVirada(){
   };
   if(teste){ decidir(teste); return true; }
   if(!(NET && NET.temporadas)) return false;
-  NET.temporadas(CL.save).then(st=>{
+  /* O PLANO É RELIDO AQUI (26/09). A aba guarda o plano do login: quem cancelou o Pro com a aba
+     aberta continuava "Pro" para ela, virava a temporada sem paywall, e o banco — que já sabia
+     do cancelamento — passava a recusar todo save (relato do dono, SAVE10). */
+  (async ()=>{
+    try{ if(NET.carregarPlano) await NET.carregarPlano(); }catch(e){}
+    const st1=(NET.authStatus?NET.authStatus():{});
+    if(st1.pro) return rfPwSeguir();
     /* sem resposta do servidor a virada segue: a trava do banco (PLANO_TEMPORADAS) é o
        cinto de segurança, e o _saveV3Enviar abre este mesmo popup se ela recusar */
+    const st=await NET.temporadas(CL.save);
     if(!st) return rfPwSeguir();
     decidir(st);
-  });
+  })();
   return true;
 }
 function rfPwSeguir(){
@@ -218,7 +225,18 @@ function rfPwAbrir(variante, st){
   rfPwDesenhar();
   rfPwReg('exibido');
 }
-function rfPwFechar(){ rfPwReg('fechou'); rfPwParar(); RF_PW.ctx=null; if(typeof rfUpFechar==='function') rfUpFechar(); }
+function rfPwFechar(){
+  rfPwReg('fechou'); rfPwParar();
+  const recusado = RF_PW.ctx && RF_PW.ctx.recusado;
+  RF_PW.ctx=null;
+  RF_PW.fechando=true; try{ if(typeof rfUpFechar==='function') rfUpFechar(); } finally { RF_PW.fechando=false; }
+  /* RECUSADO PELO BANCO: o que está na tela é uma temporada que o plano não grava. Fechar e seguir
+     jogando era jogar horas sem salvar nada — volta-se ao último ponto salvo na nuvem. */
+  if(recusado && typeof clLoadSave==='function' && CL.save){
+    toastC('Voltando ao último ponto salvo da sua carreira…');
+    clLoadSave(CL.save);
+  }
+}
 function rfPwVista(v){
   if(v==='depoimento'||v==='post') rfPwReg('abriu_'+v);
   RF_PW.vista=v; RF_PW.erro=''; rfPwDesenhar();
@@ -247,6 +265,8 @@ function rfPwEsquerdaHTML(c){
 function rfPwSaida(c){
   const st=c.st||{};
   if(c.variante!=='bloqueio') return null;
+  /* recusado com carreira muito à frente do teto (quem desceu do Pro): +1 temporada não resolve */
+  if(c.recusado && (Number(st.teto)||1)+1 < rfPwIniciadas()) return null;
   if(!st.depoimento_usado) return 'depoimento';
   if(!st.post_usado) return 'post';
   return null;
@@ -265,7 +285,12 @@ function rfPwProHTML(c){
     ultima:  { selo:'⏳ ÚLTIMA TEMPORADA GRÁTIS', t:'A próxima é a sua última temporada no Peladeiro.' },
     beta:    { selo:'🔨 JOGADOR DA FASE BETA', t:'Você ganhou mais 2 temporadas grátis.' },
   }[c.variante];
-  const aviso = c.variante==='beta'
+  /* recusado pelo banco: a temporada em tela não está sendo gravada — o jogador precisa saber */
+  const topoRec = c.recusado ? { selo:'⚠️ ESTA TEMPORADA NÃO ESTÁ SENDO SALVA',
+    t:'Seu plano Peladeiro não grava esta temporada.' } : null;
+  const aviso = c.recusado
+    ? 'Assine o Pro para salvar o que você jogou e seguir a carreira. Se fechar, o jogo volta ao último ponto salvo da sua carreira.'
+    : c.variante==='beta'
     ? `Por jogar desde a fase Beta, você segue no Peladeiro por mais 2 temporadas nesta carreira. Depois disso, para continuar, será preciso ser Pro: é o que paga o servidor e o armazenamento do seu histórico, para você jogar online e de qualquer aparelho.`
     : c.variante==='ultima'
       ? `Obrigado por jogar desde a fase Beta. Depois da próxima temporada, esta carreira só continua no Pro — é o que mantém o seu save na nuvem, jogável de qualquer aparelho.`
@@ -283,12 +308,13 @@ function rfPwProHTML(c){
           ? 'Conte o que achou do RetroFoot e a próxima temporada é liberada na hora.'
           : 'Poste um vídeo ou post sobre o RetroFoot nas suas redes e cole o link.'}</span>
       </div>` : '';
-  const fica = c.variante==='bloqueio' ? 'Voltar ao resumo'
+  const fica = c.recusado ? 'Voltar ao último ponto salvo'
+    : c.variante==='bloqueio' ? 'Voltar ao resumo'
     : c.variante==='ultima' ? 'Jogar a última temporada grátis'
     : `Continuar grátis${restam?` (${restam} temporada${restam>1?'s':''})`:''}`;
   const ficaAcao = c.variante==='bloqueio' ? 'rfPwFechar()' : "rfPwReg('seguiu_gratis');rfPwSeguir()";
   return `
-      <div class="rf-pw-topo"><span class="rf-up-mono">${escC(topo.selo)}</span><b>${escC(topo.t)}</b>
+      <div class="rf-pw-topo"><span class="rf-up-mono">${escC((topoRec||topo).selo)}</span><b>${escC((topoRec||topo).t)}</b>
         ${aviso?`<span>${escC(aviso)}</span>`:''}</div>
       <div class="rf-pw-bens">
         ${['Temporadas e carreiras ilimitadas','Carreira na nuvem, de qualquer aparelho','Acesso exclusivo ao Modo Resenha (Beta)','Ultrassônico e Selo Pro']
@@ -453,9 +479,12 @@ async function rfPwConferir(clicou){
 function rfPwRecusado(){
   if(RF_PW.ctx) return;   // já aberto
   if(typeof S==='undefined' || !S) return;
+  /* UMA VEZ POR SAVE NESTA ABA: o auto-save tenta de 2 em 2 minutos e abria o popup a cada recusa */
+  if(CL._pwRecusadoSave===CL.save) return;
+  CL._pwRecusadoSave=CL.save;
   const abrir=st=>{ if(RF_PW.ctx) return;
     rfPwAbrir('bloqueio', Object.assign({ ligado:true, pro:false, teto:rfPwIniciadas()-1 }, st||{}));
-    RF_PW.ctx.recusado=true; };
+    RF_PW.ctx.recusado=true; rfPwDesenhar(); };
   if(NET && NET.temporadas) NET.temporadas(CL.save).then(abrir); else abrir(null);
 }
 
