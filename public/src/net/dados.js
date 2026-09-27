@@ -478,6 +478,13 @@ function buscarFotos(packId){
          lista chegasse noutra ordem a cada carga, o mesmo jogador mudaria de
          cara entre sessoes. Ordenar pela URL fixa a sequencia. */
       window.RF_FACES_BASE.sort();
+      /* AS FOTOS CHEGAM DEPOIS DA TELA (27/09): a carga é assíncrona e ninguém redesenhava — quem
+         abria o elenco antes dela via a imagem padrão até o próximo clique. Um redesenho só, e
+         nunca com alguém a digitar (redesenhar sob o cursor inverte o texto). */
+      try{
+        const ae=document.activeElement;
+        if(typeof cdraw==='function' && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) cdraw();
+      }catch(e){}
     })
     .catch(()=>{});
 }

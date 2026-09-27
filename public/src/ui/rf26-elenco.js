@@ -56,9 +56,15 @@ function rfFotoDe(p, clubId){
      inteiro — quem nao veio da base cai na camisa vazia, como antes.
      `_youthSeason` e' o carimbo da promocao (confirmYouthPromotion, no motor):
      so' o jovem promovido tem, e ele sobrevive ao save e a' ida pelo servidor. */
+  /* E O JOVEM GERADO PELO JOGO (27/09): quem chega para repor um aposentado ("X, 18-22 anos,
+     chega pra disputar a vaga") ou completa uma posição também nunca teve foto — e aparecia com a
+     imagem padrão, lido pelo jogador como "garoto da base sem rosto" (relato do dono). Até 22 anos,
+     sem foto própria, ele também usa o acervo; o corte de idade mantém o acervo pequeno longe dos
+     veteranos, e o hash por pid espalha as caras. */
   const daBase = p._youthSeason != null   // ja' promovido (confirmYouthPromotion)
-              || p.ag === 'Base';          // ainda candidato: `ag` e' a agencia,
+              || p.ag === 'Base'           // ainda candidato: `ag` e' a agencia,
                                            // e so' o garoto da base tem 'Base'
+              || (Number(p.age) > 0 && Number(p.age) <= 22);
   if(!daBase) return null;
   return (typeof rfFaceDaBase==='function') ? rfFaceDaBase(p) : null;
 }

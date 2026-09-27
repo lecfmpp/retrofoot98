@@ -628,7 +628,9 @@ function confirmYouthPromotion(candidate){
   /* LOCAL ANTES DA NUVEM. `saveV3()` sozinho não escreve o localStorage — ele sai
      cedo sem ligação — e em solo o garoto promovido desaparecia no recarregamento
      seguinte. Todo o resto do motor grava com `save()`; esta linha era a exceção. */
-  save(); saveV3();
+  /* saveV3() sem modo é ignorado desde o freio de gravação (25/09): o garoto promovido só ia para a
+     nuvem na próxima rodada, e um recarregar antes disso o apagava. 'rodada' entra na fila do freio. */
+  save(); if(typeof saveV3==='function') saveV3('rodada');
 }
 /* ===== CAIXA: toda mudança fora do fechamento de rodada TEM que ser publicada =====
    S.budget é só a cópia local. A autoridade do caixa de um humano é game_seats.budget: o

@@ -56,13 +56,11 @@ function rfAcD(){ return (CL.acao&&CL.acao.d)||{}; }
    padrão de retrato pequeno: quadrado arredondado, foco no rosto. */
 function rfAcFotoDoJogador(p){
   if(!p || !p.n) return null;
-  /* mesma regra do elenco: montar ganha da costurada, para a camisa
-     acompanhar o clube atual */
-  if(typeof rfComporRetrato==='function'){
-    const c = rfComporRetrato(p, CL.clubId); if(c) return c;
-  }
-  return (window.RF_FOTOS||{})[String(CL.clubId)+'|'+p.n]
-      || (window.RF_FOTOS_NOME||{})[p.n] || null;
+  /* A MESMA REGRA DO ELENCO, e não uma cópia dela (27/09): a cópia não conhecia o acervo da base,
+     então o diálogo de "Promover" mostrava a camisa vazia para o garoto que, no elenco, já tinha
+     rosto. rfFotoDe cobre retrato montado, foto do Estúdio e o acervo da base. */
+  if(typeof rfFotoDe==='function') return rfFotoDe(p, CL.clubId);
+  return null;
 }
 /* A CAMADA DE LINGUAGEM, com rede: genero.js so' existe onde o universo feminino existe, e o
    objeto nulo devolve a palavra como veio (o texto masculino de sempre). */
