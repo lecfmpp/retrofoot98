@@ -481,6 +481,14 @@ function rfPwRecusado(){
   if(typeof S==='undefined' || !S) return;
   /* UMA VEZ POR SAVE NESTA ABA: o auto-save tenta de 2 em 2 minutos e abria o popup a cada recusa */
   if(CL._pwRecusadoSave===CL.save) return;
+  /* NUNCA NO MEIO DO JOGO (pedido do dono, 27/09): a recusa vem de um auto-save, que pode cair
+     durante a partida ao vivo, a coletiva ou um momento. Espera a tela do clube ficar livre —
+     a mesma regra dos lembretes (rfUpTelaLivre) — e tenta de novo a cada 3 s. */
+  if(typeof rfUpTelaLivre==='function' && !rfUpTelaLivre()){
+    clearTimeout(RF_PW.esperaRecusa);
+    RF_PW.esperaRecusa=setTimeout(rfPwRecusado, 3000);
+    return;
+  }
   CL._pwRecusadoSave=CL.save;
   const abrir=st=>{ if(RF_PW.ctx) return;
     rfPwAbrir('bloqueio', Object.assign({ ligado:true, pro:false, teto:rfPwIniciadas()-1 }, st||{}));
