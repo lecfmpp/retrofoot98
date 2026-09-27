@@ -8697,7 +8697,14 @@ function camSpeedOk(){ return camTempoMs() >= (TEMPO_MS['Ultrassônico']-1); }
    quem desliga grava `false` e volta pra grade só naquela rodada. */
 function camOn(){ const RL=CL.live; return !!(RL && RL.camarote!==false) && camSpeedOk(); }
 function camMatch(){ const RL=CL.live; return RL ? (RL.matches||[]).find(m=>m.user) : null; }
-function camToggle(){ if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
+function camToggle(){
+  /* O FECHAR DO CAMAROTE NUNCA MORRE (27/09). No jogo que decide uma copa, a partida era encerrada
+     (CL.live=null) e os momentos de fim de competição abriam SEM redesenhar a tela: o Camarote
+     velho ficava por cima (z-index 60 > overlay 50), escondendo o momento, e este botão saía cedo
+     por falta de partida — clique morto até recarregar a página. Sem partida, fechar = redesenhar:
+     a tela já não tem Camarote para desenhar. */
+  if(!CL.live){ cdraw(); return; }
+  if(!camSpeedOk()){ toastC(camSpeedHint()); return; }   // trancado pela velocidade
   const RL=CL.live; if(!RL) return;
   RL.camarote=!camOn(); cdraw();
   /* O RELOGIO TEM DE CONTINUAR A ANDAR AO TROCAR DE MODO. camToggle so mudava
@@ -10973,7 +10980,9 @@ function clCupResultContinue(){
     const _k=(CL._cupResultKeysThisRound||[]).slice();
     _k.forEach(k=>{ if(typeof enfileirarMomentosCopa==='function') enfileirarMomentosCopa(k); });
   }catch(e){}
-  if(MOMENTO_FILA.length){ momentoSeguinte(()=>clCupResultContinue()); return; }
+  /* a tela da partida (e o Camarote, se estava aberto) sai ANTES dos momentos: sem este cdraw o
+     Camarote ficava por cima do modal de título/eliminação e o ✖ dele não respondia (27/09) */
+  if(MOMENTO_FILA.length){ cdraw(); momentoSeguinte(()=>clCupResultContinue()); return; }
   // nunca encadeia direto pra próxima partida de copa aqui, mesmo que já tenha outra
   // pendente (ex: Copa do Brasil + Libertadores na mesma semana) — cada partida tem que
   // passar pela tela principal antes da próxima, pro jogador rever/confirmar a escalação
