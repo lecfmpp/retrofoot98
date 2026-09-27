@@ -84,6 +84,18 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .per span{font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;
   border:1px solid var(--bd2);color:var(--dim);background:transparent}
 .per span.on{border-color:var(--verde-bd);color:var(--verde2);background:var(--verde-bg)}
+/* período do topo: atalhos + De/Até (renderPeriodo). O .per span pinta botão — os rótulos das
+   datas não são botões, então a regra é desfeita aqui */
+#periodos{flex-wrap:wrap;align-items:center;justify-content:flex-end}
+#periodos .per-datas{display:inline-flex;gap:8px;align-items:center;padding:0;border:0;background:none;cursor:default}
+#periodos .per-datas .us-dt,#periodos .per-datas span{padding:0;border:0;background:none;cursor:default;font-size:12px}
+#periodos .per-datas input{color-scheme:dark;font-family:var(--mono);padding:6px 8px;font-size:12px}
+@media (max-width:900px){
+  #periodos{justify-content:flex-start;width:100%}
+  #periodos .per-datas{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  #periodos .per-datas .us-dt{flex-direction:column;align-items:stretch;gap:4px}
+  #periodos .per-datas input{width:100%;min-width:0}
+}
 .page{padding:22px 28px 40px;display:flex;flex-direction:column;gap:16px}
 
 .card{border:1px solid var(--bd);background:var(--card);border-radius:14px}
@@ -259,6 +271,11 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .duas-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
 .duas-col > *{min-width:0}
 @media (max-width:980px){ .duas-col{grid-template-columns:1fr} }
+/* par de cartões lado a lado (Visão geral, Analytics): no celular um embaixo do outro — com a
+   proporção fixa inline o segundo cartão saía pela direita da tela */
+.g-par{display:grid;grid-template-columns:var(--g-par, 1fr 1fr);gap:16px}
+.g-par > *{min-width:0}
+@media (max-width:900px){ .g-par{grid-template-columns:1fr} }
 /* toda célula da grade precisa poder ENCOLHER: sem min-width:0 o input mantém a
    largura padrão do navegador e estoura o grid, que é o que criava a barra lateral */
 .jog-linha{display:grid;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid var(--bd3)}
@@ -355,6 +372,7 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 
 /* ---------- etapas da negociação (Parceiros) ---------- */
 .etapas{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.etapa.on{border-color:var(--verde-bd);background:var(--verde-bg);box-shadow:0 0 0 1px var(--verde-bd) inset}
 .etapa{border:1px solid var(--bd);background:var(--card2);border-radius:11px;padding:12px 14px;
   cursor:pointer;display:flex;flex-direction:column;gap:6px}
 .etapa:hover{border-color:var(--bd2)}

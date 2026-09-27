@@ -457,11 +457,75 @@ function renderNav(){
        <span class="ic">${n.ic}</span><span class="lb">${h(n.label)}</span>
        <span class="tag" id="tag-${n.id}"></span></div>`).join('');
   el('nav').querySelectorAll('[data-tab]').forEach(d => d.onclick = () => irPara(d.dataset.tab));
-  el('periodos').innerHTML = [[7,'7 dias'],[30,'30 dias'],[365,'Ano']].map(([v,l]) =>
-    `<span class="${ST.periodo===v?'on':''}" data-per="${v}">${l}</span>`).join('');
-  el('periodos').querySelectorAll('[data-per]').forEach(s => s.onclick = () => {
-    ST.periodo = +s.dataset.per; renderNav(); irPara(ST.tab, true);
-  });
+  renderPeriodo();
+}
+/* ===== PERÍODO DO TOPO (refeito em 27/09/2026) =====
+   Era só 7 / 30 / Ano, e na maioria das páginas não mexia em nada: a Visão geral só o usava no
+   bloco de engajamento, Finanças nunca. Agora:
+     · atalhos + "Escolher datas" (calendário De / Até; um dia só = as duas iguais);
+     · SÓ APARECE nas páginas que o respeitam de verdade (PAGINAS_PERIODO) — nas outras, um
+       seletor que não muda nada engana mais do que ajuda;
+     · perAtual() é a única fonte: { de, ate } em dia local, e o número de dias. As RPCs de
+       Visão geral e Analytics recebem p_de / p_ate (scripts/sql/periodo_datas.sql).
+   Os campos de data são desenhados UMA vez e nunca redesenhados, para o calendário e a digitação
+   não perderem o foco; trocar a data espera 400 ms antes de recarregar. */
+const PER_ATALHOS = [['7','7 dias'],['30','30 dias'],['365','Ano']];
+const PAGINAS_PERIODO = ['visao','analytics','espera','registro'];
+function dataLocal(s){ const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); }
+function perAtual(){
+  const p = ST.per || (ST.per = { tipo:'30', de:'', ate:'' });
+  let de, ate;
+  if(p.tipo === 'custom' && (p.de || p.ate)){
+    de = p.de || p.ate; ate = p.ate || p.de;
+    if(de > ate) [de, ate] = [ate, de];
+  } else {
+    const n = +p.tipo || 30, hoje = new Date();
+    ate = usDiaLocal(hoje);
+    de = usDiaLocal(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (n - 1)));
+  }
+  const dias = Math.round((dataLocal(ate) - dataLocal(de)) / 864e5) + 1;
+  const br = x => x.split('-').reverse().join('/');
+  const rot = p.tipo === 'custom' ? (de === ate ? `em ${br(de)}` : `de ${br(de)} a ${br(ate)}`) : `nos últimos ${dias} dias`;
+  const ini = dataLocal(de), fim = dataLocal(ate); fim.setDate(fim.getDate() + 1);   // fim exclusivo
+  return { de, ate, dias, rot, ini: ini.getTime(), fim: fim.getTime() };
+}
+let PER_T = null;
+function renderPeriodo(){
+  const box = el('periodos');
+  box.style.display = PAGINAS_PERIODO.includes(ST.tab) ? '' : 'none';
+  const p = ST.per || (perAtual(), ST.per);
+  if(!box.dataset.pronto){
+    box.dataset.pronto = '1';
+    box.innerHTML = PER_ATALHOS.map(([v,l]) => `<span data-per="${v}">${l}</span>`).join('')
+      + `<span data-per="custom" data-tip="Escolher o intervalo no calendário">Escolher datas</span>
+         <span class="per-datas">
+           <label class="us-dt" data-tip="Primeiro dia (inclusive). Um dia só: a mesma data em De e Até.">De <input type="date" id="per-de" class="us-sel"></label>
+           <label class="us-dt" data-tip="Último dia (inclusive)">Até <input type="date" id="per-ate" class="us-sel"></label>
+         </span>`;
+    box.querySelectorAll('[data-per]').forEach(x => x.onclick = () => {
+      const v = x.dataset.per;
+      if(v === 'custom'){
+        const a = perAtual();                      // parte do intervalo que já está na tela
+        Object.assign(ST.per, { tipo:'custom', de:a.de, ate:a.ate });
+        renderPeriodo();
+        try{ el('per-de').focus(); el('per-de').showPicker(); }catch(e){}
+        return;
+      }
+      Object.assign(ST.per, { tipo:v, de:'', ate:'' });
+      renderPeriodo(); irPara(ST.tab, true);
+    });
+    ['de','ate'].forEach(k => el('per-'+k).onchange = () => {
+      Object.assign(ST.per, { tipo:'custom', de:el('per-de').value, ate:el('per-ate').value });
+      if(!ST.per.de && !ST.per.ate) ST.per.tipo = '30';
+      box.querySelectorAll('[data-per]').forEach(x => x.classList.toggle('on', x.dataset.per === ST.per.tipo));
+      clearTimeout(PER_T); PER_T = setTimeout(() => irPara(ST.tab, true), 400);
+    });
+  }
+  const a = perAtual();
+  box.querySelectorAll('[data-per]').forEach(x => x.classList.toggle('on', x.dataset.per === p.tipo));
+  if(document.activeElement !== el('per-de')) el('per-de').value = a.de;
+  if(document.activeElement !== el('per-ate')) el('per-ate').value = a.ate;
+  ST.periodo = a.dias;                             // quem ainda lê o número de dias
 }
 /* ===== UMA PÁGINA DE CADA VEZ =====
    Toda pgX() é assíncrona: pede à base, ESPERA, e só então escreve em #page.
@@ -492,6 +556,31 @@ function desenhoAtual(senha){ return senha === SENHA_DESENHO; }
 
    Agora todo redesenho de dentro da página passa por aqui: o erro aparece num
    toast e no console, em vez de sumir. */
+/* ===== BUSCA QUE REDESENHA A PÁGINA (27/09/2026) =====
+   Em Lista de espera, Funcionalidades, Editor e Estúdio a busca redesenha a página inteira, o
+   campo é recriado e perdia o foco (e o cursor) a cada pausa na digitação — e o que se digitava
+   enquanto a página recarregava sumia, e o espaço no fim era comido pelo trim(). Aqui o campo
+   guarda texto e cursor a cada tecla; depois do redesenho devolve os dois, e se a pessoa digitou
+   durante a recarga, dispara a busca de novo. O estado guarda o texto CRU; quem filtra faz trim. */
+function buscaViva(id, ler, gravar, redesenho, ms = 300){
+  const b = el(id); if(!b) return;
+  let t = null;
+  b.oninput = () => {
+    ST.focoBusca = { id, pos: b.selectionStart, valor: b.value };
+    clearTimeout(t); t = setTimeout(() => { gravar(b.value); redesenhar(redesenho); }, ms);
+  };
+  b.onblur = () => { if(b.isConnected && ST.focoBusca && ST.focoBusca.id === id) ST.focoBusca = null; };
+  const f = ST.focoBusca;
+  if(f && f.id === id){
+    ST.focoBusca = null;
+    if(b.value !== f.valor) b.value = f.valor;
+    b.focus();
+    const p = Math.min(f.pos ?? b.value.length, b.value.length);
+    try{ b.setSelectionRange(p, p); }catch(e){}
+    if(f.valor !== (ler() || '')) b.oninput();     // digitou enquanto a página recarregava
+    else ST.focoBusca = { id, pos: p, valor: b.value };
+  }
+}
 function redesenhar(fn, ...args){
   const p = fn(...args);
   if(!p || typeof p.catch !== 'function') return p;
@@ -503,8 +592,6 @@ function redesenhar(fn, ...args){
 function irPara(tab, forcar){
   if(!podeVer(tab)) tab = 'visao';
   ST.tab = tab; renderNav(); menuLateral(false);
-  /* Usuários tem o próprio período (com datas); os botões 7/30/Ano do topo não mexiam em nada lá */
-  el('periodos').style.display = tab === 'usuarios' ? 'none' : '';
   const n = NAV.find(x=>x.id===tab);
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
   el('mob-tit').textContent = n.tit;
@@ -738,8 +825,9 @@ function abrirVideoMomento(m){
 
 /* ============================ VISÃO GERAL ============================ */
 async function pgVisao(forcar, senha = pedirDesenho()){
+  const per = perAtual();
   const [{ data, error }] = await Promise.all([
-    sb.rpc('overview', { p_dias: ST.periodo }),
+    sb.rpc('overview', { p_dias: per.dias, p_de: per.de, p_ate: per.ate }),
     cotacaoUSD()          // alimenta COTACAO: os cartões de dinheiro mostram R$ e US$
   ]);
   if(error) throw error;
@@ -749,13 +837,17 @@ async function pgVisao(forcar, senha = pedirDesenho()){
   const maxBarra = Math.max(1, ...meses.map(m=>Math.max(+m.receita,+m.despesa)), meta);
   const eng = data.engajamento||{};
 
+  /* OS 4 NÚMEROS SEGUEM O PERÍODO DO TOPO (27/09/2026). Antes eram total / 7 dias / mês fixos,
+     e trocar o período não mudava nada aqui. O gráfico de 6 meses e o ranking continuam fixos,
+     e dizem isso no título. */
+  const lucroPer = (+data.receita_per||0) - (+data.despesa_per||0);
   const kpis = [
-    { l:'Usuários no jogo', v:num(data.usuarios), d:`${num(data.ativos7)} ativos em 7 dias` },
-    { l:'Ativos (7 dias)',  v:num(data.ativos7),  d:`${num(data.retorno7)} voltaram noutro dia` },
-    { l:'Tempo médio por usuário', v:hm(data.minutos_medio), d:`${hm(data.minutos_total)} no total` },
-    { l:'Lucro do mês', v:brl(mesAtual.lucro),
-      d: `${usdDeCentavos(mesAtual.lucro)}${meta ? ' · ' + (mesAtual.lucro>=meta ? 'acima da meta '+brl(meta) : 'abaixo da meta '+brl(meta)) : ' · sem meta definida'}`.replace(/^ · /,''),
-      c: mesAtual.lucro>=0 ? 'var(--verde2)' : 'var(--vermelho)' }
+    { l:'Usuários no jogo', v:num(data.usuarios), d:`${num(data.novos_per)} novos ${per.rot}` },
+    { l:'Ativos no período', v:num(data.ativos_per), d:`${num(data.retorno_per)} voltaram em mais de um dia` },
+    { l:'Tempo médio por usuário', v:hm(data.minutos_medio_per), d:`${hm(data.minutos_per)} jogados no período` },
+    { l:'Lucro no período', v:brl(lucroPer),
+      d:`receita ${brl(+data.receita_per||0)} · despesa ${brl(+data.despesa_per||0)}`,
+      c: lucroPer>=0 ? 'var(--verde2)' : 'var(--vermelho)' }
   ];
 
   const barras = meses.map(m => `
@@ -774,11 +866,12 @@ async function pgVisao(forcar, senha = pedirDesenho()){
       <span class="bar"><i style="width:${pct(c.valor,total)}%;background:${cor}"></i></span>
       <span class="mono" style="font-size:12px;text-align:right" title="${h(brlEUsd(c.valor))}">${brl(c.valor)}</span>
     </div>`;
-  const totRec = (data.cats_receita||[]).reduce((a,c)=>a+ +c.valor, 0) || 1;
-  const totDesp= (data.cats_despesa||[]).reduce((a,c)=>a+ +c.valor, 0) || 1;
+  const catsRec = data.cats_receita_per||[], catsDesp = data.cats_despesa_per||[];
+  const totRec = catsRec.reduce((a,c)=>a+ +c.valor, 0) || 1;
+  const totDesp= catsDesp.reduce((a,c)=>a+ +c.valor, 0) || 1;
 
   const engBarras = [
-    ['Salas de Resenha no período', eng.salas, Math.max(eng.salas,1)],
+    ['Salas de Resenha criadas', eng.salas, Math.max(eng.salas,1)],
     ['Saves solo gravados', eng.solos, Math.max(eng.solos,1)],
     ['Treinadores que sentaram numa sala', eng.assentos, Math.max(eng.assentos,1)],
     ['Convites enviados', eng.convites, Math.max(eng.convites,1)]
@@ -788,11 +881,11 @@ async function pgVisao(forcar, senha = pedirDesenho()){
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">${kpis.map(k=>kpiHTML(k)).join('')}</div>
-    <div style="display:grid;grid-template-columns:1.45fr 1fr;gap:16px">
+    <div class="g-par" style="--g-par:1.45fr 1fr">
       <div class="card card-p">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
           <div><div class="tt">Receita, despesa e lucro</div>
-            <div class="st">Últimos 6 meses${meta?' · meta de lucro '+brl(meta):''}</div></div>
+            <div class="st">Últimos 6 meses — fixo, não segue o período${meta?' · meta de lucro '+brl(meta):''}</div></div>
           <div class="leg">
             <span><i style="background:#35c46a"></i>Receita</span>
             <span><i style="background:#f0546b"></i>Despesa</span>
@@ -805,25 +898,25 @@ async function pgVisao(forcar, senha = pedirDesenho()){
         <div class="chlabels">${meses.map(m=>`<div>${h(m.rotulo)}</div>`).join('')}</div>
       </div>
       <div class="card card-p" style="display:flex;flex-direction:column;gap:16px">
-        <div class="tt">Onde entra e onde sai — este mês</div>
+        <div class="tt">Onde entra e onde sai <span class="st" style="font-weight:500">— ${h(per.rot)}</span></div>
         <div style="display:flex;flex-direction:column;gap:9px">
           <div style="font-size:11px;font-weight:700;color:var(--dim2);letter-spacing:.6px">RECEITAS</div>
-          ${(data.cats_receita||[]).map(c=>catLinha(c,totRec,'var(--verde)')).join('') || '<div class="st">Sem receitas neste mês.</div>'}
+          ${catsRec.map(c=>catLinha(c,totRec,'var(--verde)')).join('') || '<div class="st">Sem receitas no período.</div>'}
         </div>
         <div style="display:flex;flex-direction:column;gap:9px">
           <div style="font-size:11px;font-weight:700;color:var(--dim2);letter-spacing:.6px">DESPESAS</div>
-          ${(data.cats_despesa||[]).map(c=>catLinha(c,totDesp,'var(--vermelho)')).join('') || '<div class="st">Sem despesas neste mês.</div>'}
+          ${catsDesp.map(c=>catLinha(c,totDesp,'var(--vermelho)')).join('') || '<div class="st">Sem despesas no período.</div>'}
         </div>
         <div style="margin-top:auto;background:var(--verde-bg);border:1px solid var(--verde-bd);border-radius:10px;
              padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;font-weight:700;color:var(--fg2)">Lucro do mês</span>
-          <span class="mono" style="font-size:19px;font-weight:700;color:${mesAtual.lucro>=0?'var(--verde2)':'var(--vermelho)'}">${brl(mesAtual.lucro)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--fg2)">Lucro no período</span>
+          <span class="mono" style="font-size:19px;font-weight:700;color:${lucroPer>=0?'var(--verde2)':'var(--vermelho)'}">${brl(lucroPer)}</span>
         </div>
       </div>
     </div>
     <div class="g2">
       <div class="card card-p">
-        <div class="tt" style="margin-bottom:14px">Ranking de pontuação</div>
+        <div class="tt" style="margin-bottom:14px">Ranking de pontuação <span class="st" style="font-weight:500">— geral, não segue o período</span></div>
         ${(data.ranking||[]).length ? (data.ranking||[]).map((r,i)=>`
           <div style="display:grid;grid-template-columns:26px 1fr 130px 88px;align-items:center;gap:10px;padding:8px">
             <span class="mono" style="font-size:12px;font-weight:700;color:${i<3?'var(--verde2)':'var(--dim2)'}">${i+1}</span>
@@ -833,7 +926,7 @@ async function pgVisao(forcar, senha = pedirDesenho()){
           </div>`).join('') : '<div class="vazio">Ninguém pontuou ainda.</div>'}
       </div>
       <div class="card card-p" style="display:flex;flex-direction:column;gap:16px">
-        <div class="tt">Engajamento no período</div>
+        <div class="tt">Engajamento <span class="st" style="font-weight:500">— ${h(per.rot)}</span></div>
         ${engBarras.map(([l,v]) => `
           <div>
             <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px">
@@ -1770,7 +1863,7 @@ function ligarSelecao(salas, solos, soloUsers){
     if(q==='nenhuma') SEL.salas.clear();
     else salas.filter(s => q==='vazias' ? s.humanos===0 : dias(s.updated_at)>=14)
               .forEach(s => SEL.salas.add(s.id));
-    pgJogos();
+    marcarCaixas(); barraSelecao();   // só as caixas: reler o banco perdia a rolagem
   });
   document.querySelectorAll('[data-conv]').forEach(c => c.onchange = () => {
     if(c.checked) SEL.convites.add(c.dataset.conv); else SEL.convites.delete(c.dataset.conv);
@@ -1787,7 +1880,7 @@ function ligarSelecao(salas, solos, soloUsers){
     if(q==='nenhum') SEL.convites.clear();
     else cs.filter(c => c.estado === (q==='aceitos'?'aceito':'expirado'))
            .forEach(c => SEL.convites.add(chaveConvite(c)));
-    pgJogos();
+    marcarCaixas(); barraSelecao();   // só as caixas: reler o banco perdia a rolagem
   });
   document.querySelectorAll('[data-sel-saves]').forEach(a => a.onclick = () => {
     const q = a.dataset.selSaves;
@@ -1795,7 +1888,7 @@ function ligarSelecao(salas, solos, soloUsers){
     else solos.filter(s => q==='zerados' ? (!s.temporada || s.temporada==='0')
                                          : dias(s.updated_at) >= Number(q))
               .forEach(s => SEL.saves.add(chaveSave(s)));
-    pgJogos();
+    marcarCaixas(); barraSelecao();   // só as caixas: reler o banco perdia a rolagem
   });
 }
 /* repinta só as caixinhas — redesenhar a página perderia a rolagem e o foco */
@@ -1976,7 +2069,10 @@ function mascara(s){
 
 /* ============================ ANALYTICS ============================ */
 async function pgAnalytics(forcar, senha = pedirDesenho()){
-  const { data, error } = await sb.rpc('analytics', { p_dias: Math.min(ST.periodo,60) });
+  /* "Ano" mostrava 60 dias em silêncio (Math.min). Agora vai o período inteiro; o gráfico
+     afina as barras e rotula poucos dias quando são muitos. */
+  const per = perAtual();
+  const { data, error } = await sb.rpc('analytics', { p_dias: per.dias, p_de: per.de, p_ate: per.ate });
   if(error) throw error;
   D.analytics = data;
   const ds = data.dias||[], f = data.funil||{}, ga4 = data.ga4;
@@ -1997,20 +2093,20 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
-      ${kpiHTML({l:'Sessões (período)', v:num(totalSes), d:'contas com tempo de jogo registrado'})}
-      ${kpiHTML({l:'Contas criadas', v:num(totalContas), d:`${num(f.contas)} no total`})}
-      ${kpiHTML({l:'Chegaram a jogar', v:num(f.jogaram), d:`${pct(f.jogaram,f.contas)}% das contas`})}
-      ${kpiHTML({l:'Assinantes', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
+      ${kpiHTML({l:'Ativos no período', v:num(data.ativos_unicos||0), d:`${num(totalSes)} pessoa-dia · login ou jogada`})}
+      ${kpiHTML({l:'Contas criadas no período', v:num(totalContas), d:`${num(f.contas)} no total`})}
+      ${kpiHTML({l:'Chegaram a jogar (total)', v:num(f.jogaram), d:`${pct(f.jogaram,f.contas)}% de todas as contas`})}
+      ${kpiHTML({l:'Assinantes (hoje)', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
     </div>
-    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+    <div class="g-par" style="--g-par:1.5fr 1fr">
       <div class="card card-p">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div><div class="tt">Atividade e contas criadas</div>
-            <div class="st">Por dia · últimos ${ds.length} dias</div></div>
+            <div class="st">Por dia · ${h(per.rot)}</div></div>
           <div class="leg"><span><i style="background:#35c46a"></i>Ativos</span>
             <span><i style="background:#e3b23c"></i>Contas criadas</span></div>
         </div>
-        <div class="chart" style="height:210px;gap:9px">
+        <div class="chart" style="height:210px;gap:${ds.length>90?'1px':ds.length>31?'3px':'9px'}">
           ${ds.map(d=>`
             <div class="chcol" title="${h(d.dia)} · ${d.sessoes} ativos · ${d.contas} contas">
               <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
@@ -2019,7 +2115,12 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
               </div>
             </div>`).join('')}
         </div>
-        <div class="chlabels" style="gap:9px">${ds.map(d=>`<div class="mono" style="font-size:10.5px;color:var(--dim3)">${h(String(d.dia).slice(8))}</div>`).join('')}</div>
+        <div class="chlabels" style="gap:${ds.length>90?'1px':ds.length>31?'3px':'9px'}">${ds.map((d,i)=>{
+          /* muitos dias: rótulo só no começo, meio e fim (dd/mm), senão os números se atropelam */
+          const mostra = ds.length <= 31 || i===0 || i===ds.length-1 || i===Math.floor(ds.length/2);
+          const r = ds.length <= 31 ? String(d.dia).slice(8) : String(d.dia).slice(8,10)+'/'+String(d.dia).slice(5,7);
+          return `<div class="mono" style="font-size:10.5px;color:var(--dim3);white-space:nowrap;overflow:visible">${mostra?h(r):''}</div>`;
+        }).join('')}</div>
       </div>
       <div class="card card-p">
         <div class="tt" style="margin-bottom:4px">Funil de conversão</div>
@@ -2115,18 +2216,23 @@ async function pgEspera(forcar, senha = pedirDesenho()){
   /* a lista inteira, do mais recente para o mais antigo. `todasAsLinhas` não
      serve aqui (é por pack_id), e o teto de 1000 do Supabase ainda está longe —
      quando chegar perto, isto passa a paginar. */
-  const r = await jogo('retrofoot_waitlist').select('*').order('created_at', { ascending:false }).range(0, PAGINA_SB-1);
-  if(r.error) throw r.error;
-  const todas = r.data || [];
+  /* a busca só filtra o que já veio: não relê o banco a cada pausa na digitação */
+  let todas;
+  if(ST.esperaReuso && D.espera){ todas = D.espera; ST.esperaReuso = false; }
+  else {
+    const r = await jogo('retrofoot_waitlist').select('*').order('created_at', { ascending:false }).range(0, PAGINA_SB-1);
+    if(r.error) throw r.error;
+    todas = r.data || [];
+  }
   D.espera = todas;
 
-  const agora = Date.now(), dia = 864e5;
-  const dentro = (w, de, ate) => {
-    const t = new Date(w.created_at).getTime();
-    return t >= agora - de*dia && t < agora - ate*dia;
-  };
-  const noPeriodo = todas.filter(w => dentro(w, ST.periodo, 0)).length;
-  const anterior  = todas.filter(w => dentro(w, ST.periodo*2, ST.periodo)).length;
+  /* período do topo (dias locais, fim exclusivo); o "anterior" é o intervalo de mesmo tamanho
+     logo antes. Antes o número usava janela de N×24h e o gráfico N dias de calendário. */
+  const per = perAtual(), dia = 864e5;
+  const noIntervalo = (w, ini, fim) => { const t = new Date(w.created_at).getTime(); return t >= ini && t < fim; };
+  const iniAnt = dataLocal(per.de); iniAnt.setDate(iniAnt.getDate() - per.dias);
+  const noPeriodo = todas.filter(w => noIntervalo(w, per.ini, per.fim)).length;
+  const anterior  = todas.filter(w => noIntervalo(w, iniAnt.getTime(), per.ini)).length;
   const varia = anterior ? Math.round((noPeriodo-anterior)*100/anterior) : (noPeriodo?100:0);
   const comTel  = todas.filter(w => (w.telefone||'').trim()).length;
   const comResp = todas.filter(w => (w.resposta||'').trim()).length;
@@ -2137,13 +2243,13 @@ async function pgEspera(forcar, senha = pedirDesenho()){
      fatia clara no topo é quanto entrou naquele dia. Uma coisa só mostra a
      curva de crescimento e o ritmo — que é o que se quer acompanhar. ---- */
   const dias = [];
-  for(let i = ST.periodo-1; i >= 0; i--){
-    const d = new Date(agora - i*dia);
+  for(let i = 0; i < per.dias; i++){
+    const d = dataLocal(per.de); d.setDate(d.getDate() + i);
     dias.push({ chave: espDiaLocal(d), n:0, ac:0 });
   }
   const porDia = {};
   todas.forEach(w => { const k = espDiaLocal(w.created_at); porDia[k] = (porDia[k]||0)+1; });
-  const antesDaJanela = todas.filter(w => new Date(w.created_at).getTime() < agora - ST.periodo*dia).length;
+  const antesDaJanela = todas.filter(w => new Date(w.created_at).getTime() < per.ini).length;
   let ac = antesDaJanela;
   dias.forEach(d => { d.n = porDia[d.chave]||0; ac += d.n; d.ac = ac; });
   const maxAc = Math.max(1, ...dias.map(d=>d.ac));
@@ -2176,7 +2282,7 @@ async function pgEspera(forcar, senha = pedirDesenho()){
 
   /* a busca varre tudo o que a pessoa escreveu — inclusive a resposta aberta e
      o time, que é onde costuma estar o que se procura */
-  const q = (ST.buscaEspera||'').toLowerCase();
+  const q = (ST.buscaEspera||'').trim().toLowerCase();
   const ls = q ? todas.filter(w => [w.nome,w.email,w.telefone,w.time_coracao,w.resposta,w.origem]
     .some(v => String(v||'').toLowerCase().includes(q))) : todas;
 
@@ -2186,8 +2292,8 @@ async function pgEspera(forcar, senha = pedirDesenho()){
     <div class="g4" style="margin-bottom:16px">
       ${kpiHTML({ l:'Na lista de espera', v:num(todas.length),
                   d:`${pct(todas.length,vagas)}% das ${num(vagas)} vagas anunciadas` })}
-      ${kpiHTML({ l:`Entradas em ${ST.periodo} dias`, v:num(noPeriodo),
-                  d:anterior ? `${varia>=0?'+':''}${varia}% face aos ${ST.periodo} dias anteriores`
+      ${kpiHTML({ l:`Entradas no período`, v:num(noPeriodo),
+                  d:anterior ? `${varia>=0?'+':''}${varia}% face aos ${per.dias} dias anteriores`
                              : 'sem período anterior para comparar',
                   dc:anterior ? (varia>=0?'var(--verde2)':'var(--vermelho)') : '' })}
       ${kpiHTML({ l:'Deixaram telefone', v:num(comTel), d:`${pct(comTel,todas.length)}% da lista` })}
@@ -2198,11 +2304,11 @@ async function pgEspera(forcar, senha = pedirDesenho()){
     <div class="card card-p" style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div><div class="tt">Como a lista cresceu</div>
-          <div class="st">Total acumulado por dia · últimos ${ST.periodo} dias</div></div>
+          <div class="st">Total acumulado por dia · ${h(per.rot)}</div></div>
         <div class="leg"><span><i style="background:#4ade80"></i>Entrou nesse dia</span>
           <span><i style="background:#1f7a45"></i>Acumulado</span></div>
       </div>
-      <div class="chart" style="height:210px;gap:${ST.periodo>60?'2px':'6px'}">
+      <div class="chart" style="height:210px;gap:${per.dias>60?'2px':'6px'}">
         ${dias.map(d => `
           <div class="chcol" title="${h(d.chave.split('-').reverse().slice(0,2).join('/'))} · ${d.n} nova${d.n===1?'':'s'} · ${d.ac} no total">
             <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:100%">
@@ -2211,8 +2317,8 @@ async function pgEspera(forcar, senha = pedirDesenho()){
             </div>
           </div>`).join('')}
       </div>
-      <div class="chlabels" style="gap:${ST.periodo>60?'2px':'6px'}">${dias.map((d,i) => {
-        const mostra = ST.periodo<=14 || i===0 || i===dias.length-1 || i===Math.floor(dias.length/2);
+      <div class="chlabels" style="gap:${per.dias>60?'2px':'6px'}">${dias.map((d,i) => {
+        const mostra = per.dias<=14 || i===0 || i===dias.length-1 || i===Math.floor(dias.length/2);
         return `<div class="mono" style="font-size:10.5px;color:var(--dim3)">${mostra?h(d.chave.slice(8)+'/'+d.chave.slice(5,7)):''}</div>`;
       }).join('')}</div>
     </div>
@@ -2283,9 +2389,7 @@ async function pgEspera(forcar, senha = pedirDesenho()){
       }).join('') : '<div class="vazio">Ninguém encontrado com esse termo.</div>'}
     </div>`;
 
-  const b = el('esp-busca');
-  let t = null;
-  b.oninput = () => { clearTimeout(t); t = setTimeout(() => { ST.buscaEspera = b.value.trim(); pgEspera(); }, 350); };
+  buscaViva('esp-busca', () => ST.buscaEspera, v => { ST.buscaEspera = v; ST.esperaReuso = true; }, pgEspera, 350);
   el('esp-csv').onclick = () => {
     const hoje = new Date().toISOString().slice(0,10);
     baixarTexto(`retrofoot98-lista-de-espera-${hoje}.csv`, espCSV(ls), 'text/csv;charset=utf-8');
@@ -2585,7 +2689,18 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
      sem aviso. A soma passou para o banco (admin_rf98.ia_custos_mes). */
   const [ov, lanc, iaMes, cfgFat, stMes] = await Promise.all([
     sb.rpc('overview', { p_dias: ST.periodo }),
-    sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).limit(PAGINA_SB),
+    /* todos os lançamentos, em páginas: com .limit(1000) os meses mais antigos sumiam da lista
+       de meses assim que houvesse mais de mil linhas */
+    (async () => {
+      const linhas = [];
+      for(let de = 0; de < 20 * PAGINA_SB; de += PAGINA_SB){
+        const r = await sb.from('adm_lancamentos').select('*').order('data', { ascending:false }).order('id').range(de, de + PAGINA_SB - 1);
+        if(r.error) return r;
+        linhas.push.apply(linhas, r.data || []);
+        if(!r.data || r.data.length < PAGINA_SB) break;
+      }
+      return { data: linhas, error: null };
+    })(),
     sb.rpc('ia_custos_mes'),
     sb.from('adm_config').select('valor').eq('chave','openai_faturas').maybeSingle(),
     /* a receita do Stripe também é somada NO BANCO: são uma linha por cobrança,
@@ -2628,6 +2743,15 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
     ? String(l.data).slice(0,7) === ST.finMes
     : String(l.data).slice(0,4) === ST.finAno;
   const rotuloPeriodo = ST.finMes ? mesPorExtenso(ST.finMes) : 'ano de '+ST.finAno;
+  /* ATIVOS DO MESMO RECORTE (27/09/2026). O "Por usuário ativo" dividia o gasto do mês — ou do ANO
+     inteiro — pelos ativos dos últimos 7 dias. Agora os ativos vêm do mesmo mês/ano escolhido
+     (até hoje), pela mesma regra do painel: login ou jogada. */
+  const finDe = ST.finMes ? ST.finMes + '-01' : ST.finAno + '-01-01';
+  let finAte = usDiaLocal(ST.finMes ? new Date(+ST.finMes.slice(0,4), +ST.finMes.slice(5,7), 0) : new Date(+ST.finAno, 11, 31));
+  const hojeL = usDiaLocal(new Date());
+  if(finAte > hojeL) finAte = hojeL < finDe ? finDe : hojeL;
+  const ovFin = await sb.rpc('overview', { p_de: finDe, p_ate: finAte });
+  const ativosPer = ovFin.error ? 0 : (+ovFin.data.ativos_per || 0);
 
   /* `iaPorMes` é de TODOS os meses — é o que a conciliação lá embaixo compara
      com as faturas. Já `iaPorTipo` e `iaPorFonte` são do PERÍODO ESCOLHIDO: são
@@ -2668,7 +2792,7 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
   const tDesp = desp.reduce((a,l)=>a+ +l.valor_centavos,0);
   const tRec  = rec.reduce((a,l)=>a+ +l.valor_centavos,0);
   const lucro = tRec - tDesp;
-  const ativos = +ov.data.ativos7 || 0;
+  const ativos = ativosPer;
   const meses = ov.data.meses||[];
   const maxL = Math.max(1, ...meses.map(m=>Math.abs(+m.lucro)));
   const caixa = +ov.data.caixa || 0;
@@ -2919,7 +3043,7 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
                  d:`${usdDeCentavos(lucro)}${tRec?' · margem de '+pct(lucro,tRec)+'%':' · sem receita'}`.replace(/^ · /,''),
                  c: lucro>=0?'var(--verde2)':'var(--vermelho)'})}
       ${kpiHTML({l:'Por usuário ativo', v: ativos? brl(Math.round(tDesp/ativos)) : '—',
-                 d: ativos? `${usdDeCentavos(Math.round(tDesp/ativos))} de custo · receita ${brl(Math.round(tRec/ativos))}` : 'sem ativos no período'})}
+                 d: ativos? `${num(ativos)} ativos no ${ST.finMes?'mês':'ano'} · receita ${brl(Math.round(tRec/ativos))} por ativo` : 'sem ativos no período'})}
     </div>
     ${iaCards}
     ${stripeCards}
@@ -2954,7 +3078,9 @@ async function pgFinancas(forcar, senha = pedirDesenho()){
                   title="filtra apenas esta lista — os números do topo seguem o período escolhido lá em cima">
             ${Object.entries(DESP_FILTROS).map(([k,r]) =>
               `<option value="${k}" ${ST.despFiltro===k?'selected':''}>${h(r)}${k==='periodo'?' ('+h(rotuloPeriodo)+')':''}</option>`).join('')}
-            <option value="${h(ST.finAno)}" ${ST.despFiltro===ST.finAno?'selected':''}>Ano de ${h(ST.finAno)}</option>
+            ${/* todos os anos, não só o de cima: trocar o ano lá em cima tirava a opção escolhida daqui
+                 e o select passava a mostrar outra coisa com o filtro antigo ainda valendo */
+              anos.map(a=>`<option value="${h(a)}" ${ST.despFiltro===a?'selected':''}>Ano de ${h(a)}</option>`).join('')}
             ${mesesComLanc.map(m=>`<option value="${h(m)}" ${ST.despFiltro===m?'selected':''}>${h(mesPorExtenso(m))}</option>`).join('')}
           </select>
           <span class="mono" style="font-size:13px;color:var(--vermelho);text-align:right;line-height:1.25">${brl(tDespVista)}
@@ -4031,7 +4157,7 @@ const OP_TIPOS = { melhoria:{ic:'💡', n:'Melhoria', c:'var(--azul,#3b82f6)'},
 const OP_VER = { novas:'Não lidas', todas:'Todas', arquivadas:'Arquivadas' };
 function opinioesFiltradas(){
   const todas = D.opinioes || [];
-  const q = (ST.opBusca||'').toLowerCase();
+  const q = (ST.opBusca||'').trim().toLowerCase();
   return todas.filter(o => {
     if(ST.opVer === 'arquivadas' ? !o.arquivada : o.arquivada) return false;
     if(ST.opVer === 'novas' && o.lida) return false;
@@ -4105,8 +4231,7 @@ function ligarOpinioes(editar){
   if(!el('op-secao')) return;
   el('op-ver').onchange  = () => { ST.opVer  = el('op-ver').value;  redesenhar(pgFeatures); };
   el('op-tipo').onchange = () => { ST.opTipo = el('op-tipo').value; redesenhar(pgFeatures); };
-  const b = el('op-busca'); let t = null;
-  b.oninput = () => { clearTimeout(t); t = setTimeout(() => { ST.opBusca = b.value.trim(); redesenhar(pgFeatures); }, 350); };
+  buscaViva('op-busca', () => ST.opBusca, v => { ST.opBusca = v; }, pgFeatures, 350);
   if(!editar) return;
   const mexer = (attr, campo, valor, msg) => {
     document.querySelectorAll('[data-'+attr+']').forEach(bt => bt.onclick = async () => {
@@ -5044,11 +5169,12 @@ async function pgEquipa(forcar, senha = pedirDesenho()){
    saiu do painel continua a aparecer (marcado em âmbar), porque apagar a conta
    não pode apagar o que ela fez. */
 const TETO_REGISTRO = 5000;   // linhas lidas por período; acima disto a tela avisa
-async function lerAuditoria(desdeISO){
+async function lerAuditoria(desdeISO, ateISO){
   const linhas = [];
   for(let de = 0; de < TETO_REGISTRO; de += PAGINA_SB){
     let q = sb.from('adm_audit').select('*').order('quando', { ascending:false });
     if(desdeISO) q = q.gte('quando', desdeISO);
+    if(ateISO) q = q.lt('quando', ateISO);
     const r = await q.range(de, de + PAGINA_SB - 1);
     if(r.error) throw r.error;
     linhas.push.apply(linhas, r.data||[]);
@@ -5074,10 +5200,10 @@ function regCSV(ls, nomeDe){
   return '﻿' + cab.join(';') + '\r\n' + linhas.join('\r\n') + '\r\n';
 }
 async function pgRegistro(forcar, senha = pedirDesenho()){
-  const desde = new Date(Date.now() - ST.periodo*86400000).toISOString();
+  const per = perAtual();
   const [admins, log] = await Promise.all([
     sb.from('adm_users').select('*').order('criado_em'),
-    lerAuditoria(desde)
+    lerAuditoria(new Date(per.ini).toISOString(), new Date(per.fim).toISOString())
   ]);
   if(admins.error) throw admins.error;
   D.admins = admins.data || [];
@@ -5164,7 +5290,7 @@ async function pgRegistro(forcar, senha = pedirDesenho()){
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({ l:'Ações no período', v:num(log.length),
-                  d: log.length>=TETO_REGISTRO ? `teto de ${num(TETO_REGISTRO)} — reduza o período` : `últimos ${ST.periodo} dias` })}
+                  d: log.length>=TETO_REGISTRO ? `teto de ${num(TETO_REGISTRO)} — reduza o período` : per.rot })}
       ${kpiHTML({ l:'Pessoas que mexeram', v:num(equipa.length),
                   d:`${num(D.admins.length)} contas com acesso hoje` })}
       ${/* nome de área é frase, não número: em corpo de KPI ele quebraria a linha */''}
@@ -5192,10 +5318,15 @@ async function pgRegistro(forcar, senha = pedirDesenho()){
         <select class="f" id="rg-quem" style="width:auto;min-width:170px;font-size:12.5px">
           <option value="">Todas as pessoas</option>
           ${equipa.map(p=>`<option value="${h(p.chave)}" ${ST.regQuem===p.chave?'selected':''}>${h(p.nome)} (${p.n})</option>`).join('')}
+          ${/* a pessoa escolhida pode não ter ação no período novo: a opção fica, com (0), senão o
+               select mostrava "Todas as pessoas" enquanto o filtro continuava valendo */
+            ST.regQuem && !equipa.some(p => p.chave === ST.regQuem)
+            ? `<option value="${h(ST.regQuem)}" selected>${h((porConta.get(ST.regQuem)||{}).nome || (porConta.get(ST.regQuem)||{}).email || String(ST.regQuem).replace(/^email:/,''))} (0)</option>` : ''}
         </select>
         <select class="f" id="rg-area" style="width:auto;min-width:150px;font-size:12.5px">
           <option value="">Todas as áreas</option>
           ${areasNoLog.map(ar=>`<option value="${h(ar)}" ${ST.regArea===ar?'selected':''}>${h(AREAS[ar]||ar)} (${porArea[ar]})</option>`).join('')}
+          ${ST.regArea && !areasNoLog.includes(ST.regArea) ? `<option value="${h(ST.regArea)}" selected>${h(AREAS[ST.regArea]||ST.regArea)} (0)</option>` : ''}
         </select>
         <input class="busca" id="rg-busca" placeholder="Procurar clube, jogador, e-mail, ação…" value="${h(ST.regBusca)}">
         <span class="mono" style="font-size:12px;color:var(--dim2)">${num(visiveis.length)}${filtrando?' de '+num(log.length):''} ações</span>
@@ -5665,7 +5796,7 @@ function ligarCabecalhoPatches(pack, editar){
 /* ---------- aba CLUBES ---------- */
 function abaClubes(editar){
   const base = D.catalogo||[];
-  const busca = (ST.buscaClube||'').toLowerCase();
+  const busca = (ST.buscaClube||'').trim().toLowerCase();
   const pais = ST.paisFiltro || 'todos';
   const paises = Array.from(new Set(base.map(x=>x.pais))).sort((a,b)=> a==='Brasil'?-1:b==='Brasil'?1:a.localeCompare(b,'pt-BR'));
   const lista = base.filter(x =>
@@ -5726,8 +5857,7 @@ function abaClubes(editar){
       ${lista.length>120?`<div class="vazio">Mostrando 120 de ${lista.length} — refine a busca.</div>`:''}
     </div>`;
 
-  const b = el('ed-busca'); let t=null;
-  b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaClube=b.value.trim(); pgEditor(); },300); };
+  buscaViva('ed-busca', () => ST.buscaClube, v => { ST.buscaClube = v; }, pgEditor);
   el('ed-pais').onchange = () => { ST.paisFiltro = el('ed-pais').value; pgEditor(); };
   el('ed-csv').onclick = baixarCSVJogadoresBrasil;
   document.querySelectorAll('[data-clube]').forEach(r => r.onclick = () => abrirClube(r.dataset.clube));
@@ -7578,12 +7708,15 @@ function funilParceirosHTML(ps){
     <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
       <div class="tt">Em que ponto está cada conversa</div>
       <span class="st" style="margin:0">${num(total)} parceiro${total>1?'s':''} no total</span>
+      ${ST.statusParceiro ? `<span class="us-chip" data-filtro-status="${h(ST.statusParceiro)}" style="margin-left:auto"
+          title="Tirar o filtro">Só: ${h(STATUS_PARCEIRO[ST.statusParceiro][0])} <i>✕</i></span>`
+        : '<span class="st" style="margin:0 0 0 auto">clique numa etapa para ver só ela</span>'}
     </div>
     <div class="etapas">
       ${Object.keys(STATUS_PARCEIRO).map(k=>{
         const [rot,, cor] = STATUS_PARCEIRO[k];
         const n = cont[k]||0;
-        return `<div class="etapa ${n?'':'vazia'}" data-filtro-status="${k}" title="Ver só estes">
+        return `<div class="etapa ${n?'':'vazia'} ${ST.statusParceiro===k?'on':''}" data-filtro-status="${k}" title="${ST.statusParceiro===k?'Clique de novo para ver todos':'Ver só estes'}">
           <div class="etapa-n" style="color:${n?cor:'var(--dim3)'}">${n}</div>
           <div class="etapa-r">${rot}</div>
           <div class="etapa-b"><i style="width:${pct(n,total)}%;background:${cor}"></i></div>
@@ -7735,7 +7868,7 @@ async function pgParceiros(forcar, senha = pedirDesenho()){
   });
   document.querySelectorAll('[data-filtro-status]').forEach(e => e.onclick = () => {
     ST.statusParceiro = ST.statusParceiro===e.dataset.filtroStatus ? null : e.dataset.filtroStatus;
-    pgParceiros();
+    redesenhar(pgParceiros);
   });
   if(editar){
     el('pa-yt').onclick = () => atualizarYoutube(ps);
@@ -8039,7 +8172,7 @@ async function pgConteudo(forcar, senha = pedirDesenho()){
     <div class="g4">
       ${kpiHTML({l:'Na pauta', v:num(cs.length), d:`${num(cs.filter(c=>c.status==='ideia').length)} ainda são ideia`})}
       ${kpiHTML({l:'Em produção', v:num(cs.filter(c=>c.status==='design'||c.status==='edicao').length), d:'design e edição'})}
-      ${kpiHTML({l:'Agendados', v:num(cs.filter(c=>c.status==='agendado').length), d:'com data marcada'})}
+      ${kpiHTML({l:'Agendados', v:num(cs.filter(c=>c.status==='agendado').length), d:'no status Agendado'})}
       ${kpiHTML({l:'Aprovados', v:num(cs.filter(c=>c.aprovado).length), d:'prontos para publicar', c:'var(--verde2)'})}
     </div>
 
@@ -8064,7 +8197,7 @@ async function pgConteudo(forcar, senha = pedirDesenho()){
 
     ${!lista.length ? '<div class="card"><div class="vazio">Nada nesta lista ainda.</div></div>' : ''}`;
 
-  document.querySelectorAll('[data-fc]').forEach(x => x.onclick = () => { ST.filtroConteudo=x.dataset.fc; pgConteudo(); });
+  document.querySelectorAll('[data-fc]').forEach(x => x.onclick = () => { ST.filtroConteudo=x.dataset.fc; redesenhar(pgConteudo); });
   if(editar) el('ct-nova').onclick = () => modalConteudo(null);
   document.querySelectorAll('[data-conteudo]').forEach(c => c.onclick = ev => {
     if(ev.target.closest('[data-acao]')) return;
@@ -11351,7 +11484,7 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
       if(!cst.error) D.avataresPro.usd = (cst.data||[]).reduce((a,r)=>a+Number(r.custo_usd||0), 0);
     }catch(e){ console.warn('resumo de avatares:', e.message); }
   }
-  const busca = (ST.buscaEstudio||'').toLowerCase();
+  const busca = (ST.buscaEstudio||'').trim().toLowerCase();
   const paisSel = ST.paisEstudio || 'todos';
   const paises = Array.from(new Set(base.map(x=>x.pais))).sort((a,b)=> a==='Brasil'?-1:b==='Brasil'?1:a.localeCompare(b,'pt-BR'));
   const lista = base.filter(x =>
@@ -11530,8 +11663,7 @@ async function pgEstudio(forcar, senha = pedirDesenho()){
     }catch(err){ toast(err.message||'Falha na repintura.', true); bt.disabled=false; bt.textContent=r0; }
   });
 
-  const b = el('est-busca'); let t=null;
-  if(b) b.oninput = () => { clearTimeout(t); t=setTimeout(()=>{ ST.buscaEstudio=b.value.trim(); pgEstudio(); },300); };
+  buscaViva('est-busca', () => ST.buscaEstudio, v => { ST.buscaEstudio = v; }, pgEstudio);
   document.querySelectorAll('[data-est-clube]').forEach(r => r.onclick = () => {
     const item = (D.catalogo||[]).find(x => String(x.c.id)===String(r.dataset.estClube));
     if(!item) return;
