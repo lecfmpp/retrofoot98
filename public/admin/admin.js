@@ -503,6 +503,8 @@ function redesenhar(fn, ...args){
 function irPara(tab, forcar){
   if(!podeVer(tab)) tab = 'visao';
   ST.tab = tab; renderNav(); menuLateral(false);
+  /* Usuários tem o próprio período (com datas); os botões 7/30/Ano do topo não mexiam em nada lá */
+  el('periodos').style.display = tab === 'usuarios' ? 'none' : '';
   const n = NAV.find(x=>x.id===tab);
   el('pg-tit').textContent = n.tit; el('pg-sub').textContent = n.sub;
   el('mob-tit').textContent = n.tit;
@@ -1024,6 +1026,7 @@ const US_FK_ROT = { estado:'Estado', modo:'Modo', plano:'Plano', origem:'Origem'
 const US_PLANO_ORD = { free:0, resenha:1, embaixador:2 };
 function usFiltros(){
   if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'', ord:'acesso', dir:-1 };
+  if(!ST.us.per) Object.assign(ST.us, { per:'tudo', de:'', ate:'', perCampo:'cadastro' });
   return ST.us;
 }
 /* ORIGEM DO CADASTRO (27/09/2026). O jogo grava nos metadados da conta o primeiro toque e o último
@@ -1148,6 +1151,47 @@ const US_COLS = [
   { l:'Senha', a:'r', tip:'Envia para o e-mail da pessoa um link para criar uma senha nova. O painel nunca vê a senha.' },
 ];
 
+/* ===== PERÍODO DA PÁGINA DE USUÁRIOS (27/09/2026) =====
+   Por data de CADASTRO ou de ÚLTIMO ACESSO, com atalhos (Hoje, 7, 30 dias, Ano) ou datas escolhidas
+   no calendário (De / Até; um dia só = as duas iguais). Tudo em dia LOCAL (AAAA-MM-DD), comparado
+   como texto. O período recorta a página inteira: números do topo, cadastros por canal e tabela. */
+const US_PER = [['tudo','Tudo'],['hoje','Hoje'],['7','7 dias'],['30','30 dias'],['365','Ano'],['custom','Escolher datas']];
+function usDiaLocal(d){
+  const x = d instanceof Date ? d : new Date(d);
+  if(isNaN(x)) return '';
+  return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+}
+function usIntervalo(f){
+  if(!f.per || f.per === 'tudo') return null;
+  if(f.per === 'custom'){
+    let de = f.de || '', ate = f.ate || '';
+    if(!de && !ate) return null;
+    if(de && ate && de > ate) [de, ate] = [ate, de];
+    return { de, ate };
+  }
+  const hoje = new Date(), n = f.per === 'hoje' ? 1 : +f.per;
+  const ini = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - (n - 1));
+  return { de: usDiaLocal(ini), ate: usDiaLocal(hoje) };
+}
+function usNoPeriodo(u, f){
+  const iv = usIntervalo(f);
+  if(!iv) return true;
+  const t = f.perCampo === 'acesso' ? u.ultimo_acesso : u.criado_em;
+  if(!t) return false;
+  const d = usDiaLocal(t);
+  return (!iv.de || d >= iv.de) && (!iv.ate || d <= iv.ate);
+}
+function usPeriodoTxt(f){
+  const iv = usIntervalo(f);
+  if(!iv) return '';
+  const br = x => x ? x.split('-').reverse().join('/') : '';
+  const campo = f.perCampo === 'acesso' ? 'Último acesso' : 'Cadastro';
+  if(iv.de && iv.de === iv.ate) return `${campo} em ${br(iv.de)}`;
+  if(!iv.de) return `${campo} até ${br(iv.ate)}`;
+  if(!iv.ate) return `${campo} desde ${br(iv.de)}`;
+  return `${campo}: ${br(iv.de)} a ${br(iv.ate)}`;
+}
+
 function usFiltrar(us){
   const f = usFiltros();
   const q = f.q.trim().toLowerCase(), qd = q.replace(/\D/g,'');
@@ -1249,38 +1293,68 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   D.usuarios = data || [];
   const us = D.usuarios;
   us.forEach(u => { u._d = usDeriv(u); });
-  const pagos = us.filter(ehPago);
-  const porPlano = (k) => us.filter(u => (u.plano||'free') === k).length;
-  const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
-  const minutos = us.reduce((a,u)=>a+ +u.minutos, 0);
-  const minutos7 = us.reduce((a,u)=>a+ (+u.minutos_7||0), 0);
-  const ativos7 = us.filter(u => +u.dias_ativos_7 > 0).length;
   const podeApagar = ME.papel==='socio';
   SEL.contas = SEL.contas || new Set();
   const vivos = new Set(us.map(u=>u.id));
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
   const f = usFiltros();
-  /* cadastros por canal: total e últimos 30 dias, maior primeiro, "Desconhecido" sempre no fim */
-  const porCanal = {};
-  us.forEach(u => {
-    const c = porCanal[u._d.canal] || (porCanal[u._d.canal] = { n:0, n30:0 });
-    c.n++; if(dias(u.criado_em) <= 29) c.n30++;
-  });
-  const canais = Object.entries(porCanal)
-    .sort((a, b) => (a[0]==='Desconhecido') - (b[0]==='Desconhecido') || b[1].n30 - a[1].n30 || b[1].n - a[1].n);
+  const usP = () => us.filter(u => usNoPeriodo(u, f));   // as contas do período escolhido
+  /* os 4 números do topo, sobre as contas do período */
+  function kpisHTML(){
+    const l = usP(), perOn = !!usIntervalo(f);
+    const pagos = l.filter(ehPago);
+    const porPlano = (k) => l.filter(u => (u.plano||'free') === k).length;
+    const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
+    const minutos = l.reduce((a,u)=>a+ +u.minutos, 0);
+    const minutos7 = l.reduce((a,u)=>a+ (+u.minutos_7||0), 0);
+    const ativos7 = l.filter(u => +u.dias_ativos_7 > 0).length;
+    return `
+      ${kpiHTML(perOn
+        ? {l: f.perCampo === 'acesso' ? 'Com acesso no período' : 'Cadastros no período', v:num(l.length), d:`${pct(l.length, us.length)}% das ${num(us.length)} contas`}
+        : {l:'Contas totais', v:num(l.length), d:`${num(l.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
+      ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, l.length)}% ${perOn?'destas':'das'} contas · login ou jogada`})}
+      ${kpiHTML({l:'Assinantes', v:num(pagos.length),
+                 d:`${num(porPlano('resenha'))} Resenha · ${num(porPlano('embaixador'))} Embaixador${mrr?' · '+brl(mrr)+' de MRR':''}`})}
+      ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:`${hm(minutos7)} nos últimos 7 dias`})}`;
+  }
+  /* cadastros por canal, maior primeiro, "Desconhecido" sempre no fim. Sem período: total e
+     últimos 30 dias; com período: só a contagem dentro dele. */
+  function canaisDe(lista){
+    const por = {};
+    lista.forEach(u => {
+      const c = por[u._d.canal] || (por[u._d.canal] = { n:0, n30:0 });
+      c.n++; if(dias(u.criado_em) <= 29) c.n30++;
+    });
+    return Object.entries(por)
+      .sort((a, b) => (a[0]==='Desconhecido') - (b[0]==='Desconhecido') || b[1].n30 - a[1].n30 || b[1].n - a[1].n);
+  }
+  const canais = canaisDe(us);
+  function canaisHTML(){
+    const perOn = !!usIntervalo(f), lst = canaisDe(usP());
+    return `<span class="us-canais-t" data-tip="${h('Canal que trouxe cada conta até o cadastro.\n' + (perOn
+        ? 'Número: contas dentro do período escolhido.' : 'Número grande: total · embaixo: cadastros nos últimos 30 dias.') + '\nClique para filtrar a tabela.')}">Cadastros por canal</span>
+      ${lst.length ? lst.map(([c, v]) => `<span class="us-canal ${f.origem===c?'on':''}" data-canal="${h(c)}"
+        data-tip="${h(perOn ? `${c}: ${v.n} conta(s) no período\nClique para filtrar` : `${c}: ${v.n} conta(s), ${v.n30} nos últimos 30 dias\nClique para filtrar`)}"><b>${h(c)}</b> <i class="mono">${num(v.n)}</i>${perOn ? '' : `<small class="mono">${num(v.n30)} em 30d</small>`}</span>`).join('')
+        : '<span class="us-nada">nenhuma conta no período</span>'}`;
+  }
 
   const opt = (v, rot, atual) => `<option value="${h(v)}" ${v===atual?'selected':''}>${h(rot)}</option>`;
   const sel = (id, tip, atual, ops) => `<select class="us-sel ${atual?'on':''}" id="${id}" data-tip="${h(tip)}">${ops}</select>`;
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
-    <div class="g4">
-      ${kpiHTML({l:'Contas totais', v:num(us.length), d:`${num(us.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
-      ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, us.length)}% das contas · login ou jogada`})}
-      ${kpiHTML({l:'Assinantes', v:num(pagos.length),
-                 d:`${num(porPlano('resenha'))} Resenha · ${num(porPlano('embaixador'))} Embaixador${mrr?' · '+brl(mrr)+' de MRR':''}`})}
-      ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:`${hm(minutos7)} nos últimos 7 dias`})}
+    <div class="us-per">
+      <span class="per" id="u-per">${US_PER.map(([v,l]) => `<span data-up="${v}" class="${f.per===v?'on':''}">${l}</span>`).join('')}</span>
+      <span class="us-datas">
+        <select class="us-sel" id="up-campo" data-tip="Qual data da conta o período usa">
+          ${opt('cadastro', 'Por data de cadastro', f.perCampo)}${opt('acesso', 'Por último acesso', f.perCampo)}</select>
+        <label class="us-dt" data-tip="Primeiro dia (inclusive). Para um dia só, ponha a mesma data em De e Até.">De
+          <input type="date" id="up-de" class="us-sel"></label>
+        <label class="us-dt" data-tip="Último dia (inclusive)">Até
+          <input type="date" id="up-ate" class="us-sel"></label>
+      </span>
     </div>
+    <div class="g4" id="u-kpis">${kpisHTML()}</div>
     <div class="card us-card">
       <div class="us-barra">
         <input class="busca us-busca" id="u-busca" placeholder="Nome, e-mail, clube, WhatsApp…" value="${h(f.q)}"
@@ -1310,10 +1384,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         <span class="us-cont mono" id="u-cont"></span>
       </div>
       <div class="us-ativos" id="u-ativos"></div>
-      <div class="us-canais" id="u-canais"><span class="us-canais-t" data-tip="Canal que trouxe cada conta até o cadastro.\nNúmero grande: total · embaixo: cadastros nos últimos 30 dias.\nClique para filtrar a tabela.">Cadastros por canal</span>
-        ${canais.map(([c, v]) => `<span class="us-canal ${f.origem===c?'on':''}" data-canal="${h(c)}"
-          data-tip="${h(`${c}: ${v.n} conta(s), ${v.n30} nos últimos 30 dias\nClique para filtrar`)}"><b>${h(c)}</b> <i class="mono">${num(v.n)}</i><small class="mono">${num(v.n30)} em 30d</small></span>`).join('')}
-      </div>
+      <div class="us-canais" id="u-canais">${canaisHTML()}</div>
       ${podeApagar?`<div class="us-selbar st">Selecionar para apagar:
         <span class="link" data-sel-contas="visiveis" data-tip="Marca todas as contas que aparecem com os filtros atuais">as que estão na lista</span> ·
         <span class="link" data-sel-contas="nunca" data-tip="Sem carreira nenhuma e sem tempo de jogo">nunca jogaram</span> ·
@@ -1329,7 +1400,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
 
   /* só as linhas: filtros e ordenação nunca redesenham a barra (o campo de busca mantém o foco) */
   function desenharLinhas(){
-    const vis = usFiltrar(us);
+    const vis = usFiltrar(usP());
     D.usuariosVisiveis = vis;
     el('u-tb').innerHTML = vis.length ? vis.map(u => usLinhaHTML(u, podeApagar)).join('')
       : `<tr><td colspan="${US_COLS.length}" class="vazio">Nenhuma conta com esses filtros.</td></tr>`;
@@ -1343,7 +1414,9 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
     /* o que está filtrado fica à vista, com ✕ para tirar um por um */
     const ativos = US_FK.filter(k => f[k]);
     el('u-fn').textContent = ativos.length ? ' · ' + ativos.length : '';
-    el('u-ativos').innerHTML = (f.q.trim() ? [`<span class="us-chip" data-tirar="q">Busca: “${h(f.q.trim())}” <i>✕</i></span>`] : [])
+    const perTxt = usPeriodoTxt(f);
+    el('u-ativos').innerHTML = (perTxt ? [`<span class="us-chip" data-tirar="per">${h(perTxt)} <i>✕</i></span>`] : [])
+      .concat(f.q.trim() ? [`<span class="us-chip" data-tirar="q">Busca: “${h(f.q.trim())}” <i>✕</i></span>`] : [])
       .concat(ativos.map(k => {
         const o = el('uf-'+k).selectedOptions[0];
         const txt = (o ? o.textContent : f[k]).replace(/^[^:]+:\s*/, '');   // "Grupo: Home" → "Home"
@@ -1377,17 +1450,46 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   el('u-ativos').onclick = (ev) => {
     const c = ev.target.closest('[data-tirar]'); if(!c) return;
     const k = c.dataset.tirar;
+    if(k === 'per'){ usMudarPeriodo('tudo'); return; }
     if(k === 'q'){ f.q = ''; b.value = ''; } else { f[k] = ''; el('uf-'+k).value = ''; }
     desenharLinhas();
   };
-  document.querySelectorAll('#u-canais [data-canal]').forEach(x => x.onclick = () => {
-    f.origem = f.origem === x.dataset.canal ? '' : x.dataset.canal;
-    el('uf-origem').value = f.origem;
+  function ligarCanais(){
+    document.querySelectorAll('#u-canais [data-canal]').forEach(x => x.onclick = () => {
+      f.origem = f.origem === x.dataset.canal ? '' : x.dataset.canal;
+      el('uf-origem').value = f.origem;
+      desenharLinhas();
+    });
+  }
+  ligarCanais();
+  /* período: só números, canais e linhas são redesenhados — os campos de data nunca, para o
+     calendário e a digitação da data não perderem o foco no meio */
+  function usRedesenharPeriodo(){
+    document.querySelectorAll('#u-per [data-up]').forEach(x => x.classList.toggle('on', x.dataset.up === f.per));
+    el('u-kpis').innerHTML = kpisHTML();
+    el('u-canais').innerHTML = canaisHTML(); ligarCanais();
     desenharLinhas();
+  }
+  function usMudarPeriodo(v){
+    f.per = v;
+    if(v !== 'custom'){
+      const iv = usIntervalo(f);
+      f.de = iv ? iv.de : ''; f.ate = iv ? iv.ate : '';
+      el('up-de').value = f.de; el('up-ate').value = f.ate;
+    } else if(!f.de && !f.ate){ el('up-de').focus(); try{ el('up-de').showPicker(); }catch(e){} }
+    usRedesenharPeriodo();
+  }
+  el('up-de').value = f.de || ''; el('up-ate').value = f.ate || '';
+  document.querySelectorAll('#u-per [data-up]').forEach(x => x.onclick = () => usMudarPeriodo(x.dataset.up));
+  ['de','ate'].forEach(k => el('up-'+k).onchange = (ev) => {
+    f[k] = ev.target.value; f.per = (f.de || f.ate) ? 'custom' : 'tudo';
+    usRedesenharPeriodo();
   });
+  el('up-campo').onchange = (ev) => { f.perCampo = ev.target.value; usRedesenharPeriodo(); };
   el('uf-limpar').onclick = () => {
     Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'' });
     b.value = ''; US_FK.forEach(k => { el('uf-'+k).value = ''; });
+    usMudarPeriodo('tudo');
     desenharLinhas();
   };
   document.querySelectorAll('.us-tbl th[data-ord]').forEach(th => th.onclick = () => {

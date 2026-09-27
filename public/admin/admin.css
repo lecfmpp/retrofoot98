@@ -614,6 +614,20 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
   padding:8px 11px;font-size:12px;line-height:1.55;color:var(--fg2);white-space:pre-line;pointer-events:none;
   opacity:0;transition:opacity .12s;box-shadow:0 8px 28px rgba(0,0,0,.5)}
 .tip.on{opacity:1}
+/* período da página de Usuários: atalhos + calendário De/Até + qual data da conta */
+.us-per{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:16px}
+.us-datas{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.us-dt{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dim2)}
+.us-dt input{color-scheme:dark;font-family:var(--mono);padding:7px 9px}
+.us-dt input::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.7}
+@media (max-width:720px){
+  .us-per{flex-direction:column;align-items:stretch}
+  .us-per .per{flex-wrap:wrap}
+  .us-datas{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .us-datas #up-campo{grid-column:1/-1;width:100%}
+  .us-dt{flex-direction:column;align-items:stretch;gap:4px}
+  .us-dt input{width:100%;min-width:0}
+}
 /* filtros: no desktop a caixa some (display:contents) e os selects ficam na barra como sempre;
    o botão "Filtros" e o "Ordenar" só existem no celular, onde o cabeçalho da tabela não aparece */
 .us-filtros{display:contents}
