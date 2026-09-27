@@ -13602,6 +13602,13 @@ function checkPendingCupDraws(onDone){
   // o marcador também é lido do armazenamento (ver drawAlreadySeen): sem isso, a fila que veio no
   // shared_state re-exibia a cerimônia depois de um reload — inclusive o do botão de sincronizar.
   if((CL._drawPlayedSeason||{})[mark] || drawAlreadySeen(mark)) return checkPendingCupDraws(onDone);
+  /* A COMPETIÇÃO JÁ COMEÇOU (27/09): entrada velha da fila do save, ou "já vi" perdido noutro
+     aparelho — nunca uma cerimônia de sorteio por cima de jogos já disputados (ver sorteioJaComecou) */
+  if(typeof sorteioJaComecou==='function' && sorteioJaComecou(key, stage)){
+    CL._drawPlayedSeason=CL._drawPlayedSeason||{}; CL._drawPlayedSeason[mark]=true;
+    rememberDrawSeen(mark); rememberDrawSeen(key+':'+(S.season||1));
+    return checkPendingCupDraws(onDone);
+  }
   /* COPA QUE O MEU CLUBE NAO DISPUTA, NO SOLO, COM "ASSISTIR" DESLIGADO (Opcoes > Partida). A
      cerimonia do sorteio e' a primeira coisa que essa copa mostra: o jogador desligava "assistir
      copas que nao disputa" e, no primeiro dia de Liberta Cup, o sorteio dos grupos aparecia na

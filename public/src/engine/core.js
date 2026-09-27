@@ -2626,6 +2626,7 @@ function haSorteioPendente(){
       if(typeof cupDoMeuUniverso==='function' && !cupDoMeuUniverso(key)) return true;   // copa de outro pais: nao me deve nada
       if(typeof cupTemCerimonia==='function' && !cupTemCerimonia(key)) return true;
       const mark=key+':'+stage+':'+(S.season||1);
+      if(sorteioJaComecou(key, stage)) return true;   // já em andamento: não há cerimônia a ver
       if(typeof CL!=='undefined' && (CL._drawPlayedSeason||{})[mark]) return true;
       return (typeof drawAlreadySeen==='function') && drawAlreadySeen(mark);
     };
@@ -2636,9 +2637,28 @@ function haSorteioPendente(){
       if(!cupDoMeuUniverso(key)) return false;
       if(!cupDrawReleased(key)) return false;
       if(sorteioJaVistoPorMim(key+':'+season)) return false;
+      { const c=S.cups[key]; if(sorteioJaComecou(key, (c.group&&!c.bracket)?'group':'bracket')) return false; }
       return (typeof cupTemCerimonia!=='function') || cupTemCerimonia(key);
     });
   }catch(e){ return false; }
+}
+/* ===== COMPETIÇÃO QUE JÁ TEVE JOGO NÃO TEM CERIMÔNIA DE SORTEIO (27/09) =====
+   O "já vi" das cerimônias mora no localStorage (drawSeenKey), fora do save: abrir o save noutro
+   aparelho, numa aba anónima, com o armazenamento limpo/cheio — e a Libertadores a meio dos grupos,
+   ou a Copa do Brasil na 3ª fase, voltavam a mostrar o sorteio "de abertura" (relato do dono).
+   Esta pergunta não depende de memória nenhuma: olha o próprio estado da copa.
+   group   -> já começou se a fase de grupos teve rodada, acabou, ou já há mata-mata
+   bracket -> já começou se há confronto decidido, fase > 1, histórico de fases ou campeão
+              (a chave é a própria copa nas copas nacionais, ou c.bracket nas continentais) */
+function sorteioJaComecou(key, stage){
+  const c=(S&&S.cups)?S.cups[key]:null; if(!c) return false;
+  if(stage==='group'){
+    const g=c.group;
+    return !!(c.bracket || (g && ((g.round||0)>0 || g.finished)));
+  }
+  const b=(c.champion!==undefined || c.ties) && !c.group ? c : c.bracket;
+  if(!b) return false;
+  return !!(b.champion || (b.round||1)>1 || (b.history||[]).length || (b.ties||[]).some(t=>t&&t.winner));
 }
 function queueDueCupDraws(){
   if(typeof S==='undefined' || !S || !S.cups) return 0;
@@ -2654,6 +2674,7 @@ function queueDueCupDraws(){
     // do mata-mata das continentais continua saindo em advancePendingCups, na data real dele.
     const c=S.cups[key];
     const stage=(c && c.group && !c.bracket)?'group':'bracket';
+    if(sorteioJaComecou(key, stage)){ marcarSorteioVistoPorMim(mark); return; }   // já em andamento
     marcarSorteioVistoPorMim(mark); queueDrawShow(key, stage); n++;
   });
   return n;
