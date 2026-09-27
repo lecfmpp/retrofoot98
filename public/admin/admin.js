@@ -470,7 +470,7 @@ function renderNav(){
    Os campos de data são desenhados UMA vez e nunca redesenhados, para o calendário e a digitação
    não perderem o foco; trocar a data espera 400 ms antes de recarregar. */
 const PER_ATALHOS = [['7','7 dias'],['30','30 dias'],['365','Ano']];
-const PAGINAS_PERIODO = ['visao','analytics','espera','registro'];
+const PAGINAS_PERIODO = ['visao','jogos','analytics','espera','publicidade','registro'];
 function dataLocal(s){ const [y,m,d] = String(s).split('-').map(Number); return new Date(y, m-1, d); }
 function perAtual(){
   const p = ST.per || (ST.per = { tipo:'30', de:'', ate:'' });
@@ -556,6 +556,28 @@ function desenhoAtual(senha){ return senha === SENHA_DESENHO; }
 
    Agora todo redesenho de dentro da página passa por aqui: o erro aparece num
    toast e no console, em vez de sumir. */
+/* ===== E-MAIL CURTO NO CELULAR (27/09/2026) =====
+   O e-mail inteiro empurrava as linhas de pessoa no telefone (quebrava letra a letra ao lado do
+   avatar). emailHTML() desenha as duas formas: a inteira no desktop e, abaixo de 720px, a curta —
+   início do nome + domínio abreviado (gmail, hotmail…), com o e-mail inteiro no title. */
+const EMAIL_DOM = { 'gmail.com':'gmail', 'hotmail.com':'hotmail', 'hotmail.com.br':'hotmail', 'outlook.com':'outlook',
+  'outlook.com.br':'outlook', 'yahoo.com':'yahoo', 'yahoo.com.br':'yahoo', 'icloud.com':'icloud', 'live.com':'live',
+  'bol.com.br':'bol', 'uol.com.br':'uol', 'terra.com.br':'terra' };
+function emailCurto(e){
+  e = String(e || '');
+  const i = e.lastIndexOf('@');
+  if(i < 0) return e.length > 18 ? e.slice(0, 17) + '…' : e;
+  let loc = e.slice(0, i), dom = e.slice(i + 1);
+  dom = EMAIL_DOM[dom.toLowerCase()] || (dom.length > 14 ? dom.slice(0, 13) + '…' : dom);
+  if(loc.length > 12) loc = loc.slice(0, 11) + '…';
+  return loc + '@' + dom;
+}
+function emailHTML(e){
+  if(!e) return '';
+  const c = emailCurto(e);
+  if(c === e) return h(e);
+  return `<span class="em-l">${h(e)}</span><span class="em-s" title="${h(e)}">${h(c)}</span>`;
+}
 /* ===== BUSCA QUE REDESENHA A PÁGINA (27/09/2026) =====
    Em Lista de espera, Funcionalidades, Editor e Estúdio a busca redesenha a página inteira, o
    campo é recriado e perdia o foco (e o cursor) a cada pausa na digitação — e o que se digitava
@@ -1048,7 +1070,7 @@ async function modalUsuario(id){
   const pl = planoAdm(u.plano);
   const fato = (rot, val, tip) => `<div class="md-fato" ${tip?`data-tip="${h(tip)}"`:''}><span>${h(rot)}</span><b>${val}</b></div>`;
   abrirModal(`
-    <h3>${h(u.nome||'Usuário')} <small class="mono" style="font-size:12px;color:var(--dim2);font-weight:400">${h(u.email||'')}</small></h3>
+    <h3>${h(u.nome||'Usuário')} <small class="mono" style="font-size:12px;color:var(--dim2);font-weight:400">${emailHTML(u.email||'')}</small></h3>
     <div class="col" style="width:100%;gap:14px">
       <div class="md-fatos">
         ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo')}
@@ -1356,7 +1378,7 @@ function usLinhaTds(u, podeApagar){
         ${podeApagar ? `<input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''} data-tip="Selecionar para apagar">` : ''}
         <i class="av" style="width:28px;height:28px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
         <span><b>${h(u.nome)}</b>
-          <small>${usClube(u)}<span data-tip="E-mail da conta">${h(u.email)}</span></small></span>
+          <small>${usClube(u)}<span data-tip="E-mail da conta">${emailHTML(u.email)}</span></small></span>
       </div></td>
     <td>${usWhats(u)}</td>
     <td>${usGrupoCel(u)}</td>
@@ -1680,7 +1702,10 @@ function modalResetSenha(email, nome){
 
 /* ============================ RESENHAS & SOLO ============================ */
 async function pgJogos(forcar, senha = pedirDesenho()){
-  const { data, error } = await sb.rpc('jogos');
+  /* período do topo (27/09): números, convites e pedidos seguem; as listas de salas e saves são o
+     estado atual (é delas que sai a limpeza) e dizem isso no título */
+  const per = perAtual();
+  const { data, error } = await sb.rpc('jogos', { p_dias: per.dias, p_de: per.de, p_ate: per.ate });
   if(error) throw error;
   D.jogos = data;
   const salas = data.salas||[], conv = data.convites||[], solos = data.solos||[],
@@ -1706,16 +1731,16 @@ async function pgJogos(forcar, senha = pedirDesenho()){
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
     <div class="g4">
-      ${kpiHTML({l:'Resenhas abertas', v:num(salas.length), d:`${num(salas.filter(s=>s.phase==='running').length)} em jogo`})}
-      ${kpiHTML({l:'Salas sem humano', v:num(data.salas_vazias), d:'só CPU — candidatas a limpeza'})}
-      ${kpiHTML({l:'Jogadores no solo', v:num(soloUsers.length), d:`${num(solos.length)} saves no total`})}
-      ${kpiHTML({l:'Convites (30 dias)', v:num(conv.length), d: conv.length? `${pct(aceites,conv.length)}% aceitos` : 'nenhum enviado'})}
+      ${kpiHTML({l:'Salas criadas no período', v:num(data.salas_criadas_per||0), d:`${num(data.salas_ativas_per||0)} com movimento · ${num(salas.length)} abertas hoje`})}
+      ${kpiHTML({l:'Salas sem humano (hoje)', v:num(data.salas_vazias), d:'só CPU — candidatas a limpeza'})}
+      ${kpiHTML({l:'Jogaram no Solo no período', v:num(data.jogadores_solo_per||0), d:`${num(data.saves_per||0)} saves gravados no período`})}
+      ${kpiHTML({l:'Convites no período', v:num(data.convites_per||0), d: +data.convites_per ? `${pct(data.aceitos_per, data.convites_per)}% aceitos` : 'nenhum enviado'})}
     </div>
 
     <!-- ===================== MODO RESENHA ===================== -->
     <div class="card" style="overflow:hidden">
       <div class="card-h">
-        <b>Modo Resenha — salas abertas</b>
+        <b>Modo Resenha — salas abertas <span class="st" style="font-weight:500">· hoje, não segue o período</span></b>
         ${podeApagar?`<span class="st" style="margin:0">selecionar:
           <span class="link" data-sel-salas="vazias">sem humano</span> ·
           <span class="link" data-sel-salas="velhas">paradas 14d+</span> ·
@@ -1748,7 +1773,7 @@ async function pgJogos(forcar, senha = pedirDesenho()){
          tem. Quem é a pessoa, quanto pontuou e quantos títulos ganhou está em Usuários. -->
     <div class="card" style="overflow:hidden">
       <div class="card-h">
-        <b>Modo Solo — saves por jogador</b>
+        <b>Modo Solo — saves por jogador <span class="st" style="font-weight:500">· hoje, não segue o período</span></b>
         ${podeApagar?`<span class="st" style="margin:0">selecionar:
           <span class="link" data-sel-saves="14">saves parados 14d+</span> ·
           <span class="link" data-sel-saves="30">30d+</span> ·
@@ -1787,7 +1812,7 @@ async function pgJogos(forcar, senha = pedirDesenho()){
     <!-- ===================== CONVITES ===================== -->
     <div class="card" style="overflow:hidden">
       <div class="card-h">
-        <b>Convites de sala</b>
+        <b>Convites de sala <span class="st" style="font-weight:500">· ${h(per.rot)}</span></b>
         ${podeApagar?`<span class="st" style="margin:0">selecionar:
           <span class="link" data-sel-conv="expirados">expirados</span> ·
           <span class="link" data-sel-conv="aceitos">já aceitos</span> ·
@@ -1809,7 +1834,7 @@ async function pgJogos(forcar, senha = pedirDesenho()){
           <span class="tag ${c.estado==='aceito'?'t-ok':c.estado==='pendente'?'t-warn':'t-dim'}" style="justify-self:center">${h(c.estado)}</span>
         </div>`;
       }).join('') : '<div class="vazio">Nenhum convite registrado.</div>'}
-      ${pedidos.length ? `<div class="card-h" style="border-top:1px solid var(--bd)"><b>Pedidos para entrar</b></div>` +
+      ${pedidos.length ? `<div class="card-h" style="border-top:1px solid var(--bd)"><b>Pedidos para entrar <span class="st" style="font-weight:500">· ${h(per.rot)}</span></b></div>` +
         pedidos.map(p=>`
         <div class="row" style="grid-template-columns:${colConv};padding:10px 20px">
           ${podeApagar?'<span></span>':''}
@@ -2353,7 +2378,7 @@ async function pgEspera(forcar, senha = pedirDesenho()){
         <span class="mono" style="font-size:12px;color:var(--dim2)">${num(ls.length)}${
           ls.length!==todas.length?' de '+num(todas.length):''}</span>
       </div>
-      <div class="rowh" style="grid-template-columns:${col}">
+      <div class="rowh rowh-mob-some" style="grid-template-columns:${col}">
         <span>Pessoa</span><span>Entrou em</span><span>Telefone</span>
         <span style="text-align:center">19,90</span><span style="text-align:center">39,90</span>
         <span style="text-align:center">Indicou</span><span>Time · origem</span>
@@ -2364,22 +2389,22 @@ async function pgEspera(forcar, senha = pedirDesenho()){
           (w.resposta||'').trim() ? `<b style="color:var(--dim)">Respondeu:</b> ${h(w.resposta.trim())}` : '',
           amigos.length ? `<b style="color:var(--dim)">Indicou:</b> ${h(amigos.join(', '))}` : ''
         ].filter(Boolean).join(' &nbsp;·&nbsp; ');
-        return `<div class="row" style="grid-template-columns:${col}">
+        return `<div class="row row-esp" style="grid-template-columns:${col}">
           <span style="display:flex;align-items:center;gap:10px;min-width:0">
             <i class="av" style="width:26px;height:26px;background:${corAv(w.nome)};color:#0c1210;font-size:11px">${h(iniciais(w.nome))}</i>
             <span style="min-width:0">
               <b style="display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis">${h(w.nome)}</b>
-              <small style="font-size:11.5px;color:var(--dim2);overflow:hidden;text-overflow:ellipsis;display:block">${h(w.email)}</small>
+              <small style="font-size:11.5px;color:var(--dim2);overflow:hidden;text-overflow:ellipsis;display:block">${emailHTML(w.email)}</small>
             </span>
           </span>
-          <span class="mono" style="font-size:12px" title="${h(new Date(w.created_at).toLocaleString('pt-BR'))}">
+          <span class="mono" data-l="Entrou em" style="font-size:12px" title="${h(new Date(w.created_at).toLocaleString('pt-BR'))}">
             ${h(dmy(w.created_at))}<small style="display:block;font-size:10.5px;color:var(--dim3)">${h(espHora(w.created_at))}</small></span>
-          <span class="mono" style="font-size:12px;color:${w.telefone?'var(--fg)':'var(--dim3)'}">${h(w.telefone||'—')}</span>
-          <span style="text-align:center">${espPreco(w.paga_1990)}</span>
-          <span style="text-align:center">${espPreco(w.paga_3990)}</span>
-          <span class="mono" style="text-align:center;font-size:12px">${
+          <span class="mono" data-l="Telefone" style="font-size:12px;color:${w.telefone?'var(--fg)':'var(--dim3)'}">${h(w.telefone||'—')}</span>
+          <span data-l="19,90" style="text-align:center">${espPreco(w.paga_1990)}</span>
+          <span data-l="39,90" style="text-align:center">${espPreco(w.paga_3990)}</span>
+          <span class="mono" data-l="Indicou" style="text-align:center;font-size:12px">${
             amigos.length ? '<b style="color:var(--verde2)">'+amigos.length+'</b>' : '<span style="color:var(--dim3)">—</span>'}</span>
-          <span style="min-width:0;font-size:12px">
+          <span data-l="Time · origem" style="min-width:0;font-size:12px">
             ${w.time_coracao ? h(w.time_coracao) : '<span style="color:var(--dim3)">sem time</span>'}
             <small style="display:block;font-size:10.5px;color:var(--dim3);overflow:hidden;text-overflow:ellipsis"
                    title="${h(w.user_agent||'')}">${h(w.origem||'—')}</small></span>
@@ -3374,7 +3399,8 @@ function modalLancamento(tipo){
 
 /* ============================ PUBLICIDADE ============================ */
 async function pgPublicidade(forcar, senha = pedirDesenho()){
-  const { data, error } = await sb.rpc('publicidade');
+  const per = perAtual();   // impressões e cliques do período do topo (27/09)
+  const { data, error } = await sb.rpc('publicidade', { p_dias: per.dias, p_de: per.de, p_ate: per.ate });
   if(error) throw error;
   D.pub = data;
   const espacos = data.espacos||[], patros = data.patrocinadores||[];
@@ -3392,8 +3418,8 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
   el('page').innerHTML = `
     <div class="g4">
       ${kpiHTML({l:'Espaços ocupados', v:`${noAr}/${espacos.length}`, d:`${espacos.length-noAr} livres para vender`})}
-      ${kpiHTML({l:'Impressões (30 dias)', v:num(data.imp30), d:`${num(data.clq30)} cliques`})}
-      ${kpiHTML({l:'CTR (30 dias)', v:ctr, d:'cliques ÷ impressões'})}
+      ${kpiHTML({l:'Impressões no período', v:num(data.imp30), d:`${num(data.clq30)} cliques · ${per.rot}`})}
+      ${kpiHTML({l:'CTR no período', v:ctr, d:'cliques ÷ impressões'})}
       ${kpiHTML({l:'Contratado por mês', v:brl(data.receita_mes), d:`${patros.length} patrocinadores`, c:'var(--verde2)'})}
     </div>
 
@@ -3548,7 +3574,7 @@ function slotHTML(e, editar){
       ${e.dur_max_s!=null?`<div><span>Vídeo</span><b>até ${e.dur_max_s}s${e.sem_audio===false?'':' · sem som'}</b></div>`:''}
       <div><span>Formatos</span><b>${h((e.formatos||[]).join(', '))}</b></div>
       <div><span>Peso máx.</span><b>${e.peso_kb} KB</b></div>
-      <div><span>Impressões (30d)</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
+      <div><span>Impressões no período</span><b>${num(e.impressoes)} · ${num(e.cliques)} cliques</b></div>
       ${e.placas ? `<div><span>Placas</span><b>${(e.criativos||[]).length} de ${e.placas} vendidas</b></div>` : ''}
       ${(e.mw!==e.w||e.mh!==e.h) ? `<div><span>Arte de celular</span><b style="color:${
         c ? (c.ficheiro_url_mob?'var(--verde2)':'var(--dim3)') : 'var(--dim3)'}">${
@@ -4679,7 +4705,7 @@ async function abrirCardFeature(id){
         <span class="mono" style="font-size:11px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
         <span style="font-size:12px">${h(rotuloAcao(a.acao))}</span>
         <span style="font-size:11.5px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">
-          ${h(a.quem_email||'—')}</span>
+          ${emailHTML(a.quem_email||'—')}</span>
       </div>`).join('')
       : `<div class="vazio" style="padding:14px">${r.error
           ? 'Não deu para ler o histórico: '+h(erroMsg(r.error))
@@ -5060,7 +5086,7 @@ async function pgEquipa(forcar, senha = pedirDesenho()){
             <span style="display:flex;align-items:center;gap:10px;min-width:0">
               <i class="av" style="width:28px;height:28px;background:${corAv(a.nome||a.email)};color:#0c1210">${h(iniciais(a.nome||a.email))}</i>
               <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(a.nome||'—')}</b>
-              <small style="font-size:11.5px;color:var(--dim2)">${h(a.email)}</small></span></span>
+              <small style="font-size:11.5px;color:var(--dim2)">${emailHTML(a.email)}</small></span></span>
             <span style="font-size:12.5px;color:var(--fg2)">
               ${dono && a.user_id!==ME.user_id ? `<select class="f" data-papel="${a.user_id}" style="padding:5px 8px;font-size:12px">
                   ${Object.keys(PAPEIS).map(p=>`<option value="${p}" ${p===a.papel?'selected':''}>${h(p)}</option>`).join('')}
@@ -5072,7 +5098,7 @@ async function pgEquipa(forcar, senha = pedirDesenho()){
           <div class="row" style="grid-template-columns:1.6fr 1fr 1fr .9fr;padding:12px 20px">
             <span style="display:flex;align-items:center;gap:10px;min-width:0">
               <i class="av" style="width:28px;height:28px;background:var(--bd2);color:var(--dim)">✉</i>
-              <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(i.email)}</b>
+              <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${emailHTML(i.email)}</b>
               <small style="font-size:11.5px;color:var(--dim2)">convite ${new Date(i.expira_em)<new Date()?'expirado':'enviado '+ha(i.criado_em)}</small></span></span>
             <span style="font-size:12.5px;color:var(--fg2)">${h(PAPEIS[i.papel]||i.papel)}</span>
             <span class="tag t-warn" style="justify-self:center">convite pendente</span>
@@ -5123,7 +5149,7 @@ async function pgEquipa(forcar, senha = pedirDesenho()){
           <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
           <span style="font-size:12.5px">${h(rotuloAcao(a.acao))}</span>
           <span class="mono" style="font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">${h(resumoAcao(a))}</span>
-          <span style="font-size:12px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">${h(a.quem_email||'—')}</span>
+          <span style="font-size:12px;color:var(--dim2);text-align:right;overflow:hidden;text-overflow:ellipsis">${emailHTML(a.quem_email||'—')}</span>
         </div>`).join('') : '<div class="vazio">Nenhuma ação registrada ainda.</div>'}
     </div>`;
 
@@ -5254,25 +5280,27 @@ async function pgRegistro(forcar, senha = pedirDesenho()){
   const linhaPessoa = (p) => {
     const tops = Object.entries(p.areas).sort((a,b)=>b[1]-a[1]).slice(0,3);
     const sel = ST.regQuem === p.chave;
-    return `<div class="row" data-pessoa="${h(p.chave)}" style="grid-template-columns:1.5fr 96px 1fr 110px 130px;cursor:pointer;${sel?'background:var(--card2,rgba(255,255,255,.04))':''}">
+    /* no celular vira cartão (.row-pessoa): pessoa + nº de ações na 1ª linha, áreas na 2ª,
+       última ação na 3ª — ver admin.css */
+    return `<div class="row row-pessoa" data-pessoa="${h(p.chave)}" style="grid-template-columns:1.5fr 96px 1fr 110px 130px;cursor:pointer;${sel?'background:var(--card2,rgba(255,255,255,.04))':''}">
       <span style="display:flex;align-items:center;gap:10px;min-width:0">
         <i class="av" style="width:26px;height:26px;background:${corAv(p.nome)};color:#0c1210;font-size:11px">${h(iniciais(p.nome))}</i>
         <span style="min-width:0">
-          <b style="display:block;font-size:13px;font-weight:600">${h(p.nome)}</b>
-          <small style="font-size:11.5px;color:${p.fora?'var(--ambar)':'var(--dim2)'}">
-            ${h(p.email||'—')}${p.fora?' · já não tem acesso':''}</small></span>
+          <b class="rp-mail" style="display:block;font-size:13px;font-weight:600">${String(p.nome).includes('@') ? emailHTML(p.nome) : h(p.nome)}</b>
+          <small class="rp-mail" style="font-size:11.5px;color:${p.fora?'var(--ambar)':'var(--dim2)'}">
+            ${/* sem nome, o "nome" já é o e-mail: não repete */ p.nome === p.email ? '' : emailHTML(p.email||'—')}${p.fora?'<span class="rp-fora">'+(p.nome === p.email ? '' : ' · ')+'já não tem acesso</span>':''}</small></span>
       </span>
-      <span class="mono" style="font-size:13px;text-align:center;font-weight:700">${num(p.n)}</span>
+      <span class="mono rp-n" style="font-size:13px;text-align:center;font-weight:700">${num(p.n)}<small class="so-mob"> ${p.n===1?'ação':'ações'}</small></span>
       <span style="font-size:11.5px;color:var(--dim2);display:flex;gap:6px;flex-wrap:wrap">
         ${tops.map(([ar,n]) => `<span class="tag t-dim">${h(AREAS[ar]||ar)} ${n}</span>`).join('')}</span>
-      <span style="font-size:12px;color:var(--dim2);text-align:right">${h(ha(p.ultima.quando))}</span>
-      <span style="font-size:12px;color:var(--dim);text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
+      <span class="rp-quando" style="font-size:12px;color:var(--dim2);text-align:right">${h(ha(p.ultima.quando))}</span>
+      <span class="rp-oque" style="font-size:12px;color:var(--dim);text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis"
             title="${h(rotuloAcao(p.ultima.acao))}">${h(rotuloAcao(p.ultima.acao))}</span>
     </div>`;
   };
 
   const linhaAcao = (a, i) => `
-    <div class="row" data-acao="${i}" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr;cursor:pointer">
+    <div class="row row-acao" data-acao="${i}" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr;cursor:pointer">
       <span class="mono" style="font-size:11.5px;color:var(--dim2)">${dmy(a.quando)} ${horaHM(a.quando)}</span>
       <span style="font-size:12.5px;display:flex;align-items:center;gap:8px;min-width:0">
         <i class="av" style="width:20px;height:20px;background:${corAv(nomeDe(a))};color:#0c1210;font-size:9px">${h(iniciais(nomeDe(a)))}</i>
@@ -5298,13 +5326,13 @@ async function pgRegistro(forcar, senha = pedirDesenho()){
                   v: `<span style="font-size:20px">${areaTopo ? h(AREAS[areaTopo]||areaTopo) : '—'}</span>`,
                   d: areaTopo ? `${num(porArea[areaTopo])} de ${num(log.length)} ações` : 'nada registrado' })}
       ${kpiHTML({ l:'Última ação', v: ultima ? h(ha(ultima.quando)) : '—',
-                  d: ultima ? `${nomeDe(ultima)} · ${rotuloAcao(ultima.acao)}` : 'nenhuma ainda' })}
+                  d: ultima ? `${String(nomeDe(ultima)).includes('@') ? emailCurto(nomeDe(ultima)) : nomeDe(ultima)} · ${rotuloAcao(ultima.acao)}` : 'nenhuma ainda' })}
     </div>
 
     <div class="card" style="overflow:hidden">
       <div class="card-h"><b>Quem fez o quê</b>
         <span style="font-size:11.5px;color:var(--dim3);flex:1">clique numa pessoa para filtrar a lista abaixo</span></div>
-      <div class="rowh" style="grid-template-columns:1.5fr 96px 1fr 110px 130px">
+      <div class="rowh rowh-mob-some" style="grid-template-columns:1.5fr 96px 1fr 110px 130px">
         <span>Pessoa</span><span style="text-align:center">Ações</span><span>Onde mexeu</span>
         <span style="text-align:right">Última</span><span style="text-align:right">O que foi</span>
       </div>
@@ -5333,7 +5361,7 @@ async function pgRegistro(forcar, senha = pedirDesenho()){
         <button class="btn btn-sm btn-ghost" id="rg-csv">Baixar CSV</button>
         ${filtrando?'<span class="link" id="rg-limpar" style="font-size:12px">limpar filtros</span>':''}
       </div>
-      <div class="rowh" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr">
+      <div class="rowh rowh-mob-some" style="grid-template-columns:132px 1.1fr 118px 1.15fr 1.5fr">
         <span>Quando</span><span>Quem</span><span>Área</span><span>Ação</span><span>O quê</span>
       </div>
       ${visiveis.length ? visiveis.map(linhaAcao).join('')
@@ -5383,7 +5411,7 @@ function modalAcao(a, nomeDe){
       <div><span style="color:var(--dim2)">Quem</span><b>${h(nomeDe(a))}</b></div>
       <div><span style="color:var(--dim2)">Quando</span><b>${h(new Date(a.quando).toLocaleString('pt-BR'))}</b></div>
       <div class="full"><span style="color:var(--dim2)">E-mail</span>
-        <span class="mono" style="text-align:right">${h(a.quem_email||'—')}</span></div>
+        <span class="mono" style="text-align:right">${emailHTML(a.quem_email||'—')}</span></div>
       <div class="full"><span style="color:var(--dim2)">Alvo</span>
         <span class="mono" style="text-align:right">${h(a.alvo||'—')}</span></div>
     </div>
@@ -7674,7 +7702,7 @@ function porResponsavelHTML(ps){
             <span style="min-width:0;overflow:hidden">
               <b style="display:block;font-size:12.5px;font-weight:600;color:${l.nome==='não registrado'?'var(--dim2)':'var(--fg)'};overflow:hidden;text-overflow:ellipsis">${h(l.nome)}</b>
               <small style="font-size:10.5px;color:${l.saiu?'var(--ambar)':'var(--dim3)'};overflow:hidden;text-overflow:ellipsis;display:block">
-                ${l.saiu?'saiu do painel':h(l.email||(l.nome==='não registrado'?'cadastrado antes deste controle':''))}</small></span>
+                ${l.saiu?'saiu do painel':(l.email ? emailHTML(l.email) : h(l.nome==='não registrado'?'cadastrado antes deste controle':''))}</small></span>
           </span>
           <span class="bar"><i style="width:${pct(l.parceiros,maior)}%"></i></span>
           <span class="mono" style="font-size:12.5px;text-align:right">${l.parceiros} parceiro${l.parceiros>1?'s':''}</span>
@@ -7832,7 +7860,7 @@ async function pgParceiros(forcar, senha = pedirDesenho()){
                    ${p.responsavel_saiu?'<small style="font-size:10.5px;color:var(--ambar)">saiu do painel</small>':''}</span>`
               : '<span style="font-size:12px;color:var(--dim3)">não registrado</span>'}</span>
           <span style="min-width:0;font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis">
-            ${h(p.email||'—')}${p.telefone?'<br>'+h(telFmt(p.telefone)):''}</span>
+            ${emailHTML(p.email||'—')}${p.telefone?'<br>'+h(telFmt(p.telefone)):''}</span>
           <span style="display:flex;gap:8px;font-size:14px">
             ${REDES.filter(r=>p[r.k]).map(r=>
               `<a href="${h(p[r.k])}" target="_blank" rel="noopener" title="${r.nome}: ${h(p[r.k])}"
@@ -8008,7 +8036,7 @@ function modalParceiro(p){
       ${!novo && p.responsavel ? `<div class="st" style="display:flex;align-items:center;gap:8px;margin:0">
         <i class="av" style="width:22px;height:22px;font-size:9.5px;background:${corAv(p.responsavel)};color:#0c1210">${h(iniciais(p.responsavel))}</i>
         Cadastrado por <b style="color:var(--fg2)">${h(p.responsavel)}</b>
-        ${p.responsavel_email?`<span class="mono" style="font-size:11px">${h(p.responsavel_email)}</span>`:''}
+        ${p.responsavel_email?`<span class="mono" style="font-size:11px">${emailHTML(p.responsavel_email)}</span>`:''}
         ${p.responsavel_saiu?'<span class="tag t-warn" style="font-size:10px">saiu do painel</span>':''}
       </div>` : ''}
 

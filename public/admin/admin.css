@@ -708,3 +708,36 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
 .md-tit > span{font-size:12.5px;flex:1;min-width:160px}
 .md-tit small{color:var(--dim2)}
 .md-tit .md-tit-o{flex:none;min-width:0;font-size:11px;color:var(--dim2)}
+
+/* ===== CELULAR: e-mail curto e linhas de pessoa em cartão (27/09/2026) ===== */
+.em-s,.so-mob{display:none}
+@media (max-width:720px){
+  .em-l{display:none}
+  .em-s{display:inline}
+  .so-mob{display:inline}
+  /* o cabeçalho de colunas não serve para cartão */
+  .rowh-mob-some{display:none !important}
+  /* Registro · Quem fez o quê: [avatar nome/e-mail ...... N ações] / [áreas] / [há X · o que foi] */
+  .row.row-pessoa{grid-template-columns:minmax(0,1fr) auto !important;gap:8px 12px;padding-top:12px;padding-bottom:12px}
+  .row-pessoa > :nth-child(1){grid-column:1;grid-row:1}
+  .row-pessoa > .rp-n{grid-column:2;grid-row:1;text-align:right !important;white-space:nowrap}
+  .row-pessoa > :nth-child(3){grid-column:1 / -1;grid-row:2}
+  .row-pessoa > .rp-quando{grid-column:1;grid-row:3;text-align:left !important}
+  .row-pessoa > .rp-oque{grid-column:2;grid-row:3;max-width:48vw}
+  .row-pessoa .rp-mail{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row-pessoa .rp-fora{display:block;white-space:normal}
+  /* Registro · lista de ações: [pessoa ...... data] / [ação ...... área] / [detalhe] */
+  .row.row-acao{grid-template-columns:minmax(0,1fr) auto !important;gap:6px 12px;padding-top:11px;padding-bottom:11px}
+  .row-acao > :nth-child(1){grid-column:2;grid-row:1;text-align:right}
+  .row-acao > :nth-child(2){grid-column:1;grid-row:1}
+  .row-acao > :nth-child(3){grid-column:2;grid-row:2;text-align:right}
+  .row-acao > :nth-child(4){grid-column:1;grid-row:2}
+  .row-acao > :nth-child(5){grid-column:1 / -1;grid-row:3}
+  /* Lista de espera: pessoa em cima, os campos em 3 colunas com rótulo (data-l) */
+  .row.row-esp{grid-template-columns:repeat(3,minmax(0,1fr)) !important;gap:10px 12px;padding-top:12px;padding-bottom:12px}
+  .row-esp > :first-child{grid-column:1 / -1}
+  .row-esp > [data-l]{text-align:left !important}
+  .row-esp > [data-l]::before{content:attr(data-l);display:block;font-family:Manrope,system-ui,sans-serif;font-size:10px;font-weight:700;
+    letter-spacing:.5px;text-transform:uppercase;color:var(--dim3);margin-bottom:3px}
+  .row-esp > :last-child:not([data-l]){grid-column:1 / -1;padding-left:0 !important}
+}
