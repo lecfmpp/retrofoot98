@@ -125,6 +125,12 @@ const formulario = `<div class="mk-form-cx">
         `<input class="mk-in" id="mk-email" name="email" type="email" autocomplete="email" placeholder="Digite o seu melhor e-mail" required>`)}
       ${campo('mk-tel', 'Telefone / WhatsApp', false,
         `<input class="mk-in" id="mk-tel" name="telefone" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">`)}
+      ${/* SITE E REDES (27/09/2026): obrigatórios — o comercial olha a marca antes de responder.
+           A rede pode ser da empresa ou pessoal; aceita @perfil ou link, e mais de uma. */''}
+      ${campo('mk-site', 'Site', true,
+        `<input class="mk-in" id="mk-site" name="site" type="text" inputmode="url" autocomplete="url" placeholder="suaempresa.com.br" required>`)}
+      ${campo('mk-redes', 'Rede social (da empresa ou sua)', true,
+        `<input class="mk-in" id="mk-redes" name="redes" type="text" placeholder="@perfil ou link" required>`)}
       ${campo('mk-formato', 'Formato de interesse', false,
         `<select class="mk-in" id="mk-formato" name="formato">${opcoes(['Selecione o formato',
           'Leaderboard de topo — Centroavante', 'Skyscraper esquerdo', 'Skyscraper direito',
@@ -181,13 +187,17 @@ const script = `
     var empresa=val('mk-empresa'), contato=val('mk-contato'), email=val('mk-email');
     if(!empresa) return falhar('Escreva o nome da sua empresa.');
     if(email.indexOf('@')<1 || email.indexOf('.')<0) return falhar('Confira o e-mail: parece incompleto.');
+    var site=val('mk-site'), redes=val('mk-redes');
+    if(!site) return falhar('Informe o site da empresa.');
+    if(site.indexOf(' ')>=0 || site.indexOf('.')<1) return falhar('Confira o site: algo como suaempresa.com.br.');
+    if(redes.split('@').join('').split(' ').join('').length<2) return falhar('Informe uma rede social — da empresa ou sua (@perfil ou link).');
     btn.disabled=true; var antes=btn.textContent; btn.textContent='Enviando…';
     try{
       var r=await fetch(SB,{ method:'POST', headers:{
         'apikey':KEY, 'Authorization':'Bearer '+KEY, 'Content-Type':'application/json',
         'Content-Profile':'elifoot_v3', 'Prefer':'return=minimal' },
         body: JSON.stringify({ nome: contato || empresa, empresa: empresa, email: email,
-          telefone: val('mk-tel') || null, objetivo: esc(val('mk-formato')),
+          telefone: val('mk-tel') || null, site: site, redes: redes, objetivo: esc(val('mk-formato')),
           verba: esc(val('mk-verba')), observacao: val('mk-msg') || null,
           origem:'media-kit' }) });
       if(!r.ok) throw new Error('HTTP '+r.status);
