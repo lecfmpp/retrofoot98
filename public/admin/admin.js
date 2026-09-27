@@ -448,7 +448,7 @@ const NAV = [
   { id:'estudio',     ic:'❖', label:'Estúdio IA',     tit:'Estúdio de imagens',  sub:'Escudos fictícios e fotos de jogadores por IA' },
   /* A FILA DA MODERACAO. O nome e a foto de um embaixador entram na base que TODOS os
      treinadores veem — por isso passam por aqui antes, e nao no clique dele. */
-  { id:'embaixadores',ic:'☻', label:'Jogadores',      tit:'Jogadores dos embaixadores', sub:'Nome e foto que vão entrar na base oficial — aprove ou recuse' },
+  { id:'embaixadores',ic:'☻', label:'Jogadores',      tit:'Jogadores dos assinantes Pro', sub:'Nome e foto que vão entrar na base oficial — aprove ou recuse' },
   { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' },
   { id:'registro',    ic:'⧉', label:'Registro',       tit:'Registro de ações',  sub:'O que cada sócio fez no painel, por pessoa e por área' }
 ];
@@ -1119,7 +1119,7 @@ async function modalUsuario(id){
     <h3>${h(u.nome||'Usuário')} <small class="mono" style="font-size:12px;color:var(--dim2);font-weight:400">${emailHTML(u.email||'')}</small></h3>
     <div class="col" style="width:100%;gap:14px">
       <div class="md-fatos">
-        ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, (pl.antigo ? 'Assinatura antiga: ' + pl.antigo + ' (conta como Pro)\n' : '') + (u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'))}
+        ${fato('Plano', `<span class="tag ${pl.tag}">${h(pl.nome)}</span>`, (u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'))}
         ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
         ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
         ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
@@ -1145,16 +1145,15 @@ async function modalUsuario(id){
    era Resenha ou Embaixador — que e' justamente a diferenca entre poder abrir
    sala e nao poder. As chaves sao as do banco (elifoot_v3.user_plans). */
 /* ATUALIZADO EM 27/09/2026: SÓ DOIS PLANOS — Peladeiro (banco 'free') e Pro ('pro'). As chaves
-   antigas 'resenha' e 'embaixador' ainda existem em assinaturas de antes da troca e contam como
-   Pro (são pagas e têm tudo do Pro); o selo diz Pro e o tooltip avisa que é assinatura antiga.
+   antigas 'resenha' e 'embaixador' ainda existem em assinaturas de antes da troca e SÃO Pro
+   (decisão do dono, 27/09: "chama os atuais Embaixadores de Pro") — o painel não as distingue.
    Antes disto a conta 'pro' caía no fallback e aparecia como Peladeiro. */
 const PLANOS_ADM = {
   free: { nome:'Peladeiro', tag:'t-dim', preco:0 },
   pro:  { nome:'Pro',       tag:'t-ok',  preco:1990 },
 };
-const PLANOS_ANTIGOS = { resenha:'Resenha', embaixador:'Embaixador' };
 const planoChave = (k) => (!k || k === 'free') ? 'free' : 'pro';
-const planoAdm = (k) => Object.assign({}, PLANOS_ADM[planoChave(k)], { antigo: PLANOS_ANTIGOS[k] || '' });
+const planoAdm = (k) => PLANOS_ADM[planoChave(k)];
 const ehPago   = (u) => planoChave(u.plano) === 'pro';
 
 /* WHATSAPP DO CADASTRO — vem de auth.users.raw_user_meta_data (ver src/ui/rf-whatsapp.js no
@@ -1302,7 +1301,7 @@ const US_COLS = [
   { k:'nome', l:'Técnico', tip:'Nome do técnico no jogo (ou o do cadastro), clube do save mais recente e e-mail da conta.\nClique na linha para ver a carreira completa.' },
   { k:'whats', l:'WhatsApp', tip:'Número informado no cadastro. Clique para abrir a conversa.\nContas antigas, de antes do campo existir, não têm.' },
   { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
-  { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nAssinaturas antigas (Resenha, Embaixador) contam como Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
+  { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
   { k:'temporadas', l:'Temporadas', a:'c', tip:'Temporadas que chegaram ao fim (Solo / Resenha).' },
@@ -1433,7 +1432,7 @@ function usLinhaTds(u, podeApagar){
       </div></td>
     <td>${usWhats(u)}</td>
     <td>${usGrupoCel(u)}</td>
-    <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}${pl.antigo ? ' (assinatura antiga: ' + pl.antigo + ')' : ''}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
+    <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
     <td class="c mono">${usDupla(u.temporadas_solo, u.temporadas_resenha, 'temporada(s) fechada(s) no Solo', 'na Resenha')}</td>
@@ -1469,7 +1468,6 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   function kpisHTML(){
     const l = usP(), perOn = !!usIntervalo(f);
     const pagos = l.filter(ehPago);
-    const antigos = pagos.filter(u => PLANOS_ANTIGOS[u.plano]).length;
     const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
     const minutos = l.reduce((a,u)=>a+ +u.minutos, 0);
     const minutos7 = l.reduce((a,u)=>a+ (+u.minutos_7||0), 0);
@@ -1480,7 +1478,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         : {l:'Contas totais', v:num(l.length), d:`${num(l.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
       ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, l.length)}% ${perOn?'destas':'das'} contas · login ou jogada`})}
       ${kpiHTML({l:'Assinantes', v:num(pagos.length),
-                 d:`${pct(pagos.length, l.length)}% no Pro${antigos?' · '+num(antigos)+' de plano antigo':''}${mrr?' · '+brl(mrr)+' de MRR':''}`})}
+                 d:`${pct(pagos.length, l.length)}% no Pro${mrr?' · '+brl(mrr)+' de MRR':''}`})}
       ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:`${hm(minutos7)} nos últimos 7 dias`})}`;
   }
   /* cadastros por canal, maior primeiro, "Desconhecido" sempre no fim. Sem período: total e
@@ -2162,7 +2160,7 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
     { n:'Contas criadas', v:+f.contas, nota:'base do jogo' },
     { n:'Primeiro jogo concluído', v:+f.jogaram, nota:'tem save solo ou assento numa sala' },
     { n:'Assinantes', v:+f.pagos,
-      nota:'Pro (inclui assinaturas antigas)' }
+      nota:'plano Pro' }
   ].filter(Boolean);
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
@@ -5049,7 +5047,7 @@ async function pgEmbaixadores(forcar, senha = pedirDesenho()){
     <div class="card" style="overflow:hidden;margin-bottom:16px">
       <div class="card-h"><b>Na fila</b><span class="tag">${fila.length}</span></div>
       ${fila.length ? fila.map(linha).join('')
-        : '<div class="vazio">Nada à espera. Quando um embaixador escolher o jogador dele, aparece aqui.</div>'}
+        : '<div class="vazio">Nada à espera. Quando um assinante Pro escolher o jogador dele, aparece aqui.</div>'}
     </div>
     <div class="card" style="overflow:hidden">
       <div class="card-h"><b>Já no ar</b><span class="tag">${aprovados.length}</span></div>
@@ -5062,7 +5060,7 @@ async function pgEmbaixadores(forcar, senha = pedirDesenho()){
           <span style="font-size:12px;color:var(--dim2);text-align:right">
             ${h(v.clube_nome||'')} · ${v.modalidade==='fem'?'feminino':'masculino'}</span>
         </div>`).join('')
-        : '<div class="vazio">Nenhum jogador de embaixador está na base ainda.</div>'}
+        : '<div class="vazio">Nenhum jogador de assinante Pro está na base ainda.</div>'}
     </div>`;
 }
 function vagaVer(url, nome){
@@ -5085,7 +5083,7 @@ async function vagaAprovar(modalidade, club, player){
 function vagaRecusar(modalidade, club, player, nome){
   abrirModal(`<h3>Recusar ${h(nome||'')}</h3>
     <p style="color:var(--dim2);font-size:13px;margin:0 0 10px">
-      O texto abaixo é o que o embaixador vai ler. Diga o que está errado e o que ele pode fazer.</p>
+      O texto abaixo é o que o assinante vai ler. Diga o que está errado e o que ele pode fazer.</p>
     <textarea id="vaga-motivo" rows="4" style="width:100%"
       placeholder="Ex.: a foto está desfocada e não dá para ver o rosto. Mande uma de frente, com boa luz."></textarea>
     <div class="acoes">
@@ -5095,7 +5093,7 @@ function vagaRecusar(modalidade, club, player, nome){
 }
 async function vagaRecusarOk(modalidade, club, player){
   const motivo = (el('vaga-motivo')||{}).value || '';
-  if(motivo.trim().length < 3){ toast('Escreva o motivo — é o que o embaixador vai ler.', true); return; }
+  if(motivo.trim().length < 3){ toast('Escreva o motivo — é o que o assinante vai ler.', true); return; }
   const r = await sb.schema(SCHEMA_JOGO).rpc('vaga_decidir',
     { p_modalidade:modalidade, p_club:club, p_player:player, p_aprovar:false, p_motivo:motivo.trim() });
   if(r.error){ toast(erroMsg(r.error), true); return; }
