@@ -960,6 +960,8 @@ async function modalUsuario(id){
         ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
         ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
         ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
+        ${fato('Grupo WhatsApp', u.grupo_botao ? h(US_GRUPO[u.grupo_botao] || u.grupo_botao) : '<span class="us-nada">—</span>',
+               u.grupo_botao ? 'Primeiro clique em ' + usDataHora(u.grupo_em) + (+u.grupo_cliques > 1 ? '\n' + u.grupo_cliques + ' cliques no total' : '') : 'Nunca clicou em entrar no grupo')}
         ${fato('Último acesso', h(ha(u.ultimo_acesso)), 'Último login: ' + usDataHora(u.ultimo_login) + '\nÚltima jogada: ' + usDataHora(u.ultima_jogada))}
         ${fato('Tempo de jogo', h(hm(u.minutos)), 'Últimos 7 dias: ' + hm(u.minutos_7))}
         ${fato('Dias ativos', `${num(u.dias_ativos_7||0)}/7 · ${num(u.dias_ativos_30||0)}/30`, 'Dias com login ou jogada nos últimos 7 e 30 dias')}
@@ -1017,15 +1019,30 @@ function whatsHTML(num, pais){
        jogada — a mesma regra do "Ativos (7 dias)" do painel inicial). */
 const US_ESTADO = { ativo:'Ativo (até 2 dias)', parado:'Parado (3 a 13 dias)', perdido:'Perdido (14 dias ou mais)' };
 const US_MODO = { solo:'Só Modo Solo', resenha:'Só Modo Resenha', ambos:'Solo e Resenha', nunca:'Nunca jogou' };
+const US_FK = ['estado','modo','plano','origem','grupo','whats'];   // os filtros da barra, na ordem
+const US_FK_ROT = { estado:'Estado', modo:'Modo', plano:'Plano', origem:'Origem', grupo:'Grupo', whats:'WhatsApp' };
 const US_PLANO_ORD = { free:0, resenha:1, embaixador:2 };
 function usFiltros(){
-  if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', whats:'', ord:'acesso', dir:-1 };
+  if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'', ord:'acesso', dir:-1 };
   return ST.us;
 }
 /* ORIGEM DO CADASTRO (27/09/2026). O jogo grava nos metadados da conta o primeiro toque e o último
    antes do cadastro (UTM, gclid/fbclid, referrer, página de entrada — ver public/src/net/origem.js),
    e o SQL classifica em canal (admin_rf98.origem_canal). O canal mostrado é o do ÚLTIMO toque, o
    que levou ao cadastro; a indicação de parceiro, que já existia, continua mandando quando há. */
+/* GRUPO DO WHATSAPP (27/09/2026): em qual botão a pessoa clicou para entrar no grupo. O botão leva
+   para o WhatsApp, então não há UTM: o jogo grava o clique na conta (elifoot_v3.user_grupo_wpp,
+   ver scripts/sql/grupo_whatsapp_cliques.sql). Clique na home antes de ter conta entra no cadastro. */
+const US_GRUPO = { publica:'Home / site', logada:'Área logada', modal:'Pós-cadastro' };
+const US_GRUPO_TIP = { publica:'botão da home e das páginas do site', logada:'botão da área logada (barra lateral / lingueta)',
+                       modal:'janela que abre logo depois do cadastro' };
+function usGrupoCel(u){
+  if(!u.grupo_botao) return '<span class="us-nada" data-tip="Nunca clicou em entrar no grupo do WhatsApp\n(ou clicou antes de 27/09/2026, quando isto começou a ser gravado)">—</span>';
+  const antes = u.criado_em && new Date(u.grupo_em) < new Date(u.criado_em);
+  let tip = `Primeiro clique: ${US_GRUPO_TIP[u.grupo_botao] || u.grupo_botao}\n${usDataHora(u.grupo_em)}${antes ? ' (antes de criar a conta)' : ''}`;
+  if(+u.grupo_cliques > 1) tip += `\n\nÚltimo clique: ${US_GRUPO[u.grupo_ultimo_botao] || u.grupo_ultimo_botao} · ${usDataHora(u.grupo_ultimo_em)}\n${u.grupo_cliques} cliques no total`;
+  return `<span data-tip="${h(tip)}"><b class="us-ref">${h(US_GRUPO[u.grupo_botao] || u.grupo_botao)}</b><small class="us-sub">${h(dmy(u.grupo_em))}${+u.grupo_cliques > 1 ? ' · ' + num(u.grupo_cliques) + ' cliques' : ''}</small></span>`;
+}
 function usCanal(u){ return u.referral ? 'Parceiro' : (u.canal || 'Desconhecido'); }
 function usToqueTxt(t){
   if(!t) return '—';
@@ -1096,6 +1113,7 @@ function usDeriv(u){
 const US_ORD = {
   nome:      u => String(u.nome||'').toLowerCase(),
   whats:     u => u._d.whats ? 1 : 0,
+  grupo:     u => u.grupo_em ? new Date(u.grupo_em).getTime() : 0,
   plano:     u => US_PLANO_ORD[u.plano||'free'] ?? 0,
   origem:    u => (u._d.canal === 'Desconhecido' ? '~' : '') + u._d.canal.toLowerCase(),
   carreiras: u => u._d.carreiras,
@@ -1114,6 +1132,7 @@ const US_ORD = {
 const US_COLS = [
   { k:'nome', l:'Técnico', tip:'Nome do técnico no jogo (ou o do cadastro), clube do save mais recente e e-mail da conta.\nClique na linha para ver a carreira completa.' },
   { k:'whats', l:'WhatsApp', tip:'Número informado no cadastro. Clique para abrir a conversa.\nContas antigas, de antes do campo existir, não têm.' },
+  { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
   { k:'plano', l:'Plano', tip:'Peladeiro (grátis), Resenha ou Embaixador.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
@@ -1139,6 +1158,7 @@ function usFiltrar(us){
     if(f.modo && d.modo !== f.modo) return false;
     if(f.plano === 'pagos' ? !ehPago(u) : f.plano && (u.plano||'free') !== f.plano) return false;
     if(f.origem && d.canal !== f.origem) return false;
+    if(f.grupo === 'sim' ? !u.grupo_botao : f.grupo === 'nao' ? !!u.grupo_botao : f.grupo && u.grupo_botao !== f.grupo) return false;
     if(f.whats === 'com' && !d.whats) return false;
     if(f.whats === 'sem' && d.whats) return false;
     return true;
@@ -1181,7 +1201,12 @@ function usClube(u){
 }
 function usDataHora(d){ return d ? dmy(d) + ' ' + horaHM(d) : '—'; }
 
+/* cada <td> ganha o rótulo da sua coluna: no celular a linha vira cartão e o rótulo aparece em cima */
 function usLinhaHTML(u, podeApagar){
+  let i = 0;
+  return usLinhaTds(u, podeApagar).replace(/<td(?=[\s>])/g, () => `<td data-l="${h((US_COLS[i++] || {}).l || '')}"`);
+}
+function usLinhaTds(u, podeApagar){
   const d = u._d, e = estadoAcesso(u.ultimo_acesso), pl = planoAdm(u.plano);
   const fonte = [
     'Último login: ' + usDataHora(u.ultimo_login),
@@ -1197,6 +1222,7 @@ function usLinhaHTML(u, podeApagar){
           <small>${usClube(u)}<span data-tip="E-mail da conta">${h(u.email)}</span></small></span>
       </div></td>
     <td>${usWhats(u)}</td>
+    <td>${usGrupoCel(u)}</td>
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
@@ -1259,6 +1285,8 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       <div class="us-barra">
         <input class="busca us-busca" id="u-busca" placeholder="Nome, e-mail, clube, WhatsApp…" value="${h(f.q)}"
                data-tip="Procura em nome, e-mail, clube, parceiro e código de indicação.\nCom 3 dígitos ou mais, procura também no WhatsApp.">
+        <button class="us-fbtn" id="u-fbtn" type="button" data-tip="Mostrar ou esconder os filtros">Filtros<b id="u-fn"></b></button>
+        <div class="us-filtros" id="u-filtros">
         ${sel('uf-estado', 'Estado pelo último acesso', f.estado,
           opt('', 'Estado: todos', f.estado) + Object.entries(US_ESTADO).map(([k,v]) => opt(k, v, f.estado)).join(''))}
         ${sel('uf-modo', 'Em que modo a pessoa joga', f.modo,
@@ -1268,11 +1296,20 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
           + Object.entries(PLANOS_ADM).map(([k,v]) => opt(k, v.nome, f.plano)).join(''))}
         ${sel('uf-origem', 'Canal que trouxe a pessoa até o cadastro', f.origem,
           opt('', 'Origem: todas', f.origem) + canais.map(([c]) => opt(c, c, f.origem)).join(''))}
+        ${sel('uf-grupo', 'Se clicou em entrar no grupo do WhatsApp, e por qual botão', f.grupo,
+          opt('', 'Grupo: todos', f.grupo) + opt('sim', 'Clicou no grupo', f.grupo)
+          + Object.entries(US_GRUPO).map(([k,v]) => opt(k, 'Grupo: ' + v, f.grupo)).join('') + opt('nao', 'Nunca clicou', f.grupo))}
         ${sel('uf-whats', 'Se informou WhatsApp no cadastro', f.whats,
           opt('', 'WhatsApp: todos', f.whats) + opt('com', 'Com WhatsApp', f.whats) + opt('sem', 'Sem WhatsApp', f.whats))}
+        <div class="us-ordm">
+          <select class="us-sel" id="u-ord" data-tip="Ordenar a lista">${US_COLS.filter(c => c.k).map(c => opt(c.k, 'Ordenar: ' + c.l, f.ord)).join('')}</select>
+          <button class="us-sel" id="u-dir" type="button" data-tip="Inverter a ordem"></button>
+        </div>
+        </div>
         <span class="link" id="uf-limpar" data-tip="Tira a busca e todos os filtros">limpar filtros</span>
         <span class="us-cont mono" id="u-cont"></span>
       </div>
+      <div class="us-ativos" id="u-ativos"></div>
       <div class="us-canais" id="u-canais"><span class="us-canais-t" data-tip="Canal que trouxe cada conta até o cadastro.\nNúmero grande: total · embaixo: cadastros nos últimos 30 dias.\nClique para filtrar a tabela.">Cadastros por canal</span>
         ${canais.map(([c, v]) => `<span class="us-canal ${f.origem===c?'on':''}" data-canal="${h(c)}"
           data-tip="${h(`${c}: ${v.n} conta(s), ${v.n30} nos últimos 30 dias\nClique para filtrar`)}"><b>${h(c)}</b> <i class="mono">${num(v.n)}</i><small class="mono">${num(v.n30)} em 30d</small></span>`).join('')}
@@ -1302,7 +1339,19 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       th.classList.toggle('on', on);
       const s = th.querySelector('.seta'); if(s) s.textContent = on ? (f.dir > 0 ? '▲' : '▼') : '↕';
     });
-    ['estado','modo','plano','origem','whats'].forEach(k => { const s = el('uf-'+k); if(s) s.classList.toggle('on', !!f[k]); });
+    US_FK.forEach(k => { const s = el('uf-'+k); if(s) s.classList.toggle('on', !!f[k]); });
+    /* o que está filtrado fica à vista, com ✕ para tirar um por um */
+    const ativos = US_FK.filter(k => f[k]);
+    el('u-fn').textContent = ativos.length ? ' · ' + ativos.length : '';
+    el('u-ativos').innerHTML = (f.q.trim() ? [`<span class="us-chip" data-tirar="q">Busca: “${h(f.q.trim())}” <i>✕</i></span>`] : [])
+      .concat(ativos.map(k => {
+        const o = el('uf-'+k).selectedOptions[0];
+        const txt = (o ? o.textContent : f[k]).replace(/^[^:]+:\s*/, '');   // "Grupo: Home" → "Home"
+        return `<span class="us-chip" data-tirar="${k}">${h(US_FK_ROT[k] + ': ' + txt)} <i>✕</i></span>`;
+      })).join('');
+    el('u-ativos').style.display = el('u-ativos').innerHTML ? '' : 'none';
+    el('u-ord').value = f.ord;
+    el('u-dir').textContent = f.dir > 0 ? '▲ Crescente' : '▼ Decrescente';
     document.querySelectorAll('#u-canais [data-canal]').forEach(x => x.classList.toggle('on', x.dataset.canal === f.origem));
     if(podeApagar){
       document.querySelectorAll('[data-conta]').forEach(c => c.onchange = () => {
@@ -1319,17 +1368,26 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   const b = el('u-busca');
   let t = null;
   b.oninput = () => { clearTimeout(t); t = setTimeout(() => { f.q = b.value; desenharLinhas(); }, 150); };
-  ['estado','modo','plano','origem','whats'].forEach(k => {
+  US_FK.forEach(k => {
     el('uf-'+k).onchange = (ev) => { f[k] = ev.target.value; desenharLinhas(); };
   });
+  el('u-fbtn').onclick = () => el('u-fbtn').parentNode.classList.toggle('aberto');
+  el('u-ord').onchange = (ev) => { f.ord = ev.target.value; f.dir = (f.ord === 'nome' || f.ord === 'origem') ? 1 : -1; desenharLinhas(); };
+  el('u-dir').onclick = () => { f.dir = -f.dir; desenharLinhas(); };
+  el('u-ativos').onclick = (ev) => {
+    const c = ev.target.closest('[data-tirar]'); if(!c) return;
+    const k = c.dataset.tirar;
+    if(k === 'q'){ f.q = ''; b.value = ''; } else { f[k] = ''; el('uf-'+k).value = ''; }
+    desenharLinhas();
+  };
   document.querySelectorAll('#u-canais [data-canal]').forEach(x => x.onclick = () => {
     f.origem = f.origem === x.dataset.canal ? '' : x.dataset.canal;
     el('uf-origem').value = f.origem;
     desenharLinhas();
   });
   el('uf-limpar').onclick = () => {
-    Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', whats:'' });
-    b.value = ''; ['estado','modo','plano','origem','whats'].forEach(k => { el('uf-'+k).value = ''; });
+    Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'' });
+    b.value = ''; US_FK.forEach(k => { el('uf-'+k).value = ''; });
     desenharLinhas();
   };
   document.querySelectorAll('.us-tbl th[data-ord]').forEach(th => th.onclick = () => {

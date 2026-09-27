@@ -63,6 +63,7 @@ async function netInitSupabase(){
       }
       if(session && session.user){
         SB_AUTH_USER = session.user;
+        setTimeout(()=>{ try{ netGrupoWpp(); }catch(e){} }, 0);   // clique no grupo feito antes de logar
         /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
            cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
         netCarregarPlano().then(()=>{
@@ -83,6 +84,7 @@ async function netInitSupabase(){
       SB_AUTH_USER = session.user;
     }
     if(SB_AUTH_USER) await netCarregarPlano();
+    if(SB_AUTH_USER) setTimeout(()=>{ try{ netGrupoWpp(); }catch(e){} }, 0);
     console.log('✓ Supabase pronto', SB_AUTH_USER ? '(sessão ativa: '+(SB_AUTH_USER.email||'?')+', plano '+SB_PLANO.plan+')' : '(sem sessão)');
     return true;
   } catch(e) { console.warn('⚠ Supabase init erro:', e.message); return false; }
@@ -2443,6 +2445,29 @@ async function netMarcarInteracao(tipo){
   }catch(e){}
 }
 NET.marcarInteracao = netMarcarInteracao;
+
+/* ---- CLIQUE NO GRUPO DO WHATSAPP (27/09/2026) ----
+   O botão (ui/rf26-grupo-wpp.js) guarda o clique em rf98:wpp_clique; aqui ele vai para a conta
+   (elifoot_v3.rf_grupo_wpp) e só sai do navegador quando o banco aceitou. Sem conta logada — clique
+   na home antes do cadastro — espera: o onAuthStateChange chama de novo no login/cadastro. */
+const WPP_PEND = 'rf98:wpp_clique';
+let WPP_ENVIANDO = false;
+async function netGrupoWpp(){
+  if(WPP_ENVIANDO || !sb || !SB_AUTH_USER) return;
+  let p = null;
+  try{ p = JSON.parse(localStorage.getItem(WPP_PEND) || 'null'); }catch(e){}
+  if(!p || !p.botao) return;
+  WPP_ENVIANDO = true;
+  try{
+    const { error } = await sb.rpc('rf_grupo_wpp', { p_botao: p.botao, p_em: p.em || null });
+    if(!error){
+      /* só apaga se ninguém clicou de novo enquanto a chamada ia */
+      try{ if(localStorage.getItem(WPP_PEND) === JSON.stringify(p)) localStorage.removeItem(WPP_PEND); }catch(e){}
+    }
+  }catch(e){}
+  WPP_ENVIANDO = false;
+}
+NET.grupoWpp = netGrupoWpp;
 
 /* token da sessão — o seletor de patch precisa dele para listar os patches QUE A CONTA
    tem (pack_users é protegido por RLS; o patch oficial é público e vem sem token) */

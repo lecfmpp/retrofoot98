@@ -250,9 +250,15 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ===================== clique em qualquer "Entrar" ===================== */
+/* QUEM CLICOU, E EM QUAL BOTÃO (27/09): o clique fica guardado em rf98:wpp_clique e o jogo manda
+   para a conta (NET.grupoWpp, em net/supabase-adapter.js) — já, se há conta logada; senão no
+   próximo login/cadastro. Nas páginas de SEO não há NET: fica guardado até a pessoa abrir o jogo.
+   O painel mostra na coluna "Grupo" da página de Usuários. */
 window.rfWppEntrou=function(origem){
   gravar(K_ENTROU,'1');
   ev('wpp_click', origem);
+  gravar('rf98:wpp_clique', JSON.stringify({ botao:origem, em:new Date().toISOString() }));
+  try{ if(typeof NET!=='undefined' && NET.grupoWpp) NET.grupoWpp(); }catch(e){}   // NET é const global, não fica em window
   if(origem==='modal') setTimeout(()=>fecharModal(true), 0);
 };
 
