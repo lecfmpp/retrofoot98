@@ -37,6 +37,15 @@ Todo e-mail abre o cartão com uma imagem do tema, trocável a cada envio por 3 
 | time do coração | tela do estádio |
 | sentimos sua falta | rodada ao vivo |
 
+## Remetente (28/09)
+
+- Domínio de envio: **retrofoot.com.br** no Resend (região sa-east-1, São Paulo). DNS na HostGator:
+  `resend._domainkey` (TXT/DKIM), `send` (MX + TXT SPF), `rsend` (CNAME) e `_dmarc` (TXT, p=none).
+  O MX/SPF da raiz continuam da Titan (caixas de e-mail) — não mexer.
+- Onboarding, dicas e reengajamento: **O Presidente · RetroFoot `<presidente@retrofoot.com.br>`**.
+- Newsletter, novidade e time do coração: **RetroFoot `<novidades@retrofoot.com.br>`**.
+- Respostas de todos: **suporte@retrofoot.com.br** (reply-to).
+
 ## Falta para ligar (depois do domínio)
 
 1. **Domínio de envio**: hoje só `retrofoot98.com.br` está verificado no Resend. Definir o remetente
