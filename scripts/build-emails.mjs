@@ -1,0 +1,318 @@
+/* ===== TEMPLATES DE E-MAIL DO RETROFOOT (27/09/2026) =====
+   Gera emails/templates/<alias>.html — a fonte da verdade dos templates que estão no Resend
+   (mesmo alias lá). Rodar `node scripts/build-emails.mjs` e colar/atualizar no Resend.
+
+   Mesma pele do e-mail de senha (supabase/functions/send-password-reset): tabela, CSS inline,
+   cartão branco sobre #f1f4f1, botão amarelo da marca com texto azul.
+
+   Variáveis no formato do Resend: {{{NOME}}}. FIRST_NAME e RESEND_UNSUBSCRIBE_URL são do próprio
+   Resend (não declarar). Os links levam utm_source=email&utm_medium=email&utm_campaign=<alias>,
+   que o rastreamento de origem do cadastro já entende (docs/rastreamento-origem.md). */
+import { mkdirSync, writeFileSync } from 'node:fs';
+
+const SITE = 'https://retrofoot.com.br';
+const LOGO = `${SITE}/img/logo.png`;
+const GRUPO_WPP = 'https://chat.whatsapp.com/H1AuqFrKDqn4Dd2BicnXqV';
+const C = {
+  pagina: '#f1f4f1', cartao: '#ffffff', linha: '#dde7db', titulo: '#12201a', texto: '#3a473f',
+  fraco: '#78877c', amarelo: '#F2B90C', azul: '#17458F', verdeClaro: '#eef5ef',
+};
+const FONTE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+const utm = (url, alias) => url + (url.includes('?') ? '&' : '?') + `utm_source=email&utm_medium=email&utm_campaign=${alias}`;
+
+function casca({ alias, preview, corpo, marketing = true }) {
+  const rodape = marketing
+    ? `Você recebe este e-mail porque tem conta no RetroFoot.<br>
+       <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:${C.fraco};text-decoration:underline;">Não quero mais receber</a>`
+    : `Você recebe este e-mail porque acabou de criar sua conta no RetroFoot.`;
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>RetroFoot</title>
+</head>
+<body style="margin:0;padding:0;background-color:${C.pagina};font-family:${FONTE};">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${preview}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.pagina}" style="background-color:${C.pagina};">
+<tr><td align="center" style="padding-top:36px;padding-bottom:36px;padding-left:16px;padding-right:16px;">
+  <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
+    <tr><td align="center" style="padding-bottom:20px;">
+      <a href="${utm(SITE + '/', alias)}" target="_blank"><img src="${LOGO}" width="56" height="56" alt="RetroFoot" border="0" style="display:block;width:56px;height:56px;"></a>
+    </td></tr>
+    <tr><td bgcolor="${C.cartao}" style="background-color:${C.cartao};border:1px solid ${C.linha};border-radius:14px;padding-top:34px;padding-bottom:30px;padding-left:34px;padding-right:34px;">
+${corpo}
+    </td></tr>
+    <tr><td align="center" style="padding-top:22px;">
+      <p style="margin:0;color:${C.fraco};font-family:${FONTE};font-size:11px;line-height:1.7;">
+        RetroFoot — o clássico da sua infância, agora online.<br>
+        <a href="${utm(SITE + '/', alias)}" style="color:${C.fraco};text-decoration:underline;">retrofoot.com.br</a> ·
+        <a href="${utm(GRUPO_WPP, alias)}" style="color:${C.fraco};text-decoration:underline;">Grupo do WhatsApp</a><br>
+        ${rodape}
+      </p>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+const rotulo = (t) => `      <p style="margin:0;color:${C.fraco};font-family:${FONTE};font-size:11px;line-height:1.4;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;">${t}</p>`;
+const titulo = (t) => `      <h1 style="margin:10px 0 14px 0;color:${C.titulo};font-family:${FONTE};font-size:24px;line-height:1.3;font-weight:700;">${t}</h1>`;
+const subtitulo = (t) => `      <h2 style="margin:26px 0 8px 0;color:${C.titulo};font-family:${FONTE};font-size:17px;line-height:1.35;font-weight:700;">${t}</h2>`;
+const par = (t) => `      <p style="margin:0 0 14px 0;color:${C.texto};font-family:${FONTE};font-size:15px;line-height:1.65;">${t}</p>`;
+const nota = (t) => `      <p style="margin:18px 0 0 0;color:${C.fraco};font-family:${FONTE};font-size:12px;line-height:1.6;">${t}</p>`;
+const linha = () => `      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid ${C.linha};font-size:0;line-height:0;height:1px;padding-top:0;">&nbsp;</td></tr></table>`;
+/* botão: table dentro de table porque o Outlook ignora padding em <a> */
+const botao = (texto, url) => `      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;margin-bottom:6px;"><tr><td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td align="center" bgcolor="${C.amarelo}" style="background-color:${C.amarelo};border-radius:10px;">
+            <a href="${url}" target="_blank" style="display:inline-block;padding-top:16px;padding-bottom:16px;padding-left:32px;padding-right:32px;color:${C.azul};font-family:${FONTE};font-size:15px;font-weight:700;line-height:1;text-decoration:none;border-radius:10px;">${texto}</a>
+          </td>
+        </tr></table>
+      </td></tr></table>`;
+/* lista com marcador — tabela para o Outlook alinhar */
+const itens = (lista) => `      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:8px;">
+${lista.map(([t, d]) => `        <tr>
+          <td width="22" valign="top" style="padding-top:3px;color:${C.amarelo};font-family:${FONTE};font-size:15px;line-height:1.6;font-weight:700;">▸</td>
+          <td valign="top" style="padding-bottom:10px;color:${C.texto};font-family:${FONTE};font-size:15px;line-height:1.6;"><strong style="color:${C.titulo};">${t}</strong>${d ? `<br>${d}` : ''}</td>
+        </tr>`).join('\n')}
+      </table>`;
+const caixa = (html) => `      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;margin-bottom:8px;"><tr>
+        <td bgcolor="${C.verdeClaro}" style="background-color:${C.verdeClaro};border-radius:10px;padding-top:16px;padding-bottom:16px;padding-left:18px;padding-right:18px;color:${C.texto};font-family:${FONTE};font-size:14px;line-height:1.6;">${html}</td>
+      </tr></table>`;
+
+const T = [];
+
+/* 1. Boas-vindas — transacional, sai logo depois do cadastro */
+T.push({
+  alias: 'rf-boas-vindas', nome: '[RetroFoot] Onboarding 0 · Boas-vindas (dia 0)', marketing: false,
+  assunto: 'Bem-vindo ao RetroFoot, {{{FIRST_NAME}}}! ⚽',
+  preview: 'Sua conta está pronta. Escolha o clube e comece a sua primeira temporada.',
+  variaveis: [],
+  corpo: (a) => [
+    rotulo('Conta criada'),
+    titulo('Bem-vindo ao RetroFoot, {{{FIRST_NAME}}}!'),
+    par('Sua conta está pronta e os seus saves ficam guardados na nuvem — dá para começar no computador e continuar no celular.'),
+    par('Três jeitos de aproveitar desde o primeiro dia:'),
+    itens([
+      ['Modo Solo', 'Assuma um clube pequeno e leve até o topo, temporada após temporada.'],
+      ['Modo Resenha', 'Monte uma sala e jogue o campeonato com os amigos, cada um com o seu time.'],
+      ['Grupo do WhatsApp', 'Dicas, novidades em primeira mão e conversa direta com quem faz o jogo.'],
+    ]),
+    botao('Começar a jogar', utm(SITE + '/', a)),
+    nota(`Primeira vez? O <a href="${utm(SITE + '/guia/', a)}" style="color:${C.azul};">guia do jogo</a> tem o vídeo "Como jogar RetroFoot" com o básico em poucos minutos.`),
+  ],
+});
+
+/* 2. Newsletter mensal — casca com blocos variáveis */
+T.push({
+  alias: 'rf-newsletter-mensal', nome: '[RetroFoot] Newsletter mensal',
+  assunto: '{{{ASSUNTO}}}',
+  preview: '{{{PREVIEW}}}',
+  variaveis: [
+    ['ASSUNTO', 'Novidades do RetroFoot'], ['PREVIEW', 'O que mudou no jogo este mês.'],
+    ['EDICAO', 'Edição do mês'], ['TITULO', 'O que rolou no RetroFoot'],
+    ['INTRO', 'Um resumo rápido do que mudou no jogo e do que vem por aí.'],
+    ['DESTAQUE_TITULO', 'Destaque do mês'], ['DESTAQUE_TEXTO', 'Texto do destaque.'],
+    ['NOVIDADE_1', 'Novidade 1'], ['NOVIDADE_2', 'Novidade 2'], ['NOVIDADE_3', 'Novidade 3'],
+    ['CTA_TEXTO', 'Jogar agora'], ['CTA_URL', utm(SITE + '/', 'rf-newsletter-mensal')],
+  ],
+  corpo: (a) => [
+    rotulo('{{{EDICAO}}}'),
+    titulo('{{{TITULO}}}'),
+    par('Oi, {{{FIRST_NAME}}}! {{{INTRO}}}'),
+    subtitulo('{{{DESTAQUE_TITULO}}}'),
+    par('{{{DESTAQUE_TEXTO}}}'),
+    subtitulo('Novidades no jogo'),
+    itens([['{{{NOVIDADE_1}}}'], ['{{{NOVIDADE_2}}}'], ['{{{NOVIDADE_3}}}']]),
+    botao('{{{CTA_TEXTO}}}', '{{{CTA_URL}}}'),
+    linha(),
+    subtitulo('Você decide o que vem depois'),
+    par(`No <a href="${utm(SITE + '/roadmap/', a)}" style="color:${C.azul};font-weight:700;">roadmap público</a> você vota nas próximas funcionalidades. As mais votadas sobem na fila.`),
+  ],
+});
+
+/* 3. Pergunta do time do coração — para as contas criadas antes de 27/09 */
+T.push({
+  alias: 'rf-time-do-coracao', nome: '[RetroFoot] Pergunta · Time do coração',
+  assunto: '{{{FIRST_NAME}}}, pra qual time você torce?',
+  preview: 'Uma pergunta só, um toque para responder.',
+  variaveis: [['RESPONDER_URL', utm(SITE + '/?time-do-coracao', 'rf-time-do-coracao')]],
+  corpo: () => [
+    rotulo('Uma pergunta rápida'),
+    titulo('Pra qual time você torce, {{{FIRST_NAME}}}?'),
+    par('No RetroFoot você pode treinar qualquer clube — mas o coração é um só. Queremos saber qual é o seu.'),
+    par('Leva um toque: escolha o time na lista (com o escudo) e pronto. Com isso vamos preparar novidades e ações especiais para cada torcida.'),
+    botao('Escolher meu time', '{{{RESPONDER_URL}}}'),
+    nota('Não torce para ninguém? Tem essa opção também.'),
+  ],
+});
+
+/* 4. Anúncio de novidade — um recurso novo, e-mail avulso */
+T.push({
+  alias: 'rf-novidade', nome: '[RetroFoot] Anúncio de novidade',
+  assunto: 'Novidade no RetroFoot: {{{RECURSO}}}',
+  preview: '{{{RESUMO}}}',
+  variaveis: [
+    ['RECURSO', 'recurso novo'], ['RESUMO', 'Chegou uma novidade no jogo.'],
+    ['TEXTO', 'Descrição do que mudou e por que vale a pena testar.'],
+    ['COMO_1', 'Passo 1'], ['COMO_2', 'Passo 2'],
+    ['CTA_TEXTO', 'Experimentar agora'], ['CTA_URL', utm(SITE + '/', 'rf-novidade')],
+  ],
+  corpo: (a) => [
+    rotulo('Novidade no jogo'),
+    titulo('{{{RECURSO}}}'),
+    par('Oi, {{{FIRST_NAME}}}! {{{TEXTO}}}'),
+    caixa(`<strong style="color:${C.titulo};">Como usar</strong><br>1. {{{COMO_1}}}<br>2. {{{COMO_2}}}`),
+    botao('{{{CTA_TEXTO}}}', '{{{CTA_URL}}}'),
+    nota(`Tem ideia ou achou um problema? Conte no <a href="${utm(GRUPO_WPP, a)}" style="color:${C.azul};">grupo do WhatsApp</a>.`),
+  ],
+});
+
+/* 5. Sentimos sua falta — reengajamento de quem parou de jogar */
+T.push({
+  alias: 'rf-sentimos-falta', nome: '[RetroFoot] Reengajamento · Sentimos sua falta',
+  assunto: '{{{FIRST_NAME}}}, o seu time está esperando o técnico',
+  preview: 'O seu save continua na nuvem, do jeitinho que você deixou.',
+  variaveis: [['NOVIDADE', 'o roadmap público, onde você vota no que entra no jogo']],
+  corpo: (a) => [
+    rotulo('Seu save continua lá'),
+    titulo('O vestiário está esperando, {{{FIRST_NAME}}}'),
+    par('Faz um tempo que você não aparece no RetroFoot. O seu save está guardado na nuvem, do jeitinho que você deixou — é só entrar e continuar a temporada.'),
+    par('Enquanto isso, chegou coisa nova: {{{NOVIDADE}}}.'),
+    botao('Voltar para o meu time', utm(SITE + '/', a)),
+    nota(`Prefere jogar com os amigos? No <a href="${utm(SITE + '/jogar-com-amigos/', a)}" style="color:${C.azul};">Modo Resenha</a> cada um treina o seu time no mesmo campeonato.`),
+  ],
+});
+
+/* 6–12. DICAS DO PRESIDENTE — sequência de onboarding da 1ª temporada (docs/emails-onboarding.md).
+   Objetivo: reduzir o churn da 1ª temporada ensinando o jogo na ordem em que as dúvidas aparecem.
+   REGRA: só números que estão no código (conferidos em 27/09 — janelas, base, treino, patrocínio,
+   copa, energia, moral, cargo). Nada de "a tática vencedora": a qualidade decide (simulate.js). */
+const dica = ({ n, curto, alias, assunto, preview, tituloTxt, abertura, pontos, fazer, cta = 'Abrir o meu clube', ps }) => ({
+  alias, nome: `[RetroFoot] Dica ${n}/7 · ${curto}`, assunto, preview, variaveis: [],
+  corpo: (a) => [
+    rotulo(`Dica do Presidente · ${n} de 7`),
+    titulo(tituloTxt),
+    par(`{{{FIRST_NAME}}}, ${abertura}`),
+    itens(pontos),
+    caixa(`<strong style="color:${C.titulo};">Faça agora</strong><br>${fazer}`),
+    botao(cta, utm(SITE + '/', a)),
+    `      <p style="margin:18px 0 0 0;color:${C.texto};font-family:${FONTE};font-size:14px;line-height:1.6;">Um abraço,<br><strong style="color:${C.titulo};">O Presidente</strong></p>`,
+    ps ? nota(`P.S. ${ps}`) : '',
+  ],
+});
+
+T.push(dica({ n: 1, curto: 'Janela aberta', alias: 'rf-dica-1-janela',
+  assunto: 'As 10 primeiras rodadas decidem a sua temporada',
+  preview: 'A janela de transferências está aberta agora — e fecha na rodada 11.',
+  tituloTxt: 'A janela está aberta. Use-a.',
+  abertura: 'bem-vindo ao clube. A primeira lição da casa: o mercado não fica aberto o ano todo.',
+  pontos: [
+    ['Janela aberta nas rodadas 1 a 10', 'Depois fecha e só reabre na rodada 21. Quem chega na rodada 11 sem reforço vai até a metade do campeonato com o que tem.'],
+    ['Olhe primeiro onde o time é fraco', 'Um bom jogador na posição mais carente vale mais que um craque onde já está bem servido.'],
+    ['Negociação leva 3 dias', 'O clube responde à taxa, o empresário avalia salário e papel, e aí sai o veredito. Oferta muito abaixo do pedido é recusada de cara.'],
+  ],
+  fazer: 'Abra o elenco, veja qual setor tem a força mais baixa e procure um reforço para ele antes da rodada 10.',
+  ps: 'Jogador comprado não pode ser revendido na mesma temporada. Compre para ficar.',
+}));
+
+T.push(dica({ n: 2, curto: 'Caixa', alias: 'rf-dica-2-caixa',
+  assunto: 'Aquele dinheiro no caixa não é sobra',
+  preview: 'O patrocínio do ano inteiro entra de uma vez na 1ª rodada.',
+  tituloTxt: 'Cuide do caixa como se fosse seu',
+  abertura: 'preciso falar de dinheiro. É o erro nº 1 de quem chega na Série D.',
+  pontos: [
+    ['O patrocínio do ano entra todo na 1ª rodada', 'O caixa parece cheio, mas esse é o dinheiro da temporada inteira. Os salários saem toda rodada.'],
+    ['Escute o Contador', 'Em toda compra, lance ou obra ele mostra como o caixa fica no fim da temporada. Se aparecer "Isto vai endividar o clube", volte e reveja.'],
+    ['Caixa no vermelho trava o clube', 'Sem reforços, sem obras — e a diretoria perde a paciência com o técnico.'],
+    ['Estádio pode esperar', 'Ampliar custa mais do que um clube da Série D tem no começo. Primeiro o time, depois a obra.'],
+  ],
+  fazer: 'Abra as Finanças e veja o selo do clube: o objetivo é terminar a temporada "No azul, com folga".',
+}));
+
+T.push(dica({ n: 3, curto: 'Rodízio', alias: 'rf-dica-3-rodizio',
+  assunto: 'Seu time está cansado (e você nem percebeu)',
+  preview: 'Energia e moral mexem na força do time em campo. Rodízio é obrigatório.',
+  tituloTxt: 'Time cansado perde jogo ganho',
+  abertura: 'vi o time em campo e tenho uma observação: força no papel não é força no gramado.',
+  pontos: [
+    ['Energia pesa na força em campo', 'Cada jogo gasta energia e a recuperação é parcial por rodada. Em semana com copa e liga, são dois jogos.'],
+    ['Moral também joga', 'Vitória sobe, derrota desce. Com a moral média do time abaixo de 50, o rendimento cai para todo mundo.'],
+    ['Use o banco', 'Poupar 2 ou 3 titulares cansados rende mais que insistir nos mesmos 11. O botão "Auto" ajuda a escalar quem está em condições.'],
+    ['Cartão vermelho suspende 1 jogo', 'Tenha reserva em todas as posições — e sempre 2 goleiros.'],
+  ],
+  fazer: 'Antes da próxima rodada, olhe a energia do elenco e troque quem está no limite.',
+}));
+
+T.push(dica({ n: 4, curto: 'Evolução e base', alias: 'rf-dica-4-evolucao',
+  assunto: 'Como transformar garoto em titular',
+  preview: 'Treino especial é de graça e a base libera um jovem por janela.',
+  tituloTxt: 'Time forte se constrói, não se compra',
+  abertura: 'na Série D ninguém tem dinheiro para comprar um time pronto. Então vamos formar um.',
+  pontos: [
+    ['Treino especial: 3 vagas, custo zero', 'Não gasta dinheiro nem energia. Coloque ali os jovens com mais potencial — a partir dos 31 anos já não rende.'],
+    ['Jogar bem é o que mais faz evoluir', 'Quem entra em campo e tem boa atuação cresce mais rápido. Jovem até 20 anos cresce até no banco.'],
+    ['Suba 1 jogador da base por janela', 'Na Categoria de base aparecem 3 garotos de 16 a 19 anos na posição mais carente, com salário menor. Só com a janela aberta.'],
+    ['Não deixe ninguém esquecido', '4 semanas seguidas fora do time e o jogador perde ritmo — quem está no treino especial fica protegido.'],
+  ],
+  fazer: 'Ocupe as 3 vagas do treino especial e, com a janela aberta, veja os garotos da Categoria de base.',
+}));
+
+T.push(dica({ n: 5, curto: 'Copa', alias: 'rf-dica-5-copa',
+  assunto: 'O prêmio que vale mais que o título da Série D',
+  preview: 'A Copa da Federação paga por fase disputada — e paga na hora.',
+  tituloTxt: 'Não despreze a Copa da Federação',
+  abertura: 'enquanto todo mundo pensa só no campeonato, a copa é onde o clube pequeno enche o cofre.',
+  pontos: [
+    ['Paga por fase, na hora', 'Cada fase disputada rende premiação. Chegar às oitavas já vale mais do que ser campeão da Série D.'],
+    ['Mata-mata com os 80 clubes', 'Da Série A à D. Um dia bom derruba gigante — e quem é campeão ganha vaga no continental.'],
+    ['Ajuda o patrocinador', 'Chegar às quartas de uma copa cumpre a meta da manga e rende bônus no fim da temporada.'],
+  ],
+  fazer: 'Na semana de copa, escale forte na copa e gire o elenco na liga. Dinheiro da copa vira reforço na janela seguinte.',
+  cta: 'Ver a Copa da Federação',
+}));
+
+T.push(dica({ n: 6, curto: 'Acesso', alias: 'rf-dica-6-acesso',
+  assunto: 'Rodada 21: a janela reabriu. É agora.',
+  preview: 'Os 4 primeiros sobem. A segunda janela é a última chance de reforço.',
+  tituloTxt: 'A reta do acesso começa agora',
+  abertura: 'a segunda janela abriu (rodadas 21 a 30) e ela é a última da temporada. Vamos falar de acesso.',
+  pontos: [
+    ['Os 4 primeiros sobem para a Série C', 'São 38 rodadas em pontos corridos. Empate em pontos decide no saldo de gols e depois nos gols marcados.'],
+    ['Reforce onde perdeu pontos', 'Olhe os jogos que escaparam no primeiro turno: tomou gol demais ou fez gol de menos? Compre para isso.'],
+    ['Suba mais um da base', 'A nova janela libera mais um jovem da Categoria de base.'],
+    ['Subir paga', 'Bônus de acesso, meta do patrocinador das placas e uma divisão com mais público e mais dinheiro.'],
+  ],
+  fazer: 'Veja a sua posição na tabela e a distância para o 4º lugar. Até a rodada 30 dá para contratar.',
+}));
+
+T.push(dica({ n: 7, curto: 'Fim da temporada', alias: 'rf-dica-7-fim-temporada',
+  assunto: 'O fim da temporada não é o fim da carreira',
+  preview: 'Como fechar bem o ano e garantir a próxima temporada da sua carreira.',
+  tituloTxt: 'A temporada acaba. A carreira, não.',
+  abertura: 'estamos chegando ao fim da primeira temporada. Independente da posição, você aprendeu o caminho — agora é construir em cima dele.',
+  pontos: [
+    ['A segurança no cargo depende da tabela e da moral', 'Terminar bem e com o grupo feliz deixa a diretoria confiante — e às vezes chegam convites de outros clubes.'],
+    ['Na virada você recebe um resumo', 'Com o que funcionou e 3 dicas tiradas da sua própria temporada.'],
+    ['Ganhe mais uma temporada grátis', 'No fim da 1ª temporada, é só deixar a sua opinião sobre o jogo e a próxima temporada é liberada na hora.'],
+  ],
+  fazer: 'Jogue as últimas rodadas com o time mais descansado possível e, na virada, deixe a sua opinião para seguir com a carreira.',
+  cta: 'Terminar a temporada',
+  ps: 'Quer jogar sem limite de temporadas? O Pro libera temporadas e carreiras ilimitadas e o Modo Resenha.',
+}));
+
+mkdirSync('emails/templates', { recursive: true });
+const indice = [];
+for (const t of T) {
+  const html = casca({ alias: t.alias, preview: t.preview, corpo: t.corpo(t.alias).join('\n'), marketing: t.marketing !== false });
+  writeFileSync(`emails/templates/${t.alias}.html`, html);
+  indice.push({ alias: t.alias, nome: t.nome, assunto: t.assunto, marketing: t.marketing !== false,
+    variaveis: t.variaveis.map(([key, fallbackValue]) => ({ key, type: 'string', fallbackValue })) });
+}
+writeFileSync('emails/templates/index.json', JSON.stringify(indice, null, 2) + '\n');
+console.log(`${T.length} templates em emails/templates/`);

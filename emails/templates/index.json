@@ -1,0 +1,195 @@
+[
+  {
+    "alias": "rf-boas-vindas",
+    "nome": "[RetroFoot] Onboarding 0 · Boas-vindas (dia 0)",
+    "assunto": "Bem-vindo ao RetroFoot, {{{FIRST_NAME}}}! ⚽",
+    "marketing": false,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-newsletter-mensal",
+    "nome": "[RetroFoot] Newsletter mensal",
+    "assunto": "{{{ASSUNTO}}}",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "ASSUNTO",
+        "type": "string",
+        "fallbackValue": "Novidades do RetroFoot"
+      },
+      {
+        "key": "PREVIEW",
+        "type": "string",
+        "fallbackValue": "O que mudou no jogo este mês."
+      },
+      {
+        "key": "EDICAO",
+        "type": "string",
+        "fallbackValue": "Edição do mês"
+      },
+      {
+        "key": "TITULO",
+        "type": "string",
+        "fallbackValue": "O que rolou no RetroFoot"
+      },
+      {
+        "key": "INTRO",
+        "type": "string",
+        "fallbackValue": "Um resumo rápido do que mudou no jogo e do que vem por aí."
+      },
+      {
+        "key": "DESTAQUE_TITULO",
+        "type": "string",
+        "fallbackValue": "Destaque do mês"
+      },
+      {
+        "key": "DESTAQUE_TEXTO",
+        "type": "string",
+        "fallbackValue": "Texto do destaque."
+      },
+      {
+        "key": "NOVIDADE_1",
+        "type": "string",
+        "fallbackValue": "Novidade 1"
+      },
+      {
+        "key": "NOVIDADE_2",
+        "type": "string",
+        "fallbackValue": "Novidade 2"
+      },
+      {
+        "key": "NOVIDADE_3",
+        "type": "string",
+        "fallbackValue": "Novidade 3"
+      },
+      {
+        "key": "CTA_TEXTO",
+        "type": "string",
+        "fallbackValue": "Jogar agora"
+      },
+      {
+        "key": "CTA_URL",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-newsletter-mensal"
+      }
+    ]
+  },
+  {
+    "alias": "rf-time-do-coracao",
+    "nome": "[RetroFoot] Pergunta · Time do coração",
+    "assunto": "{{{FIRST_NAME}}}, pra qual time você torce?",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "RESPONDER_URL",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?time-do-coracao&utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao"
+      }
+    ]
+  },
+  {
+    "alias": "rf-novidade",
+    "nome": "[RetroFoot] Anúncio de novidade",
+    "assunto": "Novidade no RetroFoot: {{{RECURSO}}}",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "RECURSO",
+        "type": "string",
+        "fallbackValue": "recurso novo"
+      },
+      {
+        "key": "RESUMO",
+        "type": "string",
+        "fallbackValue": "Chegou uma novidade no jogo."
+      },
+      {
+        "key": "TEXTO",
+        "type": "string",
+        "fallbackValue": "Descrição do que mudou e por que vale a pena testar."
+      },
+      {
+        "key": "COMO_1",
+        "type": "string",
+        "fallbackValue": "Passo 1"
+      },
+      {
+        "key": "COMO_2",
+        "type": "string",
+        "fallbackValue": "Passo 2"
+      },
+      {
+        "key": "CTA_TEXTO",
+        "type": "string",
+        "fallbackValue": "Experimentar agora"
+      },
+      {
+        "key": "CTA_URL",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-novidade"
+      }
+    ]
+  },
+  {
+    "alias": "rf-sentimos-falta",
+    "nome": "[RetroFoot] Reengajamento · Sentimos sua falta",
+    "assunto": "{{{FIRST_NAME}}}, o seu time está esperando o técnico",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "NOVIDADE",
+        "type": "string",
+        "fallbackValue": "o roadmap público, onde você vota no que entra no jogo"
+      }
+    ]
+  },
+  {
+    "alias": "rf-dica-1-janela",
+    "nome": "[RetroFoot] Dica 1/7 · Janela aberta",
+    "assunto": "As 10 primeiras rodadas decidem a sua temporada",
+    "marketing": true,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-dica-2-caixa",
+    "nome": "[RetroFoot] Dica 2/7 · Caixa",
+    "assunto": "Aquele dinheiro no caixa não é sobra",
+    "marketing": true,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-dica-3-rodizio",
+    "nome": "[RetroFoot] Dica 3/7 · Rodízio",
+    "assunto": "Seu time está cansado (e você nem percebeu)",
+    "marketing": true,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-dica-4-evolucao",
+    "nome": "[RetroFoot] Dica 4/7 · Evolução e base",
+    "assunto": "Como transformar garoto em titular",
+    "marketing": true,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-dica-5-copa",
+    "nome": "[RetroFoot] Dica 5/7 · Copa",
+    "assunto": "O prêmio que vale mais que o título da Série D",
+    "marketing": true,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-dica-6-acesso",
+    "nome": "[RetroFoot] Dica 6/7 · Acesso",
+    "assunto": "Rodada 21: a janela reabriu. É agora.",
+    "marketing": true,
+    "variaveis": []
+  },
+  {
+    "alias": "rf-dica-7-fim-temporada",
+    "nome": "[RetroFoot] Dica 7/7 · Fim da temporada",
+    "assunto": "O fim da temporada não é o fim da carreira",
+    "marketing": true,
+    "variaveis": []
+  }
+]
