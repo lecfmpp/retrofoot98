@@ -103,6 +103,9 @@ header p{margin:3px 0 0;font-size:13px;color:var(--dim2)}
 .card-h{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
 .card-h b{font-size:14px;font-weight:700;flex:1;min-width:0}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+/* 5 cartões de número (Usuários, com a Conversão): 5 lado a lado no desktop largo */
+.g4.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:1280px){ .g4.g5{grid-template-columns:repeat(3,minmax(0,1fr))} }
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 /* minmax(0,…): sem o mínimo zero, o conteúdo que não encolhe (ex.: seletor de
    cor) estica a célula e a segunda coluna desliza para trás do vizinho */
@@ -764,3 +767,4 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
   .rowh.rowh-auto > span:has(input)::after{content:'selecionar todos';font-size:11px;font-weight:600;
     text-transform:none;letter-spacing:0;color:var(--dim2)}
 }
+@media (max-width:900px){ .g4.g5{grid-template-columns:1fr 1fr} }

@@ -1477,9 +1477,22 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         ? {l: f.perCampo === 'acesso' ? 'Com acesso no período' : 'Cadastros no período', v:num(l.length), d:`${pct(l.length, us.length)}% das ${num(us.length)} contas`}
         : {l:'Contas totais', v:num(l.length), d:`${num(l.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
       ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, l.length)}% ${perOn?'destas':'das'} contas · login ou jogada`})}
-      ${kpiHTML({l:'Assinantes', v:num(pagos.length),
-                 d:`${pct(pagos.length, l.length)}% no Pro${mrr?' · '+brl(mrr)+' de MRR':''}`})}
+      ${kpiHTML({l:'Assinantes Pro', v:num(pagos.length), d: mrr ? brl(mrr)+' de MRR' : 'sem MRR registrado'})}
+      ${kpiHTML(conversaoKpi(l, pagos))}
       ${kpiHTML({l:'Tempo total jogado', v:hm(minutos), d:`${hm(minutos7)} nos últimos 7 dias`})}`;
+  }
+  /* CONVERSÃO PELADEIRO → PRO (27/09/2026). O número grande é a parte das contas (do período, se
+     houver) que está no Pro HOJE; embaixo, quantas viraram Pro dentro do período (sem período: nos
+     últimos 30 dias), pela data em que o plano começou (user_plans.since → 'plano_desde'). */
+  function conversaoKpi(l, pagos){
+    const iv = usIntervalo(f);
+    const de = iv ? iv.de : usDiaLocal(new Date(Date.now() - 29*864e5)), ate = iv ? iv.ate : usDiaLocal(new Date());
+    const viraram = us.filter(u => ehPago(u) && u.plano_desde && (d => (!de || d >= de) && (!ate || d <= ate))(usDiaLocal(u.plano_desde))).length;
+    const taxa = l.length ? (pagos.length * 100 / l.length) : 0;
+    return { l:'Conversão (Peladeiro → Pro)',
+      v: l.length ? taxa.toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%' : '—',
+      d: `${num(pagos.length)} de ${num(l.length)} contas · ${num(viraram)} ${viraram===1?'virou':'viraram'} Pro ${iv ? 'no período' : 'em 30 dias'}`,
+      c: 'var(--verde2)' };
   }
   /* cadastros por canal, maior primeiro, "Desconhecido" sempre no fim. Sem período: total e
      últimos 30 dias; com período: só a contagem dentro dele. */
@@ -1518,7 +1531,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
           <input type="date" id="up-ate" class="us-sel"></label>
       </span>
     </div>
-    <div class="g4" id="u-kpis">${kpisHTML()}</div>
+    <div class="g4 g5" id="u-kpis">${kpisHTML()}</div>
     <div class="card us-card">
       <div class="us-barra">
         <input class="busca us-busca" id="u-busca" placeholder="Nome, e-mail, clube, WhatsApp…" value="${h(f.q)}"
@@ -3474,11 +3487,11 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
   D.pub = data;
   const contatos = mk.error ? [] : (mk.data || []);
   const contatosPer = contatos.filter(c => { const t = new Date(c.created_at).getTime(); return t >= per.ini && t < per.fim; }).length;
-  const colMk = 'minmax(0,1.3fr) minmax(0,1.2fr) 118px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 110px 96px';
   const espacos = data.espacos||[], patros = data.patrocinadores||[];
   repararMoradaFixa(espacos);            // sem await: a pagina nao espera pelo conserto
   const noAr = espacos.filter(e=>e.criativo).length;
   const editar = podeEditar('publicidade');
+  const colMk = 'minmax(0,1.3fr) minmax(0,1.2fr) 118px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 110px 96px' + (editar ? ' 28px' : '');
   const ctr = data.imp30 ? (data.clq30*100/data.imp30).toFixed(2)+'%' : '—';
 
   // que espaços cada patrocinador ocupa hoje (para a coluna "Espaços")
@@ -3523,7 +3536,7 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
       ${mk.error ? `<div class="erro">Não deu para ler os contatos: ${h(erroMsg(mk.error))}</div>` : ''}
       <div class="rowh" style="grid-template-columns:${colMk};border-bottom:none">
         <span>Empresa</span><span>E-mail</span><span>WhatsApp</span><span>Site</span><span>Redes</span>
-        <span>Formato</span><span>Verba</span><span style="text-align:right">Quando</span>
+        <span>Formato</span><span>Verba</span><span style="text-align:right">Quando</span>${editar ? '<span></span>' : ''}
       </div>
       ${contatos.length ? contatos.map(c => {
         const tel = String(c.telefone || '').replace(/\D/g, '');
@@ -3537,6 +3550,7 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
           <span style="font-size:12px;color:var(--dim);min-width:0">${h(c.objetivo || '—')}</span>
           <span style="font-size:12px;color:var(--dim);min-width:0">${h(c.verba || '—')}</span>
           <span class="mono" style="font-size:11.5px;color:var(--dim2);text-align:right" data-tip="${h(new Date(c.created_at).toLocaleString('pt-BR'))}">${h(dmy(c.created_at))}<small style="display:block;color:var(--dim3)">${h(ha(c.created_at))}</small></span>
+          ${editar ? `<span class="link" data-del-mk="${h(c.id)}" style="color:var(--dim3);text-align:center" title="Apagar este contato">✕</span>` : ''}
           ${c.observacao ? `<span style="grid-column:1/-1;font-size:12px;color:var(--dim);line-height:1.6"><b style="color:var(--dim2)">Mensagem:</b> ${h(c.observacao)}</span>` : ''}
         </div>`;
       }).join('') : '<div class="vazio">Nenhum contato pelo media kit ainda.</div>'}
@@ -3557,6 +3571,38 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
       </div>
     </div>`;
 
+  /* APAGAR CONTATO (27/09/2026): confirmação num modal que mostra o que vai sumir; quem apaga é a
+     função admin_rf98.media_kit_apagar, que grava no Registro de ações quem foi — com uma cópia
+     do contato inteiro — antes de apagar (scripts/sql/media_kit_apagar.sql). */
+  document.querySelectorAll('[data-del-mk]').forEach(b => b.onclick = (ev) => {
+    ev.stopPropagation();
+    const c = contatos.find(x => String(x.id) === b.dataset.delMk); if(!c) return;
+    abrirModal(`
+      <h3>Apagar contato do media kit?</h3>
+      <div class="col">
+        <div class="card card-p" style="line-height:1.7;font-size:13px">
+          <b>${h(c.empresa || c.nome || '—')}</b>${c.empresa && c.nome && c.nome !== c.empresa ? ` · ${h(c.nome)}` : ''}<br>
+          <span class="mono" style="font-size:12px">${h(c.email)}</span>${c.telefone ? ` · ${h(c.telefone)}` : ''}<br>
+          <span class="st" style="margin:0">Enviado em ${h(new Date(c.created_at).toLocaleString('pt-BR'))}</span>
+        </div>
+        <div class="st" style="line-height:1.7">
+          O contato sai da lista e não dá para desfazer por aqui. Fica registrado em
+          <b>Registro de ações</b> que <b>você</b> apagou, com uma cópia de todos os campos.
+        </div>
+        <div class="erro hide" id="mkd-erro"></div>
+        <div class="acoes">
+          <button class="btn" id="mkd-ok" style="background:var(--vermelho);border-color:var(--vermelho);color:#fff">Apagar contato</button>
+          <button class="btn btn-ghost" data-fechar>Cancelar</button>
+        </div>
+      </div>`);
+    el('mkd-ok').onclick = async () => {
+      const btn = el('mkd-ok'), erro = el('mkd-erro');
+      btn.disabled = true; btn.textContent = 'Apagando…'; erro.classList.add('hide');
+      const { error } = await sb.rpc('media_kit_apagar', { p_id: c.id });
+      if(error){ erro.textContent = erroMsg(error); erro.classList.remove('hide'); btn.disabled = false; btn.textContent = 'Apagar contato'; return; }
+      fecharModal(); toast('Contato apagado — ficou no Registro de ações.'); redesenhar(pgPublicidade);
+    };
+  });
   if(el('mk-csv')) el('mk-csv').onclick = () => {
     baixarTexto(`retrofoot98-contatos-media-kit-${usDiaLocal(new Date())}.csv`, mkCSV(contatos), 'text/csv;charset=utf-8');
     toast(`${contatos.length} contato${contatos.length===1?'':'s'} exportado${contatos.length===1?'':'s'}.`);
@@ -4938,6 +4984,7 @@ const ACOES = {
   'espaco.desligar':'Desligou espaço de anúncio',
   'patrocinador.criar':'Cadastrou patrocinador',
   'patrocinador.apagar':'Apagou patrocinador',
+  'mediakit.apagar':'Apagou contato do media kit',
   /* funcionalidades (kanban) */
   'feature.criar':'Criou card de funcionalidade',
   'feature.apagar':'Apagou card de funcionalidade',
@@ -5011,7 +5058,7 @@ const AREA_POR_PREFIXO = {
   convite:'acesso', papel:'acesso',
   sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
   lancamento:'financas', openai:'financas',
-  criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade',
+  criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade', mediakit:'publicidade',
   feature:'produto', coluna:'produto', kanban:'produto',
   conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
   clube:'dados', pacote:'dados', competicoes:'dados', dados:'dados',

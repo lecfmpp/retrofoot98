@@ -28,3 +28,8 @@ begin
   if n = d then raise exception 'usuarios: campo minutos não encontrado'; end if;
   execute n;
 end $$;
+
+-- ===== 27/09/2026: 'plano_desde' (user_plans.since) em admin_rf98.usuarios =====
+-- Alimenta o card "Conversão (Peladeiro → Pro)" da página de Usuários: quem virou Pro no período.
+-- Patch por replace, aplicado na migração usuarios_plano_desde:
+--   'plano', pl.plan, 'plano_ate', up.until,  →  … 'plano_ate', up.until, 'plano_desde', up.since,
