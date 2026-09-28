@@ -46,6 +46,34 @@ Todo e-mail abre o cartão com uma imagem do tema, trocável a cada envio por 3 
 - Newsletter, novidade e time do coração: **RetroFoot `<novidades@retrofoot.com.br>`**.
 - Respostas de todos: **suporte@retrofoot.com.br** (reply-to).
 
+## Segmentos no Resend (28/09) — sincronizados sozinhos pelo banco
+
+`scripts/sql/email_segmentos_resend.sql`: o banco calcula a etapa de cada conta (menos sócios) e mantém
+os segmentos do Resend em dia — cron `email-planejar` (10 min) põe as mudanças na fila, cron
+`email-despachar` (2 s) manda uma chamada por vez. Conferir: `select * from admin_rf98.email_resumo`.
+
+Foto de 28/09 (325 contas):
+
+| Segmento | Contas | Objetivo | E-mail |
+|----------|-------:|----------|--------|
+| RF · 0 Cadastrou e não jogou | 50 | **ativar**: criar o 1º save | a fazer: "seu clube está esperando" + vídeo |
+| RF · 1 Parou antes da 2ª rodada | 156 | **ativar**: jogar a 1ª partida — o maior vazamento | a fazer: "jogue a 1ª rodada em 2 min" + Dica 1 |
+| RF · 2 T1 começo (rodadas 2–10) | 78 | reter | Dicas 1–4 |
+| RF · 3 T1 meio (rodadas 11–30) | 12 | reter | Dicas 5–6 |
+| RF · 4 T1 reta final (31+) | 3 | preparar o paywall | Dica 7 |
+| RF · 5 Travado no paywall | 9 | **CONVERTER** — viu o paywall e não seguiu | a fazer: oferta Pro + lembrete do depoimento grátis |
+| RF · 6 Temporada extra grátis | 14 | **CONVERTER** antes da próxima trava | a fazer: "o que o Pro libera" |
+| RF · 7 Pro ativo | 1 | reter, pedir indicação | newsletter |
+| RF · 8 Ex-Pro (cancelou) | 2 | recuperar | a fazer: "volte ao Pro" |
+| RF · Inativos 7+ dias | 68 | reengajar | Sentimos sua falta |
+| RF · Sem time do coração | 321 | perguntar | Time do coração |
+| RF · Todos (newsletter) | 325 | — | Newsletter mensal |
+
+Etapa é exclusiva (cada conta em uma só, 0–8); "Inativos", "Sem time" e "Todos" são transversais.
+Para disparar por mudança de etapa (ex.: entrou em "Travado" → e-mail de conversão no mesmo dia), a
+automação do Resend precisa de EVENTO; o próximo passo é o `email-planejar` mandar um evento
+`rf.etapa` quando a etapa muda.
+
 ## Falta para ligar (depois do domínio)
 
 1. **Domínio de envio**: hoje só `retrofoot98.com.br` está verificado no Resend. Definir o remetente
