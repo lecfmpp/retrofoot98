@@ -28,7 +28,10 @@ const C = {
 const FONTE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 const CAPA = (nome) => `${SITE}/img/email/${nome}.jpg`;
-const utm = (url, alias) => url + (url.includes('?') ? '&' : '?') + `utm_source=email&utm_medium=email&utm_campaign=${alias}`;
+/* utm_content diz QUAL link foi clicado (botao, capa, logo, link_guia, rodape_site...): o rastreamento
+   de origem do cadastro (net/origem.js) grava os cinco utm_*, e o clique do Resend fica por link. */
+const utm = (url, alias, content) => url + (url.includes('?') ? '&' : '?') +
+  `utm_source=email&utm_medium=email&utm_campaign=${alias}` + (content ? `&utm_content=${content}` : '');
 
 function casca({ alias, preview, corpo, marketing = true }) {
   /* a imagem ocupa a largura do cartão (560 − 2px de borda) e não tem altura fixa: GIF/imagem de outra
@@ -51,7 +54,7 @@ function casca({ alias, preview, corpo, marketing = true }) {
 <tr><td align="center" style="padding-top:36px;padding-bottom:36px;padding-left:16px;padding-right:16px;">
   <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
     <tr><td align="center" style="padding-bottom:20px;">
-      <a href="${utm(SITE + '/', alias)}" target="_blank"><img src="${LOGO}" width="56" height="56" alt="RetroFoot" border="0" style="display:block;width:56px;height:56px;"></a>
+      <a href="${utm(SITE + '/', alias, 'logo')}" target="_blank"><img src="${LOGO}" width="56" height="56" alt="RetroFoot" border="0" style="display:block;width:56px;height:56px;"></a>
     </td></tr>
     <tr><td bgcolor="${C.cartao}" style="background-color:${C.cartao};border:1px solid ${C.linha};border-radius:14px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -66,8 +69,8 @@ ${corpo}
     <tr><td align="center" style="padding-top:22px;">
       <p style="margin:0;color:${C.fraco};font-family:${FONTE};font-size:11px;line-height:1.7;">
         RetroFoot — o clássico da sua infância, agora online.<br>
-        <a href="${utm(SITE + '/', alias)}" style="color:${C.fraco};text-decoration:underline;">retrofoot.com.br</a> ·
-        <a href="${utm(GRUPO_WPP, alias)}" style="color:${C.fraco};text-decoration:underline;">Grupo do WhatsApp</a><br>
+        <a href="${utm(SITE + '/', alias, 'rodape_site')}" style="color:${C.fraco};text-decoration:underline;">retrofoot.com.br</a> ·
+        <a href="${utm(GRUPO_WPP, alias, 'rodape_whatsapp')}" style="color:${C.fraco};text-decoration:underline;">Grupo do WhatsApp</a><br>
         ${rodape}
       </p>
     </td></tr>
@@ -122,15 +125,15 @@ T.push({
       ['Modo Resenha', 'Monte uma sala e jogue o campeonato com os amigos, cada um com o seu time.'],
       ['Grupo do WhatsApp', 'Dicas, novidades em primeira mão e conversa direta com quem faz o jogo.'],
     ]),
-    botao('Começar a jogar', utm(SITE + '/', a)),
-    nota(`Primeira vez? O <a href="${utm(SITE + '/guia/', a)}" style="color:${C.azul};">guia do jogo</a> tem o vídeo "Como jogar RetroFoot" com o básico em poucos minutos.`),
+    botao('Começar a jogar', utm(SITE + '/', a, 'botao')),
+    nota(`Primeira vez? O <a href="${utm(SITE + '/guia/', a, 'link_guia')}" style="color:${C.azul};">guia do jogo</a> tem o vídeo "Como jogar RetroFoot" com o básico em poucos minutos.`),
   ],
 });
 
 /* 2. Newsletter mensal — casca com blocos variáveis */
 T.push({
   alias: 'rf-newsletter-mensal', nome: '[RetroFoot] Newsletter mensal',
-  capa: { img: CAPA('video-como-jogar'), alt: 'Vídeo: Como jogar RetroFoot', link: utm(SITE + '/guia/', 'rf-newsletter-mensal') },
+  capa: { img: CAPA('video-como-jogar'), alt: 'Vídeo: Como jogar RetroFoot', link: utm(SITE + '/guia/', 'rf-newsletter-mensal', 'capa') },
   assunto: '{{{ASSUNTO}}}',
   preview: '{{{PREVIEW}}}',
   variaveis: [
@@ -139,7 +142,7 @@ T.push({
     ['INTRO', 'Um resumo rápido do que mudou no jogo e do que vem por aí.'],
     ['DESTAQUE_TITULO', 'Destaque do mês'], ['DESTAQUE_TEXTO', 'Texto do destaque.'],
     ['NOVIDADE_1', 'Novidade 1'], ['NOVIDADE_2', 'Novidade 2'], ['NOVIDADE_3', 'Novidade 3'],
-    ['CTA_TEXTO', 'Jogar agora'], ['CTA_URL', utm(SITE + '/', 'rf-newsletter-mensal')],
+    ['CTA_TEXTO', 'Jogar agora'], ['CTA_URL', utm(SITE + '/', 'rf-newsletter-mensal', 'botao')],
   ],
   corpo: (a) => [
     rotulo('{{{EDICAO}}}'),
@@ -152,7 +155,7 @@ T.push({
     botao('{{{CTA_TEXTO}}}', '{{{CTA_URL}}}'),
     linha(),
     subtitulo('Você decide o que vem depois'),
-    par(`No <a href="${utm(SITE + '/roadmap/', a)}" style="color:${C.azul};font-weight:700;">roadmap público</a> você vota nas próximas funcionalidades. As mais votadas sobem na fila.`),
+    par(`No <a href="${utm(SITE + '/roadmap/', a, 'link_roadmap')}" style="color:${C.azul};font-weight:700;">roadmap público</a> você vota nas próximas funcionalidades. As mais votadas sobem na fila.`),
   ],
 });
 
@@ -162,7 +165,7 @@ T.push({
   capa: { img: CAPA('time-do-coracao'), alt: 'O estádio do seu clube no RetroFoot' },
   assunto: '{{{FIRST_NAME}}}, pra qual time você torce?',
   preview: 'Uma pergunta só, um toque para responder.',
-  variaveis: [['RESPONDER_URL', utm(SITE + '/?time-do-coracao', 'rf-time-do-coracao')]],
+  variaveis: [['RESPONDER_URL', utm(SITE + '/?time-do-coracao', 'rf-time-do-coracao', 'botao')]],
   corpo: () => [
     rotulo('Uma pergunta rápida'),
     titulo('Pra qual time você torce, {{{FIRST_NAME}}}?'),
@@ -183,7 +186,7 @@ T.push({
     ['RECURSO', 'recurso novo'], ['RESUMO', 'Chegou uma novidade no jogo.'],
     ['TEXTO', 'Descrição do que mudou e por que vale a pena testar.'],
     ['COMO_1', 'Passo 1'], ['COMO_2', 'Passo 2'],
-    ['CTA_TEXTO', 'Experimentar agora'], ['CTA_URL', utm(SITE + '/', 'rf-novidade')],
+    ['CTA_TEXTO', 'Experimentar agora'], ['CTA_URL', utm(SITE + '/', 'rf-novidade', 'botao')],
   ],
   corpo: (a) => [
     rotulo('Novidade no jogo'),
@@ -191,7 +194,7 @@ T.push({
     par('Oi, {{{FIRST_NAME}}}! {{{TEXTO}}}'),
     caixa(`<strong style="color:${C.titulo};">Como usar</strong><br>1. {{{COMO_1}}}<br>2. {{{COMO_2}}}`),
     botao('{{{CTA_TEXTO}}}', '{{{CTA_URL}}}'),
-    nota(`Tem ideia ou achou um problema? Conte no <a href="${utm(GRUPO_WPP, a)}" style="color:${C.azul};">grupo do WhatsApp</a>.`),
+    nota(`Tem ideia ou achou um problema? Conte no <a href="${utm(GRUPO_WPP, a, 'link_whatsapp')}" style="color:${C.azul};">grupo do WhatsApp</a>.`),
   ],
 });
 
@@ -207,8 +210,8 @@ T.push({
     titulo('O vestiário está esperando, {{{FIRST_NAME}}}'),
     par('Faz um tempo que você não aparece no RetroFoot. O seu save está guardado na nuvem, do jeitinho que você deixou — é só entrar e continuar a temporada.'),
     par('Enquanto isso, chegou coisa nova: {{{NOVIDADE}}}.'),
-    botao('Voltar para o meu time', utm(SITE + '/', a)),
-    nota(`Prefere jogar com os amigos? No <a href="${utm(SITE + '/jogar-com-amigos/', a)}" style="color:${C.azul};">Modo Resenha</a> cada um treina o seu time no mesmo campeonato.`),
+    botao('Voltar para o meu time', utm(SITE + '/', a, 'botao')),
+    nota(`Prefere jogar com os amigos? No <a href="${utm(SITE + '/jogar-com-amigos/', a, 'link_resenha')}" style="color:${C.azul};">Modo Resenha</a> cada um treina o seu time no mesmo campeonato.`),
   ],
 });
 
@@ -224,7 +227,7 @@ const dica = ({ n, curto, capa, alias, assunto, preview, tituloTxt, abertura, po
     par(`{{{FIRST_NAME}}}, ${abertura}`),
     itens(pontos),
     caixa(`<strong style="color:${C.titulo};">Faça agora</strong><br>${fazer}`),
-    botao(cta, utm(SITE + '/', a)),
+    botao(cta, utm(SITE + '/', a, 'botao')),
     `      <p style="margin:18px 0 0 0;color:${C.texto};font-family:${FONTE};font-size:14px;line-height:1.6;">Um abraço,<br><strong style="color:${C.titulo};">O Presidente</strong></p>`,
     ps ? nota(`P.S. ${ps}`) : '',
   ],
@@ -344,7 +347,7 @@ const b = (t) => `<strong style="color:${C.titulo};">${t}</strong>`;
 
 T.push({
   alias: 'rf-ativar-1a-rodada', nome: '[RetroFoot] Ativação · Jogue a 1ª rodada',
-  capa: { img: CAPA('video-como-jogar'), alt: 'Vídeo: Como jogar RetroFoot', link: utm(SITE + '/guia/', 'rf-ativar-1a-rodada') },
+  capa: { img: CAPA('video-como-jogar'), alt: 'Vídeo: Como jogar RetroFoot', link: utm(SITE + '/guia/', 'rf-ativar-1a-rodada', 'capa') },
   assunto: '{{{FIRST_NAME}}}, o seu time ainda não entrou em campo',
   preview: 'A primeira partida leva uns 2 minutos. O vestiário está pronto.',
   variaveis: [],
@@ -357,8 +360,8 @@ T.push({
       ['2. Escale com um toque', 'O botão "Auto" monta o melhor time possível. Dá para ajustar depois, com calma.'],
       ['3. Jogue a 1ª rodada', 'Acompanhe o jogo ao vivo e veja a tabela mexer.'],
     ]),
-    botao('Jogar minha 1ª rodada', utm(SITE + '/', a)),
-    nota(`Primeira vez? O vídeo <a href="${utm(SITE + '/guia/', a)}" style="color:${C.azul};">Como jogar RetroFoot</a> mostra o básico em poucos minutos.`),
+    botao('Jogar minha 1ª rodada', utm(SITE + '/', a, 'botao')),
+    nota(`Primeira vez? O vídeo <a href="${utm(SITE + '/guia/', a, 'link_guia')}" style="color:${C.azul};">Como jogar RetroFoot</a> mostra o básico em poucos minutos.`),
     assinatura,
     nota('P.S. O seu save fica na nuvem: comece no computador e continue no celular.'),
   ],
@@ -377,7 +380,7 @@ T.push({
     subtitulo('Com o Pro, a carreira não para mais'),
     itens(BENS_PRO),
     caixa(`${b('R$ 19,90 por mês')} — cancela quando quiser.<br>Ou ${b('R$ 178,80 por ano')}: sai por R$ 14,90 por mês (25% menos).<br>No cartão ou no Pix (o Pix vale pelo período, sem renovação automática).`),
-    botao('Seguir a carreira no Pro', utm(SITE + '/?pro', a)),
+    botao('Seguir a carreira no Pro', utm(SITE + '/?pro', a, 'botao')),
     nota('O botão abre a assinatura do Pro já no jogo (se pedir, entre na sua conta primeiro — é assim que o Pro cai no seu save). Prefere seguir de graça? Se ainda houver uma saída grátis para a sua carreira, ela aparece ao clicar em "Começar a próxima temporada".'),
     assinatura,
   ],
@@ -396,7 +399,7 @@ T.push({
     subtitulo('O que muda com o Pro'),
     itens(BENS_PRO),
     caixa(`${b('Plano anual: R$ 178,80')} — R$ 14,90 por mês, 25% menos que o mensal (R$ 19,90).<br>Um pagamento e um ano inteiro de carreira sem trava.`),
-    botao('Assinar o Pro anual', utm(SITE + '/?pro=ano', a)),
+    botao('Assinar o Pro anual', utm(SITE + '/?pro=ano', a, 'botao')),
     nota('O botão abre a assinatura já no plano anual (se pedir, entre na sua conta primeiro). Pagamento pelo Stripe, no cartão ou no Pix — dá para trocar para o mensal na mesma tela.'),
     assinatura,
     nota('P.S. Quem assina agora não perde nada: a temporada extra continua, e as próximas vêm sem trava.'),
@@ -408,7 +411,7 @@ const indice = [];
 for (const t of T) {
   const html = casca({ alias: t.alias, preview: t.preview, corpo: t.corpo(t.alias).join('\n'), marketing: t.marketing !== false });
   writeFileSync(`emails/templates/${t.alias}.html`, html);
-  const cab = [['HEADER_IMG', t.capa.img], ['HEADER_ALT', t.capa.alt], ['HEADER_LINK', t.capa.link || utm(SITE + '/', t.alias)]];
+  const cab = [['HEADER_IMG', t.capa.img], ['HEADER_ALT', t.capa.alt], ['HEADER_LINK', t.capa.link || utm(SITE + '/', t.alias, 'capa')]];
   indice.push({ alias: t.alias, nome: t.nome, assunto: t.assunto, marketing: t.marketing !== false,
     variaveis: [...cab, ...t.variaveis].map(([key, fallbackValue]) => ({ key, type: 'string', fallbackValue })) });
 }

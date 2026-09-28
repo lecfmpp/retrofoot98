@@ -18,7 +18,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-boas-vindas"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-boas-vindas&utm_content=capa"
       }
     ]
   },
@@ -41,7 +41,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/guia/?utm_source=email&utm_medium=email&utm_campaign=rf-newsletter-mensal"
+        "fallbackValue": "https://retrofoot.com.br/guia/?utm_source=email&utm_medium=email&utm_campaign=rf-newsletter-mensal&utm_content=capa"
       },
       {
         "key": "ASSUNTO",
@@ -101,7 +101,7 @@
       {
         "key": "CTA_URL",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-newsletter-mensal"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-newsletter-mensal&utm_content=botao"
       }
     ]
   },
@@ -124,12 +124,12 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao&utm_content=capa"
       },
       {
         "key": "RESPONDER_URL",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?time-do-coracao&utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao"
+        "fallbackValue": "https://retrofoot.com.br/?time-do-coracao&utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao&utm_content=botao"
       }
     ]
   },
@@ -152,7 +152,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-novidade"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-novidade&utm_content=capa"
       },
       {
         "key": "RECURSO",
@@ -187,7 +187,7 @@
       {
         "key": "CTA_URL",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-novidade"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-novidade&utm_content=botao"
       }
     ]
   },
@@ -210,7 +210,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-sentimos-falta"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-sentimos-falta&utm_content=capa"
       },
       {
         "key": "NOVIDADE",
@@ -238,7 +238,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-1-janela"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-1-janela&utm_content=capa"
       }
     ]
   },
@@ -261,7 +261,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-2-caixa"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-2-caixa&utm_content=capa"
       }
     ]
   },
@@ -284,7 +284,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-3-rodizio"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-3-rodizio&utm_content=capa"
       }
     ]
   },
@@ -307,7 +307,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-4-evolucao"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-4-evolucao&utm_content=capa"
       }
     ]
   },
@@ -330,7 +330,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-5-copa"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-5-copa&utm_content=capa"
       }
     ]
   },
@@ -353,7 +353,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-6-acesso"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-6-acesso&utm_content=capa"
       }
     ]
   },
@@ -376,7 +376,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-7-fim-temporada"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-7-fim-temporada&utm_content=capa"
       }
     ]
   },
@@ -399,7 +399,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/guia/?utm_source=email&utm_medium=email&utm_campaign=rf-ativar-1a-rodada"
+        "fallbackValue": "https://retrofoot.com.br/guia/?utm_source=email&utm_medium=email&utm_campaign=rf-ativar-1a-rodada&utm_content=capa"
       }
     ]
   },
@@ -422,7 +422,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-travado"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-travado&utm_content=capa"
       }
     ]
   },
@@ -445,7 +445,7 @@
       {
         "key": "HEADER_LINK",
         "type": "string",
-        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-extra"
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-extra&utm_content=capa"
       }
     ]
   }
