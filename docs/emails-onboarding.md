@@ -10,7 +10,7 @@ para o jogador chegar ao fim da temporada (e ao paywall) sabendo jogar.
   utm_content: `botao` (CTA principal), `capa` (imagem do topo), `logo`, `link_guia`, `link_roadmap`,
   `link_resenha`, `link_whatsapp`, `rodape_site`, `rodape_whatsapp`; nos broadcasts, a versão texto usa
   `texto_botao`/`texto_guia`. Ao passar HEADER_LINK/CTA_URL num envio, manter o utm_content no link.
-- Envios feitos: 28/09 — "Jogue a 1ª rodada" (broadcast) para o segmento 1 (156) e o segmento 0 (51).
+- Envios feitos: 28/09 — "Jogue a 1ª rodada" (broadcast) para o segmento 1 (156) e o segmento 0 (51); "Travado no paywall" (oferta Pro, botão `?pro`) para o segmento 5 (9).
 
 ## Cabeçalho de mídia (todos os templates)
 
