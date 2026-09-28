@@ -332,8 +332,8 @@ T.push(dica({ n: 7, capa: { img: CAPA('dica-fim-temporada'), alt: 'Técnico camp
 /* 13–15. CONVERSÃO (28/09) — um por segmento do Resend (docs/emails-onboarding.md, "Segmentos").
    Preço e benefícios são os do paywall (rf26-paywall.js / RF_PLANOS): R$ 19,90/mês, R$ 178,80/ano
    (−25%), cartão (renova) ou Pix (avulso, sem renovação). O "Ultrassônico" fica de fora do e-mail:
-   sem contexto, não vende. Não há link direto para a tela do Pro: o botão leva ao jogo e o texto diz
-   onde assinar (virada da temporada ou Minha Conta). */
+   sem contexto, não vende. O botão usa o link direto do Pro (?pro / ?pro=ano, ui/rf-link-pro.js):
+   abre a oferta no jogo e, sem sessão, pede login antes do checkout. */
 const assinatura = `      <p style="margin:18px 0 0 0;color:${C.texto};font-family:${FONTE};font-size:14px;line-height:1.6;">Um abraço,<br><strong style="color:${C.titulo};">O Presidente</strong></p>`;
 const BENS_PRO = [
   ['Temporadas e carreiras ilimitadas', 'Suba da Série D até a elite sem trava no caminho.'],
@@ -377,8 +377,8 @@ T.push({
     subtitulo('Com o Pro, a carreira não para mais'),
     itens(BENS_PRO),
     caixa(`${b('R$ 19,90 por mês')} — cancela quando quiser.<br>Ou ${b('R$ 178,80 por ano')}: sai por R$ 14,90 por mês (25% menos).<br>No cartão ou no Pix (o Pix vale pelo período, sem renovação automática).`),
-    botao('Seguir a carreira no Pro', utm(SITE + '/', a)),
-    nota('Como assinar: entre no jogo e clique em "Começar a próxima temporada" — ou abra Minha Conta. Se ainda houver uma saída grátis para a sua carreira, ela aparece na mesma tela.'),
+    botao('Seguir a carreira no Pro', utm(SITE + '/?pro', a)),
+    nota('O botão abre a assinatura do Pro já no jogo (se pedir, entre na sua conta primeiro — é assim que o Pro cai no seu save). Prefere seguir de graça? Se ainda houver uma saída grátis para a sua carreira, ela aparece ao clicar em "Começar a próxima temporada".'),
     assinatura,
   ],
 });
@@ -396,8 +396,8 @@ T.push({
     subtitulo('O que muda com o Pro'),
     itens(BENS_PRO),
     caixa(`${b('Plano anual: R$ 178,80')} — R$ 14,90 por mês, 25% menos que o mensal (R$ 19,90).<br>Um pagamento e um ano inteiro de carreira sem trava.`),
-    botao('Conhecer o Pro', utm(SITE + '/', a)),
-    nota('Para assinar: no jogo, abra Minha Conta. Pagamento pelo Stripe, no cartão ou no Pix.'),
+    botao('Assinar o Pro anual', utm(SITE + '/?pro=ano', a)),
+    nota('O botão abre a assinatura já no plano anual (se pedir, entre na sua conta primeiro). Pagamento pelo Stripe, no cartão ou no Pix — dá para trocar para o mensal na mesma tela.'),
     assinatura,
     nota('P.S. Quem assina agora não perde nada: a temporada extra continua, e as próximas vêm sem trava.'),
   ],
