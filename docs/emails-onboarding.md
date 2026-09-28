@@ -6,7 +6,11 @@ para o jogador chegar ao fim da temporada (e ao paywall) sabendo jogar.
 - Fonte dos templates: `scripts/build-emails.mjs` → `emails/templates/<alias>.html` + `index.json`.
 - No Resend: os 12 estão como **rascunho (draft)**, com o mesmo alias. Nada foi publicado nem enviado.
 - Mudou o texto? Editar o gerador, rodar `node scripts/build-emails.mjs` e atualizar o HTML no Resend.
-- Todos os links levam `utm_source=email&utm_medium=email&utm_campaign=<alias>`.
+- Todos os links levam `utm_source=email&utm_medium=email&utm_campaign=<alias>&utm_content=<qual link>`.
+  utm_content: `botao` (CTA principal), `capa` (imagem do topo), `logo`, `link_guia`, `link_roadmap`,
+  `link_resenha`, `link_whatsapp`, `rodape_site`, `rodape_whatsapp`; nos broadcasts, a versão texto usa
+  `texto_botao`/`texto_guia`. Ao passar HEADER_LINK/CTA_URL num envio, manter o utm_content no link.
+- Envios feitos: 28/09 — "Jogue a 1ª rodada" (broadcast) para o segmento 1 (156 contas).
 
 ## Cabeçalho de mídia (todos os templates)
 
