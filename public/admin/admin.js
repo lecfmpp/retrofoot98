@@ -3446,11 +3446,35 @@ function modalLancamento(tipo){
 }
 
 /* ============================ PUBLICIDADE ============================ */
+/* ===== CONTATOS DO MEDIA KIT (27/09/2026) =====
+   O formulário de /media-kit/ grava em elifoot_v3.retrofoot_media_kit e avisa o grupo, mas não havia
+   tela no painel para os contatos. A lista mora aqui, junto dos patrocinadores: é de onde eles vêm.
+   Site e rede viram link só quando parecem endereço (http/https; nunca outro esquema); @perfil fica
+   texto, porque não dá para saber de que rede é. */
+function mkLink(v){
+  const t = String(v || '').trim();
+  if(!t) return '';
+  const url = /^https?:\/\//i.test(t) ? t : (!/\s/.test(t) && /^[^@\s]+\.[a-z]{2,}/i.test(t) ? 'https://' + t : '');
+  const rot = t.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '');
+  return url ? `<a href="${h(url)}" target="_blank" rel="noopener noreferrer" data-tip="${h(url)}">${h(rot)}</a>` : h(t);
+}
+const mkRedesHTML = (v) => String(v || '').split(/[,;\n]+|\s+(?=@|https?:)/).map(x => x.trim()).filter(Boolean).map(mkLink).join('<br>');
+function mkCSV(ls){
+  const cab = ['Quando','Empresa','Contato','E-mail','Telefone','Site','Redes','Formato','Verba','Mensagem','Origem'];
+  return cab.join(';') + '\n' + ls.map(c => [new Date(c.created_at).toLocaleString('pt-BR'), c.empresa, c.nome, c.email,
+    c.telefone, c.site, c.redes, c.objetivo, c.verba, c.observacao, c.origem].map(csvCampo).join(';')).join('\n');
+}
 async function pgPublicidade(forcar, senha = pedirDesenho()){
   const per = perAtual();   // impressões e cliques do período do topo (27/09)
-  const { data, error } = await sb.rpc('publicidade', { p_dias: per.dias, p_de: per.de, p_ate: per.ate });
+  const [{ data, error }, mk] = await Promise.all([
+    sb.rpc('publicidade', { p_dias: per.dias, p_de: per.de, p_ate: per.ate }),
+    jogo('retrofoot_media_kit').select('*').order('created_at', { ascending:false }).limit(300)
+  ]);
   if(error) throw error;
   D.pub = data;
+  const contatos = mk.error ? [] : (mk.data || []);
+  const contatosPer = contatos.filter(c => { const t = new Date(c.created_at).getTime(); return t >= per.ini && t < per.fim; }).length;
+  const colMk = 'minmax(0,1.3fr) minmax(0,1.2fr) 118px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 110px 96px';
   const espacos = data.espacos||[], patros = data.patrocinadores||[];
   repararMoradaFixa(espacos);            // sem await: a pagina nao espera pelo conserto
   const noAr = espacos.filter(e=>e.criativo).length;
@@ -3492,6 +3516,32 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
         </div>`).join('') : '<div class="vazio">Nenhum patrocinador registrado.</div>'}
     </div>
 
+    <div class="card" style="overflow:hidden">
+      <div class="card-h"><b>Contatos do media kit</b>
+        <span class="st" style="margin:0;flex:1">${num(contatos.length)} no total · ${num(contatosPer)} ${h(per.rot)}</span>
+        ${contatos.length ? '<button class="btn btn-sm btn-ghost" id="mk-csv" title="Planilha com todos os campos">⤓ CSV</button>' : ''}</div>
+      ${mk.error ? `<div class="erro">Não deu para ler os contatos: ${h(erroMsg(mk.error))}</div>` : ''}
+      <div class="rowh" style="grid-template-columns:${colMk};border-bottom:none">
+        <span>Empresa</span><span>E-mail</span><span>WhatsApp</span><span>Site</span><span>Redes</span>
+        <span>Formato</span><span>Verba</span><span style="text-align:right">Quando</span>
+      </div>
+      ${contatos.length ? contatos.map(c => {
+        const tel = String(c.telefone || '').replace(/\D/g, '');
+        return `<div class="row" style="grid-template-columns:${colMk};padding:12px 20px;align-items:start">
+          <span style="min-width:0"><b style="display:block;font-size:13px;font-weight:600">${h(c.empresa || c.nome || '—')}</b>
+            ${c.empresa && c.nome && c.nome !== c.empresa ? `<small style="font-size:11.5px;color:var(--dim2)">${h(c.nome)}</small>` : ''}</span>
+          <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis"><a href="mailto:${h(c.email)}" data-tip="${h(c.email)}">${emailHTML(c.email)}</a></span>
+          <span class="mono" style="font-size:12px">${tel ? `<a href="https://wa.me/${h(tel.length <= 11 ? '55' + tel : tel)}" target="_blank" rel="noopener">${h(c.telefone)}</a>` : '<span style="color:var(--dim3)">—</span>'}</span>
+          <span style="font-size:12px;min-width:0;overflow-wrap:anywhere">${mkLink(c.site) || '<span style="color:var(--dim3)">—</span>'}</span>
+          <span style="font-size:12px;min-width:0;overflow-wrap:anywhere">${mkRedesHTML(c.redes) || '<span style="color:var(--dim3)">—</span>'}</span>
+          <span style="font-size:12px;color:var(--dim);min-width:0">${h(c.objetivo || '—')}</span>
+          <span style="font-size:12px;color:var(--dim);min-width:0">${h(c.verba || '—')}</span>
+          <span class="mono" style="font-size:11.5px;color:var(--dim2);text-align:right" data-tip="${h(new Date(c.created_at).toLocaleString('pt-BR'))}">${h(dmy(c.created_at))}<small style="display:block;color:var(--dim3)">${h(ha(c.created_at))}</small></span>
+          ${c.observacao ? `<span style="grid-column:1/-1;font-size:12px;color:var(--dim);line-height:1.6"><b style="color:var(--dim2)">Mensagem:</b> ${h(c.observacao)}</span>` : ''}
+        </div>`;
+      }).join('') : '<div class="vazio">Nenhum contato pelo media kit ainda.</div>'}
+    </div>
+
     <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
       <span class="tt" style="flex:1">Espaços publicitários</span>
       <span style="font-size:12px;color:var(--dim2)">Cada espaço tem formato e peso próprios — o upload valida antes de publicar.</span>
@@ -3507,6 +3557,11 @@ async function pgPublicidade(forcar, senha = pedirDesenho()){
       </div>
     </div>`;
 
+  if(el('mk-csv')) el('mk-csv').onclick = () => {
+    baixarTexto(`retrofoot98-contatos-media-kit-${usDiaLocal(new Date())}.csv`, mkCSV(contatos), 'text/csv;charset=utf-8');
+    toast(`${contatos.length} contato${contatos.length===1?'':'s'} exportado${contatos.length===1?'':'s'}.`);
+  };
+  tipIniciar();
   if(editar){
     el('p-novo').onclick = modalPatrocinador;
     document.querySelectorAll('[data-del-patro]').forEach(b => b.onclick = async () => {
