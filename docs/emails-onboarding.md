@@ -56,15 +56,15 @@ Foto de 28/09 (325 contas):
 
 | Segmento | Contas | Objetivo | E-mail |
 |----------|-------:|----------|--------|
-| RF · 0 Cadastrou e não jogou | 50 | **ativar**: criar o 1º save | a fazer: "seu clube está esperando" + vídeo |
-| RF · 1 Parou antes da 2ª rodada | 156 | **ativar**: jogar a 1ª partida — o maior vazamento | a fazer: "jogue a 1ª rodada em 2 min" + Dica 1 |
+| RF · 0 Cadastrou e não jogou | 50 | **ativar**: criar o 1º save | `rf-ativar-1a-rodada` |
+| RF · 1 Parou antes da 2ª rodada | 156 | **ativar**: jogar a 1ª partida — o maior vazamento | `rf-ativar-1a-rodada` |
 | RF · 2 T1 começo (rodadas 2–10) | 78 | reter | Dicas 1–4 |
 | RF · 3 T1 meio (rodadas 11–30) | 12 | reter | Dicas 5–6 |
 | RF · 4 T1 reta final (31+) | 3 | preparar o paywall | Dica 7 |
-| RF · 5 Travado no paywall | 9 | **CONVERTER** — viu o paywall e não seguiu | a fazer: oferta Pro + lembrete do depoimento grátis |
-| RF · 6 Temporada extra grátis | 14 | **CONVERTER** antes da próxima trava | a fazer: "o que o Pro libera" |
+| RF · 5 Travado no paywall | 9 | **CONVERTER** — viu o paywall e não seguiu | `rf-pro-travado` |
+| RF · 6 Temporada extra grátis | 14 | **CONVERTER** antes da próxima trava | `rf-pro-extra` |
 | RF · 7 Pro ativo | 1 | reter, pedir indicação | newsletter |
-| RF · 8 Ex-Pro (cancelou) | 2 | recuperar | a fazer: "volte ao Pro" |
+| RF · 8 Ex-Pro (cancelou) | 2 | recuperar | (a fazer) |
 | RF · Inativos 7+ dias | 68 | reengajar | Sentimos sua falta |
 | RF · Sem time do coração | 321 | perguntar | Time do coração |
 | RF · Todos (newsletter) | 325 | — | Newsletter mensal |
