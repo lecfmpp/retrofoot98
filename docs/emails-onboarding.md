@@ -74,6 +74,9 @@ Foto de 28/09 (325 contas):
 | RF · Todos (newsletter) | 325 | — | Newsletter mensal |
 
 Etapa é exclusiva (cada conta em uma só, 0–8); "Inativos", "Sem time" e "Todos" são transversais.
+**Envio em massa (desde 28/09):** "Todos", "Inativos" e "Sem time" NÃO incluem as etapas 0 e 1 nem quem está
+na automação pós-cadastro (cadastros depois de 28/09 15:05, nos primeiros 16 dias). Etapas 0 e 1 só recebem
+envio dirigido (ex.: a ativação).
 Para disparar por mudança de etapa (ex.: entrou em "Travado" → e-mail de conversão no mesmo dia), a
 automação do Resend precisa de EVENTO; o próximo passo é o `email-planejar` mandar um evento
 `rf.etapa` quando a etapa muda.

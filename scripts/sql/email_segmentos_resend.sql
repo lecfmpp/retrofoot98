@@ -186,3 +186,14 @@ revoke all on admin_rf98.email_resumo from public, anon, authenticated;
 
 select cron.schedule('email-planejar', '*/10 * * * *', 'select admin_rf98.email_planejar()');
 select cron.schedule('email-despachar', '2 seconds', 'select admin_rf98.email_despachar()');
+
+-- ===== 28/09: ETAPAS 0 E 1 FORA DOS ENVIOS EM MASSA (migração email_estado_fora_de_massa) =====
+-- Pedido do dono. Os segmentos transversais (todos/newsletter, inativos_7d, sem_time) deixam de incluir:
+--   · etapa e0_nao_jogou e e1_parou_r1 (recebem só envio dirigido, como a ativação);
+--   · quem está na automação pós-cadastro: cadastrou DEPOIS que ela foi ligada (28/09 15:05 UTC) e há < 16 dias.
+-- ATENÇÃO: a 1ª versão usava só "cadastrou há < 16 dias" e tirava quase a base toda (a maioria entrou nas
+-- últimas semanas, ANTES de a automação existir) — a fila foi pausada e desfeita. O corte pela data de
+-- ligação da automação é o que vale.
+-- No email_estado(): coluna na_automacao =
+--   (u.created_at >= timestamptz '2026-09-28 15:05:00+00' and u.created_at > now() - interval '16 days')
+-- e em_massa = not (etapa in ('e0_nao_jogou','e1_parou_r1') or na_automacao); todos/inativos_7d/sem_time só se em_massa.
