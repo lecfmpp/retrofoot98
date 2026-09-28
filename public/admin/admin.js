@@ -4523,15 +4523,16 @@ const OPS_ST = { aberto:['A fazer','t-warn'], corrigindo:['Fazendo','t-azul'], c
 const TIPOS_ITEM = { recurso:'Recurso do jogo', bug:'Bug', operacional:'Marketing e operação' };
 const INTERNA = {
   bug: { lista:'bugs', st:BUG_ST, nome:'Bugs', um:'bug', novo:'+ Novo bug', busca:'Procurar bug…',
-    ver:{ abertos:'Abertos e corrigindo', corrigido:'Corrigidos', nao_e_bug:'Não é bug', todos:'Todos' },
+    ver:{ abertos:'Abertos e corrigindo', corrigido:'Corrigidos', nao_e_bug:'Não é bug', todos:'Todos', arquivados:'Arquivados' },
     desc:'<b style="color:var(--fg)">Bugs.</b> O que é correção, não recurso novo. Não passa pela votação dos sócios e <b>não aparece no roadmap público</b>. Depoimento que relata problema pode virar bug aqui.' },
   operacional: { lista:'ops', st:OPS_ST, nome:'Marketing e operação', um:'item', novo:'+ Novo item', busca:'Procurar item…',
-    ver:{ abertos:'A fazer e fazendo', corrigido:'Feitos', nao_e_bug:'Descartados', todos:'Todos' },
+    ver:{ abertos:'A fazer e fazendo', corrigido:'Feitos', nao_e_bug:'Descartados', todos:'Todos', arquivados:'Arquivados' },
     desc:'<b style="color:var(--fg)">Marketing e operação.</b> Tarefas dos sócios que não são recurso do jogo nem bug — e-mails, redes, site, painel, pagamentos. Não passam pela votação e <b>não vão ao roadmap público</b>.' }
 };
 async function mudarTipo(id, tipo){
   const f = D.feats.find(x => x.id === id); if(!f || (f.tipo||'recurso') === tipo) return;
-  const linha = tipo === 'recurso' ? { tipo, ideia_status:'pendente' } : { tipo, bug_status:'aberto' };
+  /* mudar de categoria NÃO desarquiva: arquivado continua arquivado na categoria nova */
+  const linha = tipo === 'recurso' ? { tipo, ideia_status: f.ideia_status === 'arquivada' ? 'arquivada' : 'pendente' } : { tipo, bug_status:'aberto' };
   const { error } = await sb.from('adm_features').update(linha).eq('id', id);
   if(error) return toast(erroMsg(error), true);
   registrar('ideia.tipo', f.titulo, { ideia_id: id, de: f.tipo || 'recurso', para: tipo });
@@ -4551,7 +4552,10 @@ function ligarMoverTipo(){
 function internaHTML(tipo, editar){
   const cfg = INTERNA[tipo], itens = D.feats.filter(f => f.tipo === tipo);
   const ver = ST['iv_'+tipo] || 'abertos', q = (ST['ib_'+tipo]||'').trim().toLowerCase();
-  const passa = (f, k) => k === 'todos' || (k === 'abertos' ? ['aberto','corrigindo'].includes(f.bug_status) : f.bug_status === k);
+  /* ARQUIVADO SOME DAS LISTAS (27/09/2026): antes estas abas ignoravam o arquivamento e o item
+     "voltava". Arquivado só aparece no filtro Arquivados. */
+  const passa = (f, k) => k === 'arquivados' ? f.ideia_status === 'arquivada'
+    : f.ideia_status !== 'arquivada' && (k === 'todos' || (k === 'abertos' ? ['aberto','corrigindo'].includes(f.bug_status) : f.bug_status === k));
   const ls = itens.filter(f => passa(f, ver) && (!q || [f.titulo, f.nota, f.descricao].some(v => String(v||'').toLowerCase().includes(q))))
     .sort((a,b) => (b.bug_status === 'corrigindo') - (a.bug_status === 'corrigindo') || new Date(b.criada_em) - new Date(a.criada_em));
   const col = 'minmax(0,1fr) 170px 170px';
@@ -4578,7 +4582,10 @@ function internaHTML(tipo, editar){
           <span>${editar ? `<select class="f" data-int-st="${h(f.id)}" style="font-size:12px;padding:6px 8px">
               ${Object.entries(cfg.st).map(([k,[r]]) => `<option value="${k}" ${f.bug_status===k?'selected':''}>${h(r)}</option>`).join('')}</select>`
             : `<span class="tag ${st[1]}">${h(st[0])}</span>`}</span>
-          <span>${editar ? moverTipoHTML(f) : ''}</span>
+          <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">${editar ? moverTipoHTML(f) : ''}
+            ${editar ? (f.ideia_status === 'arquivada'
+              ? `<span class="link" data-int-desarq="${h(f.id)}" style="font-size:12px">desarquivar</span>`
+              : `<span class="link" data-int-arq="${h(f.id)}" style="font-size:12px">arquivar</span>`) : ''}</span>
         </div>`;
       }).join('') : `<div class="vazio">Nada com esses filtros.</div>`}
     </div>`;
@@ -4591,6 +4598,15 @@ function ligarInterna(tipo, editar){
   if(!editar) return;
   el('int-novo').onclick = () => modalNovaIdeia(tipo);
   ligarMoverTipo();
+  const arq = async (id, st) => {
+    const f = D.feats.find(x => x.id === id); if(!f) return;
+    const { error } = await sb.from('adm_features').update({ ideia_status: st }).eq('id', id);
+    if(error) return toast(erroMsg(error), true);
+    registrar(st === 'arquivada' ? 'ideia.arquivar' : 'ideia.desarquivar', f.titulo, { ideia_id: id });
+    toast(st === 'arquivada' ? 'Arquivado.' : 'Desarquivado.'); redesenhar(pgFeatures);
+  };
+  document.querySelectorAll('[data-int-arq]').forEach(b => b.onclick = () => arq(b.dataset.intArq, 'arquivada'));
+  document.querySelectorAll('[data-int-desarq]').forEach(b => b.onclick = () => arq(b.dataset.intDesarq, 'pendente'));
   document.querySelectorAll('[data-int-st]').forEach(sel => sel.onchange = async () => {
     const f = D.feats.find(x => x.id === sel.dataset.intSt); if(!f) return;
     const { error } = await sb.from('adm_features').update({ bug_status: sel.value }).eq('id', f.id);

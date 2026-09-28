@@ -12,8 +12,9 @@ alter table admin_rf98.adm_features drop constraint if exists adm_features_tipo_
 alter table admin_rf98.adm_features add constraint adm_features_tipo_chk check (tipo in ('recurso','bug','operacional'));
 
 update admin_rf98.adm_features f set tipo = 'operacional',
-       bug_status = case when c.nome = 'Feito' then 'corrigido' else 'aberto' end,
-       ideia_status = case when f.ideia_status = 'arquivada' then 'pendente' else f.ideia_status end
+       bug_status = case when c.nome = 'Feito' then 'corrigido' else 'aberto' end
+       -- (a 1ª versão também punha as arquivadas em 'pendente' — ERRO, desarquivava o que o sócio
+       --  arquivou; corrigido e reparado em arquivo_respeitado.sql. Nunca mexer em ideia_status aqui.)
   from admin_rf98.adm_kanban_cols c
  where c.id = f.coluna_id and f.tipo = 'recurso' and f.ideia_status in ('pendente','arquivada')
    and f.titulo in (
