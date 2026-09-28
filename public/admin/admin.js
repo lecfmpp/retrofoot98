@@ -4304,6 +4304,10 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   ]);
   for(const r of [cols, feats, opin, votosS, itens]) if(r.error) throw r.error;
   D.cols = cols.data||[]; D.feats = feats.data||[]; D.opinioes = opin.data||[];
+  /* bug e recurso na mesma tabela (adm_features.tipo): recurso vai ao banco de ideias → roadmap;
+     bug tem aba própria e nunca vai ao roadmap (scripts/sql/roadmap_bugs.sql) */
+  D.recursos = D.feats.filter(f => f.tipo !== 'bug');
+  D.bugs = D.feats.filter(f => f.tipo === 'bug');
   D.pessoas = new Map((equipe.data||[]).map(a => [a.user_id, a]));
   D.socios = (equipe.data||[]).filter(a => a.papel === 'socio' && a.estado === 'ativo');
   D.ideiaVotos = votosS.data||[];
@@ -4311,14 +4315,17 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   D.rmVotos = {}; (votosJ.data||[]).forEach(v => { D.rmVotos[v.item_id] = (D.rmVotos[v.item_id]||0) + 1; });
   const souSocio = ME && ME.papel === 'socio';
   const editar = podeEditar('produto');
-  const aba = ['ideias','roadmap','opinioes'].includes(ST.fxAba) ? ST.fxAba : 'ideias';
-  const pendentes = D.feats.filter(f => f.ideia_status === 'pendente');
+  const aba = ['ideias','roadmap','bugs','opinioes'].includes(ST.fxAba) ? ST.fxAba : 'ideias';
+  const pendentes = D.recursos.filter(f => f.ideia_status === 'pendente');
+  const bugsAbertos = D.bugs.filter(f => f.bug_status === 'aberto' || f.bug_status === 'corrigindo').length;
   const meuFalta = souSocio ? pendentes.filter(f => !D.ideiaVotos.some(v => v.ideia_id === f.id && v.user_id === ME.user_id)).length : 0;
   const porLer = (D.opinioes||[]).filter(o => !o.arquivada && !o.lida).length;
   const abasHTML = `<div class="per" style="gap:6px;margin-bottom:4px;flex-wrap:wrap">
     <span class="${aba==='ideias'?'on':''}" data-fx="ideias" style="padding:9px 16px">Banco de ideias${
       pendentes.length?` <b style="color:var(--ambar)">${pendentes.length}</b>`:''}</span>
     <span class="${aba==='roadmap'?'on':''}" data-fx="roadmap" style="padding:9px 16px">Roadmap (kanban)</span>
+    <span class="${aba==='bugs'?'on':''}" data-fx="bugs" style="padding:9px 16px">🐞 Bugs${
+      bugsAbertos?` <b style="color:var(--vermelho)">${bugsAbertos}</b>`:''}</span>
     <span class="${aba==='opinioes'?'on':''}" data-fx="opinioes" style="padding:9px 16px">Opiniões dos jogadores${
       porLer?` <b style="color:var(--ambar)">${porLer}</b>`:''}</span>
     <a class="link" href="https://retrofoot.com.br/roadmap/" target="_blank" rel="noopener" style="margin-left:auto;align-self:center;font-size:12.5px">Ver página pública ↗</a>
@@ -4327,6 +4334,11 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   if(aba === 'opinioes'){
     el('page').innerHTML = abasHTML + opinioesHTML(editar);
     ligarAbasFeatures(); ligarOpinioes(editar);
+    return;
+  }
+  if(aba === 'bugs'){
+    el('page').innerHTML = abasHTML + bugsHTML(editar);
+    ligarAbasFeatures(); ligarBugs(editar);
     return;
   }
   if(aba === 'roadmap'){
@@ -4345,7 +4357,7 @@ function ligarAbasFeatures(){
 /* ---------- BANCO DE IDEIAS ---------- */
 function ideiasFiltradas(){
   const ver = ST.idVer || 'pendente', q = (ST.idBusca||'').trim().toLowerCase();
-  return D.feats.filter(f => (ver === 'todas' || f.ideia_status === ver)
+  return D.recursos.filter(f => (ver === 'todas' || f.ideia_status === ver)
     && (!ST.idEtapa || (ST.idEtapa === 'sem' ? !f.coluna_id : f.coluna_id === ST.idEtapa))
     && (!q || [f.titulo, f.nota, f.descricao, f.origem].some(v => String(v||'').toLowerCase().includes(q))));
 }
@@ -4364,7 +4376,7 @@ function ideiaChipsHTML(f){
 function ideiasHTML(souSocio, editar, meuFalta){
   const ver = ST.idVer || 'pendente';
   const ls = ideiasFiltradas();
-  const etapas = D.cols.map(c => [c.id, c.nome, D.feats.filter(f => f.coluna_id === c.id && (ver==='todas' || f.ideia_status===ver)).length]);
+  const etapas = D.cols.map(c => [c.id, c.nome, D.recursos.filter(f => f.coluna_id === c.id && (ver==='todas' || f.ideia_status===ver)).length]);
   const col = 'minmax(0,1fr) 230px 230px';
   const podeArqLote = souSocio && ver === 'pendente' && ST.idEtapa && ls.length;
   return `
@@ -4380,7 +4392,7 @@ function ideiasHTML(souSocio, editar, meuFalta){
     <div class="card" style="overflow:hidden">
       <div class="card-h" style="flex-wrap:wrap;gap:8px">
         <select class="f" id="id-ver" style="width:auto;font-size:12.5px">
-          ${Object.entries(IDEIA_VER).map(([k,r]) => `<option value="${k}" ${ver===k?'selected':''}>${h(r)} (${k==='todas'?D.feats.length:D.feats.filter(f=>f.ideia_status===k).length})</option>`).join('')}
+          ${Object.entries(IDEIA_VER).map(([k,r]) => `<option value="${k}" ${ver===k?'selected':''}>${h(r)} (${k==='todas'?D.recursos.length:D.recursos.filter(f=>f.ideia_status===k).length})</option>`).join('')}
         </select>
         <select class="f" id="id-etapa" style="width:auto;font-size:12.5px" data-tip="A coluna em que o card estava no quadro antigo">
           <option value="">Etapa antiga: todas</option>
@@ -4404,6 +4416,7 @@ function ideiasHTML(souSocio, editar, meuFalta){
                  <button class="btn btn-sm ${meu && meu.decisao==='aprovar' ? '' : 'btn-ghost'}" data-decidir="${h(f.id)}" data-d="aprovar" data-tip="${meu && meu.decisao==='aprovar' ? 'Você votou Sim — clique para tirar o voto' : 'Votar Sim: aprovar para o roadmap'}">${meu && meu.decisao==='aprovar' ? '✓ Votei Sim' : 'Votar Sim'}</button>
                  <button class="btn btn-sm btn-ghost" data-decidir="${h(f.id)}" data-d="recusar" style="${meu && meu.decisao==='recusar' ? 'border-color:var(--vermelho);color:var(--vermelho);background:rgba(240,84,107,.12)' : ''}" data-tip="${meu && meu.decisao==='recusar' ? 'Você votou Não — clique para tirar o voto' : 'Votar Não: recusar'}">${meu && meu.decisao==='recusar' ? '✕ Votei Não' : 'Votar Não'}</button>
                  <span class="link" data-arquivar="${h(f.id)}" style="font-size:12px;align-self:center" data-tip="Tirar da fila sem votar (ex.: tarefa já feita)">arquivar</span>
+                 <span class="link" data-virar-bug="${h(f.id)}" style="font-size:12px;align-self:center" data-tip="É correção, não recurso: vai para a aba Bugs e sai da votação">é bug</span>
                </span>`
             : '<span class="st" style="margin:0">só os sócios votam</span>';
         } else if(f.ideia_status === 'aprovada'){
@@ -4427,7 +4440,7 @@ function ligarIdeias(souSocio, editar){
   buscaViva('id-busca', () => ST.idBusca, v => { ST.idBusca = v; }, pgFeatures);
   document.querySelectorAll('[data-abrir-ideia]').forEach(b => b.onclick = () => abrirCardFeature(b.dataset.abrirIdeia));
   document.querySelectorAll('#page .row [data-fx]').forEach(x => x.onclick = () => { ST.fxAba = 'roadmap'; redesenhar(pgFeatures); });
-  if(el('id-nova')) el('id-nova').onclick = modalNovaIdeia;
+  if(el('id-nova')) el('id-nova').onclick = () => modalNovaIdeia('recurso');
   if(!souSocio) return;
   document.querySelectorAll('[data-decidir]').forEach(b => b.onclick = async () => {
     const id = b.dataset.decidir, meu = D.ideiaVotos.find(v => v.ideia_id === id && v.user_id === ME.user_id);
@@ -4443,11 +4456,12 @@ function ligarIdeias(souSocio, editar){
   const mudar = async (id, st, msg) => {
     const { error } = await sb.from('adm_features').update({ ideia_status: st }).eq('id', id);
     if(error) return toast(erroMsg(error), true);
-    registrar(st === 'arquivada' ? 'ideia.arquivar' : 'ideia.desarquivar', (D.feats.find(f=>f.id===id)||{}).titulo, { ideia_id: id });
+    registrar(st === 'arquivada' ? 'ideia.arquivar' : 'ideia.desarquivar', (D.recursos.find(f=>f.id===id)||{}).titulo, { ideia_id: id });
     toast(msg); redesenhar(pgFeatures);
   };
   document.querySelectorAll('[data-arquivar]').forEach(b => b.onclick = () => mudar(b.dataset.arquivar, 'arquivada', 'Ideia arquivada.'));
   document.querySelectorAll('[data-desarquivar]').forEach(b => b.onclick = () => mudar(b.dataset.desarquivar, 'pendente', 'Ideia voltou para a fila.'));
+  document.querySelectorAll('[data-virar-bug]').forEach(b => b.onclick = () => mudarTipo(b.dataset.virarBug, 'bug'));
   if(el('id-arq-lote')) el('id-arq-lote').onclick = async () => {
     const ls = ideiasFiltradas().filter(f => f.ideia_status === 'pendente');
     const etapa = (D.cols.find(c => c.id === ST.idEtapa) || {}).nome || 'sem etapa';
@@ -4458,15 +4472,17 @@ function ligarIdeias(souSocio, editar){
     toast(`${ls.length} ideia(s) arquivada(s).`); redesenhar(pgFeatures);
   };
 }
-function modalNovaIdeia(){
-  abrirModal(`<h3>Nova ideia</h3>
+function modalNovaIdeia(tipo){
+  tipo = tipo === 'bug' ? 'bug' : 'recurso';
+  abrirModal(`<h3>${tipo === 'bug' ? 'Novo bug' : 'Nova ideia'}</h3>
     <div class="col">
       <label class="lbl">Título</label><input class="f" id="ni-tit" placeholder="Ex.: Sócio-torcedor com mensalidade">
       <label class="lbl">Descrição (opcional)</label><textarea class="f" id="ni-desc" rows="3" placeholder="O que é e por que importa para o jogador"></textarea>
       <label class="lbl">De onde veio</label>
       <select class="f" id="ni-orig">${Object.entries(IDEIA_ORIGEM).map(([k,r]) => `<option value="${k}">${h(r)}</option>`).join('')}</select>
-      <div class="st" style="margin:0">Entra em <b>Aguardando aprovação</b>: vai para o roadmap quando os ${num((D.socios||[]).length)} sócios aprovarem.</div>
-      <div class="acoes"><button class="btn" id="ni-ok">Adicionar ao banco de ideias</button><button class="btn btn-ghost" data-fechar>Cancelar</button></div>
+      <div class="st" style="margin:0">${tipo === 'bug' ? 'Entra na aba <b>Bugs</b> como aberto. Bug não vai para o roadmap público.'
+        : `Entra em <b>Aguardando aprovação</b>: vai para o roadmap quando os ${num((D.socios||[]).length)} sócios aprovarem.`}</div>
+      <div class="acoes"><button class="btn" id="ni-ok">${tipo === 'bug' ? 'Registrar bug' : 'Adicionar ao banco de ideias'}</button><button class="btn btn-ghost" data-fechar>Cancelar</button></div>
     </div>`);
   el('ni-ok').onclick = async () => {
     const titulo = el('ni-tit').value.trim();
@@ -4474,12 +4490,82 @@ function modalNovaIdeia(){
     const origem = el('ni-orig').value, col = (D.cols||[])[0];
     const { data, error } = await sb.from('adm_features').insert({
       titulo, descricao: el('ni-desc').value.trim() || null, origem, fonte: origem === 'whatsapp' ? 'whatsapp' : 'painel',
-      coluna_id: col ? col.id : null, ord: 0, criado_por: ME && ME.user_id, ideia_status: 'pendente'
+      coluna_id: col ? col.id : null, ord: 0, criado_por: ME && ME.user_id, ideia_status: 'pendente', tipo
     }).select('id').single();
     if(error) return toast(erroMsg(error), true);
-    registrar('feature.criar', titulo, { feature_id: data && data.id, origem });
-    fecharModal(); toast('Ideia adicionada — aguardando aprovação dos sócios.'); ST.idVer = 'pendente'; redesenhar(pgFeatures);
+    registrar('feature.criar', titulo, { feature_id: data && data.id, origem, tipo });
+    fecharModal();
+    if(tipo === 'bug'){ toast('Bug registrado.'); ST.bugVer = 'abertos'; }
+    else { toast('Ideia adicionada — aguardando aprovação dos sócios.'); ST.idVer = 'pendente'; }
+    redesenhar(pgFeatures);
   };
+}
+
+/* ---------- BUGS (27/09/2026) ----------
+   O que é correção, não recurso. Não passa pela votação dos sócios e nunca vai ao roadmap público
+   (o jogador não vota em bug). Fluxo próprio: aberto → corrigindo → corrigido, ou "não é bug". */
+const BUG_ST = { aberto:['Aberto','t-warn'], corrigindo:['Corrigindo','t-azul'], corrigido:['Corrigido','t-ok'], nao_e_bug:['Não é bug','t-dim'] };
+const BUG_VER = { abertos:'Abertos e corrigindo', corrigido:'Corrigidos', nao_e_bug:'Não é bug', todos:'Todos' };
+async function mudarTipo(id, tipo){
+  const f = D.feats.find(x => x.id === id); if(!f) return;
+  const linha = tipo === 'bug' ? { tipo:'bug', bug_status:'aberto' } : { tipo:'recurso', ideia_status:'pendente' };
+  const { error } = await sb.from('adm_features').update(linha).eq('id', id);
+  if(error) return toast(erroMsg(error), true);
+  registrar('ideia.tipo', f.titulo, { ideia_id: id, de: f.tipo || 'recurso', para: tipo });
+  toast(tipo === 'bug' ? 'Foi para a aba Bugs.' : 'Virou recurso — está no banco de ideias, aguardando aprovação.');
+  redesenhar(pgFeatures);
+}
+function bugsHTML(editar){
+  const ver = ST.bugVer || 'abertos', q = (ST.bugBusca||'').trim().toLowerCase();
+  const ls = D.bugs.filter(f => (ver === 'todos' || (ver === 'abertos' ? ['aberto','corrigindo'].includes(f.bug_status) : f.bug_status === ver))
+    && (!q || [f.titulo, f.nota, f.descricao].some(v => String(v||'').toLowerCase().includes(q))))
+    .sort((a,b) => (a.bug_status === 'corrigindo') - (b.bug_status === 'corrigindo') || new Date(b.criada_em) - new Date(a.criada_em));
+  const conta = (k) => k === 'todos' ? D.bugs.length : k === 'abertos' ? D.bugs.filter(f => ['aberto','corrigindo'].includes(f.bug_status)).length : D.bugs.filter(f => f.bug_status === k).length;
+  const col = 'minmax(0,1fr) 170px 150px';
+  return `
+    <div class="card card-p" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px;line-height:1.55;font-size:13px;color:var(--dim)">
+        <b style="color:var(--fg)">Bugs.</b> O que é correção, não recurso novo. Não passa pela votação dos sócios e
+        <b>não aparece no roadmap público</b>. Opinião de jogador do tipo "problema" vira bug aqui.</div>
+      ${editar ? '<button class="btn btn-sm" id="bug-novo">+ Novo bug</button>' : ''}
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-h" style="flex-wrap:wrap;gap:8px">
+        <select class="f" id="bug-ver" style="width:auto;font-size:12.5px">
+          ${Object.entries(BUG_VER).map(([k,r]) => `<option value="${k}" ${ver===k?'selected':''}>${h(r)} (${conta(k)})</option>`).join('')}
+        </select>
+        <input class="busca" id="bug-busca" placeholder="Procurar bug…" value="${h(ST.bugBusca||'')}" style="width:220px">
+        <span class="mono" style="font-size:12px;color:var(--dim2);flex:1">${num(ls.length)} bug${ls.length===1?'':'s'}</span>
+      </div>
+      <div class="rowh" style="grid-template-columns:${col}"><span>Bug</span><span>Situação</span><span>Ação</span></div>
+      ${ls.length ? ls.map(f => {
+        const st = BUG_ST[f.bug_status] || BUG_ST.aberto, texto = f.nota || f.descricao || '';
+        return `<div class="row" style="grid-template-columns:${col};align-items:start">
+          <span style="min-width:0"><b class="link" data-abrir-ideia="${h(f.id)}" style="display:block;font-size:13px;font-weight:600;color:var(--fg)">${h(f.titulo)}</b>
+            ${texto ? `<small style="display:block;font-size:12px;color:var(--dim);margin-top:3px;line-height:1.5">${h(texto)}</small>` : ''}
+            <small style="display:block;font-size:11px;color:var(--dim3);margin-top:4px">${h([IDEIA_ORIGEM[f.origem] || f.origem, dmy(f.criada_em)].filter(Boolean).join(' · '))}</small></span>
+          <span>${editar ? `<select class="f" data-bug-st="${h(f.id)}" style="font-size:12px;padding:6px 8px">
+              ${Object.entries(BUG_ST).map(([k,[r]]) => `<option value="${k}" ${f.bug_status===k?'selected':''}>${h(r)}</option>`).join('')}</select>`
+            : `<span class="tag ${st[1]}">${h(st[0])}</span>`}</span>
+          <span>${editar ? `<span class="link" data-virar-recurso="${h(f.id)}" style="font-size:12px" data-tip="Não é correção: é recurso novo — vai ao banco de ideias para a votação dos sócios">é recurso, não bug</span>` : ''}</span>
+        </div>`;
+      }).join('') : '<div class="vazio">Nenhum bug com esses filtros.</div>'}
+    </div>`;
+}
+function ligarBugs(editar){
+  el('bug-ver').onchange = () => { ST.bugVer = el('bug-ver').value; redesenhar(pgFeatures); };
+  buscaViva('bug-busca', () => ST.bugBusca, v => { ST.bugBusca = v; }, pgFeatures);
+  document.querySelectorAll('[data-abrir-ideia]').forEach(b => b.onclick = () => abrirCardFeature(b.dataset.abrirIdeia));
+  if(!editar) return;
+  el('bug-novo').onclick = () => modalNovaIdeia('bug');
+  document.querySelectorAll('[data-virar-recurso]').forEach(b => b.onclick = () => mudarTipo(b.dataset.virarRecurso, 'recurso'));
+  document.querySelectorAll('[data-bug-st]').forEach(sel => sel.onchange = async () => {
+    const f = D.bugs.find(x => x.id === sel.dataset.bugSt); if(!f) return;
+    const { error } = await sb.from('adm_features').update({ bug_status: sel.value }).eq('id', f.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('bug.status', f.titulo, { ideia_id: f.id, de: f.bug_status, para: sel.value });
+    toast('Bug: ' + BUG_ST[sel.value][0] + '.'); redesenhar(pgFeatures);
+  });
 }
 
 /* ---------- ROADMAP (kanban, o mesmo da página pública) ---------- */
@@ -4700,13 +4786,14 @@ async function opVirarCard(id){
   const ord = Math.max(0, ...(D.feats||[]).filter(f=>f.coluna_id===col.id).map(f=>+f.ord||0)) + 1;
   const ins = await sb.from('adm_features').insert({
     coluna_id: col.id, ord, titulo, origem:'usuario', fonte:'opiniao', ideia_status:'pendente', criado_por: ME && ME.user_id,
+    tipo: o.tipo === 'problema' ? 'bug' : 'recurso',   // problema relatado pelo jogador é bug, não vai ao roadmap
     descricao: o.texto + '\n\n— ' + t.n.toLowerCase() + ' de um treinador' +
                (onde ? ' em ' + onde : '') + (o.clube ? ' (' + o.clube + ')' : '')
   }).select('id').single();
   if(ins.error) return toast('Não deu para criar o card: ' + erroMsg(ins.error), true);
   const up = await jogo('user_opinions').update({ feature_id: ins.data.id, lida:true, arquivada:true }).eq('id', id);
   if(up.error) toast('Card criado, mas a opinião não saiu da caixa: ' + erroMsg(up.error), true);
-  else toast('Virou ideia no banco de ideias — aguardando aprovação dos sócios.');
+  else toast(o.tipo === 'problema' ? 'Virou bug — está na aba Bugs.' : 'Virou ideia no banco de ideias — aguardando aprovação dos sócios.');
   registrar('opiniao.virou_card', id, { feature: ins.data.id });
   redesenhar(pgFeatures);
 }
@@ -5255,7 +5342,7 @@ const ACOES = {
   'feature.voto':'Mudou votos de um card',
   'ideia.voto':'Votou numa ideia', 'ideia.aprovada':'Ideia aprovada → roadmap', 'ideia.recusada':'Ideia recusada',
   'ideia.arquivar':'Arquivou ideia', 'ideia.desarquivar':'Voltou ideia para a fila', 'ideia.arquivar_lote':'Arquivou ideias em lote',
-  'roadmap.estagio':'Moveu item do roadmap', 'roadmap.editar':'Editou item do roadmap', 'roadmap.remover':'Tirou item do roadmap',
+  'roadmap.estagio':'Moveu item do roadmap', 'bug.status':'Mudou situação de bug', 'ideia.tipo':'Mudou entre bug e recurso', 'roadmap.editar':'Editou item do roadmap', 'roadmap.remover':'Tirou item do roadmap',
   'coluna.criar':'Criou coluna do kanban',
   'coluna.renomear':'Renomeou coluna do kanban',
   'coluna.apagar':'Apagou coluna do kanban',
@@ -5322,7 +5409,7 @@ const AREA_POR_PREFIXO = {
   sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
   lancamento:'financas', openai:'financas',
   criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade', mediakit:'publicidade',
-  feature:'produto', coluna:'produto', kanban:'produto', ideia:'produto', roadmap:'produto',
+  feature:'produto', coluna:'produto', kanban:'produto', ideia:'produto', roadmap:'produto', bug:'produto',
   conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
   clube:'dados', pacote:'dados', competicoes:'dados', dados:'dados',
   momento:'videos', estudio:'imagens', config:'financas'
