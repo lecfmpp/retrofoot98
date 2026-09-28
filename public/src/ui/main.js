@@ -6882,7 +6882,7 @@ function soloPulaCopasAlheias(){
   if(CL.online) return false;
   if(CL.humans && Object.keys(CL.humans).length>1) return false;   // jogo a dois no mesmo ecra
   const o=(typeof clOpcoes==='function')?clOpcoes():(CL.options||{});
-  return (o.assistirCopas||'Sim')==='Não';
+  return (o.assistirCopas||'Não')==='Não';   // padrão 'Não' (ver CL_OPCOES_PADRAO)
 }
 /* o meu clube esta' nesta fase desta copa? null = os dados do sorteio ainda nao existem e nao da'
    para saber; quem chama so' age com um `false` de verdade */
@@ -11904,7 +11904,10 @@ function clSetTempo(label){
    intervalo — as tres que funcionam de verdade — voltavam ao padrao a cada F5, e o botao
    "Guardar" gravava o save sem gravar as opcoes. Agora a casa delas e `S.config.opcoes`,
    que viaja no save; `CL.options` e so a copia de trabalho. */
-const CL_OPCOES_PADRAO={ som:'Sim', autoSave:'Sim', subsIntervalo:'Sim', tempo:TEMPO_DEFAULT };
+/* assistirCopas: padrão 'Não' desde 27/09/2026 (pedido do dono) — copa que o meu clube não disputa é
+   simulada e mostra só o resultado. Nenhum save tinha escolhido 'Sim' de propósito (301 no padrão, 6 'Não'),
+   então a troca vale para todos sem tocar em save. Quem quiser ver, liga em Opções > Partida. Só Solo. */
+const CL_OPCOES_PADRAO={ som:'Sim', autoSave:'Sim', subsIntervalo:'Sim', tempo:TEMPO_DEFAULT, assistirCopas:'Não' };
 function clOpcoesCarregar(){
   const guardado=(typeof S!=='undefined' && S && S.config && S.config.opcoes) || {};
   CL.options=Object.assign({}, CL_OPCOES_PADRAO, guardado);

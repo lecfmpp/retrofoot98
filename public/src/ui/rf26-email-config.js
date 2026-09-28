@@ -494,7 +494,7 @@ function rfCfOpcoesHTML(){
        em vez de sumir: quem joga nos dois modos precisa de saber porque ela nao muda nada ali. */
     + rfOpLinha('Assistir copas que você não disputa',
         'Liberta Cup, Copa do Sul das Américas e Copa do Brasil quando o seu clube não está em campo. Com “Não”, a rodada é simulada e você vê só o resultado. Vale só no Modo Solo.',
-        rfOpSeg('assistirCopas',['Sim','Não'], (CL.online ? 'Sim' : (o.assistirCopas||'Sim')), {travado:!!CL.online}), 'seg')
+        rfOpSeg('assistirCopas',['Sim','Não'], (CL.online ? 'Sim' : (o.assistirCopas||'Não')), {travado:!!CL.online}), 'seg')
     + (CL.online ? `<div class="rf-op-aviso"><span style="flex:0 0 auto;font-size:12px">🔒</span>
          <span>Na <b>Resenha</b> as rodadas das copas marcam o dia da sala inteira e continuam a aparecer para todos. A opção acima vale só no Modo Solo.</span></div>` : '')
     /* O NOME DO ANFITRIAO NAO SE INVENTA. O protótipo escreve "fale com o Gringo", mas o cliente
