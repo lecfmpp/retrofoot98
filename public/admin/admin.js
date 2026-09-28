@@ -4296,14 +4296,16 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
     sb.from('adm_kanban_cols').select('*').order('ord'),
     sb.from('adm_features').select('*').order('criada_em', { ascending:false }),
     sb.from('adm_users').select('user_id,nome,email,papel,estado'),
-    /* a opinião vem do JOGO (elifoot_v3): quem escreve é o treinador — ver rf26-opiniao.js */
-    jogo('user_opinions').select('*').order('criada_em', { ascending:false }).range(0, PAGINA_SB-1),
+    /* DEPOIMENTOS (27/09/2026): a aba de opinião saiu do jogo; o que chega são os depoimentos da
+       1ª trava do paywall e os posts da 2ª (elifoot_v3.temporadas_extras), lidos por função —
+       ver scripts/sql/depoimentos_painel.sql */
+    sb.rpc('depoimentos'),
     sb.from('ideia_votos').select('*'),
     jogo('roadmap_itens').select('*').order('ord'),
     jogo('roadmap_votos').select('item_id')
   ]);
   for(const r of [cols, feats, opin, votosS, itens]) if(r.error) throw r.error;
-  D.cols = cols.data||[]; D.feats = feats.data||[]; D.opinioes = opin.data||[];
+  D.cols = cols.data||[]; D.feats = feats.data||[]; D.depos = opin.data||[];
   /* bug e recurso na mesma tabela (adm_features.tipo): recurso vai ao banco de ideias → roadmap;
      bug tem aba própria e nunca vai ao roadmap (scripts/sql/roadmap_bugs.sql) */
   D.recursos = D.feats.filter(f => f.tipo !== 'bug');
@@ -4315,25 +4317,25 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
   D.rmVotos = {}; (votosJ.data||[]).forEach(v => { D.rmVotos[v.item_id] = (D.rmVotos[v.item_id]||0) + 1; });
   const souSocio = ME && ME.papel === 'socio';
   const editar = podeEditar('produto');
-  const aba = ['ideias','roadmap','bugs','opinioes'].includes(ST.fxAba) ? ST.fxAba : 'ideias';
+  const aba = ['ideias','roadmap','bugs','depoimentos'].includes(ST.fxAba) ? ST.fxAba : 'ideias';
   const pendentes = D.recursos.filter(f => f.ideia_status === 'pendente');
   const bugsAbertos = D.bugs.filter(f => f.bug_status === 'aberto' || f.bug_status === 'corrigindo').length;
   const meuFalta = souSocio ? pendentes.filter(f => !D.ideiaVotos.some(v => v.ideia_id === f.id && v.user_id === ME.user_id)).length : 0;
-  const porLer = (D.opinioes||[]).filter(o => !o.arquivada && !o.lida).length;
+  const porLer = (D.depos||[]).filter(d => !d.arquivado && !d.lida && !d.socio).length;
   const abasHTML = `<div class="per" style="gap:6px;margin-bottom:4px;flex-wrap:wrap">
     <span class="${aba==='ideias'?'on':''}" data-fx="ideias" style="padding:9px 16px">Banco de ideias${
       pendentes.length?` <b style="color:var(--ambar)">${pendentes.length}</b>`:''}</span>
     <span class="${aba==='roadmap'?'on':''}" data-fx="roadmap" style="padding:9px 16px">Roadmap (kanban)</span>
     <span class="${aba==='bugs'?'on':''}" data-fx="bugs" style="padding:9px 16px">🐞 Bugs${
       bugsAbertos?` <b style="color:var(--vermelho)">${bugsAbertos}</b>`:''}</span>
-    <span class="${aba==='opinioes'?'on':''}" data-fx="opinioes" style="padding:9px 16px">Opiniões dos jogadores${
+    <span class="${aba==='depoimentos'?'on':''}" data-fx="depoimentos" style="padding:9px 16px">💬 Depoimentos${
       porLer?` <b style="color:var(--ambar)">${porLer}</b>`:''}</span>
     <a class="link" href="https://retrofoot.com.br/roadmap/" target="_blank" rel="noopener" style="margin-left:auto;align-self:center;font-size:12.5px">Ver página pública ↗</a>
   </div>`;
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
-  if(aba === 'opinioes'){
-    el('page').innerHTML = abasHTML + opinioesHTML(editar);
-    ligarAbasFeatures(); ligarOpinioes(editar);
+  if(aba === 'depoimentos'){
+    el('page').innerHTML = abasHTML + depoimentosHTML(editar);
+    ligarAbasFeatures(); ligarDepoimentos(editar);
     return;
   }
   if(aba === 'bugs'){
@@ -4565,6 +4567,96 @@ function ligarBugs(editar){
     if(error) return toast(erroMsg(error), true);
     registrar('bug.status', f.titulo, { ideia_id: f.id, de: f.bug_status, para: sel.value });
     toast('Bug: ' + BUG_ST[sel.value][0] + '.'); redesenhar(pgFeatures);
+  });
+}
+
+/* ---------- DEPOIMENTOS DO PAYWALL (27/09/2026) ----------
+   O que os jogadores escrevem para ganhar +1 temporada (depoimento, 1ª trava) e os posts nas redes
+   (2ª trava). Caixa de entrada: começa nos não lidos e sem as contas dos sócios (eles testaram o
+   paywall). Daqui um depoimento vira ideia (banco de ideias) ou bug — o texto do jogador vai inteiro. */
+const DEP_VER = { novos:'Não lidos', todos:'Todos', arquivados:'Arquivados' };
+function depoimentosFiltrados(){
+  const ver = ST.depVer || 'novos', tipo = ST.depTipo || '', q = (ST.depBusca||'').trim().toLowerCase();
+  return (D.depos||[]).filter(d => (ST.depSocios || !d.socio)
+    && (ver === 'arquivados' ? d.arquivado : !d.arquivado) && (ver !== 'novos' || !d.lida)
+    && (!tipo || d.tipo === tipo)
+    && (!q || [d.texto, d.link, d.nome, d.email, d.resumo].some(v => String(v||'').toLowerCase().includes(q))));
+}
+function depoimentosHTML(editar){
+  const ls = depoimentosFiltrados(), ver = ST.depVer || 'novos';
+  const semSocio = (D.depos||[]).filter(d => !d.socio);
+  const nSoc = (D.depos||[]).length - semSocio.length;
+  return `
+    <div class="card card-p" style="font-size:13px;color:var(--dim);line-height:1.6">
+      <b style="color:var(--fg)">Depoimentos dos jogadores.</b> O que chega pela 1ª trava do paywall (depoimento) e pela 2ª
+      (post nas redes). Leia, e transforme em <b>ideia</b> (vai para a votação dos sócios) ou em <b>bug</b>.
+      ${semSocio.length} de jogadores${nSoc ? ` · ${nSoc} de sócios (testes), escondidos` : ''}.
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-h" style="flex-wrap:wrap;gap:8px">
+        <select class="f" id="dep-ver" style="width:auto;font-size:12.5px">
+          ${Object.entries(DEP_VER).map(([k,r]) => `<option value="${k}" ${ver===k?'selected':''}>${h(r)}</option>`).join('')}</select>
+        <select class="f" id="dep-tipo" style="width:auto;font-size:12.5px">
+          <option value="">Depoimentos e posts</option>
+          <option value="depoimento" ${ST.depTipo==='depoimento'?'selected':''}>Só depoimentos (1ª trava)</option>
+          <option value="post" ${ST.depTipo==='post'?'selected':''}>Só posts (2ª trava)</option></select>
+        <label style="display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--dim2)">
+          <input type="checkbox" id="dep-socios" ${ST.depSocios?'checked':''}> mostrar os dos sócios</label>
+        <input class="busca" id="dep-busca" placeholder="Procurar no texto, nome, e-mail…" value="${h(ST.depBusca||'')}" style="width:220px">
+        <span class="mono" style="font-size:12px;color:var(--dim2);flex:1">${num(ls.length)}</span>
+      </div>
+      ${ls.length ? ls.map(d => {
+        const feita = d.feature_id && D.feats.find(f => f.id === d.feature_id);
+        return `<div class="row" style="grid-template-columns:minmax(0,1fr) 250px;align-items:start;${d.lida?'':'border-left:3px solid var(--ambar)'}">
+          <span style="min-width:0">
+            <span class="tag ${d.tipo==='post'?'t-azul':'t-ok'}">${d.tipo==='post' ? '📣 Post · 2ª trava' : '💬 Depoimento · 1ª trava'}</span>
+            ${d.socio ? '<span class="tag t-dim">sócio</span>' : ''}
+            ${d.texto ? `<div style="font-size:13.5px;line-height:1.55;margin:8px 0 6px;color:var(--fg)">“${h(d.texto)}”</div>` : ''}
+            ${d.link ? `<div style="margin:8px 0 6px"><a href="${h(/^https?:\/\//i.test(d.link) ? d.link : 'https://' + d.link)}" target="_blank" rel="noopener noreferrer">${h(d.link)}</a></div>` : ''}
+            <small style="display:block;font-size:11.5px;color:var(--dim3)">${h(d.nome || '—')} · ${emailHTML(d.email)} · ${h(d.resumo || '')} · ${h(dmy(d.criado_em))}</small>
+            ${feita ? `<small style="display:block;margin-top:5px;font-size:11.5px;color:var(--verde2)">→ virou ${feita.tipo==='bug'?'bug':'ideia'}: ${h(feita.titulo)}</small>` : ''}
+          </span>
+          <span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end">
+            ${editar && !feita && d.texto ? `<button class="btn btn-sm btn-ghost" data-dep-virar="${d.id}" data-t="recurso">💡 Virar ideia</button>
+              <button class="btn btn-sm btn-ghost" data-dep-virar="${d.id}" data-t="bug">🐞 Virar bug</button>` : ''}
+            ${d.lida ? '' : `<span class="link" data-dep-lida="${d.id}" style="font-size:12px;align-self:center">marcar lido</span>`}
+            <span class="link" data-dep-arq="${d.id}" style="font-size:12px;align-self:center">${d.arquivado ? 'desarquivar' : 'arquivar'}</span>
+          </span>
+        </div>`;
+      }).join('') : `<div class="vazio">${ver==='novos' ? 'Nenhum depoimento novo. 🎉' : 'Nenhum depoimento com esses filtros.'}</div>`}
+    </div>`;
+}
+async function depMarcar(id, linha){
+  const { error } = await sb.from('depoimento_triagem').upsert(Object.assign({ extra_id: +id }, linha), { onConflict: 'extra_id' });
+  if(error){ toast(erroMsg(error), true); return false; }
+  return true;
+}
+function ligarDepoimentos(editar){
+  el('dep-ver').onchange = () => { ST.depVer = el('dep-ver').value; redesenhar(pgFeatures); };
+  el('dep-tipo').onchange = () => { ST.depTipo = el('dep-tipo').value; redesenhar(pgFeatures); };
+  el('dep-socios').onchange = () => { ST.depSocios = el('dep-socios').checked; redesenhar(pgFeatures); };
+  buscaViva('dep-busca', () => ST.depBusca, v => { ST.depBusca = v; }, pgFeatures);
+  document.querySelectorAll('[data-dep-lida]').forEach(b => b.onclick = async () => {
+    if(await depMarcar(b.dataset.depLida, { lida:true })) redesenhar(pgFeatures);
+  });
+  document.querySelectorAll('[data-dep-arq]').forEach(b => b.onclick = async () => {
+    const d = D.depos.find(x => String(x.id) === b.dataset.depArq);
+    if(await depMarcar(b.dataset.depArq, { arquivado: !(d && d.arquivado), lida:true })) redesenhar(pgFeatures);
+  });
+  document.querySelectorAll('[data-dep-virar]').forEach(b => b.onclick = async () => {
+    const d = D.depos.find(x => String(x.id) === b.dataset.depVirar); if(!d) return;
+    const tipo = b.dataset.t, col = (D.cols||[])[0];
+    const titulo = d.texto.length > 70 ? d.texto.slice(0,67).trim() + '…' : d.texto;
+    const ins = await sb.from('adm_features').insert({
+      titulo, origem:'usuario', fonte:'depoimento', fonte_ref: String(d.id), tipo, ideia_status:'pendente',
+      coluna_id: col ? col.id : null, ord: 0, criado_por: ME && ME.user_id,
+      descricao: d.texto + '\n\n— depoimento de ' + (d.nome || 'um jogador') + (d.resumo ? ' (' + d.resumo + ')' : '')
+    }).select('id').single();
+    if(ins.error) return toast(erroMsg(ins.error), true);
+    await depMarcar(d.id, { feature_id: ins.data.id, lida:true });
+    registrar('depoimento.virou', d.id, { tipo, feature_id: ins.data.id });
+    toast(tipo === 'bug' ? 'Virou bug — está na aba Bugs.' : 'Virou ideia — aguardando aprovação dos sócios.');
+    redesenhar(pgFeatures);
   });
 }
 
@@ -5342,7 +5434,7 @@ const ACOES = {
   'feature.voto':'Mudou votos de um card',
   'ideia.voto':'Votou numa ideia', 'ideia.aprovada':'Ideia aprovada → roadmap', 'ideia.recusada':'Ideia recusada',
   'ideia.arquivar':'Arquivou ideia', 'ideia.desarquivar':'Voltou ideia para a fila', 'ideia.arquivar_lote':'Arquivou ideias em lote',
-  'roadmap.estagio':'Moveu item do roadmap', 'bug.status':'Mudou situação de bug', 'ideia.tipo':'Mudou entre bug e recurso', 'roadmap.editar':'Editou item do roadmap', 'roadmap.remover':'Tirou item do roadmap',
+  'roadmap.estagio':'Moveu item do roadmap', 'depoimento.virou':'Depoimento virou ideia/bug', 'bug.status':'Mudou situação de bug', 'ideia.tipo':'Mudou entre bug e recurso', 'roadmap.editar':'Editou item do roadmap', 'roadmap.remover':'Tirou item do roadmap',
   'coluna.criar':'Criou coluna do kanban',
   'coluna.renomear':'Renomeou coluna do kanban',
   'coluna.apagar':'Apagou coluna do kanban',
@@ -5409,7 +5501,7 @@ const AREA_POR_PREFIXO = {
   sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
   lancamento:'financas', openai:'financas',
   criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade', mediakit:'publicidade',
-  feature:'produto', coluna:'produto', kanban:'produto', ideia:'produto', roadmap:'produto', bug:'produto',
+  feature:'produto', coluna:'produto', kanban:'produto', ideia:'produto', roadmap:'produto', bug:'produto', depoimento:'produto',
   conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
   clube:'dados', pacote:'dados', competicoes:'dados', dados:'dados',
   momento:'videos', estudio:'imagens', config:'financas'
