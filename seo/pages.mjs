@@ -442,7 +442,9 @@ clubes, o mesmo calendário e as mesmas competições — muda quem entra em cam
 
   // ======================= P1: JOGAR COM AMIGOS =======================
   {
-    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-20',
+    slug: 'jogar-com-amigos', ready: true, priority: 0.8, lastmod: '2026-09-27',
+    video: { id:'uHqD6dHBTnI', titulo:'Como jogar RetroFoot: guia das funções básicas (escalação, tática e mercado)',
+             publicado:'2026-09-24T12:11:30-07:00', duracao:'PT8M51S' },
     title: 'Jogar manager de futebol com amigos: o Modo Resenha do RetroFoot',
     description: 'No Modo Resenha do RetroFoot, até 10 treinadores disputam o mesmo campeonato online — cada um no seu aparelho, com sorteio dos clubes, rodada ao vivo e Modo Camarote. Exclusivo do plano Pro na versão Beta.',
     h1: 'Modo Resenha: um campeonato de verdade com a sua turma',
@@ -468,6 +470,11 @@ clubes, o mesmo calendário e as mesmas competições — muda quem entra em cam
 <p class="lead">O RetroFoot tem dois modos. No <strong>Modo Solo</strong> você pega um clube e enfrenta a máquina. No
 <strong>Modo Resenha</strong>, a liga é da sua turma: até <strong>10 treinadores</strong> no mesmo campeonato, cada um no
 seu aparelho, disputando a mesma tabela — e é aqui que o jogo fica bom de verdade.</p>
+
+<h2>Antes de montar a sala: o básico em vídeo</h2>
+<p>Escalação, tática e mercado funcionam igual no Modo Solo e no Modo Resenha. Se a turma é nova no jogo, vale mandar
+este vídeo no grupo antes do sorteio — em menos de nove minutos todo mundo chega sabendo o essencial.</p>
+${ytLite('uHqD6dHBTnI', 'Como jogar RetroFoot: guia das funções básicas (escalação, tática e mercado)')}
 
 <h2>Como a sala nasce</h2>
 <ol>
