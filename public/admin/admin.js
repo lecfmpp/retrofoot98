@@ -1220,7 +1220,10 @@ function usToqueTxt(t){
   if(t.content) l.push('Conteúdo: ' + t.content);
   if(t.term) l.push('Termo: ' + t.term);
   if(t.gclid) l.push('Clique de anúncio do Google (gclid)');
-  if(t.fbclid) l.push('Clique vindo do Facebook/Instagram (fbclid)');
+  if(t.fbclid) l.push('Clique vindo do Facebook/Instagram (fbclid — vem em post e em anúncio)');
+  if(t.campaign_id || t.adset_id || t.ad_id)
+    l.push('Anúncio: ' + [t.campaign_id && 'campanha ' + t.campaign_id, t.adset_id && 'conjunto ' + t.adset_id, t.ad_id && 'anúncio ' + t.ad_id].filter(Boolean).join(' · '));
+  if(t.placement) l.push('Posicionamento: ' + t.placement);
   if(t.ref) l.push('Código de parceiro: ' + t.ref);
   if(t.sala) l.push('Link de convite da Resenha');
   if(t.referrer) l.push('Veio de: ' + t.referrer);
@@ -1427,7 +1430,7 @@ function usLinhaTds(u, podeApagar){
       <div class="us-tec">
         ${podeApagar ? `<input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''} data-tip="Selecionar para apagar">` : ''}
         <i class="av" style="width:28px;height:28px;background:${corAv(u.nome)};color:#0c1210;font-size:11px">${h(iniciais(u.nome))}</i>
-        <span><b>${h(u.nome)}</b>
+        <span><b>${h(u.nome)}</b>${u.socio ? ' <small class="tag t-dim" data-tip="Conta de sócio — fica fora dos números do topo e da contagem por canal" style="display:inline-block;margin-left:4px;font-size:10px;padding:1px 6px">sócio</small>' : ''}
           <small>${usClube(u)}<span data-tip="E-mail da conta">${emailHTML(u.email)}</span></small></span>
       </div></td>
     <td>${usWhats(u)}</td>
@@ -1464,9 +1467,14 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   Array.from(SEL.contas).forEach(x => { if(!vivos.has(x)) SEL.contas.delete(x); });
   const f = usFiltros();
   const usP = () => us.filter(u => usNoPeriodo(u, f));   // as contas do período escolhido
+  /* NÚMEROS SEM OS SÓCIOS (27/09/2026): as contas deles (u.socio) assinam e pagam para testar, e
+     isso inflava Assinantes e Conversão. Ficam fora dos cartões e da contagem por canal; na tabela
+     continuam, com a etiqueta "sócio". */
+  const usM = us.filter(u => !u.socio);
+  const usPM = () => usP().filter(u => !u.socio);
   /* os 4 números do topo, sobre as contas do período */
   function kpisHTML(){
-    const l = usP(), perOn = !!usIntervalo(f);
+    const l = usPM(), perOn = !!usIntervalo(f);
     const pagos = l.filter(ehPago);
     const mrr = pagos.reduce((a,u)=>a+ +u.mrr, 0);
     const minutos = l.reduce((a,u)=>a+ +u.minutos, 0);
@@ -1474,8 +1482,8 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
     const ativos7 = l.filter(u => +u.dias_ativos_7 > 0).length;
     return `
       ${kpiHTML(perOn
-        ? {l: f.perCampo === 'acesso' ? 'Com acesso no período' : 'Cadastros no período', v:num(l.length), d:`${pct(l.length, us.length)}% das ${num(us.length)} contas`}
-        : {l:'Contas totais', v:num(l.length), d:`${num(l.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem`})}
+        ? {l: f.perCampo === 'acesso' ? 'Com acesso no período' : 'Cadastros no período', v:num(l.length), d:`${pct(l.length, usM.length)}% das ${num(usM.length)} contas · sem sócios`}
+        : {l:'Contas totais', v:num(l.length), d:`${num(l.filter(u=>dias(u.ultimo_acesso)<=2).length)} ativas hoje/ontem · sem sócios`})}
       ${kpiHTML({l:'Jogaram nos últimos 7 dias', v:num(ativos7), d:`${pct(ativos7, l.length)}% ${perOn?'destas':'das'} contas · login ou jogada`})}
       ${kpiHTML({l:'Assinantes Pro', v:num(pagos.length), d: mrr ? brl(mrr)+' de MRR' : 'sem MRR registrado'})}
       ${kpiHTML(conversaoKpi(l, pagos))}
@@ -1487,7 +1495,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   function conversaoKpi(l, pagos){
     const iv = usIntervalo(f);
     const de = iv ? iv.de : usDiaLocal(new Date(Date.now() - 29*864e5)), ate = iv ? iv.ate : usDiaLocal(new Date());
-    const viraram = us.filter(u => ehPago(u) && u.plano_desde && (d => (!de || d >= de) && (!ate || d <= ate))(usDiaLocal(u.plano_desde))).length;
+    const viraram = usM.filter(u => ehPago(u) && u.plano_desde && (d => (!de || d >= de) && (!ate || d <= ate))(usDiaLocal(u.plano_desde))).length;
     const taxa = l.length ? (pagos.length * 100 / l.length) : 0;
     return { l:'Conversão (Peladeiro → Pro)',
       v: l.length ? taxa.toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%' : '—',
@@ -1507,8 +1515,8 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   }
   const canais = canaisDe(us);
   function canaisHTML(){
-    const perOn = !!usIntervalo(f), lst = canaisDe(usP());
-    return `<span class="us-canais-t" data-tip="${h('Canal que trouxe cada conta até o cadastro.\n' + (perOn
+    const perOn = !!usIntervalo(f), lst = canaisDe(usPM());
+    return `<span class="us-canais-t" data-tip="${h('Canal que trouxe cada conta até o cadastro (sem as contas dos sócios).\n' + (perOn
         ? 'Número: contas dentro do período escolhido.' : 'Número grande: total · embaixo: cadastros nos últimos 30 dias.') + '\nClique para filtrar a tabela.')}">Cadastros por canal</span>
       ${lst.length ? lst.map(([c, v]) => `<span class="us-canal ${f.origem===c?'on':''}" data-canal="${h(c)}"
         data-tip="${h(perOn ? `${c}: ${v.n} conta(s) no período\nClique para filtrar` : `${c}: ${v.n} conta(s), ${v.n30} nos últimos 30 dias\nClique para filtrar`)}"><b>${h(c)}</b> <i class="mono">${num(v.n)}</i>${perOn ? '' : `<small class="mono">${num(v.n30)} em 30d</small>`}</span>`).join('')
@@ -2182,7 +2190,7 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
   ].filter(Boolean);
   /* o Pro não passa pelas travas (assina direto no paywall): a comparação dele é com quem viu o paywall */
   etapas.forEach(e => { if(e.n.startsWith('Chegaram à trava')) e.id = 'trava'; });
-  const st = data.stripe || {};
+  const st = data.stripe || {}, tp = data.temporadas || {};
   const churn = +st.pagaram ? (+st.cancelaram * 100 / +st.pagaram) : 0;
   const pctBR = (x) => x.toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%';
   const reais = (c) => 'R$ ' + ((+c||0)/100).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
@@ -2194,6 +2202,12 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
       ${kpiHTML({l:'Contas criadas no período', v:num(totalContas), d:`${num(f.contas)} no total`})}
       ${kpiHTML({l:'Chegaram a jogar (total)', v:num(f.jogaram), d:`${pct(f.jogaram,f.contas)}% de todas as contas`})}
       ${kpiHTML({l:'Assinantes (hoje)', v:num(f.pagos), d:`${pct(f.pagos,f.contas)}% de conversão`})}
+    </div>
+    ${/* TEMPORADAS COMPLETAS POR PESSOA (27/09/2026): em destaque só 1, 2 e 3; a distribuição
+         inteira fica na seção "Temporadas completas" mais abaixo. Sem sócios, total da conta. */''}
+    <div class="g3">
+      ${[['t1','1 temporada'],['t2','2 temporadas'],['t3','3 temporadas']].map(([k,r]) =>
+        kpiHTML({l:`Completaram ${r}`, v:num(tp[k]||0), d:`${pctBR(+tp.jogaram ? tp[k]*100/tp.jogaram : 0)} de quem jogou · exatamente ${r}`})).join('')}
     </div>
     <div class="g-par" style="--g-par:1.5fr 1fr">
       <div class="card card-p">
@@ -2240,6 +2254,30 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
         </div>
       </div>
     </div>
+    <!-- TEMPORADAS COMPLETAS POR PESSOA (27/09/2026) -->
+    <div class="card card-p">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <span class="tt">Temporadas completas por pessoa</span>
+        <span class="st" style="margin:0">soma das temporadas fechadas no Solo e na Resenha · total da conta, não segue o período · sem sócios</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${(() => {
+          const base = +tp.jogaram || 0;
+          const linhas = [
+            ['Nenhuma completa ainda', base - (+tp.alguma||0), 'jogaram, mas não fecharam a 1ª temporada'],
+            ['Exatamente 1', +tp.t1||0], ['Exatamente 2', +tp.t2||0], ['Exatamente 3', +tp.t3||0],
+            ['3 ou mais', +tp.t3m||0], ['4 ou mais', +tp.t4m||0], ['5 ou mais', +tp.t5m||0], ['10 ou mais', +tp.t10m||0]
+          ];
+          return linhas.map(([r, n, nota]) => {
+            const p = base ? n * 100 / base : 0;
+            return `<div style="display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) 120px;gap:12px;align-items:center" ${nota?`data-tip="${h(nota)}"`:''}>
+              <span style="font-size:12.5px;font-weight:600;color:var(--fg2)">${h(r)}</span>
+              <span class="bar"><i style="width:${Math.max(n ? 2 : 0, Math.sqrt(p/100)*100)}%"></i></span>
+              <span class="mono" style="font-size:12px;color:var(--dim);text-align:right">${num(n)} · ${pctBR(p)}</span></div>`;
+          }).join('') + `<div class="st" style="margin:4px 0 0">% sobre ${num(base)} pessoas que jogaram (têm save no Solo ou lugar numa sala). Barras pela raiz do %, para as faixas pequenas aparecerem.</div>`;
+        })()}
+      </div>
+    </div>
+
     <!-- CHURN E REEMBOLSOS DO STRIPE (27/09/2026) — sem os sócios -->
     <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
       <span class="tt">Churn e reembolsos</span><span class="st" style="margin:0">Stripe · sem as contas dos sócios</span></div>

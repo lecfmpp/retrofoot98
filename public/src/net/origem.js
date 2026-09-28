@@ -34,6 +34,15 @@
     term:     corta(q.get('utm_term')),
     gclid:    corta(q.get('gclid') || q.get('gbraid') || q.get('wbraid')),
     fbclid:   corta(q.get('fbclid')),
+    /* ANÚNCIO PAGO × POST ORGÂNICO (27/09/2026). O fbclid vem em QUALQUER clique saído do
+       Facebook/Instagram, pago ou não — sozinho não prova anúncio. O que prova é o que o próprio
+       anúncio carrega na URL (parâmetros de URL do Gerenciador de Anúncios, ver
+       docs/rastreamento-origem.md): utm_medium pago e os ids da campanha/anúncio. */
+    utm_id:   corta(q.get('utm_id'), 40),
+    campaign_id: corta(q.get('campaign_id') || q.get('hsa_cam'), 40),
+    adset_id: corta(q.get('adset_id') || q.get('hsa_grp'), 40),
+    ad_id:    corta(q.get('ad_id') || q.get('hsa_ad'), 40),
+    placement: corta(q.get('placement') || q.get('utm_placement'), 60),
     ref:      corta(q.get('ref'), 32),
     sala:     (q.get('sala') || /^\/convite\//.test(location.pathname)) ? 1 : null,
     referrer: ref || null,
@@ -41,7 +50,7 @@
     em:       new Date().toISOString()
   };
   var temSinal = !!(toque.source || toque.medium || toque.campaign || toque.gclid || toque.fbclid
-                    || toque.ref || toque.sala || toque.referrer);
+                    || toque.ad_id || toque.campaign_id || toque.ref || toque.sala || toque.referrer);
   Object.keys(toque).forEach(function(k){ if(toque[k] == null) delete toque[k]; });
 
   var g = null;

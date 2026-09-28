@@ -33,3 +33,10 @@ end $$;
 -- Alimenta o card "Conversão (Peladeiro → Pro)" da página de Usuários: quem virou Pro no período.
 -- Patch por replace, aplicado na migração usuarios_plano_desde:
 --   'plano', pl.plan, 'plano_ate', up.until,  →  … 'plano_ate', up.until, 'plano_desde', up.since,
+
+-- ===== 27/09/2026: 'socio' em admin_rf98.usuarios =====
+-- true quando a conta é de sócio (adm_users papel 'socio'). A página de Usuários tira essas contas
+-- de TODOS os números do topo e da contagem por canal (assinaturas e pagamentos de teste inflavam
+-- a conversão); na tabela elas continuam, com a etiqueta "sócio". Patch aplicado na migração
+-- usuarios_flag_socio: antes de 'plano', pl.plan, entra
+--   'socio', exists (select 1 from admin_rf98.adm_users sa where sa.user_id = b.id and sa.papel = 'socio'),
