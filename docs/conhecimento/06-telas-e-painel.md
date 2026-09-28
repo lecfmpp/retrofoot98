@@ -458,7 +458,7 @@ Sem convite, o painel não abre, mesmo com uma conta válida no jogo. O convite 
 | Conteúdo | ✓ | — | ✓ | ✓ |
 | Editor de dados | ✓ | — | ✓ | ✓ |
 | Estúdio IA | ✓ | — | ✓ | ✓ |
-| Jogadores (moderação) | ✓ | — | ✓ | ✓ |
+| Avatar (moderação) | ✓ | — | ✓ | ✓ |
 | Equipe admin | ✓ | — | — | — |
 | Registro | ✓ | — | — | — |
 
@@ -636,7 +636,9 @@ Tem cinco abas:
 
 ---
 
-## Jogadores (jogadores dos assinantes Pro, moderação)
+## Avatar (jogadores dos assinantes Pro, moderação)
+
+No menu se chama **Avatar** (até 28/09/2026 se chamava "Jogadores").
 
 É a fila de moderação do nome e da foto que um assinante pôs num jogador da base oficial.
 
@@ -758,7 +760,7 @@ Em **Usuários**, na linha dele, clique em **Reenviar** e depois em **Enviar e-m
 Pelo que o código mostra, não. O painel só exibe o plano. Encaminhe para os responsáveis técnicos.
 
 **O jogador diz que o nome ou a foto que ele mandou não aparece.**
-Veja a página **Jogadores**: ainda está na fila, foi recusado (com motivo) ou já está no ar. Depois de aprovado, só aparece em saves novos.
+Veja a página **Avatar**: ainda está na fila, foi recusado (com motivo) ou já está no ar. Depois de aprovado, só aparece em saves novos.
 
 **Quem da equipe pode apagar uma conta, uma sala ou um save?**
 Só quem tem papel de **sócio**. Os outros papéis não veem os botões.

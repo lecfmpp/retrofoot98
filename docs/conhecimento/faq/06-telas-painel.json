@@ -315,7 +315,7 @@
       "largar a vaga de jogador",
       "quem tem direito ao meu jogador"
     ],
-    "resposta": "É a vaga para pôr o próprio nome e rosto num jogador da base oficial. Fica em **Treinador > Meu jogador** (e pode aparecer no assistente de entrada). A vaga é do **treinador**, não do clube.\n\n- Botões: **Escolher outro time**, **Fazer isso depois** e **Largar a vaga**.\n- Nome e foto passam por **moderação** no painel e, depois de aprovados, só aparecem em **saves novos**.\n- Quem tem direito mudou com a troca de planos de 25/09: pelas notas internas, a vaga saiu da vitrine do Pro e quem já tinha continua. **Isso não está claro no código**; confirme o caso no painel, página **Jogadores**.",
+    "resposta": "É a vaga para pôr o próprio nome e rosto num jogador da base oficial. Fica em **Treinador > Meu jogador** (e pode aparecer no assistente de entrada). A vaga é do **treinador**, não do clube.\n\n- Botões: **Escolher outro time**, **Fazer isso depois** e **Largar a vaga**.\n- Nome e foto passam por **moderação** no painel e, depois de aprovados, só aparecem em **saves novos**.\n- Quem tem direito mudou com a troca de planos de 25/09: pelas notas internas, a vaga saiu da vitrine do Pro e quem já tinha continua. **Isso não está claro no código**; confirme o caso no painel, página **Avatar**.",
     "resposta_jogador": "A vaga \"Meu jogador\" fica em Treinador > Meu jogador. O nome e a foto passam por uma aprovação da equipe e, depois de aprovados, aparecem só em saves novos.",
     "tags": [
       "meu-jogador",
@@ -1155,15 +1155,16 @@
   },
   {
     "id": "06-065",
-    "pergunta": "Como moderar o nome e a foto que um jogador pôs no seu atleta (página Jogadores)?",
+    "pergunta": "Como moderar o nome e a foto que um jogador pôs no seu atleta (página Avatar)?",
     "variacoes": [
       "aprovar jogador do assinante",
       "recusar foto de jogador",
       "fila de moderacao",
       "motivo da recusa",
-      "jogadores ja no ar"
+      "jogadores ja no ar",
+      "pagina avatar do painel"
     ],
-    "resposta": "Na página **Jogadores** (moderação):\n\n- **Na fila:** foto, nome novo (\"entra no lugar de …\"), clube, série, posição, força e universo. Botões:\n  - **Ver foto**;\n  - **Recusar**, que **exige um motivo** (o jogador lê esse texto; a vaga volta a ficar livre);\n  - **Aprovar**, com a confirmação \"Aprovado — já entra nos saves novos\".\n- **Já no ar:** os aprovados.\n\nAprovar e recusar ficam gravados no **Registro**.",
+    "resposta": "Na página **Avatar** (moderação):\n\n- **Na fila:** foto, nome novo (\"entra no lugar de …\"), clube, série, posição, força e universo. Botões:\n  - **Ver foto**;\n  - **Recusar**, que **exige um motivo** (o jogador lê esse texto; a vaga volta a ficar livre);\n  - **Aprovar**, com a confirmação \"Aprovado — já entra nos saves novos\".\n- **Já no ar:** os aprovados.\n\nAprovar e recusar ficam gravados no **Registro**.",
     "resposta_jogador": null,
     "tags": [
       "painel",
@@ -1181,7 +1182,7 @@
       "jogador personalizado sumiu",
       "aprovado mas nao aparece"
     ],
-    "resposta": "Veja a página **Jogadores**. Três respostas possíveis:\n\n1. o pedido **ainda está na fila**;\n2. foi **recusado**, e o motivo está gravado para ele;\n3. foi **aprovado**, mas o save dele é **anterior à aprovação**: o jogador aprovado só aparece em **saves novos**.\n\nNo jogo, a vaga fica em **Treinador > Meu jogador**.",
+    "resposta": "Veja a página **Avatar**. Três respostas possíveis:\n\n1. o pedido **ainda está na fila**;\n2. foi **recusado**, e o motivo está gravado para ele;\n3. foi **aprovado**, mas o save dele é **anterior à aprovação**: o jogador aprovado só aparece em **saves novos**.\n\nNo jogo, a vaga fica em **Treinador > Meu jogador**.",
     "resposta_jogador": "Seu jogador passa por uma aprovação da equipe antes de entrar no jogo. Depois de aprovado, ele aparece apenas em saves novos, criados depois da aprovação. Se tiver sido recusado, o motivo fica registrado para você.",
     "tags": [
       "meu-jogador",

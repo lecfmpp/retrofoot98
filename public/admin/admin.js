@@ -451,7 +451,7 @@ const NAV = [
   { id:'estudio',     ic:'❖', label:'Estúdio IA',     tit:'Estúdio de imagens',  sub:'Escudos fictícios e fotos de jogadores por IA' },
   /* A FILA DA MODERACAO. O nome e a foto de um embaixador entram na base que TODOS os
      treinadores veem — por isso passam por aqui antes, e nao no clique dele. */
-  { id:'embaixadores',ic:'☻', label:'Jogadores',      tit:'Jogadores dos assinantes Pro', sub:'Nome e foto que vão entrar na base oficial — aprove ou recuse' },
+  { id:'embaixadores',ic:'☻', label:'Avatar',         tit:'Avatar', sub:'Nome e foto que vão entrar na base oficial — aprove ou recuse' },
   { id:'equipa',      ic:'☗', label:'Equipe admin',   tit:'Equipe admin',       sub:'Quem entra no painel' },
   { id:'registro',    ic:'⧉', label:'Registro',       tit:'Registro de ações',  sub:'O que cada sócio fez no painel, por pessoa e por área' }
 ];
