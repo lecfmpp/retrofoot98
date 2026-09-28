@@ -441,7 +441,7 @@ const NAV = [
   { id:'financas',    ic:'▤', label:'Finanças',       tit:'Finanças',           sub:'Receita, despesa e fecho do período — por mês ou por ano' },
   { id:'publicidade', ic:'◫', label:'Publicidade',    tit:'Publicidade',        sub:'Patrocinadores e espaços do jogo' },
   { id:'videos',      ic:'▶', label:'Vídeos',         tit:'Vídeos dos momentos', sub:'Quando cada modal aparece e com que vídeo' },
-  { id:'features',    ic:'✦', label:'Funcionalidades',tit:'Funcionalidades',    sub:'O que os treinadores pedem' },
+  { id:'features',    ic:'✦', label:'Roadmap',        tit:'Roadmap',            sub:'Banco de ideias, aprovação dos sócios e o roadmap público da Versão 2' },
   { id:'parceiros',   ic:'★', label:'Parceiros',      tit:'Parceiros influenciadores', sub:'Canais, link de indicação e o que ele trouxe' },
   { id:'conteudo',    ic:'▦', label:'Conteúdo',       tit:'Calendário de conteúdo', sub:'Da ideia ao agendado, por canal' },
   { id:'editor',      ic:'✎', label:'Editor de dados',tit:'Editor de dados do jogo', sub:'Clubes, elencos, escudos e força' },
@@ -4274,105 +4274,300 @@ function modalUpload(chave){
   };
 }
 
-/* ============================ FUNCIONALIDADES (kanban) ============================ */
+/* ============================ ROADMAP (antes "Funcionalidades") ============================
+   REFEITA EM 27/09/2026. Três abas:
+     · BANCO DE IDEIAS — admin_rf98.adm_features, os cards do quadro antigo agora como LISTA. Toda
+       ideia precisa da aprovação dos sócios: com TODOS os sócios ativos aprovando, a função
+       admin_rf98.ideia_decidir cria o item no roadmap (Planejado, V2, publicado) — é o mesmo que
+       aparece em /roadmap/. Maioria recusando = recusada. Ver scripts/sql/roadmap_banco_ideias.sql.
+       A coluna do quadro antigo vira só "etapa antiga", para filtrar (muita coisa lá era tarefa feita).
+     · ROADMAP — elifoot_v3.roadmap_itens, o kanban público. Só sócio mexe (RLS is_socio): muda de
+       estágio, edita texto/área/versão, esconde ou tira do roadmap. Mostra os votos dos jogadores.
+     · OPINIÕES — o mural que já existia (opinioesHTML); "virar ideia" manda para o banco de ideias.
+   Futuro: o leitor de mensagens e áudios do WhatsApp insere ideias aqui (colunas fonte/fonte_ref). */
+const RM_ESTAGIOS = [['analise','Em análise','#8b978d'],['planejado','Planejado','#7dd3fc'],
+                     ['desenvolvimento','Em desenvolvimento','#e3b23c'],['lancado','Lançado','#4ade80']];
+const IDEIA_VER = { pendente:'Aguardando aprovação', aprovada:'Aprovadas (no roadmap)', recusada:'Recusadas',
+                    arquivada:'Arquivadas', todas:'Todas' };
 async function pgFeatures(forcar, senha = pedirDesenho()){
-  /* a equipe entra na consulta porque o card mostra QUEM o criou, e o banco só
-     guarda o uuid — sem isto o quadro mostraria um identificador a ninguém */
-  const [cols, feats, equipe, opin] = await Promise.all([
+  const [cols, feats, equipe, opin, votosS, itens, votosJ] = await Promise.all([
     sb.from('adm_kanban_cols').select('*').order('ord'),
-    sb.from('adm_features').select('*').order('ord'),
-    sb.from('adm_users').select('user_id,nome,email'),
-    /* a opinião vem do JOGO (elifoot_v3), não do painel: quem escreve é o
-       treinador, muitas vezes deslogado, e `anon` não entra em admin_rf98.
-       Ver a aba de opinião em public/src/ui/rf26-opiniao.js. */
-    jogo('user_opinions').select('*').order('criada_em', { ascending:false }).range(0, PAGINA_SB-1)
+    sb.from('adm_features').select('*').order('criada_em', { ascending:false }),
+    sb.from('adm_users').select('user_id,nome,email,papel,estado'),
+    /* a opinião vem do JOGO (elifoot_v3): quem escreve é o treinador — ver rf26-opiniao.js */
+    jogo('user_opinions').select('*').order('criada_em', { ascending:false }).range(0, PAGINA_SB-1),
+    sb.from('ideia_votos').select('*'),
+    jogo('roadmap_itens').select('*').order('ord'),
+    jogo('roadmap_votos').select('item_id')
   ]);
-  if(cols.error) throw cols.error;
-  if(feats.error) throw feats.error;
-  if(opin.error) throw opin.error;
+  for(const r of [cols, feats, opin, votosS, itens]) if(r.error) throw r.error;
   D.cols = cols.data||[]; D.feats = feats.data||[]; D.opinioes = opin.data||[];
   D.pessoas = new Map((equipe.data||[]).map(a => [a.user_id, a]));
+  D.socios = (equipe.data||[]).filter(a => a.papel === 'socio' && a.estado === 'ativo');
+  D.ideiaVotos = votosS.data||[];
+  D.rmItens = itens.data||[];
+  D.rmVotos = {}; (votosJ.data||[]).forEach(v => { D.rmVotos[v.item_id] = (D.rmVotos[v.item_id]||0) + 1; });
+  const souSocio = ME && ME.papel === 'socio';
   const editar = podeEditar('produto');
-  const total = D.feats.length, votos = D.feats.reduce((a,f)=>a+ +f.votos,0);
-
-  /* ===== FILTROS DO QUADRO =====
-     Filtram o que se VÊ, não o que existe: o card escondido continua na coluna
-     e na ordem dele. Por isso o contador diz quantos estão escondidos — um
-     quadro que parece vazio porque sobrou um filtro ligado é pior que nenhum
-     filtro. O corte por data é sobre a CRIAÇÃO do card, que é a pergunta real
-     ("o que entrou esta semana?"), não sobre a última mexida. */
-  const CORTES = { '':'Qualquer data', '7':'Criados nos últimos 7 dias',
-                   '30':'Últimos 30 dias', '90':'Últimos 90 dias', 'antigos':'Mais de 90 dias' };
-  const passaPri  = (f) => !ST.kbPri || (ST.kbPri === 'sem' ? !f.prioridade : f.prioridade === ST.kbPri);
-  const passaData = (f) => {
-    if(!ST.kbData) return true;
-    const d = dias(f.criada_em);
-    return ST.kbData === 'antigos' ? d > 90 : d <= Number(ST.kbData);
-  };
-  D.feitsVisiveis = new Set(D.feats.filter(f => passaPri(f) && passaData(f)).map(f => f.id));
-  const escondidos = D.feats.length - D.feitsVisiveis.size;
-
-  /* ===== DUAS ABAS, PORQUE SÃO DUAS LEITURAS =====
-     O quadro é alto por natureza — colunas com dezenas de cards — e o mural
-     vinha depois dele: chegar ao que os treinadores acabaram de escrever exigia
-     rolar a página inteira. A aba põe o mural a um clique, e o contador de não
-     lidas nela é o aviso de que há recado novo sem ninguém ter de ir ver.
-     Na aba do quadro o mural continua logo abaixo dele, como estava. */
-  const aba = ST.fxAba === 'opinioes' ? 'opinioes' : 'quadro';
+  const aba = ['ideias','roadmap','opinioes'].includes(ST.fxAba) ? ST.fxAba : 'ideias';
+  const pendentes = D.feats.filter(f => f.ideia_status === 'pendente');
+  const meuFalta = souSocio ? pendentes.filter(f => !D.ideiaVotos.some(v => v.ideia_id === f.id && v.user_id === ME.user_id)).length : 0;
   const porLer = (D.opinioes||[]).filter(o => !o.arquivada && !o.lida).length;
-  const abasHTML = `<div class="per" style="gap:6px;margin-bottom:4px">
-    <span class="${aba==='quadro'?'on':''}" data-fx="quadro" style="padding:9px 16px">Quadro</span>
-    <span class="${aba==='opinioes'?'on':''}" data-fx="opinioes" style="padding:9px 16px">Mural de opiniões${
+  const abasHTML = `<div class="per" style="gap:6px;margin-bottom:4px;flex-wrap:wrap">
+    <span class="${aba==='ideias'?'on':''}" data-fx="ideias" style="padding:9px 16px">Banco de ideias${
+      pendentes.length?` <b style="color:var(--ambar)">${pendentes.length}</b>`:''}</span>
+    <span class="${aba==='roadmap'?'on':''}" data-fx="roadmap" style="padding:9px 16px">Roadmap (kanban)</span>
+    <span class="${aba==='opinioes'?'on':''}" data-fx="opinioes" style="padding:9px 16px">Opiniões dos jogadores${
       porLer?` <b style="color:var(--ambar)">${porLer}</b>`:''}</span>
+    <a class="link" href="https://retrofoot.com.br/roadmap/" target="_blank" rel="noopener" style="margin-left:auto;align-self:center;font-size:12.5px">Ver página pública ↗</a>
   </div>`;
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   if(aba === 'opinioes'){
     el('page').innerHTML = abasHTML + opinioesHTML(editar);
-    ligarAbasFeatures();
-    ligarOpinioes(editar);
+    ligarAbasFeatures(); ligarOpinioes(editar);
     return;
   }
-  el('page').innerHTML = abasHTML + `
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <select class="f" id="kb-pri" style="width:auto;font-size:12.5px">
-        <option value="">Qualquer prioridade</option>
-        ${Object.entries(PRIORIDADES).map(([k,v]) =>
-          `<option value="${k}" ${ST.kbPri===k?'selected':''}>${h(v.n)} (${D.feats.filter(f=>f.prioridade===k).length})</option>`).join('')}
-        <option value="sem" ${ST.kbPri==='sem'?'selected':''}>Sem prioridade (${D.feats.filter(f=>!f.prioridade).length})</option>
-      </select>
-      <select class="f" id="kb-data" style="width:auto;font-size:12.5px">
-        ${Object.entries(CORTES).map(([k,r]) =>
-          `<option value="${k}" ${ST.kbData===k?'selected':''}>${h(r)}</option>`).join('')}
-      </select>
-      <span style="font-size:12.5px;color:var(--dim2);flex:1">
-        ${total} funcionalidades · ${votos} votos${escondidos?` · <b style="color:var(--ambar)">${escondidos} escondido${escondidos===1?'':'s'} pelo filtro</b>`:''}${editar?' · arraste um card para mudar de coluna, ou o ⠿ para mudar a ordem das colunas':''}</span>
-      ${(ST.kbPri||ST.kbData)?'<span class="link" id="kb-limpar" style="font-size:12px">limpar filtros</span>':''}
-      ${editar?'<button class="btn btn-sm" id="kb-nova">+ Nova funcionalidade</button>':''}
-    </div>
-    <div class="kb" id="kb">
-      ${D.cols.map(c=>colunaHTML(c, editar)).join('')}
-      ${editar?`<div class="kbnova" style="width:236px;flex:none;display:flex;flex-direction:column;gap:8px">
-        <input class="f" id="kb-nome" placeholder="Nome da nova coluna" style="border-style:dashed;background:var(--card)">
-        <button class="btn btn-ghost btn-sm" id="kb-add-col">+ Criar coluna</button>
-      </div>`:''}
-    </div>
-    ${opinioesHTML(editar)}`;
-
-  /* os filtros e a abertura da ficha valem para quem só lê — o quadro serve
-     para consultar, e prendê-los ao papel deixaria metade da equipe sem eles */
-  el('kb-pri').onchange  = () => { ST.kbPri  = el('kb-pri').value;  redesenhar(pgFeatures); };
-  el('kb-data').onchange = () => { ST.kbData = el('kb-data').value; redesenhar(pgFeatures); };
-  if(el('kb-limpar')) el('kb-limpar').onclick = () => { ST.kbPri = ST.kbData = ''; redesenhar(pgFeatures); };
-
-  ligarAbasFeatures();
-  if(editar) ligarKanban();
-  else document.querySelectorAll('.kbcard').forEach(c =>
-    c.onclick = () => abrirCardFeature(c.dataset.card));
-  ligarOpinioes(editar);
+  if(aba === 'roadmap'){
+    el('page').innerHTML = abasHTML + rmKanbanHTML(souSocio);
+    ligarAbasFeatures(); ligarRoadmap(souSocio);
+    return;
+  }
+  el('page').innerHTML = abasHTML + ideiasHTML(souSocio, editar, meuFalta);
+  ligarAbasFeatures(); ligarIdeias(souSocio, editar);
 }
 function ligarAbasFeatures(){
   document.querySelectorAll('[data-fx]').forEach(x =>
     x.onclick = () => { ST.fxAba = x.dataset.fx; redesenhar(pgFeatures); });
+}
+
+/* ---------- BANCO DE IDEIAS ---------- */
+function ideiasFiltradas(){
+  const ver = ST.idVer || 'pendente', q = (ST.idBusca||'').trim().toLowerCase();
+  return D.feats.filter(f => (ver === 'todas' || f.ideia_status === ver)
+    && (!ST.idEtapa || (ST.idEtapa === 'sem' ? !f.coluna_id : f.coluna_id === ST.idEtapa))
+    && (!q || [f.titulo, f.nota, f.descricao, f.origem].some(v => String(v||'').toLowerCase().includes(q))));
+}
+function ideiaChipsHTML(f){
+  return (D.socios||[]).map(s => {
+    const v = D.ideiaVotos.find(x => x.ideia_id === f.id && x.user_id === s.user_id);
+    const nome = s.nome || s.email || 'sócio';
+    const cor = !v ? 'var(--bd2)' : v.decisao === 'aprovar' ? 'var(--verde)' : 'var(--vermelho)';
+    const ic = !v ? '·' : v.decisao === 'aprovar' ? '✓' : '✕';
+    return `<span data-tip="${h(nome + ': ' + (!v ? 'ainda não votou' : v.decisao === 'aprovar' ? 'aprovou' : 'recusou'))}"
+      style="display:inline-flex;align-items:center;gap:4px;border:1px solid ${cor};border-radius:99px;padding:3px 8px 3px 3px;font-size:11.5px">
+      <i class="av" style="width:20px;height:20px;background:${corAv(nome)};color:#0c1210;font-size:9px">${h(iniciais(nome))}</i>
+      <b style="color:${cor}">${ic}</b></span>`;
+  }).join(' ');
+}
+function ideiasHTML(souSocio, editar, meuFalta){
+  const ver = ST.idVer || 'pendente';
+  const ls = ideiasFiltradas();
+  const etapas = D.cols.map(c => [c.id, c.nome, D.feats.filter(f => f.coluna_id === c.id && (ver==='todas' || f.ideia_status===ver)).length]);
+  const col = 'minmax(0,1fr) 230px 230px';
+  const podeArqLote = souSocio && ver === 'pendente' && ST.idEtapa && ls.length;
+  return `
+    <div class="card card-p" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px;line-height:1.55;font-size:13px;color:var(--dim)">
+        <b style="color:var(--fg)">Banco de ideias.</b> Cada ideia precisa da aprovação dos
+        <b>${num((D.socios||[]).length)} sócios</b> para entrar no roadmap público (vai para <i>Planejado · V2</i>).
+        Maioria recusando, ela sai da fila.
+        ${souSocio && meuFalta ? `<br><b style="color:var(--ambar)">Faltam ${num(meuFalta)} ideia${meuFalta===1?'':'s'} com o seu voto.</b>` : ''}
+      </div>
+      ${editar ? '<button class="btn btn-sm" id="id-nova">+ Nova ideia</button>' : ''}
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-h" style="flex-wrap:wrap;gap:8px">
+        <select class="f" id="id-ver" style="width:auto;font-size:12.5px">
+          ${Object.entries(IDEIA_VER).map(([k,r]) => `<option value="${k}" ${ver===k?'selected':''}>${h(r)} (${k==='todas'?D.feats.length:D.feats.filter(f=>f.ideia_status===k).length})</option>`).join('')}
+        </select>
+        <select class="f" id="id-etapa" style="width:auto;font-size:12.5px" data-tip="A coluna em que o card estava no quadro antigo">
+          <option value="">Etapa antiga: todas</option>
+          ${etapas.map(([id,n,c]) => `<option value="${h(id)}" ${ST.idEtapa===id?'selected':''}>Etapa antiga: ${h(n)} (${c})</option>`).join('')}
+        </select>
+        <input class="busca" id="id-busca" placeholder="Procurar ideia…" value="${h(ST.idBusca||'')}" style="width:220px">
+        <span class="mono" style="font-size:12px;color:var(--dim2);flex:1">${num(ls.length)} ideia${ls.length===1?'':'s'}</span>
+        ${podeArqLote ? `<button class="btn btn-sm btn-ghost" id="id-arq-lote" data-tip="Tira da fila de aprovação as ideias filtradas (ex.: tarefas que já estavam feitas)">Arquivar as ${num(ls.length)} filtradas</button>` : ''}
+      </div>
+      <div class="rowh" style="grid-template-columns:${col}"><span>Ideia</span><span>Aprovação dos sócios</span><span>Ação</span></div>
+      ${ls.length ? ls.map(f => {
+        const meu = souSocio && D.ideiaVotos.find(v => v.ideia_id === f.id && v.user_id === ME.user_id);
+        const etapa = (D.cols.find(c => c.id === f.coluna_id) || {}).nome;
+        const texto = f.nota || f.descricao || '';
+        let acao = '';
+        if(f.ideia_status === 'pendente'){
+          acao = souSocio
+            ? `<span style="display:flex;gap:6px;flex-wrap:wrap">
+                 <button class="btn btn-sm ${meu && meu.decisao==='aprovar' ? '' : 'btn-ghost'}" data-decidir="${h(f.id)}" data-d="aprovar" data-tip="${meu && meu.decisao==='aprovar' ? 'Clique para tirar sua aprovação' : 'Aprovar para o roadmap'}">✓ Aprovar</button>
+                 <button class="btn btn-sm btn-ghost" data-decidir="${h(f.id)}" data-d="recusar" style="${meu && meu.decisao==='recusar' ? 'border-color:var(--vermelho);color:var(--vermelho)' : ''}" data-tip="${meu && meu.decisao==='recusar' ? 'Clique para tirar sua recusa' : 'Recusar'}">✕ Recusar</button>
+                 <span class="link" data-arquivar="${h(f.id)}" style="font-size:12px;align-self:center" data-tip="Tirar da fila sem votar (ex.: tarefa já feita)">arquivar</span>
+               </span>`
+            : '<span class="st" style="margin:0">só os sócios votam</span>';
+        } else if(f.ideia_status === 'aprovada'){
+          acao = `<span class="tag t-ok">no roadmap</span> <span class="link" data-fx="roadmap" style="font-size:12px">ver no kanban →</span>`;
+        } else if(f.ideia_status === 'arquivada'){
+          acao = `<span class="tag t-dim">arquivada</span>${souSocio ? ` <span class="link" data-desarquivar="${h(f.id)}" style="font-size:12px">voltar para a fila</span>` : ''}`;
+        } else acao = '<span class="tag t-dim">recusada</span>';
+        return `<div class="row" style="grid-template-columns:${col};align-items:start">
+          <span style="min-width:0"><b class="link" data-abrir-ideia="${h(f.id)}" style="display:block;font-size:13px;font-weight:600;color:var(--fg)">${h(f.titulo)}</b>
+            ${texto ? `<small style="display:block;font-size:12px;color:var(--dim);margin-top:3px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${h(texto)}</small>` : ''}
+            <small style="display:block;font-size:11px;color:var(--dim3);margin-top:4px">${h([f.origem, etapa ? 'etapa antiga: ' + etapa : null, f.fonte === 'whatsapp' ? 'via WhatsApp' : null, dmy(f.criada_em)].filter(Boolean).join(' · '))}</small></span>
+          <span style="display:flex;flex-wrap:wrap;gap:4px">${ideiaChipsHTML(f)}</span>
+          <span>${acao}</span>
+        </div>`;
+      }).join('') : '<div class="vazio">Nenhuma ideia com esses filtros.</div>'}
+    </div>`;
+}
+function ligarIdeias(souSocio, editar){
+  el('id-ver').onchange = () => { ST.idVer = el('id-ver').value; redesenhar(pgFeatures); };
+  el('id-etapa').onchange = () => { ST.idEtapa = el('id-etapa').value; redesenhar(pgFeatures); };
+  buscaViva('id-busca', () => ST.idBusca, v => { ST.idBusca = v; }, pgFeatures);
+  document.querySelectorAll('[data-abrir-ideia]').forEach(b => b.onclick = () => abrirCardFeature(b.dataset.abrirIdeia));
+  document.querySelectorAll('#page .row [data-fx]').forEach(x => x.onclick = () => { ST.fxAba = 'roadmap'; redesenhar(pgFeatures); });
+  if(el('id-nova')) el('id-nova').onclick = modalNovaIdeia;
+  if(!souSocio) return;
+  document.querySelectorAll('[data-decidir]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.decidir, meu = D.ideiaVotos.find(v => v.ideia_id === id && v.user_id === ME.user_id);
+    const d = meu && meu.decisao === b.dataset.d ? null : b.dataset.d;   // clicar de novo tira o voto
+    b.disabled = true;
+    const { data, error } = await sb.rpc('ideia_decidir', { p_ideia: id, p_decisao: d });
+    if(error){ b.disabled = false; return toast(erroMsg(error), true); }
+    toast(data.status === 'aprovada' ? '✓ Aprovada por todos os sócios — entrou no roadmap público.'
+        : data.status === 'recusada' ? 'Ideia recusada pela maioria.'
+        : `Voto registrado · ${data.aprovacoes}/${data.socios} aprovações`);
+    redesenhar(pgFeatures);
+  });
+  const mudar = async (id, st, msg) => {
+    const { error } = await sb.from('adm_features').update({ ideia_status: st }).eq('id', id);
+    if(error) return toast(erroMsg(error), true);
+    registrar(st === 'arquivada' ? 'ideia.arquivar' : 'ideia.desarquivar', (D.feats.find(f=>f.id===id)||{}).titulo, { ideia_id: id });
+    toast(msg); redesenhar(pgFeatures);
+  };
+  document.querySelectorAll('[data-arquivar]').forEach(b => b.onclick = () => mudar(b.dataset.arquivar, 'arquivada', 'Ideia arquivada.'));
+  document.querySelectorAll('[data-desarquivar]').forEach(b => b.onclick = () => mudar(b.dataset.desarquivar, 'pendente', 'Ideia voltou para a fila.'));
+  if(el('id-arq-lote')) el('id-arq-lote').onclick = async () => {
+    const ls = ideiasFiltradas().filter(f => f.ideia_status === 'pendente');
+    const etapa = (D.cols.find(c => c.id === ST.idEtapa) || {}).nome || 'sem etapa';
+    if(!confirm(`Arquivar ${ls.length} ideia(s) da etapa antiga "${etapa}"?\n\nElas saem da fila de aprovação (dá para voltar uma a uma no filtro "Arquivadas").`)) return;
+    const { error } = await sb.from('adm_features').update({ ideia_status:'arquivada' }).in('id', ls.map(f => f.id));
+    if(error) return toast(erroMsg(error), true);
+    registrar('ideia.arquivar_lote', etapa, { n: ls.length, ids: ls.map(f => f.id) });
+    toast(`${ls.length} ideia(s) arquivada(s).`); redesenhar(pgFeatures);
+  };
+}
+function modalNovaIdeia(){
+  abrirModal(`<h3>Nova ideia</h3>
+    <div class="col">
+      <label class="lbl">Título</label><input class="f" id="ni-tit" placeholder="Ex.: Sócio-torcedor com mensalidade">
+      <label class="lbl">Descrição (opcional)</label><textarea class="f" id="ni-desc" rows="3" placeholder="O que é e por que importa para o jogador"></textarea>
+      <label class="lbl">De onde veio</label>
+      <select class="f" id="ni-orig"><option value="equipe">Equipe</option><option value="usuario">Jogador</option><option value="whatsapp">Grupo do WhatsApp</option><option value="parceiro">Parceiro</option></select>
+      <div class="st" style="margin:0">Entra em <b>Aguardando aprovação</b>: vai para o roadmap quando os ${num((D.socios||[]).length)} sócios aprovarem.</div>
+      <div class="acoes"><button class="btn" id="ni-ok">Adicionar ao banco de ideias</button><button class="btn btn-ghost" data-fechar>Cancelar</button></div>
+    </div>`);
+  el('ni-ok').onclick = async () => {
+    const titulo = el('ni-tit').value.trim();
+    if(!titulo) return toast('Digite o título.', true);
+    const origem = el('ni-orig').value, col = (D.cols||[])[0];
+    const { data, error } = await sb.from('adm_features').insert({
+      titulo, descricao: el('ni-desc').value.trim() || null, origem, fonte: origem === 'whatsapp' ? 'whatsapp' : 'painel',
+      coluna_id: col ? col.id : null, ord: 0, criado_por: ME && ME.user_id, ideia_status: 'pendente'
+    }).select('id').single();
+    if(error) return toast(erroMsg(error), true);
+    registrar('feature.criar', titulo, { feature_id: data && data.id, origem });
+    fecharModal(); toast('Ideia adicionada — aguardando aprovação dos sócios.'); ST.idVer = 'pendente'; redesenhar(pgFeatures);
+  };
+}
+
+/* ---------- ROADMAP (kanban, o mesmo da página pública) ---------- */
+function rmKanbanHTML(souSocio){
+  const it = D.rmItens || [];
+  const card = (i) => {
+    const v = D.rmVotos[i.id] || 0;
+    const opts = RM_ESTAGIOS.map(([k,n]) => `<option value="${k}" ${i.status===k?'selected':''}>${h(n)}</option>`).join('');
+    return `<div class="card" style="padding:12px 13px;display:flex;flex-direction:column;gap:8px;${i.publicado?'':'opacity:.65;border-style:dashed'}">
+      <b style="font-size:13px;line-height:1.35">${h(i.titulo)}</b>
+      ${i.descricao ? `<small style="font-size:12px;color:var(--dim);line-height:1.5">${h(i.descricao)}</small>` : ''}
+      <span style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+        ${i.area ? `<span class="tag t-dim">${h(i.area)}</span>` : ''}
+        ${i.versao === 'v1_extra' && i.status !== 'lancado' ? '<span class="tag t-warn">⚡ pode chegar na V1</span>' : ''}
+        ${i.publicado ? '' : '<span class="tag t-dim" data-tip="Não aparece na página pública">🔒 oculto</span>'}
+        <span class="mono" style="margin-left:auto;font-size:12px;color:${v?'var(--verde2)':'var(--dim3)'}" data-tip="Votos dos jogadores na página pública">▲ ${num(v)}</span>
+      </span>
+      ${souSocio ? `<span style="display:flex;gap:6px;align-items:center">
+        <select class="f" data-rm-status="${h(i.id)}" style="flex:1;min-width:0;font-size:12px;padding:6px 8px" data-tip="Mover de estágio">${opts}</select>
+        <button class="btn btn-sm btn-ghost" data-rm-editar="${h(i.id)}">Editar</button></span>` : ''}
+    </div>`;
+  };
+  return `
+    <div class="card card-p" style="font-size:13px;color:var(--dim);line-height:1.6">
+      <b style="color:var(--fg)">O roadmap público.</b> É exatamente o que aparece em
+      <a href="https://retrofoot.com.br/roadmap/" target="_blank" rel="noopener">retrofoot.com.br/roadmap</a>, com os votos dos jogadores.
+      Entra aqui o que os sócios aprovaram no banco de ideias. ${souSocio ? 'Mova de estágio pelo seletor, edite o texto ou esconda da página pública.' : 'Só os sócios mexem no roadmap.'}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start" class="rm-kb">
+      ${RM_ESTAGIOS.map(([k,n,cor]) => {
+        const l = it.filter(i => i.status === k).sort((a,b) => (a.ord - b.ord));
+        return `<div style="background:var(--card2);border:1px solid var(--bd);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px"><i style="width:9px;height:9px;border-radius:99px;background:${cor};display:block"></i>${h(n)}
+            <small class="mono" style="margin-left:auto;color:var(--dim2)">${l.length}</small></div>
+          ${l.length ? l.map(card).join('') : '<div class="vazio" style="padding:10px">—</div>'}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+function ligarRoadmap(souSocio){
+  if(!souSocio) return;
+  document.querySelectorAll('[data-rm-status]').forEach(s => s.onchange = async () => {
+    const i = D.rmItens.find(x => x.id === s.dataset.rmStatus); if(!i) return;
+    const linha = { status: s.value };
+    if(s.value === 'lancado' && !i.lancado_em) linha.lancado_em = usDiaLocal(new Date());
+    const { error } = await jogo('roadmap_itens').update(linha).eq('id', i.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('roadmap.estagio', i.titulo, { item_id: i.id, de: i.status, para: s.value });
+    toast('Movido para ' + (RM_ESTAGIOS.find(e => e[0] === s.value) || [])[1] + '.'); redesenhar(pgFeatures);
+  });
+  document.querySelectorAll('[data-rm-editar]').forEach(b => b.onclick = () => modalRoadmapItem(b.dataset.rmEditar));
+}
+function modalRoadmapItem(id){
+  const i = D.rmItens.find(x => x.id === id); if(!i) return;
+  const areas = [...new Set(D.rmItens.map(x => x.area).filter(Boolean))].sort();
+  abrirModal(`<h3>Editar item do roadmap</h3>
+    <div class="col">
+      <label class="lbl">Título (público)</label><input class="f" id="ri-tit" value="${h(i.titulo)}">
+      <label class="lbl">Descrição (pública)</label><textarea class="f" id="ri-desc" rows="3">${h(i.descricao||'')}</textarea>
+      <label class="lbl">Área</label><input class="f" id="ri-area" list="ri-areas" value="${h(i.area||'')}">
+      <datalist id="ri-areas">${areas.map(a => `<option value="${h(a)}">`).join('')}</datalist>
+      <label class="lbl">Estágio</label>
+      <select class="f" id="ri-st">${RM_ESTAGIOS.map(([k,n]) => `<option value="${k}" ${i.status===k?'selected':''}>${h(n)}</option>`).join('')}</select>
+      <label class="lbl">Versão</label>
+      <select class="f" id="ri-ver"><option value="v2" ${i.versao==='v2'?'selected':''}>Versão 2</option>
+        <option value="v1_extra" ${i.versao==='v1_extra'?'selected':''}>Pode chegar na V1 (extra)</option></select>
+      <label class="lbl">Ordem (menor aparece antes)</label><input class="f" id="ri-ord" type="number" value="${+i.ord||0}">
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="ri-pub" ${i.publicado?'checked':''}> Aparece na página pública</label>
+      <div class="acoes">
+        <button class="btn" id="ri-ok">Salvar</button>
+        <button class="btn btn-ghost" data-fechar>Cancelar</button>
+        <span class="link" id="ri-del" style="margin-left:auto;color:var(--vermelho);align-self:center">Tirar do roadmap</span>
+      </div>
+    </div>`);
+  el('ri-ok').onclick = async () => {
+    const linha = { titulo: el('ri-tit').value.trim(), descricao: el('ri-desc').value.trim() || null,
+      area: el('ri-area').value.trim() || null, status: el('ri-st').value, versao: el('ri-ver').value,
+      ord: +el('ri-ord').value || 0, publicado: el('ri-pub').checked };
+    if(!linha.titulo) return toast('O título não pode ficar vazio.', true);
+    if(linha.status === 'lancado' && !i.lancado_em) linha.lancado_em = usDiaLocal(new Date());
+    const { error } = await jogo('roadmap_itens').update(linha).eq('id', i.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('roadmap.editar', linha.titulo, { item_id: i.id, antes: { titulo:i.titulo, status:i.status, publicado:i.publicado } });
+    fecharModal(); toast('Roadmap atualizado.'); redesenhar(pgFeatures);
+  };
+  el('ri-del').onclick = async () => {
+    if(!confirm(`Tirar "${i.titulo}" do roadmap?\n\nSome da página pública junto com os ${D.rmVotos[i.id]||0} voto(s). Para só esconder, desmarque "Aparece na página pública".`)) return;
+    const { error } = await jogo('roadmap_itens').delete().eq('id', i.id);
+    if(error) return toast(erroMsg(error), true);
+    registrar('roadmap.remover', i.titulo, { item_id: i.id, item: i, votos: D.rmVotos[i.id]||0 });
+    fecharModal(); toast('Item tirado do roadmap.'); redesenhar(pgFeatures);
+  };
 }
 
 /* ==================== OPINIÃO DE USUÁRIOS ====================
@@ -4500,14 +4695,14 @@ async function opVirarCard(id){
   const onde = [o.tela, o.competicao, o.versao?('v'+o.versao):null].filter(Boolean).join(' · ');
   const ord = Math.max(0, ...(D.feats||[]).filter(f=>f.coluna_id===col.id).map(f=>+f.ord||0)) + 1;
   const ins = await sb.from('adm_features').insert({
-    coluna_id: col.id, ord, titulo, origem:'usuario', criado_por: ME && ME.user_id,
+    coluna_id: col.id, ord, titulo, origem:'usuario', fonte:'opiniao', ideia_status:'pendente', criado_por: ME && ME.user_id,
     descricao: o.texto + '\n\n— ' + t.n.toLowerCase() + ' de um treinador' +
                (onde ? ' em ' + onde : '') + (o.clube ? ' (' + o.clube + ')' : '')
   }).select('id').single();
   if(ins.error) return toast('Não deu para criar o card: ' + erroMsg(ins.error), true);
   const up = await jogo('user_opinions').update({ feature_id: ins.data.id, lida:true, arquivada:true }).eq('id', id);
   if(up.error) toast('Card criado, mas a opinião não saiu da caixa: ' + erroMsg(up.error), true);
-  else toast('Card criado em "' + col.nome + '".');
+  else toast('Virou ideia no banco de ideias — aguardando aprovação dos sócios.');
   registrar('opiniao.virou_card', id, { feature: ins.data.id });
   redesenhar(pgFeatures);
 }
@@ -5012,7 +5207,7 @@ const AREAS = {
   contas:    'Contas e salas',
   financas:  'Finanças',
   publicidade:'Publicidade',
-  produto:   'Funcionalidades',
+  produto:   'Roadmap e ideias',
   conteudo:  'Conteúdo',
   parceiros: 'Parceiros',
   dados:     'Dados do jogo',
@@ -5054,6 +5249,9 @@ const ACOES = {
   'feature.feito':'Marcou como feito',
   'feature.reabrir':'Reabriu o card',
   'feature.voto':'Mudou votos de um card',
+  'ideia.voto':'Votou numa ideia', 'ideia.aprovada':'Ideia aprovada → roadmap', 'ideia.recusada':'Ideia recusada',
+  'ideia.arquivar':'Arquivou ideia', 'ideia.desarquivar':'Voltou ideia para a fila', 'ideia.arquivar_lote':'Arquivou ideias em lote',
+  'roadmap.estagio':'Moveu item do roadmap', 'roadmap.editar':'Editou item do roadmap', 'roadmap.remover':'Tirou item do roadmap',
   'coluna.criar':'Criou coluna do kanban',
   'coluna.renomear':'Renomeou coluna do kanban',
   'coluna.apagar':'Apagou coluna do kanban',
@@ -5120,7 +5318,7 @@ const AREA_POR_PREFIXO = {
   sala:'contas', salas:'contas', saves:'contas', usuarios:'contas', convites:'contas', senha:'contas',
   lancamento:'financas', openai:'financas',
   criativo:'publicidade', espaco:'publicidade', patrocinador:'publicidade', mediakit:'publicidade',
-  feature:'produto', coluna:'produto', kanban:'produto',
+  feature:'produto', coluna:'produto', kanban:'produto', ideia:'produto', roadmap:'produto',
   conteudo:'conteudo', parceiro:'parceiros', parceiros:'parceiros',
   clube:'dados', pacote:'dados', competicoes:'dados', dados:'dados',
   momento:'videos', estudio:'imagens', config:'financas'

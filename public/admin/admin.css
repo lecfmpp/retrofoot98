@@ -768,3 +768,6 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
     text-transform:none;letter-spacing:0;color:var(--dim2)}
 }
 @media (max-width:900px){ .g4.g5{grid-template-columns:1fr 1fr} }
+
+/* Roadmap do painel (aba kanban): 4 colunas no desktop, uma embaixo da outra no celular */
+@media (max-width:900px){ .rm-kb{grid-template-columns:1fr !important} }

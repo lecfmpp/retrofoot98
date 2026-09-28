@@ -32,7 +32,7 @@ main a.rm-b{text-decoration:none}
 body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;color:var(--rm-corpo)}
 .rm-w{max-width:1240px;margin:0 auto;padding:0 24px}
 .rm-hero{padding:30px 0 14px}
-.rm-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.rm-topo{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap}
 .rm-pill{display:inline-flex;font-family:var(--rm-mono);font-size:11px;font-weight:600;letter-spacing:.14em;
   color:var(--rm-az);background:#dfe8f6;border-radius:99px;padding:6px 12px}
 .rm-h1{margin:10px 0 6px;font-size:34px;line-height:1.1;font-weight:700;color:var(--rm-tinta);letter-spacing:-.03em}
@@ -118,7 +118,7 @@ body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-sys
   .rm-hero{padding:30px 0 18px}
   .rm-h1{font-size:27px}
   .rm-lead{font-size:14.5px}
-  .rm-acoes .rm-b{flex:1;justify-content:center}
+  .rm-topo .rm-share-btn{width:100%;justify-content:center}
   .rm-ord{margin-left:0;width:100%}
 }
 `;
@@ -267,21 +267,16 @@ export const roadmap = [{
   body: `
 <div class="rm-w">
   <section class="rm-hero">
+    <span class="rm-pill">ROADMAP PÚBLICO</span>
     <div class="rm-topo">
-      <div>
-        <span class="rm-pill">ROADMAP PÚBLICO</span>
-        <h1 class="rm-h1">O que vem por aí no RetroFoot</h1>
-        <p class="rm-lead">O quadro do que estamos preparando para a Versão 2. Vote no que você quer primeiro —
-          os mais votados sobem na fila.</p>
-        <div class="rm-labels">
-          <span class="rm-label data">📅 Versão 2 prevista para dezembro de 2026 · a confirmar</span>
-          <span class="rm-label v1">⚡ Algumas melhorias podem chegar antes, ainda na Versão 1</span>
-        </div>
-      </div>
-      <div class="rm-acoes">
-        ${botaoShare}
-        <a class="rm-b am" href="/">▶ Jogar de graça</a>
-      </div>
+      <h1 class="rm-h1">O que vem por aí no RetroFoot</h1>
+      ${botaoShare}
+    </div>
+    <p class="rm-lead">O quadro do que estamos preparando para a Versão 2. Vote no que você quer primeiro —
+      os mais votados sobem na fila.</p>
+    <div class="rm-labels">
+      <span class="rm-label data">📅 Versão 2 prevista para dezembro de 2026 · a confirmar</span>
+      <span class="rm-label v1">⚡ Algumas melhorias podem chegar antes, ainda na Versão 1</span>
     </div>
   </section>
 
