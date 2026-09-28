@@ -113,3 +113,7 @@ notify pgrst, 'reload schema';
 -- o painel lê os votos públicos (contagem no kanban interno, inclusive de itens ocultos)
 drop policy if exists roadmap_votos_admin_sel on elifoot_v3.roadmap_votos;
 create policy roadmap_votos_admin_sel on elifoot_v3.roadmap_votos for select to authenticated using (admin_rf98.is_admin());
+
+-- CORREÇÃO (27/09/2026): tabela nova em admin_rf98 NÃO herda grant (o elifoot_v3 herda). Sem isto o painel
+-- quebrava com "permission denied for table ideia_votos". Só leitura: o voto passa por ideia_decidir.
+grant select on admin_rf98.ideia_votos to authenticated;
