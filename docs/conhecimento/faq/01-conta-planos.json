@@ -1,0 +1,1278 @@
+[
+  {
+    "id": "01-001",
+    "pergunta": "O que é o RetroFoot?",
+    "variacoes": [
+      "que jogo é esse",
+      "o retrofoot98 é tipo elifoot?",
+      "como funciona esse jogo de tecnico",
+      "é um manager de futebol?",
+      "o que da pra fazer no retrofoot"
+    ],
+    "resposta": "O RetroFoot (antigo \"RetroFoot98\") é um **jogo de técnico de futebol (manager) retrô**, no estilo dos clássicos dos anos 90, jogado **direto no navegador**, no computador ou no celular.\n\nO jogador é o técnico: escala o time, define a tática, negocia no mercado (com leilão), cuida do caixa, do estádio e dos patrocínios, e disputa liga e copas. A partida é mostrada ao vivo, com narração lance a lance.\n\n- Todo mundo começa na **Série D** e sobe jogando.\n- O clube é **sorteado**; o jogador escolhe só o país.\n- Clubes, jogadores e competições têm **nomes fictícios**.",
+    "resposta_jogador": "O RetroFoot é um jogo de técnico de futebol retrô, no estilo dos clássicos dos anos 90, que você joga direto no navegador. Você começa com um clube sorteado na Série D e sobe até a elite cuidando de escalação, tática, mercado e finanças.",
+    "tags": [
+      "jogo",
+      "visao-geral",
+      "manager"
+    ]
+  },
+  {
+    "id": "01-002",
+    "pergunta": "Precisa instalar alguma coisa? Dá para jogar no celular?",
+    "variacoes": [
+      "tem app pra baixar?",
+      "da pra jogar no cel",
+      "roda no celular ou so no pc",
+      "onde baixo o retrofoot",
+      "tem na play store?"
+    ],
+    "resposta": "**Não precisa instalar nada.** O RetroFoot roda direto no navegador, no computador ou no celular.\n\nNão é preciso baixar app nem usar loja de aplicativos. Os saves ficam **na nuvem, ligados à conta**: dá para começar no computador e continuar no celular entrando com a **mesma conta** (mesmo e-mail).",
+    "resposta_jogador": "Não precisa baixar nada: é só abrir o site no navegador, no celular ou no computador. Seus saves ficam na nuvem, então dá para começar num aparelho e continuar no outro entrando com a mesma conta.",
+    "tags": [
+      "instalar",
+      "celular",
+      "navegador",
+      "nuvem"
+    ]
+  },
+  {
+    "id": "01-003",
+    "pergunta": "Por que os clubes e jogadores têm nomes diferentes dos reais?",
+    "variacoes": [
+      "os nomes dos times tao errados",
+      "pq o flamengo nao aparece com o nome certo",
+      "nomes ficticios no jogo",
+      "cade os nomes reais dos jogadores",
+      "liga soberana é a serie a?"
+    ],
+    "resposta": "No jogo, **clubes, jogadores e competições têm nomes fictícios** — é proposital. Exemplos: as copas aparecem como \"Copa da Federação\", \"Liberta Cup\" e \"Copa de Clubes da América\"; a Série A aparece como \"Liga Soberana\". Os estrangeiros também têm nomes fictícios.\n\nOs nomes exatos vêm do pacote oficial e podem mudar pelo painel, então a **tela do jogo é a referência**.\n\nA única exceção é a pergunta \"Seu time do coração\" no cadastro, que mostra nome e escudo reais só para saber para quem a pessoa torce.",
+    "resposta_jogador": "Os nomes de clubes, jogadores e campeonatos no jogo são fictícios de propósito. A \"Liga Soberana\", por exemplo, é a primeira divisão, e a \"Liberta Cup\" é a copa continental.",
+    "tags": [
+      "nomes-ficticios",
+      "clubes",
+      "competicoes"
+    ]
+  },
+  {
+    "id": "01-004",
+    "pergunta": "Dá para jogar com time feminino?",
+    "variacoes": [
+      "tem futebol feminino?",
+      "da pra comandar o time das mina",
+      "como escolho o feminino",
+      "modalidade feminina existe?",
+      "quero treinar time feminino"
+    ],
+    "resposta": "**Sim.** Dá para comandar o time **masculino ou o feminino** (mesmos clubes, mesmo calendário, mesmas competições).\n\nA escolha é feita no passo **Modalidade** do onboarding, na tela \"Você comanda o time masculino ou o feminino?\": botões **Escolher masculino** ou **Escolher feminino**. Cada carreira (save) tem a sua modalidade.",
+    "resposta_jogador": "Tem sim! Ao começar uma carreira nova, o jogo pergunta se você quer comandar o time masculino ou o feminino. São os mesmos clubes e as mesmas competições.",
+    "tags": [
+      "feminino",
+      "modalidade",
+      "onboarding"
+    ]
+  },
+  {
+    "id": "01-005",
+    "pergunta": "Consigo jogar com meus amigos agora? (Modo Resenha)",
+    "variacoes": [
+      "como jogo online com os amigos",
+      "cade o multiplayer",
+      "modo resenha ta liberado?",
+      "o cartao da resenha ta travado em breve",
+      "quero jogar com a galera",
+      "nao consigo clicar na resenha"
+    ],
+    "resposta": "**Ainda não.** Desde 25/09 o cartão do **Modo Resenha** aparece com o selo **\"Em breve\"** e não é clicável. Ele chega como **versão Beta** e será **exclusivo do Pro**.\n\nHoje o único modo disponível para todos é o **Modo Solo** (botão **Jogar sozinho**).\n\nA opção de vários jogadores no mesmo aparelho (hotseat) também foi desligada. **Não prometa data de lançamento.**",
+    "resposta_jogador": "Ainda não dá: o Modo Resenha, que é o multiplayer com os amigos, está \"Em breve\" e vai chegar como versão Beta, exclusivo para quem é Pro. Por enquanto dá para jogar o Modo Solo completo.",
+    "tags": [
+      "modo-resenha",
+      "multiplayer",
+      "em-breve"
+    ]
+  },
+  {
+    "id": "01-006",
+    "pergunta": "Se eu assinar o Pro agora, já tenho o Modo Resenha?",
+    "variacoes": [
+      "pagando o pro libera a resenha?",
+      "o pro da acesso ao multiplayer",
+      "assinei e a resenha continua em breve",
+      "garantir acesso com o pro é o que?",
+      "acesso garantido no lançamento significa o que"
+    ],
+    "resposta": "O Pro **garante o acesso** ao Modo Resenha **quando a versão Beta for lançada** — ainda não libera hoje.\n\nNo cartão do Modo Resenha:\n- Peladeiro vê **Garantir acesso com o Pro** (abre a oferta do Pro).\n- Pro vê **✓ Acesso garantido no lançamento** (\"Você é Pro: o seu acesso ao Modo Resenha está garantido no lançamento do Beta.\").\n\nHoje o Pro libera **temporadas e carreiras ilimitadas no Modo Solo**, velocidade Ultrassônico e o Selo Pro. Não há data de lançamento para prometer.",
+    "resposta_jogador": "Quem é Pro tem o acesso ao Modo Resenha garantido assim que a versão Beta for lançada, mas ele ainda não está no ar. Hoje o Pro libera temporadas e carreiras ilimitadas no Modo Solo.",
+    "tags": [
+      "modo-resenha",
+      "pro",
+      "beta"
+    ]
+  },
+  {
+    "id": "01-007",
+    "pergunta": "Quantos treinadores cabem numa sala do Modo Resenha?",
+    "variacoes": [
+      "quantas pessoas por sala na resenha",
+      "sala é de 8 ou de 10?",
+      "da pra jogar em 20 na resenha",
+      "limite de jogadores na sala",
+      "o site fala 3 a 8, qual ta certo"
+    ],
+    "resposta": "O número que vale é o do servidor: **até 10 treinadores por sala** (para Pro).\n\nHá textos divergentes no site: a página inicial diz \"Salas de 3 a 8 treinadores\", o cartão do Pro diz \"até 10 treinadores\" e uma tela antiga ainda diz \"até 20\". Responda **até 10**.\n\nLembrando que o Modo Resenha está **\"Em breve\"** — não prometa data de lançamento.",
+    "resposta_jogador": "Pelo que está configurado hoje, cada sala do Modo Resenha comporta até 10 treinadores. O modo ainda está \"Em breve\", chegando como versão Beta para quem é Pro.",
+    "tags": [
+      "modo-resenha",
+      "sala",
+      "limite"
+    ]
+  },
+  {
+    "id": "01-008",
+    "pergunta": "Quando o Modo Resenha vai ser lançado?",
+    "variacoes": [
+      "qual a data da resenha",
+      "quando sai o multiplayer",
+      "falta muito pra resenha?",
+      "previsao de lancamento do modo resenha",
+      "resenha sai esse mes?"
+    ],
+    "resposta": "**Não há data divulgada.** O Modo Resenha está marcado como **\"Em breve\"** e vai chegar como **versão Beta, exclusiva do Pro**. A base de conhecimento orienta explicitamente a **não prometer data de lançamento**.\n\nPara novidades, indique o **grupo do WhatsApp** da comunidade (\"Saiba antes das novidades\").",
+    "resposta_jogador": "Ainda não temos uma data para o lançamento do Modo Resenha. Ele vai chegar como versão Beta para quem é Pro, e as novidades saem primeiro no nosso grupo do WhatsApp.",
+    "tags": [
+      "modo-resenha",
+      "lancamento",
+      "em-breve"
+    ]
+  },
+  {
+    "id": "01-009",
+    "pergunta": "Posso escolher o meu time?",
+    "variacoes": [
+      "da pra escolher o clube?",
+      "quero jogar com meu time",
+      "como faco pra pegar o corinthians",
+      "o time é aleatorio?",
+      "nao gostei do time sorteado, troco?"
+    ],
+    "resposta": "**Não.** O jogador escolhe **o país**; o clube sai **sorteado** na cerimônia do sorteio, na **Série D**, igual para todo mundo.\n\nO \"time do coração\" informado no cadastro **não influencia** o sorteio. Quem quiser outro clube pode começar uma carreira nova — no Peladeiro isso exige apagar o save atual (1 carreira por conta).",
+    "resposta_jogador": "O clube é sempre sorteado, igual para todo mundo, e todos começam na Série D. O desafio é justamente subir com o time que o sorteio te deu!",
+    "tags": [
+      "sorteio",
+      "clube",
+      "onboarding"
+    ]
+  },
+  {
+    "id": "01-010",
+    "pergunta": "Posso começar na Série A ou escolher a divisão?",
+    "variacoes": [
+      "da pra comecar na serie a",
+      "como pulo direto pra primeira divisao",
+      "modo teste pra escolher divisao",
+      "vi um botao pular 30 e testar",
+      "quero comecar na serie b"
+    ],
+    "resposta": "**Não.** Todo mundo começa na **Série D** e sobe jogando.\n\n- O antigo \"modo teste\", que deixava escolher a divisão inicial, foi **desligado em 04/09/2026**.\n- O botão de bancada \"🧪 PULAR 30 E TESTAR\" existe no código mas **não aparece para jogadores**. Se alguém disser que viu algo assim, **escale para um dev**.\n\nCada divisão tem 20 clubes; da Série D sobem 4.",
+    "resposta_jogador": "Não dá: todo mundo começa na Série D e sobe jogando. Da Série D sobem os 4 primeiros para a Série C.",
+    "tags": [
+      "serie-d",
+      "divisao",
+      "onboarding"
+    ]
+  },
+  {
+    "id": "01-011",
+    "pergunta": "Posso treinar um clube de outro país, como Inglaterra ou Espanha?",
+    "variacoes": [
+      "da pra jogar na europa?",
+      "quero treinar time ingles",
+      "outros paises tao em breve pq",
+      "so tem brasil?",
+      "como jogo com clube europeu",
+      "o llms.txt fala que da pra jogar na europa"
+    ],
+    "resposta": "**Ainda não.** Na versão atual só se pode escolher um clube do **Brasil** (Séries A–D, masculino ou feminino). Inglaterra, Portugal, Espanha, Itália, Alemanha e Argentina aparecem como **EM BREVE**.\n\nEssas ligas já existem no mundo do jogo (rodam simuladas \"de fundo\"): aparecem em Campeonatos e **dá para comprar e vender jogadores delas**.\n\nAtenção: o arquivo público `llms.txt` do site está **desatualizado** (fala em jogar na Europa); não use como referência.",
+    "resposta_jogador": "Por enquanto só dá para treinar clubes do Brasil; os outros países estão marcados como \"Em breve\". Mas essas ligas já existem no jogo e você pode comprar e vender jogadores delas.",
+    "tags": [
+      "paises",
+      "travas",
+      "em-breve"
+    ]
+  },
+  {
+    "id": "01-012",
+    "pergunta": "Por que não recebo proposta de clube do exterior? Posso contratar jogador de fora?",
+    "variacoes": [
+      "nenhum time europeu me chama",
+      "so recebo proposta de time brasileiro",
+      "da pra comprar jogador gringo?",
+      "mercado é so do brasil?",
+      "como vendo jogador pra fora"
+    ],
+    "resposta": "São duas travas diferentes da 1ª versão pública:\n\n- **Carreira do treinador só no Brasil (ligada):** clubes do exterior **não convidam** o técnico. Convites de outros clubes **brasileiros** continuam existindo.\n- **Mercado mundial (aberto):** dá para **comprar de clubes estrangeiros e vender para eles**. Os estrangeiros também têm nomes fictícios.",
+    "resposta_jogador": "Nesta versão a carreira do treinador fica no Brasil, então só clubes brasileiros fazem convite. Já o mercado é mundial: você pode comprar e vender jogadores de clubes do exterior normalmente.",
+    "tags": [
+      "travas",
+      "mercado",
+      "propostas"
+    ]
+  },
+  {
+    "id": "01-013",
+    "pergunta": "Qual é o passo a passo para começar a primeira carreira?",
+    "variacoes": [
+      "como comeco a jogar",
+      "o que faço depois de criar a conta",
+      "passos do onboarding modo solo",
+      "como inicia a temporada",
+      "criei conta e agora?"
+    ],
+    "resposta": "A régua do Modo Solo é: **Entrar → Modo → Save → Modalidade → País e liga → Treinador → Clube → Jogar**.\n\n1. **Entrar**: criar conta ou entrar.\n2. **Modo**: \"Como você quer jogar?\" → **Jogar sozinho**.\n3. **Save**: **Começar um jogo novo** (nome gerado sozinho: SAVE01…).\n4. **Modalidade**: masculino ou feminino.\n5. **País e liga**: Brasil → **Sortear meu clube**; depois escolher a moeda.\n6. **Treinador**: nome, idade (25 a 75) e a cara (obrigatória).\n7. **Clube**: cerimônia do sorteio → **Iniciar temporada**.\n8. **Jogar**: tela de boas-vindas → **Entrar no clube**.",
+    "resposta_jogador": "Depois de entrar na conta, escolha \"Jogar sozinho\", comece um jogo novo, escolha masculino ou feminino, o país, monte o seu treinador (nome, idade e foto) e acompanhe o sorteio do clube. Aí é só clicar em \"Iniciar temporada\" e \"Entrar no clube\".",
+    "tags": [
+      "onboarding",
+      "comecar",
+      "modo-solo"
+    ]
+  },
+  {
+    "id": "01-014",
+    "pergunta": "A tela \"Carregando jogo\" ficou parada uns 10 segundos. Travou?",
+    "variacoes": [
+      "ficou carregando muito tempo",
+      "travou no carregando jogo",
+      "demora pra abrir o jogo depois do sorteio",
+      "tela de loading lenta",
+      "o jogo ta preso carregando"
+    ],
+    "resposta": "**Não é travamento.** Depois de **Iniciar temporada**, a tela \"Carregando jogo\" dura **cerca de 10 segundos de propósito** (é espaço de patrocinador). Depois ela segue sozinha para a tela de boas-vindas do clube.\n\nSe passar muito disso, aí vale investigar como problema de conexão.",
+    "resposta_jogador": "É normal! A tela \"Carregando jogo\" fica uns 10 segundos de propósito antes de abrir o seu clube. É só aguardar que ela segue sozinha.",
+    "tags": [
+      "carregamento",
+      "onboarding",
+      "normal"
+    ]
+  },
+  {
+    "id": "01-015",
+    "pergunta": "Em que moeda eu jogo? Dá para escolher?",
+    "variacoes": [
+      "da pra jogar em euro",
+      "como mudo a moeda pra dolar",
+      "moeda do jogo é real?",
+      "escolher moeda no inicio",
+      "salarios em reais ou euro"
+    ],
+    "resposta": "**Sim.** Logo depois de sortear o clube aparece a tela \"Em que moeda você quer jogar?\" com **Real (R$)**, **Euro (€)** ou **Dólar (US$)**.\n\nA moeda vale para salários, transferências e caixa. Os cartões mostram a faixa de caixa inicial da divisão já convertida.",
+    "resposta_jogador": "Dá sim: ao começar a carreira, o jogo pergunta se você quer jogar em Real, Euro ou Dólar. A moeda escolhida vale para salários, transferências e caixa.",
+    "tags": [
+      "moeda",
+      "onboarding",
+      "financas"
+    ]
+  },
+  {
+    "id": "01-016",
+    "pergunta": "Como defino e troco nome, idade e foto do treinador?",
+    "variacoes": [
+      "como mudo o nome do tecnico",
+      "trocar minha foto de treinador",
+      "a foto é obrigatoria?",
+      "quero mudar a cara do treinador",
+      "como coloco minha foto no ranking",
+      "idade do treinador muda?"
+    ],
+    "resposta": "A identidade do treinador é criada no passo **Treinador** do onboarding:\n- **Nome**: até 12 caracteres (aceita minúsculas e acentos). Trocar depois: **Treinador → Perfil → Trocar o nome**.\n- **Idade**: 25 a 75 (padrão 36); envelhece 1 ano por temporada.\n- **Cara (obrigatória)**: **Subir a minha foto** (JPG, PNG ou WebP, até 2 MB, rosto de frente) ou uma das **5 faces desenhadas** por gênero. Trocar depois: **Configurações → Perfil**.\n\nA foto fica no perfil da conta e aparece na ficha, nas entrevistas e no **ranking** (sem foto, aparecem as iniciais).",
+    "resposta_jogador": "Você pode trocar o nome em Treinador → Perfil → Trocar o nome, e a foto em Configurações → Perfil. A mesma foto aparece no ranking; sem foto, aparecem as suas iniciais.",
+    "tags": [
+      "treinador",
+      "perfil",
+      "foto"
+    ]
+  },
+  {
+    "id": "01-017",
+    "pergunta": "Quero o retrato do treinador feito por IA. Como faço?",
+    "variacoes": [
+      "criar com ia ta em breve",
+      "avatar por ia",
+      "o pro da o avatar de ia?",
+      "como gero minha cara com ia",
+      "cade o retrato ia"
+    ],
+    "resposta": "Hoje o **Retrato por IA** aparece como **\"Em breve\"** com 🔒 para **Peladeiro e Pro**. Ao clicar: \"O retrato por IA vem aí — … vai ser um item à parte, e chega em breve.\"\n\n- O **Pro não inclui** o retrato por IA; ele será um **item avulso**, ainda sem data.\n- Só contas do antigo plano Embaixador ainda têm o direito, e mesmo assim **1 geração por conta**.\n\nEnquanto isso, dá para subir uma foto própria ou escolher uma face desenhada.",
+    "resposta_jogador": "O retrato por IA ainda não está disponível: ele vai ser vendido como item à parte e chega em breve. Por enquanto você pode subir uma foto sua ou escolher uma das faces desenhadas.",
+    "tags": [
+      "avatar",
+      "ia",
+      "em-breve"
+    ]
+  },
+  {
+    "id": "01-018",
+    "pergunta": "Estou na lista de espera. Quando recebo minha vaga?",
+    "variacoes": [
+      "minha vaga na lista de espera",
+      "me inscrevi na fila e nada",
+      "ainda tem lista de espera?",
+      "preciso esperar convite pra jogar?",
+      "quando abre vaga pra mim"
+    ],
+    "resposta": "**Não há mais fila.** A lista de espera foi **desligada em 04/09/2026**, quando o pagamento entrou no ar. Qualquer pessoa cria a conta e joga o **Peladeiro** na hora.\n\nA caixinha \"Quero receber aviso quando abrir vaga nas Ligas Oficiais.\" no cadastro é um resto dessa fase e **não é enviada a lugar nenhum** — não prometa nada com base nela.",
+    "resposta_jogador": "Não existe mais lista de espera! É só criar a sua conta no site e começar a jogar na hora, com a 1ª temporada de graça.",
+    "tags": [
+      "lista-de-espera",
+      "cadastro",
+      "acesso"
+    ]
+  },
+  {
+    "id": "01-019",
+    "pergunta": "Como eu crio uma conta?",
+    "variacoes": [
+      "como me cadastro",
+      "onde faz o cadastro",
+      "criar conta no retrofoot",
+      "como faço pra me registrar",
+      "nao acho onde cria a conta"
+    ],
+    "resposta": "1. No site, clique em **Entrar** (cabeçalho) ou em **Começar carreira → Bater a primeira pelada**.\n2. Na aba **Criar conta**, preencha: **Nome do treinador**, **E-mail**, **WhatsApp** (opcional), **Seu time do coração** (obrigatório) e **Senha**.\n3. Clique em **Criar conta e continuar** (fica apagado até tudo estar OK).\n\nAparece \"Conta criada!\" e a pessoa vai direto para \"Como você quer jogar?\". Não é preciso confirmar o e-mail hoje.\n\nObs.: todos os botões \"Começar carreira\" levam primeiro à seção **Planos**.",
+    "resposta_jogador": "É só entrar no site, clicar em \"Entrar\" (ou em \"Começar carreira\" e depois \"Bater a primeira pelada\"), preencher nome, e-mail, time do coração e senha, e clicar em \"Criar conta e continuar\".",
+    "tags": [
+      "cadastro",
+      "conta",
+      "criar-conta"
+    ]
+  },
+  {
+    "id": "01-020",
+    "pergunta": "O WhatsApp é obrigatório no cadastro?",
+    "variacoes": [
+      "preciso colocar meu zap?",
+      "botao de criar conta nao libera por causa do whatsapp",
+      "whatsapp incompleto erro",
+      "posso deixar o telefone em branco",
+      "nao tenho whatsapp brasileiro"
+    ],
+    "resposta": "**Não.** O WhatsApp é **opcional** desde 17/09/2026.\n\nMas se a pessoa começar a digitar, precisa **completar o número ou apagar**: número incompleto trava o botão (\"WhatsApp incompleto. Complete o número ou deixe em branco.\").\n\nHá seletor de país (Brasil é o padrão), com dezenas de países e máscara própria.",
+    "resposta_jogador": "Não é obrigatório. Se você começou a digitar o número, complete ou apague o campo todo, senão o botão de criar conta fica travado. Também dá para escolher outro país no seletor.",
+    "tags": [
+      "cadastro",
+      "whatsapp",
+      "telefone"
+    ]
+  },
+  {
+    "id": "01-021",
+    "pergunta": "Minha senha é recusada no cadastro. Quais são as regras?",
+    "variacoes": [
+      "senha nao aceita",
+      "diz que minha senha aparece em vazamentos",
+      "qual a regra da senha",
+      "senha invalida mas ta certa",
+      "por que a senha nao passa"
+    ],
+    "resposta": "A senha precisa ter **pelo menos 6 caracteres, uma letra e um número** (aparece um visto verde em cada regra conforme se digita).\n\nAlém disso, senhas que já apareceram em **vazamentos conhecidos são recusadas pelo servidor**: \"Essa senha também aparece em vazamentos conhecidos — escolha outra.\" Nesse caso, é só **trocar por outra senha**.",
+    "resposta_jogador": "A senha precisa ter pelo menos 6 caracteres, com pelo menos uma letra e um número. Se aparecer o aviso de vazamento, é porque essa senha já vazou em algum lugar da internet; escolha outra diferente.",
+    "tags": [
+      "senha",
+      "cadastro",
+      "seguranca"
+    ]
+  },
+  {
+    "id": "01-022",
+    "pergunta": "Aparece \"Essa conta já existe\" ou outro erro ao criar a conta. O que fazer?",
+    "variacoes": [
+      "diz que a conta ja existe",
+      "erro email invalido no cadastro",
+      "muitas tentativas em pouco tempo",
+      "sem conexao com o servidor ao cadastrar",
+      "nao consigo criar conta da erro"
+    ],
+    "resposta": "Mensagens comuns e o que fazer:\n- **\"Essa conta já existe. Use \"Entrar\" com sua senha.\"** — o e-mail já tem conta; a tela muda sozinha para a aba **Entrar**. Se não lembrar a senha, usar **Esqueci minha senha**.\n- **\"E-mail inválido. Confira o endereço e tente de novo.\"** — revisar digitação.\n- **\"Muitas tentativas em pouco tempo.\"** — aguardar alguns segundos.\n- **\"Sem conexão com o servidor.\"** — verificar a internet e tentar de novo.",
+    "resposta_jogador": "Se aparecer que a conta já existe, é porque esse e-mail já foi cadastrado: use a aba \"Entrar\" e, se esquecer a senha, clique em \"Esqueci minha senha\". Para \"muitas tentativas\", aguarde alguns segundos e tente de novo.",
+    "tags": [
+      "cadastro",
+      "erro",
+      "conta"
+    ]
+  },
+  {
+    "id": "01-023",
+    "pergunta": "Criei a conta e não recebi e-mail de confirmação. Preciso confirmar?",
+    "variacoes": [
+      "nao chegou email de confirmacao",
+      "tenho que validar o email?",
+      "confirmar cadastro",
+      "onde ta o link de ativacao",
+      "conta nao ativou"
+    ],
+    "resposta": "**Não é necessário confirmar o e-mail para jogar hoje.** Depois de criar a conta, a pessoa já vai direto para \"Como você quer jogar?\".\n\nCadastros novos recebem os e-mails de boas-vindas do remetente **\"O Presidente · RetroFoot\"** — vale conferir spam/promoções.",
+    "resposta_jogador": "Não precisa confirmar o e-mail: assim que a conta é criada você já pode jogar. Os e-mails de boas-vindas chegam do remetente \"O Presidente · RetroFoot\"; se não aparecerem, dá uma olhada no spam.",
+    "tags": [
+      "cadastro",
+      "email",
+      "confirmacao"
+    ]
+  },
+  {
+    "id": "01-024",
+    "pergunta": "Escolher o time do coração faz eu jogar com ele?",
+    "variacoes": [
+      "pra que serve o time do coracao",
+      "coloquei meu time e nao veio ele",
+      "o time do coracao influencia o sorteio?",
+      "time do coracao é obrigatorio?",
+      "nao torco pra ninguem, e agora"
+    ],
+    "resposta": "**Não.** O clube é sempre sorteado. O \"Seu time do coração\" é **obrigatório no cadastro** (desde 27/09/2026), mas serve só para a equipe **contar torcidas** — não muda nada no jogo.\n\nA lista tem **80 clubes reais** das Séries A a D (com nome e escudo reais), além de **Outro time** (campo \"Qual time?\", até 40 caracteres) e **Não torço para nenhum time**.",
+    "resposta_jogador": "Não, o time do coração é só uma informação do seu perfil para a gente saber para quem você torce. O clube que você comanda é sempre sorteado. Se não torce para ninguém, tem a opção \"Não torço para nenhum time\".",
+    "tags": [
+      "time-do-coracao",
+      "cadastro",
+      "sorteio"
+    ]
+  },
+  {
+    "id": "01-025",
+    "pergunta": "Posso mudar ou preencher o time do coração depois do cadastro?",
+    "variacoes": [
+      "como troco meu time do coracao",
+      "recebi email pra responder time do coracao e o link nao faz nada",
+      "minha conta é antiga e nao tem time do coracao",
+      "errei o time do coracao",
+      "editar time do coracao no perfil"
+    ],
+    "resposta": "**Não existe tela para isso hoje.**\n\n- Não há como trocar o time do coração depois do cadastro. Se for necessário, **encaminhe a um dev**.\n- Contas criadas **antes de 27/09** não têm essa resposta. Existe um e-mail \"Time do coração\" preparado para perguntar a elas, mas o link de resposta (`/?time-do-coracao`) **ainda não é tratado pelo jogo**.",
+    "resposta_jogador": "Por enquanto ainda não dá para mudar o time do coração pelo jogo. Vou passar o seu pedido para a nossa equipe.",
+    "tags": [
+      "time-do-coracao",
+      "perfil",
+      "escalar"
+    ]
+  },
+  {
+    "id": "01-026",
+    "pergunta": "Esqueci minha senha. Como recupero?",
+    "variacoes": [
+      "esqueci a senha",
+      "como reseto a senha",
+      "nao lembro minha senha",
+      "recuperar acesso",
+      "redefinir senha retrofoot",
+      "perdi a senha da conta"
+    ],
+    "resposta": "1. Na aba **Entrar**, clique em **Esqueci minha senha**.\n2. Na tela \"Esqueceu a senha?\", coloque o e-mail e clique em **Enviar o link**.\n3. Aparece \"✓ Link enviado! Confira seu e-mail (e a caixa de spam).\" (a resposta é sempre a mesma, exista ou não conta com o e-mail).\n4. Abra o e-mail **\"Redefina sua senha — RetroFoot98\"**. O link **vale 30 minutos e é de uso único**.\n5. Na tela \"Crie uma senha nova\", preencha **Nova senha** e **Confirmar senha** e clique em **Salvar senha**.\n\nOs saves na nuvem **não são afetados**.",
+    "resposta_jogador": "Na tela de entrar, clique em \"Esqueci minha senha\", coloque o seu e-mail e clique em \"Enviar o link\". Chega um e-mail \"Redefina sua senha\" (confira o spam); o link vale 30 minutos e só funciona uma vez. Seus saves continuam intactos.",
+    "tags": [
+      "senha",
+      "recuperacao",
+      "login"
+    ]
+  },
+  {
+    "id": "01-027",
+    "pergunta": "O link para redefinir a senha não funciona.",
+    "variacoes": [
+      "link de senha expirado",
+      "cliquei no link e nao abre",
+      "link de redefinir invalido",
+      "o email de senha nao funciona",
+      "link de senha ja usado"
+    ],
+    "resposta": "Provavelmente o link **expirou** (vale **30 minutos**) ou **já foi usado** (é de uso único).\n\n1. Peça um novo em **Entrar → Esqueci minha senha**.\n2. Use o link do e-mail **mais recente**, o quanto antes.\n3. Confira a caixa de **spam**.",
+    "resposta_jogador": "Esse link vale só 30 minutos e funciona uma única vez. Peça um novo em \"Esqueci minha senha\" e use o e-mail mais recente logo que ele chegar (confira também o spam).",
+    "tags": [
+      "senha",
+      "link",
+      "recuperacao"
+    ]
+  },
+  {
+    "id": "01-028",
+    "pergunta": "Como troco a senha estando logado?",
+    "variacoes": [
+      "mudar senha dentro do jogo",
+      "onde altera a senha",
+      "trocar senha nas configuracoes",
+      "o link diz que vale uma hora",
+      "alterar senha da conta"
+    ],
+    "resposta": "Em **Configurações → Opções → Conta → Trocar a senha**. O jogo envia um link para o e-mail da conta.\n\nAtenção: esse diálogo diz que o link \"vale por uma hora\", mas o e-mail de redefinição diz **30 minutos**. Oriente a **usar o link o quanto antes**.",
+    "resposta_jogador": "Dentro do jogo, vá em Configurações → Opções → Conta → Trocar a senha. Vamos mandar um link para o seu e-mail; use o quanto antes, porque ele expira rápido.",
+    "tags": [
+      "senha",
+      "configuracoes",
+      "conta"
+    ]
+  },
+  {
+    "id": "01-029",
+    "pergunta": "Como saio da conta?",
+    "variacoes": [
+      "como faco logout",
+      "deslogar do jogo",
+      "sair da conta no celular",
+      "quero entrar com outra conta",
+      "botao sair onde fica"
+    ],
+    "resposta": "- **Páginas públicas:** botão **Sair** ao lado do crachá no cabeçalho (no celular: menu ☰ → **Sair da conta**).\n- **Dentro do jogo:** **Configurações → Opções → Conta → Sair da conta**, ou **Sair do jogo → Conta → Sair da conta**.\n- Na tela de entrar, quem já está logado vê \"Você já está logado\" com **Continuar** ou \"Não é você? **Entrar com outra conta**\".\n\nSair desliga **só aquele aparelho**.",
+    "resposta_jogador": "No site, clique em \"Sair\" ao lado do seu nome no topo (no celular fica no menu ☰). Dentro do jogo, vá em Configurações → Opções → Conta → Sair da conta. Isso desconecta só aquele aparelho.",
+    "tags": [
+      "logout",
+      "conta",
+      "sair"
+    ]
+  },
+  {
+    "id": "01-030",
+    "pergunta": "Quero apagar (excluir) minha conta.",
+    "variacoes": [
+      "como deleto minha conta",
+      "excluir cadastro",
+      "apagar a conta nao funciona",
+      "remover meus dados",
+      "quero encerrar minha conta"
+    ],
+    "resposta": "**Não é possível apagar a conta de dentro do jogo.** O botão \"Apagar a conta\" abre o aviso \"Ainda não dá para apagar a conta de dentro do jogo.\" e oferece apenas **Apagar um save** ou **Sair da conta**.\n\nPedidos de exclusão de conta devem ser **escalados para a equipe**.",
+    "resposta_jogador": "Ainda não dá para apagar a conta direto pelo jogo, mas vou encaminhar o seu pedido de exclusão para a nossa equipe cuidar disso.",
+    "tags": [
+      "conta",
+      "exclusao",
+      "escalar"
+    ]
+  },
+  {
+    "id": "01-031",
+    "pergunta": "Entrei e não vejo meus saves. Perdi meu jogo?",
+    "variacoes": [
+      "sumiu meu save",
+      "perdi minha carreira",
+      "troquei de celular e o jogo sumiu",
+      "nao aparece meu jogo salvo",
+      "meu progresso desapareceu",
+      "jogo zerou"
+    ],
+    "resposta": "Primeiro, confirme se a pessoa entrou com o **mesmo e-mail** que usou antes: **os saves e o plano ficam na conta, não no aparelho**.\n\nOs saves aparecem no passo **Save** (\"Onde você quer jogar?\"), com escudo, clube, divisão, temporada e quando foi gravado.\n\nOutros pontos: trocar a senha não afeta saves; a trava de plano **nunca apaga** save. Se o que sumiu foi só um trecho jogado acima do limite do plano, ver \"Esta temporada não está sendo salva\". Persistindo, **escale** com o e-mail da conta.",
+    "resposta_jogador": "Seus saves ficam guardados na conta, não no aparelho. Confira se você entrou com o mesmo e-mail que usava antes; com ele, a carreira aparece na lista \"Onde você quer jogar?\". Se mesmo assim não aparecer, me manda o e-mail da conta que a gente verifica.",
+    "tags": [
+      "save",
+      "nuvem",
+      "login"
+    ]
+  },
+  {
+    "id": "01-032",
+    "pergunta": "Como apago um save? Dá para desfazer?",
+    "variacoes": [
+      "como deleto uma carreira",
+      "apagar jogo salvo",
+      "lixeira do save",
+      "recuperar save apagado",
+      "apaguei sem querer meu save"
+    ],
+    "resposta": "No passo **Save** (\"Onde você quer jogar?\"), clique no **ícone de lixeira** da linha do save. O jogo pede confirmação: \"Apagar jogo? ... Esta ação **não pode ser desfeita**.\"\n\nNo Peladeiro, apagar o save libera a vaga para uma carreira nova (que começa com 1 temporada). Apagar **não renova** as temporadas grátis por opinião/post.",
+    "resposta_jogador": "Na lista de saves tem um ícone de lixeira em cada carreira. Mas atenção: depois de confirmar, o save apagado não tem como ser recuperado.",
+    "tags": [
+      "save",
+      "apagar",
+      "carreira"
+    ]
+  },
+  {
+    "id": "01-033",
+    "pergunta": "O jogo é grátis?",
+    "variacoes": [
+      "precisa pagar pra jogar?",
+      "é gratis pra sempre?",
+      "retrofoot é free?",
+      "quanto custa pra jogar",
+      "tem que pagar depois de um tempo?"
+    ],
+    "resposta": "A **1ª temporada de uma carreira é grátis**, com o Modo Solo completo, sem cartão (plano **Peladeiro**: \"R$ 0 na 1ª temporada\"). Nunca se diz \"grátis pra sempre\".\n\nPara continuar a mesma carreira nas temporadas seguintes, ou ter várias carreiras, é preciso o **Pro** — com duas exceções grátis no fim da temporada: +1 temporada por **dar opinião** e +1 por **postar sobre o jogo** (uma vez cada, por conta).",
+    "resposta_jogador": "A 1ª temporada é de graça, com o Modo Solo completo e sem cartão. Para seguir a carreira nas próximas temporadas, é preciso o Pro, mas você ainda pode ganhar temporadas grátis dando sua opinião e postando sobre o jogo.",
+    "tags": [
+      "planos",
+      "gratis",
+      "peladeiro"
+    ]
+  },
+  {
+    "id": "01-034",
+    "pergunta": "Qual a diferença entre o plano Peladeiro (grátis) e o Pro?",
+    "variacoes": [
+      "o que o pro libera",
+      "vale a pena assinar o pro?",
+      "diferenca entre gratis e pago",
+      "o que tem no peladeiro",
+      "beneficios do plano pro",
+      "pro x peladeiro"
+    ],
+    "resposta": "Desde 25/09/2026 existem **só dois planos**:\n\n| | Peladeiro | Pro |\n|---|---|---|\n| Preço | R$ 0 na 1ª temporada | R$ 19,90/mês ou R$ 178,80/ano |\n| Modo Solo | completo | completo |\n| Temporadas por carreira | 1 (+ extras grátis) | ilimitadas |\n| Carreiras | 1 por conta | ilimitadas |\n| Save na nuvem | sim | sim |\n| Modo Resenha | não | acesso exclusivo no lançamento do Beta |\n| Ultrassônico | não | sim |\n| Selo Pro 👑 | não | sim |\n\nO Pro **não** inclui retrato por IA nem jogador na base oficial.",
+    "resposta_jogador": "No Peladeiro você joga a 1ª temporada completa de graça, com 1 carreira. O Pro (R$ 19,90/mês ou R$ 178,80/ano) libera temporadas e carreiras ilimitadas, a velocidade Ultrassônico, o Selo Pro e o acesso garantido ao Modo Resenha quando o Beta for lançado.",
+    "tags": [
+      "planos",
+      "pro",
+      "peladeiro",
+      "comparativo"
+    ]
+  },
+  {
+    "id": "01-035",
+    "pergunta": "Quanto custa o Pro?",
+    "variacoes": [
+      "preco do pro",
+      "qual o valor da assinatura",
+      "quanto é o plano anual",
+      "pro mensal quanto",
+      "valor pra assinar"
+    ],
+    "resposta": "- **Mensal:** R$ 19,90/mês.\n- **Anual:** R$ 178,80/ano (equivale a **R$ 14,90/mês**; economia de 25%).\n\nNa seção **Planos** da página inicial há o seletor **Mensal / Anual** (\"economize 25%\"). Pode pagar com **cartão** (renova sozinho) ou **Pix** (pagamento único do período).",
+    "resposta_jogador": "O Pro custa R$ 19,90 por mês, ou R$ 178,80 por ano no plano anual, que sai por R$ 14,90 por mês. Dá para pagar com cartão ou Pix.",
+    "tags": [
+      "preco",
+      "pro",
+      "assinatura"
+    ]
+  },
+  {
+    "id": "01-036",
+    "pergunta": "Tem período de teste, cupom ou desconto no Pro?",
+    "variacoes": [
+      "tem cupom de desconto",
+      "desconto beta de 50%",
+      "trial gratis do pro",
+      "promocao do pro",
+      "da pra testar o pro de graca"
+    ],
+    "resposta": "**Não.** Não há teste grátis do Pro nem cupom, e o **desconto Beta** (50% nos 3 primeiros meses) está **desligado** — o Pro nasceu sem desconto, com preço de tabela.\n\nA **1ª temporada grátis** no Peladeiro é o \"teste\". O único \"desconto\" é o plano anual: R$ 178,80/ano (R$ 14,90/mês, 25% a menos que o mensal).",
+    "resposta_jogador": "No momento não temos cupom nem teste grátis do Pro. A 1ª temporada de graça funciona como o teste, e o plano anual sai por R$ 14,90 por mês, 25% mais barato que o mensal.",
+    "tags": [
+      "desconto",
+      "cupom",
+      "pro"
+    ]
+  },
+  {
+    "id": "01-037",
+    "pergunta": "Posso ter mais de uma carreira no plano Peladeiro?",
+    "variacoes": [
+      "quero fazer outro save",
+      "comecar um jogo novo ta com cadeado",
+      "so posso ter um save?",
+      "segunda carreira gratis",
+      "1 de 1 saves o que significa"
+    ],
+    "resposta": "**Não; o Peladeiro permite 1 carreira por conta.** No passo Save aparece o contador (\"1 de 1\"); se o plano não permite mais carreiras, **Começar um jogo novo** aparece com 🔒 e abre o aviso de plano.\n\n- A regra conta as carreiras que **existem agora**: quem **apaga o save** pode criar outro (que também começa com 1 temporada).\n- Contas que já tinham mais de uma carreira antes da mudança ficam com elas.\n- Carreiras ilimitadas são do **Pro**.",
+    "resposta_jogador": "No plano grátis é 1 carreira por conta. Se quiser começar outra, dá para apagar a atual e criar uma nova; para ter várias ao mesmo tempo, só com o Pro.",
+    "tags": [
+      "carreiras",
+      "save",
+      "peladeiro"
+    ]
+  },
+  {
+    "id": "01-038",
+    "pergunta": "O que é a velocidade Ultrassônico e por que está com cadeado?",
+    "variacoes": [
+      "ultrassonico travado",
+      "como deixo a partida mais rapida",
+      "velocidade do jogo com cadeado",
+      "tempo de jogo curto medio longo",
+      "o ritmo ultrassonico é do pro"
+    ],
+    "resposta": "Em **Configurações → Tempo de jogo** há os ritmos **Curto, Médio e Longo** (livres para todos) e **Ultrassônico** (partida em ~10 segundos), que é **do Pro**.\n\nNo Peladeiro o Ultrassônico aparece com 🔒 e explica: \"O ritmo Ultrassônico é do Pro\". O **Modo Camarote** funciona em todos os ritmos.",
+    "resposta_jogador": "O Ultrassônico é o ritmo mais rápido, com a partida em uns 10 segundos, e faz parte do Pro. No plano grátis você pode usar os ritmos Curto, Médio e Longo em Configurações → Tempo de jogo.",
+    "tags": [
+      "velocidade",
+      "ultrassonico",
+      "pro"
+    ]
+  },
+  {
+    "id": "01-039",
+    "pergunta": "Onde vejo qual é o meu plano?",
+    "variacoes": [
+      "como sei se sou pro",
+      "meu plano atual",
+      "minha conta onde fica",
+      "verificar assinatura no jogo",
+      "coroa dourada no nome",
+      "sou pro e nao aparece coroa no ranking"
+    ],
+    "resposta": "- **Dentro do jogo:** barra lateral → **Minha Conta**. Mostra \"SEU PLANO ATUAL\", a escada Peladeiro → Pro, os cartões dos planos e, para Pro, o botão **Gerir assinatura**. O subtítulo mostra o e-mail e o plano (\"… · Plano Peladeiro\").\n- **No site:** o crachá da conta no cabeçalho mostra o nome e o plano — Peladeiro em amarelo; **Pro em dourado com coroa 👑**.\n\nO Selo Pro aparece no crachá/perfil, mas **ainda não na tabela do ranking**.",
+    "resposta_jogador": "Dentro do jogo, abra \"Minha Conta\" na barra lateral: lá aparece o seu plano atual. No site, o seu crachá no topo mostra o plano; quem é Pro aparece em dourado com a coroa 👑.",
+    "tags": [
+      "planos",
+      "minha-conta",
+      "pro",
+      "selo-pro"
+    ]
+  },
+  {
+    "id": "01-040",
+    "pergunta": "Eu tinha o plano Resenha ou Embaixador. Como fica agora?",
+    "variacoes": [
+      "sou embaixador, perdi algo?",
+      "plano resenha antigo ainda vale",
+      "planos antigos acabaram?",
+      "o que aconteceu com o embaixador",
+      "era assinante antes da mudança de planos"
+    ],
+    "resposta": "**Resenha** e **Embaixador** são planos pagos antigos que **não se vendem mais**. Quem ainda tem um deles **é tratado como Pro**.\n\nEm 27/09 não restava nenhuma conta nesses planos no banco (a última virou Pro). Contas da equipe/parceiros podem ter **plano de cortesia** sem cobrança no Stripe.\n\nBenefícios antigos do Embaixador: quem já tem jogador aprovado na base oficial **mantém**; o retrato por IA é 1 geração por conta.",
+    "resposta_jogador": "Os planos antigos Resenha e Embaixador não são mais vendidos, e quem ainda tem um deles conta como Pro, com todos os benefícios do Pro.",
+    "tags": [
+      "planos-antigos",
+      "embaixador",
+      "pro"
+    ]
+  },
+  {
+    "id": "01-041",
+    "pergunta": "Terminei a temporada e o jogo não deixa continuar. O que fazer?",
+    "variacoes": [
+      "acabou a temporada e travou",
+      "fim da temporada do peladeiro",
+      "nao consigo ir pra proxima temporada",
+      "apareceu cadeado pra virar o ano",
+      "o jogo pede pra virar pro",
+      "paywall no fim da temporada"
+    ],
+    "resposta": "É o limite do **Peladeiro** (1 temporada por carreira). Ao clicar para começar a próxima temporada aparece \"🔒 FIM DA TEMPORADA DO PELADEIRO — Para seguir com esta carreira, vire Pro.\"\n\nOpções:\n1. **Assinar o Pro** (temporadas ilimitadas; a temporada vira com o save intacto).\n2. **Ganhar 1 temporada grátis — dar minha opinião** (se ainda não usou).\n3. Depois, **Ganhar 1 temporada grátis — postar sobre o jogo** (se ainda não usou).\n\nAparece **uma saída grátis por vez**. Depois das duas, só o Pro.",
+    "resposta_jogador": "Esse é o limite do plano grátis, que cobre 1 temporada por carreira. Para continuar, você pode assinar o Pro ou ganhar mais uma temporada de graça dando sua opinião sobre o jogo (e depois outra postando sobre ele), se ainda não usou essas opções.",
+    "tags": [
+      "paywall",
+      "fim-de-temporada",
+      "peladeiro"
+    ]
+  },
+  {
+    "id": "01-042",
+    "pergunta": "Como ganho uma temporada grátis dando minha opinião?",
+    "variacoes": [
+      "temporada gratis pela opiniao",
+      "escrever opiniao pra liberar temporada",
+      "diz escreva um pouco mais",
+      "quantas letras precisa a opiniao",
+      "ja usou a temporada por opiniao"
+    ],
+    "resposta": "No popup de fim de temporada, escolha **\"Ganhar 1 temporada grátis — dar minha opinião\"**:\n1. Escreva o que achou do jogo (**mínimo 20 caracteres**, máximo 2.000).\n2. Clique em **Enviar e liberar a temporada**.\n3. Libera **na hora**: \"✓ Obrigado pela opinião! Temporada liberada.\"\n\nRegras: vale **uma vez por conta** (não por carreira; apagar o save não renova), e a temporada extra vale para **qualquer carreira da conta**. A liberação é automática. Erros: \"Escreva um pouco mais — pelo menos 20 caracteres.\" / \"Você já usou a sua temporada por opinião/post.\"",
+    "resposta_jogador": "No aviso de fim de temporada, escolha \"Ganhar 1 temporada grátis — dar minha opinião\", escreva pelo menos 20 caracteres sobre o que achou do jogo e envie. A temporada é liberada na hora. Essa opção vale uma vez por conta.",
+    "tags": [
+      "paywall",
+      "opiniao",
+      "temporada-gratis"
+    ]
+  },
+  {
+    "id": "01-043",
+    "pergunta": "Como ganho uma temporada grátis postando sobre o jogo?",
+    "variacoes": [
+      "temporada gratis pelo post",
+      "link de post pra liberar temporada",
+      "quais redes sociais aceitam",
+      "esse link nao parece ser de rede social",
+      "postei no tiktok, como libera"
+    ],
+    "resposta": "Depois de usar a saída por opinião, o popup de fim de temporada oferece **\"Ganhar 1 temporada grátis — postar sobre o jogo\"**:\n1. Poste sobre o RetroFoot numa rede social.\n2. Cole o **link do post ou vídeo**. Redes aceitas: **Instagram, TikTok, YouTube, X/Twitter, Facebook, Threads e Kwai**.\n3. Libera **na hora**: \"✓ Valeu pela divulgação! Temporada liberada.\"\n\nVale **uma vez por conta**. Erro comum: \"Esse link não parece ser de uma rede social (…)\" — conferir se o link é de uma das redes aceitas.",
+    "resposta_jogador": "Depois da temporada grátis por opinião, dá para ganhar mais uma postando sobre o RetroFoot no Instagram, TikTok, YouTube, X, Facebook, Threads ou Kwai e colando o link do post no aviso de fim de temporada. A liberação é na hora e vale uma vez por conta.",
+    "tags": [
+      "paywall",
+      "post",
+      "temporada-gratis",
+      "redes-sociais"
+    ]
+  },
+  {
+    "id": "01-044",
+    "pergunta": "Usei a temporada grátis numa carreira. Posso usar de novo em outra?",
+    "variacoes": [
+      "apaguei o save, ganho opiniao de novo?",
+      "temporada gratis é por carreira ou por conta",
+      "nova carreira libera nova opiniao?",
+      "ja usei o post, tem mais?",
+      "depois do post e da opiniao o que sobra"
+    ],
+    "resposta": "**Não.** Cada saída grátis (opinião e post) vale **uma vez por conta**, não por carreira. **Apagar o save não renova.**\n\nMas a temporada extra ganha vale para **qualquer carreira da conta**. Depois das duas saídas, **só o Pro** libera novas temporadas.",
+    "resposta_jogador": "As temporadas grátis por opinião e por post valem uma vez por conta, mesmo que você apague o save. Depois de usar as duas, o caminho para continuar é o Pro.",
+    "tags": [
+      "paywall",
+      "temporada-gratis",
+      "regras"
+    ]
+  },
+  {
+    "id": "01-045",
+    "pergunta": "O que é o popup \"Jogador da fase Beta\" com 2 temporadas grátis?",
+    "variacoes": [
+      "ganhei 2 temporadas gratis por que",
+      "jogador da fase beta",
+      "ultima temporada gratis apareceu",
+      "sou veterano, tenho mais temporadas?",
+      "por que meu amigo ganhou temporadas e eu nao"
+    ],
+    "resposta": "São os **veteranos**: toda carreira do plano gratuito que, no lançamento das regras (**25/09**), **já tinha passado da 1ª temporada** ganhou **a temporada atual + 2 viradas** de cortesia. A contagem é **por carreira**.\n\nPopups:\n- **\"🔨 JOGADOR DA FASE BETA — Você ganhou mais 2 temporadas grátis.\"** (1x por carreira) → **Continuar grátis (N temporadas)**.\n- **\"⏳ ÚLTIMA TEMPORADA GRÁTIS\"** → **Jogar a última temporada grátis**.\n\nCarreiras novas seguem a regra de 1 temporada. Quem era Pro no lançamento não entrou como veterano. A regra foi confirmada e **não é negociável**.",
+    "resposta_jogador": "Quem já jogava antes da mudança de planos de 25/09 e tinha passado da 1ª temporada ganhou mais 2 temporadas grátis naquela carreira, como agradecimento pela fase Beta. Carreiras novas seguem a regra de 1 temporada grátis.",
+    "tags": [
+      "veteranos",
+      "beta",
+      "temporada-gratis"
+    ]
+  },
+  {
+    "id": "01-046",
+    "pergunta": "Aparecem avisos do Pro no meio da temporada. É normal?",
+    "variacoes": [
+      "popup do pro no meio do jogo",
+      "fica aparecendo propaganda do pro",
+      "como fecho o aviso do pro",
+      "virada do turno aviso",
+      "reta final aviso pro"
+    ],
+    "resposta": "**Sim.** Para quem está logado e não é Pro aparecem **até 3 lembretes por temporada**, uma vez cada:\n- **Temporada nova** (a partir da 1ª rodada);\n- **Virada do turno** (metade do campeonato);\n- **Reta final** (~80% das rodadas ou 5 rodadas antes do fim).\n\nNão repetem ao recarregar a página. Para fechar: **Continuar no Peladeiro**.\n\nSe um popup aparece **toda hora**, provavelmente é outro caso (\"save recusado\").",
+    "resposta_jogador": "É normal: no plano grátis aparecem até 3 lembretes do Pro por temporada, um de cada vez. É só clicar em \"Continuar no Peladeiro\" para seguir jogando.",
+    "tags": [
+      "lembretes",
+      "pro",
+      "peladeiro"
+    ]
+  },
+  {
+    "id": "01-047",
+    "pergunta": "Apareceu \"Esta temporada não está sendo salva\". O que aconteceu?",
+    "variacoes": [
+      "popup nao esta sendo salva",
+      "o jogo voltou pro ultimo ponto salvo",
+      "perdi o que joguei depois do aviso",
+      "o popup aparece toda hora",
+      "seu plano peladeiro nao grava esta temporada"
+    ],
+    "resposta": "O servidor **recusa gravar uma temporada acima do limite do plano**. Acontece, por exemplo, com uma **aba antiga aberta** ou quando alguém **cancela o Pro com o jogo aberto** e vira a temporada.\n\nAparece \"⚠️ ESTA TEMPORADA NÃO ESTÁ SENDO SALVA\". Fechar volta ao **último ponto salvo**. O que foi jogado acima do limite **não foi gravado**, mas o save no servidor **nunca é alterado nem apagado** pela trava.\n\nO que fazer: pedir para **recarregar a página**; se a pessoa é Pro, **conferir se o pagamento está ativo**.",
+    "resposta_jogador": "Esse aviso aparece quando o jogo tenta gravar uma temporada que o seu plano atual não cobre, por exemplo com uma aba antiga aberta. Seu save continua seguro no último ponto salvo; recarregue a página. Se você é Pro, me avisa que a gente confere a sua assinatura.",
+    "tags": [
+      "save-recusado",
+      "paywall",
+      "plano"
+    ]
+  },
+  {
+    "id": "01-048",
+    "pergunta": "Como assino o Pro?",
+    "variacoes": [
+      "quero virar pro",
+      "onde pago a assinatura",
+      "como compro o pro",
+      "link pra assinar o pro",
+      "assinar pelo jogo"
+    ],
+    "resposta": "Caminhos:\n- Site → **Planos** → cartão do Pro → **Assinar o Pro**; ou seção \"Plano Pro\" → **👑 Assinar o Pro — R$ 19,90/mês**.\n- No jogo: **Minha Conta**, qualquer 🔒 de plano, os lembretes ou o paywall de fim de temporada.\n- Link direto `retrofoot.com.br/?pro` (ou `?pro=ano` para o anual).\n\nFluxo:\n1. No popup, escolha **Mensal** ou **Anual** e **Cartão** ou **Pix**.\n2. Clique em **Assinar o Pro**. Sem login, o jogo leva ao cadastro e depois abre o checkout sozinho.\n3. Pague na página do **Stripe** (de dentro do jogo abre em outra aba).\n4. Aguarde \"PAGAMENTO CONFIRMADO\".",
+    "resposta_jogador": "É só clicar em \"Assinar o Pro\" na seção Planos do site ou em \"Minha Conta\" dentro do jogo, escolher mensal ou anual e a forma de pagamento (cartão ou Pix). Você termina o pagamento numa página segura do Stripe e o Pro é liberado assim que o pagamento é confirmado.",
+    "tags": [
+      "assinatura",
+      "pro",
+      "checkout"
+    ]
+  },
+  {
+    "id": "01-049",
+    "pergunta": "Qual a diferença entre pagar o Pro no cartão e no Pix?",
+    "variacoes": [
+      "pix renova sozinho?",
+      "pagar com pix como funciona",
+      "cartao é assinatura recorrente?",
+      "o qr code do pix expirou",
+      "posso pagar pix mesmo tendo assinatura no cartao",
+      "pix nao esta disponivel"
+    ],
+    "resposta": "- **Cartão** = assinatura: **renova sozinha** todo mês (ou ano). Cancela quando quiser.\n- **Pix** = pagamento **único** do período (1 mês ou 1 ano), **sem renovação automática**. Quando vencer, é só pagar outro Pix. Pagar de novo antes de vencer **soma** o período.\n\nDetalhes:\n- O QR do Pix **expira em 30 minutos**; passado isso nada é cobrado nem concedido.\n- Com assinatura ativa no cartão não dá para pagar Pix por cima.\n- Se aparecer \"O Pix ainda não está disponível…\", assinar com cartão. Não é possível confirmar pela base se o Pix está ativo hoje; se houver dúvida, **escale para um dev**.",
+    "resposta_jogador": "No cartão, o Pro é uma assinatura que renova sozinha e você pode cancelar quando quiser. No Pix, você paga um mês ou um ano de uma vez, sem renovação automática; quando vencer, é só pagar de novo. O QR Code do Pix vale 30 minutos.",
+    "tags": [
+      "pix",
+      "cartao",
+      "pagamento"
+    ]
+  },
+  {
+    "id": "01-050",
+    "pergunta": "Paguei o Pro e continuo como Peladeiro.",
+    "variacoes": [
+      "paguei e nao liberou",
+      "assinei e continua gratis",
+      "pagamento nao reconhecido",
+      "fiz o pix e nao virou pro",
+      "ja paguei mas o jogo nao atualizou",
+      "confirmando o pagamento nao sai"
+    ],
+    "resposta": "Quem concede o plano é **só o servidor**, depois que o Stripe confirma (normalmente em segundos).\n\n1. Confirme que a pessoa entrou na **mesma conta** usada no pagamento (o plano fica na conta, não no aparelho).\n2. Aguarde **alguns minutos** (o Stripe avisa o servidor de forma assíncrona) e **recarregue a página**.\n3. Pix gerado mas **não pago em 30 min** = nada foi cobrado.\n4. Se veio do paywall, há o botão **Já paguei — continuar**.\n\nPersistindo, **escale** com o **e-mail da conta** e a **data do pagamento**. Nenhuma cobrança se perde.",
+    "resposta_jogador": "Confira se você está logado com a mesma conta que usou para pagar e recarregue a página depois de alguns minutos, porque a confirmação pode levar um pouquinho. Se continuar, me manda o e-mail da conta e a data do pagamento que a gente resolve; nenhuma cobrança se perde.",
+    "tags": [
+      "pagamento",
+      "pro",
+      "escalar"
+    ]
+  },
+  {
+    "id": "01-051",
+    "pergunta": "Posso pagar o Pro por um link de pagamento do Stripe que me mandaram?",
+    "variacoes": [
+      "alguem me mandou link de pagamento",
+      "link stripe avulso funciona?",
+      "paguei por um link e nao liberou",
+      "posso usar link de pagamento direto",
+      "link de checkout de outra pessoa"
+    ],
+    "resposta": "**Não use.** Só o **botão do jogo** (ou o link `retrofoot.com.br/?pro`) liga o pagamento à conta. Um link solto do Stripe **não sabe quem pagou**, e o plano não é liberado automaticamente.\n\nSe alguém já pagou assim, **escale** com o e-mail da conta e a data do pagamento.",
+    "resposta_jogador": "Para o Pro ser liberado na sua conta, assine sempre pelo botão \"Assinar o Pro\" dentro do jogo ou do site. Links de pagamento avulsos não sabem de qual conta é o pagamento.",
+    "tags": [
+      "pagamento",
+      "stripe",
+      "seguranca"
+    ]
+  },
+  {
+    "id": "01-052",
+    "pergunta": "Dá erro ao abrir o pagamento do Pro.",
+    "variacoes": [
+      "o pagamento nao carregou",
+      "nao consegui abrir o pagamento agora",
+      "checkout nao abre",
+      "bloqueador de popup no pagamento",
+      "botao assinar nao faz nada"
+    ],
+    "resposta": "Mensagens possíveis:\n- **\"O pagamento não carregou nesta aba. Recarregue a página e tente de novo.\"**\n- **\"Não consegui abrir o pagamento agora. Tente de novo em instantes.\"**\n\nCom **bloqueador de pop-up**, se a nova aba for bloqueada, o jogo troca a própria página para o Stripe.\n\nOriente a recarregar a página e tentar de novo. Persistindo, escale.",
+    "resposta_jogador": "Tente recarregar a página e clicar em \"Assinar o Pro\" de novo em alguns instantes. Se o seu navegador bloquear a nova aba, o jogo abre o pagamento na própria página.",
+    "tags": [
+      "checkout",
+      "erro",
+      "pagamento"
+    ]
+  },
+  {
+    "id": "01-053",
+    "pergunta": "Como cancelo a assinatura do Pro?",
+    "variacoes": [
+      "quero cancelar o pro",
+      "cancelar assinatura",
+      "parar de cobrar no cartao",
+      "como desativo a renovacao",
+      "cancelamento do plano"
+    ],
+    "resposta": "1. Barra lateral → **Minha Conta**.\n2. Clique em **Gerir assinatura** (abre o portal do Stripe em outra aba).\n3. Cancele no portal.\n\nO cancelamento **impede novas cobranças**; o Pro continua valendo **até o fim do período já pago**, e depois a conta volta sozinha ao Peladeiro.\n\nQuem pagou por **Pix** não tem assinatura para cancelar (o Pix não renova).",
+    "resposta_jogador": "Dentro do jogo, abra \"Minha Conta\", clique em \"Gerir assinatura\" e cancele no portal. Você continua Pro até o fim do período que já pagou, e não haverá novas cobranças.",
+    "tags": [
+      "cancelar",
+      "assinatura",
+      "portal"
+    ]
+  },
+  {
+    "id": "01-054",
+    "pergunta": "Se eu cancelar o Pro, perco minha carreira?",
+    "variacoes": [
+      "cancelei e perdi o save?",
+      "o que acontece com meu jogo se eu sair do pro",
+      "voltei pro gratis e a carreira travou",
+      "cancelar apaga meus saves?",
+      "depois de cancelar consigo jogar?"
+    ],
+    "resposta": "**Nada é apagado.** Mas, de volta ao **Peladeiro**, carreiras que já passaram da 1ª temporada **não conseguem virar para a próxima** (joga a temporada gravada, mas não avança). Ao voltar ao Pro, seguem normalmente.\n\nQuem era Pro no lançamento das regras (25/09) **não** entrou como veterano, então não tem as temporadas de cortesia.\n\nCancelar com o jogo aberto e virar a temporada pode gerar o aviso \"Esta temporada não está sendo salva\".",
+    "resposta_jogador": "Seus saves não são apagados. Só que, no plano grátis, uma carreira que já passou da 1ª temporada não consegue avançar para a próxima; se você voltar ao Pro, ela continua de onde parou.",
+    "tags": [
+      "cancelar",
+      "save",
+      "carreira"
+    ]
+  },
+  {
+    "id": "01-055",
+    "pergunta": "Não vejo o botão \"Gerir assinatura\".",
+    "variacoes": [
+      "cade o gerir assinatura",
+      "seu plano nao tem cobranca no stripe",
+      "paguei pix e nao consigo gerir",
+      "botao de gerenciar assinatura sumiu",
+      "nao aparece opcao de cancelar"
+    ],
+    "resposta": "O botão **Gerir assinatura** (em **Minha Conta**) **só aparece para contas Pro**.\n\n- Se a pessoa paga e não é Pro no jogo, ver \"Paguei o Pro e continuo como Peladeiro\".\n- Quem paga por **Pix** ou tem **plano de cortesia** não tem assinatura no Stripe; o botão responde \"Seu plano não tem cobrança no Stripe — não há assinatura para gerir.\"",
+    "resposta_jogador": "O botão \"Gerir assinatura\" só aparece para quem é Pro com pagamento no cartão. Se você pagou com Pix, não existe assinatura para gerenciar: o Pix vale pelo período pago e não renova sozinho.",
+    "tags": [
+      "portal",
+      "assinatura",
+      "pix"
+    ]
+  },
+  {
+    "id": "01-056",
+    "pergunta": "Como troco de mensal para anual, troco o cartão ou vejo as faturas?",
+    "variacoes": [
+      "mudar do mensal pro anual",
+      "trocar cartao da assinatura",
+      "onde vejo minhas faturas",
+      "segunda via da fatura",
+      "upgrade para anual"
+    ],
+    "resposta": "Tudo pelo portal do Stripe: **Minha Conta → Gerir assinatura**. No portal dá para **trocar mensal/anual**, **trocar o cartão** e **ver faturas**.\n\nTrocar de plano gera uma assinatura nova e cancela a antiga **com rateio** (o que sobrou vira crédito na próxima fatura). O comprovante de pagamento vai para o e-mail da conta.",
+    "resposta_jogador": "Em \"Minha Conta\", clique em \"Gerir assinatura\". No portal que abre dá para trocar entre mensal e anual, atualizar o cartão e ver todas as faturas. Na troca de plano, o que sobrou do período vira crédito.",
+    "tags": [
+      "portal",
+      "faturas",
+      "cartao"
+    ]
+  },
+  {
+    "id": "01-057",
+    "pergunta": "Meu cartão foi recusado na renovação. Perco o Pro na hora?",
+    "variacoes": [
+      "cartao recusado na renovacao",
+      "pagamento falhou no mes",
+      "past due o que acontece",
+      "venceu o pro e virei peladeiro",
+      "quanto tempo tenho pra pagar"
+    ],
+    "resposta": "**Não na hora.** Se o cartão é recusado na renovação (\"past_due\"), o acesso **continua enquanto o Stripe tenta cobrar**; quando ele desiste, a conta volta ao Peladeiro.\n\nAlém disso, o servidor dá **2 dias de folga** depois do fim do período pago antes de rebaixar. Para regularizar, trocar o cartão em **Minha Conta → Gerir assinatura**.",
+    "resposta_jogador": "Não perde na hora: o Pro continua enquanto o sistema tenta cobrar de novo. Para evitar problema, atualize o cartão em \"Minha Conta\" → \"Gerir assinatura\".",
+    "tags": [
+      "renovacao",
+      "cartao",
+      "assinatura"
+    ]
+  },
+  {
+    "id": "01-058",
+    "pergunta": "Quero reembolso do Pro.",
+    "variacoes": [
+      "quero meu dinheiro de volta",
+      "direito de arrependimento",
+      "estorno da assinatura",
+      "cobraram errado, reembolso",
+      "devolver pagamento do pro"
+    ],
+    "resposta": "Pedidos de reembolso devem ser **escalados para a equipe**. Os termos de uso citam o **direito de arrependimento do art. 49 do CDC**, e o sistema registra reembolsos feitos no Stripe.\n\nColete o **e-mail da conta** e a **data do pagamento** antes de escalar. Não prometa prazo nem valor.",
+    "resposta_jogador": "Entendido! Vou encaminhar o seu pedido de reembolso para a nossa equipe. Pode me passar o e-mail da conta e a data do pagamento?",
+    "tags": [
+      "reembolso",
+      "cdc",
+      "escalar"
+    ]
+  },
+  {
+    "id": "01-059",
+    "pergunta": "O Pro inclui o \"Meu jogador\" (colocar meu nome num jogador da base)?",
+    "variacoes": [
+      "como crio meu jogador",
+      "quero meu nome num jogador do jogo",
+      "aba meu jogador em breve",
+      "assinei o pro e nao tem meu jogador",
+      "jogador personalizado"
+    ],
+    "resposta": "**Não.** O \"Meu jogador\" era benefício do antigo plano **Embaixador**: pôr o próprio nome e cara num jogador real da base oficial. Ele **saiu da vitrine em 25/09**, o **Pro não inclui** e vai voltar como **item avulso, \"em breve\"**.\n\nOnde fica: **Treinador → Meu jogador**. Quem já tem jogador aprovado **mantém**.",
+    "resposta_jogador": "O recurso de colocar seu nome e sua cara num jogador da base não faz parte do Pro. Ele vai voltar como um item à parte, em breve. Quem já tinha um jogador aprovado continua com ele.",
+    "tags": [
+      "meu-jogador",
+      "pro",
+      "em-breve"
+    ]
+  },
+  {
+    "id": "01-060",
+    "pergunta": "Meu jogador foi aprovado e não aparece no meu save.",
+    "variacoes": [
+      "meu jogador nao ta no elenco",
+      "jogador aprovado sumiu",
+      "status em analise quanto tempo",
+      "meu jogador foi recusado",
+      "largar a vaga do jogador"
+    ],
+    "resposta": "O jogador aprovado entra **só nos saves criados depois da aprovação** — um save em andamento mantém o elenco antigo até a próxima carreira.\n\nStatus na aba **Treinador → Meu jogador**:\n- **Em análise**: revisão do nome e da foto em até 48 horas.\n- **Aprovado**: já está no pack oficial, nos saves novos de todos os treinadores.\n- **Recusado**: mostra o motivo da moderação.\n\nRegras: nome até 16 caracteres, sem ofensa; foto só do próprio titular, maior de 18 anos. Há o botão **Largar a vaga**.",
+    "resposta_jogador": "O seu jogador aprovado só aparece em carreiras criadas depois da aprovação; a carreira que já estava em andamento continua com o elenco antigo. Na próxima carreira ele vai estar lá!",
+    "tags": [
+      "meu-jogador",
+      "base-oficial",
+      "save"
+    ]
+  },
+  {
+    "id": "01-061",
+    "pergunta": "Como funcionam os pontos do ranking de treinadores?",
+    "variacoes": [
+      "como calcula o ranking",
+      "regra de pontuacao do ranking",
+      "quantos pontos vale vitoria",
+      "o que conta no ranking",
+      "pontos de campanha como funciona"
+    ],
+    "resposta": "O ranking (barra lateral → **Ranking**) é **global**, somando **Modo Solo e Modo Resenha**. Regra \"v2\", desde 23/09/2026:\n\n**Campanha (por temporada):**\n- Pontos da liga × fator da divisão: **A 1,0 · B 0,9 · C 0,8 · D 0,7**;\n- + copas: **3 por vitória, 1 por empate** (empate nos pênaltis conta 1);\n- + **10 pontos** por temporada terminada.\n\n**Títulos:** 40 + 6 × peso da competição.\n\nO texto da tela simplifica e não menciona o fator de divisão da liga — a conta real aplica o fator.",
+    "resposta_jogador": "No ranking você soma pontos de campanha (pontos da liga, com peso maior nas divisões de cima, mais 3 por vitória e 1 por empate nas copas, mais 10 por temporada terminada) e pontos de títulos, que valem mais quanto mais importante é a competição.",
+    "tags": [
+      "ranking",
+      "pontuacao",
+      "regras"
+    ]
+  },
+  {
+    "id": "01-062",
+    "pergunta": "Quanto vale cada título no ranking?",
+    "variacoes": [
+      "titulo da serie d vale pouco",
+      "quantos pontos a libertadores da",
+      "pontos por titulo",
+      "ganhei a serie d e subi pouco no ranking",
+      "valor da copa da federacao no ranking"
+    ],
+    "resposta": "Cada título vale **40 + 6 × peso da competição**:\n\n| Título | Pontos |\n|---|---|\n| Liberta Cup | 160 |\n| Série A | 130 |\n| Copa da Federação | 112 |\n| Copa de Clubes da América | 100 |\n| Série B | 58 |\n| Série C | 46 |\n| Série D | 43 |",
+    "resposta_jogador": "Cada título pesa conforme a competição: a Série D vale 43 pontos, a Série A 130 e a Liberta Cup 160, que é o título mais valioso.",
+    "tags": [
+      "ranking",
+      "titulos",
+      "pontuacao"
+    ]
+  },
+  {
+    "id": "01-063",
+    "pergunta": "Meus pontos no ranking não mudaram.",
+    "variacoes": [
+      "ranking nao atualiza",
+      "joguei e o ranking ficou igual",
+      "demora pra atualizar os pontos",
+      "meus pontos travaram",
+      "quando o ranking atualiza"
+    ],
+    "resposta": "Os pontos chegam ao servidor **a cada gravação do save na nuvem** (fim de rodada, com intervalo mínimo de ~2 minutos entre gravações automáticas). A tela do ranking guarda a lista por **10 minutos**.\n\nOriente: **esperar até 10 minutos e reabrir a página** do ranking.",
+    "resposta_jogador": "Os pontos sobem quando o seu save grava na nuvem, no fim da rodada, e a lista do ranking se atualiza a cada 10 minutos. Espere um pouquinho e abra a página de novo.",
+    "tags": [
+      "ranking",
+      "atualizacao",
+      "save"
+    ]
+  },
+  {
+    "id": "01-064",
+    "pergunta": "Não apareço no ranking.",
+    "variacoes": [
+      "meu nome nao ta no ranking",
+      "nao estou na classificacao",
+      "sumi do ranking",
+      "como entro no ranking",
+      "minha foto nao aparece no ranking"
+    ],
+    "resposta": "Para aparecer, é preciso ter **jogado com a conta logada** e o **save ter gravado na nuvem** (fim de rodada). O ranking identifica pelo **nome do treinador**.\n\nSe o problema for a **foto**: enviar em **Configurações → Perfil** (sem foto, aparecem as iniciais). Se mesmo assim não aparecer, **escale para um dev**.",
+    "resposta_jogador": "Para entrar no ranking, jogue com a sua conta logada e deixe o save gravar na nuvem, o que acontece no fim da rodada. Para a sua foto aparecer, envie em Configurações → Perfil.",
+    "tags": [
+      "ranking",
+      "conta",
+      "foto"
+    ]
+  },
+  {
+    "id": "01-065",
+    "pergunta": "O que são os períodos Dia, Semana, Mês e Sempre do ranking? Tem filtro de amigos?",
+    "variacoes": [
+      "ranking da semana como funciona",
+      "filtro amigos nao funciona",
+      "minhas resenhas no ranking",
+      "seta verde e vermelha no ranking",
+      "quando zera o ranking do mes"
+    ],
+    "resposta": "- **Sempre** = total acumulado (\"CLASSIFICAÇÃO GERAL\").\n- **Dia / Semana / Mês** = pontos **ganhos no período** (total de agora menos uma \"foto\" tirada no início). A foto é tirada **todo dia às 00h05 (Brasília)**; a semana começa na **segunda-feira**, o mês no **dia 1**.\n- A seta ▲/▼ compara a posição com a foto de segunda-feira (\"—\" = não estava na foto).\n\nOs botões **Global / Amigos / Minhas resenhas** existem, mas **só mudam o rótulo**: a lista é sempre a global. **Não prometa filtro por amigos.**",
+    "resposta_jogador": "\"Sempre\" mostra o total acumulado; Dia, Semana e Mês mostram só os pontos ganhos naquele período (a semana começa na segunda e o mês no dia 1). O filtro de amigos ainda não funciona: por enquanto a lista é sempre a geral.",
+    "tags": [
+      "ranking",
+      "periodos",
+      "filtros"
+    ]
+  },
+  {
+    "id": "01-066",
+    "pergunta": "Como entro no grupo do WhatsApp do RetroFoot?",
+    "variacoes": [
+      "tem grupo no zap?",
+      "link do grupo do whatsapp",
+      "comunidade do jogo no whatsapp",
+      "onde acho o grupo da resenha",
+      "fechei o convite do grupo, e agora"
+    ],
+    "resposta": "Existe um grupo oficial da comunidade no WhatsApp. O convite (mesmo link) aparece em três lugares:\n1. **Modal pós-cadastro** (uma vez): botão **Entrar no Whatsapp da Resenha**.\n2. **Páginas do site**: pílula verde no canto inferior direito.\n3. **Dentro do jogo**: no computador, cartão verde-escuro no pé da barra lateral; no celular, uma lingueta na borda direita.\n\nAs peças somem durante partida ao vivo, leilão, pênaltis ou modal aberto. Participar é **opcional e grátis**.",
+    "resposta_jogador": "É só clicar no botão verde do WhatsApp: no site ele fica no canto inferior direito e, dentro do jogo, no pé da barra lateral (no celular, na borda direita da tela). Entrar é grátis e opcional.",
+    "tags": [
+      "whatsapp",
+      "comunidade",
+      "grupo"
+    ]
+  },
+  {
+    "id": "01-067",
+    "pergunta": "Cadê a aba \"Dar opinião\" do jogo?",
+    "variacoes": [
+      "sumiu o botao de opiniao",
+      "onde mando sugestao",
+      "como envio feedback",
+      "aba opiniao removida",
+      "quero dar uma ideia pro jogo"
+    ],
+    "resposta": "A aba \"Dar opinião\" foi **removida em 23/09/2026**; o **grupo do WhatsApp** cumpre esse papel (\"Fale direto com quem faz o jogo\").\n\nA única \"opinião\" existente hoje no jogo é a do **paywall de fim de temporada** (dar opinião = +1 temporada grátis, uma vez por conta).",
+    "resposta_jogador": "A aba de opinião saiu do jogo; hoje o melhor lugar para mandar sugestões é o nosso grupo do WhatsApp, onde você fala direto com quem faz o jogo.",
+    "tags": [
+      "opiniao",
+      "feedback",
+      "whatsapp"
+    ]
+  },
+  {
+    "id": "01-068",
+    "pergunta": "Quais e-mails o jogador recebe do RetroFoot?",
+    "variacoes": [
+      "que emails voces mandam",
+      "recebi email do presidente",
+      "dicas do presidente por email",
+      "recebi dica atrasada",
+      "quero parar de receber email",
+      "descadastrar da newsletter"
+    ],
+    "resposta": "Remetentes: **\"O Presidente · RetroFoot\"** (boas-vindas, dicas, reengajamento) e **\"RetroFoot\"** (newsletter, novidades, time do coração).\n\n- **Onboarding** (ligado desde 28/09/2026, **só cadastros novos**): Boas-vindas no dia 0 e **7 Dicas do Presidente** nos dias 1, 2, 4, 6, 9, 12 e 15. É por **dias desde o cadastro**, não pelo progresso — pode chegar dica \"atrasada\".\n- **Senha**: \"Redefina sua senha — RetroFoot98\".\n- **Pagamento**: comprovante do Stripe.\n- **Campanhas**: ativação, conversão para o Pro, \"Sentimos sua falta\" (7+ dias inativo), newsletter mensal e novidades.\n\n**Para parar de receber:** link de descadastro no rodapé do e-mail; se não resolver, escalar.",
+    "resposta_jogador": "Quem se cadastra recebe um e-mail de boas-vindas e depois 7 \"Dicas do Presidente\" ao longo das duas primeiras semanas. Elas seguem os dias desde o cadastro, então pode chegar uma dica de uma fase que você já passou. Para parar de receber, use o link de descadastro no rodapé do e-mail.",
+    "tags": [
+      "emails",
+      "onboarding",
+      "dicas",
+      "descadastro"
+    ]
+  },
+  {
+    "id": "01-069",
+    "pergunta": "Não recebo nenhum e-mail do RetroFoot.",
+    "variacoes": [
+      "nao chega email",
+      "email nao aparece na caixa",
+      "nunca recebi as dicas",
+      "email do jogo vai pro spam",
+      "nao recebi o comprovante"
+    ],
+    "resposta": "1. Conferir **spam / promoções**.\n2. Conferir se o **e-mail da conta** está certo.\n3. Lembrar que **contas antigas (antes de 28/09)** não recebem a sequência de boas-vindas.\n\nRemetentes a procurar: **\"O Presidente · RetroFoot\"** e **\"RetroFoot\"**. O comprovante de pagamento vem do Stripe para o e-mail da conta. Persistindo, escale.",
+    "resposta_jogador": "Dá uma olhada na caixa de spam e na aba Promoções, procurando por \"O Presidente · RetroFoot\" ou \"RetroFoot\". A sequência de boas-vindas só vale para quem se cadastrou a partir de 28/09.",
+    "tags": [
+      "emails",
+      "spam",
+      "entrega"
+    ]
+  },
+  {
+    "id": "01-070",
+    "pergunta": "Como o suporte deve se referir aos planos e modos?",
+    "variacoes": [
+      "nome certo do plano gratis",
+      "posso falar gratis pra sempre?",
+      "como chamo o modo multiplayer",
+      "peladeiro é o plano free?",
+      "jeito certo de falar dos modos"
+    ],
+    "resposta": "- Plano gratuito = **Peladeiro** (no banco é `free`). Preço: \"**R$ 0 na 1ª temporada**\" — **nunca** \"grátis pra sempre\".\n- Plano pago = **Pro** (único vendido hoje).\n- **Resenha** e **Embaixador** = planos antigos, tratados como Pro.\n- Modos: sempre **Modo Solo** e **Modo Resenha**, pelo nome próprio.\n- **Save** = uma carreira gravada na nuvem.",
+    "resposta_jogador": null,
+    "tags": [
+      "interno",
+      "glossario",
+      "planos"
+    ]
+  }
+]

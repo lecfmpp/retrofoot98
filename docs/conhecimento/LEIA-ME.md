@@ -18,3 +18,21 @@ Para publicar uma mudança:
    passo 2 tiver sido esquecido (`--check`).
 
 Nada de segredos, IDs de projeto ou dados de jogadores aqui: tudo isto vai para a API do Google.
+
+## Respostas prontas (sem IA)
+
+`faq/*.json` são ~400 perguntas e respostas prontas geradas a partir destes `.md`. O painel as
+procura ANTES de chamar a IA (busca de texto no banco, `admin_rf98.sobre_buscar`): se bater, a
+resposta sai na hora e sem custo. Formato de cada entrada: `id` (NN-NNN), `pergunta`,
+`variacoes` (jeitos diferentes de perguntar — é o que a busca compara), `resposta`,
+`resposta_jogador` (ou null) e `tags`.
+
+Para publicar uma mudança nas prontas:
+
+1. editar o JSON (ou regerar a partir do `.md` que mudou);
+2. `node scripts/validar-faq.mjs`;
+3. push na `main` e, no painel, **Sobre o jogo → Atualizar respostas prontas** — o banco baixa
+   os JSON direto do GitHub (`sobre_faq_sincronizar`, em scripts/sql/sobre_faq.sql).
+
+Quando uma regra do jogo muda, a seção `.md` E as prontas dela mudam juntas — senão a
+resposta pronta, que aparece antes da IA, contradiz a IA.

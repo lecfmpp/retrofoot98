@@ -1,0 +1,1263 @@
+[
+  {
+    "id": "06-001",
+    "pergunta": "Onde o jogador troca a formação do time?",
+    "variacoes": [
+      "como mudo a tatica do meu time",
+      "onde escolhe o esquema 4-4-2",
+      "jogador quer mudar de 4-3-3 pra 3-4-3, onde faz isso?",
+      "cade a opcao de formacao",
+      "onde altero o sistema tatico no jogo"
+    ],
+    "resposta": "Na página **Formação** (primeiro item do menu, ou clicando no escudo do clube no topo da barra lateral), no bloco **Formações**.\n\n- São oito botões: as seis táticas (3-3-4, 3-4-3, 4-2-4, 4-3-3, 4-4-2, 4-5-1), mais **Auto** (escalação automática) e **11+** (os melhores de cada posição).\n- Cada tática mostra uma régua de postura: ofensivo, equilibrado ou retranca.\n- No celular, fica na aba **Formação** da página inicial (abas Formação · Elenco · Jogo).\n- No computador também dá para usar as teclas **F1 a F6**.",
+    "resposta_jogador": "A formação fica na página Formação, no bloco \"Formações\": é só clicar numa das táticas. No celular, use a aba \"Formação\" da página inicial. No computador, as teclas F1 a F6 também trocam a tática.",
+    "tags": [
+      "formacao",
+      "tatica",
+      "telas"
+    ]
+  },
+  {
+    "id": "06-002",
+    "pergunta": "Quais são os atalhos de teclado para trocar a formação?",
+    "variacoes": [
+      "tem tecla de atalho pra tatica?",
+      "F1 a F6 serve pra que",
+      "apertei o numero 4 e a formacao nao mudou",
+      "atalho do teclado nao funciona pra formacao",
+      "o F5 recarregou a pagina em vez de mudar a tatica"
+    ],
+    "resposta": "Na página **Formação**, as teclas trocam a tática: **F1** = 3-3-4, **F2** = 3-4-3, **F3** = 4-2-4, **F4** = 4-3-3, **F5** = 4-4-2, **F6** = 4-5-1.\n\n- Só valem **fora de partida** e **fora de campo de texto**.\n- Alguns navegadores tomam o **F1** (ajuda) e o **F5** (recarregar) antes do jogo. Nesse caso, clique na formação.\n- Os números **1 a 6 sozinhos não trocam a formação**, de propósito: conflitavam com o campo de preço de venda.",
+    "resposta_jogador": "Na página Formação, F1 a F6 trocam a tática (F1 = 3-3-4, F2 = 3-4-3, F3 = 4-2-4, F4 = 4-3-3, F5 = 4-4-2, F6 = 4-5-1). Os números 1 a 6 sozinhos não funcionam, de propósito. Se o navegador abrir a ajuda (F1) ou recarregar (F5), clique direto na formação.",
+    "tags": [
+      "atalhos",
+      "teclado",
+      "formacao"
+    ]
+  },
+  {
+    "id": "06-003",
+    "pergunta": "O botão Jogar não faz nada. O que pode ser?",
+    "variacoes": [
+      "cliquei em jogar e nao acontece nada",
+      "botao jogar travado",
+      "nao consigo avancar a rodada",
+      "o botao ta escrito escolher formacao e nao joga",
+      "jogo nao anda, o botao principal nao entra em campo"
+    ],
+    "resposta": "O texto do botão diz o que falta, e o clique faz exatamente o que o texto diz:\n\n- **Escolher formação**: falta escolher a tática.\n- **Escalar um goleiro** / **Só um goleiro**: o time está sem goleiro ou com mais de um.\n- **Ver o sorteio**: há um sorteio de copa para assistir.\n- **Ver classificação**: há uma tabela de copa para ver antes.\n- **Em campo**: já há partida em andamento.\n- **Assistir à semana**: há uma copa que o clube não disputa.\n- No **Modo Resenha**, **Quase pronto** / **Acertando a semana** / **Fechando a semana** quer dizer que a sala espera os outros treinadores.\n\nSó **Jogar** entra em campo. **Avançar** (só Modo Solo) passa uma semana sem jogo.",
+    "resposta_jogador": "O botão mostra o próximo passo: se estiver escrito \"Escolher formação\", \"Escalar um goleiro\", \"Ver o sorteio\" ou \"Ver classificação\", é isso que falta fazer antes do jogo. No Modo Resenha, \"Quase pronto\" ou \"Acertando a semana\" significa que a sala está esperando os outros treinadores.",
+    "tags": [
+      "botao-jogar",
+      "partida",
+      "resenha"
+    ]
+  },
+  {
+    "id": "06-004",
+    "pergunta": "Onde fica o botão Jogar e o que significam as cores dele?",
+    "variacoes": [
+      "cade o botao de jogar no celular",
+      "botao amarelo o que significa",
+      "por que o botao ta azul",
+      "onde eu clico pra comecar a partida",
+      "botao verde jogar fica onde no pc"
+    ],
+    "resposta": "- **Computador:** no **cartão do Adversário**, dentro do bloco **Formações** da página **Formação**.\n- **Celular:** na **barra inferior**.\n\n**Cores:**\n- **Verde:** o clique leva a jogo.\n- **Amarelo:** \"quase pronto\", falta o resto da sala (Modo Resenha).\n- **Azul:** falta algum passo antes do jogo (por exemplo, escolher formação).\n\nAbaixo das formações fica a tira **Esta semana** com os sete dias: dia colorido = jogo do clube; apagado = competição que só assiste; vazio = sem jogo.",
+    "resposta_jogador": "No computador, o botão Jogar fica no cartão do Adversário, na página Formação; no celular, na barra de baixo. Verde leva ao jogo, amarelo é \"quase pronto\" (esperando a sala na Resenha) e azul indica que falta um passo antes, como escolher a formação.",
+    "tags": [
+      "botao-jogar",
+      "celular",
+      "telas"
+    ]
+  },
+  {
+    "id": "06-005",
+    "pergunta": "Quais itens tem o menu lateral do jogo no computador?",
+    "variacoes": [
+      "o que tem no menu da esquerda",
+      "como encolher o menu lateral",
+      "bolinha com numero no menu o que e",
+      "menu sumiu, so aparecem icones",
+      "lista de paginas do menu do jogo"
+    ],
+    "resposta": "De cima para baixo: escudo e nome do clube (clicar volta para a Formação) e os destinos **Formação**, **Mercado**, **Elenco & Base**, **Campeonatos**, **Treinador**, **Finanças**, **E-mail**, **Ranking**, **Configurações**, **Minha Conta** e **Sair do jogo**.\n\n- **Bolinhas numeradas:** E-mail (não lidas), Mercado (propostas e contrapropostas), Treinador (ofertas de emprego).\n- No pé: quadro de publicidade, botão do grupo do WhatsApp e **Recolher menu** (a seta que encolhe a barra só para ícones e expande de volta; a escolha fica guardada no aparelho).\n- Navegar pelo menu sempre volta ao **próprio clube**.",
+    "resposta_jogador": "O menu da esquerda tem Formação, Mercado, Elenco & Base, Campeonatos, Treinador, Finanças, E-mail, Ranking, Configurações, Minha Conta e Sair do jogo. As bolinhas com número avisam e-mails não lidos, propostas no Mercado e ofertas de emprego. Se o menu virou só ícones, clique na seta \"Recolher menu\" no pé da barra para expandir.",
+    "tags": [
+      "menu",
+      "navegacao",
+      "computador"
+    ]
+  },
+  {
+    "id": "06-006",
+    "pergunta": "Como é a navegação do jogo no celular?",
+    "variacoes": [
+      "no celular nao tem menu lateral",
+      "onde ficam as financas no celular",
+      "cade o botao mais no telefone",
+      "como acho configuracoes pelo celular",
+      "versao mobile onde ta o menu"
+    ],
+    "resposta": "No celular não há barra lateral. Embaixo da tela ficam:\n\n- **Formação**, **Elenco**, **Mercado** e **Tabela** (a Tabela é a página Campeonatos);\n- **Mais**: abre uma folha com Treinador, Finanças, E-mail, Ranking, Configurações, Minha Conta e Sair do jogo e, no fim, nome e e-mail da conta com o botão **Sair da conta**;\n- o **botão principal de avanço** (Jogar / Avançar / Escolher formação etc.).\n\nA Formação no celular tem três abas no topo: **Formação · Elenco · Jogo**, e uma tira com **FORMA · MORAL · situação da janela de transferências**.",
+    "resposta_jogador": "No celular, use a barra de baixo: Formação, Elenco, Mercado e Tabela. As outras páginas (Treinador, Finanças, E-mail, Ranking, Configurações, Minha Conta e Sair do jogo) ficam no botão \"Mais\".",
+    "tags": [
+      "celular",
+      "menu",
+      "navegacao"
+    ]
+  },
+  {
+    "id": "06-007",
+    "pergunta": "Onde o jogador vê a tabela do campeonato?",
+    "variacoes": [
+      "onde ta a classificacao",
+      "como vejo a tabela da liga",
+      "quero ver a tabela de outro pais",
+      "cade a tabela no celular",
+      "onde vejo a posicao do meu time no campeonato"
+    ],
+    "resposta": "Em **Campeonatos > Classificação**. A aba tem **filtro próprio de país e competição**, então dá para ver ligas de outros países.\n\nOutros caminhos:\n- botão **Ver tabela completa** na classificação compacta da página **Formação**;\n- botão **Ver classificação** no topo da página Campeonatos;\n- no celular, o item **Tabela** da barra inferior.",
+    "resposta_jogador": "A tabela fica em Campeonatos > Classificação (no celular, no botão \"Tabela\" da barra de baixo). Lá tem um filtro de país e competição, se quiser ver outras ligas. Também dá para chegar pelo botão \"Ver tabela completa\" na página Formação.",
+    "tags": [
+      "classificacao",
+      "campeonatos",
+      "tabela"
+    ]
+  },
+  {
+    "id": "06-008",
+    "pergunta": "O que tem em cada aba da página Campeonatos?",
+    "variacoes": [
+      "onde vejo a artilharia",
+      "calendario de jogos do meu time fica onde",
+      "historico de titulos do clube",
+      "como ver temporadas passadas",
+      "onde ficam as ligas internacionais e copas continentais"
+    ],
+    "resposta": "Ações no topo: **Calendário completo** e **Ver classificação**. Abas:\n\n- **Minhas competições:** um cartão por competição com **Abrir**, e \"COMPETIÇÕES QUE VOCÊ NÃO DISPUTA\".\n- **Calendário:** jogos do clube na temporada, com datas.\n- **Classificação:** tabela com filtro de país e competição.\n- **Artilharia:** \"SEUS MARCADORES\" e \"DEFESAS MENOS VAZADAS\".\n- **História:** \"HISTÓRICO DO CLUBE\" e \"TÍTULOS DO CLUBE\".\n- **Ligas internacionais:** só aparece quando há ligas de outros países no save (ligas do mundo, artilheiros, últimos campeões, copas continentais).\n\nA **barra de temporadas** mostra o arquivo de anos passados.",
+    "resposta_jogador": "Na página Campeonatos você encontra as abas Minhas competições, Calendário, Classificação, Artilharia e História (e Ligas internacionais, quando o save tem outros países). Para ver um ano anterior, escolha a temporada na barra de temporadas.",
+    "tags": [
+      "campeonatos",
+      "artilharia",
+      "calendario"
+    ]
+  },
+  {
+    "id": "06-009",
+    "pergunta": "Onde o jogador compra ou vende jogadores?",
+    "variacoes": [
+      "como contratar jogador",
+      "onde vendo um atleta",
+      "cade o mercado de transferencias",
+      "como ponho jogador a venda",
+      "quero comprar um atacante onde vou"
+    ],
+    "resposta": "Na página **Mercado**:\n\n- **Comprar:** \"Jogadores no mercado\", com filtros por posição, **Ordenar por**, busca pelo nome e **Limpar filtros**. Cada linha tem **Propor**. Ao lado, o bloco \"O que o caixa permite\".\n- **Vender:** \"Seu elenco à venda\", com **Listar**; a confirmação é **Pôr à venda**.\n- **Leilão:** lotes abertos.\n\nA contratação anda em etapas: **Propor**, **Igualar pedido**, **Oferecer** e **Fechar contratação**. Com outro treinador humano, o botão é **Enviar proposta**.\n\nClicar no **nome** de um jogador abre a **ficha**, nunca a negociação direto. Ações do topo: **Exportar lista** (CSV) e **Buscar jogador**.",
+    "resposta_jogador": "Compra e venda ficam na página Mercado: aba Comprar para contratar (botão Propor) e aba Vender para listar seus jogadores (botão Listar e depois \"Pôr à venda\"). Clicar no nome do jogador abre a ficha dele, com os botões de transferência.",
+    "tags": [
+      "mercado",
+      "transferencias",
+      "compra-venda"
+    ]
+  },
+  {
+    "id": "06-010",
+    "pergunta": "Onde ficam as propostas recebidas e as contrapropostas?",
+    "variacoes": [
+      "recebi uma oferta por um jogador onde vejo",
+      "como aceito proposta de outro clube",
+      "onde respondo uma contraproposta",
+      "bolinha no mercado o que e",
+      "negociacao em andamento onde fica"
+    ],
+    "resposta": "Na página **Mercado**:\n\n- aba **Propostas**: um cartão por proposta, com **Recusar**, **Contrapropor** e **Aceitar**. Mostra o impacto de aceitar (caixa, folha, força do ataque e do meio, provável substituto);\n- aba **Contrapropostas**: \"Negociações em andamento\", com **Responder**, e o bloco \"Como negociar\".\n\nO número na bolinha do item **Mercado** no menu conta propostas e contrapropostas recebidas. Numa contraproposta, o botão é **Enviar contraproposta**.",
+    "resposta_jogador": "As ofertas recebidas ficam em Mercado > Propostas, com os botões Recusar, Contrapropor e Aceitar. As negociações em andamento ficam em Mercado > Contrapropostas, no botão Responder.",
+    "tags": [
+      "mercado",
+      "propostas",
+      "negociacao"
+    ]
+  },
+  {
+    "id": "06-011",
+    "pergunta": "Como funciona o leilão de jogadores?",
+    "variacoes": [
+      "onde dou lance em jogador",
+      "leilao fecha que horas",
+      "botao cobrir no leilao",
+      "como participar do leilao",
+      "quando termina o leilao"
+    ],
+    "resposta": "Fica em **Mercado > Leilão**:\n\n- \"Lotes abertos\", com **Dar lance** ou **Cobrir** (quando o lance atual é do próprio jogador);\n- \"Arrematados recentemente\".\n\nA confirmação é **Confirmar lance**. O leilão fecha **por rodada**, não por relógio: se o jogador reclama que o lote \"não fechou\", pode ser só porque a rodada ainda não passou. O custo do lance também passa pelo aviso do **contador do clube** quando mexe no caixa.",
+    "resposta_jogador": "O leilão fica em Mercado > Leilão: escolha o lote, clique em \"Dar lance\" e depois em \"Confirmar lance\". Ele fecha por rodada, não por horário.",
+    "tags": [
+      "leilao",
+      "mercado",
+      "lance"
+    ]
+  },
+  {
+    "id": "06-012",
+    "pergunta": "Onde o jogador renova o contrato de um atleta?",
+    "variacoes": [
+      "como renovar contrato",
+      "contrato do jogador vai acabar, o que faco",
+      "onde estende o vinculo do atleta",
+      "renovacao de contrato fica onde",
+      "quero manter meu jogador, como renova"
+    ],
+    "resposta": "Em **Elenco & Base**: clique no jogador na aba **Elenco** para abrir a **Ficha do jogador** e use **Renovar contrato**.\n\nNa ficha de um jogador do próprio time aparecem **Renovar contrato** e **Listar para venda**. Na de um jogador de outro clube, aparece **Fazer proposta**.",
+    "resposta_jogador": "Vá em Elenco & Base, clique no jogador para abrir a ficha e use o botão \"Renovar contrato\".",
+    "tags": [
+      "contrato",
+      "elenco",
+      "renovacao"
+    ]
+  },
+  {
+    "id": "06-013",
+    "pergunta": "Como ver o elenco de outro clube e voltar para o próprio?",
+    "variacoes": [
+      "cliquei no escudo de outro time e agora?",
+      "como volto pro meu elenco",
+      "fiquei preso no elenco de outro clube",
+      "da pra ver os jogadores do adversario?",
+      "por que nao consigo clicar no escudo durante o jogo"
+    ],
+    "resposta": "Clicar no **escudo ou no nome de um clube**, em quase todo o jogo, abre o elenco daquele clube em **Elenco & Base**.\n\n- O título vira \"Elenco · (clube)\" e fica só para leitura; as abas Base e Treino especial somem.\n- Para voltar: botão **‹ Voltar ao meu elenco**, ou clicar em **Elenco & Base** no menu (o menu sempre volta ao próprio clube).\n- Durante a **partida ao vivo**, os escudos **não** são clicáveis, de propósito, para ninguém sair do jogo sem querer.",
+    "resposta_jogador": "Clicar no escudo ou no nome de um clube mostra o elenco dele (só para leitura). Para voltar, use o botão \"‹ Voltar ao meu elenco\" ou clique em \"Elenco & Base\" no menu. Durante a partida ao vivo os escudos não são clicáveis, de propósito.",
+    "tags": [
+      "elenco",
+      "outro-clube",
+      "navegacao"
+    ]
+  },
+  {
+    "id": "06-014",
+    "pergunta": "Onde fica a categoria de base e como promover um garoto?",
+    "variacoes": [
+      "como subir jogador da base",
+      "onde vejo os juniores",
+      "investimento na base fica onde",
+      "promover garoto pro profissional",
+      "categorias de base do clube"
+    ],
+    "resposta": "Em **Elenco & Base > Base**:\n\n- \"CATEGORIA DE BASE\", com o botão **Promover** em cada garoto;\n- \"INVESTIMENTO NA BASE\".\n\nA linha de resumo da página mostra quantos jogadores há no principal, quantos na base e a folha por semana.",
+    "resposta_jogador": "A base fica em Elenco & Base > Base. Cada garoto tem o botão \"Promover\" para subir ao elenco principal.",
+    "tags": [
+      "base",
+      "elenco",
+      "promover"
+    ]
+  },
+  {
+    "id": "06-015",
+    "pergunta": "Onde liga o treino especial dos jogadores?",
+    "variacoes": [
+      "como treinar um jogador especifico",
+      "treino especial onde ativa",
+      "da pra evoluir jogador com treino?",
+      "desligar treino de um atleta",
+      "quem pode fazer treino especial"
+    ],
+    "resposta": "Em **Elenco & Base > Treino especial**. A aba tem os blocos \"COMO FUNCIONA\", \"QUEM PODE TREINAR\" e \"DE ONDE VEM O CRESCIMENTO\", e é nela que se **liga e desliga** o treino de cada atleta.\n\nA aba não aparece quando se está visitando o elenco de outro clube: nesse caso, volte com **‹ Voltar ao meu elenco** ou clique em **Elenco & Base** no menu.",
+    "resposta_jogador": "O treino especial fica em Elenco & Base > Treino especial. Lá você liga ou desliga o treino de cada jogador e vê quem pode treinar.",
+    "tags": [
+      "treino",
+      "elenco",
+      "evolucao"
+    ]
+  },
+  {
+    "id": "06-016",
+    "pergunta": "Onde o treinador vê e aceita ofertas de emprego de outros clubes?",
+    "variacoes": [
+      "recebi convite de outro time",
+      "como trocar de clube",
+      "aceitar o jantar o que e",
+      "onde ficam as ofertas do treinador",
+      "bolinha no item treinador"
+    ],
+    "resposta": "Em **Treinador > Ofertas** (também pelo botão **Ver ofertas** no topo da página Treinador). Cada convite tem **Recusar** e **Aceitar o jantar**. A aba mostra ainda \"CLUBES QUE JÁ SONDARAM\" e \"O QUE ACONTECE SE VOCÊ SAIR\".\n\nA bolinha numerada no item **Treinador** do menu conta as ofertas de emprego. Um convite também pode aparecer sozinho como janela.",
+    "resposta_jogador": "As ofertas de emprego ficam em Treinador > Ofertas. Para aceitar um convite, clique em \"Aceitar o jantar\"; para dispensar, em \"Recusar\". A aba também explica o que acontece se você sair do clube.",
+    "tags": [
+      "treinador",
+      "ofertas",
+      "emprego"
+    ]
+  },
+  {
+    "id": "06-017",
+    "pergunta": "O que tem em cada aba da página Treinador?",
+    "variacoes": [
+      "onde vejo minha carreira de tecnico",
+      "sala de trofeus fica onde",
+      "como encerrar a carreira",
+      "trocar o nome do treinador",
+      "historico do treinador"
+    ],
+    "resposta": "Ações no topo: **Exportar carreira** e **Ver ofertas**. Abas:\n\n- **Carreira**, **História**, **Sala de Troféus**, **Ranking** e **Ofertas**;\n- **Perfil**: \"DADOS DO TREINADOR\", \"COMO A IMPRENSA TE DESCREVE\" e \"AJUSTES\", com **Trocar o nome** (leva a Configurações), **Ver histórico completo** e **Encerrar a carreira**;\n- **Meu jogador**.\n\nObservação: o **Trocar o nome** leva a Configurações, mas a base não confirma que exista ali um campo de nome explícito.",
+    "resposta_jogador": "Na página Treinador você vê carreira, história, sala de troféus, ranking, ofertas e perfil. Os ajustes (Trocar o nome, Ver histórico completo e Encerrar a carreira) ficam na aba Perfil.",
+    "tags": [
+      "treinador",
+      "carreira",
+      "perfil"
+    ]
+  },
+  {
+    "id": "06-018",
+    "pergunta": "O que é a vaga \"Meu jogador\" e como funciona?",
+    "variacoes": [
+      "como coloco meu nome num jogador",
+      "botar minha foto em um atleta",
+      "meu jogador onde fica",
+      "largar a vaga de jogador",
+      "quem tem direito ao meu jogador"
+    ],
+    "resposta": "É a vaga para pôr o próprio nome e rosto num jogador da base oficial. Fica em **Treinador > Meu jogador** (e pode aparecer no assistente de entrada). A vaga é do **treinador**, não do clube.\n\n- Botões: **Escolher outro time**, **Fazer isso depois** e **Largar a vaga**.\n- Nome e foto passam por **moderação** no painel e, depois de aprovados, só aparecem em **saves novos**.\n- Quem tem direito mudou com a troca de planos de 25/09: pelas notas internas, a vaga saiu da vitrine do Pro e quem já tinha continua. **Isso não está claro no código**; confirme o caso no painel, página **Jogadores**.",
+    "resposta_jogador": "A vaga \"Meu jogador\" fica em Treinador > Meu jogador. O nome e a foto passam por uma aprovação da equipe e, depois de aprovados, aparecem só em saves novos.",
+    "tags": [
+      "meu-jogador",
+      "treinador",
+      "moderacao"
+    ]
+  },
+  {
+    "id": "06-019",
+    "pergunta": "Onde o jogador vê as finanças, o extrato, o estádio e o patrocínio?",
+    "variacoes": [
+      "onde vejo quanto dinheiro tenho",
+      "extrato de gastos do clube",
+      "como aumentar o estadio",
+      "patrocinio fica onde",
+      "quando entra o dinheiro do patrocinio"
+    ],
+    "resposta": "Na página **Finanças** (ações no topo: **Exportar balanço** e **Ver extrato**). Abas:\n\n- **Resumo:** gráficos mensais e os blocos ENTRA e SAI.\n- **Extrato:** lançamentos agrupados por rodada.\n- **Estádio:** capacidade, preço e pacotes de obra (+lugares), com o aviso \"cabe no caixa de hoje\" ou \"faltam R$ X no caixa\".\n- **Patrocínio:** contratos por espaço, com metas e bônus. O valor do ano inteiro entra de uma vez, na 1ª rodada da temporada.",
+    "resposta_jogador": "Tudo de dinheiro fica na página Finanças: Resumo, Extrato (por rodada), Estádio (obras para ampliar) e Patrocínio. O patrocínio do ano entra de uma vez, na 1ª rodada da temporada.",
+    "tags": [
+      "financas",
+      "estadio",
+      "patrocinio"
+    ]
+  },
+  {
+    "id": "06-020",
+    "pergunta": "O que é o contador do clube?",
+    "variacoes": [
+      "quem e esse contador que aparece",
+      "aviso de contas no vermelho",
+      "voltar e rever ou seguir mesmo assim",
+      "por que o jogo trava minha compra com um aviso de caixa",
+      "contador do clube o que faz"
+    ],
+    "resposta": "É uma pessoa fictícia, sorteada por save, que fica no topo de **todas** as abas de **Finanças** com a situação do caixa.\n\n- Aparece dentro de toda decisão que gasta dinheiro: compra, lance, obra, renovação.\n- Se a decisão deixa o caixa negativo no fim da temporada, ele segura a decisão com **Voltar e rever** e **Seguir mesmo assim**.\n- Com as contas no vermelho, o aviso aparece no topo da **Formação**, com o botão **Ver finanças**.",
+    "resposta_jogador": "O contador do clube é um personagem que avisa sobre o caixa. Quando uma compra, lance, obra ou renovação pode deixar o clube no negativo no fim da temporada, ele pergunta se você quer \"Voltar e rever\" ou \"Seguir mesmo assim\".",
+    "tags": [
+      "contador",
+      "financas",
+      "caixa"
+    ]
+  },
+  {
+    "id": "06-021",
+    "pergunta": "Como funciona a página E-mail do jogo?",
+    "variacoes": [
+      "onde leio as mensagens do jogo",
+      "como arquivar email",
+      "apaguei um email da pra recuperar",
+      "falar com a imprensa ou nao falar agora",
+      "marcar tudo como lido"
+    ],
+    "resposta": "O título é \"E-mail & Sistema\". Ações no topo: **Gravar** e **Marcar como lidas**.\n\n- **Caixa de entrada:** lista à esquerda e \"MENSAGEM ABERTA\" à direita. Algumas aceitam resposta (\"A SUA RESPOSTA\"); outras têm botão que leva ao lugar do assunto (Mercado, Ofertas).\n- **Arquivadas:** arquivar tira da caixa de entrada. **Apagar é definitivo** e é outra ação.\n- Mensagens de premiação podem oferecer **Falar com a imprensa** ou **Não falar agora**, o que mexe na moral e na segurança no cargo, uma vez por premiação.",
+    "resposta_jogador": "As mensagens ficam na página E-mail. Arquivar só tira da caixa de entrada (fica em Arquivadas); apagar é definitivo. O botão \"Marcar como lidas\" no topo zera as não lidas.",
+    "tags": [
+      "email",
+      "mensagens",
+      "imprensa"
+    ]
+  },
+  {
+    "id": "06-022",
+    "pergunta": "Como funciona a página Ranking do jogo?",
+    "variacoes": [
+      "o ranking nao atualiza",
+      "como sair do ranking publico",
+      "ranking de amigos",
+      "ranking do dia semana e mes",
+      "como acho minha posicao no ranking"
+    ],
+    "resposta": "É o ranking de treinadores do jogo inteiro, com os dois modos somados.\n\n- **Escopo:** Global · Amigos · Minhas resenhas.\n- **Período:** Dia · Semana · Mês (pontos ganhos no período) · Sempre (total).\n- Botões: **Ver mais 20** e **Ir para a minha posição**.\n- A lista se atualiza sozinha **a cada 10 minutos**; \"não mexe\" pode ser só essa espera.\n- Para sumir da lista pública: desligar **Aparecer no ranking global** em **Configurações > Perfil**. A pessoa continua pontuando.",
+    "resposta_jogador": "O ranking se atualiza a cada 10 minutos, então pode demorar um pouco para mudar. Use \"Ir para a minha posição\" para se achar. Se não quiser aparecer na lista pública, desligue \"Aparecer no ranking global\" em Configurações > Perfil (você continua pontuando).",
+    "tags": [
+      "ranking",
+      "pontos",
+      "configuracoes"
+    ]
+  },
+  {
+    "id": "06-023",
+    "pergunta": "Onde muda a velocidade da partida, o som e as substituições no intervalo?",
+    "variacoes": [
+      "como deixar o jogo mais rapido",
+      "tirar o som da partida",
+      "tempo de jogo curto medio longo",
+      "ultrassonico com cadeado",
+      "desativar substituicao no intervalo"
+    ],
+    "resposta": "Em **Configurações** (título \"Opções do jogo\"; ações **Voltar ao hub** e **Guardar opções**):\n\n- **Partida:** **Tempo de jogo** (Curto, Médio, Longo e, com cadeado, os ritmos pagos, como o Ultrassônico, do Pro); **Substituições ao intervalo** (Sim/Não); **Assistir copas que você não disputa** (só Modo Solo).\n- **Avisos e som:** **Som da partida** e **Volume**.\n\nNuma resenha, quem define o ritmo é o **anfitrião**. No celular, os cartões viram acordeão.",
+    "resposta_jogador": "Vá em Configurações, cartão \"Partida\", para escolher o tempo de jogo e as substituições no intervalo; o som fica no cartão \"Avisos e som\". Depois clique em \"Guardar opções\". No Modo Resenha, o ritmo é definido pelo anfitrião.",
+    "tags": [
+      "configuracoes",
+      "velocidade",
+      "som"
+    ]
+  },
+  {
+    "id": "06-024",
+    "pergunta": "Como o jogador volta a um ponto anterior do save?",
+    "variacoes": [
+      "da pra voltar atras no jogo",
+      "restaurar save antigo",
+      "desfazer a ultima rodada",
+      "carregar ponto guardado",
+      "salvamento automatico guarda quanto tempo"
+    ],
+    "resposta": "Em **Configurações > Gravação > Voltar a um ponto guardado**: escolher o ponto e clicar em **Voltar para …**. **Tudo o que veio depois desse ponto é perdido.**\n\n- O **Salvamento automático** guarda as **3 últimas semanas** e o **fim de cada temporada**.\n- Os pontos têm etiquetas **AUTO**, **TEMPORADA** ou **NUVEM**.\n- Há também **Gravar agora**.",
+    "resposta_jogador": "Em Configurações > Gravação, use \"Voltar a um ponto guardado\", escolha o ponto e clique em \"Voltar para…\". Atenção: tudo o que aconteceu depois desse ponto é perdido. O salvamento automático guarda as 3 últimas semanas e o fim de cada temporada.",
+    "tags": [
+      "save",
+      "gravacao",
+      "configuracoes"
+    ]
+  },
+  {
+    "id": "06-025",
+    "pergunta": "Onde o jogador troca a senha, sai da conta ou apaga a conta?",
+    "variacoes": [
+      "como mudar minha senha",
+      "deslogar do jogo",
+      "excluir minha conta",
+      "quero apagar meu cadastro",
+      "onde fica sair da conta no celular"
+    ],
+    "resposta": "Em **Configurações > Conta**: **Trocar a senha**, **Sair da conta** e **Apagar a conta**. Apagar a conta remove os saves na nuvem e a carreira de treinador, e **não tem volta**.\n\n**Sair da conta** também aparece em **Sair do jogo** (bloco CONTA), na faixa do clube da Formação (\"· Sair\", que grava e sai) e no menu **Mais** do celular.",
+    "resposta_jogador": "Senha, saída e exclusão da conta ficam em Configurações > Conta. Cuidado: \"Apagar a conta\" remove os saves na nuvem e a carreira de treinador, e não tem volta.",
+    "tags": [
+      "conta",
+      "senha",
+      "configuracoes"
+    ]
+  },
+  {
+    "id": "06-026",
+    "pergunta": "Como o jogador põe ou troca a foto de perfil?",
+    "variacoes": [
+      "colocar foto no perfil",
+      "trocar avatar",
+      "minha foto aparece onde",
+      "usar iniciais em vez de foto",
+      "mudar imagem do treinador no ranking"
+    ],
+    "resposta": "Em **Configurações > Perfil**: **Enviar foto** / **Trocar a foto** ou **Usar as iniciais**. A foto aparece no ranking, na Resenha e no chat.\n\nSem login, o cartão pede para entrar na conta.\n\nNo mesmo cartão fica o interruptor **Aparecer no ranking global**. Depois de mexer nas opções, use **Guardar opções** no topo da página.",
+    "resposta_jogador": "A foto fica em Configurações > Perfil: use \"Enviar foto\" (ou \"Trocar a foto\"), ou \"Usar as iniciais\". Ela aparece no ranking, na Resenha e no chat. É preciso estar logado.",
+    "tags": [
+      "perfil",
+      "foto",
+      "configuracoes"
+    ]
+  },
+  {
+    "id": "06-027",
+    "pergunta": "Onde o jogador vê e gerencia o plano (Peladeiro ou Pro)?",
+    "variacoes": [
+      "como assinar o pro",
+      "cancelar assinatura",
+      "onde vejo meu plano",
+      "gerir assinatura nao funciona",
+      "pagar com pix"
+    ],
+    "resposta": "Na página **Minha Conta**, seção **Planos**: \"SEU PLANO ATUAL\", a escada de degraus e os cartões.\n\n- Dois planos: **Peladeiro** (gratuito) e **Pro**, com escolha entre mês e ano.\n- Cobrança pelo Stripe, no cartão ou no Pix.\n- **Assinar** abre a janela de compra.\n- Quem é Pro vê **Gerir assinatura**, que abre o portal do Stripe. Se a conta não tem cobrança no Stripe, o jogo avisa que não há assinatura para gerir.",
+    "resposta_jogador": "O plano fica em Minha Conta. Para assinar, clique em \"Assinar\" (dá para pagar com cartão ou Pix, mensal ou anual). Quem já é Pro gerencia ou cancela pelo botão \"Gerir assinatura\".",
+    "tags": [
+      "planos",
+      "assinatura",
+      "pro"
+    ]
+  },
+  {
+    "id": "06-028",
+    "pergunta": "Onde fica o código da sala e o convite no Modo Resenha?",
+    "variacoes": [
+      "como convido amigo pra resenha",
+      "codigo da sala onde acho",
+      "sincronizar a sala",
+      "aprovar entradas na sala",
+      "ver quem ja jogou na sala"
+    ],
+    "resposta": "Em **Minha Conta**, na parte da sala (só no Modo Resenha online):\n\n- **CÓDIGO DA SALA**, com **Copiar convite** e **Abrir o chat**;\n- **TREINADORES**, com o estado de cada um: JOGOU, EM PARTIDA ou NÃO ENTROU;\n- **REGRAS DA SALA** (ritmo, janela de mercado, divisão, quem pode entrar, anfitrião);\n- **SINCRONIZAÇÃO**: **Aprovar entradas** (só o anfitrião), **Sincronizar agora** e **Sair da sala**;\n- **CHAT DA SALA**.\n\nNa Formação, a faixa do clube também tem o botão de sincronizar.",
+    "resposta_jogador": "No Modo Resenha, o código da sala fica em Minha Conta: use \"Copiar convite\" para mandar aos amigos. Ali também dá para ver quem já jogou, sincronizar a sala e, se você for o anfitrião, aprovar entradas.",
+    "tags": [
+      "resenha",
+      "sala",
+      "convite"
+    ]
+  },
+  {
+    "id": "06-029",
+    "pergunta": "O Modo Resenha aparece como \"Em breve\". Por quê?",
+    "variacoes": [
+      "nao consigo criar resenha",
+      "resenha em breve",
+      "como jogar com amigos",
+      "garantir acesso com o pro o que e",
+      "modo multiplayer nao libera"
+    ],
+    "resposta": "No assistente de entrada, na tela **Modo**, o **Modo Resenha** aparece como **\"Em breve\"** nesta versão. O botão dele oferece **Garantir acesso com o Pro**, ou mostra **Acesso garantido no lançamento** para quem já é Pro.\n\nAs telas de sala descritas no jogo valem para quem **já está numa sala**. A base não traz data de lançamento.",
+    "resposta_jogador": "Nesta versão o Modo Resenha ainda está marcado como \"Em breve\" para jogos novos. Quem é Pro já tem o acesso garantido no lançamento. Enquanto isso, dá para jogar normalmente no Modo Solo.",
+    "tags": [
+      "resenha",
+      "em-breve",
+      "pro"
+    ]
+  },
+  {
+    "id": "06-030",
+    "pergunta": "Como abrir outro save, começar um novo ou baixar o save?",
+    "variacoes": [
+      "trocar de save",
+      "comecar jogo novo",
+      "baixar meu save em arquivo",
+      "onde ficam meus outros saves",
+      "sair da sala da resenha apaga meu save?"
+    ],
+    "resposta": "Na página **Sair do jogo**:\n\n- **SAVE ATUAL:** **Gravar e sair do save**, **Começar outro save** e **Baixar o save** (arquivo .json).\n- **OUTROS SAVES:** os saves da conta na nuvem, cada um com **Abrir**.\n- **SALA DA RESENHA** (só online): **Sair da sala**. Não apaga o save, mas o clube fica sem treinador nas semanas seguintes.\n- **CONTA:** **Sair da conta** e **Apagar este save**.\n\nNo assistente, a tela **Save** (Modo Solo) lista os saves da nuvem com **Continuar**.",
+    "resposta_jogador": "Vá em \"Sair do jogo\": lá você abre outro save (botão Abrir), começa um novo (\"Começar outro save\") ou baixa o save atual em arquivo (\"Baixar o save\").",
+    "tags": [
+      "save",
+      "sair-do-jogo",
+      "nuvem"
+    ]
+  },
+  {
+    "id": "06-031",
+    "pergunta": "O que é o Modo Camarote e como pausar a partida?",
+    "variacoes": [
+      "como pausar o jogo",
+      "camarote o que e",
+      "nao tem botao de pausa na resenha",
+      "como fechar o camarote",
+      "camarote travado"
+    ],
+    "resposta": "Durante a **partida ao vivo**, a rodada inteira aparece com um cartão por competição. O **Modo Camarote** abre por padrão quando o clube joga na rodada e mostra só o jogo dele, com narração, pressão e estatísticas.\n\n- **⏸ Pausar** / **▶ Jogar** só existe no **Modo Solo**. No Modo Resenha o ritmo é do anfitrião.\n- Fecha com **Esc** ou com o **✕** (\"Voltar à semana\"). O botão **Modo Camarote** fica na faixa do topo.\n- Nos ritmos mais rápidos o Camarote pode ficar travado; ele mostra a explicação ao ser clicado.",
+    "resposta_jogador": "O Modo Camarote mostra só o seu jogo, com narração e estatísticas. No Modo Solo dá para pausar pelo botão ⏸; na Resenha, o ritmo é do anfitrião. Para fechar, aperte Esc ou clique no ✕. Nos ritmos mais rápidos ele pode ficar bloqueado, e mostra o motivo ao ser clicado.",
+    "tags": [
+      "camarote",
+      "partida",
+      "pausa"
+    ]
+  },
+  {
+    "id": "06-032",
+    "pergunta": "Como fazer substituições e quais janelas aparecem durante a partida?",
+    "variacoes": [
+      "como substituir jogador no jogo",
+      "nao aparece opcao de substituicao",
+      "jogador expulso o que faco",
+      "quem bate o penalti",
+      "prorrogacao opcoes"
+    ],
+    "resposta": "Janelas que aparecem sozinhas durante o jogo:\n\n- **Substituição:** só no **intervalo** e se **Substituições ao intervalo** estiver ligado em Configurações > Partida;\n- **Lesão**, com \"Seguir com 10\";\n- **Cartão vermelho**, com \"Manter a formação\";\n- **Pênalti**, com \"Deixar o capitão bater\";\n- **disputa de pênaltis**;\n- **prorrogação**, com \"Fazer uma substituição\" e \"Começar a prorrogação\".\n\nFora da partida, no **campo em tela cheia** da Formação, dá para arrastar um titular para o banco.",
+    "resposta_jogador": "A substituição aparece no intervalo, se \"Substituições ao intervalo\" estiver ligado em Configurações > Partida. Lesão, expulsão, pênalti e prorrogação abrem janelas próprias durante o jogo.",
+    "tags": [
+      "substituicao",
+      "partida",
+      "janelas"
+    ]
+  },
+  {
+    "id": "06-033",
+    "pergunta": "Como usar o campo em tela cheia e os botões Auto, 11+ e Seleccionar descansados?",
+    "variacoes": [
+      "arrastar jogador pro banco",
+      "escalar automatico",
+      "botao 11+ o que faz",
+      "escalar os mais descansados",
+      "expandir o campo"
+    ],
+    "resposta": "Na página **Formação**:\n\n- **Auto:** escalação automática. **11+:** os melhores de cada posição.\n- **Seleccionar descansados:** reescala dando prioridade a quem tem mais energia, sem mudar a formação. Só funciona **depois de escolher a tática**.\n- **Campo:** mostra a tática, \"onze X/11\" e a legenda T (titular) / R (reserva). O ícone de expandir abre o **campo em tela cheia**, onde se **arrasta um titular para o banco** para substituí-lo; há \"Escolher formação\" e Jogar. **Trazer de volta** (ou Esc) fecha.",
+    "resposta_jogador": "Na Formação, \"Auto\" escala sozinho, \"11+\" põe os melhores de cada posição e \"Seleccionar descansados\" prioriza quem tem mais energia (depois de escolher a tática). No campo em tela cheia, você arrasta um titular para o banco para trocá-lo.",
+    "tags": [
+      "escalacao",
+      "formacao",
+      "campo"
+    ]
+  },
+  {
+    "id": "06-034",
+    "pergunta": "Quando aparece a entrevista coletiva e dá para pular?",
+    "variacoes": [
+      "onde fica a coletiva",
+      "entrevista da imprensa",
+      "como pular a entrevista",
+      "coletiva aparece toda hora",
+      "respostas da coletiva mudam o que"
+    ],
+    "resposta": "Não está no menu: é uma janela que aparece sozinha **depois da classificação pós-rodada**, nunca na 1ª rodada.\n\n- **Modo Solo:** de 3 em 3 rodadas (2 em 2 com fato marcante: goleada, jejum, crise), até 8 por temporada.\n- **Modo Resenha:** de 4 em 4 (3 com fato marcante), até 5 por temporada.\n- Três perguntas (jogo, elenco, clube), cada uma com três respostas, que mexem na moral, na segurança no cargo e na reputação.\n- **⏩ Pular a coletiva** encerra sem aplicar mais efeitos.",
+    "resposta_jogador": "A coletiva aparece sozinha depois da classificação da rodada, de tempos em tempos. As respostas mexem na moral, na segurança no cargo e na reputação. Se não quiser responder, clique em \"⏩ Pular a coletiva\".",
+    "tags": [
+      "imprensa",
+      "coletiva",
+      "partida"
+    ]
+  },
+  {
+    "id": "06-035",
+    "pergunta": "O que acontece no fim de temporada e por que aparece um aviso antes da próxima?",
+    "variacoes": [
+      "acabou a temporada e pediu pra assinar",
+      "nao consigo comecar a proxima temporada",
+      "aviso de fim de temporada",
+      "depoimento para ganhar temporada",
+      "peladeiro quantas temporadas"
+    ],
+    "resposta": "A tela mostra o desfecho (**Título**, **Acesso**, **Meio de tabela**, **Rebaixado** ou **Demitido**) e o botão **Começar a próxima temporada**.\n\nPara quem **não é Pro**, o clique pode abrir antes o **aviso de fim de temporada**. O Peladeiro joga **1 temporada por carreira**, com saídas grátis uma de cada vez: **depoimento** (+1 temporada), depois **post ou vídeo** (+1), depois só o Pro. Veteranos da fase Beta recebem avisos próprios.",
+    "resposta_jogador": "No plano gratuito (Peladeiro) cada carreira tem 1 temporada. Ao terminar, você pode ganhar mais uma escrevendo um depoimento e, depois, mais uma com um post ou vídeo. Depois disso, para continuar, é preciso o Pro.",
+    "tags": [
+      "fim-de-temporada",
+      "paywall",
+      "planos"
+    ]
+  },
+  {
+    "id": "06-036",
+    "pergunta": "Como abrir o chat do Modo Resenha e por que ele não aparece no celular?",
+    "variacoes": [
+      "cade o chat no celular",
+      "tecla C abre o chat",
+      "chat nao aparece durante a partida",
+      "como falar com os outros da sala",
+      "chat da resenha sumiu"
+    ],
+    "resposta": "- **Computador:** bolha no canto inferior direito; a tecla **C** abre e fecha (não funciona enquanto se digita). **Esc** também fecha.\n- **Celular:** o chat está **desligado de propósito**.\n- Durante a **partida ao vivo** e o **Camarote**, fica em silêncio: sem espiada e sem pulsar.\n- Também abre por **Abrir o chat** em Minha Conta (sala), onde fica o **CHAT DA SALA**.",
+    "resposta_jogador": "O chat da Resenha só existe no computador: é a bolha no canto de baixo, à direita (a tecla C abre e fecha). No celular ele fica desligado de propósito, e durante a partida ele fica em silêncio.",
+    "tags": [
+      "chat",
+      "resenha",
+      "celular"
+    ]
+  },
+  {
+    "id": "06-037",
+    "pergunta": "O que a tecla Esc fecha no jogo?",
+    "variacoes": [
+      "esc nao fecha a janela",
+      "como fechar popup",
+      "nao consigo fechar a janela de demissao",
+      "sair da tela cheia do campo",
+      "fechar janela com teclado"
+    ],
+    "resposta": "**Esc** fecha a janela aberta, o **campo em tela cheia**, o **Modo Camarote** e o **chat**.\n\n**Não fecha** decisões obrigatórias, como a janela de demissão: essas precisam de uma escolha nos botões.\n\nNo Modo Resenha, pelo computador, a tecla **C** abre e fecha o chat (não funciona enquanto se digita). As teclas **F1 a F6** trocam a formação na página Formação.",
+    "resposta_jogador": "A tecla Esc fecha janelas, o campo em tela cheia, o Modo Camarote e o chat. Só não fecha decisões obrigatórias, como a de demissão, que precisam de uma resposta nos botões.",
+    "tags": [
+      "atalhos",
+      "teclado",
+      "janelas"
+    ]
+  },
+  {
+    "id": "06-038",
+    "pergunta": "Como criar conta no jogo e o que fazer se esquecer a senha?",
+    "variacoes": [
+      "requisitos da senha",
+      "esqueci a senha do jogo",
+      "nao consigo criar conta",
+      "time do coracao obrigatorio",
+      "ja estou logado e quero entrar com outra conta"
+    ],
+    "resposta": "No assistente, tela **Entrar**, com as abas **Criar conta** e **Entrar**.\n\n- **Criar conta** pede nome do treinador, e-mail, WhatsApp, **time do coração (obrigatório)** e senha com **6 ou mais caracteres, com letra e número**. A caixa \"Quero receber aviso quando abrir vaga nas Ligas Oficiais\" é opcional.\n- Na aba **Entrar** há o link **Esqueci minha senha**.\n- Se já está logado, a tela diz \"Você já está logado\" e oferece **Entrar com outra conta**.\n\nO suporte também pode reenviar o link pelo painel (Usuários > Reenviar).",
+    "resposta_jogador": "Para criar conta você precisa informar nome do treinador, e-mail, WhatsApp, time do coração e uma senha com pelo menos 6 caracteres, com letra e número. Se esqueceu a senha, use o link \"Esqueci minha senha\" na aba Entrar.",
+    "tags": [
+      "cadastro",
+      "senha",
+      "onboarding"
+    ]
+  },
+  {
+    "id": "06-039",
+    "pergunta": "Quais são os passos do assistente de entrada para criar um save?",
+    "variacoes": [
+      "como comeco um jogo novo",
+      "passo a passo para criar save",
+      "escolher pais e liga",
+      "tem futebol feminino?",
+      "como entro por codigo numa sala",
+      "escolher moeda real euro dolar"
+    ],
+    "resposta": "A **régua de passos** muda com o caminho:\n\n- **Modo Solo:** Entrar · Modo · Save · País e liga · Treinador · Clube · Jogar.\n- **Modo Resenha (quem cria):** Entrar · Modo · Treinador · País e liga · Sala · Convites · Clube · Jogar.\n- **Convidado por código:** Entrar · Modo · Código · Treinador · Sala · Clube · Jogar.\n\nNo caminho há **Modalidade** (masculino ou feminino; por enquanto o feminino existe **só no Brasil**), **País e liga**, **moeda** (Real, Euro, Dólar), **carregamento**, **treinador** (a cara) e, para quem tem direito, **Meu jogador**. O clube sai no **sorteio** e depois vem a **Boas-vindas**.",
+    "resposta_jogador": "Para começar um save no Modo Solo: entre na conta, escolha o modo, crie o save, escolha país e liga, monte o treinador e aguarde o sorteio do clube. Depois disso você já cai na página Formação.",
+    "tags": [
+      "onboarding",
+      "save",
+      "novo-jogo"
+    ]
+  },
+  {
+    "id": "06-040",
+    "pergunta": "Onde fica o grupo do WhatsApp e a antiga aba de Opinião?",
+    "variacoes": [
+      "link do grupo do whatsapp",
+      "como entrar no grupo",
+      "aba de opiniao sumiu",
+      "onde mando sugestao no jogo",
+      "botao do whatsapp no celular"
+    ],
+    "resposta": "**Grupo do WhatsApp**, três entradas:\n- uma janela única logo após criar a conta;\n- uma pílula nas páginas públicas;\n- na área logada, um botão no pé da barra lateral (computador) ou uma **lingueta na borda direita** (celular).\n\nA **aba de Opinião** foi **removida** a pedido (23/09). Os recados de jogadores chegam hoje pelos **depoimentos** do aviso de fim de temporada.",
+    "resposta_jogador": "O grupo do WhatsApp fica no pé do menu lateral (no computador) ou na lingueta da borda direita da tela (no celular). A antiga aba de Opinião foi removida.",
+    "tags": [
+      "whatsapp",
+      "grupo",
+      "opiniao"
+    ]
+  },
+  {
+    "id": "06-041",
+    "pergunta": "O que mostra a faixa do clube no topo da Formação?",
+    "variacoes": [
+      "onde vejo quanto tenho em caixa",
+      "forma do time ultimos resultados",
+      "botao sair ao lado do nome",
+      "data do jogo e ano onde aparece",
+      "faixa do ranking no topo"
+    ],
+    "resposta": "A **faixa do clube** mostra escudo, nome do clube, treinador, país, divisão, a data do dia do jogo e o ano, o dinheiro **Em caixa** e a **Forma** (últimos resultados).\n\n- Numa sala do Modo Resenha, tem um botão para **sincronizar a sala**.\n- Com conta logada, mostra o nome com **· Sair**, que grava e sai da conta.\n- No topo da janela pode aparecer a **faixa do ranking** (#posição e pontos).\n- No celular, há a tira **FORMA · MORAL · situação da janela de transferências**.",
+    "resposta_jogador": "No topo da Formação, a faixa do clube mostra o dinheiro em caixa, a forma recente, a divisão e a data do próximo jogo.",
+    "tags": [
+      "formacao",
+      "caixa",
+      "telas"
+    ]
+  },
+  {
+    "id": "06-042",
+    "pergunta": "O que tem na página Formação além da escalação?",
+    "variacoes": [
+      "moral do plantel onde ve",
+      "seguranca no cargo",
+      "destaques do time",
+      "artilheiro do clube na tela inicial",
+      "cartao do adversario"
+    ],
+    "resposta": "Coluna da esquerda (computador):\n- **Elenco** (tabela e contagem de titulares);\n- **Moral do plantel** e **Segurança no cargo** (medidores de 0 a 100);\n- **Classificação compacta**, com **Ver tabela completa**;\n- **Destaques do plantel**: artilheiro, destaque da rodada e quem está em baixa.\n\nColuna da direita: **Formações**, **cartão do Adversário** (mini-tabela comparando os clubes e o botão Jogar), a tira **Esta semana** e o **Campo**.\n\nNo celular, tudo isso se divide nas abas **Formação · Elenco · Jogo**.",
+    "resposta_jogador": "A página Formação reúne o elenco, a moral do plantel, a segurança no cargo, a classificação resumida, os destaques do time, o cartão do adversário e o campo com a escalação.",
+    "tags": [
+      "formacao",
+      "moral",
+      "telas"
+    ]
+  },
+  {
+    "id": "06-043",
+    "pergunta": "Como achar a conta de um jogador no painel?",
+    "variacoes": [
+      "buscar jogador no painel pelo email",
+      "como localizo usuario",
+      "procurar conta pelo whatsapp",
+      "onde pesquiso o tecnico pelo nome do clube",
+      "achar cadastro de alguem no admin"
+    ],
+    "resposta": "Na página **Usuários** (a página principal do suporte):\n\n- A **busca** (\"Nome, e-mail, clube, WhatsApp…\") procura por nome do técnico, e-mail, clube e WhatsApp. Para WhatsApp, bastam **3 ou mais dígitos**.\n- **Filtros:** Estado, Modo, Plano, Origem, Grupo, WhatsApp, e recorte por data de **cadastro** ou de **último acesso**.\n- Clicar no cabeçalho de uma coluna **ordena** a tabela.\n- Clicar na linha abre a **ficha** com a carreira completa.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "usuarios",
+      "busca"
+    ]
+  },
+  {
+    "id": "06-044",
+    "pergunta": "Como vejo o plano de um jogador no painel?",
+    "variacoes": [
+      "o cliente e pro ou gratuito?",
+      "conferir assinatura do jogador",
+      "validade do plano no admin",
+      "de onde veio o plano pro",
+      "ver mrr do usuario"
+    ],
+    "resposta": "Em **Usuários**: busque pelo e-mail ou nome e olhe a coluna **Plano** (**Peladeiro** ou **Pro**).\n\n- Passar o mouse mostra a **validade** (\"Válido até…\" ou \"Sem prazo\"), a **origem** do plano e o **MRR**.\n- A **ficha** (clique na linha) também mostra plano e validade.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "plano",
+      "usuarios"
+    ]
+  },
+  {
+    "id": "06-045",
+    "pergunta": "Posso mudar o plano de um jogador pelo painel?",
+    "variacoes": [
+      "dar pro manualmente pra alguem",
+      "liberar plano pro no admin",
+      "trocar peladeiro por pro",
+      "como ativo assinatura na mao",
+      "botao pra alterar plano"
+    ],
+    "resposta": "**Não.** O código da página Usuários **não tem botão para mudar o plano**. O painel só **exibe** o plano, que vem do banco e é gravado pelo pagamento no **Stripe**.\n\nMudança manual de plano é feita **fora do painel**, direto no banco, pelos responsáveis técnicos. Encaminhe o caso para eles.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "plano",
+      "stripe"
+    ]
+  },
+  {
+    "id": "06-046",
+    "pergunta": "Como vejo os saves e as salas de um jogador no painel?",
+    "variacoes": [
+      "em qual sala o jogador esta",
+      "ver o save do usuario",
+      "em que temporada ele esta",
+      "titulos do jogador no admin",
+      "ficha do jogador no painel"
+    ],
+    "resposta": "Em **Usuários**, clicando na linha da pessoa. A **ficha** mostra:\n\n- os fatos: plano e validade, WhatsApp, cadastro, origem, time do coração, grupo, último acesso, tempo de jogo e dias ativos;\n- tabela **Modo Solo**: uma linha por save (nome, clube, divisão e temporada atuais, rodada, quando foi gravado, partidas, pontos, V-E-D, temporadas, campanha);\n- tabela **Modo Resenha**: uma linha por sala (código, clube, fase, última presença);\n- a lista de **Títulos**.\n\nPara saber a sala de alguém, esse é o caminho mais fácil (não a página Resenhas & solo).",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "saves",
+      "salas"
+    ]
+  },
+  {
+    "id": "06-047",
+    "pergunta": "O jogador esqueceu a senha. O que faço pelo painel?",
+    "variacoes": [
+      "reenviar senha pelo admin",
+      "resetar senha de usuario",
+      "jogador nao consegue entrar",
+      "mandar link de nova senha",
+      "posso ver a senha do jogador?"
+    ],
+    "resposta": "Em **Usuários**, na linha dele, clique em **Reenviar** (coluna Senha). Abre a janela **Enviar link de nova senha**; clique em **Enviar e-mail**.\n\n- Vai para o e-mail da pessoa um **link de uso único** para definir uma senha nova no jogo.\n- **O painel nunca vê nem define a senha.**\n- A ação fica gravada no **Registro**.\n\nO jogador também pode usar **Esqueci minha senha** na tela Entrar do jogo.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "senha",
+      "suporte"
+    ]
+  },
+  {
+    "id": "06-048",
+    "pergunta": "O que significam as colunas Estado e Último acesso em Usuários?",
+    "variacoes": [
+      "jogador aparece como perdido",
+      "diferenca entre ativo parado e perdido",
+      "ultimo acesso nao atualizou",
+      "ele abriu o jogo e nao contou acesso",
+      "status do usuario no painel"
+    ],
+    "resposta": "- **Estado:** **Ativo** (até 2 dias), **Parado** (3 a 13 dias) ou **Perdido** (14 dias ou mais).\n- **Último acesso:** o mais recente entre **login**, **save do Solo** e **jogada**. Abrir o jogo já logado, **sem jogar, não conta**.\n- **Dias ativos:** dias com login ou jogada, nos últimos 7 e 30 dias.\n\nPor isso alguém que \"entrou ontem\" mas não jogou pode aparecer com acesso mais antigo.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "usuarios",
+      "estado"
+    ]
+  },
+  {
+    "id": "06-049",
+    "pergunta": "O que mostram as outras colunas da tabela Usuários?",
+    "variacoes": [
+      "coluna grupo o que e",
+      "coluna time vazia",
+      "o que e partidas parcial",
+      "coluna tempo mede o que",
+      "coluna origem do usuario"
+    ],
+    "resposta": "- **Técnico:** nome, clube do save mais recente e e-mail; contas de sócio têm etiqueta e ficam fora dos números do topo.\n- **WhatsApp:** clicar abre a conversa; contas antigas podem não ter.\n- **Grupo:** se clicou para entrar no grupo do WhatsApp, e por qual botão.\n- **Origem:** o canal que trouxe a pessoa.\n- **Time:** time do coração; contas anteriores a 27/09/2026 não têm.\n- **Carreiras / Temporadas / Partidas / Títulos:** Solo / Resenha. \"Parcial\" = o total real é maior.\n- **Campanha:** melhor divisão e posição.\n- **Tempo:** minutos com o jogo aberto e visível dentro de um save; embaixo, os últimos 7 dias.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "usuarios",
+      "colunas"
+    ]
+  },
+  {
+    "id": "06-050",
+    "pergunta": "Como apagar a conta de um jogador pelo painel?",
+    "variacoes": [
+      "excluir usuario no admin",
+      "jogador pediu pra apagar a conta",
+      "deletar conta de jogador",
+      "apagar contas que nunca jogaram",
+      "posso apagar conta de admin?"
+    ],
+    "resposta": "**Só o papel Sócio** pode. Em **Usuários**, há caixas de seleção e atalhos (visíveis, nunca jogaram, parados há X dias).\n\n- Antes de confirmar, o painel mostra quantos saves, assentos e salas vão junto.\n- Os saves da pessoa são apagados; os assentos dela em salas de outros **voltam para a CPU**; as salas que ela hospeda são apagadas.\n- Não dá para apagar a **própria conta** nem **contas de admin**.\n\nO próprio jogador também pode apagar pelo jogo em **Configurações > Conta > Apagar a conta**.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "apagar-conta",
+      "socio"
+    ]
+  },
+  {
+    "id": "06-051",
+    "pergunta": "Quem pode entrar no painel admin e como convidar alguém?",
+    "variacoes": [
+      "como dar acesso ao painel",
+      "painel nao abre com minha conta",
+      "convidar membro da equipe",
+      "equipe admin onde fica",
+      "o convite chega por email?"
+    ],
+    "resposta": "O painel é um site separado do jogo, com a **mesma base de contas**, mas só entra quem tem **convite ativo**:\n\n1. um sócio cria o convite em **Equipe admin**;\n2. a pessoa entra (ou cria conta) com **aquele e-mail**;\n3. o convite é reivindicado e a conta vira admin.\n\nSem convite, o painel não abre, mesmo com conta válida no jogo. O convite gera um **link que é copiado**; o painel **não manda e-mail** sozinho. Em **Equipe admin** (só sócio) também se muda o papel e se tira o acesso.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "acesso",
+      "equipe"
+    ]
+  },
+  {
+    "id": "06-052",
+    "pergunta": "Quais são os papéis de acesso do painel e o que cada um vê?",
+    "variacoes": [
+      "diferenca entre socio financeiro produto e leitura",
+      "papel leitura pode editar?",
+      "quem pode alterar dados no painel",
+      "o que o papel produto enxerga",
+      "permissoes do painel"
+    ],
+    "resposta": "Quatro papéis:\n\n- **Sócio:** vê e altera tudo; é o único com **Equipe admin**, **Registro** e ações destrutivas.\n- **Financeiro:** vê Visão geral, Sobre o jogo, Finanças, Publicidade e Parceiros; altera só Finanças e Publicidade.\n- **Produto:** vê tudo menos Finanças, Publicidade, Equipe admin e Registro; altera áreas de produto (Roadmap e afins) e de dados (Editor, Estúdio).\n- **Leitura:** vê tudo menos Equipe admin e Registro, mas **não altera nada**.\n\nO menu esconde o que o papel não vê e o banco recusa a escrita indevida. A documentação interna descreve o papel Produto com menos páginas; o que vale é o código.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "papeis",
+      "permissoes"
+    ]
+  },
+  {
+    "id": "06-053",
+    "pergunta": "Por que um membro da equipe não vê a página Usuários?",
+    "variacoes": [
+      "nao aparece usuarios no meu menu",
+      "sumiu a pagina de usuarios",
+      "colega do financeiro nao ve jogadores",
+      "como liberar pagina usuarios",
+      "menu do painel incompleto"
+    ],
+    "resposta": "Provavelmente o papel dele é **Financeiro**, que só vê **Visão geral**, **Sobre o jogo**, **Finanças**, **Publicidade** e **Parceiros**.\n\nUm **sócio** pode mudar o papel em **Equipe admin**. Os papéis Sócio, Produto e Leitura veem Usuários. Lembre que o menu esconde o que o papel não vê, e o banco recusa a escrita de quem não pode.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "papeis",
+      "usuarios"
+    ]
+  },
+  {
+    "id": "06-054",
+    "pergunta": "Quem da equipe pode apagar uma conta, uma sala ou um save?",
+    "variacoes": [
+      "quem pode deletar sala",
+      "nao vejo botao de apagar",
+      "produto pode apagar save?",
+      "acoes destrutivas no painel",
+      "quem move itens no roadmap publico"
+    ],
+    "resposta": "**Só quem tem papel de Sócio.** Ações destrutivas (apagar contas de jogador, salas e saves) são exclusivas do sócio; os outros papéis não veem os botões. No **Roadmap** público, também só o sócio move itens.\n\nAs ações ficam gravadas no **Registro**, e o painel não deixa apagar a própria conta nem contas de admin.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "socio",
+      "permissoes"
+    ]
+  },
+  {
+    "id": "06-055",
+    "pergunta": "O que é a página Resenhas & solo do painel?",
+    "variacoes": [
+      "ver salas abertas no admin",
+      "salas sem humano",
+      "saves parados por jogador",
+      "convites de sala pendentes",
+      "pedidos para entrar em sala"
+    ],
+    "resposta": "Mostra salas, saves e convites.\n\n- **Indicadores** (seguem o período): salas criadas, salas sem humano (hoje), jogaram no Solo, convites com % aceita.\n- **\"Modo Resenha — salas abertas\"** (estado de hoje): Sala, Anfitrião, Treinadores (humanos/lugares), Jornada, Aberta há, Ativa há (vermelho a partir de 14 dias).\n- **\"Modo Solo — saves por jogador\"**: Jogador, Conta, Saves, Parados, Divisões, Último salvamento.\n- **\"Convites de sala\"** (destino mascarado, estado aceito/pendente/expirado) e **Pedidos para entrar**.\n\nResponde \"quais salas existem\" e \"quem tem saves parados\". Para a sala de um jogador específico, use a ficha em **Usuários**.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "resenha",
+      "salas"
+    ]
+  },
+  {
+    "id": "06-056",
+    "pergunta": "Como fazer limpeza de salas, saves e convites no painel?",
+    "variacoes": [
+      "apagar sala da resenha",
+      "limpar saves antigos",
+      "excluir convites expirados",
+      "apagar uma sala so",
+      "apagar sala tem volta?"
+    ],
+    "resposta": "Em **Resenhas & solo**, **só o Sócio**:\n\n- Atalhos: salas **sem humano** ou **paradas 14d+**; saves **parados 14d+** ou **30d+**; convites **expirados** ou **já aceitos**.\n- Para confirmar, é preciso **digitar o número de itens**.\n- Para apagar uma única sala: clicar no **✕** e **digitar o código da sala**.\n- **Apagar sala não tem volta.** Quem estava jogando perde a temporada.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "limpeza",
+      "salas"
+    ]
+  },
+  {
+    "id": "06-057",
+    "pergunta": "O que é a página Sobre o jogo no painel?",
+    "variacoes": [
+      "assistente de ia do painel",
+      "como perguntar pra ia sobre o jogo",
+      "nova conversa some quando recarrego",
+      "uso no mes custo da ia",
+      "quem pode usar o sobre o jogo"
+    ],
+    "resposta": "É o assistente de IA que responde como o jogo funciona, usando esta base de conhecimento. Está no menu para **todos os papéis**.\n\n- **Conversa** à esquerda: escreva e aperte **Enter** (**Shift+Enter** quebra linha). Cada resposta tem **Copiar**, **👍** e **👎**.\n- **Nova conversa** limpa a tela. A conversa fica só na aba: recarregar começa do zero.\n- À direita: **Sugestões**, **Perguntas recentes da equipe** e **Uso no mês** (perguntas e custo em dólares).\n- A IA só responde com o que está na base; quando não cobre, ela diz.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "sobre-o-jogo",
+      "ia"
+    ]
+  },
+  {
+    "id": "06-058",
+    "pergunta": "A IA do Sobre o jogo errou ou não sabe responder. O que fazer?",
+    "variacoes": [
+      "ia respondeu errado",
+      "como ensinar coisa nova pra ia",
+      "para que serve o polegar pra baixo",
+      "ia disse que a base nao cobre",
+      "corrigir resposta do assistente"
+    ],
+    "resposta": "Marque a resposta com **👎** (errada ou incompleta). Toda pergunta fica registrada, e as marcadas com 👎 mostram o que falta acrescentar.\n\nA IA responde **só** com o que está na base. Para ensinar algo novo, **um dev atualiza os textos da base e publica de novo**; não há como ensinar pela própria conversa.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "ia",
+      "base-de-conhecimento"
+    ]
+  },
+  {
+    "id": "06-059",
+    "pergunta": "Para que servem a Visão geral e as outras páginas menos usadas do painel?",
+    "variacoes": [
+      "o que tem na visao geral",
+      "pagina parceiros serve pra que",
+      "publicidade no painel",
+      "pagina videos do admin",
+      "pagina conteudo e financas"
+    ],
+    "resposta": "- **Visão geral:** indicadores (Usuários no jogo, Ativos no período, Tempo médio por usuário, Lucro no período), Engajamento, Ranking de pontuação e Receita, despesa e lucro. É o quadro geral, **não** o lugar de atender um jogador.\n- **Finanças:** receita (lançada automaticamente pelo Stripe), despesas, gasto de IA, fechamento por mês ou ano.\n- **Publicidade:** espaços de anúncio e criativos, com impressões, cliques e CTR.\n- **Vídeos:** vídeos das celebrações (campeão, acesso, queda…), quando aparecem e se estão ligados.\n- **Parceiros:** influenciadores, link de indicação e o que cada um trouxe.\n- **Conteúdo:** calendário de conteúdo, da ideia ao agendado.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "paginas",
+      "visao-geral"
+    ]
+  },
+  {
+    "id": "06-060",
+    "pergunta": "O que mostra a página Analytics do painel?",
+    "variacoes": [
+      "funil de conversao no painel",
+      "churn do stripe",
+      "origem do trafego vazia",
+      "quantos assinantes temos",
+      "o que conta como ativo no analytics"
+    ],
+    "resposta": "- **Contas criadas no período**, **Ativos no período**, **Chegaram a jogar (total)**;\n- gráficos **Atividade e contas criadas** e **Funil de conversão**;\n- **Temporadas completas por pessoa** e **Dispositivo e retenção**;\n- bloco **Stripe · sem as contas dos sócios**: Assinantes (hoje), Churn, Saíram do Pro no período e Churn e reembolsos.\n\nOs blocos **Origem do tráfego**, **Páginas mais vistas** e **Dispositivo (GA4)** só aparecem com dados do Google Analytics gravados; **por enquanto podem estar vazios**. \"Ativo\" = login ou jogada no dia; jogo aberto não conta.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "analytics",
+      "metricas"
+    ]
+  },
+  {
+    "id": "06-061",
+    "pergunta": "Como conferir se alguém está na lista de espera?",
+    "variacoes": [
+      "jogador diz que se inscreveu",
+      "lista de espera do painel",
+      "procurar pessoa na lista de espera",
+      "quem deixou telefone",
+      "pagariam pelo jogo respostas"
+    ],
+    "resposta": "Na página **Lista de espera**, lista **Quem está na lista**, com a busca \"Procurar nome, e-mail, time, resposta…\". Colunas: Pessoa, Telefone, Time · origem, Entrou em, Respondeu e Indicou.\n\nA página também tem os indicadores **Na lista de espera**, **Deixaram telefone** e **Responderam a pergunta**, o gráfico **Como a lista cresceu** e blocos de origem, botão que abriu o formulário e perguntas de preço.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "lista-de-espera",
+      "busca"
+    ]
+  },
+  {
+    "id": "06-062",
+    "pergunta": "Onde registrar uma sugestão ou um bug relatado por um jogador?",
+    "variacoes": [
+      "jogador sugeriu uma melhoria",
+      "reportar bug no painel",
+      "onde anoto ideia de jogador",
+      "bug vai pro roadmap?",
+      "jogador quer acompanhar a sugestao"
+    ],
+    "resposta": "Na página **Roadmap**:\n\n- **Sugestão** → aba **Banco de ideias**.\n- **Bug** → aba **Bugs** (bugs **nunca** vão para o roadmap público).\n\nO jogador pode acompanhar pelo **roadmap público** do site (link **Ver página pública ↗** na aba Roadmap). Depoimentos que chegam pelo aviso de fim de temporada ficam na aba **Depoimentos** e também podem virar ideia ou bug.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "roadmap",
+      "bugs"
+    ]
+  },
+  {
+    "id": "06-063",
+    "pergunta": "Como funciona a aprovação de ideias e o kanban no Roadmap?",
+    "variacoes": [
+      "como ideia vira item do roadmap",
+      "votar aprovar ou recusar ideia",
+      "colunas do roadmap publico",
+      "quem mexe no kanban",
+      "abas do roadmap no painel"
+    ],
+    "resposta": "A página **Roadmap** tem cinco abas:\n\n- **Banco de ideias:** cada sócio vota **aprovar** ou **recusar**. Com **todos os sócios ativos aprovando**, vira item do roadmap público; com a **maioria recusando**, fica recusada. Filtros: Aguardando aprovação, Aprovadas, Recusadas, Arquivadas, Todas.\n- **Roadmap (kanban):** colunas **Em análise**, **Planejado**, **Em desenvolvimento** e **Lançado**, com os votos dos jogadores. **Só o sócio mexe.**\n- **Bugs**, **Marketing e operação** e **Depoimentos**.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "roadmap",
+      "ideias"
+    ]
+  },
+  {
+    "id": "06-064",
+    "pergunta": "Onde ficam os depoimentos que os jogadores escrevem no fim de temporada?",
+    "variacoes": [
+      "ver depoimento do jogador",
+      "onde leio o que o jogador escreveu no paywall",
+      "posts da segunda saida gratis",
+      "transformar depoimento em bug",
+      "recados dos jogadores"
+    ],
+    "resposta": "Em **Roadmap > Depoimentos**: o que os jogadores escreveram na **1ª saída grátis** do aviso de fim de temporada e os **posts** da 2ª saída. Cada depoimento pode **virar ideia ou bug**.\n\nDesde que a aba de Opinião do jogo foi removida (23/09), é por aqui que chegam os recados de jogadores.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "depoimentos",
+      "roadmap"
+    ]
+  },
+  {
+    "id": "06-065",
+    "pergunta": "Como moderar o nome e a foto que um jogador pôs no seu atleta (página Jogadores)?",
+    "variacoes": [
+      "aprovar jogador do assinante",
+      "recusar foto de jogador",
+      "fila de moderacao",
+      "motivo da recusa",
+      "jogadores ja no ar"
+    ],
+    "resposta": "Na página **Jogadores** (moderação):\n\n- **Na fila:** foto, nome novo (\"entra no lugar de …\"), clube, série, posição, força e universo. Botões:\n  - **Ver foto**;\n  - **Recusar**, que **exige um motivo** (o jogador lê esse texto; a vaga volta a ficar livre);\n  - **Aprovar**, com a confirmação \"Aprovado — já entra nos saves novos\".\n- **Já no ar:** os aprovados.\n\nAprovar e recusar ficam gravados no **Registro**.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "moderacao",
+      "meu-jogador"
+    ]
+  },
+  {
+    "id": "06-066",
+    "pergunta": "O jogador diz que o nome ou a foto que ele mandou não aparece. O que verificar?",
+    "variacoes": [
+      "meu jogador nao apareceu no jogo",
+      "foto do jogador nao entrou",
+      "mandei meu nome e nao ta no time",
+      "jogador personalizado sumiu",
+      "aprovado mas nao aparece"
+    ],
+    "resposta": "Veja a página **Jogadores**. Três respostas possíveis:\n\n1. o pedido **ainda está na fila**;\n2. foi **recusado**, e o motivo está gravado para ele;\n3. foi **aprovado**, mas o save dele é **anterior à aprovação**: o jogador aprovado só aparece em **saves novos**.\n\nNo jogo, a vaga fica em **Treinador > Meu jogador**.",
+    "resposta_jogador": "Seu jogador passa por uma aprovação da equipe antes de entrar no jogo. Depois de aprovado, ele aparece apenas em saves novos, criados depois da aprovação. Se tiver sido recusado, o motivo fica registrado para você.",
+    "tags": [
+      "meu-jogador",
+      "moderacao",
+      "suporte"
+    ]
+  },
+  {
+    "id": "06-067",
+    "pergunta": "Um jogador reportou nome, força ou escudo errado. Dá para corrigir pelo painel?",
+    "variacoes": [
+      "dado errado de clube",
+      "escudo errado no jogo",
+      "nome de jogador errado",
+      "editor de dados serve pra que",
+      "corrigi mas o save do jogador nao mudou"
+    ],
+    "resposta": "O **Editor de dados** edita o catálogo (clubes, elencos, escudos, força) em **pacotes**. Abas: **Clubes**, **Jogadores**, **Competições**, **Troféus & nomes** e **Economia**; há importar arquivo e exportar CSV.\n\n- O **pacote oficial** entra sozinho em todo jogo novo; é onde se corrige um dado errado. Outros pacotes têm dono e só valem para quem os escolhe.\n- A correção vale para **jogos novos**. Um save em andamento guarda o elenco dentro dele e **não muda**.\n\nPara o suporte: registre o caso para quem cuida dos dados.",
+    "resposta_jogador": "Obrigado pelo aviso! Vamos repassar para a equipe que cuida dos dados. A correção vale para jogos novos; um save que já está em andamento mantém os dados de quando foi criado.",
+    "tags": [
+      "painel",
+      "editor-de-dados",
+      "catalogo"
+    ]
+  },
+  {
+    "id": "06-068",
+    "pergunta": "Por que um jogador ou clube não tem foto? O que é o Estúdio IA?",
+    "variacoes": [
+      "jogador sem foto",
+      "clube sem escudo bonito",
+      "estudio ia serve pra que",
+      "faces dos treinadores",
+      "gerar foto de jogador"
+    ],
+    "resposta": "O **Estúdio IA** é a oficina de imagens geradas por IA. Abas: **Escudos**, **Uniformes**, **Fotos de jogadores**, **Treinadores** (10 faces padrão, mais número e custo dos avatares de assinantes), **Jornalistas** e **Contadores**. Tem busca por clube e filtro por país.\n\n**Não é ferramenta de atendimento.** Só interessa ao suporte para explicar que **nem todos os jogadores e clubes têm imagem gerada**.",
+    "resposta_jogador": "Nem todos os jogadores e clubes têm imagem própria ainda; as imagens vão sendo geradas aos poucos.",
+    "tags": [
+      "painel",
+      "estudio-ia",
+      "fotos"
+    ]
+  },
+  {
+    "id": "06-069",
+    "pergunta": "Como conferir no painel quem fez o quê (Registro)?",
+    "variacoes": [
+      "ver se a senha ja foi reenviada",
+      "log de acoes do painel",
+      "quem apagou a sala",
+      "historico de alteracoes do admin",
+      "exportar registro em csv"
+    ],
+    "resposta": "A página **Registro** é **só do Sócio**. Toda escrita do painel deixa uma linha (reenviar senha, apagar sala, aprovar jogador, editar clube…).\n\n- Indicadores: ações no período, pessoas que mexeram, área mais movimentada, última ação.\n- **\"Quem fez o quê\"**: resumo por pessoa.\n- Lista filtrável por pessoa, área e busca livre (que procura também no detalhe); exporta em **CSV**.\n- Ninguém edita nem apaga o próprio rastro; quem saiu do painel aparece marcado em âmbar.\n\nÚtil para ver se e quando o link de senha já foi reenviado.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "registro",
+      "auditoria"
+    ]
+  },
+  {
+    "id": "06-070",
+    "pergunta": "Como funciona o seletor de período no topo do painel?",
+    "variacoes": [
+      "filtrar por data no painel",
+      "escolher datas de ate",
+      "periodo 7 dias 30 dias",
+      "seletor de periodo sumiu",
+      "por que o periodo nao muda os numeros"
+    ],
+    "resposta": "No topo: **7 dias · 30 dias · Ano · Escolher datas (De/Até)**. Só aparece nas páginas que o respeitam: **Visão geral**, **Resenhas & solo**, **Analytics**, **Lista de espera**, **Publicidade** e **Registro**.\n\nEm Resenhas & solo, a tabela de **salas abertas** mostra o estado de hoje e não segue o período. Passar o mouse sobre cabeçalhos e células mostra **dicas** que explicam cada número. O menu lateral fica à esquerda (no celular, abre pelo botão de menu) e **Sair** encerra a sessão.",
+    "resposta_jogador": null,
+    "tags": [
+      "painel",
+      "periodo",
+      "navegacao"
+    ]
+  }
+]

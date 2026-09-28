@@ -820,3 +820,14 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
   .sj-msgs{padding:14px 12px}
   .sj-in{padding:12px}
 }
+/* respostas prontas (sem IA) */
+.sj-base{border-color:var(--verde-bd)}
+.sj-selo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sj-tit{font-size:12px;color:var(--dim);font-weight:600}
+.sj-jog{background:var(--card);border:1px dashed var(--bd2);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--fg2)}
+.sj-jog .st{margin:0 0 4px}
+.sj-acoes{flex-wrap:wrap}
+.sj-a-dir{margin-left:auto}
+.sj-par{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sj-chip-p{padding:5px 10px;font-size:12px}
+.sj-vivo{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 16px 0;border-top:1px solid var(--bd)}

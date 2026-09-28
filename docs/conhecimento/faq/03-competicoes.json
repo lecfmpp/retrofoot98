@@ -1,0 +1,1270 @@
+[
+  {
+    "id": "03-001",
+    "pergunta": "Quais nomes do jogo correspondem às competições reais (Série A, Libertadores, Copa do Brasil)?",
+    "variacoes": [
+      "liga soberana é a serie a?",
+      "como chama a libertadores no jogo",
+      "nao acho o brasileirao, qual o nome dele no retrofoot",
+      "Copa da Federação é a Copa do Brasil?",
+      "q copa é a sulamericana no jogo",
+      "nomes das competições estão diferentes, por quê?"
+    ],
+    "resposta": "O jogo não usa os nomes reais: um \"pacote oficial\" troca os nomes na tela. Responda com o nome do jogo, mas o jogador pode escrever o real.\n\n| No jogo | Real |\n|---|---|\n| Liga Soberana (\"Série A\") | Série A / Brasileirão |\n| Liga Acesso (\"Série B\") | Série B |\n| Liga Impulso (\"Série C\") | Série C |\n| Liga Raiz (\"Série D\") | Série D |\n| Copa da Federação | Copa do Brasil |\n| Liberta Cup | Libertadores |\n| Copa de Clubes da América | Sul-Americana |\n| Copa dos Campeões | Champions League |\n| Copa Continental | Europa League |\n\nOs nomes vêm do painel de administração e podem mudar sem atualizar o jogo.",
+    "resposta_jogador": "No RetroFoot98 as competições têm nomes próprios: a Liga Soberana é a Série A, a Copa da Federação é a Copa do Brasil, a Liberta Cup é a Libertadores e a Copa de Clubes da América é a Sul-Americana.",
+    "tags": [
+      "nomes",
+      "competicoes",
+      "pacote oficial"
+    ]
+  },
+  {
+    "id": "03-002",
+    "pergunta": "Como se chamam as ligas estrangeiras no jogo?",
+    "variacoes": [
+      "qual o nome da premier league no jogo",
+      "la liga ta com outro nome?",
+      "nome do campeonato italiano no retrofoot",
+      "bundesliga aparece como?",
+      "liga argentina nome no jogo"
+    ],
+    "resposta": "As ligas estrangeiras também foram renomeadas pelo pacote oficial. Exemplos:\n\n- **Inglaterra:** Crown League (1ª) e Vanguard League (2ª)\n- **Espanha:** Liga Hispânica e Liga Segunda\n- **Itália:** Lega Suprema e Lega Ascesa\n- **Alemanha:** Meisterliga e Zweite Liga\n- **Portugal:** Liga Lusitana e Liga Navegação\n- **América do Sul:** Liga Albiceleste (Argentina), Liga Charrúa (Uruguai), Liga Cafetera (Colômbia), Liga Andina (Chile), Liga Inca (Peru), Liga Equinocial (Equador), Liga Guaraní (Paraguai), Liga Llanera (Venezuela), Liga Altiplano (Bolívia).\n\nOs nomes vêm do painel de administração e podem mudar.",
+    "resposta_jogador": "As ligas de fora têm nomes próprios no jogo: por exemplo, a inglesa é a Crown League, a espanhola é a Liga Hispânica, a italiana é a Lega Suprema e a argentina é a Liga Albiceleste.",
+    "tags": [
+      "nomes",
+      "ligas estrangeiras",
+      "pacote oficial"
+    ]
+  },
+  {
+    "id": "03-003",
+    "pergunta": "Quantos países existem no jogo?",
+    "variacoes": [
+      "quais paises tem no retrofoot",
+      "tem liga da europa?",
+      "quantos universos o jogo tem",
+      "tem campeonato argentino?",
+      "lista de paises do jogo"
+    ],
+    "resposta": "O motor tem **15 países** (\"universos\"), cada um com pirâmide, clubes e elencos:\n\n- **Brasil:** 4 divisões (A, B, C, D).\n- **Europa** (2 divisões cada): Inglaterra, Espanha, Itália, Alemanha, Portugal.\n- **América do Sul** (1 divisão, sem acesso/rebaixamento): Argentina, Uruguai, Colômbia, Chile, Peru, Equador, Paraguai, Venezuela, Bolívia.\n\n**Na versão pública atual só o Brasil é jogável.** Os outros 14 rodam \"de fundo\": têm tabela e campeão, alimentam o mercado e as copas continentais.",
+    "resposta_jogador": "O jogo tem 15 países (Brasil, 5 da Europa e 9 da América do Sul), mas por enquanto só dá para treinar clubes brasileiros. Os outros países rodam em segundo plano e fazem parte do mercado de jogadores.",
+    "tags": [
+      "paises",
+      "universos",
+      "ligas estrangeiras"
+    ]
+  },
+  {
+    "id": "03-004",
+    "pergunta": "Posso treinar um clube de outro país ou ir para a Europa?",
+    "variacoes": [
+      "da pra jogar com time europeu?",
+      "quero treinar o barcelona",
+      "nao recebo proposta de time de fora",
+      "como vou treinar na inglaterra",
+      "so tem time brasileiro pra escolher?",
+      "treinador pode sair do brasil"
+    ],
+    "resposta": "Não, na versão atual. Há três travas:\n\n1. **Só o Brasil se joga:** só dá para escolher clube brasileiro.\n2. **Mercado é mundial:** dá para comprar e vender jogadores de qualquer país com elenco, desde a 1ª temporada.\n3. **Treinador não sai do país:** não chegam convites de clubes estrangeiros; a carreira fica nas quatro divisões brasileiras.\n\nOs outros países continuam existindo e rodando de fundo.",
+    "resposta_jogador": "Por enquanto só dá para treinar clubes brasileiros, e o treinador não recebe convites de fora do país. Os outros países existem e você pode negociar jogadores com eles.",
+    "tags": [
+      "paises",
+      "carreira",
+      "treinador",
+      "travas"
+    ]
+  },
+  {
+    "id": "03-005",
+    "pergunta": "Posso contratar jogadores de clubes estrangeiros?",
+    "variacoes": [
+      "da pra comprar jogador gringo?",
+      "mercado tem jogador de fora",
+      "posso vender pra time da europa",
+      "clube estrangeiro fez proposta pelo meu jogador, normal?",
+      "contratar argentino no jogo"
+    ],
+    "resposta": "Sim. **O mercado é o mundo todo** desde a 1ª temporada: dá para comprar jogadores de qualquer país que tenha elenco no jogo e vender para eles. Os clubes das ligas de fundo aparecem no mercado e também podem fazer propostas pelos jogadores do usuário.\n\nO que não pode é o **treinador** trabalhar fora do Brasil.",
+    "resposta_jogador": "Pode sim! O mercado é mundial: você compra e vende jogadores de qualquer país do jogo, e clubes de fora também podem fazer propostas pelos seus jogadores.",
+    "tags": [
+      "mercado",
+      "transferencias",
+      "paises"
+    ]
+  },
+  {
+    "id": "03-006",
+    "pergunta": "Por que os jogadores estrangeiros têm nomes diferentes dos reais?",
+    "variacoes": [
+      "jogador gringo com nome estranho",
+      "nome dos estrangeiros ta errado",
+      "pq o messi ta com outro nome",
+      "nomes ficticios nos times de fora",
+      "elenco estrangeiro nao bate com o real"
+    ],
+    "resposta": "É proposital. Os jogadores estrangeiros aparecem com **nomes fictícios gerados pelo jogo**, não com os nomes reais. Isso vale também para os adversários estrangeiros das copas continentais: quando o clube real existe no banco de elencos, ele entra com esse elenco, mas com os nomes fictícios; quando não existe, o jogo gera um elenco.",
+    "resposta_jogador": "Os nomes dos jogadores estrangeiros são fictícios de propósito. Não é erro: o jogo usa nomes próprios em vez dos reais.",
+    "tags": [
+      "nomes",
+      "estrangeiros",
+      "elencos"
+    ]
+  },
+  {
+    "id": "03-007",
+    "pergunta": "O jogo tem futebol feminino?",
+    "variacoes": [
+      "tem modo feminino?",
+      "da pra jogar com time de mulheres",
+      "futebol feminino no retrofoot como funciona",
+      "onde escolhe feminino",
+      "o feminino tem as mesmas divisoes?"
+    ],
+    "resposta": "Sim, está ligado. **Ao criar o save** o jogador escolhe a modalidade. O Brasil feminino é um \"gêmeo\" do masculino:\n\n- mesma pirâmide (Séries A–D, 20 clubes cada);\n- mesmo acesso e rebaixamento e mesmo calendário;\n- mesmos clubes (nome, escudo, cores, estádio).\n\nO que muda são as **jogadoras**, com nomes femininos próprios. Os adversários estrangeiros das continentais também jogam com elencos femininos.",
+    "resposta_jogador": "Tem sim! Na criação do save você escolhe a modalidade. O feminino tem as mesmas divisões, clubes e calendário do masculino, com jogadoras próprias.",
+    "tags": [
+      "feminino",
+      "modalidade",
+      "criacao de save"
+    ]
+  },
+  {
+    "id": "03-008",
+    "pergunta": "O save feminino tem Copa de Clubes da América (Sul-Americana)?",
+    "variacoes": [
+      "feminino tem sulamericana?",
+      "no feminino quais copas tem",
+      "copa de clubes da america aparece no save feminino?",
+      "tela de criação feminino so fala de 2 copas",
+      "feminino tem libertadores"
+    ],
+    "resposta": "**Incerto.** No código, o mundo feminino tem as mesmas três copas do masculino (Copa da Federação, Liberta Cup e Copa de Clubes da América). Mas o texto da tela de criação cita só a Copa da Federação e a Liberta Cup, e **não foi confirmado** se a Copa de Clubes da América aparece de fato num save feminino.\n\nSe o jogador relatar ausência ou presença dela, **escale para um dev** com o nome do save.",
+    "resposta_jogador": null,
+    "tags": [
+      "feminino",
+      "copas",
+      "incerto"
+    ]
+  },
+  {
+    "id": "03-009",
+    "pergunta": "Quantas divisões e quantos clubes tem o Brasil no jogo?",
+    "variacoes": [
+      "quantos times tem na serie a",
+      "quantas series tem",
+      "tem serie d?",
+      "quantos clubes no total no brasil",
+      "quantas rodadas tem o brasileirao no jogo"
+    ],
+    "resposta": "São **4 divisões com 20 clubes cada = 80 clubes**:\n\n| Divisão | Clubes | Rodadas |\n|---|---|---|\n| Série A (Liga Soberana) | 20 | 38 |\n| Série B (Liga Acesso) | 20 | 38 |\n| Série C (Liga Impulso) | 20 | 38 |\n| Série D (Liga Raiz) | 20 | 38 |\n\nTodas em pontos corridos, turno e returno: cada clube enfrenta os outros duas vezes (casa e fora). Vitória vale 3 pontos, empate 1.",
+    "resposta_jogador": "O Brasil tem 4 divisões (Séries A, B, C e D), com 20 clubes cada. São 38 rodadas em pontos corridos, turno e returno.",
+    "tags": [
+      "divisoes",
+      "clubes",
+      "pontos corridos"
+    ]
+  },
+  {
+    "id": "03-010",
+    "pergunta": "Quantos times sobem e descem em cada divisão?",
+    "variacoes": [
+      "quantos caem na serie a",
+      "quantos sobem da b",
+      "z4 existe?",
+      "quantos rebaixados por divisão",
+      "g4 sobe?",
+      "quem sobe da serie d"
+    ],
+    "resposta": "**4 sobem e 4 descem**, só pela posição final:\n\n| Divisão | Sobem | Descem |\n|---|---|---|\n| Série A | — | 17º ao 20º |\n| Série B | 1º ao 4º | 17º ao 20º |\n| Série C | 1º ao 4º | 17º ao 20º |\n| Série D | 1º ao 4º | ninguém |\n\nNão há playoff. Acesso e rebaixamento acontecem nas quatro divisões ao mesmo tempo, no fim do ano.",
+    "resposta_jogador": "Em cada divisão sobem os 4 primeiros e caem os 4 últimos (17º ao 20º). Na Série A ninguém sobe, claro, e na Série D ninguém cai.",
+    "tags": [
+      "divisoes",
+      "acesso",
+      "rebaixamento"
+    ]
+  },
+  {
+    "id": "03-011",
+    "pergunta": "Existe playoff de acesso?",
+    "variacoes": [
+      "fiquei em 5º e nao subi",
+      "cade o mata mata do acesso",
+      "tinha playoff pra subir?",
+      "quinto colocado sobe?",
+      "a tela falava em playoff do acesso"
+    ],
+    "resposta": "**Não.** Não existe playoff de acesso: sobem só os 4 primeiros de cada divisão (B, C e D).\n\nA tela chegou a anunciar um \"playoff do acesso\", mas isso foi **removido** porque o jogo nunca o disputava. Se o jogador viu esse texto, era a versão antiga.",
+    "resposta_jogador": "Não tem playoff de acesso no jogo: sobem direto os 4 primeiros. Quem fica em 5º permanece na divisão.",
+    "tags": [
+      "acesso",
+      "playoff",
+      "divisoes"
+    ]
+  },
+  {
+    "id": "03-012",
+    "pergunta": "A tela disse \"Rebaixado\" mas estou na Série D. Vou cair?",
+    "variacoes": [
+      "rebaixado na serie d??",
+      "caí da serie d pra onde",
+      "serie d tem rebaixamento?",
+      "apareceu rebaixado mas continuo na D",
+      "terminei em 18 na serie d e deu rebaixado"
+    ],
+    "resposta": "**Não cai.** Não existe divisão abaixo da Série D (Liga Raiz), então ninguém é rebaixado dela.\n\nNa tela de Fim de Temporada, quem termina no **terço de baixo da Série D (15º ao 20º)** recebe o desfecho \"Rebaixado\" como **sinal de temporada ruim**, mas o clube **continua na Série D**.",
+    "resposta_jogador": "Pode ficar tranquilo: na Série D ninguém cai, porque não existe divisão abaixo. O \"Rebaixado\" na tela só indica que a temporada foi ruim; seu clube continua na Série D.",
+    "tags": [
+      "serie d",
+      "rebaixamento",
+      "fim de temporada"
+    ]
+  },
+  {
+    "id": "03-013",
+    "pergunta": "Por que meu time caiu mesmo com muitos pontos?",
+    "variacoes": [
+      "cai com 45 pontos, bug?",
+      "rebaixado com pontuação alta",
+      "fiz muitos pontos e desci",
+      "quantos pontos precisa pra nao cair",
+      "por que caí com X pontos"
+    ],
+    "resposta": "A queda é **só pela posição**, não pela pontuação: caem os 4 últimos (17º ao 20º) das Séries A, B e C, com quantos pontos tiverem. Não existe uma pontuação mínima para se salvar.\n\nEm empate de pontos, desempatam **saldo de gols** e depois **gols marcados**. Confronto direto e número de vitórias **não contam**. Na Série D ninguém cai.",
+    "resposta_jogador": "O rebaixamento é pela posição: caem sempre os 4 últimos, independente dos pontos. Se houver empate em pontos, vale o saldo de gols e depois os gols marcados.",
+    "tags": [
+      "rebaixamento",
+      "pontos",
+      "desempate"
+    ]
+  },
+  {
+    "id": "03-014",
+    "pergunta": "Quais são os critérios de desempate na tabela?",
+    "variacoes": [
+      "empatou em pontos quem fica na frente",
+      "confronto direto conta?",
+      "numero de vitorias desempata?",
+      "criterio de desempate do retrofoot",
+      "saldo ou vitorias primeiro",
+      "mesmo ponto mesmo saldo e ai"
+    ],
+    "resposta": "Ordem da classificação:\n\n1. **Pontos**\n2. **Saldo de gols**\n3. **Gols marcados**\n4. Persistindo, um critério técnico interno (código do clube): na prática **arbitrário**, não é confronto direto nem sorteio.\n\n**Não entram:** número de vitórias, confronto direto, cartões, gols fora de casa. Vale igual para os grupos das continentais e para as ligas de fundo.",
+    "resposta_jogador": "O desempate é por pontos, depois saldo de gols e depois gols marcados. Número de vitórias e confronto direto não contam no jogo.",
+    "tags": [
+      "desempate",
+      "classificacao",
+      "tabela"
+    ]
+  },
+  {
+    "id": "03-015",
+    "pergunta": "As outras divisões também têm acesso e rebaixamento de verdade?",
+    "variacoes": [
+      "as outras series tambem andam?",
+      "serie c roda mesmo se eu to na a",
+      "os times da b sobem mesmo sem eu jogar la",
+      "divisões simultaneas",
+      "quem sobe da d se eu nao to la"
+    ],
+    "resposta": "Sim. **As quatro divisões correm de verdade ao mesmo tempo**, e a promoção e o rebaixamento acontecem em todas elas no fim do ano, não só na divisão do jogador. Se o clube do usuário muda de divisão, ele passa a enfrentar os novos adversários, e o treinador continua no mesmo clube (o clube sobe ou desce com ele).",
+    "resposta_jogador": "Sim, as quatro divisões são disputadas ao mesmo tempo, e no fim do ano todas têm acesso e rebaixamento, mesmo as que você não está jogando.",
+    "tags": [
+      "divisoes",
+      "acesso",
+      "rebaixamento"
+    ]
+  },
+  {
+    "id": "03-016",
+    "pergunta": "Como funcionam as divisões e o acesso nas ligas estrangeiras?",
+    "variacoes": [
+      "premier league tem rebaixamento no jogo?",
+      "quantos caem na inglaterra",
+      "liga argentina tem rebaixamento",
+      "segunda divisao espanhola quantos times",
+      "ligas de fora sobem e descem?"
+    ],
+    "resposta": "Europa: 2 divisões, **3 sobem e 3 descem**. América do Sul: divisão única, **sem acesso nem rebaixamento**.\n\n| País | Divisões (clubes) |\n|---|---|\n| Inglaterra | 20 · 24 |\n| Espanha / Itália | 20 · 18 |\n| Alemanha / Portugal | 18 · 18 |\n| Argentina | 30 |\n| Colômbia | 20 |\n| Peru | 18 |\n| Uruguai, Chile, Equador, Bolívia | 16 |\n| Venezuela | 14 |\n| Paraguai | 12 |\n\nA Inglaterra tem calendário próprio de 50 semanas (2ª divisão com 46 rodadas).",
+    "resposta_jogador": null,
+    "tags": [
+      "ligas estrangeiras",
+      "divisoes",
+      "acesso"
+    ]
+  },
+  {
+    "id": "03-017",
+    "pergunta": "O que são as ligas de fundo e onde vejo as ligas estrangeiras?",
+    "variacoes": [
+      "onde vejo a tabela da premier",
+      "ligas internacionais nao aparece",
+      "como os campeonatos de fora sao simulados",
+      "aba ligas internacionais",
+      "quem foi campeao na argentina"
+    ],
+    "resposta": "Todo país que não é o do jogador roda como **liga de fundo**: a cada rodada o jogo simula os resultados de forma leve, pela força (overall) dos clubes e com vantagem para o mandante. Isso gera tabela, campeão, artilharia (ligas de topo) e histórico.\n\nNo fim da temporada cada liga registra campeão e artilheiro, aplica acesso/rebaixamento (se tiver mais de uma divisão) e zera a tabela.\n\n**Onde ver:** Campeonatos → **Ligas internacionais** (líder e vice; a aba só aparece se houver liga de fundo carregada) e Campeonatos → **Classificação**, pelo filtro de país.",
+    "resposta_jogador": "As ligas de fora são simuladas em segundo plano. Você vê líder e vice em Campeonatos → Ligas internacionais, e a tabela completa em Campeonatos → Classificação, escolhendo o país no filtro.",
+    "tags": [
+      "ligas de fundo",
+      "ligas estrangeiras",
+      "campeonatos"
+    ]
+  },
+  {
+    "id": "03-018",
+    "pergunta": "Quem disputa a Copa da Federação (Copa do Brasil)?",
+    "variacoes": [
+      "quem joga a copa do brasil",
+      "serie d joga copa da federação?",
+      "meu time da C entra na copa?",
+      "quantos times na copa da federação",
+      "precisa se classificar pra copa do brasil"
+    ],
+    "resposta": "**Os 80 clubes** das quatro divisões (A, B, C e D) disputam a Copa da Federação **todos os anos**, qualquer que seja a divisão do usuário. Não há classificação prévia: todos entram.\n\nComo são 80 clubes, 48 ficam isentos da 1ª fase (os 24 mais fortes sempre, mais 24 sorteados) e estreiam na 2ª fase. É mata-mata em jogo único do começo ao fim, em 7 fases.",
+    "resposta_jogador": "Todos os 80 clubes das Séries A, B, C e D jogam a Copa da Federação todo ano. Não precisa se classificar.",
+    "tags": [
+      "copa da federacao",
+      "copa do brasil",
+      "participantes"
+    ]
+  },
+  {
+    "id": "03-019",
+    "pergunta": "Como é o formato da Copa da Federação? Tem ida e volta?",
+    "variacoes": [
+      "copa do brasil tem jogo de volta?",
+      "gol fora vale na copa da federação",
+      "empatou vai pra penalti direto?",
+      "tem prorrogacao na copa",
+      "formato copa federação"
+    ],
+    "resposta": "Mata-mata do começo ao fim, **sem fase de grupos**:\n\n- **Jogo único**, sem ida e volta. O primeiro clube do confronto é o mandante e fica com a bilheteria.\n- **Não há regra do gol fora.**\n- Empate no tempo normal → **prorrogação** → **pênaltis** (5 cobranças cada; persistindo, alternadas em morte súbita). Não há cara ou coroa.",
+    "resposta_jogador": "Na Copa da Federação é tudo jogo único, sem ida e volta. Se empatar, tem prorrogação e depois pênaltis. Não existe gol fora.",
+    "tags": [
+      "copa da federacao",
+      "formato",
+      "penaltis"
+    ]
+  },
+  {
+    "id": "03-020",
+    "pergunta": "Quantas fases tem a Copa da Federação e como é montada a chave?",
+    "variacoes": [
+      "quantas fases a copa do brasil tem",
+      "chave da copa mudou",
+      "como funciona o sorteio da copa da federação",
+      "chaveamento com 80 times",
+      "por que a chave nao aparece inteira"
+    ],
+    "resposta": "**7 fases** com 80 clubes:\n\n| Fase | Clubes |\n|---|---|\n| 1ª fase | 32 (16 jogos); 48 isentos |\n| 2ª fase | 16 vencedores + 48 isentos = 64 |\n| 16 avos | 32 |\n| Oitavas | 16 |\n| Quartas | 8 |\n| Semifinal | 4 |\n| Final | 2 |\n\nNão há chave fixa desde o início: **a cada fase** os classificados são ordenados por força e pareados em sequência. Por isso a chave na tela é reconstruída fase a fase.",
+    "resposta_jogador": "A Copa da Federação tem 7 fases, da 1ª fase até a final. Os confrontos de cada fase são definidos depois que a anterior termina, por isso a chave vai sendo montada aos poucos.",
+    "tags": [
+      "copa da federacao",
+      "chaveamento",
+      "fases"
+    ]
+  },
+  {
+    "id": "03-021",
+    "pergunta": "Por que meu time não jogou a 1ª fase da Copa da Federação?",
+    "variacoes": [
+      "meu time nao estreou na copa",
+      "pulei a primeira fase da copa do brasil",
+      "isento da primeira fase",
+      "por que so estreio na segunda fase",
+      "ano passado joguei a 1a fase e esse ano nao"
+    ],
+    "resposta": "Dos 80 clubes, **48 ficam isentos da 1ª fase**:\n\n- os **24 mais fortes** (por overall) passam direto sempre;\n- outros **24 são sorteados** entre os clubes seguintes na lista de força.\n\nPor isso os grandes quase nunca jogam a 1ª fase, e clubes no limite do corte às vezes jogam, às vezes não, conforme o ano. O clube isento **continua na copa e estreia na 2ª fase**. Ele não recebe a cota da 1ª fase, porque não a disputou.",
+    "resposta_jogador": "Seu time foi isento da 1ª fase: 48 dos 80 clubes pulam essa etapa (os mais fortes e mais alguns sorteados). Você continua na copa e estreia na 2ª fase.",
+    "tags": [
+      "copa da federacao",
+      "isencao",
+      "primeira fase"
+    ]
+  },
+  {
+    "id": "03-022",
+    "pergunta": "O campeão da Copa da Federação vai para a Liberta Cup?",
+    "variacoes": [
+      "campeao da copa do brasil vai pra libertadores?",
+      "ganhei a copa da federação e to na serie c, jogo a liberta?",
+      "vice da copa ganha vaga?",
+      "vaga na libertadores pela copa",
+      "copa federação classifica pra onde"
+    ],
+    "resposta": "Sim. O **campeão** da Copa da Federação ganha vaga na **Liberta Cup do ano seguinte**, mesmo sendo da Série B, C ou D. Ele \"fura a fila\" das 6 vagas do Brasil. O **vice não ganha vaga**.\n\nA vaga vale mesmo que o clube não tenha disputado a Série A, e é por esse caminho que um clube recém-promovido pode estrear na A já jogando a Liberta Cup.",
+    "resposta_jogador": "Sim! Quem ganha a Copa da Federação vai para a Liberta Cup no ano seguinte, mesmo sendo de divisão inferior. O vice não ganha vaga.",
+    "tags": [
+      "copa da federacao",
+      "liberta cup",
+      "vaga"
+    ]
+  },
+  {
+    "id": "03-023",
+    "pergunta": "Como é o formato da Liberta Cup e da Copa de Clubes da América?",
+    "variacoes": [
+      "como funciona a libertadores no jogo",
+      "quantos passam do grupo na sulamericana",
+      "fase de grupos quantas rodadas",
+      "formato da liberta cup",
+      "quantos times por grupo"
+    ],
+    "resposta": "As duas copas têm o mesmo formato (com 32 clubes, 8 grupos):\n\n1. **Grupos de 4**, turno e returno (6 rodadas). **Os 2 primeiros** avançam. Desempate: pontos, saldo, gols marcados.\n2. **Semana de sorteio** do mata-mata, sem jogo.\n3. **Mata-mata** com 16 clubes: oitavas, quartas, semifinal e final.\n\nSão **11 datas** por copa: 6 de grupo, 1 de sorteio, 4 de mata-mata.",
+    "resposta_jogador": "A Liberta Cup e a Copa de Clubes da América têm grupos de 4 times (passam os 2 primeiros) e depois mata-mata das oitavas até a final.",
+    "tags": [
+      "liberta cup",
+      "copa de clubes da america",
+      "formato",
+      "grupos"
+    ]
+  },
+  {
+    "id": "03-024",
+    "pergunta": "O mata-mata das copas continentais tem ida e volta? E a final?",
+    "variacoes": [
+      "final da libertadores é jogo unico?",
+      "oitavas da liberta tem volta?",
+      "gol fora na sulamericana",
+      "como sao sorteadas as oitavas",
+      "empate no mata mata da liberta cup"
+    ],
+    "resposta": "**Jogo único em todas as fases, inclusive a final.** Não há ida e volta nem gol fora. Empate → **prorrogação** → **pênaltis**, como na Copa da Federação.\n\nNa **primeira fase do mata-mata** (oitavas) os confrontos são **sorteados**. Nas seguintes, os classificados são ordenados por força e pareados.",
+    "resposta_jogador": "No mata-mata das continentais tudo é jogo único, inclusive a final. Empate vai para a prorrogação e depois pênaltis.",
+    "tags": [
+      "liberta cup",
+      "mata-mata",
+      "final"
+    ]
+  },
+  {
+    "id": "03-025",
+    "pergunta": "Por que meu time não está na Liberta Cup na 1ª temporada (2026)?",
+    "variacoes": [
+      "sou da serie a e nao to na libertadores 2026",
+      "primeira temporada sem libertadores",
+      "quem joga a liberta no primeiro ano",
+      "meu time nao ta nos grupos da libertadores",
+      "como sao os grupos de 2026"
+    ],
+    "resposta": "Na **1ª temporada do save (2026)** valem os **grupos reais do sorteio de 2026** (8 grupos, A a H, 32 clubes em cada copa). Os brasileiros presentes são os que se classificaram na vida real.\n\nSe o clube do usuário não está nesses grupos, **ele não joga a continental em 2026, mesmo sendo da Série A**. A partir da 2ª temporada, a classificação sai do que acontece no jogo.",
+    "resposta_jogador": "Na primeira temporada (2026) os grupos das copas continentais são os reais. Se o seu clube não se classificou na vida real, ele fica de fora esse ano. A partir da próxima temporada, a vaga depende da sua campanha no jogo.",
+    "tags": [
+      "liberta cup",
+      "classificacao",
+      "primeira temporada"
+    ]
+  },
+  {
+    "id": "03-026",
+    "pergunta": "Como meu time se classifica para a Liberta Cup ou a Copa de Clubes da América?",
+    "variacoes": [
+      "como pega vaga na libertadores",
+      "quem vai pra sulamericana",
+      "g6 vai pra liberta?",
+      "terminei em 8 vou pra qual copa",
+      "vagas do brasil nas continentais"
+    ],
+    "resposta": "Da **2ª temporada em diante**, pela **tabela final da Série A** do ano que acabou:\n\n- **1º ao 6º** → Liberta Cup\n- **7º ao 12º** → Copa de Clubes da América\n\nEntram na frente das 6 vagas da Liberta Cup (\"furam a fila\"): o campeão da Liberta Cup (se estiver na Série A), o campeão da Copa de Clubes da América e o campeão da Copa da Federação. Nenhum clube joga as duas copas.\n\nSó a Série A dá vaga pela tabela.",
+    "resposta_jogador": "Pela Série A: do 1º ao 6º vão para a Liberta Cup e do 7º ao 12º para a Copa de Clubes da América. Quem ganha a Copa da Federação também vai para a Liberta Cup.",
+    "tags": [
+      "liberta cup",
+      "copa de clubes da america",
+      "classificacao",
+      "vaga"
+    ]
+  },
+  {
+    "id": "03-027",
+    "pergunta": "Por que fiquei em 6º e não fui para a Liberta Cup?",
+    "variacoes": [
+      "fiquei em sexto e fui pra sulamericana",
+      "furaram a fila da libertadores",
+      "g6 nao classificou",
+      "perdi vaga da liberta pra campeao da copa",
+      "por que meu time nao foi para a libertadores"
+    ],
+    "resposta": "Provavelmente alguém **\"furou a fila\"**. Entram antes das 6 vagas da tabela:\n\n- o campeão da Liberta Cup (defende o título), se estiver na Série A;\n- o campeão da Copa de Clubes da América (de qualquer país), que sobe para a Liberta Cup;\n- o campeão da Copa da Federação (de qualquer divisão).\n\nCada um ocupa uma vaga e a tabela preenche o resto. O 6º pode sobrar e ir para a Copa de Clubes da América. Confira também: é a 1ª temporada? O clube acabou de subir?",
+    "resposta_jogador": "Algumas vagas da Liberta Cup vão primeiro para os campeões das copas (Liberta Cup, Copa de Clubes da América e Copa da Federação). Quando isso acontece, o 6º colocado pode acabar indo para a Copa de Clubes da América.",
+    "tags": [
+      "liberta cup",
+      "vaga",
+      "classificacao"
+    ]
+  },
+  {
+    "id": "03-028",
+    "pergunta": "Quantas vagas cada país tem nas copas continentais?",
+    "variacoes": [
+      "quantos argentinos na libertadores",
+      "vagas por pais na liberta cup",
+      "quantos times de cada pais na sulamericana",
+      "bolivia tem quantas vagas",
+      "distribuição de vagas continentais"
+    ],
+    "resposta": "Da 2ª temporada em diante:\n\n| País | Liberta Cup | Clubes da América |\n|---|---|---|\n| Brasil | 6 | 6 |\n| Argentina | 6 | 5 |\n| Colômbia | 4 | 4 |\n| Chile, Uruguai, Peru | 3 | 3 |\n| Equador, Paraguai, Venezuela | 2 | 2 |\n| Bolívia | 1 | 2 |\n\nSão 32 clubes por copa, em grupos de 4 por sorteio. Campeão continental de outro país tem vaga garantida mesmo fora da cota. Se o total não fechar em múltiplo de 4, o jogo completa com os primeiros que ficaram fora das cotas (ou corta o excesso), para não haver grupo de 3.",
+    "resposta_jogador": null,
+    "tags": [
+      "liberta cup",
+      "vagas",
+      "paises"
+    ]
+  },
+  {
+    "id": "03-029",
+    "pergunta": "Subi para a Série A. Ganho vaga continental pela campanha na Série B?",
+    "variacoes": [
+      "fui campeao da serie b vou pra libertadores?",
+      "subi e nao fui pra sulamericana",
+      "posição na B conta pra continental?",
+      "acabei de subir, jogo a liberta?",
+      "campeão da b tem vaga"
+    ],
+    "resposta": "**Não.** Quem subiu não disputou a Série A, então a posição na Série B **não vale** como classificação continental. A vaga pela liga só vem depois de uma temporada inteira na A.\n\nO clube só joga uma continental no ano de estreia na A se tiver vaga por outro caminho, por exemplo sendo **campeão da Copa da Federação**.",
+    "resposta_jogador": "A vaga nas copas continentais só vem pela Série A. Quem acabou de subir precisa jogar uma temporada na A para brigar pela vaga, a não ser que tenha vencido a Copa da Federação.",
+    "tags": [
+      "acesso",
+      "liberta cup",
+      "vaga"
+    ]
+  },
+  {
+    "id": "03-030",
+    "pergunta": "As copas continentais acontecem mesmo se eu estiver na Série B, C ou D?",
+    "variacoes": [
+      "to na serie c, a libertadores existe?",
+      "libertadores roda sem eu jogar",
+      "quem joga a liberta se eu to na b",
+      "continental acontece de fundo?",
+      "posso ver a libertadores estando na serie d"
+    ],
+    "resposta": "Sim. **As continentais existem no mundo em qualquer caso**, disputadas pelos classificados da Série A (CPU ou humanos) e pelos estrangeiros. O usuário só joga se estiver classificado.\n\nDá para acompanhar pela tela de Campeonatos (Classificação com filtro de copas / tela da competição).",
+    "resposta_jogador": "Sim, a Liberta Cup e a Copa de Clubes da América acontecem normalmente com os clubes classificados. Você só joga se o seu clube tiver vaga.",
+    "tags": [
+      "liberta cup",
+      "copa de clubes da america",
+      "divisoes"
+    ]
+  },
+  {
+    "id": "03-031",
+    "pergunta": "Um clube pode jogar a Liberta Cup e a Copa de Clubes da América no mesmo ano?",
+    "variacoes": [
+      "da pra jogar libertadores e sulamericana junto",
+      "meu time ta nas duas copas?",
+      "quem cai da liberta vai pra sula?",
+      "jogar as duas continentais",
+      "eliminado nos grupos da liberta cai pra sulamericana?"
+    ],
+    "resposta": "**Não.** Nenhum clube joga as duas copas: quem está na Liberta Cup sai da Copa de Clubes da América. A base também não descreve nenhuma \"descida\" de eliminados da Liberta Cup para a outra copa.\n\nNa prática, o Brasil manda 6 clubes para cada copa: do 1º ao 6º (mais quem fura a fila) na Liberta Cup e os melhores colocados que sobram, a partir do 7º, na Copa de Clubes da América.",
+    "resposta_jogador": "Não, cada clube joga só uma das continentais por temporada.",
+    "tags": [
+      "liberta cup",
+      "copa de clubes da america",
+      "vaga"
+    ]
+  },
+  {
+    "id": "03-032",
+    "pergunta": "De onde vêm os adversários estrangeiros das copas continentais?",
+    "variacoes": [
+      "times argentinos da libertadores sao reais?",
+      "elenco do adversario da liberta",
+      "por que o time gringo da copa ta fraco",
+      "quem decide os estrangeiros na sulamericana",
+      "elenco gerado time estrangeiro"
+    ],
+    "resposta": "Saem das **ligas de fundo sul-americanas**: a classificação real dessas ligas decide quais clubes estrangeiros entram (da 2ª temporada em diante; na 1ª valem os grupos reais de 2026).\n\nQuando o clube real existe no banco de elencos, entra com o elenco dele (com nomes fictícios). Caso contrário, o jogo **gera um elenco**.",
+    "resposta_jogador": "Os times estrangeiros das copas vêm das ligas sul-americanas simuladas no jogo, com jogadores de nomes fictícios.",
+    "tags": [
+      "liberta cup",
+      "estrangeiros",
+      "ligas de fundo"
+    ]
+  },
+  {
+    "id": "03-033",
+    "pergunta": "Existe Champions League / copas europeias no jogo?",
+    "variacoes": [
+      "tem champions?",
+      "copa dos campeoes o que é",
+      "europa league existe",
+      "da pra jogar a champions",
+      "copa continental é qual"
+    ],
+    "resposta": "Existem no motor: **Copa dos Campeões** (Champions League) e **Copa Continental** (Europa League), no mesmo formato das continentais sul-americanas. Nos universos europeus, do 1º ao 4º vai para a Copa dos Campeões e 5º e 6º para a Copa Continental.\n\nHoje isso é só informativo: **ninguém treina clube europeu** na versão pública.",
+    "resposta_jogador": "As copas europeias existem no jogo (Copa dos Campeões e Copa Continental), mas por enquanto só dá para treinar clubes brasileiros, então você não as disputa.",
+    "tags": [
+      "europa",
+      "copa dos campeoes",
+      "paises"
+    ]
+  },
+  {
+    "id": "03-034",
+    "pergunta": "Existe campeonato estadual, Supercopa, Recopa ou Mundial?",
+    "variacoes": [
+      "tem paulistao?",
+      "cade o estadual",
+      "tem mundial de clubes",
+      "supercopa do brasil existe",
+      "recopa no jogo",
+      "quais competicoes existem"
+    ],
+    "resposta": "**Não.** Não há estaduais, Supercopa, Recopa nem Mundial de Clubes. Para quem joga no Brasil, as competições são:\n\n- a liga (Séries A–D);\n- a Copa da Federação (Copa do Brasil);\n- a Liberta Cup (Libertadores);\n- a Copa de Clubes da América (Sul-Americana).\n\nO calendário já foi desenhado para receber uma competição mundial no futuro, mas ela **não existe hoje**.",
+    "resposta_jogador": "Não temos estaduais nem Mundial por enquanto. As competições são a liga (Séries A a D), a Copa da Federação, a Liberta Cup e a Copa de Clubes da América.",
+    "tags": [
+      "competicoes",
+      "estadual",
+      "mundial"
+    ]
+  },
+  {
+    "id": "03-035",
+    "pergunta": "Dá para desligar alguma copa na criação do save?",
+    "variacoes": [
+      "como tira a copa do brasil do save",
+      "desativar libertadores",
+      "jogar so a liga sem copas",
+      "opcao de ligar copas sumiu",
+      "meu save ta sem copa"
+    ],
+    "resposta": "O código guarda um \"interruptor\" por copa, e uma copa desligada não é criada. Ele existia na tela **antiga** de criação de save.\n\n**Incerto:** na criação de save atual não foi encontrado nenhum controle para isso, então hoje as três copas devem vir **sempre ligadas**. Se um save aparecer sem alguma copa, **escale para um dev** com o nome do save.",
+    "resposta_jogador": "Na versão atual não há opção para desligar as copas: todo save novo vem com as três copas.",
+    "tags": [
+      "copas",
+      "criacao de save",
+      "incerto"
+    ]
+  },
+  {
+    "id": "03-036",
+    "pergunta": "Como funciona o calendário (semanas, meio de semana e fim de semana)?",
+    "variacoes": [
+      "como o calendario é organizado",
+      "liga joga que dia",
+      "copa é no meio de semana?",
+      "dois jogos no mesmo dia pode?",
+      "o que sao as janelas do calendario",
+      "jogo terça e quinta"
+    ],
+    "resposta": "O calendário é contado em **semanas** (no código, \"slots\"). Cada semana tem três momentos:\n\n1. **Meio de semana 1** (terça/quarta): Liberta Cup\n2. **Meio de semana 2** (quinta): Copa de Clubes da América **ou** Copa da Federação (nunca as duas na mesma semana)\n3. **Fim de semana**: liga\n\n**Nunca há duas competições no mesmo momento**: o jogador nunca tem dois jogos no mesmo dia. Cada final tem uma semana só dela, sem liga, e todas acontecem antes da última rodada.",
+    "resposta_jogador": "A liga é sempre no fim de semana e as copas no meio da semana. O calendário nunca coloca dois jogos seus no mesmo dia.",
+    "tags": [
+      "calendario",
+      "semanas",
+      "copas"
+    ]
+  },
+  {
+    "id": "03-037",
+    "pergunta": "Quando começa a temporada e quantas semanas ela tem?",
+    "variacoes": [
+      "temporada comeca quando",
+      "quanto dura uma temporada",
+      "numero de semanas do ano",
+      "primeira rodada é que dia",
+      "o ano começa em janeiro?"
+    ],
+    "resposta": "A temporada começa em **1º de março** e o calendário do Brasil tem **42 semanas**. O calendário é mundial: todo país começa em 1º de março.\n\n| Competição | Semanas |\n|---|---|\n| Liga (38 rodadas) | 1–20, 22–38 e 42 |\n| Liberta Cup | 5, 8, 11, 14, 17, 20 · sorteio 24 · 28, 32, 36 · final 39 |\n| Clubes da América | 6, 9, 12, 15, 18, 21 · sorteio 25 · 29, 33, 37 · final 40 |\n| Copa da Federação | 4, 10, 16, 23, 30, 35 · final 41 |",
+    "resposta_jogador": "A temporada começa em 1º de março e tem 42 semanas, com a última rodada da liga por volta do fim de dezembro.",
+    "tags": [
+      "calendario",
+      "temporada",
+      "semanas"
+    ]
+  },
+  {
+    "id": "03-038",
+    "pergunta": "Por que ficou uma semana sem jogo de liga no meio do ano?",
+    "variacoes": [
+      "semana 21 sem liga",
+      "pulou rodada no meio do ano",
+      "parada no meio da temporada",
+      "nao teve jogo do brasileirao essa semana",
+      "rodada sumiu na metade"
+    ],
+    "resposta": "É proposital. A **semana 21** é a **parada do meio do ano**: não tem liga. Só a Copa de Clubes da América joga nela. A liga retoma na semana 22.\n\nAs outras semanas sem liga são as 39, 40 e 41, reservadas às três finais de copa. As 38 rodadas continuam completas: a última é na semana 42.",
+    "resposta_jogador": "É uma pausa programada no meio da temporada (semana 21). A liga volta normalmente na semana seguinte.",
+    "tags": [
+      "calendario",
+      "parada",
+      "liga"
+    ]
+  },
+  {
+    "id": "03-039",
+    "pergunta": "Por que o fim do ano tem semanas sem jogo de liga? Quando são as finais?",
+    "variacoes": [
+      "final da libertadores quando é",
+      "fim de ano sem brasileirao",
+      "semanas 39 40 41",
+      "data da final da copa do brasil",
+      "finais antes da ultima rodada?"
+    ],
+    "resposta": "As **semanas 39, 40 e 41** são reservadas às três finais, sem liga, para que nenhuma final fique depois do fim do campeonato:\n\n| Semana | Final | Data aproximada |\n|---|---|---|\n| 39 | Liberta Cup | ~04/12 |\n| 40 | Copa de Clubes da América | ~12/12 |\n| 41 | Copa da Federação | ~19/12 |\n| 42 | 38ª rodada da liga (último jogo do ano) | ~29/12 |",
+    "resposta_jogador": "As finais das copas acontecem em dezembro, em semanas só delas: Liberta Cup (~04/12), Copa de Clubes da América (~12/12) e Copa da Federação (~19/12). A última rodada da liga fecha o ano, por volta de 29/12.",
+    "tags": [
+      "calendario",
+      "finais",
+      "fim de temporada"
+    ]
+  },
+  {
+    "id": "03-040",
+    "pergunta": "Por que as datas dos jogos parecem estranhas ou com intervalos irregulares?",
+    "variacoes": [
+      "data do jogo ta errada",
+      "jogo de quarta aparece antes do de domingo",
+      "datas pulando no calendario",
+      "por que 01/03 depois 07/03 depois 30/03",
+      "data da copa nao bate"
+    ],
+    "resposta": "As datas são **rótulos**: a ordem dos jogos é decidida pela semana, não pela data.\n\n- Rodadas de liga seguem uma lista de datas reais (01/03, 07/03, 30/03, 10/04…).\n- Jogos de meio de semana aparecem **4 dias** (Meio de semana 1) ou **3 dias** (Meio de semana 2) antes do jogo de liga daquela semana.\n- Em semanas sem liga, a data avança 7 dias por semana a partir da última rodada.\n\nUma data exibida nunca \"volta para trás\" em relação ao jogo anterior. Se voltar, escale para um dev.",
+    "resposta_jogador": "As datas do calendário seguem uma tabela de datas do futebol real, por isso os intervalos variam. A ordem dos jogos está sempre certa.",
+    "tags": [
+      "calendario",
+      "datas"
+    ]
+  },
+  {
+    "id": "03-041",
+    "pergunta": "Quando acontecem os sorteios das copas?",
+    "variacoes": [
+      "quando é o sorteio da libertadores",
+      "sorteio das oitavas quando",
+      "grupos ainda nao apareceram",
+      "semana de sorteio",
+      "sorteio copa federação"
+    ],
+    "resposta": "Cada copa tem uma cerimônia de sorteio **dois dias antes da estreia**, e cada sorteio aparece na data dele (o save não abre com vários sorteios seguidos).\n\nO sorteio do **mata-mata das continentais** acontece na \"semana de sorteio\", depois da fase de grupos (semana 24 na Liberta Cup, 25 na Copa de Clubes da América). Antes do sorteio, a tela da competição não mostra grupos nem chave.",
+    "resposta_jogador": "Cada sorteio acontece dois dias antes da estreia da copa. Os grupos e a chave aparecem na tela depois da cerimônia.",
+    "tags": [
+      "sorteio",
+      "calendario",
+      "copas"
+    ]
+  },
+  {
+    "id": "03-042",
+    "pergunta": "O que significa \"A temporada foi estendida\"?",
+    "variacoes": [
+      "temporada estendida o que é",
+      "apareceu temporada foi estendida",
+      "semanas extras depois da liga",
+      "temporada terminou com competição por decidir",
+      "liga acabou e ainda tem jogo de copa"
+    ],
+    "resposta": "Se, por algum problema de dados, uma copa ainda tiver jogos pendentes quando a liga termina, o jogo **cria semanas extras** só com jogos de copa e mostra \"A temporada foi estendida: ainda falta decidir…\".\n\nNo Modo Solo o limite é **24 semanas extras**; depois disso a temporada fecha mesmo assim, com o aviso \"A temporada terminou com competição por decidir\".\n\nEm funcionamento normal isso **não deveria acontecer**. Se acontecer, ou se repetir, **escale para um dev** com o nome do save.",
+    "resposta_jogador": "Às vezes o jogo acrescenta semanas extras para terminar uma copa que ficou pendente, em vez de pular a final. Se isso acontecer com frequência, nos avise para a equipe técnica verificar.",
+    "tags": [
+      "calendario",
+      "temporada estendida",
+      "bug"
+    ]
+  },
+  {
+    "id": "03-043",
+    "pergunta": "Quando abrem as janelas de transferência?",
+    "variacoes": [
+      "quando posso contratar",
+      "janela de transferencia fechada",
+      "nao consigo comprar jogador agora",
+      "quantas janelas por temporada",
+      "mercado fechado por que"
+    ],
+    "resposta": "Há **duas janelas por temporada**, contando pela rodada interna do calendário (que começa em 0):\n\n- da rodada **0 à 9**;\n- da rodada **20 à 29**.\n\n**Fora delas não há transferências.**\n\nNa prática, a primeira janela cobre o início da temporada e a segunda, o meio do ano. As janelas também são o momento em que a base pode subir jovens (1 por janela).",
+    "resposta_jogador": "O mercado abre duas vezes por temporada: no começo (primeiras 10 rodadas) e no meio do ano. Fora dessas janelas não dá para contratar ou vender.",
+    "tags": [
+      "transferencias",
+      "janelas",
+      "calendario"
+    ]
+  },
+  {
+    "id": "03-044",
+    "pergunta": "Quantos jovens da base posso subir por temporada?",
+    "variacoes": [
+      "como subir jogador da base",
+      "limite de promover da base",
+      "nao consigo subir juvenil",
+      "base so deixa um",
+      "quantos garotos sobe por janela"
+    ],
+    "resposta": "A base (aba **Elenco → Base**) só sobe jogadores **durante as janelas de transferência**:\n\n- no máximo **1 jovem por janela** (2 por temporada);\n- escolhido entre **3 candidatos**;\n- com elenco de até **40 jogadores**.\n\nFora das janelas não é possível promover. Além da base, o elenco recebe jovens de 18 a 22 anos automaticamente quando alguém se aposenta.",
+    "resposta_jogador": "Você pode subir 1 jovem da base por janela de transferência (2 por temporada), escolhendo entre 3 candidatos, desde que o elenco tenha até 40 jogadores.",
+    "tags": [
+      "base",
+      "jovens",
+      "janelas"
+    ]
+  },
+  {
+    "id": "03-045",
+    "pergunta": "Quanto paga a liga pela posição final?",
+    "variacoes": [
+      "premio do campeao brasileiro",
+      "quanto ganha quem fica em 5",
+      "premiação serie b",
+      "dinheiro por posição na tabela",
+      "quanto recebe o campeao da serie d"
+    ],
+    "resposta": "Pago **no fim da temporada**; todo clube recebe algo:\n\n| Div. | 1º | 2º | 3º–4º | 5º–7º | 8º–14º | 15º–20º |\n|---|---|---|---|---|---|---|\n| A | R$ 26 mi | 18,2 mi | 13 mi | 7,8 mi | 4,55 mi | 2,6 mi |\n| B | 11,7 mi | 7,8 mi | 5,2 mi | 3,25 mi | 1,95 mi | 1,17 mi |\n| C | 5,2 mi | 3,51 mi | 2,34 mi | 1,43 mi | 910 mil | 520 mil |\n| D | 2,6 mi | 1,69 mi | 1,17 mi | 715 mil | 455 mil | 260 mil |\n\nValores já com o reajuste de 1,3× (set/2026). São modestos de propósito, calibrados à economia do jogo.",
+    "resposta_jogador": "Todo clube recebe um prêmio pela posição final, pago no fim da temporada. O campeão da Série A, por exemplo, recebe R$ 26 milhões.",
+    "tags": [
+      "premiacao",
+      "liga",
+      "dinheiro"
+    ]
+  },
+  {
+    "id": "03-046",
+    "pergunta": "Existe bônus por subir de divisão?",
+    "variacoes": [
+      "ganha dinheiro por subir?",
+      "bonus de acesso quanto",
+      "subi pra serie a e recebi 4 mi",
+      "premio por acesso",
+      "quem cai recebe algo"
+    ],
+    "resposta": "Sim, pago **uma vez**, no fim da temporada em que o clube sobe:\n\n| Sobe para | Bônus |\n|---|---|\n| Série A | R$ 4 mi |\n| Série B | R$ 2 mi |\n| Série C | R$ 750 mil |\n\nQuem cai ou permanece na divisão não recebe. O bônus é somado ao prêmio pela posição final.",
+    "resposta_jogador": "Sim! Quem sobe ganha um bônus no fim da temporada: R$ 4 mi para a Série A, R$ 2 mi para a B e R$ 750 mil para a C.",
+    "tags": [
+      "premiacao",
+      "acesso",
+      "dinheiro"
+    ]
+  },
+  {
+    "id": "03-047",
+    "pergunta": "Quanto paga a Copa da Federação por fase?",
+    "variacoes": [
+      "cota da copa do brasil",
+      "quanto ganha o campeao da copa da federação",
+      "premio por fase copa",
+      "quanto paga as oitavas",
+      "dinheiro da copa federação serie c"
+    ],
+    "resposta": "Paga **na hora em que o confronto é decidido**, aos **dois clubes** da fase (ganhando ou perdendo):\n\n| Fase | Séries C/D | Séries A/B |\n|---|---|---|\n| 1ª fase | R$ 520 mil | 832 mil |\n| 2ª fase | 1,04 mi | 1,664 mi |\n| 16 avos | 1,95 mi | 3,12 mi |\n| Oitavas | 2,6 mi | 2,6 mi |\n| Quartas | 5,2 mi | 5,2 mi |\n| Semifinal | 11,7 mi | 11,7 mi |\n| Campeão | 36,4 mi | 36,4 mi |\n| Vice | 18,2 mi | 18,2 mi |\n\nAntes das oitavas, A e B recebem 1,6× o valor de C e D. Isento da 1ª fase não recebe a cota dela.",
+    "resposta_jogador": "A Copa da Federação paga a cada fase que você joga, ganhando ou perdendo, e o dinheiro cai na hora. O campeão recebe R$ 36,4 milhões na final.",
+    "tags": [
+      "copa da federacao",
+      "premiacao",
+      "dinheiro"
+    ]
+  },
+  {
+    "id": "03-048",
+    "pergunta": "Por que não recebi nada da Copa da Federação no resumo de fim de temporada?",
+    "variacoes": [
+      "ganhei a copa do brasil e nao veio o premio",
+      "premio da copa federação nao apareceu",
+      "resumo do fim de temporada sem copa",
+      "cade os 36 milhoes",
+      "copa nao pagou no final do ano"
+    ],
+    "resposta": "A Copa da Federação **paga durante a temporada**, fase a fase, e **não no fechamento**. A cota por fase substitui essa premiação.\n\nO dinheiro aparece no extrato de **Finanças** como \"Copa da Federação — [fase]\" no momento de cada jogo, e nas notícias da rodada. A cota do campeão (R$ 36,4 mi) foi paga na hora da final. O dinheiro nunca é pago duas vezes.",
+    "resposta_jogador": "O prêmio da Copa da Federação é pago na hora de cada jogo, não no fim da temporada. Confira no extrato de Finanças a linha \"Copa da Federação\" com a fase: o valor já entrou no seu caixa.",
+    "tags": [
+      "copa da federacao",
+      "premiacao",
+      "financas"
+    ]
+  },
+  {
+    "id": "03-049",
+    "pergunta": "Por que o título da Copa da Federação paga mais que o da Série A?",
+    "variacoes": [
+      "copa do brasil paga mais que o brasileiro?",
+      "campeao da copa ganha mais que campeao da serie a",
+      "premiação invertida",
+      "isso é bug? copa federação 36 mi",
+      "por que a liga paga pouco"
+    ],
+    "resposta": "É uma exceção **conhecida e registrada no código**: o título da Copa da Federação paga **R$ 36,4 mi** e o da Série A, **R$ 26 mi**. Fora isso, a ordem segue a vida real (continental > copa nacional > liga).\n\nNão é bug a ser reportado. Os valores são modestos de propósito: um título rende mais ou menos uma boa contratação.",
+    "resposta_jogador": "É proposital: assim como na vida real, a Copa do Brasil do jogo (Copa da Federação) tem uma premiação muito alta para o campeão.",
+    "tags": [
+      "premiacao",
+      "copa da federacao",
+      "liga"
+    ]
+  },
+  {
+    "id": "03-050",
+    "pergunta": "Quanto e quando pagam a Liberta Cup e a Copa de Clubes da América?",
+    "variacoes": [
+      "premio da libertadores",
+      "quando recebo da liberta cup",
+      "cai nos grupos ganho algo?",
+      "quanto paga a sulamericana",
+      "premiação continental"
+    ],
+    "resposta": "Pela **fase mais longe alcançada**, pago **assim que a copa tem campeão** (Liberta Cup ~semana 39; Clubes da América ~semana 40), sem esperar o fim da temporada:\n\n| Fase | Liberta Cup | Clubes da América |\n|---|---|---|\n| Campeão | R$ 31,2 mi | 15,6 mi |\n| Vice | 15,6 mi | 7,8 mi |\n| Semifinal | 9,1 mi | 4,55 mi |\n| Quartas | 6,5 mi | 3,25 mi |\n| Oitavas | 3,9 mi | 1,95 mi |\n| Grupos (participação) | 1,95 mi | 910 mil |\n\nNão se repete no fechamento da temporada.",
+    "resposta_jogador": "O prêmio das copas continentais é pago quando a copa termina, conforme a fase que você alcançou. Mesmo quem cai nos grupos recebe uma cota de participação.",
+    "tags": [
+      "liberta cup",
+      "copa de clubes da america",
+      "premiacao"
+    ]
+  },
+  {
+    "id": "03-051",
+    "pergunta": "O que ganha o artilheiro da temporada?",
+    "variacoes": [
+      "premio de artilheiro",
+      "meu artilheiro nao deu dinheiro",
+      "artilheiro valoriza?",
+      "quanto paga artilharia",
+      "chuteira de ouro no jogo"
+    ],
+    "resposta": "Quem termina **em 1º na artilharia da temporada** (liga da divisão do usuário + todas as copas) ganha:\n\n- **+20% no valor de mercado**, permanente, acumulando até +60% (1,6×). Vale para qualquer clube e fica na carreira do jogador.\n- **Dinheiro para o clube, só se o artilheiro for do clube do usuário:** Série A R$ 3,9 mi, B 1,95 mi, C 910 mil, D 520 mil.\n\nArtilheiro do clube que não é o 1º geral não rende dinheiro.",
+    "resposta_jogador": "Se o artilheiro da temporada for do seu time, o clube ganha um prêmio em dinheiro e o jogador valoriza 20%. Só vale para o 1º colocado geral da artilharia.",
+    "tags": [
+      "artilharia",
+      "premiacao",
+      "valor de mercado"
+    ]
+  },
+  {
+    "id": "03-052",
+    "pergunta": "Como funciona a bilheteria nos jogos de copa?",
+    "variacoes": [
+      "renda da copa vai pra quem",
+      "bilheteria copa do brasil",
+      "preço do ingresso na copa",
+      "jogo fora nao ganhei bilheteria",
+      "quem fica com a renda no jogo unico"
+    ],
+    "resposta": "Nos jogos de copa, **o mandante fica com a bilheteria**, calculada como na liga (público × preço do ingresso). O preço é fixo por divisão:\n\n| Divisão | Ingresso |\n|---|---|\n| Série A | R$ 25 |\n| Série B | R$ 20 |\n| Série C | R$ 15 |\n| Série D | R$ 10 |\n\nNa Copa da Federação o mandante é o primeiro clube do confronto. A bilheteria aparece em Finanças ao longo do ano.",
+    "resposta_jogador": "Nos jogos de copa a renda fica com o time mandante. Se você jogou fora de casa, a bilheteria foi para o adversário.",
+    "tags": [
+      "bilheteria",
+      "copas",
+      "financas"
+    ]
+  },
+  {
+    "id": "03-053",
+    "pergunta": "Como funcionam as metas de patrocínio?",
+    "variacoes": [
+      "bonus do patrocinador",
+      "meta de patrocinio como bate",
+      "patrocinio paga extra?",
+      "cumpri meta e nao recebi",
+      "quando paga a meta do patrocinio"
+    ],
+    "resposta": "No **fim da temporada**, o patrocínio paga bônus quando o clube cumpre metas:\n\n- terminar entre os **4 primeiros**;\n- chegar às **quartas de uma copa**;\n- terminar entre os **6 primeiros** (na 1ª divisão) ou **subir de divisão** (nas demais).\n\nO detalhe está na base de finanças. O valor aparece no resumo do Fim de Temporada.",
+    "resposta_jogador": "O patrocinador paga bônus no fim da temporada se o clube cumprir as metas, como ficar entre os primeiros, chegar às quartas de uma copa ou subir de divisão.",
+    "tags": [
+      "patrocinio",
+      "metas",
+      "premiacao"
+    ]
+  },
+  {
+    "id": "03-054",
+    "pergunta": "Quando e onde o jogador vê o dinheiro dos prêmios?",
+    "variacoes": [
+      "onde vejo os premios",
+      "dinheiro do premio nao entrou",
+      "extrato de premiação",
+      "recebi premio duas vezes?",
+      "quando cai o dinheiro da liga"
+    ],
+    "resposta": "- **Ao longo do ano**, no extrato de **Finanças** e nas notícias: cotas da Copa da Federação, bilheterias e prêmios continentais.\n- **No fim da temporada**, na tela/modal de Fim de Temporada (linha a linha): liga, acesso, artilheiro e metas de patrocínio.\n\nO dinheiro **nunca é pago duas vezes**: uma continental já paga não se repete no fechamento.",
+    "resposta_jogador": "Os prêmios das copas entram durante a temporada e aparecem no extrato de Finanças. Liga, acesso, artilheiro e patrocínio são pagos no fim da temporada e aparecem detalhados no resumo.",
+    "tags": [
+      "premiacao",
+      "financas",
+      "fim de temporada"
+    ]
+  },
+  {
+    "id": "03-055",
+    "pergunta": "Quando acaba a temporada?",
+    "variacoes": [
+      "quando termina o ano",
+      "acabou a liga e agora",
+      "ultima rodada é quando",
+      "temporada termina depois da final?",
+      "quando vem a tela de fim de temporada"
+    ],
+    "resposta": "A temporada acaba **depois da 38ª rodada da liga** (semana 42, ~29/12), que é o último jogo do ano. As finais das copas já aconteceram antes, nas semanas 39, 40 e 41.\n\nAí o jogo fecha o ano (tabelas finais, prêmios, históricos) e mostra a tela de **Fim de Temporada**. A temporada seguinte só começa quando o jogador **clica para avançar**.",
+    "resposta_jogador": "A temporada termina depois da última rodada da liga, por volta de 29/12. Aí aparece a tela de Fim de Temporada e você clica para começar a próxima.",
+    "tags": [
+      "fim de temporada",
+      "calendario"
+    ]
+  },
+  {
+    "id": "03-056",
+    "pergunta": "Por que não consigo avançar para a próxima temporada (\"A temporada X já começou\")?",
+    "variacoes": [
+      "botao avançar temporada nao funciona",
+      "a temporada ja começou jogue as rodadas",
+      "nao consigo passar de ano",
+      "cliquei varias vezes e nada",
+      "como pular temporada"
+    ],
+    "resposta": "É uma trava proposital: **não dá para virar uma temporada sem jogar**. Se a temporada nova ainda não teve jogo, o botão responde \"A temporada X já começou. Jogue as rodadas para avançar.\"\n\nEla foi criada depois da \"virada fantasma\", em que cliques repetidos faziam o save pular anos sem jogar. Além disso, enquanto a virada é processada, novos cliques são ignorados. O jogador deve simplesmente jogar as rodadas.",
+    "resposta_jogador": "A nova temporada já começou: é só jogar as rodadas normalmente. O jogo não deixa pular temporadas sem jogar, para proteger o seu save.",
+    "tags": [
+      "virada",
+      "fim de temporada",
+      "trava"
+    ]
+  },
+  {
+    "id": "03-057",
+    "pergunta": "Por que apareceu a tela de planos na virada de temporada?",
+    "variacoes": [
+      "paywall no fim da temporada",
+      "pediu pra assinar pra continuar",
+      "nao consigo ir pra segunda temporada sem pro",
+      "tela de planos apareceu no fim do ano",
+      "peladeiro pode continuar a carreira?"
+    ],
+    "resposta": "No **plano gratuito (Peladeiro)**, antes da virada o jogador passa pela **tela de planos (paywall)**. Quem é Pro segue direto. A regra detalhada do plano gratuito está na base de planos (seção de conta e planos).\n\nA tela aparece depois do Fim de Temporada, no clique para avançar. Para dúvidas sobre o que o plano gratuito permite, use o FAQ de conta e planos.",
+    "resposta_jogador": "No plano gratuito, a tela de planos aparece antes de começar a nova temporada. Para os detalhes do que cada plano inclui, veja a página de planos no jogo.",
+    "tags": [
+      "planos",
+      "virada",
+      "paywall"
+    ]
+  },
+  {
+    "id": "03-058",
+    "pergunta": "O que aparece na tela de Fim de Temporada?",
+    "variacoes": [
+      "tela de fim de temporada o que mostra",
+      "meio de tabela o que significa",
+      "desfecho demitido",
+      "modal de campeao",
+      "resumo da temporada"
+    ],
+    "resposta": "Mostra um de **cinco desfechos**: **Título**, **Acesso**, **Meio de tabela**, **Rebaixado** ou **Demitido**. Traz também os números da temporada, \"o que muda agora\" e um resumo com a **premiação linha a linha** (liga, acesso, artilheiro, patrocínio).\n\nQuem ganha título vê o **modal de campeão** com a taça. Na Série D, 15º ao 20º aparece como \"Rebaixado\", mas o clube não cai.",
+    "resposta_jogador": "A tela de Fim de Temporada mostra como foi o seu ano (título, acesso, meio de tabela, rebaixamento ou demissão), seus números e o detalhe dos prêmios recebidos.",
+    "tags": [
+      "fim de temporada",
+      "desfecho",
+      "telas"
+    ]
+  },
+  {
+    "id": "03-059",
+    "pergunta": "O que acontece na virada de temporada?",
+    "variacoes": [
+      "o que muda quando vira o ano",
+      "moral voltou pra 70",
+      "lesao sumiu na virada",
+      "estatisticas zeraram",
+      "ordem da virada de temporada",
+      "salario do treinador aumentou"
+    ],
+    "resposta": "Em ordem:\n\n1. Finanças da CPU (bônus e prêmio; estádios podem crescer).\n2. Tabela da Série A guardada para as vagas continentais.\n3. Acesso e rebaixamento nas 4 divisões.\n4. Tabelas e artilharia zeradas; ano +1; calendário refeito.\n5. Jogadores: moral 70, energia 100, suspensões e lesões limpas, estatísticas para o histórico e zeradas.\n6. Envelhecimento e aposentadoria.\n7. Salário do treinador **+5%** (se não foi demitido).\n8. Ajuste de salários, só com \"Gestão de Salários\" ligada.\n9. Copas novas montadas.\n10. Ligas de fundo viradas.\n11. Save gravado (no Modo Solo, \"foto\" na nuvem antes da virada).",
+    "resposta_jogador": "Na virada o jogo aplica acesso e rebaixamento, zera as tabelas, recupera moral, energia e lesões do elenco, envelhece os jogadores e monta as copas da nova temporada.",
+    "tags": [
+      "virada",
+      "fim de temporada",
+      "jogadores"
+    ]
+  },
+  {
+    "id": "03-060",
+    "pergunta": "Os contratos dos jogadores vencem no fim da temporada?",
+    "variacoes": [
+      "vou perder jogador por fim de contrato",
+      "contrato acabou?",
+      "jogador sai de graça no fim do ano",
+      "quando vence o contrato",
+      "nao consigo revender jogador que comprei"
+    ],
+    "resposta": "**Não.** O jogo não tem data de término de contrato: o jogador fica até ser **vendido** ou **se aposentar**. O salário só muda por renovação manual ou pela Gestão de Salários automática.\n\nJogadores comprados durante a temporada ficam com **trava de revenda** até a virada; ela expira sozinha na temporada nova.",
+    "resposta_jogador": "Não se preocupe: os contratos não vencem. O jogador fica no clube até ser vendido ou se aposentar.",
+    "tags": [
+      "contratos",
+      "virada",
+      "elenco"
+    ]
+  },
+  {
+    "id": "03-061",
+    "pergunta": "Como funciona a aposentadoria dos jogadores?",
+    "variacoes": [
+      "com que idade o jogador aposenta",
+      "chance de aposentar",
+      "meu jogador de 33 anos aposentou",
+      "da pra saber quem vai se aposentar",
+      "motivo da aposentadoria"
+    ],
+    "resposta": "A cada virada todos ficam **1 ano mais velhos**; a partir dos 32 há chance de aposentadoria:\n\n| Idade | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40+ |\n|---|---|---|---|---|---|---|---|---|---|\n| Chance | 11% | 24% | 40% | 56% | 71% | 83% | 92% | 97% | 100% |\n\n- Máximo **3 por clube por temporada** (se passarem mais, saem os mais velhos).\n- Vem com um motivo, mostrado na notícia e na Sala de Imprensa.\n- A previsão é exata: o jogo mostra antes quem vai se aposentar, desde que o elenco não mude.",
+    "resposta_jogador": "A partir dos 32 anos o jogador pode se aposentar na virada, e a chance cresce com a idade. Cada clube perde no máximo 3 jogadores por temporada, e cada um é substituído por um jovem da mesma posição.",
+    "tags": [
+      "aposentadoria",
+      "idade",
+      "virada"
+    ]
+  },
+  {
+    "id": "03-062",
+    "pergunta": "Muitos jogadores se aposentaram de uma vez. É bug?",
+    "variacoes": [
+      "meus jogadores aposentaram todos",
+      "elenco envelheceu varios anos",
+      "perdi 6 jogadores na virada",
+      "save pulou anos",
+      "virada fantasma"
+    ],
+    "resposta": "O limite normal é **3 aposentadorias por clube por virada**. Se houve **mais de 3**, ou o elenco envelheceu vários anos \"de uma vez\", pode ser a antiga **\"virada fantasma\"** (temporadas puladas sem jogar), já corrigida com uma trava.\n\nNesse caso, **encaminhe ao time técnico** com o nome do save e as temporadas envolvidas.",
+    "resposta_jogador": "Normalmente saem no máximo 3 jogadores por temporada. Se foram mais, pode ser um problema no seu save: me passe o nome do save e as temporadas envolvidas que vou encaminhar para a equipe técnica.",
+    "tags": [
+      "aposentadoria",
+      "virada fantasma",
+      "bug"
+    ]
+  },
+  {
+    "id": "03-063",
+    "pergunta": "Quem substitui os jogadores aposentados? O jogo gera jovens (regens)?",
+    "variacoes": [
+      "apareceu jogador novo no elenco",
+      "regen existe?",
+      "quem entra no lugar do aposentado",
+      "garoto de 19 anos surgiu no time",
+      "jogadores gerados"
+    ],
+    "resposta": "Sim. Cada aposentado é substituído **na hora** por um **jovem de 18 a 22 anos da mesma posição**, gerado com força compatível com a divisão, para o elenco não ficar desfalcado. São os \"regens\" do jogo.\n\nAlém disso, a **base** (Elenco → Base) sobe até 1 jovem por janela, escolhido entre 3 candidatos.",
+    "resposta_jogador": "Quando um jogador se aposenta, entra no lugar um jovem de 18 a 22 anos da mesma posição. Você também pode revelar jovens pela base.",
+    "tags": [
+      "jovens",
+      "regens",
+      "aposentadoria"
+    ]
+  },
+  {
+    "id": "03-064",
+    "pergunta": "O save continua o mesmo depois da virada? O histórico fica guardado?",
+    "variacoes": [
+      "perco meus dados na nova temporada",
+      "historico da temporada passada",
+      "arquivo das temporadas",
+      "o save reseta?",
+      "titulos antigos somem?"
+    ],
+    "resposta": "O save **continua o mesmo**: a carreira só avança um ano. Históricos, títulos, artilharia de todos os tempos e finanças por temporada ficam guardados **para sempre**.\n\nCada temporada fechada vira uma entrada de **arquivo permanente**, com as tabelas finais, os 25 maiores artilheiros, os campeões de cada copa e o artilheiro de cada competição.",
+    "resposta_jogador": "Seu save continua o mesmo e nada se perde: títulos, históricos e artilharia de todas as temporadas ficam guardados.",
+    "tags": [
+      "save",
+      "historico",
+      "virada"
+    ]
+  },
+  {
+    "id": "03-065",
+    "pergunta": "Como funciona a tela de Artilharia? Tem prêmio de assistência ou melhor jogador?",
+    "variacoes": [
+      "onde vejo os artilheiros",
+      "artilharia so da copa",
+      "tem premio de garçom",
+      "melhor jogador da temporada existe",
+      "defesa menos vazada"
+    ],
+    "resposta": "**Campeonatos → Artilharia** mostra até **20 artilheiros**, com gols e média por jogo. Sem filtro, é a artilharia da temporada (liga + copas); com o chip de uma competição, só os gols dela. Há também os cartões \"Seus marcadores\" e \"Defesas menos vazadas\" (5 clubes que menos sofreram gols na liga).\n\nO **único prêmio individual é o de artilheiro**. Não há prêmio de assistências (o jogo registra, mas não paga), de melhor goleiro nem de melhor jogador.",
+    "resposta_jogador": "Em Campeonatos → Artilharia você vê os 20 maiores goleadores, e pode filtrar por competição. O único prêmio individual do jogo é o de artilheiro.",
+    "tags": [
+      "artilharia",
+      "premios individuais",
+      "campeonatos"
+    ]
+  },
+  {
+    "id": "03-066",
+    "pergunta": "Onde vejo os títulos do clube e do treinador?",
+    "variacoes": [
+      "sala de trofeus",
+      "onde ficam meus titulos",
+      "historia do clube",
+      "titulo nao apareceu",
+      "historico de temporadas do meu time"
+    ],
+    "resposta": "- **Campeonatos → História:** uma linha por temporada do clube na gestão do usuário (ano, divisão, posição, desfecho, copas) e a estante \"Títulos do clube\".\n- **Treinador → Sala de Troféus:** títulos do treinador na carreira, com clube e decisão (placar da final nas copas; campanha nas ligas).\n\nOs títulos também alimentam o **ranking de treinadores**. Cada jogador guarda o próprio histórico (títulos, temporadas, jogos, gols, assistências).",
+    "resposta_jogador": "Os títulos do clube ficam em Campeonatos → História, e os seus títulos como treinador ficam em Treinador → Sala de Troféus.",
+    "tags": [
+      "titulos",
+      "historico",
+      "sala de trofeus"
+    ]
+  },
+  {
+    "id": "03-067",
+    "pergunta": "Quais abas tem a tela de Campeonatos?",
+    "variacoes": [
+      "onde fica a tabela no celular",
+      "menu campeonatos",
+      "aba tabela no celular",
+      "como vejo o calendario",
+      "onde vejo classificação de outra divisao"
+    ],
+    "resposta": "**Campeonatos** (no celular aparece como **\"Tabela\"**):\n\n- **Minhas competições:** cartão por competição com troféu, posição/fase e selo.\n- **Calendário:** temporada inteira do clube; chips filtram por competição.\n- **Classificação:** abre na liga do clube; filtros de divisão, país e copas (grupos).\n- **Artilharia**\n- **História**\n- **Ligas internacionais:** líder e vice de cada liga de fundo (só aparece se houver).",
+    "resposta_jogador": "Em Campeonatos (no celular, \"Tabela\") você encontra suas competições, o calendário, a classificação, a artilharia, a história do clube e as ligas internacionais.",
+    "tags": [
+      "campeonatos",
+      "telas",
+      "navegacao"
+    ]
+  },
+  {
+    "id": "03-068",
+    "pergunta": "Por que a copa aparece como ELIMINADO ou em uma lista separada em Minhas competições?",
+    "variacoes": [
+      "aparece eliminado mas nem joguei",
+      "copa em lista separada",
+      "selo eliminado",
+      "minhas competições nao mostra a libertadores",
+      "aguardando sorteio o que é"
+    ],
+    "resposta": "Em **Minhas competições**:\n\n- copa em que o clube foi eliminado → selo **ELIMINADO**;\n- copas em que o clube **não entrou** → lista separada embaixo, **sem** selo de eliminado.\n\nEntre o fim dos grupos e o sorteio do mata-mata, quem se classificou aparece como **\"aguardando sorteio\"**, não como eliminado. Se um classificado aparecer como eliminado, escale para um dev.",
+    "resposta_jogador": "A lista de baixo mostra as copas que o seu clube não disputa nesta temporada. Se aparece \"aguardando sorteio\", você se classificou e só falta o sorteio da próxima fase.",
+    "tags": [
+      "campeonatos",
+      "eliminado",
+      "telas"
+    ]
+  },
+  {
+    "id": "03-069",
+    "pergunta": "Por que a tela da competição não mostra os grupos ou a chave?",
+    "variacoes": [
+      "grupos da libertadores nao aparecem",
+      "chave da copa em branco",
+      "tela da competição vazia",
+      "no celular so vejo uma fase da chave",
+      "nao aparece o chaveamento"
+    ],
+    "resposta": "A tela de uma competição (botão **Abrir** no cartão) tem visão geral, fase de grupos (2 primeiros destacados), **chave do mata-mata** e \"o seu caminho\".\n\n**Enquanto a cerimônia de sorteio não acontece, ela não mostra grupos nem chave.** No celular, a chave aparece **uma fase por vez**. Na Copa da Federação a chave é montada fase a fase, então as fases futuras ainda não têm confrontos.",
+    "resposta_jogador": "Os grupos e a chave só aparecem depois do sorteio da copa, que acontece dois dias antes da estreia. No celular, a chave mostra uma fase por vez.",
+    "tags": [
+      "campeonatos",
+      "sorteio",
+      "chaveamento"
+    ]
+  },
+  {
+    "id": "03-070",
+    "pergunta": "O que muda nas competições e na temporada no Modo Resenha?",
+    "variacoes": [
+      "resenha tem as mesmas regras?",
+      "multiplayer como funciona a temporada",
+      "quem decide os jogos da cpu na resenha",
+      "modo resenha em breve",
+      "virada de temporada na resenha"
+    ],
+    "resposta": "O **Modo Resenha** aparece como \"Em breve\" na tela inicial, mas as regras já estão no código:\n\n- Resultados entre clubes da CPU são decididos **sempre pelo servidor**, para todos verem o mesmo placar. Jogos de humanos entram com o resultado jogado.\n- A **virada é feita pelo servidor**; cada humano vê o resumo e recebe os prêmios do **próprio** clube.\n- Calendário, formatos, vagas, acesso/rebaixamento, aposentadoria e cotas são **iguais ao Modo Solo**.\n- O dia só avança quando **todos cumprem o seu jogo**.",
+    "resposta_jogador": "O Modo Resenha ainda está chegando. Quando abrir, as regras de campeonatos serão as mesmas do Modo Solo, e o calendário avança quando todos da sala jogarem a sua partida.",
+    "tags": [
+      "modo resenha",
+      "multijogador",
+      "regras"
+    ]
+  }
+]

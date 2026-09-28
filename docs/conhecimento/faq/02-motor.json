@@ -1,0 +1,943 @@
+[
+  {
+    "id": "02-001",
+    "pergunta": "Por que perdi para um time mais fraco?",
+    "variacoes": [
+      "perdi pra time pior que o meu, ta bugado?",
+      "como meu time mais forte levou de um time pequeno",
+      "jogador reclamando que perdeu pra lanterna com time melhor",
+      "pq eu perco pra time ruim toda hora",
+      "time favorito perdendo pra azarao, é normal?",
+      "tomei virada de time fraco, explica isso"
+    ],
+    "resposta": "O motor tem bastante sorte embutida: em laboratório, um time **20% mais forte vence ~72%**, empata ~19% e **perde ~9%** das vezes. Antes de tratar como bug, confira:\n\n1. **Energia**: time a 70% cai muito (e no Modo Solo a CPU está sempre descansada).\n2. **Moral do time abaixo de 50**: corta 15% das três notas.\n3. **Desfalques**: suspenso ou lesionado sai e entra o reserva de maior Força, que pode ser de outra posição.\n4. **Expulsão**: com 10, o time vale 90%.\n5. **Craques comprimidos no motor**: Força 90 vale ~62,5, não o dobro de um 45.\n6. **Mando e clássico**: fora de casa e em clássico o azarão ganha mais.",
+    "resposta_jogador": "Futebol tem zebra, e o RetroFoot também: mesmo um time bem mais forte perde cerca de 1 em cada 10 jogos. Vale conferir a energia e a moral do elenco, se algum titular estava suspenso ou lesionado e se o jogo era fora de casa ou clássico, porque tudo isso pesa bastante.",
+    "tags": ["motor", "resultado", "sorte", "forca"]
+  },
+  {
+    "id": "02-002",
+    "pergunta": "Qual é a melhor formação ou tática?",
+    "variacoes": [
+      "qual a formacao mais forte do jogo",
+      "qual tatica ganha mais",
+      "existe esquema apelao?",
+      "melhor esquema pra subir de divisao",
+      "4-5-1 ou 4-3-3, qual é melhor",
+      "tem alguma tatica meta?"
+    ],
+    "resposta": "**Nenhuma é a melhor.** Com times iguais e postura equilibrada (3.000 partidas cada), as formações vencem entre ~32% e ~39%: 4-5-1 39% · 4-4-2 38% · 3-4-3 37% · 4-3-3 34% · 3-3-4 33% · 4-2-4 32%. Entre posturas (os dois em 4-3-3): Ofensivo × Equilibrado 37/29/35, Ofensivo × Retranca 35/30/35, Retranca × Equilibrado 37/31/32.\n\nA formação é **troca de estilo**: ofensivas marcam e sofrem mais, defensivas sofrem menos e marcam menos. O que decide é a qualidade e o estado (energia/moral) do elenco: um time 20% mais forte vence ~72%.",
+    "resposta_jogador": "Não existe formação mágica: todas ficam bem próximas quando os times são iguais. Formações ofensivas deixam o jogo mais aberto (mais gols dos dois lados) e as defensivas fecham o jogo. O que mais decide é a qualidade do elenco e a energia e moral dos jogadores.",
+    "tags": ["tatica", "formacao", "motor"]
+  },
+  {
+    "id": "02-003",
+    "pergunta": "Onde escolho jogar no Ofensivo, Equilibrado ou Retranca?",
+    "variacoes": [
+      "nao acho o botao de tatica ofensiva",
+      "como coloco o time na retranca",
+      "cade o seletor de postura",
+      "onde muda a tatica do time",
+      "quero jogar no ataque, onde configura?"
+    ],
+    "resposta": "Não há seletor separado: **a postura sai da formação**.\n\n- **Ofensivo**: 3-3-4 (F1) e 4-2-4 (F3), as formações com 4 atacantes.\n- **Retranca**: 4-5-1 (F6), a de 1 atacante.\n- **Equilibrado**: 3-4-3 (F2), 4-3-3 (F4), 4-4-2 (F5) e o botão **Auto**.\n\nNa página **Formação**, cada pastilha tem uma régua de três tarjas (Retranca / Equilibrado / Ofensivo) com a postura acesa. No Modo Camarote aparece como, por exemplo, Sua tática: 4-4-2 Equilibrado.",
+    "resposta_jogador": "A tática vem junto com a formação: 3-3-4 e 4-2-4 jogam no Ofensivo, 4-5-1 joga na Retranca, e 3-4-3, 4-3-3 e 4-4-2 jogam no Equilibrado. Na tela de Formação, a régua embaixo de cada formação mostra qual postura ela liga.",
+    "tags": ["tatica", "formacao", "interface"]
+  },
+  {
+    "id": "02-004",
+    "pergunta": "O 3-3-4 só dá goleada? A tática ofensiva é apelona?",
+    "variacoes": [
+      "3-3-4 ta roubado, so ganho de goleada",
+      "ofensivo virou botao de vitoria",
+      "vi no grupo que o 334 é apelao",
+      "tatica ofensiva quebrada",
+      "jogador diz que ofensivo ganha sempre"
+    ],
+    "resposta": "Isso era verdade **só na versão antiga**. Até 21/08/2026 o Ofensivo não tinha custo defensivo e virou um botão de vitória (82% contra o Equilibrado). Foi corrigido e está em produção: hoje o Ofensivo tem ataque ×1,04 mas **defesa ×0,80**.\n\nMedição atual com times iguais: Ofensivo × Equilibrado = 37% vitórias, 29% empates, 35% derrotas. O 3-3-4 vence ~33% com times iguais. Se alguém citar goleadas garantidas, é relato da versão anterior. Se o usuário insistir que ainda acontece hoje com times equivalentes, vale escalar para um dev com o caso.",
+    "resposta_jogador": "Isso acontecia numa versão antiga e já foi corrigido. Hoje o esquema ofensivo ataca mais, mas também deixa a defesa mais exposta, então ele não garante vitória.",
+    "tags": ["tatica", "ofensivo", "historico", "formacao"]
+  },
+  {
+    "id": "02-005",
+    "pergunta": "Quais formações existem no jogo?",
+    "variacoes": [
+      "quantas formacoes tem",
+      "da pra jogar de 3-5-2?",
+      "lista de esquemas taticos disponiveis",
+      "atalho de teclado das formacoes",
+      "quais esquemas posso usar"
+    ],
+    "resposta": "São **seis formações**, sempre com 1 goleiro:\n\n| Formação | Tecla | Postura |\n|---|---|---|\n| 3-3-4 | F1 | Ofensivo |\n| 3-4-3 | F2 | Equilibrado |\n| 4-2-4 | F3 | Ofensivo |\n| 4-3-3 | F4 | Equilibrado |\n| 4-4-2 | F5 | Equilibrado |\n| 4-5-1 | F6 | Retranca |\n\nHá também os atalhos **Auto** (tecla A) e **11+ (Melhores)**. Não há outras formações (como 3-5-2). Ficam na página **Formação**, abaixo do campo; no celular, na aba Formação.",
+    "resposta_jogador": "O jogo tem seis formações: 3-3-4, 3-4-3, 4-2-4, 4-3-3, 4-4-2 e 4-5-1. Você escolhe na tela de Formação, abaixo do campo (no computador também dá para usar as teclas F1 a F6).",
+    "tags": ["formacao", "interface"]
+  },
+  {
+    "id": "02-006",
+    "pergunta": "O que a formação muda de verdade na partida?",
+    "variacoes": [
+      "mais atacante faz diferenca?",
+      "como a formacao afeta o motor",
+      "o que muda botar 4 zagueiro ou 3",
+      "formacao influencia no resultado?",
+      "efeito do esquema tatico no jogo"
+    ],
+    "resposta": "A formação ajusta as notas do time pela **contagem real de jogadores por setor**, com o 4-3-3 como referência neutra:\n\n- cada **atacante a mais** que 3: ataque +4,5% e defesa −4,0%;\n- cada **zagueiro a mais** que 4: defesa +1,0% e ataque −1,0%;\n- cada **meia a mais** que 3: meio-campo +0,5% e um pequeno bônus de posse.\n\nSomado a isso vem o efeito da postura (Ofensivo/Retranca). Resultado: mais atacantes = jogo aberto, mais gols dos dois lados; mais zagueiros e meias = jogo fechado. É troca de estilo, não botão de vitória.",
+    "resposta_jogador": "A formação muda o estilo do jogo: mais atacantes deixam a partida mais aberta, com mais gols para os dois lados, e mais zagueiros e meias deixam o jogo mais fechado. Ela não garante vitória sozinha.",
+    "tags": ["formacao", "motor", "tatica"]
+  },
+  {
+    "id": "02-007",
+    "pergunta": "Colocar mais jogadores no ataque deixa o time mais forte?",
+    "variacoes": [
+      "botei 4 atacante e o ataque ficou mais fraco",
+      "por que 4-2-4 tem ataque menor que 4-5-1",
+      "mais gente no setor soma forca?",
+      "nota de ataque caiu quando coloquei mais um atacante",
+      "setor sem ninguem, o que acontece"
+    ],
+    "resposta": "Não necessariamente. As notas de setor são **médias, não somas**: ataque = média dos atacantes, meio = média dos meias, defesa = 35% goleiro + 65% média dos zagueiros. Colocar um jogador extra mais fraco **baixa a média**. Um 4-2-4 com o 4º atacante fraco tem ataque médio menor que um 4-5-1 só com o craque na frente (o bônus de formação de +4,5% por atacante vem por cima, mas não compensa um jogador muito pior).\n\nSetor vazio (nenhum jogador daquela posição) vale **28**, o que é muito baixo.",
+    "resposta_jogador": "O jogo usa a média de cada setor, não a soma. Então colocar mais um atacante mais fraco pode até baixar a força do seu ataque. Vale mais escalar poucos jogadores bons do que muitos medianos no mesmo setor.",
+    "tags": ["formacao", "forca", "setores"]
+  },
+  {
+    "id": "02-008",
+    "pergunta": "O que faz o botão Auto na escalação?",
+    "variacoes": [
+      "botao auto escala como?",
+      "escalacao automatica usa qual formacao",
+      "apertei A e mudou tudo",
+      "o auto escolhe tatica ofensiva?",
+      "como funciona a escalação automatica"
+    ],
+    "resposta": "O **Auto (tecla A)** monta a escalação sozinho: pega o **melhor goleiro, os 4 melhores zagueiros, os 3 melhores meias e os 3 melhores atacantes disponíveis** pela Força, ou seja, um 4-3-3, e põe a postura **Equilibrado**. Ele ignora a formação que estava escolhida antes.\n\nSe a ideia é manter a formação atual e só trocar os nomes pelos mais fortes, o botão certo é o **11+ (Melhores)**.",
+    "resposta_jogador": "O botão Auto escala um 4-3-3 com os melhores jogadores disponíveis de cada posição e deixa o time no Equilibrado. Se quiser manter a sua formação e só colocar os mais fortes, use o botão 11+ (Melhores).",
+    "tags": ["escalacao", "auto", "formacao"]
+  },
+  {
+    "id": "02-009",
+    "pergunta": "O que faz o botão 11+ (Melhores)?",
+    "variacoes": [
+      "botao 11+ pra que serve",
+      "melhores 11 muda minha formacao?",
+      "como botar os mais fortes sem mudar esquema",
+      "11 mais forte automatico",
+      "diferenca entre auto e 11+"
+    ],
+    "resposta": "O **11+ (Melhores)** mantém a formação já escolhida e troca os nomes pelos **mais fortes de cada posição**. Se nenhuma formação tinha sido escolhida, o jogo escolhe a formação que dá o onze mais forte possível; no empate, fica a mais parecida com o 4-4-2.\n\nDiferença para o **Auto**: o Auto sempre monta um 4-3-3 Equilibrado; o 11+ respeita a formação (e portanto a postura) atual.",
+    "resposta_jogador": "O 11+ mantém a formação que você escolheu e coloca os jogadores mais fortes de cada posição. Já o Auto monta sempre um 4-3-3 equilibrado.",
+    "tags": ["escalacao", "formacao", "interface"]
+  },
+  {
+    "id": "02-010",
+    "pergunta": "Por que apareceu o aviso Sem jogadores pro X, ajustado pra Y?",
+    "variacoes": [
+      "escolhi 4-5-1 e o jogo trocou a formacao sozinho",
+      "mensagem ajustado pra outra formacao",
+      "formacao mudou sozinha",
+      "nao deixa escolher 3-3-4",
+      "sem jogadores pro esquema, o que significa"
+    ],
+    "resposta": "O elenco não tem jogadores **suficientes naquela posição** para a formação escolhida (por exemplo, 4-5-1 sem 5 meias disponíveis). O jogo então **ajusta sozinho para a formação mais parecida** que o elenco comporta e mostra o aviso Sem jogadores pro X, ajustado pra Y.\n\nSuspensos e lesionados não contam como disponíveis. Solução: contratar ou recuperar jogadores daquela posição, ou escolher outra formação.",
+    "resposta_jogador": "Esse aviso aparece quando o elenco não tem jogadores suficientes na posição que a formação pede (por exemplo, 5 meias no 4-5-1). O jogo troca para a formação mais parecida que dá para montar. Contratando mais jogadores da posição, a formação volta a ficar disponível.",
+    "tags": ["formacao", "elenco", "aviso"]
+  },
+  {
+    "id": "02-011",
+    "pergunta": "Por que o botão Jogar não libera?",
+    "variacoes": [
+      "botao jogar cinza",
+      "nao consigo comecar a partida",
+      "jogar travado, nao clica",
+      "diz que falta goleiro",
+      "escalei dois goleiros e nao deixa jogar"
+    ],
+    "resposta": "Para liberar o **Jogar**, três coisas precisam estar certas:\n\n1. uma **formação/tática escolhida**;\n2. **11 jogadores** no onze;\n3. **exatamente 1 goleiro** (a tela avisa se não houver goleiro ou se houver dois).\n\nSe tudo isso estiver certo e o botão continuar travado, colete prints e escale para um dev.",
+    "resposta_jogador": "O botão Jogar só libera quando há uma formação escolhida, 11 jogadores escalados e exatamente 1 goleiro em campo. Confere esses três pontos na tela de Formação que deve resolver.",
+    "tags": ["escalacao", "interface", "goleiro"]
+  },
+  {
+    "id": "02-012",
+    "pergunta": "Como a CPU escala os times dela e qual tática usa?",
+    "variacoes": [
+      "time do computador joga de que jeito",
+      "cpu usa formacao?",
+      "a ia escala os melhores?",
+      "cpu joga no ofensivo?",
+      "como os adversarios montam o time"
+    ],
+    "resposta": "Os clubes da CPU entram com os **11 jogadores disponíveis de maior Força**, sem montar uma formação específica, e **sempre no Equilibrado**.\n\nNo **Modo Resenha**, o clube de outro treinador humano usa a última escalação e tática que ele publicou; se ele nunca publicou, entra a escalação automática.",
+    "resposta_jogador": "Os times do computador sempre escalam os 11 jogadores mais fortes disponíveis e jogam no esquema equilibrado.",
+    "tags": ["cpu", "escalacao", "tatica"]
+  },
+  {
+    "id": "02-013",
+    "pergunta": "Um jogador de Força 90 vale o dobro de um de Força 45?",
+    "variacoes": [
+      "comprei craque e o time nao melhorou tanto",
+      "forca alta nao faz diferenca?",
+      "time cheio de craque perdendo",
+      "forca do jogador no motor é diferente da tela?",
+      "por que craque 99 nao resolve",
+      "goleiro bom faz diferenca?"
+    ],
+    "resposta": "Não. Para o motor, a Força **acima de 49 é comprimida**, para que um time recheado de craques não fique imbatível:\n\n- **Linha**: até 49 vale igual; acima, conta 1/3 do excedente. Força 60 ≈ 52,6; 70 ≈ 55,9; 82 ≈ 59,9; 90 ≈ 62,5; 99 ≈ 65,5.\n- **Goleiro** (compressão mais leve): 60 ≈ 55,6; 70 ≈ 61,5; 90 ≈ 73,2; 99 ≈ 78,5.\n\nO craque continua sendo o melhor e dá vantagem real, mas moderada. Tela, valor de mercado e salário usam a Força cheia.",
+    "resposta_jogador": "O craque ajuda, mas não resolve sozinho: o jogo reduz o peso das Forças muito altas para nenhum time ficar imbatível. Um goleiro bom é onde essa redução é menor, então ele faz bastante diferença.",
+    "tags": ["forca", "craque", "motor", "goleiro"]
+  },
+  {
+    "id": "02-014",
+    "pergunta": "De onde vem a Força de um jogador?",
+    "variacoes": [
+      "como é calculada a forca",
+      "o que é o numero de forca do elenco",
+      "forca 40 na serie A é bom?",
+      "faixa de forca por divisao",
+      "o que significa craque mundial"
+    ],
+    "resposta": "A **Força** (1 a 99) é a média ponderada dos atributos (1 a 20) do perfil da posição, convertida pela curva da divisão. Pesos principais: atacante = finalização 22, drible 15, velocidade 13; meia = passe 20, visão 16, posicionamento 11; zagueiro = desarme 22, posicionamento 16, cabeceio 14; goleiro = reflexos 34, mãos 30, posicionamento 14.\n\nFaixa do jogador **regular**: Série A 38–49, Série B 25–37, Série C 13–24, Série D 3–12. Acima: Estrela 50–69, Craque Nacional 70–89, Craque Mundial 90–99 (raríssimo: 1 a 3 por liga, só nas primeiras divisões).",
+    "resposta_jogador": "A Força resume os atributos do jogador na posição dele, na escala da divisão. Na Série A um titular comum fica entre 38 e 49; acima de 50 já é estrela, e acima de 90 é Craque Mundial, que é raríssimo.",
+    "tags": ["forca", "atributos", "divisao"]
+  },
+  {
+    "id": "02-015",
+    "pergunta": "Os atributos individuais fazem diferença além da Força?",
+    "variacoes": [
+      "artilheiro nato faz mais gol?",
+      "atributo de finalizacao importa?",
+      "drible e passe mexem no jogo?",
+      "dois jogadores com mesma forca jogam igual?",
+      "reflexo do goleiro conta?"
+    ],
+    "resposta": "Sim. Pesa o atributo **relativo ao nível do próprio jogador**, então um artilheiro nato finaliza melhor que um colega genérico de mesma Força:\n\n- **Drible** dos atacantes: nota de ataque ±10% por jogador;\n- **Passe + Visão** dos meias: meio-campo ±4%;\n- **Desarme + Posicionamento** dos zagueiros: defesa ±10%;\n- **Reflexos + Mãos** do goleiro: ±15%;\n- **Finalização**: peso 0,82 a 1,28 no sorteio de quem faz o gol;\n- **Passe + Visão**: peso 0,80 a 1,30 no sorteio da assistência.",
+    "resposta_jogador": "Fazem sim. Dois jogadores com a mesma Força podem render diferente: um atacante com boa finalização faz mais gols, um goleiro com bons reflexos defende mais, e assim por diante.",
+    "tags": ["atributos", "forca", "motor"]
+  },
+  {
+    "id": "02-016",
+    "pergunta": "Como o jogo calcula a força do time? Por que o meio-campo é tão importante?",
+    "variacoes": [
+      "nota de ataque meio e defesa como calcula",
+      "meio campo forte ganha jogo?",
+      "o que é OS MS DS",
+      "forca do time é soma dos jogadores?",
+      "vale investir em meia?"
+    ],
+    "resposta": "O motor resume o time em três notas, com **quem está em campo** (Força do motor × fator de energia × fator de atributo):\n\n- **Ataque**: média dos atacantes;\n- **Meio-campo**: média dos meias;\n- **Defesa**: 35% goleiro + 65% média dos zagueiros.\n\nDaí saem **índice ofensivo** = 55% ataque + 45% meio e **índice defensivo** = 72% defesa + 28% meio. O meio-campo pesa dos dois lados: ajuda a atacar, a defender e ainda controla a posse. Por isso um meio forte decide muitos jogos. Setor vazio vale 28.",
+    "resposta_jogador": "O jogo calcula uma nota de ataque, uma de meio-campo e uma de defesa com quem está em campo. O meio-campo entra tanto no ataque quanto na defesa e ainda controla a posse, então bons meias fazem muita diferença.",
+    "tags": ["forca", "setores", "meio-campo", "motor"]
+  },
+  {
+    "id": "02-017",
+    "pergunta": "Quanto a energia (cansaço) pesa no resultado?",
+    "variacoes": [
+      "time cansado perde mais?",
+      "energia baixa atrapalha muito?",
+      "jogador com 50% de energia rende quanto",
+      "cansaco importa no jogo",
+      "meu time ta morto de cansado e so perde"
+    ],
+    "resposta": "Pesa **muito**. A energia (0–100%) multiplica a força do jogador por **0,6 + 0,4 × energia**: 100% = força inteira; 70% = 88%; 50% = 80%; 20% (mínimo) = 68%.\n\nMedido: um time inteiro a **70% de energia**, em casa contra um igual descansado, vence só **~21%** (seriam ~42% descansado) e perde ~53%.\n\nA pílula de energia fica debaixo de cada camisa no campo da Formação e na lista do elenco. O botão **Selecionar descansados** monta o onze pela energia.",
+    "resposta_jogador": "O cansaço pesa bastante: um time todo com 70% de energia cai de uns 42% para uns 21% de chance de vitória contra um time igual. Vale rodar o elenco e usar o botão Selecionar descansados na tela de Formação.",
+    "tags": ["energia", "cansaco", "motor"]
+  },
+  {
+    "id": "02-018",
+    "pergunta": "Quanto de energia o jogador gasta e recupera por rodada?",
+    "variacoes": [
+      "quanto cansa cada jogo",
+      "energia recupera como",
+      "jogador que saiu no intervalo cansa?",
+      "energia nunca volta a 100",
+      "quanto tempo pra recuperar energia"
+    ],
+    "resposta": "- **Gasto**: depois de cada rodada, quem entrou em campo perde **12 a 22 pontos**, proporcional aos minutos jogados. Quem saiu no intervalo gasta metade. Esse gasto nunca derruba a energia abaixo de **20%**.\n- **Recuperação**: a cada rodada, **todos** os jogadores recuperam **6 a 16 pontos**, até 100%.\n\nCopa não tem regra própria: o cansaço é aplicado no fechamento da rodada de liga.",
+    "resposta_jogador": "Cada jogo tira de 12 a 22 pontos de energia de quem jogou (metade para quem saiu no intervalo), e toda rodada todos os jogadores recuperam de 6 a 16 pontos. Revezar o time ajuda a manter todo mundo inteiro.",
+    "tags": ["energia", "cansaco", "rodada"]
+  },
+  {
+    "id": "02-019",
+    "pergunta": "O time da CPU nunca cansa?",
+    "variacoes": [
+      "cpu nao perde energia?",
+      "adversario sempre descansado, injusto",
+      "so meu time cansa",
+      "time do computador tem energia infinita",
+      "copa gasta energia?"
+    ],
+    "resposta": "É a regra atual:\n\n- **Modo Solo**: só o elenco do usuário perde energia; os times da CPU jogam sempre descansados.\n- **Modo Resenha**: o servidor aplica o cansaço só aos clubes dos treinadores humanos.\n- Copa não tem regra própria: o cansaço entra no fechamento da rodada de liga.\n\nA equipe investigou mudar isso (CPU também cansar, copa gastar energia) em 27/09 e decidiu **adiar**. Pode registrar o feedback do usuário.",
+    "resposta_jogador": "Hoje é assim mesmo: só os times comandados por pessoas perdem energia. A equipe já está avaliando essa regra, e o seu feedback ajuda. Enquanto isso, rodar o elenco é a melhor forma de chegar inteiro nos jogos.",
+    "tags": ["energia", "cpu", "regra"]
+  },
+  {
+    "id": "02-020",
+    "pergunta": "Como funciona o botão Selecionar descansados?",
+    "variacoes": [
+      "botao descansados sumiu",
+      "como escalo so quem ta com energia",
+      "escalar pela energia",
+      "selecionar descansados nao aparece",
+      "rodizio automatico de jogadores"
+    ],
+    "resposta": "O **Selecionar descansados** refaz o onze **da formação atual** escolhendo quem tem **mais energia** (no empate, mais Força). Ele **só aparece depois que uma formação foi escolhida**. Se não aparece, peça para o usuário escolher uma formação primeiro na página Formação.",
+    "resposta_jogador": "Escolha primeiro uma formação na tela de Formação; aí aparece o botão Selecionar descansados, que monta o time com os jogadores de mais energia dentro dessa formação.",
+    "tags": ["energia", "escalacao", "interface"]
+  },
+  {
+    "id": "02-021",
+    "pergunta": "Como a moral afeta o time na partida?",
+    "variacoes": [
+      "moral baixa atrapalha?",
+      "time desmotivado joga pior",
+      "moral do jogador serve pra que",
+      "atacante com moral baixa perde gol?",
+      "moral 45 é ruim?"
+    ],
+    "resposta": "- **Moral média de quem joga abaixo de 50**: as três notas de setor caem **15%**. Medido: com moral 45, um time igual em casa vence só ~16% (em vez de ~42%).\n- **Moral do finalizador abaixo de 40**: a chance de converter o chute cai **pela metade**.\n- No pênalti: ±1,2 ponto percentual a cada 10 de moral acima ou abaixo de 70.\n\nA moral vai de 0 a 100 e, toda rodada, anda 8% em direção a 70.",
+    "resposta_jogador": "A moral pesa bastante: se a média do time fica abaixo de 50, o rendimento cai 15%, e atacante com moral muito baixa desperdiça metade das chances. Vitórias e gols levantam a moral, e com o tempo ela volta sozinha para perto de 70.",
+    "tags": ["moral", "motor"]
+  },
+  {
+    "id": "02-022",
+    "pergunta": "O que faz a moral dos jogadores subir ou cair?",
+    "variacoes": [
+      "como aumentar a moral do time",
+      "moral caiu do nada",
+      "quanto de moral ganha com vitoria",
+      "gol aumenta moral?",
+      "moral volta ao normal sozinha?"
+    ],
+    "resposta": "Depois do jogo, para todo mundo que entrou em campo (mesmo por poucos minutos):\n\n- vitória **+8**, empate **+1**, derrota **−8**;\n- cada gol: **+6** para o autor;\n- vermelho: **−8** para o expulso; lesão: **−5** para o lesionado.\n\nPromessas de contrato: **Jogador Chave** que não começa jogando perde 8; **Titular Regular**, 4. Toda rodada a moral de todos anda **8% em direção a 70**. A coletiva de imprensa também pode mexer na moral (tratada em outra seção).",
+    "resposta_jogador": "Vitórias (+8), gols (+6 para quem marca) e até empates (+1) levantam a moral; derrotas, expulsões e lesões derrubam. Jogadores com promessa de titularidade também ficam chateados se começarem no banco. Com o tempo, a moral volta sozinha para perto de 70.",
+    "tags": ["moral", "contrato", "rodada"]
+  },
+  {
+    "id": "02-023",
+    "pergunta": "Por que o jogador que escalei não entrou em campo?",
+    "variacoes": [
+      "escalei fulano e ele nao jogou",
+      "jogador sumiu da escalacao",
+      "entrou outro no lugar do meu titular",
+      "zagueiro jogando de atacante sozinho",
+      "o jogo trocou meu jogador sem eu pedir"
+    ],
+    "resposta": "Ele estava **suspenso** (vermelho na partida anterior) ou **lesionado**. Suspenso ou lesionado **nunca entra**: o motor o tira e completa o time com o **reserva disponível de maior Força, sem olhar a posição** (por isso às vezes um zagueiro aparece no lugar de um atacante).\n\nNo **Modo Resenha**, outra causa: a escalação não foi confirmada a tempo e entrou a **última publicada** (ou a automática, se nunca publicou).",
+    "resposta_jogador": "Provavelmente ele estava suspenso ou lesionado: nesses casos o jogo coloca automaticamente o reserva mais forte disponível, mesmo de outra posição. No Modo Resenha também pode ser que a escalação não tenha sido confirmada a tempo e tenha valido a anterior.",
+    "tags": ["escalacao", "suspensao", "lesao"]
+  },
+  {
+    "id": "02-024",
+    "pergunta": "Amarelos acumulam suspensão?",
+    "variacoes": [
+      "jogador levou 3 amarelo e nao foi suspenso",
+      "tem suspensao por cartao amarelo",
+      "pendurado existe?",
+      "quantos amarelos pra ficar fora",
+      "acumulo de cartao nao funciona"
+    ],
+    "resposta": "Não. O jogo **não tem suspensão por acúmulo de amarelos**: conta os amarelos nas estatísticas, mas não há regra de 3 amarelos = suspenso. Só o **vermelho** (direto ou por 2 amarelos na mesma partida) suspende, por **1 partida**. Não é bug.",
+    "resposta_jogador": "No RetroFoot o amarelo não acumula suspensão. Só o vermelho (direto ou por dois amarelos no mesmo jogo) tira o jogador da partida seguinte.",
+    "tags": ["cartoes", "suspensao", "regra"]
+  },
+  {
+    "id": "02-025",
+    "pergunta": "Quantos jogos de suspensão dá um cartão vermelho?",
+    "variacoes": [
+      "expulso fica quantas rodadas fora",
+      "vermelho suspende por quanto tempo",
+      "segundo amarelo suspende?",
+      "jogador expulso volta quando",
+      "vermelho direto é mais jogo de gancho?"
+    ],
+    "resposta": "**1 partida**, tanto no vermelho direto quanto no segundo amarelo. A suspensão diminui uma partida por rodada cumprida. Além disso, o expulso perde **8 de moral** e leva **−1,4** na nota da partida. Vermelho direto são 3,5% dos cartões. Amarelos não acumulam suspensão.",
+    "resposta_jogador": "O cartão vermelho, direto ou por dois amarelos, deixa o jogador fora da partida seguinte. Depois disso ele volta normalmente.",
+    "tags": ["cartoes", "suspensao", "vermelho"]
+  },
+  {
+    "id": "02-026",
+    "pergunta": "Quanto tempo um jogador lesionado fica fora?",
+    "variacoes": [
+      "lesao dura quantas rodadas",
+      "jogador machucado volta quando",
+      "lesao grave quanto tempo",
+      "machucou e nao perdeu jogo nenhum, normal?",
+      "tempo de recuperacao de contusao"
+    ],
+    "resposta": "- **30% das lesões são graves**: 2 a 4 partidas fora.\n- **70% são leves**: metade não tira o jogador de nenhuma partida (só do jogo em que aconteceu) e a outra metade tira de **1 partida**.\n\nA lesão diminui uma partida por rodada cumprida. O lesionado também perde 5 de moral e leva −0,8 na nota.",
+    "resposta_jogador": "A maioria das lesões é leve e tira o jogador de no máximo uma partida. As graves (cerca de 3 em cada 10) deixam o jogador de 2 a 4 jogos fora.",
+    "tags": ["lesao", "desfalque"]
+  },
+  {
+    "id": "02-027",
+    "pergunta": "Por que alguns jogadores se machucam mais do que outros?",
+    "variacoes": [
+      "meu jogador vive machucado",
+      "comportamento influencia lesao?",
+      "jogador de vidro",
+      "quem se machuca mais no jogo",
+      "discreto se lesiona muito"
+    ],
+    "resposta": "O **comportamento** do jogador pesa na chance de lesão. Chance relativa: **Discreto ×1,6**; Casca-Grossa ×1,1; Brigão ×1,05; Encrenqueiro ×1,0; Exemplar ×0,85; **Manso ×0,55**.\n\nA chance básica é baixa: 0,26% por minuto sem finalização nem cartão, o que dá cerca de **1 lesão a cada 4–5 partidas** (dos dois times somados), metade para cada lado.",
+    "resposta_jogador": "O perfil de comportamento do jogador influencia: jogadores Discretos se machucam mais e os Mansos, menos. Em média acontece uma lesão a cada 4 ou 5 partidas.",
+    "tags": ["lesao", "comportamento"]
+  },
+  {
+    "id": "02-028",
+    "pergunta": "Quem leva mais cartão no jogo?",
+    "variacoes": [
+      "meu zagueiro leva cartao todo jogo",
+      "comportamento aumenta cartao?",
+      "goleiro leva cartao?",
+      "chance de cartao por partida",
+      "casca grossa vive tomando amarelo"
+    ],
+    "resposta": "A cada minuto sem finalização há **2,2%** de chance de falta com cartão, sempre cometida pelo time **sem** a posse (média ~1,8 amarelo e ~0,16 vermelho por partida).\n\nQuem leva: sorteio entre jogadores de linha (**goleiro nunca**). Jogadores **mais fracos levam mais** (peso = 110 − Força), multiplicado pelo comportamento: Casca-Grossa ×3,2; Brigão ×2,4; Encrenqueiro ×1,7; Discreto ×1,0; Manso ×0,75; Exemplar ×0,4.",
+    "resposta_jogador": "Jogadores mais fracos e com comportamento Casca-Grossa, Brigão ou Encrenqueiro levam bem mais cartões. Os Exemplares quase não levam, e goleiro nunca leva cartão.",
+    "tags": ["cartoes", "comportamento"]
+  },
+  {
+    "id": "02-029",
+    "pergunta": "Quanto o time perde jogando com um a menos?",
+    "variacoes": [
+      "fiquei com 10 e tomei virada",
+      "expulsao atrapalha muito?",
+      "time com 9 jogadores",
+      "jogar com menos gente pesa quanto",
+      "um a menos em campo, efeito"
+    ],
+    "resposta": "As três notas de setor caem: **10 em campo = 90%**; **9 = 78%**; **8 ou menos = 65%**.\n\nNa lesão sem substituições restantes o time também segue com um a menos. Na expulsão, o time **continua com 10** mesmo se o treinador reorganizar (a reorganização só troca quem está em campo).",
+    "resposta_jogador": "Com um a menos o time rende cerca de 90% do normal, com dois a menos cerca de 78%. É uma desvantagem grande, então expulsões pesam bastante no resultado.",
+    "tags": ["cartoes", "expulsao", "motor"]
+  },
+  {
+    "id": "02-030",
+    "pergunta": "Jogar em casa faz diferença?",
+    "variacoes": [
+      "mando de campo existe?",
+      "fator casa no jogo",
+      "estadio grande ajuda?",
+      "por que perco tanto fora",
+      "vantagem do mandante quanto é"
+    ],
+    "resposta": "Sim, pequena. O mandante recebe um empurrão na posse entre **0,007 e 0,016**, que cresce com o tamanho do estádio (de 8 mil a 75 mil lugares).\n\nMedido com times iguais: estádio médio (20 mil) = mandante vence ~42%, empata ~29%, perde ~28%. Estádio de 75 mil = mandante vence ~47%.\n\nNo Modo Solo o tamanho usado é estimado pelo **porte do clube**; no Modo Resenha, sempre pela estimativa do porte, para todos os clientes chegarem à mesma conta.",
+    "resposta_jogador": "Jogar em casa ajuda um pouco, e mais ainda em clubes grandes: entre times iguais, o mandante vence cerca de 42 a 47% das vezes.",
+    "tags": ["mando", "estadio", "motor"]
+  },
+  {
+    "id": "02-031",
+    "pergunta": "Ampliar o estádio aumenta a vantagem de jogar em casa?",
+    "variacoes": [
+      "expandi o estadio e o mando melhorou?",
+      "estadio maior da mais forca em casa",
+      "aumentar capacidade ajuda a ganhar",
+      "obra no estadio muda o fator casa",
+      "vale a pena expandir estadio pra ganhar jogo"
+    ],
+    "resposta": "**Incerto.** No Modo Solo o motor estima o tamanho do estádio pelo **porte do clube** (overall). Não ficou claro no código se a expansão feita pelo usuário entra na conta: o ramo que leria o estádio do usuário usa um campo antigo, marcado como aposentado, e cai na estimativa pelo porte. No Modo Resenha, é sempre a estimativa pelo porte.\n\nNão prometa efeito em campo. Se o usuário insistir, **escale para um dev**. O que é certo: público e preço do ingresso afetam só a bilheteria.",
+    "resposta_jogador": "Boa pergunta! Não temos confirmação de que a ampliação do estádio muda a vantagem de jogar em casa; o que é garantido é o efeito na bilheteria. Vou verificar com a equipe técnica e te retorno.",
+    "tags": ["mando", "estadio", "incerto"]
+  },
+  {
+    "id": "02-032",
+    "pergunta": "Público e preço do ingresso mudam a força do time em campo?",
+    "variacoes": [
+      "ingresso barato ajuda a ganhar?",
+      "estadio lotado da mais forca",
+      "torcida influencia no resultado",
+      "publico grande empurra o time?",
+      "preco do ingresso afeta a partida"
+    ],
+    "resposta": "**Não.** Público e preço do ingresso **não mudam a força em campo**: afetam só a bilheteria (finanças). O que o motor usa para o mando é o tamanho estimado do estádio (0,007 a 0,016 de empurrão na posse), não o público do dia.",
+    "resposta_jogador": "O público e o preço do ingresso mexem só no dinheiro da bilheteria, não na força do time em campo.",
+    "tags": ["mando", "publico", "financas"]
+  },
+  {
+    "id": "02-033",
+    "pergunta": "Clássico tem regra diferente?",
+    "variacoes": [
+      "classico é mais dificil?",
+      "fla-flu tem mais zebra",
+      "derby muda alguma coisa",
+      "gre-nal é mais imprevisivel no jogo",
+      "partida decisiva tem bonus?"
+    ],
+    "resposta": "Sim. Nos clássicos cadastrados o sorteio de cada minuto fica **18% mais nervoso** (mais variação). A força não muda, mas o jogo fica menos previsível e **o azarão ganha mais vezes**. Lista inclui Fla-Flu, Flamengo × Vasco, Flamengo × Botafogo, Fluminense × Vasco, Botafogo × Vasco, clássicos paulistas (Corinthians, Palmeiras, São Paulo, Santos), Gre-Nal, Atlético × Cruzeiro, Ba-Vi e clássicos europeus (Real × Barcelona, Milan × Inter, Benfica × Porto etc.).\n\nExiste no motor uma marca de partida decisiva (+12% de variação), mas **nenhuma tela a liga hoje**; na prática não atua.",
+    "resposta_jogador": "Sim! Nos clássicos o jogo fica mais imprevisível e o time mais fraco tem mais chance de surpreender, como no futebol de verdade.",
+    "tags": ["classico", "sorte", "motor"]
+  },
+  {
+    "id": "02-034",
+    "pergunta": "Como o jogo decide se sai gol?",
+    "variacoes": [
+      "como funciona o motor de gol",
+      "chance de gol por chute",
+      "quem chuta no jogo",
+      "zagueiro pode fazer gol?",
+      "por que meu time finaliza e nao marca"
+    ],
+    "resposta": "Minuto a minuto, um ponteiro de posse anda entre os campos. Quando passa de **0,58** para o lado de um time, pode sair um chute (até **28% por minuto**, maior quanto mais perto do gol).\n\n- **Pênalti**: 2,5% das finalizações.\n- **Quem chuta**: sorteio entre **atacantes e meias** (Força × fator de finalização). Zagueiro e goleiro só finalizam se não houver atacante nem meia em campo.\n- **Vira gol?** Base 52%, ajustada pelo índice ofensivo de quem ataca contra o defensivo de quem defende; sempre entre **8% e 85%**. Finalizador com moral abaixo de 40: metade.\n\nMédia entre times iguais: ~2,1 gols e ~4 finalizações perigosas por partida.",
+    "resposta_jogador": "O jogo simula minuto a minuto: o time que domina chega mais perto do gol e finaliza mais, e a chance de cada chute virar gol depende do ataque de um contra a defesa do outro. Quem finaliza são os atacantes e meias.",
+    "tags": ["gols", "motor", "finalizacao"]
+  },
+  {
+    "id": "02-035",
+    "pergunta": "Como são escolhidas as assistências?",
+    "variacoes": [
+      "quem da assistencia no jogo",
+      "meu meia nunca da assistencia",
+      "gol de penalti tem assistencia?",
+      "goleiro pode dar assistencia",
+      "como o jogo sorteia o garcom"
+    ],
+    "resposta": "**68% dos gols têm assistência** (nunca em gol de pênalti; goleiro não dá assistência). O motor reparte por setor, mirando **meio-campo 47,5%**, **ataque 32,5%** e **defesa 20%**. Dentro do setor, quem tem mais Força e mais passe/visão assiste mais (peso 0,80 a 1,30).",
+    "resposta_jogador": "Cerca de dois terços dos gols têm assistência, e quase metade delas sai dos meias. Jogadores com bom passe e visão dão mais assistências.",
+    "tags": ["gols", "assistencia", "estatisticas"]
+  },
+  {
+    "id": "02-036",
+    "pergunta": "Chute na trave e defesa do goleiro são decididos pelo motor?",
+    "variacoes": [
+      "bola na trave é sorteio?",
+      "goleiro defendeu tudo, é real?",
+      "estatistica de defesa do goleiro",
+      "chute pra fora conta como finalizacao",
+      "narração da trave muda alguma coisa"
+    ],
+    "resposta": "Não exatamente. O motor registra só **chance perdida**. A narração e as estatísticas é que dividem a chance perdida em **defesa do goleiro (46%)**, **na trave (10%)** ou **para fora (44%)**, de forma fixa para aquele lance. É apresentação: a qualidade do goleiro já pesou antes, na chance de conversão (reflexos + mãos ajustam a defesa em ±15%).",
+    "resposta_jogador": "A qualidade do goleiro já entra na chance do chute virar gol. Quando não vira, a narração mostra se foi defesa, trave ou para fora, mas isso é só a forma de contar o lance.",
+    "tags": ["gols", "narracao", "estatisticas"]
+  },
+  {
+    "id": "02-037",
+    "pergunta": "Quantos gols, cartões e 0 × 0 são normais por partida?",
+    "variacoes": [
+      "media de gols do jogo",
+      "muito 0x0 no jogo, é normal?",
+      "poucos gols por partida",
+      "quantos cartoes por jogo em media",
+      "numeros tipicos de uma partida"
+    ],
+    "resposta": "Partida típica entre times iguais (laboratório, 6.000 partidas):\n\n- ~**2,1 gols** no total;\n- ~**4 finalizações perigosas** somando os dois times;\n- ~**1,8 amarelo** e **0,16 vermelho**;\n- ~**1 lesão a cada 4–5 partidas**;\n- ~**1 pênalti a cada 10 partidas**, convertido em ~75%;\n- **10–12%** dos jogos terminam 0 × 0.\n\nSão ordens de grandeza com times sintéticos, não promessa para um jogo específico.",
+    "resposta_jogador": "Em média sai pouco mais de 2 gols por partida, e cerca de 1 em cada 10 jogos termina 0 × 0, bem parecido com o futebol real.",
+    "tags": ["estatisticas", "gols", "motor"]
+  },
+  {
+    "id": "02-038",
+    "pergunta": "Pênalti é sorteio 50/50?",
+    "variacoes": [
+      "chance de converter penalti",
+      "meu atacante perde todo penalti",
+      "penalti é aleatorio?",
+      "goleiro batendo penalti",
+      "o que influencia no penalti"
+    ],
+    "resposta": "Não. No pênalti simulado a base é **76%**, somando:\n\n- Força do batedor: ±3,5 p.p. a cada 10 pontos acima/abaixo de 70;\n- posição: atacante +5, meia +2, zagueiro −2, **goleiro −8** p.p.;\n- goleiro rival: −2,2 p.p. a cada 10 de Força acima de 65;\n- moral: ±1,2 p.p. a cada 10 em relação a 70.\n\nFica sempre entre **42% e 93%**. Quando **o treinador escolhe o batedor** (modal ao vivo ou disputa), piso **72%**, teto **95%**, e **escolher o canto dá +6 p.p.** Nunca é garantido.",
+    "resposta_jogador": "Não é 50/50: depende do batedor (Força, posição e moral) e do goleiro adversário. Quando você mesmo escolhe o batedor e o canto, a chance fica entre 72% e 95%. Evite deixar zagueiro ou goleiro bater.",
+    "tags": ["penalti", "motor", "sorte"]
+  },
+  {
+    "id": "02-039",
+    "pergunta": "Quem bate o pênalti? Dá para definir capitão ou cobrador fixo?",
+    "variacoes": [
+      "como escolho o batedor de penalti",
+      "tem cobrador oficial?",
+      "capitao do time onde define",
+      "batedor fixo de falta e penalti",
+      "o jogo escolheu o batedor sozinho"
+    ],
+    "resposta": "**Capitão e cobradores fixos não existem** no jogo. O batedor é escolhido na hora:\n\n- **Pênalti a favor ao vivo**: abre um painel de **10 segundos**; já vem marcado o jogador **de maior Força em campo**, e se o tempo acabar é ele quem bate.\n- **CPU**: sorteio pela Força com preferência por atacante (×1,3) e meia (×1,1).\n\nSó pode bater quem **está em campo** naquele momento: expulsos e substituídos não aparecem.",
+    "resposta_jogador": "O jogo não tem capitão nem cobrador fixo. Quando sai um pênalti a seu favor na partida ao vivo, abre uma janela de 10 segundos para você escolher o batedor e o canto; se não escolher, bate o jogador mais forte em campo.",
+    "tags": ["penalti", "batedor", "capitao"]
+  },
+  {
+    "id": "02-040",
+    "pergunta": "Como funciona a prorrogação nas copas?",
+    "variacoes": [
+      "empatou na copa, e agora",
+      "tem prorrogacao no jogo?",
+      "copa tem jogo de volta?",
+      "mata-mata ida e volta",
+      "como é a tela vamos para a prorrogacao"
+    ],
+    "resposta": "Os mata-matas das copas são sempre **jogo único** (sem ida e volta). Empatou nos 90 minutos, jogando ao vivo:\n\n1. Aparece **Vamos para a prorrogação**, com a energia dos 4 titulares mais cansados e as trocas restantes. Dá para fazer uma substituição antes.\n2. **30 minutos** (dois tempos de 15) + 1 a 3 de acréscimo, na **mesma partida**: quem está em campo, cartões e trocas usadas continuam valendo.\n3. Persistindo o empate, vem a **disputa de pênaltis ao vivo**.",
+    "resposta_jogador": "As copas são em jogo único. Se empatar, tem prorrogação de 30 minutos na mesma partida (com chance de fazer uma troca antes) e, se continuar empatado, disputa de pênaltis em que você escolhe os batedores.",
+    "tags": ["prorrogacao", "copa", "mata-mata"]
+  },
+  {
+    "id": "02-041",
+    "pergunta": "Como funciona a disputa de pênaltis?",
+    "variacoes": [
+      "decisao por penaltis como funciona",
+      "posso escolher os batedores na disputa",
+      "botao simular o resto",
+      "mesmo jogador bateu duas vezes",
+      "morte subita nos penaltis"
+    ],
+    "resposta": "Ao vivo: **5 cobranças alternadas** por time e depois **morte súbita**; acaba assim que um lado não tem mais como alcançar o outro. O treinador escolhe cada batedor (**10 segundos** por cobrança; se não escolher, bate o pré-selecionado). O botão **Simular o resto** passa a bater automaticamente. O adversário escolhe pelo motor.\n\nUm jogador só bate de novo **depois que todos os outros do time já bateram**. Com batedor escolhido por gente, a conversão fica entre 72% e 95% (+6 p.p. escolhendo o canto).",
+    "resposta_jogador": "São 5 cobranças para cada lado e depois morte súbita. Você escolhe cada batedor (tem 10 segundos) e pode usar o botão Simular o resto para o jogo decidir por você. Um jogador só repete a cobrança depois que todos os outros já bateram.",
+    "tags": ["penalti", "disputa", "copa"]
+  },
+  {
+    "id": "02-042",
+    "pergunta": "A prorrogação diz que tenho 4 substituições, mas a 4ª não funciona. É bug?",
+    "variacoes": [
+      "nao consegui fazer a quarta troca na prorrogacao",
+      "troca extra da prorrogacao nao funciona",
+      "maximo de 3 substituicoes mesmo na prorrogacao",
+      "tela promete 4 trocas",
+      "bug da substituicao extra"
+    ],
+    "resposta": "**Sim, a reclamação procede.** Divergência conhecida: a tela da prorrogação diz que ela libera uma troca extra (4 no total), mas o código que executa a substituição continua bloqueando em **3** (mensagem Máximo de 3 substituições.). Na prática a 4ª troca **não funciona hoje**.\n\n**Encaminhar como bug** para um dev, com o relato do usuário.",
+    "resposta_jogador": "Você tem razão, obrigado pelo aviso! A tela promete uma quarta troca na prorrogação, mas hoje o limite continua em 3. Já passamos para a equipe técnica corrigir.",
+    "tags": ["prorrogacao", "substituicoes", "bug"]
+  },
+  {
+    "id": "02-043",
+    "pergunta": "Como é decidido o mata-mata que empata quando ninguém assiste a partida?",
+    "variacoes": [
+      "copa simulada sem assistir teve penaltis",
+      "prorrogacao em segundo plano",
+      "jogo de copa que nao vi decidiu nos penaltis",
+      "como a cpu decide empate na copa",
+      "resultado de mata-mata simulado"
+    ],
+    "resposta": "Quando a partida é resolvida **em segundo plano** (sem o treinador assistir), a prorrogação é resumida: cada time tem uma chance de marcar **1 gol**, entre **18% e 55%** conforme a vantagem de força. Persistindo o empate, a disputa usa cobranças alternadas com a mesma fórmula de conversão. Essa conta usa uma **semente própria**, então o resultado é sempre o mesmo para aquele confronto.",
+    "resposta_jogador": "Quando a partida de copa é simulada sem ninguém assistir, o jogo faz uma prorrogação resumida e, se continuar empatado, uma disputa de pênaltis automática.",
+    "tags": ["prorrogacao", "copa", "simulacao"]
+  },
+  {
+    "id": "02-044",
+    "pergunta": "Por que não consigo fazer substituição no meio do jogo?",
+    "variacoes": [
+      "cade o botao de substituir durante a partida",
+      "quero trocar jogador no segundo tempo",
+      "nao tem como fazer alteracao com jogo rolando",
+      "substituicao so no intervalo?",
+      "como faco troca na partida ao vivo"
+    ],
+    "resposta": "É a regra atual. As trocas voluntárias são feitas **no intervalo** (se **Substituições ao intervalo** estiver em Sim, o padrão) e na **tela antes da prorrogação**. Durante o jogo corrido **não há botão de substituir livre**: só se troca por **lesão** ou **reorganização por expulsão**. Máximo de **3 por partida**.\n\nSe o intervalo não abre o painel, confira a opção Substituições ao intervalo em Opções.",
+    "resposta_jogador": "No RetroFoot as substituições são feitas no intervalo (e antes da prorrogação). Durante o jogo só dá para trocar em caso de lesão ou expulsão. Se o intervalo não estiver abrindo o painel de trocas, verifique se a opção Substituições ao intervalo está em Sim.",
+    "tags": ["substituicoes", "partida-ao-vivo", "regra"]
+  },
+  {
+    "id": "02-045",
+    "pergunta": "Quais são as regras de substituição?",
+    "variacoes": [
+      "quantas trocas posso fazer",
+      "goleiro pode sair pra entrar jogador de linha?",
+      "jogador substituido pode voltar",
+      "troca demora pra fazer efeito?",
+      "limite de substituicoes por jogo"
+    ],
+    "resposta": "- **Máximo de 3 por partida.**\n- **Goleiro só troca por goleiro.**\n- Quem saiu **não volta**. Suspensos, lesionados e expulsos não aparecem no banco.\n- A troca vale **no minuto seguinte**: o motor recalcula as notas com a Força e a energia de quem entrou.\n- Trocas por lesão e reorganização por expulsão também **gastam** uma das 3.",
+    "resposta_jogador": "São até 3 substituições por jogo, goleiro só pode ser trocado por goleiro e quem saiu não volta. A troca já vale a partir do minuto seguinte.",
+    "tags": ["substituicoes", "regra"]
+  },
+  {
+    "id": "02-046",
+    "pergunta": "Por que meu jogador foi substituído sozinho ou entrou alguém sem eu escolher?",
+    "variacoes": [
+      "o jogo fez substituicao sozinho",
+      "entrou reserva sem eu mandar",
+      "janela de lesao fechou rapido",
+      "nao deu tempo de escolher quem entra",
+      "troca automatica na lesao"
+    ],
+    "resposta": "Na **lesão** de um jogador seu a partida pausa e abre um painel com **15 segundos**, já com um reserva **da mesma posição** pré-selecionado. Se o tempo acaba, a troca acontece sozinha e **gasta uma das 3 substituições**. Sem trocas restantes, o time segue com 10.\n\nNa **expulsão** o painel tem **12 segundos**; o padrão, se ninguém decidir, é **Seguir com 10** (não entra ninguém).",
+    "resposta_jogador": "Quando um jogador seu se machuca, abre uma janela de 15 segundos para escolher o substituto. Se o tempo acaba, o jogo coloca automaticamente um reserva da mesma posição, e isso conta como uma das 3 trocas.",
+    "tags": ["substituicoes", "lesao", "partida-ao-vivo"]
+  },
+  {
+    "id": "02-047",
+    "pergunta": "Meu goleiro foi expulso. O que acontece e como coloco outro?",
+    "variacoes": [
+      "goleiro expulso como repor",
+      "painel de expulsao o que faz",
+      "seguir com 10 o que significa",
+      "expulsaram meu jogador e abriu uma janela",
+      "reorganizar time depois do vermelho"
+    ],
+    "resposta": "Com a expulsão o time **já está com 10** no motor. Abre um painel de **12 segundos** para **reorganizar**: tirar alguém de campo e pôr um reserva, por exemplo um goleiro reserva no lugar de um jogador de linha para repor o goleiro expulso. Isso **gasta uma substituição** e o time **continua com 10**. Se ninguém decidir, o padrão é **Seguir com 10**.",
+    "resposta_jogador": "Quando alguém é expulso abre uma janela de 12 segundos para reorganizar o time, por exemplo tirar um jogador de linha para colocar o goleiro reserva. Isso usa uma das trocas e o time continua com 10.",
+    "tags": ["expulsao", "goleiro", "substituicoes"]
+  },
+  {
+    "id": "02-048",
+    "pergunta": "Como funciona o intervalo no Modo Solo e no Modo Resenha?",
+    "variacoes": [
+      "intervalo acabou sozinho",
+      "nao deu tempo de trocar no intervalo da resenha",
+      "intervalo nao pausa",
+      "contador de 20 segundos no intervalo",
+      "como desligo a pausa do intervalo"
+    ],
+    "resposta": "Aos 45 minutos toca o apito e, se a opção **Substituições ao intervalo** estiver em Sim (padrão), a partida **pausa** e abre o painel de substituição.\n\n- **Modo Solo**: espera o treinador clicar em continuar, **sem limite de tempo**.\n- **Modo Resenha**: dura no máximo **20 segundos**, com contador na tela, e segue sozinho para manter a sala sincronizada.\n\nCom a opção em Não, o jogo não pausa no intervalo.",
+    "resposta_jogador": "No Modo Solo o intervalo espera você terminar as trocas. No Modo Resenha ele dura no máximo 20 segundos para a sala seguir junta, então vale já ter as trocas em mente.",
+    "tags": ["intervalo", "substituicoes", "resenha"]
+  },
+  {
+    "id": "02-049",
+    "pergunta": "Quais são as velocidades de partida?",
+    "variacoes": [
+      "como deixar a partida mais rapida",
+      "tempo de jogo opcoes",
+      "jogo muito lento, da pra acelerar",
+      "velocidade ultrassonica como libera",
+      "quanto dura uma partida"
+    ],
+    "resposta": "Em **Opções → Tempo de jogo**:\n\n| Opção | Por minuto | Quem usa |\n|---|---|---|\n| Longo | 820 ms (~1min15s) | todos |\n| Médio | 560 ms | todos |\n| Curto | 360 ms (~33 s) | todos |\n| Ultrassônico | 110 ms (~10 s) | Pro |\n\nO padrão é o **mais rápido que o plano permite** (Ultrassônico no Pro, Curto no grátis). Usain Bolt e Foguete são só de teste interno. No **Modo Resenha**, quem manda no ritmo é o **anfitrião** da sala.",
+    "resposta_jogador": "Em Opções → Tempo de jogo você escolhe entre Longo, Médio e Curto (cerca de 33 segundos por partida). O Ultrassônico, que faz a partida em uns 10 segundos, é do plano Pro. No Modo Resenha, a velocidade é a que o anfitrião da sala escolher.",
+    "tags": ["velocidade", "opcoes", "pro"]
+  },
+  {
+    "id": "02-050",
+    "pergunta": "A velocidade Ultrassônico sumiu. Por quê?",
+    "variacoes": [
+      "ultrassonico desapareceu",
+      "nao acho mais a velocidade mais rapida",
+      "voltou pro curto sozinho",
+      "perdi o ultrassonico depois que o plano acabou",
+      "velocidade maxima nao aparece"
+    ],
+    "resposta": "O **Ultrassônico é do plano pago (Pro)**. No plano grátis o jogo volta para Curto/Médio/Longo, **mesmo que a opção tenha sido gravada antes**. No Modo Resenha, a velocidade é a do anfitrião, não a do usuário. Se o usuário é Pro e mesmo assim não vê a opção, confira o plano dele e escale para um dev.",
+    "resposta_jogador": "A velocidade Ultrassônico faz parte do plano Pro. No plano grátis ficam disponíveis Curto, Médio e Longo. No Modo Resenha, a velocidade é sempre a escolhida pelo anfitrião da sala.",
+    "tags": ["velocidade", "pro", "plano"]
+  },
+  {
+    "id": "02-051",
+    "pergunta": "Por que o Modo Camarote está apagado?",
+    "variacoes": [
+      "botao camarote cinza",
+      "nao consigo abrir o camarote",
+      "camarote nao funciona na copa",
+      "sumiu a visao so do meu jogo",
+      "camarote desabilitado"
+    ],
+    "resposta": "O Camarote só funciona:\n\n- até a velocidade **Ultrassônica** (acima disso, só nas de teste interno, o botão fica apagado e explica o motivo);\n- quando o **clube do usuário tem jogo na rodada**. Assistindo a uma copa sem jogar, não há Camarote.\n\nO Camarote é a visão padrão quando o usuário tem jogo e mostra placar de estádio, barra de pressão e as abas Panorama do Jogo, Comentários e Estatísticas.",
+    "resposta_jogador": "O Camarote mostra só a sua partida, então ele fica apagado quando o seu time não joga na rodada (por exemplo, assistindo a uma copa que você não disputa).",
+    "tags": ["camarote", "partida-ao-vivo", "interface"]
+  },
+  {
+    "id": "02-052",
+    "pergunta": "Dá para pausar a partida?",
+    "variacoes": [
+      "botao pausar sumiu na resenha",
+      "como pauso o jogo",
+      "nao consigo pausar a partida",
+      "pausa no multiplayer",
+      "parar a partida no meio"
+    ],
+    "resposta": "No **Modo Solo** sim: o Camarote tem botão **Pausar/Jogar**. No **Modo Resenha não dá para pausar** (ritmo da sala): o anfitrião controla o ritmo e ele vale para todos. Pausas automáticas acontecem no intervalo (se a opção estiver ligada) e nos painéis de lesão, expulsão e pênalti, que têm prazo.",
+    "resposta_jogador": "No Modo Solo dá para pausar pelo botão Pausar no Camarote. No Modo Resenha não tem pausa, porque todos da sala assistem juntos no mesmo ritmo.",
+    "tags": ["pausa", "resenha", "partida-ao-vivo"]
+  },
+  {
+    "id": "02-053",
+    "pergunta": "O que aparece na tela da rodada ao vivo?",
+    "variacoes": [
+      "como ver os outros jogos da rodada",
+      "tela com todos os jogos ao mesmo tempo",
+      "barra de pressao o que é",
+      "onde vejo estatisticas da partida",
+      "trocar entre camarote e rodada"
+    ],
+    "resposta": "- **Rodada ao vivo**: todos os jogos da rodada em cartões por divisão/competição; cada linha tem público, mandante, placar, visitante e minuto, com gols, cartões, lesões e substituições em pastilhas. No topo, faixa do período (1º tempo, 2º tempo, Acréscimos, Prorrogação, Pênaltis, Seu jogo encerrado) e relógio.\n- **Modo Camarote**: só a partida do usuário, com placar de estádio, **barra de pressão** e abas *Panorama do Jogo*, *Comentários* e *Estatísticas* (posse, finalizações, no alvo, defesas, cartões, substituições; árbitro, público, ingresso, tática e trocas x de 3).\n\nO botão **Modo Camarote** no topo alterna as visões.",
+    "resposta_jogador": "Durante a rodada você pode alternar, pelo botão Modo Camarote no topo, entre ver todos os jogos ao mesmo tempo ou só a sua partida, com narração, barra de pressão e estatísticas.",
+    "tags": ["partida-ao-vivo", "camarote", "interface"]
+  },
+  {
+    "id": "02-054",
+    "pergunta": "A narração é inventada ou mostra o que aconteceu de verdade?",
+    "variacoes": [
+      "narracao nao bate com o resultado",
+      "comentarios sao aleatorios?",
+      "texto da narracao é real",
+      "meu amigo leu narracao diferente",
+      "camera lenta no gol"
+    ],
+    "resposta": "Todo texto sai de um **evento real do motor** (gol, chance, pênalti, cartão, lesão, substituição). Só a **redação** é sorteada, e de forma **fixa por lance**, para os dois lados de um confronto humano × humano lerem a mesma narração. **Nada é inventado.** Há uma câmera lenta (ritmo 3× mais lento por alguns segundos) na comemoração de gol do usuário.\n\nSe a narração contradiz o placar, colete prints e escale para um dev.",
+    "resposta_jogador": "A narração mostra exatamente o que aconteceu na partida; só o jeito de escrever cada lance varia. Nada ali é inventado.",
+    "tags": ["narracao", "partida-ao-vivo"]
+  },
+  {
+    "id": "02-055",
+    "pergunta": "Como é calculada a nota do jogador na partida?",
+    "variacoes": [
+      "nota da partida como funciona",
+      "por que meu jogador tirou nota baixa",
+      "jogador fez gol e nota baixa",
+      "nota maxima do jogador",
+      "quem saiu no intervalo recebe nota?"
+    ],
+    "resposta": "Todo mundo que entrou recebe nota, inclusive quem saiu no intervalo:\n\n- base **6,0** + (Força − 65) × 0,045 + pequena variação aleatória;\n- **coletivo** (proporcional aos minutos): vitória +0,5, derrota −0,5; domínio do jogo até ±0,6; sem sofrer gol +0,6 para goleiro e zagueiros;\n- **individual**: gol +1,3; assistência +0,7; amarelo −0,15; vermelho −1,4; lesão −0,8;\n- sempre entre **3 e 10**.\n\nO jogo sem sofrer gol só entra na estatística de quem jogou pelo menos metade da partida.",
+    "resposta_jogador": "A nota parte de 6,0 ajustada pela Força do jogador, sobe com vitória, gols e assistências e cai com derrota, cartões e lesão. Jogadores mais fracos tendem a ter notas um pouco menores mesmo jogando bem.",
+    "tags": ["nota", "estatisticas", "jogador"]
+  },
+  {
+    "id": "02-056",
+    "pergunta": "Meu jogador jogou bem e a Força não subiu. Por quê?",
+    "variacoes": [
+      "forca nao sobe",
+      "jogador nao evolui",
+      "forca pulou 3 pontos de uma vez",
+      "como os jogadores melhoram",
+      "evolucao dos jogadores como funciona"
+    ],
+    "resposta": "A evolução é **por pontos de atributo, com chance**, toda rodada, para todos os clubes. A Força é recalculada a partir dos atributos, então às vezes não muda e às vezes **salta 2 a 4 pontos** de uma vez pela curva da divisão.\n\n- **Forma** = média das notas das 3 últimas partidas. Com forma **≥ 6,8** e tendo jogado: duas tentativas por rodada de +1 num atributo da posição (sobe com forma, gols recentes, títulos e temporadas na elite, até +50%).\n- **Potencial pela idade**: até 20 anos 1,0; 21–23 0,7; 24–27 0,35; 28–30 0,10; **31+ 0**.\n\nO Treino especial dá uma chance extra por rodada.",
+    "resposta_jogador": "A evolução acontece aos poucos: jogando bem, o jogador ganha pontos de atributo, e a Força só muda quando eles somam o bastante (às vezes sobe vários pontos de uma vez). Jovens evoluem muito mais; depois dos 30, quase não há crescimento.",
+    "tags": ["evolucao", "forca", "idade"]
+  },
+  {
+    "id": "02-057",
+    "pergunta": "Como funciona o Treino especial?",
+    "variacoes": [
+      "treinar jogador vale a pena",
+      "onde fica o treino especial",
+      "quantos jogadores posso treinar",
+      "o que é o cone laranja",
+      "jogador estrelinha treina melhor?"
+    ],
+    "resposta": "Até **3 jogadores por vez**. Cada um ganha **uma tentativa extra por rodada**, com **5%** de chance de +1 atributo. Jogadores **estrelinha** (cerca de 15% dos jogadores, marca fixa de cada um) têm **9%**. Quem está em treino **não perde ritmo no banco**.\n\n**Onde fica:** ficha do jogador → Treino especial (botão **Treinar**). O **cone laranja** marca quem está treinando.",
+    "resposta_jogador": "Você pode colocar até 3 jogadores no Treino especial pela ficha do jogador (botão Treinar). Eles ganham uma chance extra de evoluir a cada rodada e não perdem ritmo por ficar no banco. O cone laranja mostra quem está treinando.",
+    "tags": ["treino", "evolucao"]
+  },
+  {
+    "id": "02-058",
+    "pergunta": "Por que meu jogador perdeu Força?",
+    "variacoes": [
+      "forca caiu do nada",
+      "jogador veterano piorando",
+      "jogador no banco perde forca?",
+      "atributo de velocidade diminuiu",
+      "declinio por idade"
+    ],
+    "resposta": "Duas causas:\n\n- **Idade**: a partir de **29 anos** há chance de perder velocidade, agilidade ou resistência (maior aos 31+ e 33+). Boa forma atenua a queda em até ~38%.\n- **Banco prolongado**: **4 ou mais rodadas seguidas** sem entrar (maiores de 20 anos, fora do treino) dão chance de perder 1 ponto físico.\n\nJovens até 20 que não jogam evoluem devagar e não perdem ritmo. Quem está no Treino especial também não perde ritmo no banco.",
+    "resposta_jogador": "Jogadores a partir dos 29 anos começam a perder parte física com o tempo, e quem fica 4 ou mais rodadas seguidas sem jogar também pode cair. Colocar o jogador no Treino especial ou dar minutos a ele ajuda a evitar isso.",
+    "tags": ["evolucao", "idade", "declinio"]
+  },
+  {
+    "id": "02-059",
+    "pergunta": "O jogo é roubado? O resultado é armado contra mim?",
+    "variacoes": [
+      "esse jogo é roubado",
+      "o jogo ta de marmelada",
+      "sistema manipula resultado pra eu perder",
+      "jogo favorece a cpu?",
+      "ta armado, so perco no final"
+    ],
+    "resposta": "Não. Todas as partidas usam **o mesmo motor**, para CPU e humanos, e a narração só descreve eventos reais. Existe sorte grande embutida: mesmo 20% mais forte, um time perde ~1 em 10 e empata ~1 em 5.\n\nO que pode parecer injusto e é regra: no Modo Solo **só o time do usuário cansa**; o mando favorece o dono da casa; em clássico o azarão cresce. Tudo usa gerador com **semente** (mesma semente + mesmos times = mesmo placar), por isso ninguém ajusta resultado na hora. Se houver indício concreto de erro, escale para um dev.",
+    "resposta_jogador": "Não é! O motor é o mesmo para todos os times e tem sorte de verdade, como no futebol: até um time bem melhor perde de vez em quando. Vale ficar de olho na energia e na moral do elenco, que são as causas mais comuns de sequências ruins.",
+    "tags": ["sorte", "motor", "justica", "resultado"]
+  },
+  {
+    "id": "02-060",
+    "pergunta": "Como funciona a sorte e a semente das partidas?",
+    "variacoes": [
+      "o resultado é aleatorio?",
+      "o que é semente no jogo",
+      "por que todo mundo ve o mesmo placar na resenha",
+      "tem rng no jogo",
+      "partida é pre-definida?"
+    ],
+    "resposta": "Tudo no motor usa um **gerador de números aleatórios com semente**. A semente de cada partida vem da semente do save, do número da rodada e dos dois clubes: **mesma semente + mesmos times = mesmo placar**. É isso que permite ao Modo Resenha mostrar a mesma partida para todos.\n\nA partida é simulada **minuto a minuto** (90 + acréscimos), com um ponteiro de posse que guarda 82% da posição anterior, soma uma tendência (força, meio-campo, tática, mando) e um sorteio.",
+    "resposta_jogador": "O jogo tem sorte de verdade, mas controlada: cada partida é simulada minuto a minuto a partir da força dos times, e o sorteio é organizado de forma que todos na mesma sala vejam o mesmo resultado.",
+    "tags": ["sorte", "semente", "motor"]
+  },
+  {
+    "id": "02-061",
+    "pergunta": "No Modo Solo, onde as partidas são simuladas?",
+    "variacoes": [
+      "modo solo roda no servidor?",
+      "partidas da cpu no solo quem calcula",
+      "preciso de internet pra simular",
+      "nao quero assistir as copas",
+      "opcao assistir copas"
+    ],
+    "resposta": "No **Modo Solo tudo roda no aparelho do usuário**. A partida dele é jogada ao vivo pela sessão interativa (aceita substituições, batedor de pênalti, troca na lesão, reorganização na expulsão). As outras partidas da rodada, CPU × CPU, também são simuladas no aparelho com o mesmo motor.\n\nEm copas que o clube do usuário não disputa, o padrão desde 27/09 é **não assistir**: o jogo simula e mostra só o resultado. Dá para mudar em **Opções → Partida → Assistir copas**.",
+    "resposta_jogador": "No Modo Solo todas as partidas são simuladas no seu próprio aparelho. Se quiser acompanhar as copas que o seu time não disputa, ative em Opções → Partida → Assistir copas.",
+    "tags": ["solo", "simulacao", "copa", "opcoes"]
+  },
+  {
+    "id": "02-062",
+    "pergunta": "No Modo Resenha, quem decide o resultado das partidas?",
+    "variacoes": [
+      "na resenha quem calcula o jogo",
+      "partida cpu x cpu na resenha quem decide",
+      "o servidor decide o placar?",
+      "meu resultado vale na resenha",
+      "multiplayer como define resultado"
+    ],
+    "resposta": "- **Partida de um humano**: vale o resultado que **o próprio humano jogou e publicou**; o servidor aceita.\n- **Humano × humano**: o aparelho do **mandante** roda e transmite ao visitante; as decisões do visitante viajam pela rede até o mandante.\n- **CPU × CPU** (qualquer competição, qualquer país): **sempre o servidor**. As partidas de liga são pré-simuladas no apito inicial e os aparelhos só **reproduzem**. O servidor usa **o mesmo motor** e fecha a rodada (energia, moral, evolução, suspensões e lesões).\n\nNenhum aparelho decide um confronto que nenhum humano jogou.",
+    "resposta_jogador": "No Modo Resenha, a sua partida vale do jeito que você jogou. Jogos entre dois treinadores rodam no aparelho do mandante e são transmitidos para o visitante, e os jogos entre times do computador são decididos pelo servidor, para todo mundo ver exatamente o mesmo resultado.",
+    "tags": ["resenha", "servidor", "resultado"]
+  },
+  {
+    "id": "02-063",
+    "pergunta": "Por que o resultado no Modo Resenha ficou diferente do que eu vi ou do que meu amigo viu?",
+    "variacoes": [
+      "placar diferente pro meu amigo",
+      "tabela diferente entre jogadores na resenha",
+      "vi um resultado e depois mudou",
+      "resultado da cpu mudou depois",
+      "classificacao nao bate com a do meu parceiro"
+    ],
+    "resposta": "O resultado oficial de **CPU × CPU é o do servidor**. Se alguém viu um placar diferente, provavelmente era um **estado local antigo**, antes de o aparelho adotar a rodada do servidor. **Recarregar resolve.** Se as versões do motor forem diferentes, o próprio jogo pede recarga.\n\nPlacar divergente **persistente** (mesmo depois de recarregar) deve ser **encaminhado à equipe técnica**, com sala, rodada e prints dos dois lados.",
+    "resposta_jogador": "O resultado oficial dos jogos do computador é o do servidor, e às vezes o aparelho mostra um estado antigo. Recarrega a página que deve alinhar. Se continuar diferente depois disso, manda um print de cada lado que a gente encaminha para a equipe técnica.",
+    "tags": ["resenha", "resultado", "divergencia", "recarregar"]
+  },
+  {
+    "id": "02-064",
+    "pergunta": "Por que um jogo de copa aparece como aguardando no Modo Resenha?",
+    "variacoes": [
+      "resultado da copa com tracinho",
+      "aguardando no placar da copa",
+      "jogo de copa sem resultado na resenha",
+      "aparece de disputa na chave",
+      "copa travada aguardando"
+    ],
+    "resposta": "É **proposital**. Enquanto o servidor não fecha a rodada, um confronto de copa **sem humano** pode aparecer como **aguardando** ou **— de disputa**. O jogo prefere mostrar aguardando a exibir um resultado que poderia ser diferente do de outro jogador. Quando o servidor fecha a rodada, o resultado aparece. Se ficar preso depois do fechamento da rodada, escale para um dev.",
+    "resposta_jogador": "Isso é normal: os jogos de copa entre times do computador ficam como aguardando até o servidor fechar a rodada, para todos verem o mesmo resultado. Logo depois ele aparece.",
+    "tags": ["resenha", "copa", "servidor"]
+  },
+  {
+    "id": "02-065",
+    "pergunta": "Como funciona a partida entre dois treinadores humanos no Modo Resenha?",
+    "variacoes": [
+      "jogo contra meu amigo quem roda",
+      "transmissao da partida travou",
+      "virou partida local do nada",
+      "visitante faz substituicao como",
+      "humano contra humano na resenha"
+    ],
+    "resposta": "O aparelho do **mandante** roda a partida e **transmite** para o visitante. O visitante assiste pela transmissão, e as decisões dele (substituições, batedor etc.) viajam pela rede até o mandante. Se o mandante **não estiver presente**, o visitante passa a rodar a partida. Se a transmissão ficar **muda por ~10 segundos**, o aparelho converte para uma **partida local**.\n\nNessas partidas existe um **ritmo mínimo** de velocidade, para a transmissão acompanhar.",
+    "resposta_jogador": "Nos jogos entre dois treinadores, o aparelho de quem joga em casa roda a partida e transmite para o outro, e as suas decisões chegam pela rede. Se a conexão cair por uns 10 segundos, o jogo continua a partida localmente.",
+    "tags": ["resenha", "humano-x-humano", "transmissao"]
+  },
+  {
+    "id": "02-066",
+    "pergunta": "No Modo Resenha, o que acontece se o treinador não confirmar a escalação a tempo?",
+    "variacoes": [
+      "nao confirmei a escalacao e jogou outro time",
+      "esqueci de publicar a escalacao",
+      "time entrou com escalacao antiga",
+      "tatica errada na resenha",
+      "jogador ausente na rodada da resenha"
+    ],
+    "resposta": "O time entra com a **última escalação e tática publicadas** por aquele treinador. Se ele **nunca publicou**, entra a **escalação automática**. Suspensos e lesionados que estavam na escalação antiga são trocados pelo reserva disponível de maior Força. Confirmar a escalação antes do apito evita a surpresa.",
+    "resposta_jogador": "Se a escalação não for confirmada a tempo, o seu time entra com a última escalação e tática que você publicou (ou a automática, se nunca publicou). Para garantir, confirme a escalação antes de cada rodada.",
+    "tags": ["resenha", "escalacao", "tatica"]
+  },
+  {
+    "id": "02-067",
+    "pergunta": "Por que o jogo pediu para recarregar no meio da sala do Modo Resenha?",
+    "variacoes": [
+      "resenha pediu pra recarregar a pagina",
+      "versao do motor diferente",
+      "mensagem de atualizar o jogo na resenha",
+      "tive que dar f5 no meio da temporada",
+      "aviso de nova versao na sala"
+    ],
+    "resposta": "O servidor grava a **versão do motor**. Se o aparelho estiver com uma versão diferente (por exemplo, depois de uma atualização publicada no meio da sala), o jogo **pede para recarregar**, para todos simularem com o mesmo motor e não haver resultados divergentes. Basta recarregar. Se o aviso voltar em loop depois de recarregar, escale para um dev.",
+    "resposta_jogador": "Isso aparece quando sai uma atualização do jogo com a sala em andamento. É só recarregar a página para todos ficarem na mesma versão e os resultados continuarem iguais para todo mundo.",
+    "tags": ["resenha", "versao", "recarregar"]
+  }
+]

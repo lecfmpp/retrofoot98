@@ -1,0 +1,1316 @@
+[
+  {
+    "id": "05-001",
+    "pergunta": "O que é o Modo Resenha?",
+    "variacoes": [
+      "como funciona a resenha",
+      "o que e modo resenha",
+      "resenha é multiplayer?",
+      "da pra jogar online com outras pessoas?",
+      "modo online do retrofoot como funciona"
+    ],
+    "resposta": "O **Modo Resenha** é o modo multiplayer online: vários treinadores humanos jogam **a mesma temporada, no mesmo mundo e ao mesmo tempo**.\n\n- Cada treinador comanda um clube; os outros clubes são da máquina (CPU).\n- Todos veem a mesma tabela, os mesmos resultados e o mesmo calendário.\n- A sala tem um **anfitrião** (quem criou) e **convidados**.\n- Começa sempre no **Brasil, Série D**, e os clubes dos humanos são **sorteados**.\n- Tem chat da sala (lobby e bolha dentro do jogo).\n\nHoje o cartão do Modo Resenha aparece como **\"Em breve\"** (Beta exclusiva para Pro).",
+    "resposta_jogador": "O Modo Resenha é a liga online do RetroFoot: você e seus amigos jogam a mesma temporada, no mesmo mundo e ao mesmo tempo, cada um com um clube sorteado. Ele chega em breve, em versão Beta, com acesso exclusivo para quem é Pro.",
+    "tags": [
+      "resenha",
+      "multiplayer",
+      "online"
+    ]
+  },
+  {
+    "id": "05-002",
+    "pergunta": "O Modo Resenha já está liberado?",
+    "variacoes": [
+      "resenha ta em breve, quando libera?",
+      "nao consigo abrir o modo resenha",
+      "o cartao da resenha diz em breve",
+      "modo resenha bloqueado pq?",
+      "quando lanca a resenha"
+    ],
+    "resposta": "Não está aberto para novos jogos. Na tela de escolha de modo, o cartão do **Modo Resenha aparece como \"Em breve\"**: \"chega em breve, em versão Beta, com acesso exclusivo para quem é Pro\". O **Modo Solo** já está completo.\n\n- O cartão **não abre** o fluxo de criar ou entrar em sala; o botão leva à oferta do Pro.\n- Para quem já é Pro, o botão diz **\"✓ Acesso garantido no lançamento\"**.\n- A base não traz data de lançamento; não prometa prazo.",
+    "resposta_jogador": "O Modo Resenha chega em breve, em versão Beta, com acesso exclusivo para quem é Pro. Enquanto isso, o Modo Solo já está completo para você jogar. Se você já é Pro, seu acesso está garantido no lançamento.",
+    "tags": [
+      "resenha",
+      "em breve",
+      "lancamento",
+      "pro"
+    ]
+  },
+  {
+    "id": "05-003",
+    "pergunta": "Quem pode jogar o Modo Resenha? Precisa ser Pro?",
+    "variacoes": [
+      "resenha é so pra pro?",
+      "plano gratis joga resenha?",
+      "peladeiro pode entrar em sala?",
+      "preciso pagar pra jogar com amigo?",
+      "apareceu \"O Modo Resenha é do Pro\""
+    ],
+    "resposta": "Pelas regras atuais, **abrir sala e entrar em sala são do Pro**. Só existem dois planos: **Peladeiro** (gratuito) e **Pro**.\n\n- As janelas de bloqueio dizem que abrir a sala e \"jogar a mesma semana com a turma\" são exclusivos do Pro.\n- Quem tenta sem direito vê a janela **\"O Modo Resenha é do Pro\"**.\n- Quem decide de fato se a pessoa ocupa um lugar é o **servidor**, que consulta o plano da conta.\n\n**Incerto:** comentários antigos no código diziam que entrar com código era grátis. Se um Peladeiro disser que entrou por link (ou um Pro for barrado), **escale para dev**.",
+    "resposta_jogador": "O Modo Resenha, tanto para criar quanto para entrar numa sala, é exclusivo do plano Pro. Se você é Pro e foi barrado, nos mande o e-mail da conta que a gente verifica.",
+    "tags": [
+      "resenha",
+      "pro",
+      "plano",
+      "peladeiro"
+    ]
+  },
+  {
+    "id": "05-004",
+    "pergunta": "Um jogador Peladeiro entrou numa sala por link (ou foi barrado). Isso está certo?",
+    "variacoes": [
+      "peladeiro conseguiu entrar na resenha pelo link",
+      "link de convite ainda funciona com resenha em breve?",
+      "usuario gratis entrou na sala, é bug?",
+      "convite antigo de sala abre ainda?",
+      "barraram o cara no link da sala"
+    ],
+    "resposta": "É um **ponto incerto**: trate como caso para o dev confirmar.\n\n1. Mesmo com o cartão \"Em breve\", **links de convite de salas que já existem continuam funcionando** (`/convite/CODIGO` ou `?sala=CODIGO` abrem o caminho de entrada).\n2. Quem pode ocupar um lugar é decidido pelo **servidor**, pelo plano da conta.\n3. As regras e mensagens atuais dizem que entrar é do Pro, mas comentários antigos no código diziam que entrar com código era grátis.\n\nAnote e-mail da conta, código da sala e o que apareceu na tela, e **escale para dev**.",
+    "resposta_jogador": null,
+    "tags": [
+      "resenha",
+      "convite",
+      "peladeiro",
+      "escalar"
+    ]
+  },
+  {
+    "id": "05-005",
+    "pergunta": "Como jogo com meus amigos? Dá para jogar no mesmo aparelho?",
+    "variacoes": [
+      "como faço pra jogar com amigo",
+      "tem multiplayer local?",
+      "da pra jogar 2 pessoas no mesmo pc",
+      "hotseat existe?",
+      "quero jogar com a galera como faz"
+    ],
+    "resposta": "Pelo **Modo Resenha** (online). Hoje ele aparece como **\"Em breve\"**, com lançamento em Beta exclusiva para Pro.\n\nQuando estiver aberto:\n1. Um amigo cria a sala.\n2. Manda o link ou o código de 5 caracteres.\n3. Os outros entram e o anfitrião aprova.\n\nO **\"hotseat\"** (vários treinadores passando o mesmo aparelho) existe no código, mas está **desligado na interface**. Quem quer jogar com amigos é direcionado ao Modo Resenha online.",
+    "resposta_jogador": "Para jogar com amigos, o caminho é o Modo Resenha, que chega em breve em versão Beta para quem é Pro: um cria a sala e manda o link ou o código para os outros. Não há modo de vários jogadores no mesmo aparelho.",
+    "tags": [
+      "resenha",
+      "amigos",
+      "hotseat"
+    ]
+  },
+  {
+    "id": "05-006",
+    "pergunta": "Como criar uma sala no Modo Resenha?",
+    "variacoes": [
+      "como abro uma sala",
+      "criar resenha passo a passo",
+      "onde crio a minha sala",
+      "quero ser anfitriao como faz",
+      "nao acho o botao de criar sala"
+    ],
+    "resposta": "Caminho: **Escolher modo → Modo Resenha → \"Criar ou entrar numa sala?\" → \"Criar uma sala\"** (ou \"Criar a minha sala\").\n\n1. Estar **logado** (o fluxo pede login ou cadastro).\n2. Se a conta não puder hospedar, abre \"O Modo Resenha é do Pro\"; o servidor também recusa.\n3. Na tela **\"Abrir a sua sala\"**, dar um **nome** (até 24 caracteres).\n4. Clicar em **\"Abrir a sala\"**: a sala é criada, o anfitrião já recebe um clube sorteado e vai para o lobby (tela de convites).\n\nLembre: hoje o cartão do Modo Resenha aparece como \"Em breve\".",
+    "resposta_jogador": "Para criar uma sala: entre no Modo Resenha, escolha \"Criar uma sala\", dê um nome a ela e clique em \"Abrir a sala\". Depois é só chamar a turma pelo link ou pelo código. Lembrando que o Modo Resenha é exclusivo do Pro.",
+    "tags": [
+      "resenha",
+      "criar sala",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-007",
+    "pergunta": "Como é o código da sala e quanto tempo a sala fica aberta?",
+    "variacoes": [
+      "codigo da sala tem quantas letras",
+      "formato do codigo da resenha",
+      "tem letra O ou zero no codigo?",
+      "a sala expira em 7 dias?",
+      "sala fecha sozinha se ninguem entrar?"
+    ],
+    "resposta": "O código tem **5 caracteres**, letras e números, **sem I, O, 0 e 1** (tirados por serem confundíveis). Exemplo de formato: `7KP2M`.\n\nSobre prazo: a tela de criar sala diz \"A sala fica aberta por 7 dias sem ninguém entrar\". **Incerto:** a regra que fecha a sala nesse prazo não foi localizada no código do jogo; pode estar no servidor. Se alguém relatar sala fechada antes ou depois disso, **escale para dev**.",
+    "resposta_jogador": "O código da sala tem 5 caracteres, misturando letras e números. As letras I e O e os números 0 e 1 não existem no código, para não confundir.",
+    "tags": [
+      "resenha",
+      "codigo",
+      "sala"
+    ]
+  },
+  {
+    "id": "05-008",
+    "pergunta": "Como convidar amigos para a minha sala?",
+    "variacoes": [
+      "como chamo a galera pra sala",
+      "onde pego o link da sala",
+      "como mando convite da resenha",
+      "copiar link da sala",
+      "convidar treinador pra resenha"
+    ],
+    "resposta": "Na tela da sala aberta (lobby), o anfitrião tem estas opções:\n\n1. **Link da sala** (\"o jeito mais rápido\"), com **Copiar link**. Formato `/convite/CODIGO`; links antigos `?sala=CODIGO` continuam valendo.\n2. **WhatsApp**: DDD + número e **Enviar** (abre o WhatsApp com mensagem pronta e o link).\n3. **E-mail**: digitar o e-mail e **Enviar**.\n4. **\"Quem já tem conta\"**: busca por nome ou e-mail (mínimo 3 letras) e **Convidar**. Esse convite deixa a pessoa **pré-aprovada**.\n5. **Código**: a pessoa digita os 5 caracteres.\n\nA lista mostra \"● na sala\" ou \"convite enviado\" e a contagem de dentro, convidados e vagas.",
+    "resposta_jogador": "Na tela da sala, use \"Copiar link\" e mande para a turma, ou envie direto pelo WhatsApp ou e-mail. Se o amigo já tem conta, dá para buscar pelo nome ou e-mail e clicar em Convidar, e ele entra sem precisar de aprovação.",
+    "tags": [
+      "resenha",
+      "convite",
+      "link",
+      "whatsapp"
+    ]
+  },
+  {
+    "id": "05-009",
+    "pergunta": "Convidei pela busca \"Quem já tem conta\". Ele precisa ser aprovado?",
+    "variacoes": [
+      "convite interno precisa aprovar?",
+      "busquei o amigo pelo email e convidei",
+      "quem entra direto sem pedido na sala",
+      "pre-aprovado o que significa",
+      "meu amigo entrou sem eu aprovar"
+    ],
+    "resposta": "Não. O convite pela busca **\"Quem já tem conta\"** é interno e deixa a pessoa **pré-aprovada**.\n\nEntram **direto, sem pedido**:\n- o próprio anfitrião;\n- quem já tem lugar (assento) na sala;\n- quem foi convidado pela busca interna;\n- quem já teve pedido aprovado antes.\n\nQuem entra pelo **link** ou pelo **código** e ainda não tem lugar gera um **pedido de entrada** e espera aprovação.",
+    "resposta_jogador": "Quem você convida pela busca \"Quem já tem conta\" já fica pré-aprovado e entra direto. Quem entra pelo link ou pelo código precisa que você aprove o pedido no topo da sala.",
+    "tags": [
+      "resenha",
+      "convite",
+      "aprovacao"
+    ]
+  },
+  {
+    "id": "05-010",
+    "pergunta": "Como entrar numa sala com o código?",
+    "variacoes": [
+      "onde coloco o codigo da sala",
+      "recebi um codigo de 5 letras e agora",
+      "entrar na resenha do amigo",
+      "como entro na sala do meu amigo",
+      "tem um codigo cole aqui onde fica"
+    ],
+    "resposta": "Caminho: **Modo Resenha → \"Criar ou entrar numa sala?\" → \"Entrar com código\"**, ou o campo **\"TEM UM CÓDIGO? COLE AQUI\"** na mesma tela.\n\n1. A tela **\"Entrar numa Resenha\"** tem 5 caixas para o código.\n2. Quem recebeu um **link** só precisa abri-lo: o código entra sozinho.\n3. Se falhar, o motivo fica escrito em vermelho com ⚠ até a pessoa mexer no código.\n4. Quem entra por código sem lugar na sala cai em **\"À espera de aprovação\"** até o anfitrião aprovar.",
+    "resposta_jogador": "Entre no Modo Resenha, escolha \"Entrar com código\" e digite os 5 caracteres que o anfitrião mandou. Se você recebeu um link, é só abrir que o código entra sozinho. Depois é esperar o anfitrião aprovar sua entrada.",
+    "tags": [
+      "resenha",
+      "entrar",
+      "codigo"
+    ]
+  },
+  {
+    "id": "05-011",
+    "pergunta": "Abri o link de convite sem estar logado. O que acontece?",
+    "variacoes": [
+      "cliquei no link da sala e pediu login",
+      "link do convite abriu tela de cadastro",
+      "nao tenho conta e recebi convite da resenha",
+      "entrar na sala pelo link sem conta",
+      "link da resenha pede pra criar conta"
+    ],
+    "resposta": "É esperado. Quem abre o link sem estar logado cai na tela de login/cadastro com o título **\"Entrar na sala\"**.\n\n1. Fazer login ou criar a conta.\n2. Depois disso, o **pedido de entrada sai automaticamente**.\n3. **Exceção:** se o cadastro exigir **confirmação de e-mail**, a pessoa precisa confirmar e entrar de novo (e abrir o link outra vez, já logada).\n\nAntes de entrar pela primeira vez, o convidado escolhe o **rosto e a idade do treinador** (só uma vez).",
+    "resposta_jogador": "Tudo certo: é só entrar na sua conta (ou criar uma) nessa tela, que o pedido para entrar na sala sai sozinho. Se pedirem para confirmar o e-mail, confirme, entre de novo e abra o link mais uma vez.",
+    "tags": [
+      "resenha",
+      "convite",
+      "login",
+      "cadastro"
+    ]
+  },
+  {
+    "id": "05-012",
+    "pergunta": "Fiz login pelo link de convite e nada aconteceu.",
+    "variacoes": [
+      "loguei pelo link e nao entrou na sala",
+      "fiz cadastro pelo convite e nada",
+      "link da resenha nao faz nada depois do login",
+      "entrei na conta e a sala nao abriu",
+      "convite nao funcionou depois de logar"
+    ],
+    "resposta": "Isso era um **defeito antigo**; hoje o pedido de entrada sai sozinho depois do login.\n\n1. Peça para **abrir o link de novo já logado**.\n2. Se o cadastro pediu confirmação de e-mail, confirmar, entrar de novo e abrir o link.\n3. Conferir se caiu em **\"À espera de aprovação\"**: aí falta o anfitrião aprovar.\n4. Se mesmo logado o link não gerar pedido, anote e-mail e código da sala e **escale para dev**.",
+    "resposta_jogador": "Abra o link do convite de novo, agora já com a sua conta aberta: o pedido para entrar sai sozinho. Se aparecer \"À espera de aprovação\", é só o anfitrião aprovar a sua entrada.",
+    "tags": [
+      "resenha",
+      "convite",
+      "login"
+    ]
+  },
+  {
+    "id": "05-013",
+    "pergunta": "Estou preso em \"À espera de aprovação\". Como o anfitrião aprova?",
+    "variacoes": [
+      "fica aguardando o anfitriao aprovar",
+      "pedido enviado e nao entra",
+      "como aprovo quem pediu pra entrar",
+      "onde aparece pedido de entrada na sala",
+      "anfitriao recusou minha entrada"
+    ],
+    "resposta": "Quem entra pelo **link ou código** sem lugar na sala gera um **pedido de entrada** e vê **\"À espera de aprovação\"** (com o botão **\"Cancelar pedido\"**).\n\nDo lado do anfitrião:\n1. Abrir a sala (lobby).\n2. No topo aparece o bloco **\"PEDIRAM PARA ENTRAR\"**.\n3. Clicar em **Aprovar** (ou **Recusar**) em cada pessoa.\n\nAo aprovar, o convidado **entra sozinho**, sem fazer nada. Se recusar, ele vê \"O anfitrião recusou sua entrada na Resenha\" e deve falar com o anfitrião.",
+    "resposta_jogador": "Seu pedido já foi enviado; agora falta o anfitrião abrir a sala e clicar em \"Aprovar\" no bloco \"Pediram para entrar\". Assim que ele aprovar, você entra sozinho, sem precisar fazer nada.",
+    "tags": [
+      "resenha",
+      "aprovacao",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-014",
+    "pergunta": "Deu \"Sala não encontrada\" ou \"Esta sala foi encerrada\" ao entrar.",
+    "variacoes": [
+      "sala nao encontrada o que fazer",
+      "codigo da sala nao funciona",
+      "diz que a sala foi encerrada",
+      "nao consigo entrar na sala do meu amigo",
+      "erro ao entrar com codigo"
+    ],
+    "resposta": "Depende da mensagem:\n\n| Mensagem | Causa | O que fazer |\n|---|---|---|\n| \"Sala não encontrada\" | código errado ou sala inexistente | conferir os 5 caracteres (não existem I, O, 0, 1) |\n| \"Esta sala foi encerrada.\" | o anfitrião apagou a sala | pedir um novo convite |\n| \"Não há mais clubes livres\" | sala cheia | não há vaga |\n| \"O Modo Resenha é do Pro\" | plano sem acesso | explicar o Pro |\n\nSe o código estiver certo e a sala existir, **escale para dev** com código e print.",
+    "resposta_jogador": "Confira se o código está certinho: são 5 caracteres e não existem as letras I e O nem os números 0 e 1. Se aparecer \"Esta sala foi encerrada\", o anfitrião apagou a sala e é preciso pedir um convite novo.",
+    "tags": [
+      "resenha",
+      "entrar",
+      "erro",
+      "codigo"
+    ]
+  },
+  {
+    "id": "05-015",
+    "pergunta": "Por que pede para escolher rosto e idade do treinador ao entrar na sala?",
+    "variacoes": [
+      "pediu rosto do treinador na resenha",
+      "tela de idade do treinador antes da sala",
+      "tenho que escolher rosto toda vez?",
+      "escolher cara do tecnico no convite",
+      "por que aparece criar treinador ao entrar"
+    ],
+    "resposta": "É um passo normal: antes de entrar numa sala **pela primeira vez**, o convidado escolhe o **rosto e a idade do treinador**.\n\n- Acontece **só uma vez**; quem já escolheu segue direto.\n- Depois disso, a entrada continua normalmente (aprovação, se entrou por link ou código).\n\nSe a tela aparecer repetidamente para a mesma conta, anote o caso e escale para dev.",
+    "resposta_jogador": "Antes de entrar na primeira sala, você escolhe o rosto e a idade do seu treinador. Isso é feito só uma vez; nas próximas entradas você segue direto.",
+    "tags": [
+      "resenha",
+      "treinador",
+      "entrar"
+    ]
+  },
+  {
+    "id": "05-016",
+    "pergunta": "O que é a tela \"Minhas salas\" e o que significam os selos?",
+    "variacoes": [
+      "minhas salas onde fica",
+      "o que é a espera, a correr, encerrada",
+      "voltar a uma sala como faz",
+      "selo a espera na lista de salas",
+      "onde vejo as salas que eu jogo"
+    ],
+    "resposta": "Aparece em **\"Voltar a uma sala\"** (quando há salas ativas) ou **\"Ver as N salas…\"**. Lista as salas em que a pessoa joga ou foi convidada, com clube, papel (anfitrião/convidado) e onde está (ex.: \"5ª semana · a sua vez\").\n\n| Selo | Significado |\n|---|---|\n| À ESPERA | convite pendente, lobby esperando treinadores, ou rodada esperando **você** |\n| A COMEÇAR | escolha/sorteio dos clubes |\n| A CORRER | temporada em andamento |\n| ENCERRADA | sala terminada |\n\nFiltros: Todas, À espera de você, A correr, Encerradas. A lixeira **apaga** (anfitrião) ou **sai** (convidado).",
+    "resposta_jogador": "Em \"Minhas salas\" você vê todas as suas salas. \"À espera\" quer dizer que a sala está esperando alguém (às vezes você), \"A começar\" é o sorteio dos clubes, \"A correr\" é temporada rolando e \"Encerrada\" é sala terminada.",
+    "tags": [
+      "resenha",
+      "minhas salas",
+      "selos"
+    ]
+  },
+  {
+    "id": "05-017",
+    "pergunta": "Quantas pessoas cabem numa sala do Modo Resenha?",
+    "variacoes": [
+      "limite de jogadores na resenha",
+      "maximo de treinadores por sala",
+      "quantos amigos posso chamar",
+      "sala aceita 20 pessoas?",
+      "qnts cabem na sala"
+    ],
+    "resposta": "- **Mínimo para começar: 2 treinadores** dentro da sala.\n- **Máximo de pessoas:** definido pelo **plano do anfitrião**, no servidor. A tela mostra \"até N treinadores\"; se não conseguir ler o número, usa **10** como reserva. A recusa final é do servidor.\n- **Nunca passa de 20**, porque a sala tem um lugar por clube da divisão (20 na Série D).\n\n**Incerto:** o número exato do Pro vem do banco; textos antigos citavam 8, 10 e 20. Para resposta exata, **consulte o dev**.",
+    "resposta_jogador": "Uma sala precisa de pelo menos 2 treinadores para começar. O máximo aparece na própria tela da sala (\"até N treinadores\") e nunca passa de 20, que é o número de clubes da divisão.",
+    "tags": [
+      "resenha",
+      "limite",
+      "treinadores"
+    ]
+  },
+  {
+    "id": "05-018",
+    "pergunta": "O botão \"Começar\" está desligado. Por quê?",
+    "variacoes": [
+      "nao consigo comecar a resenha",
+      "botao comecar cinza",
+      "precisa de pelo menos 2 treinadores",
+      "como inicio a temporada na sala",
+      "anfitriao nao consegue sortear times"
+    ],
+    "resposta": "O botão do anfitrião **\"Começar (sortear times)\"** só liga com **pelo menos 2 treinadores dentro da sala**. Sem isso a tela diz: \"Precisa de pelo menos 2 treinadores na sala para começar.\"\n\n1. Confira na lista \"Treinadores na sala\" quem está **\"● na sala\"** (quem está só como \"convite enviado\" não conta).\n2. Peça ao convidado para abrir o link e, se for o caso, aprove o pedido em \"PEDIRAM PARA ENTRAR\".\n3. Com 2 ou mais dentro, o botão liga.",
+    "resposta_jogador": "Para começar, a sala precisa ter pelo menos 2 treinadores dentro (não só convidados). Assim que seu amigo entrar e for aprovado, o botão \"Começar\" liga.",
+    "tags": [
+      "resenha",
+      "comecar",
+      "lobby"
+    ]
+  },
+  {
+    "id": "05-019",
+    "pergunta": "Posso escolher meu clube no Modo Resenha? Como funciona o sorteio?",
+    "variacoes": [
+      "da pra escolher o time na resenha",
+      "como é o sorteio dos clubes",
+      "meu time mudou quando comecou",
+      "quero trocar de clube na sala",
+      "sorteio de times demora, da pra pular?"
+    ],
+    "resposta": "Não. Os clubes dos humanos são **sorteados**; ninguém escolhe.\n\n1. Ao entrar no lobby, cada pessoa já recebe um clube **livre e aleatório**, só para aparecer na lista.\n2. Quando o anfitrião clica em **Começar**, o jogo **re-sorteia todos os clubes** entre os treinadores presentes. Quem não entrou fica de fora e o clube vai para a máquina.\n3. Todos veem a **cerimônia de sorteio** (um treinador e seu clube por vez, cerca de 2 s cada, na mesma ordem para todos). Há botão para **acelerar**.\n4. No fim, cada um cai na tela do seu clube.\n\nTodos começam na **Série D do Brasil**.",
+    "resposta_jogador": "No Modo Resenha ninguém escolhe o clube: quando o anfitrião clica em Começar, os clubes são sorteados entre quem está na sala, e todos começam na Série D. O clube que aparece no lobby antes disso é provisório.",
+    "tags": [
+      "resenha",
+      "sorteio",
+      "clube"
+    ]
+  },
+  {
+    "id": "05-020",
+    "pergunta": "O anfitrião começou e eu (convidado) fiquei no lobby.",
+    "variacoes": [
+      "anfitriao comecou e eu nao entrei",
+      "fiquei parado na tela de espera do anfitriao",
+      "a espera do anfitriao sincronizar",
+      "todo mundo ta jogando e eu no lobby",
+      "resenha comecou sem mim"
+    ],
+    "resposta": "Normalmente o convidado que estava no lobby entra junto quando o anfitrião começa. Se não entrou:\n\n1. Na tela do lobby do convidado há o botão **\"Sincronizar\"** (\"À espera do anfitrião — toque em Sincronizar se ele já começou\").\n2. Tocar em **Sincronizar**.\n3. Se continuar no lobby, recarregar a página e abrir a sala por \"Minhas salas\".\n4. Se ainda assim não entrar, anote código da sala e horário e **escale para dev**.\n\nObs.: quem não estava **dentro** da sala na hora do Começar fica de fora do sorteio.",
+    "resposta_jogador": "Se o anfitrião já começou, toque no botão \"Sincronizar\" na tela de espera que você entra no jogo com a turma. Se não funcionar, recarregue a página e abra a sala pela lista \"Minhas salas\".",
+    "tags": [
+      "resenha",
+      "lobby",
+      "sincronizar"
+    ]
+  },
+  {
+    "id": "05-021",
+    "pergunta": "Dá para entrar numa sala com a temporada já em andamento?",
+    "variacoes": [
+      "entrar na resenha depois que comecou",
+      "sala ja comecou posso entrar?",
+      "entrar com time sorteado",
+      "nao ha mais clubes livres nesta sala",
+      "cheguei atrasado na resenha"
+    ],
+    "resposta": "Sim, se houver clube livre. Quem entra numa sala já começada vê: \"A Resenha [nome] já começou (Nª rodada). Um clube livre (hoje da CPU) é sorteado pra você assumir o comando\", com o botão **\"🎲 Entrar com time sorteado\"**.\n\n- O clube é **sorteado** entre os da máquina; não dá para escolher.\n- Se não houver clube livre: \"Não há mais clubes livres nesta sala no momento.\" Nesse caso não há vaga.\n- Continua valendo a aprovação do anfitrião para quem entra por link/código sem lugar.",
+    "resposta_jogador": "Dá sim: se a sala já começou, você entra com um clube sorteado entre os que estão com a máquina, clicando em \"Entrar com time sorteado\". Se aparecer que não há clubes livres, a sala está cheia no momento.",
+    "tags": [
+      "resenha",
+      "entrar",
+      "sorteio"
+    ]
+  },
+  {
+    "id": "05-022",
+    "pergunta": "Em que país e divisão a Resenha começa? O que são \"ligas jogáveis\"?",
+    "variacoes": [
+      "resenha comeca em qual divisao",
+      "da pra comecar na serie a na resenha",
+      "anfitriao escolhe a divisao?",
+      "o que é ligas jogaveis",
+      "resenha tem outros paises?"
+    ],
+    "resposta": "A sala **sempre começa no Brasil, na Série D** (o degrau de baixo), igual ao Modo Solo. O anfitrião **não escolhe divisão**; a tela diz \"Todos entram no mesmo degrau\".\n\n**Ligas jogáveis:** se houver mais de um país com calendário, o anfitrião pode marcar outras ligas. Elas rodam no mundo da sala e podem convidar treinadores para treinar lá, mas **todos começam no Brasil**. Hoje isso só aparece se existir mais de um país com calendário.",
+    "resposta_jogador": "No Modo Resenha todo mundo começa no Brasil, na Série D, igual ao Modo Solo. Não dá para escolher outra divisão para começar.",
+    "tags": [
+      "resenha",
+      "serie d",
+      "divisao"
+    ]
+  },
+  {
+    "id": "05-023",
+    "pergunta": "Quem define a velocidade das partidas na Resenha?",
+    "variacoes": [
+      "nao consigo mudar a velocidade na resenha",
+      "tempo de jogo na resenha quem escolhe",
+      "partida muito lenta na sala",
+      "opcao de velocidade sumiu",
+      "quem define o tempo de jogo é o anfitriao"
+    ],
+    "resposta": "Na Resenha, o ritmo das partidas é definido pelo **anfitrião**. Na tela de Configurações, o convidado vê: \"Numa resenha, quem define o tempo de jogo é o Anfitrião\".\n\n- Convidado não muda a velocidade; deve pedir ao anfitrião.\n- No **Modo Solo** o próprio jogador escolhe em Opções (Curto, Médio, Longo; o Ultrassônico é do Pro).",
+    "resposta_jogador": "No Modo Resenha quem escolhe a velocidade das partidas é o anfitrião da sala, para ficar igual para todo mundo. Se quiser mais rápido ou mais devagar, é só combinar com ele.",
+    "tags": [
+      "resenha",
+      "velocidade",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-024",
+    "pergunta": "Tem chat no Modo Resenha? Por que ele some durante a partida?",
+    "variacoes": [
+      "chat da resenha nao aparece",
+      "como falo com os amigos na sala",
+      "chat sumiu no meio do jogo",
+      "bolha de chat da resenha",
+      "mensagem nao aparece no camarote"
+    ],
+    "resposta": "Sim. Existe **chat da sala**, no lobby e como **bolha flutuante** dentro do jogo.\n\nO chat fica **em silêncio durante a partida ao vivo e no Modo Camarote**. Isso é esperado; depois da partida ele volta.\n\nSe o chat não aparecer fora da partida, peça **\"Sincronizar sala\"**; persistindo, escale para dev com código da sala.",
+    "resposta_jogador": "O chat da sala fica no lobby e numa bolha dentro do jogo. Durante a partida ao vivo e no Camarote ele fica em silêncio de propósito, e volta quando o jogo termina.",
+    "tags": [
+      "resenha",
+      "chat"
+    ]
+  },
+  {
+    "id": "05-025",
+    "pergunta": "Como a semana anda no Modo Resenha (dias e momentos)?",
+    "variacoes": [
+      "como funciona a rodada na resenha",
+      "o que é escalando jogando classificacao",
+      "por que a sala nao avanca sozinha",
+      "dias da temporada na resenha",
+      "como passa o dia na sala"
+    ],
+    "resposta": "A temporada da sala é uma lista de **dias** (65 no plano atual). Cada dia tem **uma competição** e passa por três momentos, **sempre nesta ordem**:\n\n| Momento | Para \"cumprir\" |\n|---|---|\n| **Escalando** | clicar em **Jogar** (= \"estou pronto\") |\n| **Jogando** | terminar a partida ou terminar de assistir |\n| **Classificação** | sair da tela de classificação |\n\nCada cumprimento é um \"carimbo\" no servidor. Quando o **último** carimba, o servidor vira o momento ou o dia. **Nenhum jogador avança sozinho.**",
+    "resposta_jogador": "Na Resenha cada dia tem três etapas: escalar e clicar em Jogar, jogar a partida e ver a classificação. A sala só passa para a etapa seguinte quando todos os treinadores terminam a sua parte.",
+    "tags": [
+      "resenha",
+      "dias",
+      "momentos",
+      "rodada"
+    ]
+  },
+  {
+    "id": "05-026",
+    "pergunta": "Cliquei em \"Jogar\" e a partida não começou.",
+    "variacoes": [
+      "cliquei em jogar e nada",
+      "jogar nao funciona na resenha",
+      "botao jogar nao inicia a partida",
+      "partida nao comeca bugou",
+      "dei jogar e fiquei esperando"
+    ],
+    "resposta": "É o comportamento esperado na Resenha: **Jogar = \"estou pronto\"**.\n\n1. Clicar em Jogar marca o treinador como pronto; **não** começa a partida na hora.\n2. A partida começa quando **o último** treinador ficar pronto, e aí começa **para todos no mesmo instante**.\n3. Depois de ~25 s, quem já está pronto vê o painel **\"sala em espera\"** com o nome de quem falta.\n4. Se quem falta não responde, o **anfitrião** pode usar **\"⏭ Começar sem eles\"**.",
+    "resposta_jogador": "No Modo Resenha, clicar em \"Jogar\" quer dizer \"estou pronto\". A partida começa para todos juntos assim que o último treinador também clicar em Jogar.",
+    "tags": [
+      "resenha",
+      "jogar",
+      "pronto",
+      "espera"
+    ]
+  },
+  {
+    "id": "05-027",
+    "pergunta": "Não tenho jogo na competição do dia. Por que preciso esperar ou assistir?",
+    "variacoes": [
+      "meu time nao joga a copa e tenho que esperar",
+      "por que assisto jogo dos outros",
+      "nao estou na libertadores e a sala parou",
+      "dia de copa sem meu time",
+      "tabela de copa com jogos a disputar"
+    ],
+    "resposta": "Cada dia tem **uma competição** (Brasileirão, Copa do Brasil, Libertadores ou Sul-Americana) e é **o mesmo dia para todos**. Quem não tem jogo naquele dia **assiste**; ninguém pula uma copa só porque não a disputa.\n\n- A tabela do Brasileirão aparece depois que a rodada é fechada no servidor.\n- As tabelas de copa aparecem no fim do próprio dia da copa.\n- Se uma tabela de copa mostrar jogos **\"a disputar\"** por um instante, é esperado: o aparelho está esperando o resultado do servidor.",
+    "resposta_jogador": "Na Resenha todo mundo vive o mesmo dia ao mesmo tempo. Quando a competição do dia não tem jogo do seu clube, você assiste, e a sala segue quando o dia termina para todos.",
+    "tags": [
+      "resenha",
+      "copa",
+      "espera"
+    ]
+  },
+  {
+    "id": "05-028",
+    "pergunta": "Quem decide os resultados no Modo Resenha?",
+    "variacoes": [
+      "resultado da resenha é calculado onde",
+      "o anfitriao decide os placares?",
+      "jogos da cpu na resenha quem calcula",
+      "por que todo mundo ve o mesmo placar",
+      "servidor manda na resenha?"
+    ],
+    "resposta": "O **servidor é a única fonte de verdade**.\n\n- Em que dia e momento a sala está é decidido pelo servidor (um \"ponteiro\" na sala). Se o aparelho discordar, a tela **espera**, nunca decide sozinha.\n- Jogos **CPU × CPU** são calculados **só no servidor**; por isso todos veem o mesmo placar.\n- A partida de cada humano é jogada no aparelho dele e o resultado é **publicado no servidor**.\n- No fim do dia de liga, o anfitrião **pede** ao servidor para fechar a rodada (outras divisões, copas, finanças da máquina, leilão, virada).\n- O anfitrião **não é dono** do resultado; só executa o que o servidor decidiu.",
+    "resposta_jogador": "Os resultados da Resenha são decididos no servidor, então todo mundo vê exatamente os mesmos placares e tabelas. A sua partida é jogada no seu aparelho e o resultado vai para o servidor.",
+    "tags": [
+      "resenha",
+      "servidor",
+      "resultado"
+    ]
+  },
+  {
+    "id": "05-029",
+    "pergunta": "Jogadores da mesma sala estão vendo resultados diferentes ou estão em dias diferentes.",
+    "variacoes": [
+      "placar diferente pra cada um na resenha",
+      "meu amigo ta em outro dia da sala",
+      "tabela diferente entre os jogadores",
+      "um jogador avancou sozinho",
+      "sala dessincronizada"
+    ],
+    "resposta": "Isso **não deve acontecer**: o servidor é a única fonte de verdade.\n\n1. Peça para **todos** usarem **\"Sincronizar sala\"**.\n2. Conferir se algum jogador está com a **barra amarela** de versão (se sim, \"Recarregar agora\").\n3. Jogador 3 ou mais rodadas atrás tem o estado puxado da sala automaticamente.\n\n**Escale para dev** se, depois de sincronizar, continuar: resultados diferentes (placar, tabela, artilharia, chave), dias diferentes por mais de alguns segundos, jogador que **avançou sozinho**, momento pulado ou rodada fechada sem ninguém jogar. Leve código da sala e as linhas \"carimbei\" do console de cada um.",
+    "resposta_jogador": "Peça para todos da sala clicarem em \"Sincronizar sala\". Se depois disso os resultados ou os dias continuarem diferentes, nos mande o código da sala e prints de cada um que a equipe investiga.",
+    "tags": [
+      "resenha",
+      "sincronia",
+      "escalar",
+      "bug"
+    ]
+  },
+  {
+    "id": "05-030",
+    "pergunta": "O anfitrião caiu (ou saiu do jogo). A sala acaba?",
+    "variacoes": [
+      "anfitriao desconectou e agora",
+      "host caiu na resenha",
+      "o dono da sala saiu no meio da rodada",
+      "anfitriao fechou o jogo a sala para?",
+      "quem fecha a rodada se o anfitriao cair"
+    ],
+    "resposta": "Não. Se o anfitrião cair, **qualquer outro aparelho da sala fecha a rodada pelo servidor** depois de cerca de **15 segundos**, e só depois que o servidor já considerou o dia cumprido (é o \"cão de guarda\").\n\nA sala só **acaba** se o anfitrião **apagar** a sala.\n\nSe a rodada não fechar mesmo assim, peça \"Sincronizar sala\" aos presentes; persistindo, **escale para dev**.",
+    "resposta_jogador": "Não se preocupe: se o anfitrião cair, a sala continua e a rodada é fechada pelo servidor em uns 15 segundos. A sala só acaba se o anfitrião apagá-la.",
+    "tags": [
+      "resenha",
+      "anfitriao",
+      "queda"
+    ]
+  },
+  {
+    "id": "05-031",
+    "pergunta": "O que é o painel \"Resenha — sala em espera\"?",
+    "variacoes": [
+      "apareceu sala em espera",
+      "painel mostrando quem falta",
+      "esperando por fulano o que é",
+      "sala em espera no celular",
+      "aguardar ou comecar sem eles"
+    ],
+    "resposta": "Depois de **cerca de 25 segundos** parado no mesmo momento, **quem já cumpriu** vê o painel **\"Resenha — sala em espera\"** (no celular, \"Sala em espera\").\n\n- Mostra **quem ainda falta** e o que está fazendo (\"escolhendo o time\", \"em campo\", \"vendo a classificação\").\n- Botões: **\"⏳ Aguardar\"** e, só para o anfitrião, **\"⏭ Começar sem eles\"**.\n- Convidados veem \"Só o anfitrião pode seguir sem eles.\"\n\nÉ **espera normal**, não travamento. A pessoa citada precisa fazer a parte dela.",
+    "resposta_jogador": "Esse painel mostra quem a sala ainda está esperando e o que a pessoa está fazendo. É só aguardar ela terminar; se ela sumiu, o anfitrião pode clicar em \"Começar sem eles\".",
+    "tags": [
+      "resenha",
+      "espera",
+      "painel"
+    ]
+  },
+  {
+    "id": "05-032",
+    "pergunta": "Apareceu \"A sala está esperando por você\". O que eu faço?",
+    "variacoes": [
+      "a sala esta esperando por voce",
+      "aviso por voce na resenha",
+      "a sua vez na lista de salas",
+      "sala travada esperando eu",
+      "o que fazer quando espera por mim"
+    ],
+    "resposta": "Significa que **esse jogador** está segurando a sala. O aviso diz o que fazer em cada momento:\n\n- **Escalando:** \"Escale o time e clique em Jogar — a rodada só começa com todos prontos.\"\n- **Jogando:** \"Clique em Jogar para entrar em campo: a rodada está acontecendo agora.\"\n- **Classificação:** \"Feche a classificação para a sala seguir para o próximo dia.\"\n\nO aviso **não faz a ação pelo jogador**: o botão que resolve é o da **tela do clube**. Na lista de salas, \"À espera de você\" / \"a sua vez\" tem o mesmo sentido.",
+    "resposta_jogador": "A turma está esperando você! Faça a sua parte na tela do clube: clique em Jogar (ou entre em campo, ou feche a classificação, conforme o aviso) e a sala segue.",
+    "tags": [
+      "resenha",
+      "espera",
+      "sua vez"
+    ]
+  },
+  {
+    "id": "05-033",
+    "pergunta": "Como funciona o \"Começar sem eles\"?",
+    "variacoes": [
+      "comecar sem eles o que faz",
+      "pular jogador que nao responde",
+      "amigo parado e a sala nao anda",
+      "convidado pode comecar sem eles?",
+      "avancar a sala sem um treinador"
+    ],
+    "resposta": "**\"⏭ Começar sem eles\"** é **só do anfitrião**, no painel \"sala em espera\".\n\n- É uma liberação explícita no servidor: a sala segue sem quem falta, esteja a pessoa ausente ou com o jogo aberto e parado.\n- **Não existe cronômetro** que avance a sala sozinho para quem está presente; sem o anfitrião usar esse botão, a sala espera.\n- Convidados veem \"Só o anfitrião pode seguir sem eles.\"\n\nExceção: quem **fechou a aba** (45 s sem sinal) é dispensado automaticamente.",
+    "resposta_jogador": "Só o anfitrião pode usar \"Começar sem eles\": ele libera a sala para seguir sem quem está parado. Se você é convidado, peça para o anfitrião fazer isso.",
+    "tags": [
+      "resenha",
+      "espera",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-034",
+    "pergunta": "Um amigo sumiu (fechou o jogo ou caiu a internet) e a sala parou.",
+    "variacoes": [
+      "amigo saiu e a sala travou",
+      "convidado caiu a internet",
+      "fulano fechou a aba e a sala nao anda",
+      "jogador desconectou na resenha",
+      "a sala para se alguem sair?"
+    ],
+    "resposta": "| Situação | O que o jogo faz |\n|---|---|\n| Fechou a aba ou perdeu a internet | depois de **45 s** sem sinal de vida, a sala segue sem ele; ao voltar, entra no dia atual |\n| Jogo aberto, mas parado | a sala **espera**, com o nome dele no painel; só o anfitrião segue sem ele (\"Começar sem eles\") |\n| Sessão (login) expirou | ele sai da sala e vê \"Sua sessão expirou\"; basta logar e entrar de novo |\n\nSe nada disso ocorrer e a sala ficar parada sem painel, peça \"Sincronizar sala\" e, persistindo, **escale**.",
+    "resposta_jogador": "Se o seu amigo fechou o jogo, a sala segue sozinha em cerca de 45 segundos. Se ele está com o jogo aberto e parado, o anfitrião pode clicar em \"Começar sem eles\".",
+    "tags": [
+      "resenha",
+      "desconectado",
+      "espera"
+    ]
+  },
+  {
+    "id": "05-035",
+    "pergunta": "O jogo travou no dia / não sai do lugar (Modo Resenha).",
+    "variacoes": [
+      "resenha travou",
+      "a sala nao anda bugou",
+      "ficou parado no mesmo dia",
+      "resenha congelou",
+      "jogo nao sai do lugar na sala"
+    ],
+    "resposta": "Na maioria das vezes a sala **não travou: está esperando alguém**.\n\n1. Pergunte se aparece o painel **\"sala em espera\"** com o nome de quem falta. Se sim, é espera normal: a pessoa deve clicar em Jogar, terminar a partida ou fechar a classificação.\n2. Se quem falta não responde, o **anfitrião** usa **\"⏭ Começar sem eles\"**.\n3. Se quem falta fechou a aba, a sala segue sozinha em 45 s.\n4. Se ninguém vê painel e nada acontece, **\"Sincronizar sala\"**.\n5. Continuou parado depois de sincronizar (nos dois aparelhos)? **Escale para dev** com código da sala e prints.",
+    "resposta_jogador": "Na maioria das vezes a sala está esperando alguém terminar a parte dele; veja se aparece o painel com o nome de quem falta. Se não aparecer nada, clique em \"Sincronizar sala\" no topo da tela.",
+    "tags": [
+      "resenha",
+      "travado",
+      "espera",
+      "sincronizar"
+    ]
+  },
+  {
+    "id": "05-036",
+    "pergunta": "Aparece \"Aguardando outros treinadores\" / \"À espera dos treinadores\" no fechamento da semana.",
+    "variacoes": [
+      "aguardando outros treinadores",
+      "a semana abre quando todos publicarem",
+      "todos ja jogaram e a tabela nao fecha",
+      "esperando fechar a rodada",
+      "fica em a espera dos treinadores"
+    ],
+    "resposta": "São **esperas normais** do fechamento no servidor. Mensagens como:\n- \"A semana abre quando todos publicarem o resultado.\"\n- \"Todos já jogaram. Assim que a tabela fechar, a próxima semana abre.\"\n\nO que fazer:\n1. Aguardar alguns segundos.\n2. Se demorar muito, a tela mostra um **botão de escape** que abre o **Sincronizar**.\n3. Se continuar parado depois de sincronizar, siga o roteiro de \"sala travada\" e **escale para dev**.",
+    "resposta_jogador": "Essa tela aparece enquanto o servidor fecha a rodada de todo mundo; normalmente leva poucos segundos. Se demorar muito, use o botão que aparece na tela para sincronizar a sala.",
+    "tags": [
+      "resenha",
+      "espera",
+      "fechamento"
+    ]
+  },
+  {
+    "id": "05-037",
+    "pergunta": "Na Resenha, uma decisão com prazo (pênalti, expulsão) foi resolvida sozinha.",
+    "variacoes": [
+      "o jogo escolheu o penalti por mim",
+      "decisao resolvida sozinha na resenha",
+      "expulsao decidida sem eu clicar",
+      "sai da aba e perdi a decisao",
+      "penalti batido automatico"
+    ],
+    "resposta": "É esperado. Se a aba estiver em **segundo plano** durante uma decisão com prazo (pênalti, expulsão), o jogo **resolve pelo padrão** cerca de **2 segundos depois do prazo**, para a sala não travar.\n\nOriente a manter a aba em primeiro plano durante as partidas. No celular, bloquear a tela ou trocar de app equivale a pôr a aba em segundo plano.",
+    "resposta_jogador": "Quando a aba do jogo fica em segundo plano numa decisão com prazo, o jogo escolhe a opção padrão para não travar a sala de todo mundo. Para decidir você mesmo, mantenha o jogo aberto na tela durante a partida.",
+    "tags": [
+      "resenha",
+      "decisao",
+      "segundo plano"
+    ]
+  },
+  {
+    "id": "05-038",
+    "pergunta": "Dei um lance no leilão da Resenha e nada aconteceu.",
+    "variacoes": [
+      "leilao nao anda na resenha",
+      "dei lance e o jogador nao veio",
+      "lote parado no leilao",
+      "quem ganha o leilao empatado",
+      "leilao travou"
+    ],
+    "resposta": "É normal: **no Modo Resenha, um lote de leilão só anda quando a rodada fecha** no servidor.\n\n- O lance de cada humano é publicado no servidor.\n- O **servidor resolve** a cada fechamento de rodada: vale o **maior lance**; em empate exato, vence **quem deu o lance primeiro**.\n- O servidor move o jogador para o elenco do vencedor; o débito no caixa do humano é feito pelo aparelho dele.\n- Se o vencedor humano não tiver caixa ou vaga (ex.: cota de estrangeiros), a recusa é decidida no aparelho dele.\n\nJogador que não mudou de elenco depois do leilão fechado: **escale para dev**.",
+    "resposta_jogador": "Na Resenha o leilão é resolvido quando a rodada fecha, então o lote fica parado até lá. Vence o maior lance e, se empatar, quem deu o lance primeiro.",
+    "tags": [
+      "resenha",
+      "leilao",
+      "mercado"
+    ]
+  },
+  {
+    "id": "05-039",
+    "pergunta": "Negociação entre treinadores ficou pendente ou o dinheiro sumiu/duplicou.",
+    "variacoes": [
+      "proposta entre amigos pendente",
+      "vendi jogador pro amigo e nao foi",
+      "dinheiro sumiu depois da venda na resenha",
+      "caixa duplicou na negociacao",
+      "jogador vendido nao mudou de time"
+    ],
+    "resposta": "Propostas, contrapropostas, vendas e contratações **entre humanos viajam junto com o resultado da rodada**; até a rodada fechar, ficam **pendentes**.\n\n- O caixa de cada humano fica no lugar (assento) dele no servidor, e é o aparelho do jogador que debita/credita.\n- Sincronizar no meio da rodada pode pôr essas negociações em risco (o modal de sincronizar avisa).\n\nO que fazer: esperar a rodada fechar. **Escale para dev** se houver dinheiro sumindo ou duplicando, ou jogador que não mudou de elenco depois da venda/leilão.",
+    "resposta_jogador": "Na Resenha as negociações entre treinadores só se confirmam quando a rodada fecha, então é normal ficarem pendentes até lá. Se depois disso o dinheiro ou o jogador não bater, nos avise com o código da sala.",
+    "tags": [
+      "resenha",
+      "mercado",
+      "dinheiro",
+      "escalar"
+    ]
+  },
+  {
+    "id": "05-040",
+    "pergunta": "O fim de temporada da Resenha não apareceu (ou a premiação veio errada).",
+    "variacoes": [
+      "nao vi o resumo da temporada na resenha",
+      "premiacao duplicada na virada",
+      "estava offline na virada da temporada",
+      "titulo errado no fim da temporada",
+      "fim de temporada diferente para cada um"
+    ],
+    "resposta": "**Quem vira a temporada é o servidor**, no fechamento da última rodada. A tela de fim de temporada deve aparecer para **todos**, inclusive para quem estava desconectado: ao entrar, o jogo verifica a virada, aplica a premiação, registra os títulos e mostra o resumo (com um carimbo por treinador para não pagar em dobro). O sorteio das copas novas espera o resumo.\n\n**Incerto:** várias dessas correções constam como \"aguardando teste\". Trate divergência de fim de temporada entre jogadores da mesma sala como **bug a escalar**: resumo que não apareceu, premiação em dobro ou faltando, títulos errados.",
+    "resposta_jogador": "O resumo do fim de temporada deve aparecer para todos, mesmo para quem estava fora na hora da virada. Se não apareceu para você ou a premiação veio errada, nos mande o código da sala e seu clube que a equipe verifica.",
+    "tags": [
+      "resenha",
+      "fim de temporada",
+      "premiacao",
+      "escalar"
+    ]
+  },
+  {
+    "id": "05-041",
+    "pergunta": "Quem vai para a Libertadores na Resenha? (vagas continentais)",
+    "variacoes": [
+      "vaga na libertadores como funciona",
+      "vice da copa do brasil vai pra libertadores?",
+      "campeao da sulamericana classifica?",
+      "time em duas copas continentais",
+      "vagas continentais brasil"
+    ],
+    "resposta": "Nas vagas continentais do Brasil:\n\n- Vão para a **Libertadores seguinte**, **na frente** das vagas por tabela: o **campeão da Copa do Brasil** (só o campeão, não o vice), o **campeão da Libertadores** e o **campeão da Sul-Americana**.\n- **Ninguém fica nas duas copas.**\n- Os grupos das copas fecham em múltiplo de 4.\n\nEssa parte também consta como \"aguardando teste\"; divergência entre jogadores da mesma sala deve ser **escalada**.",
+    "resposta_jogador": "Vão para a Libertadores seguinte o campeão da Copa do Brasil, o campeão da Libertadores e o campeão da Sul-Americana, antes das vagas pela tabela. O vice da Copa do Brasil não ganha vaga por isso.",
+    "tags": [
+      "resenha",
+      "libertadores",
+      "copas"
+    ]
+  },
+  {
+    "id": "05-042",
+    "pergunta": "O que faz o botão \"Sincronizar sala\"?",
+    "variacoes": [
+      "sincronizar sala pra que serve",
+      "cade o botao gravar na resenha",
+      "sincronizar perde meu jogo?",
+      "deu uma piscada e perdi o bonde",
+      "como resincronizo a resenha"
+    ],
+    "resposta": "Na Resenha, **\"Sincronizar sala\"** fica na faixa do topo, no lugar do \"Gravar\" do Solo.\n\n- Grava o que é do treinador (carreira, finanças, caixa de entrada), **recarrega a página** e volta direto para a tela do clube com o estado do servidor, **sem sair da sala e sem pedir login**.\n- O modal **\"Sincronizar a Resenha\"** confere antes:\n  - **Bloqueia** se houver partida em andamento (\"Termine o jogo primeiro\").\n  - **Avisa** (pede \"Entendi o risco...\") se o resultado ainda não chegou ao servidor, se há negociação não confirmada ou se o anfitrião está fechando a rodada.\n  - Tudo certo: \"✓ Tudo certo. Nenhuma partida em andamento e nada seu pendente no servidor.\"",
+    "resposta_jogador": "O \"Sincronizar sala\" atualiza a sua tela com o estado da sala no servidor, sem tirar você da sala. Se você estiver no meio de uma partida, termine o jogo antes de sincronizar.",
+    "tags": [
+      "resenha",
+      "sincronizar"
+    ]
+  },
+  {
+    "id": "05-043",
+    "pergunta": "Como sair de uma sala do Modo Resenha? Posso voltar depois?",
+    "variacoes": [
+      "quero sair da resenha",
+      "sair da sala do meu amigo",
+      "sai da sala e quero voltar",
+      "se eu sair perco meu time?",
+      "lixeira na lista de salas"
+    ],
+    "resposta": "Convidado sai por **Configurações → \"Sair da resenha\"** ou pela **lixeira** em Minhas salas.\n\n- O lugar é liberado e **o clube passa a ser jogado pela máquina**; os outros continuam a semana.\n- **Dá para voltar** com o mesmo código, **se a sala ainda estiver aberta**.\n- Ao voltar, entra como numa sala nova: pode passar por **aprovação** e recebe um **clube livre sorteado**, não necessariamente o antigo.",
+    "resposta_jogador": "Você pode sair em Configurações, \"Sair da resenha\". Seu clube passa para a máquina e a turma continua. Dá para voltar depois com o mesmo código, se a sala ainda estiver aberta, mas você recebe um clube sorteado, que pode não ser o mesmo.",
+    "tags": [
+      "resenha",
+      "sair",
+      "voltar"
+    ]
+  },
+  {
+    "id": "05-044",
+    "pergunta": "O anfitrião pode apagar a sala? Dá para desfazer?",
+    "variacoes": [
+      "como apago a minha sala",
+      "anfitriao apagou a sala sem querer",
+      "recuperar sala apagada",
+      "fechar a sala apaga?",
+      "sala sumiu pra todo mundo"
+    ],
+    "resposta": "Sim. Quando o **anfitrião apaga a sala** (lixeira em Minhas salas), ela é marcada como encerrada e **some para todos** (\"A sala some pra todos os participantes.\"). Quem tentar entrar vê \"Esta sala foi encerrada.\"\n\n- **Não há como desfazer pelo jogo.** Não prometa recuperação; se houver pedido, escale para dev.\n- **\"Fechar a sala\"** no lobby só sai da tela; **não apaga** a sala.",
+    "resposta_jogador": "Quando o anfitrião apaga a sala, ela some para todos os participantes e não dá para desfazer pelo jogo. Se a ideia era só sair da tela, o botão \"Fechar a sala\" do lobby não apaga nada.",
+    "tags": [
+      "resenha",
+      "apagar sala",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-045",
+    "pergunta": "Fui removido da sala pelo anfitrião (ou quero remover alguém).",
+    "variacoes": [
+      "voce foi removido da sala pelo anfitriao",
+      "como tiro um jogador da resenha",
+      "remover treinador do lobby",
+      "me expulsaram da sala",
+      "kickar alguem da sala"
+    ],
+    "resposta": "O anfitrião tem o botão **Remover** ao lado de cada convidado no lobby.\n\nQuando alguém é removido:\n- vê **\"Você foi removido da sala pelo anfitrião\"**;\n- o clube dele vai para a **máquina**;\n- o convite/aprovação dele é **apagado**.\n\nPara voltar, precisa **ser aprovado de novo** pelo anfitrião.",
+    "resposta_jogador": "O anfitrião removeu você da sala, e seu clube passou para a máquina. Se foi engano, peça a ele um novo convite e a aprovação para voltar.",
+    "tags": [
+      "resenha",
+      "remover",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-046",
+    "pergunta": "\"Sua sessão expirou\". O que fazer?",
+    "variacoes": [
+      "sua sessao expirou",
+      "fui deslogado no meio da resenha",
+      "sessao expirada faca login novamente",
+      "me tirou da sala e pediu login",
+      "nao grava diz sessao expirada"
+    ],
+    "resposta": "Basta **entrar de novo com a mesma conta**. O save na nuvem e a sala continuam lá.\n\n- **Resenha:** o jogo tira a pessoa da sala e mostra \"Sua sessão expirou — entre de novo pra voltar à Resenha\". Depois do login, abrir a sala (Minhas salas ou link).\n- **Solo:** a gravação falha com \"⚠ Sessão expirada — faça login novamente pra gravar na nuvem.\" Logar e usar **Gravar**.",
+    "resposta_jogador": "Sua sessão de login venceu. É só entrar de novo com a mesma conta: seu jogo continua guardado.",
+    "tags": [
+      "sessao",
+      "login",
+      "resenha",
+      "solo"
+    ]
+  },
+  {
+    "id": "05-047",
+    "pergunta": "Apareceu a barra amarela \"O jogo foi atualizado enquanto esta aba estava aberta\".",
+    "variacoes": [
+      "barra amarela no topo",
+      "o jogo foi atualizado recarregue",
+      "meus resultados nao valem ate recarregar",
+      "recarregar agora aparece",
+      "aviso de versao nova na resenha"
+    ],
+    "resposta": "Aparece na **Resenha** quando a aba roda uma versão do motor de partidas diferente da do servidor (ex.: aba aberta desde antes de uma atualização). Texto: \"Recarregue para continuar — seus resultados não valem até lá.\"\n\n1. Clicar em **\"Recarregar agora\"**.\n2. Enquanto não recarregar, os resultados daquela aba **não valem** para a sala.\n\nO **Modo Solo não tem** esse aviso. Se a barra voltar logo após recarregar, tente recarregar com cache limpo (Ctrl+Shift+R / Cmd+Shift+R) e, persistindo, escale.",
+    "resposta_jogador": "O jogo recebeu uma atualização enquanto sua aba estava aberta. Clique em \"Recarregar agora\"; até recarregar, os resultados dessa aba não contam para a sala.",
+    "tags": [
+      "resenha",
+      "barra amarela",
+      "atualizacao",
+      "recarregar"
+    ]
+  },
+  {
+    "id": "05-048",
+    "pergunta": "Onde fica o save no Modo Resenha? Por que não tem botão Gravar?",
+    "variacoes": [
+      "como salvo na resenha",
+      "resenha nao tem gravar",
+      "minha sala nao aparece na lista de saves",
+      "save da resenha fica onde",
+      "perco o jogo da resenha se fechar?"
+    ],
+    "resposta": "Na Resenha **não existe \"Gravar\"**: o estado mora **no servidor**. O botão da faixa do topo vira **\"Sincronizar sala\"**.\n\n- O **mundo da sala** (tabelas, calendário, elencos, copas) é publicado no servidor a cada fechamento de rodada.\n- O que é **de cada treinador** (clube, caixa, carreira, títulos, extrato, caixa de entrada) fica no lugar dele na sala, no servidor.\n- A sala é um jogo à parte e **não aparece na lista de saves do Solo**; ela fica em **Minhas salas**.",
+    "resposta_jogador": "No Modo Resenha tudo fica guardado no servidor da sala, por isso não há botão Gravar. Para voltar ao jogo, abra a sala pela lista \"Minhas salas\".",
+    "tags": [
+      "resenha",
+      "save",
+      "servidor"
+    ]
+  },
+  {
+    "id": "05-049",
+    "pergunta": "Dá para voltar a Resenha para uma rodada anterior?",
+    "variacoes": [
+      "voltar no tempo na resenha",
+      "convidado pode voltar a sala",
+      "restaurar ponto na resenha",
+      "so o anfitriao pode voltar a sala",
+      "desfazer rodada na sala"
+    ],
+    "resposta": "Só o **anfitrião** pode voltar a sala para um ponto guardado, porque isso muda o jogo de todos. Para convidado, a resposta é \"só o Anfitrião pode voltar a sala\".\n\n- Na Resenha os pontos guardados existem **só no aparelho** (não há foto na nuvem).\n- Caminho: Configurações → **Gravação** → escolher o ponto → **\"Voltar para …\"**. Tudo o que veio depois é perdido.",
+    "resposta_jogador": "Na Resenha só o anfitrião pode voltar a sala para uma rodada anterior, porque isso muda o jogo de todo mundo. Converse com ele se for o caso.",
+    "tags": [
+      "resenha",
+      "pontos guardados",
+      "anfitriao"
+    ]
+  },
+  {
+    "id": "05-050",
+    "pergunta": "Onde fica o save do Modo Solo? Preciso estar logado?",
+    "variacoes": [
+      "onde fica salvo meu jogo",
+      "save fica no navegador ou na nuvem",
+      "precisa de conta pra jogar solo?",
+      "o que é SAVE01",
+      "meu save é local?"
+    ],
+    "resposta": "O save do **Modo Solo fica na nuvem, ligado à conta**. **É preciso estar logado** para jogar e gravar.\n\n- O jogo guarda também uma cópia no navegador, mas **ao recarregar carrega o último save da nuvem**; a cópia local não é o save oficial.\n- Cada save tem nome automático (**SAVE01, SAVE02…**), pulando nomes que já existem na conta.\n- A lista de saves mostra escudo e nome do clube, temporada, divisão e rodada.",
+    "resposta_jogador": "No Modo Solo seu jogo fica guardado na nuvem, na sua conta, por isso é preciso estar logado. Você encontra seus jogos na lista de saves (SAVE01, SAVE02...).",
+    "tags": [
+      "solo",
+      "save",
+      "nuvem"
+    ]
+  },
+  {
+    "id": "05-051",
+    "pergunta": "O jogo grava sozinho? Quando o Modo Solo salva na nuvem?",
+    "variacoes": [
+      "o jogo salva automatico?",
+      "quando o save é gravado",
+      "escalei e nao salvou",
+      "de quanto em quanto tempo grava",
+      "autosave do solo como funciona"
+    ],
+    "resposta": "Desde 25/09 o jogo grava na nuvem **só nestes momentos**:\n\n1. **Fim de rodada** (liga e copa), no máximo **1 vez a cada 2 minutos** (o que acontece no meio vai no envio seguinte).\n2. **Criação do jogo.**\n3. **Quando o jogador pede**: **Gravar** (topo), \"Gravar agora\" em Configurações, \"Gravar e sair\", sair da conta, encerrar carreira. Gravam na hora.\n4. **Quando a aba fica escondida** (trocar de aba, minimizar, fechar) e há algo por gravar.\n\nEscalar, mercado ou opções **não gravam sozinhos**; vão no próximo save de rodada. Falhas de rede são tentadas de novo sozinhas (até 10 min de espera).",
+    "resposta_jogador": "Sim: o jogo grava sozinho no fim das rodadas (no máximo a cada 2 minutos) e quando você troca de aba ou minimiza. Para garantir, use o botão Gravar antes de fechar o jogo.",
+    "tags": [
+      "solo",
+      "save",
+      "gravar",
+      "autosave"
+    ]
+  },
+  {
+    "id": "05-052",
+    "pergunta": "Voltei ao Modo Solo e perdi as últimas jogadas.",
+    "variacoes": [
+      "perdi a ultima rodada",
+      "voltei e o jogo tava atrasado",
+      "save voltou pra tras",
+      "fechei o navegador e perdi o progresso",
+      "sumiu o que eu fiz ontem"
+    ],
+    "resposta": "Provavelmente o navegador foi fechado (ou o aparelho travou) **antes do envio seguinte**. O jogo carrega o **último save da nuvem**, então pode voltar **algumas ações ou até uma rodada** (no máximo o que aconteceu desde o último envio).\n\n1. Explique o ritmo de gravação (fim de rodada, no máximo a cada 2 min; ao esconder a aba; ao clicar Gravar).\n2. Veja **Configurações → Gravação**: pode haver um ponto guardado útil.\n3. Recomende **Gravar** antes de fechar.\n\nSe a perda for maior que uma rodada, ou o save não carregar, **escale para dev**.",
+    "resposta_jogador": "O jogo carrega o último envio feito para a nuvem, então o que aconteceu logo antes de fechar pode não ter ido. Dê uma olhada em Configurações, Gravação, e daqui para frente use o botão Gravar antes de sair.",
+    "tags": [
+      "solo",
+      "save",
+      "perda"
+    ]
+  },
+  {
+    "id": "05-053",
+    "pergunta": "Cliquei em Gravar e deu erro.",
+    "variacoes": [
+      "nao foi possivel gravar na nuvem",
+      "erro ao salvar o jogo",
+      "gravar nao funciona",
+      "fica gravando na nuvem e nao termina",
+      "save nao grava"
+    ],
+    "resposta": "No \"Gravar\" manual o jogador vê \"Gravando na nuvem...\" e depois **\"✓ Jogo gravado na nuvem.\"** ou um erro:\n\n- **\"⚠ Sessão expirada — faça login novamente pra gravar na nuvem.\"** → entrar de novo e gravar.\n- **\"⚠ Não foi possível gravar na nuvem (motivo).\"** → anotar o motivo. Pode ser rede ou servidor; o jogo tenta de novo sozinho (até 10 min de espera).\n\nSe o motivo falar de limite de plano, veja a entrada de limites/paywall. Se vários jogadores relatarem ao mesmo tempo, suspeite de servidor fora e **escale**.",
+    "resposta_jogador": "Se apareceu \"Sessão expirada\", entre de novo na conta e grave outra vez. Se foi outro erro, tente em alguns minutos: o jogo também tenta gravar de novo sozinho.",
+    "tags": [
+      "solo",
+      "gravar",
+      "erro"
+    ]
+  },
+  {
+    "id": "05-054",
+    "pergunta": "O que é o \"Salvamento automático\" e como volto para uma rodada anterior?",
+    "variacoes": [
+      "voltar no tempo no solo",
+      "como restauro um ponto guardado",
+      "salvamento automatico as 3 ultimas semanas",
+      "voltar para rodada anterior",
+      "o que é nuvem auto temporada nos pontos"
+    ],
+    "resposta": "Em **Configurações → Gravação**. A opção **\"Salvamento automático\"** vem **ligada**.\n\n- O jogo tira uma foto ao fim de cada rodada e guarda **as 3 mais recentes** no navegador, mais uma foto fixa do fim de cada temporada (até 3).\n- No **Solo**, a foto de fim de temporada vai **também para a nuvem** (etiqueta **NUVEM** ☁️). As outras são **AUTO** (rodada) ou **TEMPORADA**.\n- Para voltar: escolher o ponto → **\"Voltar para …\"**. \"O que veio depois é perdido.\"\n- O interruptor **não desliga** a gravação normal na nuvem.",
+    "resposta_jogador": "Em Configurações, Gravação, você encontra os pontos guardados das últimas rodadas e dos fins de temporada. Escolha um e clique em \"Voltar para...\". Atenção: tudo o que veio depois desse ponto é perdido.",
+    "tags": [
+      "solo",
+      "pontos guardados",
+      "voltar"
+    ]
+  },
+  {
+    "id": "05-055",
+    "pergunta": "Os pontos guardados sumiram (troquei de aparelho, aba anônima ou sem espaço).",
+    "variacoes": [
+      "sumiram os pontos de rodada",
+      "sem espaco neste navegador para guardar os pontos",
+      "pontos guardados nao aparecem no celular",
+      "limpei o navegador e perdi os pontos",
+      "aba anonima nao guarda"
+    ],
+    "resposta": "Os **pontos de rodada ficam só naquele navegador**. Trocar de aparelho, usar aba anônima/privada ou **limpar os dados do site** apaga esses pontos.\n\n- A **foto de fim de temporada na nuvem** (Solo) continua valendo em qualquer aparelho.\n- Sem espaço, o jogo avisa uma vez: \"⚠ Sem espaço neste navegador para guardar os pontos de rodada.\" (no Solo acrescenta que o fim de temporada segue na nuvem). O motivo aparece em Configurações.\n- Nada disso apaga o **save da nuvem** nem a sala.",
+    "resposta_jogador": "Os pontos das últimas rodadas ficam guardados só no navegador onde você jogou, então somem ao trocar de aparelho ou limpar os dados. Seu save principal e a foto de fim de temporada continuam na nuvem.",
+    "tags": [
+      "solo",
+      "pontos guardados",
+      "navegador"
+    ]
+  },
+  {
+    "id": "05-056",
+    "pergunta": "Quantas carreiras e temporadas posso jogar no Modo Solo?",
+    "variacoes": [
+      "limite de temporadas no gratis",
+      "so posso jogar uma temporada?",
+      "quantos saves o peladeiro pode ter",
+      "plano pro tem temporada ilimitada?",
+      "ganhar temporada gratis com depoimento"
+    ],
+    "resposta": "Regras desde 25/09:\n\n- **Peladeiro (gratuito):** Modo Solo completo, **1 carreira por conta** e **1 temporada por carreira**. No fim da temporada abre o **paywall**, com uma saída grátis por vez: fim da 1ª → **depoimento** libera +1; fim da 2ª → **postar ou gravar vídeo** libera +1; depois, só com o Pro.\n- **Veteranos da Beta:** carreiras que já tinham passado da 1ª temporada ganharam a atual **+ 2 viradas** de cortesia.\n- **Pro:** carreiras e temporadas **ilimitadas**.",
+    "resposta_jogador": "No plano grátis (Peladeiro) você tem 1 carreira com 1 temporada, e pode ganhar até 2 temporadas extras, uma de cada vez: com um depoimento e com um post ou vídeo. No Pro, carreiras e temporadas são ilimitadas.",
+    "tags": [
+      "solo",
+      "plano",
+      "limite",
+      "temporadas"
+    ]
+  },
+  {
+    "id": "05-057",
+    "pergunta": "Bati no limite do plano (paywall). Perdi meu save?",
+    "variacoes": [
+      "o peladeiro tem uma carreira",
+      "apareceu paywall e nao gravou",
+      "limite de temporada apaga o save?",
+      "sou pro e fui bloqueado no paywall",
+      "nao deixa comecar a proxima temporada"
+    ],
+    "resposta": "Não. **As travas só recusam gravar; nunca alteram nem apagam o save existente.** A carreira gravada continua inteira.\n\n- Recusa por **limite de temporadas** → abre o paywall (uma vez por save em cada aba, nunca no meio de partida).\n- Recusa por **limite de carreiras** → janela **\"O Peladeiro tem uma carreira\"**.\n\nSe o limite parecer errado (ex.: **Pro sendo bloqueado**), **escale para dev** com e-mail da conta e nome do save.",
+    "resposta_jogador": "Fique tranquilo: o limite do plano só impede gravar o avanço, ele nunca apaga nem altera o seu save. Sua carreira continua inteira; para seguir além do limite, é preciso liberar a temporada ou ser Pro.",
+    "tags": [
+      "solo",
+      "paywall",
+      "plano",
+      "escalar"
+    ]
+  },
+  {
+    "id": "05-058",
+    "pergunta": "Como carregar ou sair de um save do Modo Solo?",
+    "variacoes": [
+      "como abro meu save",
+      "carregar jogo salvo",
+      "sair do save sem perder",
+      "gravar e sair o que faz",
+      "continuar meu jogo solo"
+    ],
+    "resposta": "- **Carregar:** Modo Solo → **lista de saves** → tocar no save. O jogo baixa da nuvem e abre na tela do clube.\n- **Sair do save:** \"Sair deste save?\" → **\"Gravar e sair\"**. \"Nada se perde: o save é gravado antes de sair e aparece na lista de saves.\"\n\nSe o save não aparecer ou não carregar, confirme se está logado na **mesma conta**; persistindo, **escale para dev** (save que não carrega).",
+    "resposta_jogador": "Para continuar, entre no Modo Solo e toque no save na lista. Para sair, use \"Gravar e sair\": o jogo grava antes e o save continua na lista.",
+    "tags": [
+      "solo",
+      "save",
+      "carregar"
+    ]
+  },
+  {
+    "id": "05-059",
+    "pergunta": "Apaguei meu save sem querer. Dá para recuperar?",
+    "variacoes": [
+      "apaguei o save",
+      "recuperar save apagado",
+      "como apago um save",
+      "deletei meu jogo sem querer",
+      "save sumiu depois de apagar"
+    ],
+    "resposta": "**Pelo jogo, não.** O apagar pede para **digitar o nome do clube** justamente por isso: \"Isto não tem volta. A temporada, o elenco e o histórico do treinador somem para sempre.\"\n\n- As fotos de fim de temporada na nuvem daquele save também são apagadas.\n- O suporte não tem como desfazer pelo jogo.\n\nSe houver pedido, **escale para dev**, mas **não prometa recuperação**.",
+    "resposta_jogador": "Infelizmente o jogo não tem como desfazer um save apagado; por isso ele pede para digitar o nome do clube antes. Vou passar seu caso para a equipe, mas não conseguimos garantir a recuperação.",
+    "tags": [
+      "solo",
+      "apagar",
+      "recuperar"
+    ]
+  },
+  {
+    "id": "05-060",
+    "pergunta": "O que acontece ao \"Encerrar carreira\"?",
+    "variacoes": [
+      "encerrar carreira apaga?",
+      "aposentar o treinador",
+      "encerrei a carreira sem querer",
+      "diferenca entre encerrar e apagar save",
+      "hall da carreira"
+    ],
+    "resposta": "Ao **encerrar carreira**:\n\n- a carreira vai para o **hall** e **não continua**;\n- o save fica **só para consulta**;\n- o histórico continua na **sala de troféus**.\n\nEncerrar também grava na nuvem na hora. É diferente de **apagar** o save, que some para sempre. A base não descreve como reabrir uma carreira encerrada; se houver pedido, escale para dev.",
+    "resposta_jogador": "Ao encerrar a carreira, ela vai para o hall e o save fica só para consulta, com o histórico guardado na sala de troféus. Ela não pode ser continuada pelo jogo.",
+    "tags": [
+      "solo",
+      "carreira",
+      "encerrar"
+    ]
+  },
+  {
+    "id": "05-061",
+    "pergunta": "Como apago minha conta?",
+    "variacoes": [
+      "quero excluir minha conta",
+      "deletar conta retrofoot",
+      "ainda nao da pra apagar a conta",
+      "cancelar cadastro",
+      "remover meus dados"
+    ],
+    "resposta": "**Não dá para fazer de dentro do jogo hoje.** A janela diz \"Ainda não dá para apagar a conta de dentro do jogo\" e oferece **apagar um save** ou **sair da conta**.\n\nSe o jogador insistir em apagar a conta, registre o pedido com o e-mail da conta e encaminhe ao time responsável (a base não descreve outro caminho).",
+    "resposta_jogador": "Hoje ainda não dá para apagar a conta de dentro do jogo. Você pode apagar seus saves e sair da conta; se quiser a exclusão, nos confirme o e-mail da conta que encaminhamos o pedido.",
+    "tags": [
+      "conta",
+      "apagar"
+    ]
+  },
+  {
+    "id": "05-062",
+    "pergunta": "Troquei de celular/computador. Perdi o jogo?",
+    "variacoes": [
+      "troquei de pc e perdi o save",
+      "jogar em outro aparelho",
+      "como passo o save pro celular",
+      "jogo no celular e no computador",
+      "comprei celular novo e meu jogo?"
+    ],
+    "resposta": "Não.\n\n- **Modo Solo:** entrar com a **mesma conta** no outro aparelho; o save vem da nuvem. Para não perder o último progresso, **Gravar antes** no aparelho antigo. Os pontos de rodada **não** vão junto (só a foto de fim de temporada na nuvem).\n- **Modo Resenha:** mesma conta → abrir a sala (Minhas salas ou link). Mundo, lugar, clube, caixa e carreira vêm do servidor.\n- O login fica guardado no navegador: recarregar não desloga.",
+    "resposta_jogador": "Não perdeu! É só entrar com a mesma conta no aparelho novo que o seu jogo vem da nuvem. Da próxima vez, clique em Gravar no aparelho antigo antes de trocar.",
+    "tags": [
+      "save",
+      "aparelho",
+      "nuvem"
+    ]
+  },
+  {
+    "id": "05-063",
+    "pergunta": "Erro de conexão, \"CORS\" no console, login não funciona ou nada carrega.",
+    "variacoes": [
+      "nao carrega nada",
+      "erro cors no console",
+      "nao foi possivel conectar ao servidor",
+      "login nao funciona",
+      "jogo fora do ar?"
+    ],
+    "resposta": "Mensagens de **\"CORS\"** no console quase sempre significam que o **servidor (banco) está fora do ar** (erro 522 por trás), não configuração do jogador.\n\n- Sinais: login não funciona, saves não carregam, \"Não foi possível conectar ao servidor\", nomes do pacote não chegam.\n- Um monitor automático testa o servidor de hora em hora e avisa a equipe.\n- Em 24 e 25/09 houve quedas assim; numa delas o painel do provedor dizia \"saudável\" com o banco fora.\n\nResponda que há instabilidade e o save está guardado. **Escale para dev** se vários jogadores relatarem ao mesmo tempo.",
+    "resposta_jogador": "Estamos com instabilidade no servidor. Seu save está guardado; tente de novo em alguns minutos.",
+    "tags": [
+      "servidor",
+      "cors",
+      "conexao",
+      "fora do ar"
+    ]
+  },
+  {
+    "id": "05-064",
+    "pergunta": "O save \"pulou temporadas\", todos se aposentaram ou o clube caiu sem jogar.",
+    "variacoes": [
+      "meu save pulou anos",
+      "todos os jogadores aposentaram",
+      "cai de divisao sem jogar",
+      "temporada virou sozinha",
+      "ano do save errado"
+    ],
+    "resposta": "Defeito conhecido (**\"virada fantasma\"**), **corrigido em 23/09**: cliques repetidos em \"começar a próxima temporada\" podiam virar a temporada mais de uma vez. Hoje o jogo aceita um clique por vez e recusa virar sem nenhum jogo disputado.\n\nSinais: ano à frente do que a pessoa jogou, muitos aposentados, subidas/descidas estranhas.\n\n1. Ver **Configurações → Gravação**, em especial a foto **NUVEM** de fim de temporada, e orientar a voltar para ela.\n2. Se não houver, **escale para dev** com conta e nome do save (ex.: SAVE01). Saves afetados antes da correção podem não ter reparo.",
+    "resposta_jogador": "Isso era um defeito que já foi corrigido. Veja em Configurações, Gravação, se há um ponto de fim de temporada (marcado como NUVEM) e volte para ele. Se não houver, nos mande o nome do save que a equipe verifica.",
+    "tags": [
+      "solo",
+      "temporada",
+      "virada",
+      "bug"
+    ]
+  },
+  {
+    "id": "05-065",
+    "pergunta": "Estão aparecendo nomes reais de jogadores ou clubes.",
+    "variacoes": [
+      "nomes reais no jogo",
+      "jogador com nome verdadeiro",
+      "apareceu o nome real do clube",
+      "nomes ficticios sumiram",
+      "save com nomes reais"
+    ],
+    "resposta": "O jogo usa **nomes fictícios** (pacote oficial). Em **24–25/09**, com o servidor fora, jogos **novos** foram criados com nomes reais porque o pacote não chegava. Hoje o pacote vai **embutido** no jogo e a publicação é bloqueada sem ele.\n\n1. Perguntar **quando o save foi criado**: o save guarda os nomes da criação; se foi criado durante a queda, pode ter ficado com nomes reais.\n2. **Escale para dev** com a data de criação do save.\n3. Se aparecer num jogo **novo criado agora**, **escale imediatamente**.",
+    "resposta_jogador": "Obrigado por avisar! Pode nos dizer quando esse save foi criado e o nome dele (SAVE01, por exemplo)? Vamos passar para a equipe verificar.",
+    "tags": [
+      "nomes reais",
+      "pacote",
+      "escalar"
+    ]
+  },
+  {
+    "id": "05-066",
+    "pergunta": "A tela de decisão ficou presa / o Modo Camarote não fecha.",
+    "variacoes": [
+      "camarote nao fecha",
+      "o x do camarote nao funciona",
+      "tela presa no fim da copa",
+      "modal travado na tela",
+      "nao consigo fechar a janela"
+    ],
+    "resposta": "Houve um defeito **corrigido em 27/09**: na última partida de uma copa, o Camarote ficava por cima do aviso de título/eliminação e o ✖ não funcionava. Hoje o ✖ sempre redesenha a tela.\n\n1. Clicar no **✖ do Camarote** ou fechar o modal (✖, clicar fora ou Esc; janelas obrigatórias, como a da demissão, só fecham pelos botões de dentro).\n2. Se não fechar: **Solo** → recarregar a página (volta ao último save na nuvem); **Resenha** → **\"Sincronizar sala\"** (termine a partida antes, se houver).\n3. Se repetir, **escale** com o nome da competição e a fase.",
+    "resposta_jogador": "Tente fechar pelo X do Camarote ou apertando Esc. Se não fechar, recarregue a página (no Modo Resenha, use \"Sincronizar sala\"). Se voltar a acontecer, nos diga em qual competição e fase foi.",
+    "tags": [
+      "camarote",
+      "modal",
+      "travado"
+    ]
+  },
+  {
+    "id": "05-067",
+    "pergunta": "O jogo está lento.",
+    "variacoes": [
+      "jogo muito lento",
+      "demora pra carregar o save",
+      "ta travando e lagando",
+      "partida lenta demais",
+      "jogo pesado no navegador"
+    ],
+    "resposta": "Causas mais comuns:\n\n- **Save grande** (carreiras longas no Solo): carregar e gravar demora mais.\n- **Aba em segundo plano**: o navegador desacelera o jogo; na Resenha, também atrasa a sala.\n- **Instabilidade do servidor**.\n- **Velocidade da partida**: no Solo, Opções (Curto, Médio, Longo; Ultrassônico é Pro). Na Resenha, quem define é o anfitrião.\n\nOriente: manter a aba em primeiro plano, fechar outras abas pesadas, recarregar a página. Se for geral, verificar instabilidade do servidor e escalar.",
+    "resposta_jogador": "Mantenha a aba do jogo aberta na frente, feche outras abas pesadas e recarregue a página. Para partidas mais rápidas, ajuste a velocidade em Opções (na Resenha, quem escolhe é o anfitrião).",
+    "tags": [
+      "lentidao",
+      "desempenho",
+      "navegador"
+    ]
+  },
+  {
+    "id": "05-068",
+    "pergunta": "Posso dar F5 / recarregar? E se eu achar que estou numa versão velha?",
+    "variacoes": [
+      "posso atualizar a pagina",
+      "f5 perde o jogo?",
+      "limpar cache do jogo",
+      "versao antiga do jogo",
+      "recarregar na resenha tira da sala?"
+    ],
+    "resposta": "- **Solo:** F5 volta para a mesma página, carregando o **último save da nuvem**.\n- **Resenha:** preferir **\"Sincronizar sala\"**. Um F5 comum também volta para a sala, porque o endereço guarda `?sala=CODIGO`.\n- **Versão velha:** recarregar com cache limpo (no computador, **Ctrl+Shift+R** ou **Cmd+Shift+R**).\n- **Limpar os dados do site** apaga os pontos guardados locais, mas **não** apaga o save da nuvem nem a sala.",
+    "resposta_jogador": "Pode recarregar sem medo: no Modo Solo o jogo abre o último save da nuvem, e no Modo Resenha você volta para a mesma sala (lá o ideal é usar \"Sincronizar sala\"). Se achar que está numa versão antiga, recarregue com Ctrl+Shift+R.",
+    "tags": [
+      "recarregar",
+      "cache",
+      "versao"
+    ]
+  },
+  {
+    "id": "05-069",
+    "pergunta": "Qual navegador usar? O jogo funciona no celular?",
+    "variacoes": [
+      "funciona no celular?",
+      "qual navegador é melhor",
+      "jogo no iphone",
+      "safari funciona?",
+      "resenha no 4g da problema?"
+    ],
+    "resposta": "- O código **não define um navegador oficial** e não mostra aviso de navegador não suportado. A equipe usa o **Chrome no computador** para testes e diagnóstico (é onde fica o console).\n- O jogo tem **layout de celular**. No celular não há console, então bugs de sincronia são mais fáceis de investigar com alguém no computador.\n- Metade dos problemas de sincronia vem de **aba em segundo plano ou rede móvel (4G)**. No celular, bloquear a tela ou trocar de app = aba em segundo plano.\n- **Aba anônima/privada:** login e pontos locais valem só naquela sessão.",
+    "resposta_jogador": "O jogo funciona no navegador do computador e do celular. No celular, evite bloquear a tela ou trocar de app durante as partidas, principalmente no Modo Resenha, e prefira Wi-Fi.",
+    "tags": [
+      "navegador",
+      "celular",
+      "dispositivo"
+    ]
+  },
+  {
+    "id": "05-070",
+    "pergunta": "Qual é o roteiro de diagnóstico para problemas de Resenha e saves?",
+    "variacoes": [
+      "o que perguntar ao jogador antes de escalar",
+      "checklist de suporte resenha",
+      "roteiro de atendimento",
+      "que informacoes coletar do bug",
+      "como investigar reclamacao de save"
+    ],
+    "resposta": "Perguntas na ordem (anote antes de escalar):\n\n1. **Modo:** Solo ou Resenha?\n2. **Identificação:** e-mail da conta (**nunca pedir senha**). Solo: save (SAVE01…), clube, temporada, rodada. Resenha: **código da sala**, anfitrião, nº de treinadores, clube de cada um.\n3. **Aparelho e rede:** computador/celular, navegador, Wi-Fi/4G, aba em segundo plano?\n4. **Tela:** print ou vídeo. Painel \"sala em espera\", \"esperando por você\", barra amarela, mensagem com ⚠?\n5. **Básico:** Resenha → Sincronizar sala, todos no mesmo dia? Solo → recarregar, Gravar? Barra amarela → Recarregar agora?\n6. **É geral?** Outros relatam agora? (servidor fora)\n7. **Resenha no computador:** linhas do console (F12).",
+    "resposta_jogador": null,
+    "tags": [
+      "diagnostico",
+      "suporte",
+      "roteiro"
+    ]
+  },
+  {
+    "id": "05-071",
+    "pergunta": "Quais linhas do console pedir num problema de sincronia da Resenha?",
+    "variacoes": [
+      "o que copiar do console f12",
+      "linha carimbei no console",
+      "como ligar debug na resenha",
+      "ponteiro e jornada local discordam",
+      "debug=1 para que serve"
+    ],
+    "resposta": "Se a pessoa estiver no **computador**: **F12 → Console** e copiar:\n\n- a **última linha que começa com \"carimbei\"** de **cada** jogador (diz o dia e momento da sala e por quem espera, ex.: \"ainda faltam 1: NOME\");\n- qualquer linha com: \"ponteiro e jornada local discordam\", \"cão de guarda\", \"à frente da sala\", \"atrasado N rodada(s)\", \"pausa há\", \"motor divergente\".\n\nPara relatos detalhados: abrir o jogo uma vez com **`?debug=1`** no endereço (liga um rastro extra, gravado no navegador); **`?debug=0`** desliga.\n\nNo celular não há console.",
+    "resposta_jogador": null,
+    "tags": [
+      "diagnostico",
+      "console",
+      "debug",
+      "resenha"
+    ]
+  },
+  {
+    "id": "05-072",
+    "pergunta": "Quando o suporte resolve sozinho e quando escala para o dev?",
+    "variacoes": [
+      "quando escalar pro dev",
+      "o que o suporte resolve sozinho",
+      "criterio de escalar bug",
+      "isso é bug ou normal?",
+      "o que levar pro desenvolvedor"
+    ],
+    "resposta": "**Resolver sozinho:** sala esperando alguém com nome na tela; \"cliquei em Jogar e não começou\"; barra amarela; sessão expirada; código errado, sala encerrada, aprovação pendente; pouca perda no Solo; voltar a ponto guardado.\n\n**Escalar sempre:**\n- resultados diferentes ou dias diferentes na mesma sala **depois de sincronizar**; jogador que avançou sozinho;\n- sala parada **sem painel** mesmo após sincronizar; momento pulado, partida sumida, rodada fechada sem ninguém jogar;\n- fim de temporada ausente, premiação errada, títulos errados;\n- dinheiro sumindo/duplicando; jogador que não mudou de elenco;\n- save que pulou temporadas, corrompido, não carrega, **nomes reais** em jogo novo;\n- limite de plano errado; vários com erro de conexão; mensagem fora da base.\n\nLevar: modo, conta, save/código, horário, aparelho/rede, prints, console.",
+    "resposta_jogador": null,
+    "tags": [
+      "escalar",
+      "dev",
+      "suporte",
+      "triagem"
+    ]
+  }
+]

@@ -1,0 +1,1314 @@
+[
+  {
+    "id": "04-001",
+    "pergunta": "O que significa a força do jogador e quais são as faixas por divisão?",
+    "variacoes": [
+      "o que é o numero de forca do jogador",
+      "qual forca é boa pra serie A?",
+      "overall do jogador vai ate quanto",
+      "o que é craque mundial no jogo",
+      "nivel dos jogadores da serie D é qual"
+    ],
+    "resposta": "A **força** (1 a 99) é o nível geral do jogador: é o número que o motor de partida usa e que define valor de mercado e salário.\n\nFaixas de referência do jogo:\n- Série A: 38–49 · Série B: 25–37 · Série C: 13–24 · Série D: 3–12\n- Estrela: 50–69 · Craque Nacional: 70–89 · Craque Mundial: 90–99\n\nAlém da força, o jogador tem posição (G, D, M, A), idade, 16 atributos de 1 a 20, comportamento, moral (0–100), energia (0–100), contrato e nacionalidade.\n\nNo motor de partida, a força acima de 49 é “comprimida” (um craque é o melhor em campo, mas não torna o time imbatível). Tela, valor e salário sempre usam a força cheia.",
+    "resposta_jogador": "A força vai de 1 a 99 e é o nível geral do jogador. Como referência: Série A fica entre 38 e 49, Série B entre 25 e 37, Série C entre 13 e 24 e Série D entre 3 e 12; acima de 50 já é Estrela, e de 90 para cima é Craque Mundial.",
+    "tags": [
+      "jogador",
+      "forca",
+      "atributos",
+      "divisao"
+    ]
+  },
+  {
+    "id": "04-002",
+    "pergunta": "Por que a força do jogador pula vários pontos ou não muda mesmo ele evoluindo um atributo?",
+    "variacoes": [
+      "forca do jogador subiu 4 de uma vez, é bug?",
+      "atributo subiu mas a forca continua igual",
+      "pq o overall nao mexeu se ele melhorou o passe",
+      "jogador ganhou atributo e forca nao alterou",
+      "salto estranho na forca do meu atacante"
+    ],
+    "resposta": "Não é bug. A força exibida é calculada a partir dos atributos da posição: eles viram uma “força bruta”, que depois passa por uma **curva própria de cada divisão**.\n\nPor isso a força pode **dar saltos de 2 a 4 pontos** de uma vez ou **não mudar** mesmo com um atributo evoluindo. Na Série D, 1 ponto de força bruta pode valer cerca de **+3** de força exibida; na Série A, cerca de **+0,6**.\n\nTambém só contam os atributos que importam para a posição do jogador.",
+    "resposta_jogador": "Isso é normal: a força é calculada a partir dos atributos da posição e passa por uma curva de cada divisão. Por isso às vezes ela pula 2 a 4 pontos de uma vez, e às vezes um atributo sobe sem mexer na força.",
+    "tags": [
+      "forca",
+      "atributos",
+      "evolucao"
+    ]
+  },
+  {
+    "id": "04-003",
+    "pergunta": "O que é o comportamento do jogador e o que ele muda?",
+    "variacoes": [
+      "o que significa casca-grossa no jogador",
+      "jogador brigao leva mais cartao?",
+      "da pra mudar o comportamento do jogador",
+      "exemplar vale mais no mercado?",
+      "pra que serve o traço encrenqueiro"
+    ],
+    "resposta": "O comportamento é um **traço fixo**, sorteado uma vez; não muda. Ele afeta chance de cartão, chance de lesão e valor de mercado:\n\n| Comportamento | Cartão | Lesão | Valor |\n|---|---|---|---|\n| Exemplar | ×0,4 | ×0,85 | ×1,15 |\n| Manso | ×0,75 | ×0,55 | ×1,02 |\n| Discreto | ×1,0 | ×1,6 | ×1,06 |\n| Encrenqueiro | ×1,7 | ×1,0 | ×0,98 |\n| Brigão | ×2,4 | ×1,05 | ×0,92 |\n| Casca-Grossa | ×3,2 | ×1,1 | ×0,85 |\n\nZagueiros tendem a sair mais agressivos; goleiros, meias e atacantes tendem a sair Exemplar ou Manso.",
+    "resposta_jogador": "O comportamento é um traço fixo do jogador e não muda. Ele mexe na chance de cartão e de lesão e no valor de mercado: um Exemplar leva bem menos cartão e vale até 15% mais, enquanto um Casca-Grossa leva muito mais cartão e vale 15% menos.",
+    "tags": [
+      "comportamento",
+      "cartao",
+      "lesao",
+      "valor"
+    ]
+  },
+  {
+    "id": "04-004",
+    "pergunta": "Como funciona a energia (cansaço) dos jogadores?",
+    "variacoes": [
+      "meu time ta todo cansado o que faço",
+      "energia do jogador recupera quanto por rodada",
+      "jogador cansado joga pior?",
+      "energia baixa atrapalha na partida",
+      "como recuperar o folego do elenco"
+    ],
+    "resposta": "- A cada rodada, todo jogador **recupera de 6 a 16 pontos** de energia.\n- Quem entra em campo **perde de 12 a 22 pontos**, proporcional aos minutos jogados. Por esse desgaste a energia nunca cai abaixo de 20.\n- No motor, energia baixa reduz o rendimento: a força em campo vale entre **60% (energia 0)** e **100% (energia 100)** do normal.\n- Na virada de temporada, todos voltam para **energia 100**.\n\nRodar o elenco (poupar quem está baixo) é o caminho para manter o time inteiro.",
+    "resposta_jogador": "Todo jogador recupera de 6 a 16 pontos de energia por rodada e perde de 12 a 22 quando joga. Energia baixa derruba o rendimento em campo (com energia zero ele renderia 60%), então vale poupar quem está cansado. Na virada da temporada todo mundo volta com 100.",
+    "tags": [
+      "energia",
+      "cansaco",
+      "elenco"
+    ]
+  },
+  {
+    "id": "04-005",
+    "pergunta": "Como funciona a moral dos jogadores?",
+    "variacoes": [
+      "moral do elenco caiu muito, por que?",
+      "jogador chave no banco perde moral?",
+      "como subir a moral do time",
+      "moral baixa depois de derrota",
+      "prometi titular e ele ta infeliz"
+    ],
+    "resposta": "A moral vai de 0 a 100.\n\n- Depois de cada jogo, quem entrou ganha **+8 na vitória**, **+1 no empate** e perde **8 na derrota**. Quem fez gol ganha **+6** extra.\n- A cada rodada, a moral se aproxima um pouco de 70 (8% da distância).\n- Na virada de temporada, todos voltam para **moral 70**.\n- **Papel prometido no contrato:** um “Jogador Chave” fora do time perde **8 de moral por rodada**; um “Titular Regular” perde **4**.\n\nOutros efeitos: renovação recusada −3, aceita +6; gestão automática de salários +4; jogador comprado chega com moral 75. Respostas da entrevista coletiva também mexem na moral do elenco.",
+    "resposta_jogador": "A moral sobe com vitórias (+8) e gols (+6) e cai com derrotas (−8). Cuidado com quem tem contrato de Jogador Chave ou Titular Regular: se ficar fora do time, ele perde moral toda rodada. Na virada da temporada todos voltam para 70.",
+    "tags": [
+      "moral",
+      "elenco",
+      "contrato"
+    ]
+  },
+  {
+    "id": "04-006",
+    "pergunta": "Como o jogador evolui e ganha força?",
+    "variacoes": [
+      "como faço meu jogador melhorar",
+      "jogador jovem evolui mais rapido?",
+      "o que faz o atleta subir de nivel",
+      "meu garoto nao evolui nada",
+      "como upar jogador no retrofoot"
+    ],
+    "resposta": "A cada rodada o jogador pode ganhar pontos de atributo por estas fontes:\n\n- **Jogar bem:** só para quem jogou e tem média de nota ≥ 6,8 nos últimos 3 jogos. São 2 sorteios por rodada; a chance cresce com a nota e com gols recentes, e é multiplicada pela idade: até 20 anos ×1,0 · 21–23 ×0,7 · 24–27 ×0,35 · 28–30 ×0,10 · 31+ zero. Títulos na carreira dão um bônus pequeno.\n- **Treino especial:** 1 sorteio de 5% por rodada (9% com a ⭐ estrelinha).\n- **Jovem até 20 anos:** mesmo sem jogar, 1 sorteio de 12% × fator de idade.\n\nOu seja: jovem jogando bem é quem mais evolui. A ficha mostra o “raio-X” com a previsão de força por temporada.",
+    "resposta_jogador": "O jogador evolui principalmente jogando bem (média de nota de 6,8 ou mais nos últimos 3 jogos), e quanto mais novo, mais rápido. Jovens de até 20 anos evoluem um pouco até sem jogar, e o treino especial dá uma chance extra por rodada. A ficha do jogador mostra a previsão de evolução.",
+    "tags": [
+      "evolucao",
+      "idade",
+      "jovem",
+      "treino"
+    ]
+  },
+  {
+    "id": "04-007",
+    "pergunta": "Por que meu jogador está perdendo força?",
+    "variacoes": [
+      "jogador veterano ta caindo de forca",
+      "meu atacante de 31 anos perdeu velocidade",
+      "jogador no banco piorou os atributos",
+      "por que o overall do cara diminuiu",
+      "reserva perdendo ritmo de jogo"
+    ],
+    "resposta": "Há dois motivos de queda:\n\n1. **Idade 29+:** a cada rodada há 3 sorteios de queda em Velocidade, Agilidade e Resistência. A chance é maior quanto mais velho (faixas 29–30, 31–32, 33+) e fica menor se o jogador estiver jogando bem.\n2. **Banco por 4+ rodadas seguidas:** quem fica fora do time pode perder atributos físicos (até 25% de chance). **Jovens até 20 anos e quem está em treino especial não sofrem essa perda.**\n\nPara evitar: dar minutos ao jogador ou colocá-lo no treino especial (até 3 por vez).",
+    "resposta_jogador": "A partir dos 29 anos o jogador começa a perder físico (velocidade, agilidade e resistência), mais ainda com a idade. E quem fica 4 rodadas ou mais seguidas no banco também pode perder atributos físicos; colocar ele no treino especial evita essa perda.",
+    "tags": [
+      "evolucao",
+      "idade",
+      "banco",
+      "treino"
+    ]
+  },
+  {
+    "id": "04-008",
+    "pergunta": "O jogo tem um potencial oculto do jogador?",
+    "variacoes": [
+      "qual o potencial real do garoto",
+      "coluna potencial da base é certa?",
+      "tem potencial escondido igual outros managers",
+      "o que significa pronto em na base",
+      "potencial do jogador é garantido?"
+    ],
+    "resposta": "**Não.** O motor não guarda um “potencial” oculto.\n\nAs colunas **“Potencial”** e **“Pronto em”** da aba Base são **estimativas da tela**: a força projetada até os 24 anos pelo ritmo de evolução. A evolução real depende de o jogador jogar bem, da idade, do treino e de sorteios a cada rodada.\n\nNo valor de mercado existe um “fator potencial”, que também é calculado na hora: jovem bom vale até +20%, bônus que cai com a idade e some aos 24.",
+    "resposta_jogador": "Não existe potencial escondido: os números de “Potencial” e “Pronto em” são uma estimativa de quanto o garoto chega aos 24 anos se mantiver o ritmo. Quanto mais ele jogar bem, mais evolui.",
+    "tags": [
+      "potencial",
+      "base",
+      "jovem",
+      "evolucao"
+    ]
+  },
+  {
+    "id": "04-009",
+    "pergunta": "Quando os jogadores se aposentam?",
+    "variacoes": [
+      "meu jogador se aposentou do nada",
+      "com quantos anos o jogador para de jogar",
+      "tem como impedir aposentadoria",
+      "chance de aposentar aos 34",
+      "jogador velho sumiu do elenco na virada"
+    ],
+    "resposta": "A partir dos **32 anos** há chance de aposentadoria **na virada de temporada**: 32 anos 11% · 33 anos 24% · 34 anos 40% · 35 anos 56% · 36 anos 71% · 37 anos 83% · 38 anos 92% · 39 anos 97% · 40+ 100%.\n\n- No máximo **3 jogadores por clube** se aposentam por temporada.\n- Quem se aposenta é substituído por um **jovem de 18 a 22 anos**, da mesma posição e no nível da divisão.\n- O **Diretor de Futebol manda um e-mail** durante a temporada com a lista exata de quem vai se aposentar. A lista pode mudar se o elenco mudar por compra ou venda.\n\nA base não mostra forma de impedir a aposentadoria.",
+    "resposta_jogador": "A partir dos 32 anos o jogador pode se aposentar na virada da temporada, com chance que cresce a cada ano (aos 40 é certo). O Diretor de Futebol avisa por e-mail durante a temporada quem vai parar, e cada aposentado é substituído por um jovem da mesma posição.",
+    "tags": [
+      "aposentadoria",
+      "idade",
+      "virada"
+    ]
+  },
+  {
+    "id": "04-010",
+    "pergunta": "Onde vejo a ficha completa do jogador e o que ela mostra?",
+    "variacoes": [
+      "como abrir os detalhes do jogador",
+      "da pra ver ficha de jogador de outro time?",
+      "onde fica o raio-x do jogador",
+      "minutos jogados estao errados na ficha",
+      "ver atributos do atleta"
+    ],
+    "resposta": "**Onde:** Elenco & Base → aba **Ficha**, ou clicando no nome de qualquer jogador (no elenco, no mercado ou na formação). Também abre para jogadores de **outros clubes**; só as ações (escalar, renovar, vender) ficam restritas ao dono.\n\nMostra: os 16 atributos; gráfico com os atributos que o motor usa para a posição; comparação com a média da posição na divisão; estatísticas da temporada (jogos, gols, assistências, jogos sem sofrer gol, cartões); contrato; comportamento; lesões; histórico de transferências; ritmo de evolução.\n\nNúmeros **derivados**: minutos = jogos × 90; gols sofridos do goleiro = gols sofridos pelo time; “ano de fundação” do clube é um número fixo gerado por clube. Desde 26/08 as assistências são reais.",
+    "resposta_jogador": "É só clicar no nome do jogador em qualquer tela (ou ir em Elenco & Base → Ficha). A ficha abre até para jogadores de outros clubes e mostra atributos, estatísticas, contrato e a previsão de evolução.",
+    "tags": [
+      "ficha",
+      "jogador",
+      "estatisticas"
+    ]
+  },
+  {
+    "id": "04-011",
+    "pergunta": "De onde vêm as fotos dos jogadores e por que alguns aparecem sem foto?",
+    "variacoes": [
+      "jogador aparece com silhueta",
+      "foto do jogador com camisa do time antigo",
+      "por que o rosto do garoto da base é esse",
+      "meu jogador nao tem foto",
+      "camisa da foto mudou quando contratei"
+    ],
+    "resposta": "- As fotos vêm do **Estúdio IA do painel administrativo**. Quando existe cabeça e manequim, o jogo monta o retrato com a camisa do **clube atual**; por isso a camisa muda quando ele é transferido.\n- Jogador sem foto aparece com a **imagem padrão (silhueta)**.\n- Jovens da base, e qualquer jogador de até 22 anos sem foto própria, recebem um rosto de um **acervo da base**. Esse rosto fica marcado no jogador e o acompanha pela carreira, mesmo depois dos 22.\n- As fotos acompanham o nome fictício do jogador.",
+    "resposta_jogador": "Nem todo jogador tem foto ainda; quem não tem aparece com a silhueta padrão. Quando tem, a camisa da foto é sempre a do clube atual, e os garotos da base ganham um rosto que fica com eles pela carreira toda.",
+    "tags": [
+      "fotos",
+      "jogador",
+      "base"
+    ]
+  },
+  {
+    "id": "04-012",
+    "pergunta": "Por que os jogadores não têm os nomes reais?",
+    "variacoes": [
+      "cade os nomes verdadeiros dos jogadores",
+      "o jogador x nao é o do time de verdade",
+      "nomes dos jogadores estao inventados",
+      "por que trocaram os nomes do elenco",
+      "vai ter nome real dos atletas?"
+    ],
+    "resposta": "Desde **28/08/2026**, os cerca de **1.900 jogadores** das Séries A, B, C e D usam **nomes fictícios** de propósito. É uma medida de segurança de marca: o jogo não usa nomes de atletas reais. **Nomes e escudos dos clubes não mudaram.**\n\n- Os nomes fazem parte do “pacote oficial” de dados, aplicado sobre o catálogo toda vez que o jogo abre. Desde 25/09/2026, uma cópia vai embutida no próprio jogo.\n- Jogadores de clientes do plano **Embaixador** aprovados na moderação podem aparecer com o nome e a foto escolhidos pelo assinante, por cima do nome fictício.\n- As fotos acompanham o nome novo.",
+    "resposta_jogador": "Os jogadores usam nomes fictícios de propósito, para o jogo não usar o nome de atletas reais. Os clubes e escudos continuam os mesmos.",
+    "tags": [
+      "nomes",
+      "ficticios",
+      "pacote",
+      "jogador"
+    ]
+  },
+  {
+    "id": "04-013",
+    "pergunta": "Um jogador aparece com o nome real no save. O que fazer?",
+    "variacoes": [
+      "meu save ta com nomes reais",
+      "jogador com nome verdadeiro no meu jogo",
+      "apareceu nome de atleta real no elenco",
+      "save novo veio com nome e escudo real",
+      "nome real voltou no meu campeonato"
+    ],
+    "resposta": "Provavelmente é um **save criado num momento em que o pacote oficial não carregou**. Antes de 25/09/2026, se o servidor estivesse fora do ar e o navegador não tivesse cópia guardada, um **jogo novo** podia nascer com nomes e escudos reais, e o save guarda os nomes com que nasceu. Desde 25/09 o pacote vai embutido no jogo, e esse problema foi corrigido para jogos novos.\n\n**Procedimento:** encaminhar para a equipe técnica com o **nome do clube** e o **nome do jogador** que aparece com nome real.",
+    "resposta_jogador": "Obrigado por avisar! Isso pode acontecer em saves criados num momento em que os dados oficiais não carregaram. Me passa o nome do seu clube e do jogador que eu encaminho para a equipe técnica.",
+    "tags": [
+      "nomes",
+      "save",
+      "pacote",
+      "bug"
+    ]
+  },
+  {
+    "id": "04-014",
+    "pergunta": "O que mostra a aba Elenco e o que significam Forma, ícones e a coluna FIM?",
+    "variacoes": [
+      "o que é a coluna forma do elenco",
+      "icone de cone do lado do jogador",
+      "coluna fim ta com traço",
+      "o que significa a cruz no jogador",
+      "onde vejo a folha salarial do time"
+    ],
+    "resposta": "**Onde:** menu Elenco (abas Elenco, Ficha, Base e Treino).\n\nA aba Elenco mostra divisão, temporada, posição na tabela, força média, idade média e **folha por semana**, e a tabela com nacionalidade, posição, idade, força, energia, forma, salário e fim de contrato (20, 50 ou 100 linhas). Embaixo, o resumo por setor.\n\n- **Forma** = **média das notas dos últimos 3 jogos** (não é V/E/D). Sem jogos, aparece um traço.\n- **Ícones:** cone = em treino especial; cartão vermelho = suspenso; cruz = lesionado.\n- **FIM:** a maioria mostra “—”, porque o contrato padrão não tem duração. Só quem foi renovado pela tela nova tem ano de término.",
+    "resposta_jogador": "Na aba Elenco, “Forma” é a média das notas dos últimos 3 jogos. O cone indica jogador em treino especial, o cartão vermelho é suspensão e a cruz é lesão. O traço na coluna FIM é normal: o contrato só ganha ano de término quando você renova.",
+    "tags": [
+      "elenco",
+      "forma",
+      "icones",
+      "contrato"
+    ]
+  },
+  {
+    "id": "04-015",
+    "pergunta": "Como vejo o elenco de outro clube?",
+    "variacoes": [
+      "da pra olhar o time do adversario",
+      "como espiar elenco de outro clube",
+      "cliquei no escudo e abriu outro elenco",
+      "como volto pro meu time no elenco",
+      "ver jogadores de time de fora"
+    ],
+    "resposta": "Clique no **nome ou escudo de um clube** (no mercado, na tabela etc.). A página Elenco passa a mostrar o elenco **daquele** clube, com as mesmas colunas e fichas completas, mas **sem folha salarial e sem ações**.\n\nHá um botão para **voltar ao próprio clube**. Clubes do exterior abertos só para olhar entram em modo “vitrine” e não pesam no save.",
+    "resposta_jogador": "É só clicar no nome ou no escudo do clube em qualquer tela (mercado, tabela etc.). Você vê o elenco e as fichas completas, e tem um botão para voltar ao seu time.",
+    "tags": [
+      "elenco",
+      "clube",
+      "navegacao"
+    ]
+  },
+  {
+    "id": "04-016",
+    "pergunta": "Como subir um jogador das categorias de base?",
+    "variacoes": [
+      "como promover garoto da base",
+      "onde fica os juniores",
+      "subir moleque da base pro profissional",
+      "os candidatos da base nao mudam",
+      "salario do jogador da base é quanto"
+    ],
+    "resposta": "**Onde:** Elenco & Base → aba **Base**.\n\n- A tela mostra **3 candidatos de 16 a 19 anos**. O lote fica **fixo até a próxima rodada ser jogada**; reabrir a tela não sorteia outro.\n- A posição sugerida é a **mais carente** do elenco (com menos de 3 goleiros, sai goleiro). Os três tendem a ter posições diferentes.\n- A força é sorteada dentro da faixa da divisão do clube.\n- O salário do jovem é **40% do salário normal** para aquela força (mínimo **R$ 1.000 por semana**).\n- Só funciona com a **janela aberta**, limite de **1 por janela** (2 por temporada), e o elenco precisa ter menos de 40 jogadores.",
+    "resposta_jogador": "Vá em Elenco & Base → Base: aparecem 3 garotos de 16 a 19 anos, e você pode promover um por janela de transferências. O lote de candidatos só muda depois que a próxima rodada é jogada, e o salário do garoto é bem mais barato (40% do normal).",
+    "tags": [
+      "base",
+      "juniores",
+      "jovem",
+      "promocao"
+    ]
+  },
+  {
+    "id": "04-017",
+    "pergunta": "Por que não consigo subir mais jogadores da base?",
+    "variacoes": [
+      "base nao deixa promover",
+      "botao de subir jovem travado",
+      "quantos da base posso subir por temporada",
+      "ja subi um e nao deixa outro",
+      "limite de juniores"
+    ],
+    "resposta": "Há três travas:\n\n1. **Janela fechada:** fora da janela de transferências (rodadas 1–10 e 21–30) a base não sobe ninguém.\n2. **Limite de 1 jovem por janela**, ou seja, **2 por temporada** (um em cada janela).\n3. **Elenco com 40 jogadores:** não dá para promover.\n\nSe nenhuma das três se aplica e ainda assim não sobe, vale escalar para um dev com o nome do clube e a rodada.",
+    "resposta_jogador": "Dá para subir um garoto da base por janela de transferências (2 por temporada), e só com a janela aberta. Também não dá para promover se o elenco já tiver 40 jogadores.",
+    "tags": [
+      "base",
+      "limite",
+      "janela",
+      "promocao"
+    ]
+  },
+  {
+    "id": "04-018",
+    "pergunta": "Como funciona o treino especial?",
+    "variacoes": [
+      "pra que serve a aba treino",
+      "quantos jogadores posso botar no treino",
+      "treino especial vale a pena?",
+      "o que é a estrelinha do jogador",
+      "treino evita perder ritmo no banco?"
+    ],
+    "resposta": "**Onde:** Elenco & Base → aba **Treino**.\n\n- Até **3 jogadores** em treino especial ao mesmo tempo.\n- Quem está em treino ganha, a cada rodada, uma chance extra de **5%** de subir um atributo (**9%** com a ⭐ “estrelinha” de destaque, que cerca de 15% dos jogadores têm), somada à evolução normal.\n- Quem está em treino **não perde ritmo** por ficar no banco (não sofre a perda física de 4+ rodadas fora).\n- A tela mostra o ganho previsto em “força por temporada”.\n- No elenco, o ícone de cone marca quem está em treino.",
+    "resposta_jogador": "Você pode colocar até 3 jogadores no treino especial: cada um ganha uma chance extra por rodada de subir um atributo (maior para quem tem a estrelinha) e deixa de perder físico por ficar no banco. Ótimo para reservas e garotos.",
+    "tags": [
+      "treino",
+      "evolucao",
+      "estrelinha",
+      "banco"
+    ]
+  },
+  {
+    "id": "04-019",
+    "pergunta": "Como é calculado o valor de mercado (valor do passe) do jogador?",
+    "variacoes": [
+      "quanto vale meu jogador",
+      "como o jogo calcula o preço do passe",
+      "valor de mercado depende do que",
+      "formula do valor do jogador",
+      "artilheiro vale mais?"
+    ],
+    "resposta": "É calculado **na hora** (“valor vivo”):\n\n**Valor = tabela da força × idade × potencial × comportamento × momento × artilharia**\n\n1. **Força:** 10 = R$ 200 mil · 20 = 700 mil · 30 = 1,6 mi · 40 = 4 mi · 50 = 9 mi · 60 = 18 mi · 70 = 35 mi · 80 = 70 mi · 90 = 150 mi · 99 = 260 mi (interpolado).\n2. **Idade:** até 21 ×1,35 · 22–27 ×1,00 · 28–31 ×0,80 · 32–35 ×0,50 · 36+ ×0,25.\n3. **Potencial:** jovem bom até +20% (some aos 24).\n4. **Comportamento:** ×0,85 a ×1,15.\n5. **Momento:** ×0,75 a ×1,40 (notas recentes, gols, produção por jogo; no goleiro, jogos sem sofrer gol).\n6. **Artilheiro da divisão:** +20% permanente, acumulável até +60%.\n\nMínimo R$ 30 mil, arredondado ao milhar. O contrato **não** entra na conta.",
+    "resposta_jogador": "O valor é recalculado o tempo todo com base na força, na idade (jovens valem mais), no comportamento e na fase do jogador (notas e gols recentes). Quem é artilheiro da divisão ganha +20% permanente no valor.",
+    "tags": [
+      "valor",
+      "mercado",
+      "passe",
+      "calculo"
+    ]
+  },
+  {
+    "id": "04-020",
+    "pergunta": "Por que o valor do meu jogador caiu?",
+    "variacoes": [
+      "valor de mercado despencou",
+      "passe do meu atacante caiu do nada",
+      "jogador desvalorizou",
+      "pq meu craque ta valendo menos",
+      "valor do jogador baixou depois do aniversario"
+    ],
+    "resposta": "O valor é recalculado o tempo todo. As causas mais comuns de queda:\n\n- **Idade:** o fator cai aos **28** (×0,80), aos **32** (×0,50) e aos **36** (×0,25).\n- **Fase:** notas baixas e atacante sem gol reduzem o fator momento até **×0,75** (−25%).\n- **Potencial de jovem:** o bônus de até +20% cai com a idade e **some aos 24**.\n- **Força:** se o jogador perdeu força, o valor-base cai junto.\n\nTrocar de clube ou de liga **não** muda mais o valor (desde 11/09/2026), e o contrato também não entra na conta.",
+    "resposta_jogador": "O valor muda o tempo todo: ele cai com a idade (aos 28, 32 e 36 anos), quando o jogador está em má fase (notas baixas, sem gols) e quando o jovem passa dos 24 e perde o bônus de potencial. Trocar de clube não mexe no valor.",
+    "tags": [
+      "valor",
+      "mercado",
+      "idade",
+      "fase"
+    ]
+  },
+  {
+    "id": "04-021",
+    "pergunta": "Trocar de clube ou de liga muda o valor de mercado do jogador?",
+    "variacoes": [
+      "comprei de portugal e o valor caiu 90%",
+      "valor muda quando o jogador vem pra serie D?",
+      "jogador vale menos na liga mais fraca?",
+      "transferi o cara e o preço mudou",
+      "corte de valor por liga ainda existe"
+    ],
+    "resposta": "**Não, desde 11/09/2026.** Antes, trocar de liga podia cortar o valor em até 93% (por exemplo, de Portugal para a Série D). **Isso foi removido.** Hoje trocar de clube ou de liga não muda o valor.\n\nObservação: no mercado do exterior, o **preço pedido** (não o valor) sobe com os gols do jogador na liga de lá: +4% por gol, até +50%.\n\nSe o jogador relatar uma queda grande logo após uma transferência antiga (antes de 11/09), pode ser efeito da regra anterior; em caso de dúvida, escalar para um dev.",
+    "resposta_jogador": "Não mais: desde 11/09 trocar de clube ou de liga não muda o valor do jogador. Se o valor mudou, foi por idade, fase ou força.",
+    "tags": [
+      "valor",
+      "transferencia",
+      "liga",
+      "exterior"
+    ]
+  },
+  {
+    "id": "04-022",
+    "pergunta": "Quando a janela de transferências fica aberta?",
+    "variacoes": [
+      "quando abre o mercado",
+      "janela fechada nao consigo comprar",
+      "em que rodada abre a janela",
+      "da pra fechar acordo antes da janela abrir?",
+      "mercado ta fechado ate quando"
+    ],
+    "resposta": "São **duas janelas por temporada, de 10 rodadas cada**:\n\n- Rodadas **1 a 10**: ABERTA\n- Rodadas 11 a 20: fechada\n- Rodadas **21 a 30**: ABERTA\n- Rodada 31 até o fim: fechada\n\nCom a janela fechada **não dá** para comprar, vender, dar lance em leilão, receber ou aceitar propostas nem subir jogador da base. A tela mostra em quantas rodadas a janela abre.\n\nA “pré-janela” (fechar acordo antes e o jogador chegar depois) foi **desligada**: só há negociação com a janela aberta. Clubes da CPU também só negociam entre si com a janela aberta.",
+    "resposta_jogador": "A janela abre duas vezes por temporada: da rodada 1 à 10 e da 21 à 30. Fora disso não dá para comprar, vender, dar lance nem subir jogador da base, e não é possível fechar acordo antes; a tela mostra quantas rodadas faltam para abrir.",
+    "tags": [
+      "janela",
+      "transferencias",
+      "mercado",
+      "rodada"
+    ]
+  },
+  {
+    "id": "04-023",
+    "pergunta": "Por que não consigo vender um jogador que acabei de comprar?",
+    "variacoes": [
+      "jogador comprado travado",
+      "nao aparece opcao de vender o reforço",
+      "trava de revenda o que é",
+      "comprei no leilao e nao posso vender",
+      "jogador que comprei nao recebe proposta"
+    ],
+    "resposta": "É a **trava de revenda**. Todo jogador comprado (inclusive em leilão) fica **travado até o fim da temporada**: não pode ser vendido, receber proposta nem ir para leilão até a virada.\n\nA trava vale para todos: jogadores comprados nesta temporada também não aparecem na lista de compra do mercado.",
+    "resposta_jogador": "Todo jogador comprado fica travado até o fim da temporada: não dá para vender nem receber proposta por ele até a virada. Depois disso ele fica liberado normalmente.",
+    "tags": [
+      "mercado",
+      "venda",
+      "trava",
+      "revenda"
+    ]
+  },
+  {
+    "id": "04-024",
+    "pergunta": "Como é definido o preço que o clube vendedor pede pelo jogador?",
+    "variacoes": [
+      "por que o clube pede tao caro",
+      "preço pedido maior que o valor de mercado",
+      "time do z4 cobra mais caro?",
+      "quanto o clube quer pelo jogador",
+      "jogador do exterior mais caro por causa dos gols"
+    ],
+    "resposta": "**Pedido = valor de mercado × 1,15**, e ainda:\n\n- × **1,40** se o vendedor está no **Z-4** (17º ou pior);\n- × **1,20** se o vendedor está entre os **6 primeiros**.\n\nO pedido é arredondado ao milhar. No **mercado do exterior**, os gols do jogador na liga de lá encarecem o preço: **+4% por gol, até +50%**.\n\nExemplo: jogador de valor R$ 4 mi num clube do meio da tabela → pedido de R$ 4,6 mi.",
+    "resposta_jogador": "O clube sempre pede 15% acima do valor de mercado. Se ele estiver no Z-4, o preço sobe mais (×1,40), e se estiver entre os 6 primeiros, ×1,20. No exterior, cada gol do jogador por lá encarece o preço.",
+    "tags": [
+      "mercado",
+      "compra",
+      "preco",
+      "pedido"
+    ]
+  },
+  {
+    "id": "04-025",
+    "pergunta": "Por que o clube recusa minha proposta de compra?",
+    "variacoes": [
+      "clube recusou minha oferta na hora",
+      "nao aceitam minha proposta pelo jogador",
+      "oferta recusada no mercado",
+      "pq o time nao quer vender pra mim",
+      "negociacao encerrada logo de cara"
+    ],
+    "resposta": "Na etapa da **taxa (Dia 1)**, comparando sua oferta com o pedido do clube (valor × 1,15, com ajustes de Z-4/G-6):\n\n- Oferta **≥ pedido** (0,5% de tolerância): **aceita**.\n- Entre **82% e 100%** do pedido: **contraproposta** no meio do caminho (há botão “Igualar pedido”).\n- **Abaixo de 82%**: **recusa imediata**, e a negociação é encerrada.\n\nOutros motivos possíveis: janela fechada; trava de revenda; cota de estrangeiros cheia (8 no Brasil); caixa menor que a taxa; ou, na etapa do salário, empresário sem interesse (salário baixo, papel pouco importante, clube mal colocado).",
+    "resposta_jogador": "O clube recusa na hora qualquer oferta abaixo de 82% do preço que ele pede. Entre 82% e 100% ele faz uma contraproposta, e você pode usar o botão “Igualar pedido”. Confira também se a janela está aberta e se o caixa cobre a taxa.",
+    "tags": [
+      "mercado",
+      "proposta",
+      "compra",
+      "recusa"
+    ]
+  },
+  {
+    "id": "04-026",
+    "pergunta": "Como funciona a contraproposta do clube vendedor e o botão Igualar pedido?",
+    "variacoes": [
+      "clube fez contraproposta o que faço",
+      "botao igualar pedido serve pra que",
+      "valor da contraproposta como é calculado",
+      "time pediu mais pela taxa",
+      "contraproposta no dia 1 da negociacao"
+    ],
+    "resposta": "Se sua oferta ficar **entre 82% e 100% do pedido**, o clube responde com uma **contraproposta no meio do caminho** entre a sua oferta e o pedido.\n\n- **Cobrir a contraproposta** fecha a taxa e a negociação segue para a etapa do salário (Dia 2).\n- O botão **“Igualar pedido”** oferece exatamente o pedido do clube.\n\nExemplo: pedido de R$ 4 mi, oferta de R$ 3,6 mi (90%) → contraproposta de R$ 3,8 mi.",
+    "resposta_jogador": "Quando sua oferta chega perto do preço (acima de 82%), o clube pede um valor no meio do caminho. Se você cobrir esse valor, a taxa fecha e a conversa passa para o salário do jogador.",
+    "tags": [
+      "mercado",
+      "contraproposta",
+      "compra",
+      "taxa"
+    ]
+  },
+  {
+    "id": "04-027",
+    "pergunta": "Como funciona a negociação de salário com o empresário na compra?",
+    "variacoes": [
+      "empresario sem interesse o que fazer",
+      "empresario pediu salario maior",
+      "como convencer o jogador a vir",
+      "dia 2 da negociacao salario",
+      "jogador nao quer vir pro meu time"
+    ],
+    "resposta": "Na **etapa 2 (Dia 2)** o salário sugerido é o da tabela para a força. O **interesse** do empresário parte de **45**:\n\n- Salário ≥ 110% da tabela **+22** · ≥ 85% desse valor **+8** · abaixo **−18**\n- Papel: Jogador Chave **+14** · Titular Regular **+7** · Rotação 0 · outros **−4** (Jovem da Base até 21 anos **+6**)\n- Bônus por gol **+4** · liberação para a Europa **+8**\n- Seu clube no G-6 **+12** · no Z-4 **−14**\n- Jogador em grande fase **−8**\n\n**≥ 70:** aceita. **45 a 69:** pede **115% do salário da tabela** (é preciso pagar ao menos isso). **< 45:** sem interesse.",
+    "resposta_jogador": "O empresário avalia salário, papel prometido, cláusulas e a posição do seu time na tabela. Para convencer, ofereça pelo menos 110% do salário sugerido, prometa um papel maior (Jogador Chave ou Titular Regular) ou inclua bônus por gol.",
+    "tags": [
+      "mercado",
+      "salario",
+      "empresario",
+      "compra"
+    ]
+  },
+  {
+    "id": "04-028",
+    "pergunta": "A taxa foi aceita, mas não consigo fechar a compra. Por quê?",
+    "variacoes": [
+      "taxa aceita e nao fecha",
+      "travou no dia 3 da compra",
+      "negociacao expirou sozinha",
+      "nao consigo concluir a contratacao",
+      "aceitaram o valor mas o jogador nao veio"
+    ],
+    "resposta": "Causas possíveis:\n\n1. **Salário abaixo do pedido do empresário:** se ele pediu 115% da tabela, o salário oferecido precisa cobrir esse valor.\n2. **Aviso do Contador** (“Isto vai endividar o clube”) segurando a compra: escolha “Seguir mesmo assim” para continuar.\n3. **Caixa insuficiente:** a taxa é maior que o caixa (“Caixa insuficiente pra fechar a taxa combinada”).\n4. **Negociação expirada:** parada por **mais de 3 dias** sem chegar à etapa final.\n\nNo **Dia 3**, a taxa sai do caixa na hora e o salário entra na folha a partir da rodada seguinte. O jogador chega com moral 75.",
+    "resposta_jogador": "Confira se o salário que você ofereceu cobre o que o empresário pediu e se o caixa cobre a taxa. Se aparecer o aviso do Contador, é só escolher “Seguir mesmo assim”. Negociação parada por mais de 3 dias expira e precisa ser recomeçada.",
+    "tags": [
+      "mercado",
+      "compra",
+      "contador",
+      "expirar"
+    ]
+  },
+  {
+    "id": "04-029",
+    "pergunta": "O jogo verifica se tenho dinheiro para pagar o salário do jogador que estou comprando?",
+    "variacoes": [
+      "comprei e agora nao consigo pagar a folha",
+      "o jogo deixou eu contratar sem dinheiro pro salario",
+      "caixa insuficiente pra fechar a taxa",
+      "margem de salario o que é",
+      "por que o jogo nao impediu a compra"
+    ],
+    "resposta": "**Não.** O motor só bloqueia a compra se a **taxa for maior que o caixa**. O **salário não é verificado**. É para isso que existe o **Contador** do clube, que mostra “Caixa depois”, “Por rodada” e “Fim da temporada” em cada diálogo de gasto.\n\nNo mercado, o bloco **“O que o caixa permite”** mostra caixa, folha atual por rodada e a **margem de salário**: quanto de salário novo cabe por rodada sem a folha passar do que entra de TV e bilheteria.\n\nNa Série A, o saldo recorrente de um clube médio é só **~+134 mil por rodada**, então um salário alto novo pode deixar o clube no prejuízo toda rodada.",
+    "resposta_jogador": "O jogo só impede a compra se a taxa não couber no caixa; o salário você precisa acompanhar. Antes de fechar, olhe a “margem de salário” no mercado e o cartão do Contador, que mostram como o caixa vai ficar por rodada e no fim da temporada.",
+    "tags": [
+      "mercado",
+      "salario",
+      "caixa",
+      "contador"
+    ]
+  },
+  {
+    "id": "04-030",
+    "pergunta": "Qual é o limite de estrangeiros no elenco?",
+    "variacoes": [
+      "cota de estrangeiro cheia",
+      "quantos gringos posso ter",
+      "nao deixa contratar estrangeiro",
+      "limite de jogador de fora no brasil",
+      "jogador sem nacionalidade conta como estrangeiro?"
+    ],
+    "resposta": "No futebol brasileiro, **no máximo 8 estrangeiros** no elenco. Outros países têm cotas próprias: **Inglaterra 22 · Espanha 15 · Itália 16 · Alemanha 17 · Portugal 18**.\n\nJogador **sem nacionalidade registrada conta como nacional**.\n\nO bloco “O que o caixa permite” no mercado mostra a situação da cota. Com a cota cheia, a compra de mais um estrangeiro é bloqueada; é preciso vender um antes.",
+    "resposta_jogador": "No Brasil o limite é de 8 estrangeiros no elenco. Com a cota cheia, você precisa vender um estrangeiro antes de contratar outro.",
+    "tags": [
+      "estrangeiros",
+      "cota",
+      "mercado",
+      "compra"
+    ]
+  },
+  {
+    "id": "04-031",
+    "pergunta": "O que é a cláusula de liberação para a Europa?",
+    "variacoes": [
+      "meu jogador foi embora pra europa sozinho",
+      "clube europeu pagou a multa do meu jogador",
+      "clausula europeia vale a pena?",
+      "perdi jogador pra time de fora do nada",
+      "multa rescisoria europa"
+    ],
+    "resposta": "É uma cláusula que pode ser concedida na negociação de compra (dá **+8** de interesse ao empresário).\n\n- A multa vale **2× o valor de mercado**.\n- Depois, **a cada rodada**, um clube europeu tem **1,2% de chance** de pagar a multa, se o jogador tiver **até 23 anos** ou estiver **em grande fase**.\n- O dinheiro entra no caixa, mas **o jogador sai do jogo**.\n\nO contrato padrão não tem essa cláusula; ela só existe se foi concedida na compra.",
+    "resposta_jogador": "Se você deu a cláusula de liberação para a Europa na contratação, um clube europeu pode pagar a multa (2× o valor do jogador) e levá-lo. O dinheiro entra no seu caixa, mas o jogador vai embora.",
+    "tags": [
+      "clausula",
+      "europa",
+      "contrato",
+      "venda"
+    ]
+  },
+  {
+    "id": "04-032",
+    "pergunta": "Como comprar jogador de outro treinador no Modo Resenha?",
+    "variacoes": [
+      "comprar jogador do meu amigo na resenha",
+      "proposta pra outro humano",
+      "meu caixa foi debitado sem o jogador chegar?",
+      "outro treinador nao respondeu a proposta",
+      "negociar com jogador de outro manager"
+    ],
+    "resposta": "No **Modo Resenha**, clube de outro humano não negocia pela regra da CPU:\n\n- A proposta vai para o **e-mail do outro treinador**, que **aceita, recusa ou faz contraproposta**.\n- O **seu caixa só é debitado quando o jogador chega** ao seu elenco.\n- Se a proposta **expirar sem resposta, nada é cobrado**.\n\nA proposta a outro humano também mostra o cartão do Contador. Na venda direta (aba Vender → Listar), clubes de outros humanos nunca entram no sorteio de comprador.",
+    "resposta_jogador": "No Modo Resenha, a proposta vai para o e-mail do outro treinador, que pode aceitar, recusar ou fazer contraproposta. Seu dinheiro só sai quando o jogador chega; se a proposta expirar, nada é cobrado.",
+    "tags": [
+      "resenha",
+      "mercado",
+      "proposta",
+      "compra"
+    ]
+  },
+  {
+    "id": "04-033",
+    "pergunta": "Existe limite de jogadores no elenco?",
+    "variacoes": [
+      "maximo de jogadores no elenco",
+      "posso ter mais de 30 jogadores?",
+      "elenco de 30 é limite?",
+      "nao deixa vender meu goleiro",
+      "minimo de goleiros no time"
+    ],
+    "resposta": "- **Compra:** a base de conhecimento **não encontrou no código um limite máximo** para comprar. O “de 30” no mercado é só referência visual. Isso é **incerto**; se houver bloqueio relatado, escalar para um dev.\n- **Base:** a promoção para em **40 jogadores**.\n- **Mínimos:** propostas recebidas exigem elenco com mais de 16 jogadores para chegar e mais de 15 para aceitar.\n- **Piso de goleiros:** todo clube mantém pelo menos **2 goleiros**; nenhuma saída (venda, proposta, multa, leilão) deixa menos.\n- Clubes da CPU não compram com 32+ jogadores e não vendem com 16 ou menos.",
+    "resposta_jogador": "O “de 30” que aparece no mercado é só uma referência. A base só para de promover em 40 jogadores, e o jogo sempre exige pelo menos 2 goleiros no elenco, então não deixa vender o penúltimo goleiro.",
+    "tags": [
+      "elenco",
+      "limite",
+      "goleiros",
+      "mercado"
+    ]
+  },
+  {
+    "id": "04-034",
+    "pergunta": "Como funciona a lista de compra do mercado e seus filtros?",
+    "variacoes": [
+      "como achar jogador barato no mercado",
+      "filtro cabe no caixa",
+      "comprar jogador de liga estrangeira",
+      "onde vejo jogadores de outros paises",
+      "por que o jogador x nao aparece no mercado"
+    ],
+    "resposta": "**Onde:** menu Mercado → aba **Comprar** (as outras são Leilão, Propostas, Contrapropostas, Vender e Transferências).\n\n- Lista jogadores dos outros clubes do seu país (por divisão) ou de **ligas do exterior** (filtro País).\n- Filtros: posição, nacionalidade, força, idade, preço (“cabe no caixa” / “até metade do caixa”), clube, busca por nome e ordenação.\n- **Jogadores comprados nesta temporada não aparecem** (trava de revenda).\n- O bloco “O que o caixa permite” mostra caixa, folha por rodada, margem de salário, número de jogadores (“X de 30”, só referência) e a cota de estrangeiros.",
+    "resposta_jogador": "No Mercado → Comprar você pode filtrar por posição, força, idade, preço (inclusive “cabe no caixa”) e até escolher ligas do exterior no filtro País. Jogadores que já foram comprados nesta temporada não aparecem na lista.",
+    "tags": [
+      "mercado",
+      "compra",
+      "filtros",
+      "exterior"
+    ]
+  },
+  {
+    "id": "04-035",
+    "pergunta": "Como funciona a venda direta de jogador (aba Vender)?",
+    "variacoes": [
+      "como vender jogador rapido",
+      "listar jogador pra venda",
+      "vendi e recebi menos do que pedi",
+      "quem compra quando eu listo o jogador",
+      "pedi caro e a oferta caiu"
+    ],
+    "resposta": "**Onde:** Mercado → aba **Vender** → “Listar”.\n\n- Você escolhe o jogador e o preço (sugestão = valor de mercado). A venda é **imediata** para um clube da CPU sorteado da sua divisão. Clubes de outros humanos nunca entram.\n- O mercado oferece de **85% a 155%** do valor-base guardado do jogador. Se o seu preço estiver até **1,35×** a oferta sorteada, você recebe o seu preço (ou a oferta, se for maior). Se pedir **acima disso**, a oferta **cai 8%**.\n- A tela avisa “Quem você não deveria vender”: o titular que é o único do setor com aquele nível.\n\nObs.: a venda usa o valor-base guardado (atualizado a cada rodada), que pode diferir um pouco do valor da tela logo após mudança de fase.",
+    "resposta_jogador": "Na aba Vender você escolhe o preço e a venda é na hora, para um clube da sua divisão. Pedindo um valor razoável você recebe o que pediu; se exagerar muito, a oferta vem 8% menor.",
+    "tags": [
+      "venda",
+      "mercado",
+      "preco"
+    ]
+  },
+  {
+    "id": "04-036",
+    "pergunta": "Por que não consigo vender um jogador?",
+    "variacoes": [
+      "botao vender nao funciona",
+      "nao deixa listar o jogador",
+      "venda bloqueada",
+      "nao consigo me desfazer do jogador",
+      "vender goleiro nao deixa"
+    ],
+    "resposta": "A venda é bloqueada em três casos:\n\n1. **Janela fechada** (só abre nas rodadas 1–10 e 21–30).\n2. **Trava de revenda:** jogador comprado nesta temporada fica travado até a virada.\n3. **Piso de goleiros:** o clube precisa manter pelo menos 2 goleiros.\n\nSe nenhum desses se aplica, escalar para um dev com o nome do clube, do jogador e a rodada.",
+    "resposta_jogador": "A venda só funciona com a janela aberta (rodadas 1 a 10 e 21 a 30). Jogador comprado nesta temporada fica travado até a virada, e o jogo não deixa o time ficar com menos de 2 goleiros.",
+    "tags": [
+      "venda",
+      "bloqueio",
+      "janela",
+      "goleiros"
+    ]
+  },
+  {
+    "id": "04-037",
+    "pergunta": "Por que não recebo propostas pelos meus jogadores?",
+    "variacoes": [
+      "ninguem faz proposta pelo meu jogador",
+      "aba propostas vazia",
+      "como receber oferta por jogador",
+      "nenhum clube quer meu craque",
+      "proposta pelo jogador vale quanto tempo"
+    ],
+    "resposta": "Propostas recebidas têm várias condições:\n\n- Só chegam com a **janela aberta**, e não em toda rodada (cerca de **66%** das rodadas de janela).\n- No máximo **6 propostas pendentes** ao mesmo tempo.\n- O elenco precisa ter **mais de 16 jogadores**.\n- Jogador comprado nesta temporada não recebe proposta.\n- Os clubes miram os **melhores** do elenco (os 40% de maior força).\n- O comprador precisa ter **nível compatível**: força do jogador no máximo 12 acima do overall do comprador, e ele não se interessa por quem está mais de 10 abaixo do próprio nível.\n\nValor oferecido: **100% a 170% do valor de mercado**. A proposta **vale 3 rodadas**.",
+    "resposta_jogador": "As propostas só chegam com a janela aberta e não em toda rodada (mais ou menos 2 em cada 3). O elenco precisa ter mais de 16 jogadores, e os clubes costumam mirar os seus melhores jogadores, desde que tenham nível parecido. Cada proposta vale por 3 rodadas.",
+    "tags": [
+      "propostas",
+      "venda",
+      "janela",
+      "mercado"
+    ]
+  },
+  {
+    "id": "04-038",
+    "pergunta": "Como fazer contraproposta em uma proposta recebida pelo meu jogador?",
+    "variacoes": [
+      "posso pedir mais numa proposta",
+      "regatear preço do meu jogador",
+      "o que é palavra final na proposta",
+      "comprador nao aumenta mais",
+      "contraproposta aba contrapropostas"
+    ],
+    "resposta": "Cada comprador tem um **teto secreto de 115% a 130%** da primeira oferta (**+20%** se o jogador estiver em grande fase).\n\n- Pedido **até a oferta atual:** segue a oferta.\n- Pedido **até o teto:** o comprador **aceita** o seu valor (falta só confirmar).\n- Pedido **acima do teto:** ele sobe até o meio do caminho.\n- Depois de **3 rodadas de regateio**, ou se o pedido passar de **1,3× o teto**, ele dá a **“palavra final”** no valor do teto: é aceitar ou recusar.\n\nLembre que a proposta vale 3 rodadas.",
+    "resposta_jogador": "Dá para pedir mais: cada comprador aceita pagar até uns 15% a 30% acima da primeira oferta (mais se o jogador estiver em grande fase). Se você exagerar ou regatear demais, ele dá a palavra final e aí é aceitar ou recusar.",
+    "tags": [
+      "propostas",
+      "contraproposta",
+      "venda"
+    ]
+  },
+  {
+    "id": "04-039",
+    "pergunta": "Por que não consigo aceitar uma proposta recebida?",
+    "variacoes": [
+      "nao deixa aceitar a oferta",
+      "aceitar proposta travado",
+      "botao aceitar proposta nao vai",
+      "proposta sumiu antes de aceitar",
+      "nao consigo vender pela proposta"
+    ],
+    "resposta": "Para aceitar uma proposta:\n\n- O elenco precisa ter **mais de 15 jogadores**.\n- O **piso de 2 goleiros** tem de ser respeitado.\n- A **janela precisa estar aberta**.\n- A proposta **vale 3 rodadas**; depois disso some.\n\nSe todas as condições estão atendidas e mesmo assim não aceita, escalar para um dev.",
+    "resposta_jogador": "Para aceitar uma proposta, a janela precisa estar aberta, o elenco precisa ter mais de 15 jogadores e o time não pode ficar com menos de 2 goleiros. Lembre também que cada proposta vale só 3 rodadas.",
+    "tags": [
+      "propostas",
+      "venda",
+      "bloqueio"
+    ]
+  },
+  {
+    "id": "04-040",
+    "pergunta": "Como funciona o leilão de jogadores?",
+    "variacoes": [
+      "como ganhar leilao",
+      "aba leilao como funciona",
+      "lance no leilao quando cobra",
+      "como desligar o leilao",
+      "quantas rodadas dura o leilao"
+    ],
+    "resposta": "**Onde:** Mercado → aba **Leilão** (só com a janela aberta).\n\n- Cerca de **8 lotes** de jogadores de clubes da CPU, cada um com **2 a 20 clubes interessados** (mais forte e mais novo atrai mais).\n- Lance inicial entre **60% e 75%** do valor de mercado.\n- Cada lote tem um **teto escondido** que a CPU aceita pagar: de ~**1,15×** (2 interessados) a ~**2,6×** o valor (20 interessados).\n- O lote fica aberto **3 rodadas**. Se você estiver na frente mas **abaixo do teto**, a CPU **cobre**. **Para garantir, o lance precisa passar do teto.**\n- O dinheiro **só sai quando o lote fecha**. O vencedor recebe contrato de “Rotação” com salário da tabela, e o jogador fica travado até o fim da temporada.\n- **Modo Resenha:** todos os humanos disputam os mesmos lotes; maior lance vence, e no empate vence quem deu o lance primeiro.\n\nDá para **desligar o leilão** (ou esconder os jogadores fracos) em **Treinador → Perfil**.",
+    "resposta_jogador": "No leilão cada lote fica aberto 3 rodadas, e a CPU cobre seu lance enquanto ele estiver abaixo de um teto escondido; a tela avisa quando seu lance ainda pode ser coberto. O dinheiro só sai quando você vence. No Modo Resenha, todos disputam os mesmos lotes e ganha o maior lance. Se preferir, dá para desligar o leilão em Treinador → Perfil.",
+    "tags": [
+      "leilao",
+      "lance",
+      "mercado",
+      "resenha"
+    ]
+  },
+  {
+    "id": "04-041",
+    "pergunta": "Dei lance no leilão e perdi. Por quê?",
+    "variacoes": [
+      "perdi o leilao no final",
+      "cpu cobriu meu lance",
+      "estava ganhando o leilao e perdi",
+      "leilao nao ficou comigo mesmo com maior lance",
+      "lance vencedor e mesmo assim perdi o jogador"
+    ],
+    "resposta": "Dois motivos possíveis:\n\n1. **A CPU cobre qualquer lance abaixo do teto** escondido do lote. A cada rodada em que você está na frente mas abaixo do teto, ela cobre. Para garantir, é preciso passar desse teto (de ~1,15× a ~2,6× o valor, conforme o número de interessados). A tela avisa quando o lance ainda pode ser coberto.\n2. **Caixa insuficiente no fechamento:** o dinheiro só sai quando o lote fecha. Se o caixa não cobrir o lance nesse momento, você perde o lote.\n\nNo Modo Resenha, outro humano pode ter dado lance maior (ou igual e antes).",
+    "resposta_jogador": "A CPU cobre qualquer lance que fique abaixo de um teto escondido do lote, então para garantir é preciso dar um lance acima desse teto (a tela avisa quando seu lance ainda pode ser coberto). Você também perde o lote se, no fechamento, o caixa não cobrir o valor.",
+    "tags": [
+      "leilao",
+      "lance",
+      "perdi"
+    ]
+  },
+  {
+    "id": "04-042",
+    "pergunta": "Os clubes da CPU negociam jogadores entre si?",
+    "variacoes": [
+      "o que é a aba transferencias",
+      "times da cpu compram jogador?",
+      "vi o jogador mudar de time sozinho",
+      "mercado entre os outros clubes",
+      "cpu vende jogador pra cpu"
+    ],
+    "resposta": "Sim. A cada rodada de **janela aberta**, **2 a 4 negócios** acontecem entre clubes da CPU da sua liga (aparecem na aba **Transferências**). O dinheiro sai de um caixa e entra no outro. Um clube sem dinheiro tenta vender alguém antes de comprar. Ligas do exterior também negociam entre si, mais raramente.\n\nClubes da CPU não compram se tiverem 32 ou mais jogadores e não vendem se tiverem 16 ou menos.",
+    "resposta_jogador": "Sim, com a janela aberta os clubes da CPU fazem de 2 a 4 negócios por rodada entre eles. Você acompanha tudo na aba Transferências do Mercado.",
+    "tags": [
+      "mercado",
+      "cpu",
+      "transferencias"
+    ]
+  },
+  {
+    "id": "04-043",
+    "pergunta": "Quando o contrato do jogador acaba?",
+    "variacoes": [
+      "contrato do jogador vence quando",
+      "jogador sai de graça no fim do contrato?",
+      "fim de contrato bosman",
+      "contrato expira?",
+      "o que acontece no fim do contrato"
+    ],
+    "resposta": "**Não acaba.** Não existe mecânica de vencimento ou expiração de contrato no jogo. O jogador **não sai de graça** no fim.\n\nA coluna **FIM** do elenco mostra “—” para a maioria, porque o contrato padrão não tem duração. Só quem foi **renovado pela tela nova** ganha um ano de término (temporada atual + anos escolhidos), sem efeito de saída.\n\nObs.: o diálogo de renovação diz que “contrato vencendo derruba o valor do passe”, mas **não há regra correspondente** no cálculo atual.",
+    "resposta_jogador": "No jogo o contrato não vence: o jogador não sai de graça e não precisa ser renovado para ficar. O ano que aparece na coluna FIM só existe para quem já foi renovado.",
+    "tags": [
+      "contrato",
+      "vencimento",
+      "fim"
+    ]
+  },
+  {
+    "id": "04-044",
+    "pergunta": "Como renovar o contrato de um jogador e qual a chance de ele aceitar?",
+    "variacoes": [
+      "renovar contrato como faz",
+      "chance de aceitar renovacao",
+      "quanto de aumento dar na renovacao",
+      "jogador recusou renovar",
+      "renovacao de contrato vale a pena"
+    ],
+    "resposta": "**Onde:** Ficha do jogador → **“Renovar contrato”**.\n\n- O campo sugere **+20%** sobre o salário atual. Você escolhe o salário e de **1 a 6 anos** (padrão 3).\n- O jogador **não aceita menos de 90%** do salário atual.\n- **Chance = 50% + (aumento % × 1,4) − (força acima de 70)**, entre 5% e 95%. Ex.: +20% para força 60 → 50 + 28 = **78%**. A chance da tela é a mesma do sorteio.\n- Recusou: moral **−3**. Aceitou: moral **+6** e o contrato ganha ano de término.\n\nComo o contrato não vence e não mexe no valor de mercado, renovar serve mais para moral e registro.",
+    "resposta_jogador": "Abra a ficha do jogador e clique em “Renovar contrato”. A chance de aceitar aparece na tela e sobe com o aumento oferecido (craques acima de 70 de força são mais difíceis). Se ele aceitar, ganha moral; se recusar, perde um pouco.",
+    "tags": [
+      "contrato",
+      "renovacao",
+      "salario",
+      "moral"
+    ]
+  },
+  {
+    "id": "04-045",
+    "pergunta": "Por que não consigo renovar o contrato do jogador?",
+    "variacoes": [
+      "renovacao bloqueada",
+      "nao deixa dar aumento",
+      "botao renovar nao funciona",
+      "caixa negativo nao renova",
+      "quero reduzir salario na renovacao"
+    ],
+    "resposta": "Motivos possíveis:\n\n- **Caixa negativo:** não dá para renovar **com aumento**.\n- **Salário abaixo de 90%** do atual: o jogador não aceita.\n- **Sorteio:** a chance vai de 5% a 95%; mesmo com chance alta ele pode recusar (moral −3). Jogadores com força acima de 70 perdem 1 ponto de chance por ponto de força.\n\nSe o botão simplesmente não responde, escalar para um dev.",
+    "resposta_jogador": "Com o caixa negativo o jogo não deixa renovar com aumento. Além disso, o jogador não aceita salário abaixo de 90% do atual, e a renovação tem uma chance de recusa que aparece na tela.",
+    "tags": [
+      "contrato",
+      "renovacao",
+      "caixa",
+      "bloqueio"
+    ]
+  },
+  {
+    "id": "04-046",
+    "pergunta": "O diálogo de renovação diz que “contrato vencendo derruba o valor do passe”. Isso é verdade?",
+    "variacoes": [
+      "contrato vencendo diminui valor?",
+      "preciso renovar pra nao perder valor",
+      "frase da renovacao sobre valor do passe",
+      "renovar aumenta o valor de mercado?",
+      "valor cai sem renovar"
+    ],
+    "resposta": "**Não corresponde a nenhuma regra do cálculo atual.** O contrato não entra na conta do valor de mercado, e não existe vencimento de contrato. A renovação **não muda** o valor.\n\nO valor depende só de força, idade, potencial, comportamento, momento e bônus de artilharia.\n\nÉ uma frase de texto desatualizada/sem mecânica. Se o jogador insistir que viu o valor cair por causa do contrato, verificar outra causa (idade, fase) e, se não houver, escalar para um dev.",
+    "resposta_jogador": "Pode ficar tranquilo: hoje o contrato não mexe no valor do jogador e não existe vencimento. O valor depende de força, idade, fase e comportamento.",
+    "tags": [
+      "contrato",
+      "valor",
+      "renovacao"
+    ]
+  },
+  {
+    "id": "04-047",
+    "pergunta": "Qual é o salário dos jogadores por força e quais bônus o contrato paga?",
+    "variacoes": [
+      "tabela de salario do jogo",
+      "quanto ganha um jogador de forca 50",
+      "bonus por gol sai do caixa?",
+      "meta de 50% dos jogos o que é",
+      "salario é por mes ou por semana"
+    ],
+    "resposta": "Todo salário é **semanal**, pago **a cada rodada** (“/rodada”).\n\n| Força | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 99 |\n|---|---|---|---|---|---|---|---|---|---|---|\n| Salário | 3 mil | 10 mil | 22 mil | 43 mil | 78 mil | 130 mil | 220 mil | 420 mil | 800 mil | 1,3 mi |\n\n**Contrato padrão:**\n- Papel: força ≥ 50 Jogador Chave · ≥ 36 Titular Regular · até 20 anos Jovem da Base · outros Rotação.\n- **Bônus por gol** (força ≥ 42): 1 semana de salário por gol; paga também 1 semana a goleiro/defensor titular que não sofre gol.\n- **Meta de 50% dos jogos:** 2 semanas de salário, uma vez por temporada.",
+    "resposta_jogador": "O salário é semanal e sai do caixa a cada rodada. Um jogador de força 50 ganha cerca de R$ 78 mil por rodada, por exemplo. Os mais fortes também recebem uma semana extra por gol, e todos ganham 2 semanas extras quando jogam metade das partidas.",
+    "tags": [
+      "salario",
+      "contrato",
+      "bonus",
+      "folha"
+    ]
+  },
+  {
+    "id": "04-048",
+    "pergunta": "O que é a Gestão de Salários automática?",
+    "variacoes": [
+      "gestao de salarios no perfil",
+      "salario do jogador subiu sozinho",
+      "jogo reajustou salario sem eu pedir",
+      "reajuste automatico de salario",
+      "opcao bosman estrangeiros salario"
+    ],
+    "resposta": "Em **Treinador → Perfil** há a opção **“Gestão de Salários”** (nacionais / Bosman / estrangeiros).\n\nCom ela ligada, quando o salário de um jogador fica **mais de 5% abaixo da tabela** para a força dele, o jogo **reajusta sozinho** para o valor da tabela, e o jogador ganha **+4 de moral**.\n\nSe o salário subiu sozinho, é essa opção que está ativa; para evitar, desligue em Treinador → Perfil.",
+    "resposta_jogador": "Se o salário de algum jogador subiu sozinho, é a Gestão de Salários, que fica em Treinador → Perfil. Com ela ligada, quem está ganhando abaixo da tabela recebe reajuste automático e fica mais motivado; se preferir controlar tudo, é só desligar.",
+    "tags": [
+      "salario",
+      "gestao",
+      "perfil",
+      "moral"
+    ]
+  },
+  {
+    "id": "04-049",
+    "pergunta": "De onde vem o dinheiro do clube (receitas)?",
+    "variacoes": [
+      "como ganhar dinheiro no jogo",
+      "receita do clube vem de onde",
+      "cota de tv como funciona",
+      "quanto entra por rodada",
+      "fonte de renda do time"
+    ],
+    "resposta": "**Onde:** menu Finanças (abas Resumo, Extrato, Estádio, Patrocínio).\n\nTudo parte da **receita-base por rodada**, calculada pelo overall do clube:\n- **Cota de TV fixa** (25%): pelo overall médio da divisão, toda rodada.\n- **Cota de TV por mérito** (25%): pelo overall do clube, toda rodada.\n- **Patrocínio** (50%): o ano inteiro de uma vez, na 1ª rodada.\n\nReferência (clube médio): Série A ~R$ 2,9 mi/rodada · B ~1,1 mi · C ~320 mil · D ~70 mil.\n\n**Outras:** bilheteria (jogos em casa), prêmio de vitória/empate (12%/4% da receita-base), vendas e multas europeias, copa nacional por fase, copas continentais, prêmio da liga, artilheiro, bônus de acesso e metas do patrocínio.",
+    "resposta_jogador": "O dinheiro vem da cota de TV (toda rodada), do patrocínio (o ano todo de uma vez na 1ª rodada), da bilheteria dos jogos em casa, de prêmios por vitória, copas e posição na liga, e das vendas de jogadores. Tudo aparece no menu Finanças.",
+    "tags": [
+      "financas",
+      "receita",
+      "tv",
+      "patrocinio"
+    ]
+  },
+  {
+    "id": "04-050",
+    "pergunta": "Como funciona o patrocínio?",
+    "variacoes": [
+      "quando entra o dinheiro do patrocinio",
+      "patrocinio caiu tudo na primeira rodada",
+      "metas do patrocinio",
+      "marca em breve na camisa",
+      "reforço aumenta o patrocinio?"
+    ],
+    "resposta": "- É **50% da receita-base** e entra **o ano inteiro de uma vez, na 1ª rodada** da temporada. Chega a **~R$ 55 mi na Série A**, ~21 mi na B, ~6 mi na C e ~1,3 mi na D.\n- O valor é fechado **no início da temporada** pela força do elenco. Reforço no meio do ano só pesa no ano seguinte.\n- Três espaços, cada um com **bônus no fim da temporada**:\n  - **Camisa** (55%): terminar entre os 4 primeiros → 20% da parte.\n  - **Manga** (27%): chegar às quartas de alguma copa → 20% da parte.\n  - **Placas** (18%): top 6 na 1ª divisão ou subir de divisão nas outras → 25% da parte.\n- “Marca em breve” é só a arte; o dinheiro é pago mesmo sem marca.",
+    "resposta_jogador": "O patrocínio do ano inteiro cai de uma vez na 1ª rodada, então cuidado para não gastar tudo em contratações. No fim da temporada ainda há bônus se você bater as metas (top 4 na liga, quartas de uma copa, top 6 ou acesso). “Marca em breve” é só a arte; o dinheiro entra normalmente.",
+    "tags": [
+      "patrocinio",
+      "financas",
+      "metas",
+      "receita"
+    ]
+  },
+  {
+    "id": "04-051",
+    "pergunta": "Quanto paga a premiação da liga por posição?",
+    "variacoes": [
+      "premio de campeao da serie A",
+      "quanto ganho terminando em 5o",
+      "premiacao da temporada quando cai",
+      "valor do premio por colocacao",
+      "premio da serie D campeao"
+    ],
+    "resposta": "Pago no **fim da temporada** (e-mail “Premiação da temporada”; o valor já entra no caixa). “Parte de cima” = até 35% da tabela; “meio” = até 70%.\n\n| Div. | Campeão | Vice | 3º–4º | Cima | Meio | Baixo |\n|---|---|---|---|---|---|---|\n| A | 26 mi | 18,2 mi | 13 mi | 7,8 mi | 4,55 mi | 2,6 mi |\n| B | 11,7 mi | 7,8 mi | 5,2 mi | 3,25 mi | 1,95 mi | 1,17 mi |\n| C | 5,2 mi | 3,51 mi | 2,34 mi | 1,43 mi | 0,91 mi | 0,52 mi |\n| D | 2,6 mi | 1,69 mi | 1,17 mi | 0,715 mi | 0,455 mi | 0,26 mi |\n\nDurante a temporada, cada vitória paga 12% e cada empate 4% da receita-base.",
+    "resposta_jogador": "A premiação da liga cai no fim da temporada, junto com um e-mail. Na Série A, por exemplo, o campeão leva R$ 26 mi e o vice R$ 18,2 mi; até a parte de baixo da tabela recebe alguma coisa.",
+    "tags": [
+      "premios",
+      "liga",
+      "financas",
+      "temporada"
+    ]
+  },
+  {
+    "id": "04-052",
+    "pergunta": "Quanto pagam as copas (Copa do Brasil e continentais)?",
+    "variacoes": [
+      "premio da copa do brasil",
+      "quanto ganho passando de fase na copa",
+      "libertadores paga quanto",
+      "dinheiro da sul-americana",
+      "copa da federacao premio"
+    ],
+    "resposta": "**Copa nacional (Copa do Brasil / “Copa da Federação”):** cota por fase **disputada**, paga **aos dois clubes** do confronto, na hora: 1ª fase 0,52 mi · 2ª 1,04 mi · 16 avos 1,95 mi · oitavas 2,6 mi · quartas 5,2 mi · semi 11,7 mi · vice 18,2 mi · campeão 36,4 mi. Antes das oitavas, clubes das Séries A e B recebem **1,6×**. Jogos de copa em casa também têm bilheteria.\n\n**Continentais** (pagas quando a copa termina, por fase alcançada):\n- Libertadores: campeão 31,2 mi · vice 15,6 · semi 9,1 · quartas 6,5 · oitavas 3,9 · participação 1,95.\n- Sul-Americana: campeão 15,6 mi · vice 7,8 · semi 4,55 · quartas 3,25 · oitavas 1,95 · participação 0,91.",
+    "resposta_jogador": "Na Copa do Brasil você recebe uma cota a cada fase disputada, na hora (o campeão leva R$ 36,4 mi). Libertadores e Sul-Americana pagam por fase alcançada quando a copa termina: o campeão da Libertadores recebe R$ 31,2 mi.",
+    "tags": [
+      "copas",
+      "premios",
+      "libertadores",
+      "financas"
+    ]
+  },
+  {
+    "id": "04-053",
+    "pergunta": "Existe bônus por acesso de divisão ou por ter o artilheiro?",
+    "variacoes": [
+      "premio por subir de divisao",
+      "ganho dinheiro se meu jogador for artilheiro",
+      "bonus de acesso serie B",
+      "premio artilheiro da serie A",
+      "quanto ganho subindo pra serie A"
+    ],
+    "resposta": "Sim, ambos pagos no **fim da temporada**:\n\n- **Bônus de acesso:** subir para a C **0,75 mi** · para a B **2 mi** · para a A **4 mi**.\n- **Artilheiro da divisão** (se for do seu clube): A **3,9 mi** · B **1,95 mi** · C **0,91 mi** · D **0,52 mi**.\n\nAlém disso, o artilheiro ganha **+20% permanente** no valor de mercado (acumulável até +60%). Subir de divisão também cumpre a meta das placas do patrocínio fora da 1ª divisão.",
+    "resposta_jogador": "Sim! Subir de divisão paga um bônus no fim da temporada (R$ 4 mi para quem sobe para a Série A), e ter o artilheiro da divisão também rende prêmio, além de valorizar o jogador em 20%.",
+    "tags": [
+      "premios",
+      "acesso",
+      "artilheiro",
+      "financas"
+    ]
+  },
+  {
+    "id": "04-054",
+    "pergunta": "Com quanto dinheiro o clube começa?",
+    "variacoes": [
+      "caixa inicial do clube",
+      "quanto dinheiro tenho no comeco",
+      "orcamento inicial serie D",
+      "comecei com pouco dinheiro",
+      "dinheiro inicial muda por divisao?"
+    ],
+    "resposta": "O caixa inicial é **sorteado ao começar**, conforme a divisão:\n\n- Série A: **R$ 10–20 mi**\n- Série B: **R$ 6,5–9,5 mi**\n- Série C: **R$ 3–5 mi**\n- Série D: **R$ 1–2,5 mi**\n\nTudo é guardado em reais; a moeda das opções muda só a exibição.",
+    "resposta_jogador": "O caixa inicial é sorteado conforme a divisão: de R$ 1 a 2,5 mi na Série D até R$ 10 a 20 mi na Série A.",
+    "tags": [
+      "caixa",
+      "inicio",
+      "financas",
+      "divisao"
+    ]
+  },
+  {
+    "id": "04-055",
+    "pergunta": "Para onde vai o dinheiro do clube (despesas)?",
+    "variacoes": [
+      "o que tira dinheiro do caixa",
+      "custo operacional o que é",
+      "despesas do clube por rodada",
+      "por que o caixa diminui toda rodada",
+      "gasto fixo do time"
+    ],
+    "resposta": "| Despesa | Valor | Quando |\n|---|---|---|\n| Folha salarial | soma dos salários | toda rodada |\n| Custo operacional | 8% da receita-base | toda rodada |\n| Bônus de gol / sem sofrer gol | 1 semana de salário | na rodada |\n| Meta de 50% dos jogos | 2 semanas, 1×/temporada | quando bate |\n| Compra de jogador | a taxa | na hora |\n| Leilão | o lance vencedor | quando o lote fecha |\n| Obra no estádio | custo da bancada | na hora |\n\nA folha é calibrada em ~56–60% da receita-base. Na Série A, o saldo recorrente de um clube médio (sem patrocínio) é só **~+134 mil por rodada**.",
+    "resposta_jogador": "Toda rodada saem a folha salarial e um custo operacional (8% da receita). Além disso há bônus por gol, a meta de jogos dos jogadores, compras, leilões e obras no estádio. A margem é apertada, então cada salário novo pesa.",
+    "tags": [
+      "despesas",
+      "financas",
+      "folha",
+      "caixa"
+    ]
+  },
+  {
+    "id": "04-056",
+    "pergunta": "O salário do treinador sai do caixa do clube?",
+    "variacoes": [
+      "meu salario de tecnico desconta do time?",
+      "salario do treinador entra na folha",
+      "quanto o tecnico custa pro clube",
+      "salario do manager tira dinheiro do caixa",
+      "tem custo de IA no caixa?"
+    ],
+    "resposta": "**Não.** O salário do treinador é do treinador e **não sai do caixa do clube**.\n\nTambém **não há custo de IA** no caixa do clube: o Estúdio IA é ferramenta do painel administrativo, não do jogador.\n\nAs despesas do clube são só estas: folha salarial, custo operacional (8% da receita-base), bônus de contrato, compras, leilões e obras no estádio.",
+    "resposta_jogador": "Não, o seu salário de treinador não sai do caixa do clube.",
+    "tags": [
+      "treinador",
+      "salario",
+      "despesas"
+    ]
+  },
+  {
+    "id": "04-057",
+    "pergunta": "Dá para pegar empréstimo no banco ou financiar?",
+    "variacoes": [
+      "como pegar emprestimo",
+      "tem banco no jogo pra pedir dinheiro",
+      "financiamento pro estadio",
+      "juros da divida",
+      "pedir grana emprestada pro clube"
+    ],
+    "resposta": "**Não.** Empréstimos, juros ou financiamento **não existem no jogo**. Também não há falência nem venda forçada.\n\nCom o caixa negativo, o caminho é: vender jogadores (principalmente salários altos), esperar os prêmios de fim de temporada e o patrocínio do ano seguinte, e evitar novas compras.",
+    "resposta_jogador": "Não existe empréstimo nem financiamento no jogo, e também não há juros sobre dívida. Para recuperar o caixa, o caminho é vender jogadores (principalmente os de salário alto), segurar as compras e esperar os prêmios e o patrocínio do próximo ano.",
+    "tags": [
+      "emprestimo",
+      "juros",
+      "financas",
+      "nao-existe"
+    ]
+  },
+  {
+    "id": "04-058",
+    "pergunta": "Dá para emprestar um jogador para outro clube (ou pegar emprestado)?",
+    "variacoes": [
+      "emprestar jogador que nao joga",
+      "como fazer emprestimo de jogador",
+      "pegar jogador emprestado",
+      "a dica fala em emprestar quem nao joga",
+      "loan de jogador existe?"
+    ],
+    "resposta": "**Não.** Não existe empréstimo de jogadores no jogo, nem para emprestar nem para pegar emprestado.\n\nA palavra só aparece numa dica de texto (“vender ou emprestar quem não joga”), **sem mecânica por trás**.\n\nAlternativas para quem não joga: vender (aba Vender ou propostas) ou colocar no treino especial para não perder ritmo no banco.",
+    "resposta_jogador": "Não existe empréstimo de jogadores no jogo. Para quem não está jogando, dá para vender ou colocar no treino especial, que evita perder físico no banco.",
+    "tags": [
+      "emprestimo",
+      "jogador",
+      "nao-existe",
+      "mercado"
+    ]
+  },
+  {
+    "id": "04-059",
+    "pergunta": "Como funcionam as abas Resumo e Extrato de Finanças?",
+    "variacoes": [
+      "extrato mostra poucas movimentacoes",
+      "sumiu lançamento do extrato",
+      "onde vejo o historico do caixa",
+      "totais da temporada zeraram",
+      "grafico de receita e despesa"
+    ],
+    "resposta": "- **Resumo:** gráficos mês a mês de receita e despesa e os totais da temporada por tipo (Cota de TV fixa, Cota de TV por mérito, Patrocínio, Bilheteria, Prêmio de desempenho, vendas, compras, estádio).\n- **Extrato:** movimentações recentes com data. O jogo guarda só os **12 lançamentos mais recentes**. Os totais da temporada somam tudo, sem esse limite.\n- Os totais **zeram na virada de temporada**.\n\nLançamento que “sumiu” do extrato provavelmente só saiu da lista dos 12 mais recentes.",
+    "resposta_jogador": "O Extrato mostra só os 12 lançamentos mais recentes, mas os totais do Resumo somam a temporada inteira. Na virada de temporada esses totais recomeçam do zero.",
+    "tags": [
+      "financas",
+      "extrato",
+      "resumo"
+    ]
+  },
+  {
+    "id": "04-060",
+    "pergunta": "Como ampliar o estádio?",
+    "variacoes": [
+      "construir bancada",
+      "aumentar capacidade do estadio",
+      "quanto custa ampliar o estadio",
+      "nao deixa ampliar mais o estadio",
+      "limite de lugares no estadio"
+    ],
+    "resposta": "**Onde:** Finanças → aba **Estádio**.\n\n- Cada obra é uma **bancada de 5.000 lugares**.\n- **Custo** = R$ 4 mi × (0,7 + capacidade atual ÷ 50.000). Ex.: 20 mil lugares → 4,4 mi; 50 mil → 6,8 mi; 75 mil → 8,8 mi.\n- **Limite por temporada:** 10.000 lugares (2 bancadas); zera na virada.\n- **Teto pelo porte:** capacidade esperada para o overall + 15.000, máximo absoluto **90.000**. No teto, só crescendo o clube.\n- O caixa precisa cobrir o custo, e a obra passa pelo Contador.\n- As bancadas novas valem **a partir do próximo jogo**.",
+    "resposta_jogador": "Em Finanças → Estádio você constrói bancadas de 5 mil lugares, no máximo 2 por temporada. Cada bancada fica mais cara conforme o estádio cresce, e existe um teto pelo tamanho do clube (máximo de 90 mil). Os lugares novos já valem no próximo jogo.",
+    "tags": [
+      "estadio",
+      "bancada",
+      "obra",
+      "financas"
+    ]
+  },
+  {
+    "id": "04-061",
+    "pergunta": "Posso mudar o preço do ingresso? Como é calculado o público?",
+    "variacoes": [
+      "como mudar preço do ingresso",
+      "estadio vazio por que",
+      "publico baixo no jogo em casa",
+      "bilheteria como funciona",
+      "torcida influencia no publico?"
+    ],
+    "resposta": "**Ingresso:** preço **fixo por divisão**, o jogador **não escolhe**: Série A R$ 25 · B R$ 20 · C R$ 15 · D R$ 10.\n\n**Público** = capacidade × ocupação. A ocupação fica entre **12% e 99%** e depende de: preço do ingresso, **momento do time** (aproveitamento de pontos na tabela) e um fator aleatório. Não existe outro número de “torcida” que mexa no público.\n\n**Bilheteria** = público × ingresso, só em jogos em casa (inclusive de copa).\n\nCapacidade inicial: capacidade real para clubes com dado de estádio; para os demais, ~75 mil (A), 50 mil (B), 25 mil (C), 10 mil (D).",
+    "resposta_jogador": "O preço do ingresso é fixo por divisão e não dá para mudar. O público depende principalmente de como o time está na tabela: vencendo, o estádio enche mais.",
+    "tags": [
+      "estadio",
+      "ingresso",
+      "publico",
+      "bilheteria"
+    ]
+  },
+  {
+    "id": "04-062",
+    "pergunta": "Quem é o Contador do clube e o que ele faz?",
+    "variacoes": [
+      "o que é a faixa azul em financas",
+      "personagem contador",
+      "cartao caixa depois por rodada",
+      "contador mudou de rosto",
+      "pra que serve o contador"
+    ],
+    "resposta": "É um **personagem fictício** (nome e rosto) que mostra o efeito de cada decisão no caixa. Foi criado porque **o motor só confere se a taxa cabe no caixa, nunca o salário**, e o patrocínio do ano entra todo na 1ª rodada, dando falsa sensação de sobra.\n\n- **10 contadores** (5 homens, 5 mulheres); um é sorteado **por save** e acompanha o treinador mesmo trocando de clube. Sem foto, aparecem as iniciais.\n- **Aparece:** em todo diálogo de gasto (compra, proposta a humano, lance, cobertura, obra, renovação), com “Caixa depois”, “Por rodada” e “Fim da temporada”; na **faixa azul** de Finanças; e no aviso **“Isto vai endividar o clube”**.\n- A conta **não inclui** prêmios de vitória nem de fim de ano: é prudente de propósito.",
+    "resposta_jogador": "O Contador é o seu assessor financeiro: em toda compra, lance, obra ou renovação ele mostra como o caixa fica depois, por rodada e no fim da temporada. As contas dele são conservadoras de propósito, sem contar prêmios.",
+    "tags": [
+      "contador",
+      "financas",
+      "caixa"
+    ]
+  },
+  {
+    "id": "04-063",
+    "pergunta": "O que significa o aviso “Isto vai endividar o clube”?",
+    "variacoes": [
+      "aviso vai endividar o clube",
+      "contador nao deixa eu comprar",
+      "seguir mesmo assim o que acontece",
+      "alerta de divida na compra",
+      "nivel perigo atencao do contador"
+    ],
+    "resposta": "É o alerta do Contador que **segura** a compra, o lance ou a obra quando ela deixaria o caixa **negativo no fim da temporada**.\n\n- Opções: **“Voltar e rever”** ou **“Seguir mesmo assim”**.\n- **Não proíbe:** avisa uma vez e a decisão é do treinador.\n\nA conta: **ritmo por rodada** = TV + bilheteria média (jogo em casa ÷ 2) − folha (com o salário novo) − custo operacional. **Fim da temporada** = caixa − gasto + patrocínio não recebido + ritmo × rodadas restantes.\n\nNíveis: **perigo** (caixa negativo após o gasto ou fim do ano negativo); **atenção** (folha custa mais do que TV e bilheteria rendem); **ok**.",
+    "resposta_jogador": "É só um alerta do Contador: pelas contas dele, esse gasto deixaria o caixa negativo no fim da temporada. Você pode voltar e rever ou escolher “Seguir mesmo assim”; lembre que caixa negativo pesa na sua segurança no cargo.",
+    "tags": [
+      "contador",
+      "divida",
+      "alerta",
+      "caixa"
+    ]
+  },
+  {
+    "id": "04-064",
+    "pergunta": "Por que meu caixa está negativo?",
+    "variacoes": [
+      "caixa no vermelho",
+      "fiquei devendo no jogo",
+      "dinheiro acabou do nada",
+      "clube endividado como sair",
+      "saldo negativo depois das contratacoes"
+    ],
+    "resposta": "Quase sempre por um destes motivos:\n\n1. O **patrocínio do ano inteiro** entrou na 1ª rodada e foi gasto em contratações; depois o clube vive só de TV e bilheteria.\n2. A **folha subiu** com as compras (o motor só confere a taxa, não o salário).\n3. **Bônus de gol** e da **meta de 50% dos jogos**.\n4. **Obra no estádio**.\n5. Os **prêmios só entram no fim da temporada**.\n\n**Para sair:** vender (principalmente salários altos), esperar prêmios e o patrocínio do ano seguinte, evitar novas compras. Não há empréstimo.",
+    "resposta_jogador": "Normalmente é porque o patrocínio do ano entra todo na 1ª rodada e acaba indo em contratações, e depois os salários novos pesam toda rodada. Para sair do vermelho, venda jogadores de salário alto, evite novas compras e espere os prêmios do fim da temporada e o patrocínio do próximo ano.",
+    "tags": [
+      "caixa",
+      "negativo",
+      "divida",
+      "financas"
+    ]
+  },
+  {
+    "id": "04-065",
+    "pergunta": "O que acontece se eu ficar com o caixa negativo?",
+    "variacoes": [
+      "consequencia de caixa negativo",
+      "clube vai a falencia?",
+      "posso ser demitido por divida",
+      "caixa negativo trava compra",
+      "tem juros sobre a divida do clube"
+    ],
+    "resposta": "Desde 10/09/2026, dívida tem consequência:\n\n1. **Segurança no cargo cai:** penalidade de 8 pontos + 3,2 por “rodada de receita-base” devida, até **40 pontos** no alvo. Caixa positivo mas projeção do ano negativa: −10.\n2. **Demissão:** com a segurança em 15 ou menos (12 no Modo Resenha), há chance de demissão por rodada.\n3. **Demitido no vermelho** só recebe convite de clube da **divisão de baixo**.\n4. **Nenhuma compra, lance ou obra passa**, e a **renovação com aumento** é bloqueada.\n5. **Avisos:** notícia da rodada, e-mail do Presidente (“Caixa no vermelho”) e perguntas da imprensa.\n\n**Não existe** falência, venda forçada, empréstimo nem juros.",
+    "resposta_jogador": "Com o caixa negativo você não consegue comprar, dar lance, fazer obra nem renovar com aumento, e a diretoria fica insatisfeita, o que pode levar à demissão. Não há falência nem juros, mas vale sair do vermelho vendendo jogadores e segurando os gastos.",
+    "tags": [
+      "caixa",
+      "negativo",
+      "demissao",
+      "falencia"
+    ]
+  },
+  {
+    "id": "04-066",
+    "pergunta": "Como funciona a segurança no cargo e quando o treinador é demitido?",
+    "variacoes": [
+      "fui demitido por que",
+      "barra de seguranca no cargo",
+      "como nao ser demitido",
+      "risco de demissao do tecnico",
+      "conversa seria sobre o seu trabalho email"
+    ],
+    "resposta": "A barra **“Segurança no cargo”** (0–100) se move a cada rodada **18%** na direção de um alvo:\n\n**Alvo = 70% posição na tabela + 30% moral média do elenco − penalidade financeira** (1º lugar = 100 na parte da tabela; lanterna = 0). A penalidade por caixa negativo vai até 40 pontos.\n\n- Abaixo de **30**, a diretoria manda o e-mail “Conversa séria sobre o seu trabalho”.\n- Com **15 ou menos** (a partir da 5ª rodada), há chance de **demissão** a cada rodada, até **30%** com a barra em 0. No **Modo Resenha** o limite é **12**.\n- A entrevista coletiva também mexe na segurança.",
+    "resposta_jogador": "A segurança no cargo depende principalmente da posição na tabela, depois da moral do elenco, e cai se o caixa estiver negativo. Se a barra chegar a 15 ou menos, começa a haver risco de demissão a cada rodada.",
+    "tags": [
+      "demissao",
+      "cargo",
+      "seguranca",
+      "treinador"
+    ]
+  },
+  {
+    "id": "04-067",
+    "pergunta": "Fui demitido. Quais clubes posso assumir?",
+    "variacoes": [
+      "demitido so aparece time da divisao de baixo",
+      "opcoes de clube depois da demissao",
+      "por que so me ofereceram times fracos",
+      "fui demitido na serie D e agora",
+      "novo clube depois de ser mandado embora"
+    ],
+    "resposta": "Depende do caixa no momento da demissão:\n\n- **Caixa positivo:** escolhe entre até **3 clubes** da **mesma divisão ou de uma abaixo**.\n- **Caixa no vermelho:** só recebe opções de clube **da divisão de baixo**. Se já estiver na última divisão, só entre os **5 clubes mais fracos** dela.",
+    "resposta_jogador": "Quando o treinador é demitido com o caixa positivo, ele recebe até 3 opções da mesma divisão ou de uma abaixo. Se o caixa estava no vermelho, as opções são só da divisão de baixo (ou os times mais fracos, se já estiver na última).",
+    "tags": [
+      "demissao",
+      "clube",
+      "caixa",
+      "treinador"
+    ]
+  },
+  {
+    "id": "04-068",
+    "pergunta": "Como recebo propostas de outros clubes para ser treinador?",
+    "variacoes": [
+      "nenhum clube me chama",
+      "como trocar de time sendo tecnico",
+      "proposta de clube do exterior pro treinador",
+      "convite de outro clube quanto paga",
+      "nao recebo mais sondagem depois que mudei de clube"
+    ],
+    "resposta": "- Com segurança no cargo **≥ 80** (a partir da 5ª rodada), há **6% de chance por rodada** (8% com 90+) de convite. Exige moral média do elenco **≥ 65**, ou algum título ou final disputada.\n- Costuma vir de clube um pouco melhor da mesma divisão (+2 a +14 de overall); 25% das vezes de um clube fraco da divisão de cima. Do **exterior**: 15% das sondagens sem títulos, até 60% com títulos (segurança exigida 82, reduzida por títulos até 60).\n- **Salário proposto** = salário atual (ou 100 mil + 5 mil × overall, para quem nunca mudou) + 10% + 2% por ponto de overall de diferença.\n- Fica em **Treinador → Ofertas** por **5 rodadas**.\n- **Descanso:** após trocar voluntariamente, **2 temporadas** sem sondagem (demissão não conta).",
+    "resposta_jogador": "Os convites aparecem quando sua segurança no cargo está em 80 ou mais e o elenco está motivado (ou você já tem títulos). Eles ficam em Treinador → Ofertas por 5 rodadas. Depois de trocar de clube por vontade própria, é preciso esperar 2 temporadas para receber novos convites.",
+    "tags": [
+      "treinador",
+      "convite",
+      "proposta",
+      "exterior"
+    ]
+  },
+  {
+    "id": "04-069",
+    "pergunta": "Como funcionam a entrevista coletiva, as notícias e os e-mails do clube?",
+    "variacoes": [
+      "coletiva pos jogo o que muda",
+      "reputacao do treinador",
+      "com que frequencia tem entrevista",
+      "email do diretor de futebol",
+      "imprensa perguntou sobre o caixa"
+    ],
+    "resposta": "- **Notícias da rodada:** contratações, vendas, leilões, propostas, patrocínio recebido, caixa negativo, promoção da base, negócios da CPU.\n- **E-mails:** cada compra e venda gera e-mail do Diretor de Futebol com o caixa depois do negócio; também aposentadorias (previstas e realizadas), convites do Presidente, aviso de cargo e premiação.\n- **Coletiva pós-jogo:** 3 perguntas (jogo, elenco, clube) montadas pelos fatos da semana (goleada, jejum, proposta por titular, caixa no vermelho, cargo em risco). Cada resposta mostra antes o efeito em **moral do elenco**, **segurança no cargo** e **reputação** (0–100, começa em 50).\n- **Frequência:** Modo Solo a cada 3 rodadas (2 com fato marcante), até 8 por temporada; Modo Resenha a cada 4 (3), até 5. Nunca na 1ª rodada.",
+    "resposta_jogador": "A coletiva aparece de tempos em tempos depois dos jogos, com 3 perguntas sobre a semana. Antes de escolher, cada resposta mostra o efeito na moral do elenco, na sua segurança no cargo e na sua reputação.",
+    "tags": [
+      "imprensa",
+      "coletiva",
+      "noticias",
+      "emails"
+    ]
+  },
+  {
+    "id": "04-070",
+    "pergunta": "Os valores em dólar ou euro mudam alguma coisa nas finanças?",
+    "variacoes": [
+      "trocar moeda pra euro",
+      "valores em dolar no jogo",
+      "cotacao do dolar no retrofoot",
+      "mudar moeda altera o caixa?",
+      "salario em reais ou euros"
+    ],
+    "resposta": "**Não.** Tudo é guardado internamente em reais (R$). A moeda escolhida nas opções (Reais, Dólares ou Euros) muda **só a exibição**: US$ 1 ≈ R$ 5,40 e € 1 ≈ R$ 6,20.\n\nTambém vale lembrar: todo salário é **semanal**, pago a cada rodada (1 rodada de liga = 1 semana).",
+    "resposta_jogador": "Trocar a moeda nas opções só muda como os valores aparecem na tela; por dentro, o jogo guarda tudo em reais e nada muda no seu caixa.",
+    "tags": [
+      "moeda",
+      "financas",
+      "opcoes"
+    ]
+  }
+]

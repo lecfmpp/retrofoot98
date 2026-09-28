@@ -500,9 +500,12 @@ Serve para ter o quadro geral. Não é o lugar para atender um jogador específi
 
 Está no menu para **todos os papéis**, com o subtítulo "Pergunte à IA como o jogo funciona — regras, motor, planos, Resenha e telas". É o assistente que usa esta base de conhecimento.
 
-- **Conversa** à esquerda: escreva a pergunta e aperte Enter (Shift+Enter quebra a linha). A resposta aparece aos poucos, enquanto é escrita. Cada resposta tem **Copiar**, **👍** (útil) e **👎** (errada ou incompleta).
+- **Primeiro, as respostas prontas.** A pergunta é comparada com um banco de ~400 respostas prontas (sem IA, na hora, sem custo). Se bater, aparece com o selo **"Resposta pronta · sem IA"**, a **Sugestão de resposta ao jogador** e perguntas relacionadas. Enquanto se digita, a caixa **"Já respondidas:"** mostra as parecidas para clicar direto.
+- **Não é isso? Perguntar à IA** manda a mesma pergunta para a IA. Quando não há resposta pronta parecida, a IA responde sozinha.
+- **Conversa** à esquerda: escreva a pergunta e aperte Enter (Shift+Enter quebra a linha). A resposta da IA aparece aos poucos, enquanto é escrita. Cada resposta da IA tem **Copiar**, **👍** (útil) e **👎** (errada ou incompleta).
+- Sócio e Produto veem também **Salvar como resposta pronta** (numa resposta boa da IA: da próxima vez sai pronta, sem custo), **Tirar do ar** (numa resposta pronta errada) e **Atualizar respostas prontas** (baixa a versão mais nova das prontas escritas pelos devs).
 - **Nova conversa** limpa a tela. A conversa fica só na aba aberta: recarregar a página começa do zero.
-- À direita: **Sugestões** de perguntas, **Perguntas recentes da equipe** (clique para perguntar de novo) e o **Uso no mês** (quantas perguntas e o custo em dólares).
+- À direita: **Sugestões** de perguntas, **Perguntas recentes da equipe** (clique para perguntar de novo; mostram "pronta" ou "IA") e o **Uso no mês** (quantas saíram prontas, quantas pela IA, o custo em dólares e a economia estimada).
 - A IA responde só com o que está nesta base. Quando a base não cobre o assunto, ela diz isso. Toda pergunta fica registrada, e as marcadas com 👎 mostram o que falta acrescentar.
 - Para ensinar algo novo à IA, um dev atualiza os textos da base e publica de novo.
 

@@ -436,7 +436,7 @@ async function fazerNovaSenha(){
 /* ============================ navegação ============================ */
 const NAV = [
   { id:'visao',       ic:'◈', label:'Visão geral',    tit:'Visão geral',        sub:'Como o projeto está a andar' },
-  { id:'sobre',       ic:'✺', label:'Sobre o jogo',   tit:'Sobre o jogo',       sub:'Pergunte à IA como o jogo funciona — regras, motor, planos, Resenha e telas' },
+  { id:'sobre',       ic:'✺', label:'Sobre o jogo',   tit:'Sobre o jogo',       sub:'Como o jogo funciona — respostas prontas na hora, e a IA para o resto' },
   { id:'usuarios',    ic:'◍', label:'Usuários',       tit:'Usuários',           sub:'Contas, plano e tempo de jogo' },
   { id:'jogos',       ic:'⚑', label:'Resenhas & solo',tit:'Resenhas & solo',    sub:'Salas abertas, convites e saves' },
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
@@ -14179,20 +14179,30 @@ async function gravarArteComp(pais, chave, dados){
   pgEditor();
 }
 
-/* ============================ SOBRE O JOGO (assistente de IA) ============================
-   O time de suporte pergunta, o Gemini responde a partir da base de conhecimento do jogo
-   (docs/conhecimento/*.md, empacotada na edge function `sobre-o-jogo`). A resposta vem em
-   STREAM (SSE): com a base inteira como contexto, esperar a resposta completa deixava a tela
-   parada por uns bons segundos — e tela parada parece clique perdido.
+/* ============================ SOBRE O JOGO (respostas prontas + IA) ============================
+   Duas camadas, nesta ordem:
+   1. RESPOSTAS PRONTAS (admin_rf98.sobre_faq), geradas a partir da base de conhecimento e
+      servidas por busca de texto no banco (sobre_buscar) — sem IA, sem token, na hora. Se a
+      pergunta bate com uma delas (nota >= SJ_BATEU), é ela que aparece.
+   2. A IA (edge function `sobre-o-jogo`, Gemini com a base inteira como contexto), só para o
+      que a base de respostas não cobre — ou quando a pessoa clica "Não é isso? Perguntar à IA".
+      Vem em STREAM (SSE): esperar a resposta inteira deixava a tela parada e parecia clique perdido.
+   Uma resposta da IA que prestou vira resposta pronta com "Salvar como resposta pronta" (sócio
+   e produto) — é assim que a camada 1 cresce e a conta da IA encolhe.
 
-   A conversa vive só na memória desta aba (SOBRE.msgs): trocar de página e voltar mantém,
-   recarregar começa do zero. O histórico permanente é o da equipe, em
-   admin_rf98.sobre_perguntas, gravado pela função — é por ele que se descobre o que falta
-   na base (pergunta repetida, resposta com 👎).
+   A conversa vive só na memória desta aba (SOBRE.msgs). O histórico permanente é
+   admin_rf98.sobre_perguntas: a função grava as da IA, sobre_usar_faq grava as da base (modelo
+   'base', custo zero).
 
-   ENSINAR ALGO NOVO À IA não é aqui: é editar docs/conhecimento/, rodar
-   `node scripts/build-conhecimento.mjs` e publicar a função (push na main). */
-const SOBRE = { msgs: [], ocupado: false, ctrl: null };
+   ENSINAR ALGO NOVO: a base da IA é docs/conhecimento/*.md (scripts/build-conhecimento.mjs +
+   publicar a função); as respostas prontas são docs/conhecimento/faq/*.json
+   (scripts/validar-faq.mjs → push na main → botão "Atualizar respostas prontas", que faz o
+   banco baixar os JSON do GitHub). */
+const SOBRE = { msgs: [], ocupado: false, ctrl: null, vivo: null, vivoSeq: 0 };
+/* Cortes da nota de sobre_buscar (0..1: metade semelhança de texto, metade palavras em comum).
+   Calibrados em 28/09 com as perguntas da própria base e paráfrases: acima de SJ_BATEU a
+   resposta pronta é a certa quase sempre; entre SJ_PARECE e SJ_BATEU vira "parecidas". */
+const SJ_BATEU = 0.55, SJ_PARECE = 0.33;
 const SOBRE_SUGESTOES = [
   'Como o motor decide o resultado de uma partida?',
   'Qual a diferença entre o plano Grátis e o Pro?',
@@ -14245,22 +14255,28 @@ function mdSobre(txt){
 
 async function pgSobre(forcar, senha = pedirDesenho()){
   const inicio = new Date(); inicio.setDate(1); inicio.setHours(0,0,0,0);
-  const [rec, mes] = await Promise.all([
-    sb.from('sobre_perguntas').select('id,pergunta,user_id,criado_em,util').order('criado_em', { ascending:false }).limit(12),
-    sb.from('sobre_perguntas').select('custo_usd').gte('criado_em', inicio.toISOString()).range(0, 9999)
+  const [rec, mes, nfaq] = await Promise.all([
+    sb.from('sobre_perguntas').select('id,pergunta,criado_em,util,modelo').order('criado_em', { ascending:false }).limit(12),
+    sb.from('sobre_perguntas').select('custo_usd,modelo').gte('criado_em', inicio.toISOString()).range(0, 9999),
+    sb.from('sobre_faq').select('id', { count:'exact', head:true }).eq('ativo', true)
   ]);
   if(!desenhoAtual(senha)) return;
   const recentes = rec.error ? [] : (rec.data || []);
-  const gastoMes = mes.error ? null : (mes.data || []).reduce((a, r) => a + Number(r.custo_usd || 0), 0);
-  const nPerg = mes.error ? null : (mes.data || []).length;
+  const linhasMes = mes.error ? null : (mes.data || []);
+  const ia = linhasMes ? linhasMes.filter(r => r.modelo !== 'base') : [];
+  const base = linhasMes ? linhasMes.length - ia.length : 0;
+  const gastoIA = ia.reduce((a, r) => a + Number(r.custo_usd || 0), 0);
+  const medioIA = ia.length ? gastoIA / ia.length : 0;
 
   el('page').innerHTML = `
     <div class="sj">
       <div class="card sj-chat">
         <div class="card-h"><b>Assistente do jogo</b>
-          <span class="tag t-azul">Gemini</span>
+          <span class="tag t-ok" title="Respostas prontas, servidas sem IA">${nfaq.error ? '—' : num(nfaq.count||0)} prontas</span>
+          <span class="tag t-azul">+ Gemini</span>
           <button class="btn btn-sm btn-ghost" id="sj-nova">Nova conversa</button></div>
         <div class="sj-msgs" id="sj-msgs"></div>
+        <div class="sj-vivo hide" id="sj-vivo"></div>
         <div class="sj-in">
           <textarea class="f" id="sj-txt" rows="2" maxlength="4000" placeholder="Pergunte qualquer coisa sobre o jogo…" title="Enter envia · Shift+Enter quebra linha"></textarea>
           <button class="btn" id="sj-env">Enviar</button>
@@ -14278,13 +14294,16 @@ async function pgSobre(forcar, senha = pedirDesenho()){
           ${recentes.length ? `<div class="sj-rec">${recentes.map(r => `
             <div class="sj-rec-i" data-rec="${h(r.pergunta)}" title="Perguntar de novo">
               <span>${h(r.pergunta.length > 110 ? r.pergunta.slice(0,110)+'…' : r.pergunta)}</span>
-              <small>${new Date(r.criado_em).toLocaleDateString('pt-BR')}${r.util===true?' · 👍':r.util===false?' · 👎':''}</small>
+              <small>${new Date(r.criado_em).toLocaleDateString('pt-BR')} · ${r.modelo==='base'?'pronta':'IA'}${r.util===true?' · 👍':r.util===false?' · 👎':''}</small>
             </div>`).join('')}</div>` : `<div class="st">${rec.error ? 'Histórico indisponível.' : 'Ninguém perguntou nada ainda.'}</div>`}
         </div>
         <div class="card card-p">
           <div class="tt">Uso no mês</div>
-          <div class="st">${gastoMes==null ? '—' : `${num(nPerg)} pergunta${nPerg===1?'':'s'} · US$ ${gastoMes.toFixed(2)}`}</div>
-          <div class="st" style="margin-top:8px">A base de conhecimento é escrita a partir do código do jogo. Para ensinar algo novo à IA, peça a um dev para atualizar <span class="mono">docs/conhecimento/</span>.</div>
+          ${linhasMes == null ? '<div class="st">—</div>' : `
+          <div class="st">${num(base)} resposta${base===1?'':'s'} pronta${base===1?'':'s'} (sem custo) · ${num(ia.length)} pela IA · US$ ${gastoIA.toFixed(2)}</div>
+          ${base && medioIA ? `<div class="st">Economia estimada com as prontas: ~US$ ${(base*medioIA).toFixed(2)}</div>` : ''}`}
+          <div class="st" style="margin-top:8px">Tudo sai da base de conhecimento, escrita a partir do código do jogo. Para ensinar algo novo, peça a um dev para atualizar <span class="mono">docs/conhecimento/</span>.</div>
+          ${podeEditar('produto') ? `<button class="btn btn-sm btn-ghost" id="sj-sinc" style="margin-top:12px;width:100%" title="Baixa do GitHub (main) as respostas prontas de docs/conhecimento/faq">Atualizar respostas prontas</button>` : ''}
         </div>
       </div>
     </div>`;
@@ -14295,40 +14314,119 @@ async function pgSobre(forcar, senha = pedirDesenho()){
   txt.addEventListener('keydown', e => {
     if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); enviarSobre(txt.value); }
   });
+  /* enquanto digita: respostas prontas parecidas, para a pessoa clicar antes mesmo de enviar */
+  txt.addEventListener('input', () => {
+    clearTimeout(SOBRE.vivo);
+    SOBRE.vivo = setTimeout(() => sugerirAoVivo(txt.value), 350);
+  });
   el('sj-nova').onclick = () => {
     if(SOBRE.ctrl) SOBRE.ctrl.abort();
     SOBRE.msgs = []; SOBRE.ocupado = false; desenharMsgsSobre(); txt.focus();
+  };
+  const sinc = el('sj-sinc');
+  if(sinc) sinc.onclick = async () => {
+    sinc.disabled = true; sinc.textContent = 'Baixando do GitHub…';
+    const { data, error } = await sb.rpc('sobre_faq_sincronizar');
+    if(error){ sinc.disabled = false; sinc.textContent = 'Atualizar respostas prontas'; return toast(erroMsg(error), true); }
+    registrar('sobre.faq.sincronizar', null, data);
+    toast(`${num(data.total)} respostas prontas · ${num(data.novas)} novas · ${num(data.atualizadas)} atualizadas · ${num(data.desativadas)} tiradas do ar.`);
+    pgSobre();
   };
   el('page').querySelectorAll('[data-sug]').forEach(b => b.onclick = () => enviarSobre(SOBRE_SUGESTOES[+b.dataset.sug]));
   el('page').querySelectorAll('[data-rec]').forEach(b => b.onclick = () => enviarSobre(b.dataset.rec));
   if(!SOBRE.ocupado) txt.focus();
 }
 
+async function sugerirAoVivo(texto){
+  const box = el('sj-vivo'); if(!box) return;
+  const q = String(texto||'').trim();
+  const seq = ++SOBRE.vivoSeq;
+  if(q.length < 8){ box.classList.add('hide'); return; }
+  const { data, error } = await sb.rpc('sobre_buscar', { p_q: q, p_lim: 3 });
+  if(seq !== SOBRE.vivoSeq || !el('sj-vivo')) return;          // já digitou outra coisa
+  const achados = error ? [] : (data || []).filter(r => r.nota >= SJ_PARECE);
+  if(!achados.length){ box.classList.add('hide'); return; }
+  box.innerHTML = `<span class="st">Já respondidas:</span>` + achados.map((r, k) =>
+    `<button class="sj-chip sj-chip-p" data-vivo="${k}">${h(r.pergunta)}</button>`).join('');
+  box.classList.remove('hide');
+  box.querySelectorAll('[data-vivo]').forEach(b => b.onclick = () => {
+    const r = achados[+b.dataset.vivo];
+    const txt = el('sj-txt'); const digitado = txt ? txt.value.trim() : '';
+    if(txt) txt.value = '';
+    box.classList.add('hide');
+    mostrarPronta(digitado || r.pergunta, r, []);
+  });
+}
+
+/* resposta pronta na conversa (e conta o uso — é o que alimenta a "economia" do mês) */
+function mostrarPronta(pergunta, r, parecidas){
+  SOBRE.msgs.push({ papel:'user', texto: pergunta });
+  SOBRE.msgs.push({ papel:'base', texto: r.resposta, jogador: r.resposta_jogador, faq: r.id,
+                    titulo: r.pergunta, fonte: r.fonte, pergunta, parecidas: parecidas || [], fim: true });
+  desenharMsgsSobre();
+  sb.rpc('sobre_usar_faq', { p_pergunta: pergunta, p_faq: r.id }).then(({ error }) => {
+    if(error) console.warn('sobre_usar_faq:', erroMsg(error));
+  });
+}
+
 function desenharMsgsSobre(){
   const box = el('sj-msgs'); if(!box) return;
+  const editor = podeEditar('produto');
   if(!SOBRE.msgs.length){
     box.innerHTML = `<div class="sj-vazio"><div style="font-size:26px">✺</div>
       <b>Pergunte como o jogo funciona</b>
-      <span>Regras, motor de partida, competições, mercado, finanças, planos, Modo Solo e Modo Resenha, telas e problemas conhecidos. A IA responde só com o que está na base — se não souber, ela diz.</span></div>`;
+      <span>Primeiro procuramos nas respostas prontas (na hora, sem custo). Se não houver, a IA responde a partir da base de conhecimento — e, se não souber, ela diz.</span></div>`;
   } else {
-    box.innerHTML = SOBRE.msgs.map((m, k) => m.papel === 'user'
-      ? `<div class="sj-m sj-eu">${h(m.texto).replace(/\n/g,'<br>')}</div>`
-      : `<div class="sj-m sj-ia">
+    const parecidasHTML = (m, k) => m.parecidas && m.parecidas.length ? `
+      <div class="sj-par"><span class="st">${m.papel==='base' ? 'Relacionadas:' : 'Talvez ajude também:'}</span>
+        ${m.parecidas.map((r, j) => `<button class="sj-chip sj-chip-p" data-par="${k}:${j}">${h(r.pergunta)}</button>`).join('')}</div>` : '';
+    box.innerHTML = SOBRE.msgs.map((m, k) => {
+      if(m.papel === 'user') return `<div class="sj-m sj-eu">${h(m.texto).replace(/\n/g,'<br>')}</div>`;
+      if(m.papel === 'base') return `<div class="sj-m sj-ia sj-base">
+          <div class="sj-selo"><span class="tag t-ok">Resposta pronta · sem IA</span><span class="sj-tit">${h(m.titulo)}</span></div>
+          <div class="sj-md">${mdSobre(m.texto)}</div>
+          ${m.jogador ? `<div class="sj-jog"><div class="st">Sugestão de resposta ao jogador</div>${h(m.jogador).replace(/\n/g,'<br>')}</div>` : ''}
+          <div class="sj-acoes">
+            <button class="sj-a" data-copiar="${k}">Copiar</button>
+            ${m.jogador ? `<button class="sj-a" data-copiarj="${k}">Copiar p/ jogador</button>` : ''}
+            <button class="sj-a" data-aia="${k}">Não é isso? Perguntar à IA</button>
+            ${editor ? `<button class="sj-a sj-a-dir" data-tirar="${k}" title="Tirar esta resposta pronta do ar">Tirar do ar</button>` : ''}
+          </div>
+          ${parecidasHTML(m, k)}
+        </div>`;
+      return `<div class="sj-m sj-ia">
            ${m.erro ? `<div class="erro">${h(m.erro)}</div>` : ''}
            ${m.texto ? `<div class="sj-md">${mdSobre(m.texto)}</div>` : (m.erro ? '' : '<div class="sj-digit"><i></i><i></i><i></i></div>')}
            ${m.fim && m.texto ? `<div class="sj-acoes">
               <button class="sj-a" data-copiar="${k}">Copiar</button>
               ${m.id ? `<button class="sj-a ${m.util===true?'on':''}" data-voto="${k}:1" title="Resposta útil">👍</button>
               <button class="sj-a ${m.util===false?'on':''}" data-voto="${k}:0" title="Resposta errada ou incompleta">👎</button>` : ''}
+              ${editor && !m.salva ? `<button class="sj-a sj-a-dir" data-salvar="${k}" title="Próxima vez que alguém perguntar isto, a resposta sai pronta, sem IA">Salvar como resposta pronta</button>` : ''}
+              ${m.salva ? `<span class="tag t-ok sj-a-dir">Salva como pronta</span>` : ''}
             </div>` : ''}
-         </div>`).join('');
-    box.querySelectorAll('[data-copiar]').forEach(b => b.onclick = async () => {
-      try{ await navigator.clipboard.writeText(SOBRE.msgs[+b.dataset.copiar].texto); toast('Resposta copiada.'); }
-      catch(e){ toast('Não deu para copiar.', true); }
-    });
+           ${m.fim ? parecidasHTML(m, k) : ''}
+         </div>`;
+    }).join('');
+    const copiar = async (t) => {
+      try{ await navigator.clipboard.writeText(t); toast('Copiado.'); }catch(e){ toast('Não deu para copiar.', true); }
+    };
+    box.querySelectorAll('[data-copiar]').forEach(b => b.onclick = () => copiar(SOBRE.msgs[+b.dataset.copiar].texto));
+    box.querySelectorAll('[data-copiarj]').forEach(b => b.onclick = () => copiar(SOBRE.msgs[+b.dataset.copiarj].jogador));
     box.querySelectorAll('[data-voto]').forEach(b => b.onclick = () => {
       const [k, v] = b.dataset.voto.split(':'); votarSobre(+k, v === '1');
     });
+    box.querySelectorAll('[data-aia]').forEach(b => b.onclick = () => {
+      const m = SOBRE.msgs[+b.dataset.aia];
+      m.rejeitada = true;              // não vai como contexto: a IA repetiria a resposta recusada
+      enviarSobre(m.pergunta, true);
+    });
+    box.querySelectorAll('[data-par]').forEach(b => b.onclick = () => {
+      const [k, j] = b.dataset.par.split(':').map(Number);
+      const r = SOBRE.msgs[k].parecidas[j];
+      mostrarPronta(r.pergunta, r, []);
+    });
+    box.querySelectorAll('[data-salvar]').forEach(b => b.onclick = () => salvarComoPronta(+b.dataset.salvar));
+    box.querySelectorAll('[data-tirar]').forEach(b => b.onclick = () => tirarPronta(+b.dataset.tirar));
   }
   box.scrollTop = box.scrollHeight;
   const env = el('sj-env'); if(env){ env.disabled = SOBRE.ocupado; env.textContent = SOBRE.ocupado ? 'Pensando…' : 'Enviar'; }
@@ -14342,14 +14440,62 @@ async function votarSobre(k, util){
   m.util = novo; desenharMsgsSobre();
 }
 
-async function enviarSobre(texto){
+/* A resposta da IA vira resposta pronta. A pergunta é a que a pessoa fez logo antes; a
+   "sugestão ao jogador", se a IA escreveu uma, é separada para o botão próprio. */
+async function salvarComoPronta(k){
+  const m = SOBRE.msgs[k]; if(!m || !m.texto) return;
+  const pergunta = (SOBRE.msgs[k-1] && SOBRE.msgs[k-1].papel === 'user') ? SOBRE.msgs[k-1].texto : '';
+  const titulo = prompt('Pergunta desta resposta pronta (é o que a busca vai comparar — escreva do jeito mais claro):', pergunta);
+  if(titulo == null || !titulo.trim()) return;
+  let resposta = m.texto, jogador = null;
+  const corte = resposta.search(/\**Sugest[aã]o de resposta ao jogador:?\**:?/i);
+  if(corte > 0){
+    jogador = resposta.slice(corte).replace(/^\**Sugest[aã]o de resposta ao jogador:?\**:?\s*/i, '').trim() || null;
+    resposta = resposta.slice(0, corte).trim();
+  }
+  const variacoes = pergunta && pergunta.trim() !== titulo.trim() ? [pergunta.trim()] : [];
+  const { error } = await sb.rpc('sobre_faq_salvar', { p_pergunta: titulo.trim(), p_resposta: resposta,
+    p_jogador: jogador, p_variacoes: variacoes, p_fonte: 'ia' });
+  if(error) return toast(erroMsg(error), true);
+  registrar('sobre.faq.salvar', null, { pergunta: titulo.trim() });
+  m.salva = true; desenharMsgsSobre();
+  toast('Salva. Da próxima vez sai pronta, sem IA.');
+}
+
+async function tirarPronta(k){
+  const m = SOBRE.msgs[k]; if(!m || !m.faq) return;
+  if(!confirm(`Tirar do ar a resposta pronta "${m.titulo}"? Quem perguntar isto passa a receber a resposta da IA.`)) return;
+  const { error } = await sb.rpc('sobre_faq_desativar', { p_id: m.faq });
+  if(error) return toast(erroMsg(error), true);
+  registrar('sobre.faq.desativar', m.faq, { pergunta: m.titulo });
+  toast('Resposta pronta tirada do ar.');
+}
+
+async function enviarSobre(texto, forcarIA){
   const pergunta = String(texto || '').trim();
   if(!pergunta || SOBRE.ocupado) return;
   const txt = el('sj-txt'); if(txt) txt.value = '';
-  // o histórico que vai ao modelo são só as trocas completas, sem as que deram erro
-  const historico = SOBRE.msgs.filter(m => m.texto && !m.erro).map(m => ({ papel: m.papel, texto: m.texto }));
-  SOBRE.msgs.push({ papel:'user', texto: pergunta });
-  const resp = { papel:'model', texto:'', fim:false };
+  const vivo = el('sj-vivo'); if(vivo) vivo.classList.add('hide');
+  SOBRE.vivoSeq++;
+
+  /* 1) respostas prontas primeiro — sem IA */
+  let parecidas = [];
+  if(!forcarIA){
+    const { data, error } = await sb.rpc('sobre_buscar', { p_q: pergunta, p_lim: 4 });
+    const achados = error ? [] : (data || []);
+    if(error) console.warn('sobre_buscar:', erroMsg(error));
+    if(achados[0] && achados[0].nota >= SJ_BATEU){
+      return mostrarPronta(pergunta, achados[0], achados.slice(1).filter(r => r.nota >= SJ_PARECE));
+    }
+    parecidas = achados.filter(r => r.nota >= SJ_PARECE).slice(0, 3);
+  }
+
+  /* 2) a IA. O histórico que vai ao modelo são as trocas completas, sem as que deram erro;
+     resposta pronta entra como fala do modelo. */
+  const historico = SOBRE.msgs.filter(m => m.texto && !m.erro && !m.rejeitada)
+    .map(m => ({ papel: m.papel === 'user' ? 'user' : 'model', texto: m.texto }));
+  if(!forcarIA) SOBRE.msgs.push({ papel:'user', texto: pergunta });
+  const resp = { papel:'model', texto:'', fim:false, parecidas };
   SOBRE.msgs.push(resp);
   SOBRE.ocupado = true; desenharMsgsSobre();
 
