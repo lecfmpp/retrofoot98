@@ -60,6 +60,8 @@ if (modo === 'video') {
     ['tela', 'public/img/telas/hub.webp', 'novidade'],
     ['tela', 'public/img/telas/estadio.webp', 'time-do-coracao'],
     ['tela', 'public/img/telas/rodada-ao-vivo.webp' , 'sentimos-falta'],
+    ['poster', 'public/img/home/posters/convite-jantar.webp', 'pro-travado'],
+    ['poster', 'public/img/home/posters/momento-artilheiro.webp', 'pro-extra'],
   ];
   for (const [tipo, src, n] of CAPAS) {
     const origem = existsSync(src) ? src : src.replace('/telas/', '/home/');

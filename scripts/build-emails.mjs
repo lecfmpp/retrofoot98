@@ -329,6 +329,80 @@ T.push(dica({ n: 7, capa: { img: CAPA('dica-fim-temporada'), alt: 'Técnico camp
   ps: 'Quer jogar sem limite de temporadas? O Pro libera temporadas e carreiras ilimitadas e o Modo Resenha.',
 }));
 
+/* 13–15. CONVERSÃO (28/09) — um por segmento do Resend (docs/emails-onboarding.md, "Segmentos").
+   Preço e benefícios são os do paywall (rf26-paywall.js / RF_PLANOS): R$ 19,90/mês, R$ 178,80/ano
+   (−25%), cartão (renova) ou Pix (avulso, sem renovação). O "Ultrassônico" fica de fora do e-mail:
+   sem contexto, não vende. Não há link direto para a tela do Pro: o botão leva ao jogo e o texto diz
+   onde assinar (virada da temporada ou Minha Conta). */
+const assinatura = `      <p style="margin:18px 0 0 0;color:${C.texto};font-family:${FONTE};font-size:14px;line-height:1.6;">Um abraço,<br><strong style="color:${C.titulo};">O Presidente</strong></p>`;
+const BENS_PRO = [
+  ['Temporadas e carreiras ilimitadas', 'Suba da Série D até a elite sem trava no caminho.'],
+  ['Carreira na nuvem, de qualquer aparelho', 'Comece no computador e continue no celular.'],
+  ['Acesso exclusivo ao Modo Resenha (Beta)', 'Monte uma sala e dispute o campeonato com os amigos.'],
+];
+const b = (t) => `<strong style="color:${C.titulo};">${t}</strong>`;
+
+T.push({
+  alias: 'rf-ativar-1a-rodada', nome: '[RetroFoot] Ativação · Jogue a 1ª rodada',
+  capa: { img: CAPA('video-como-jogar'), alt: 'Vídeo: Como jogar RetroFoot', link: utm(SITE + '/guia/', 'rf-ativar-1a-rodada') },
+  assunto: '{{{FIRST_NAME}}}, o seu time ainda não entrou em campo',
+  preview: 'A primeira partida leva uns 2 minutos. O vestiário está pronto.',
+  variaveis: [],
+  corpo: (a) => [
+    rotulo('Seu clube está esperando'),
+    titulo('Falta só o apito inicial'),
+    par('{{{FIRST_NAME}}}, a sua conta está criada, mas o seu time ainda não jogou. A primeira rodada leva uns 2 minutos — e é ali que o RetroFoot começa de verdade.'),
+    itens([
+      ['1. Escolha o seu clube', 'Todo técnico começa na Série D, com um clube pequeno e muita história para escrever.'],
+      ['2. Escale com um toque', 'O botão "Auto" monta o melhor time possível. Dá para ajustar depois, com calma.'],
+      ['3. Jogue a 1ª rodada', 'Acompanhe o jogo ao vivo e veja a tabela mexer.'],
+    ]),
+    botao('Jogar minha 1ª rodada', utm(SITE + '/', a)),
+    nota(`Primeira vez? O vídeo <a href="${utm(SITE + '/guia/', a)}" style="color:${C.azul};">Como jogar RetroFoot</a> mostra o básico em poucos minutos.`),
+    assinatura,
+    nota('P.S. O seu save fica na nuvem: comece no computador e continue no celular.'),
+  ],
+});
+
+T.push({
+  alias: 'rf-pro-travado', nome: '[RetroFoot] Conversão · Travado no paywall',
+  capa: { img: CAPA('pro-travado'), alt: 'O técnico planejando a próxima temporada' },
+  assunto: '{{{FIRST_NAME}}}, a sua carreira parou na virada',
+  preview: 'O seu clube continua salvo. A próxima temporada está a um clique.',
+  variaveis: [],
+  corpo: (a) => [
+    rotulo('Sua carreira está em pausa'),
+    titulo('A próxima temporada está esperando por você'),
+    par('{{{FIRST_NAME}}}, você fechou a temporada e parou na hora da virada. O elenco, o caixa e a história do seu clube continuam salvos, do jeitinho que você deixou.'),
+    subtitulo('Com o Pro, a carreira não para mais'),
+    itens(BENS_PRO),
+    caixa(`${b('R$ 19,90 por mês')} — cancela quando quiser.<br>Ou ${b('R$ 178,80 por ano')}: sai por R$ 14,90 por mês (25% menos).<br>No cartão ou no Pix (o Pix vale pelo período, sem renovação automática).`),
+    botao('Seguir a carreira no Pro', utm(SITE + '/', a)),
+    nota('Como assinar: entre no jogo e clique em "Começar a próxima temporada" — ou abra Minha Conta. Se ainda houver uma saída grátis para a sua carreira, ela aparece na mesma tela.'),
+    assinatura,
+  ],
+});
+
+T.push({
+  alias: 'rf-pro-extra', nome: '[RetroFoot] Conversão · Temporada extra',
+  capa: { img: CAPA('pro-extra'), alt: 'Técnico erguendo a chuteira de ouro' },
+  assunto: '{{{FIRST_NAME}}}, pense na próxima virada antes que ela chegue',
+  preview: 'A sua temporada extra está valendo. Veja o que o Pro libera para a carreira não parar.',
+  variaveis: [],
+  corpo: (a) => [
+    rotulo('Temporada extra em andamento'),
+    titulo('Você ganhou mais uma temporada. E depois?'),
+    par('{{{FIRST_NAME}}}, obrigado por seguir com o RetroFoot. A temporada extra que você liberou está valendo — mas as temporadas grátis têm limite, e a carreira trava de novo numa das próximas viradas.'),
+    subtitulo('O que muda com o Pro'),
+    itens(BENS_PRO),
+    caixa(`${b('Plano anual: R$ 178,80')} — R$ 14,90 por mês, 25% menos que o mensal (R$ 19,90).<br>Um pagamento e um ano inteiro de carreira sem trava.`),
+    botao('Conhecer o Pro', utm(SITE + '/', a)),
+    nota('Para assinar: no jogo, abra Minha Conta. Pagamento pelo Stripe, no cartão ou no Pix.'),
+    assinatura,
+    nota('P.S. Quem assina agora não perde nada: a temporada extra continua, e as próximas vêm sem trava.'),
+  ],
+});
+
 mkdirSync('emails/templates', { recursive: true });
 const indice = [];
 for (const t of T) {

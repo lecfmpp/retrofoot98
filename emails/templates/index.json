@@ -379,5 +379,74 @@
         "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-7-fim-temporada"
       }
     ]
+  },
+  {
+    "alias": "rf-ativar-1a-rodada",
+    "nome": "[RetroFoot] Ativação · Jogue a 1ª rodada",
+    "assunto": "{{{FIRST_NAME}}}, o seu time ainda não entrou em campo",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/video-como-jogar.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Vídeo: Como jogar RetroFoot"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/guia/?utm_source=email&utm_medium=email&utm_campaign=rf-ativar-1a-rodada"
+      }
+    ]
+  },
+  {
+    "alias": "rf-pro-travado",
+    "nome": "[RetroFoot] Conversão · Travado no paywall",
+    "assunto": "{{{FIRST_NAME}}}, a sua carreira parou na virada",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/pro-travado.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "O técnico planejando a próxima temporada"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-travado"
+      }
+    ]
+  },
+  {
+    "alias": "rf-pro-extra",
+    "nome": "[RetroFoot] Conversão · Temporada extra",
+    "assunto": "{{{FIRST_NAME}}}, pense na próxima virada antes que ela chegue",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/pro-extra.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Técnico erguendo a chuteira de ouro"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-extra"
+      }
+    ]
   }
 ]
