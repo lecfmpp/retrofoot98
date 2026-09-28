@@ -26,6 +26,20 @@
    imagem chega (é o CLS que o PageSpeed cobra). Mas declarar 1280×800 para TODAS era mentir
    sobre as que não são 8:5 — o painel do chat é retrato e saía esticado. Daí o terceiro
    argumento: `fig('chat-resenha', 'legenda', {w:592,h:674})`. */
+/* VÍDEO DO YOUTUBE, LEVE (27/09/2026). Só a capa (i.ytimg.com) e um botão de play vão no HTML; o player
+   (youtube-nocookie, sem cookie até o play) só carrega no clique — o iframe do YouTube pesa ~1 MB e
+   derrubaria a nota de velocidade da página. Sem JavaScript, o link abre o vídeo no YouTube.
+   O clique é tratado pelo script que o gerador põe nas páginas com `video` (scripts/build-seo.mjs),
+   que também gera o VideoObject para o Google. */
+const ytLite = (id, titulo) => `<figure class="yt">
+  <a class="yt-lite" href="https://www.youtube.com/watch?v=${id}" data-yt="${id}" target="_blank" rel="noopener"
+     aria-label="Assistir no player: ${titulo.replace(/"/g, '&quot;')}">
+    <img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="${titulo.replace(/"/g, '&quot;')}" width="480" height="360" loading="lazy" decoding="async">
+    <span class="yt-play" aria-hidden="true"></span>
+  </a>
+  <figcaption>${titulo}</figcaption>
+</figure>`;
+
 const fig = (img, cap, dim, alt) => {
   const w=(dim&&dim.w)||1280, h=(dim&&dim.h)||800;
   return `<figure><img src="/img/telas/${img}.webp" alt="${alt||cap}" width="${w}" height="${h}" loading="lazy" decoding="async"><figcaption>${cap}</figcaption></figure>`;
@@ -1097,7 +1111,9 @@ diretos: <a href="/brasfoot-vs-retrofoot/">Brasfoot vs RetroFoot</a> ·
 
   // ======================= GUIA / DOCUMENTAÇÃO =======================
   {
-    slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-09-20',
+    slug: 'guia', ready: true, priority: 0.8, lastmod: '2026-09-27',
+    video: { id:'uHqD6dHBTnI', titulo:'Como jogar RetroFoot: guia das funções básicas (escalação, tática e mercado)',
+             publicado:'2026-09-24T12:11:30-07:00', duracao:'PT8M51S' },
     title: 'Guia do RetroFoot: como jogar, táticas e como subir de divisão',
     description: 'O guia do técnico no RetroFoot: como escalar, que formação usar em cada situação, como fazer dinheiro no mercado, quando ampliar o estádio e como subir de série.',
     h1: 'Guia do técnico: como jogar e vencer no RetroFoot',
@@ -1121,6 +1137,11 @@ diretos: <a href="/brasfoot-vs-retrofoot/">Brasfoot vs RetroFoot</a> ·
 <p class="lead">O RetroFoot recompensa <strong>decisão</strong>, não sorte. Não existe fórmula que ganha sozinha, mas
 existem escolhas que aumentam muito as suas chances — e é disso que este guia trata: os princípios do jogo, sem revelar
 as contas do motor.</p>
+
+<h2>Assista: como jogar o RetroFoot</h2>
+<p>Se preferir ver antes de ler, o vídeo abaixo mostra as funções básicas em menos de nove minutos — escalação,
+tática e mercado —, na mesma ordem deste guia.</p>
+${ytLite('uHqD6dHBTnI', 'Como jogar RetroFoot: guia das funções básicas (escalação, tática e mercado)')}
 
 <h2>A escalação: força, energia e função</h2>
 <p>Três coisas decidem quem entra. A <strong>força</strong> do jogador para a posição, a <strong>energia</strong> com que

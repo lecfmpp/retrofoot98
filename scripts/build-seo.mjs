@@ -37,6 +37,20 @@ const DIST = resolve(ROOT, 'dist');
    chamar-se so' RetroFoot, o endereco canonico passa a ser o mesmo que o visitante ve'. */
 const SITE = process.env.SEO_SITE || 'https://retrofoot.com.br';
 const GA_ID = 'G-YE7PT01DGY';
+/* player leve do YouTube (ytLite em seo/pages.mjs): a capa vira iframe só no clique */
+const YT_CSS = `.yt{margin:22px 0}
+.yt-lite{position:relative;display:block;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;cursor:pointer}
+.yt-lite img{width:100%;height:100%;object-fit:cover;display:block;opacity:.92;transition:opacity .15s}
+.yt-lite:hover img{opacity:1}
+.yt-play{position:absolute;left:50%;top:50%;width:72px;height:50px;transform:translate(-50%,-50%);background:#e62117;border-radius:14px}
+.yt-play::after{content:'';position:absolute;left:29px;top:15px;border-style:solid;border-width:10px 0 10px 17px;border-color:transparent transparent transparent #fff}
+.yt-lite iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.yt figcaption{font-size:13px;color:#6b776f;margin-top:8px}`;
+const YT_JS = `document.addEventListener('click',function(e){var a=e.target.closest('[data-yt]');if(!a)return;e.preventDefault();
+var f=document.createElement('iframe');f.src='https://www.youtube-nocookie.com/embed/'+a.getAttribute('data-yt')+'?autoplay=1&rel=0';
+f.title=a.getAttribute('aria-label')||'Vídeo';f.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+f.allowFullscreen=true;var d=document.createElement('div');d.className='yt-lite';d.appendChild(f);a.replaceWith(d);
+try{gtag('event','video_play',{video:a.getAttribute('data-yt')})}catch(x){}});`;
 const LOGO = SITE + '/img/logo.webp';
 
 /* rotulos curtos do rodape, iguais aos de LANDING_PAGINAS em public/src/ui/main.js */
@@ -159,6 +173,13 @@ function pageHtml(p){
     nodes.push({ '@type':'FAQPage', '@id': url + '#faq',
       mainEntity: p.faq.map(f=>({ '@type':'Question', name:f.q,
         acceptedAnswer:{ '@type':'Answer', text:String(f.a).replace(/<[^>]+>/g,'') } })) });
+  }
+  /* página com vídeo (p.video, ver ytLite em seo/pages.mjs): VideoObject para o Google */
+  if(p.video){
+    nodes.push({ '@type':'VideoObject', name: p.video.titulo, description: p.description,
+      thumbnailUrl: `https://i.ytimg.com/vi/${p.video.id}/hqdefault.jpg`, uploadDate: p.video.publicado,
+      duration: p.video.duracao, contentUrl: `https://www.youtube.com/watch?v=${p.video.id}`,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${p.video.id}` });
   }
   const jsonld = { '@context':'https://schema.org', '@graph': nodes };
   // links internos (rodapé) — só páginas de CONTEÚDO prontas, exceto a atual. As legais nunca
@@ -384,6 +405,7 @@ footer a:hover{color:#fff;text-decoration:underline}
 }
 @media (max-width:520px){ .foot-grid{grid-template-columns:minmax(0,1fr)} }
 ${p.css||''}
+${p.video ? YT_CSS : ''}
 </style>
 </head><body>
 <header>
@@ -443,6 +465,7 @@ ${p.css||''}
   </div>
 </footer>
 ${p.script?`<script>${p.script}</script>`:''}
+${p.video ? `<script>${YT_JS}</script>` : ''}
 ${/* GRUPO DO WHATSAPP (aba 1b): o mesmo ficheiro do jogo, que traz o proprio CSS e o link.
    Fora do media kit, que e' pagina comercial para marcas, nao para jogador. */
   p.soMiolo ? '' : '<script src="/src/ui/rf26-grupo-wpp.js" defer></script>'}
