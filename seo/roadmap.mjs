@@ -31,30 +31,32 @@ main{max-width:none;margin:0;padding:0}
 main a.rm-b{text-decoration:none}
 body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-system,sans-serif;color:var(--rm-corpo)}
 .rm-w{max-width:1240px;margin:0 auto;padding:0 24px}
-.rm-hero{padding:48px 0 28px}
+.rm-hero{padding:30px 0 14px}
 .rm-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .rm-pill{display:inline-flex;font-family:var(--rm-mono);font-size:11px;font-weight:600;letter-spacing:.14em;
   color:var(--rm-az);background:#dfe8f6;border-radius:99px;padding:6px 12px}
-.rm-h1{margin:14px 0 10px;font-size:44px;line-height:1.05;font-weight:700;color:var(--rm-tinta);letter-spacing:-.03em}
-.rm-lead{margin:0;max-width:660px;font-size:17px;line-height:1.6}
+.rm-h1{margin:10px 0 6px;font-size:34px;line-height:1.1;font-weight:700;color:var(--rm-tinta);letter-spacing:-.03em}
+.rm-lead{margin:0;max-width:680px;font-size:15.5px;line-height:1.55}
+/* os avisos são ETIQUETAS, não cartões: o destaque da página é o quadro (pedido do dono, 27/09) */
+.rm-labels{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.rm-label{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:6px 12px;font-size:13px;font-weight:600;line-height:1.3}
+.rm-label.data{background:#dfe8f6;color:var(--rm-az)}
+.rm-label.v1{background:#fff1c2;color:#6b4e00}
 .rm-acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .rm-b{height:46px;padding:0 18px;border-radius:13px;border:1px solid transparent;font:inherit;font-size:15px;font-weight:700;
   cursor:pointer;display:inline-flex;align-items:center;gap:8px;text-decoration:none;white-space:nowrap}
 .rm-b.am{background:var(--rm-am);color:var(--rm-az)} .rm-b.am:hover{background:#ffcb2e}
 .rm-b.az{background:var(--rm-az);color:#fff} .rm-b.az:hover{background:var(--rm-az2)}
 .rm-b.br{background:#fff;border-color:var(--rm-bd);color:var(--rm-corpo)} .rm-b.br:hover{background:#f4f8f3}
-.rm-avisos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:22px}
-.rm-aviso{background:#fff;border:1px solid var(--rm-bd);border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;line-height:1.5;font-size:14px}
-.rm-aviso b{color:var(--rm-tinta)} .rm-aviso .ic{font-size:20px;line-height:1}
 .rm-sec{padding:18px 0}
 .rm-h2{margin:0 0 4px;font-size:24px;font-weight:700;color:var(--rm-tinta);letter-spacing:-.02em}
 .rm-sub{margin:0 0 14px;font-size:14px;color:var(--rm-cinza)}
-.rm-top{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
-.rm-top a{background:#fff;border:1px solid var(--rm-bd);border-radius:14px;padding:12px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column;gap:6px}
-.rm-top a:hover{border-color:var(--rm-az)}
-.rm-top .pos{font-family:var(--rm-mono);font-size:12px;font-weight:700;color:var(--rm-az)}
-.rm-top .t{font-weight:700;color:var(--rm-tinta);font-size:14px;line-height:1.3}
-.rm-top .v{font-family:var(--rm-mono);font-size:12px;color:var(--rm-cinza)}
+/* mais votados: lista simples numerada, sem cartões */
+.rm-top{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px;max-width:760px}
+.rm-top li{display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--rm-bd)}
+.rm-top .pos{font-family:var(--rm-mono);font-size:13px;font-weight:700;color:var(--rm-az);min-width:28px}
+.rm-top a{flex:1;color:var(--rm-tinta);font-weight:600;text-decoration:none}
+.rm-top a:hover{color:var(--rm-az)}
 .rm-barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 14px}
 .rm-chip{border:1px solid var(--rm-bd);background:#fff;border-radius:99px;padding:7px 13px;font:inherit;font-size:13px;font-weight:600;color:var(--rm-corpo);cursor:pointer}
 .rm-chip.on{background:var(--rm-az);border-color:var(--rm-az);color:#fff}
@@ -76,21 +78,26 @@ body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-sys
 .rm-tag{font-family:var(--rm-mono);font-size:10.5px;font-weight:600;letter-spacing:.04em;border-radius:6px;padding:3px 7px;background:#eef2ee;color:var(--rm-corpo)}
 .rm-tag.v1{background:#fff4cf;color:#7a5a00}
 .rm-tag.ok{background:#dff3e5;color:var(--rm-vd)}
-.rm-voto{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 11px;border:1px solid var(--rm-bd);
-  border-radius:10px;background:#f7faf7;font:inherit;cursor:pointer;color:var(--rm-corpo)}
-.rm-voto:hover{border-color:var(--rm-az);color:var(--rm-az)}
-.rm-voto .s{font-size:13px;line-height:1}
-.rm-voto b{font-family:var(--rm-mono);font-size:14px}
-.rm-voto small{font-size:11.5px;font-weight:600}
-.rm-voto.on{background:var(--rm-az);border-color:var(--rm-az);color:#fff}
+/* O VOTO É O DESTAQUE DO CARTÃO. A cor diz o peso: cinza sem votos, verde cada vez mais forte
+   conforme o item se aproxima do mais votado (n0..n3, calculado no script pelo máximo da página). */
+.rm-voto{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border:2px solid transparent;
+  border-radius:12px;font:inherit;cursor:pointer;transition:transform .08s}
+.rm-voto:hover{transform:translateY(-1px)}
+.rm-voto .s{font-size:14px;line-height:1}
+.rm-voto b{font-family:var(--rm-mono);font-size:16px}
+.rm-voto small{font-size:12px;font-weight:700}
+.rm-voto.n0{background:#eceeec;color:#6f7a72}
+.rm-voto.n1{background:#dcf2e3;color:#1a7a37}
+.rm-voto.n2{background:#8fd4a4;color:#0c4d20}
+.rm-voto.n3{background:#1a8f3c;color:#fff}
+.rm-voto.on{border-color:var(--rm-az);box-shadow:0 0 0 2px #fff inset}
 .rm-voto:disabled{opacity:.6;cursor:progress}
 .rm-vazio{font-size:13px;color:var(--rm-cinza);padding:8px 4px}
-.rm-como{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.rm-como div{background:#fff;border:1px solid var(--rm-bd);border-radius:16px;padding:16px;font-size:14px;line-height:1.55}
-.rm-como b{display:block;color:var(--rm-tinta);margin-bottom:4px;font-size:15px}
-.rm-ideia{margin:22px 0 48px;background:var(--rm-az);color:#dfe8f6;border-radius:20px;padding:22px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-.rm-ideia b{color:#fff;font-size:20px;display:block}
-.rm-ideia div{flex:1;min-width:240px;line-height:1.5}
+.rm-como{max-width:760px;font-size:14.5px;line-height:1.65}
+.rm-como h3{margin:14px 0 2px;font-size:15px;color:var(--rm-tinta)}
+.rm-como p{margin:0}
+.rm-ideia{margin:10px 0 48px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14.5px}
+.rm-ideia b{color:var(--rm-tinta)}
 .rm-modal{position:fixed;inset:0;background:rgba(10,20,15,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
 .rm-modal[hidden]{display:none}
 .rm-md{background:#fff;border-radius:20px;max-width:420px;width:100%;padding:22px;display:flex;flex-direction:column;gap:12px;color:var(--rm-corpo)}
@@ -99,7 +106,7 @@ body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-sys
 .rm-md .linha{display:flex;gap:8px;flex-wrap:wrap}
 .rm-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--rm-tinta);color:#fff;border-radius:99px;padding:10px 18px;font-size:14px;z-index:110}
 .rm-toast[hidden]{display:none}
-@media (max-width:1000px){ .rm-top{grid-template-columns:repeat(2,minmax(0,1fr))} .rm-como{grid-template-columns:1fr} }
+
 /* abaixo de 1100px as 4 colunas ficam estreitas demais: viram faixa com rolagem lateral e encaixe */
 @media (max-width:1100px){
   .rm-quadro{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:8px;margin:0 -24px;padding-left:24px;padding-right:24px}
@@ -109,9 +116,8 @@ body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-sys
   .rm-w{padding:0 16px}
   .rm-quadro{margin:0 -16px;padding-left:16px;padding-right:16px}
   .rm-hero{padding:30px 0 18px}
-  .rm-h1{font-size:32px}
-  .rm-lead{font-size:15.5px}
-  .rm-avisos{grid-template-columns:1fr}
+  .rm-h1{font-size:27px}
+  .rm-lead{font-size:14.5px}
   .rm-acoes .rm-b{flex:1;justify-content:center}
   .rm-ord{margin-left:0;width:100%}
 }
@@ -134,17 +140,20 @@ const script = `
   function toast(t){ var x=el('rm-toast'); x.textContent=t; x.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(function(){ x.hidden=true; },2600); }
   function dataBR(d){ if(!d) return ''; var p=String(d).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
 
+  var maxVotos=0;
+  function nivel(v){ if(!v || !maxVotos) return 'n0'; var t=v/maxVotos; return t>=0.67?'n3':(t>=0.34?'n2':'n1'); }
   function cartao(i){
     var lanc=i.status==='lancado';
     var tags='<span class="rm-tag">'+esc(i.area||'Geral')+'</span>';
     if(!lanc && i.versao==='v1_extra') tags+='<span class="rm-tag v1" title="Dependendo da complexidade e do tempo, pode entrar como extra ainda na Versão 1">⚡ Pode chegar na V1</span>';
     if(lanc) tags+='<span class="rm-tag ok">✓ Lançado'+(i.lancado_em?' em '+dataBR(i.lancado_em):'')+'</span>';
-    var voto=lanc ? '' : '<button class="rm-voto'+(i.meu_voto?' on':'')+'" data-votar="'+i.id+'" aria-pressed="'+(i.meu_voto?'true':'false')+'" title="'+(i.meu_voto?'Tirar meu voto':'Votar')+'"'+(votando[i.id]?' disabled':'')+'>'
-      +'<span class="s">▲</span><b>'+i.votos+'</b><small>'+(i.meu_voto?'votado':'votar')+'</small></button>';
+    var voto=lanc ? '' : '<button class="rm-voto '+nivel(i.votos)+(i.meu_voto?' on':'')+'" data-votar="'+i.id+'" aria-pressed="'+(i.meu_voto?'true':'false')+'" title="'+(i.meu_voto?'Tirar meu voto':'Votar')+'"'+(votando[i.id]?' disabled':'')+'>'
+      +'<span class="s">'+(i.meu_voto?'✓':'▲')+'</span><b>'+i.votos+'</b><small>'+(i.meu_voto?'votado':(i.votos===1?'voto':'votos'))+'</small></button>';
     return '<article class="rm-card" id="item-'+i.id+'"><div><h3>'+esc(i.titulo)+'</h3>'+(i.descricao?'<p>'+esc(i.descricao)+'</p>':'')+'</div>'
       +'<div class="rm-pe"><div class="rm-tags">'+tags+'</div>'+voto+'</div></article>';
   }
   function desenhar(){
+    maxVotos=0; itens.forEach(function(i){ if(i.status!=='lancado' && i.votos>maxVotos) maxVotos=i.votos; });
     var vis=itens.filter(function(i){ return !area || i.area===area; });
     var ord=function(a,b){ return ordem==='votos' ? (b.votos-a.votos) || (a.ord-b.ord) : (a.ord-b.ord); };
     el('rm-quadro').innerHTML=COLS.map(function(c){
@@ -154,7 +163,8 @@ const script = `
     }).join('');
     var top=itens.filter(function(i){ return i.status!=='lancado'; }).sort(function(a,b){ return (b.votos-a.votos)||(a.ord-b.ord); }).slice(0,5);
     el('rm-top').innerHTML=top.map(function(i,n){
-      return '<a href="#item-'+i.id+'" data-ir="'+i.id+'"><span class="pos">#'+(n+1)+'</span><span class="t">'+esc(i.titulo)+'</span><span class="v">▲ '+i.votos+' voto'+(i.votos===1?'':'s')+'</span></a>';
+      return '<li><span class="pos">#'+(n+1)+'</span><a href="#item-'+i.id+'" data-ir="'+i.id+'">'+esc(i.titulo)+'</a>'
+        +'<span class="rm-voto '+nivel(i.votos)+'" style="height:30px;padding:0 10px;cursor:default"><span class="s">▲</span><b style="font-size:13px">'+i.votos+'</b></span></li>';
     }).join('');
     var areas=[]; itens.forEach(function(i){ if(i.area && areas.indexOf(i.area)<0) areas.push(i.area); });
     el('rm-areas').innerHTML=['<button class="rm-chip'+(area?'':' on')+'" data-area="">Todas as áreas</button>'].concat(areas.sort().map(function(a){
@@ -260,33 +270,22 @@ export const roadmap = [{
     <div class="rm-topo">
       <div>
         <span class="rm-pill">ROADMAP PÚBLICO</span>
-        <h1 class="rm-h1">O que vem por aí<br>no RetroFoot</h1>
-        <p class="rm-lead">Tudo o que estamos preparando para a Versão 2, num quadro aberto. Vote no que você
-          quer ver primeiro — os mais votados sobem na fila.</p>
+        <h1 class="rm-h1">O que vem por aí no RetroFoot</h1>
+        <p class="rm-lead">O quadro do que estamos preparando para a Versão 2. Vote no que você quer primeiro —
+          os mais votados sobem na fila.</p>
+        <div class="rm-labels">
+          <span class="rm-label data">📅 Versão 2 prevista para dezembro de 2026 · a confirmar</span>
+          <span class="rm-label v1">⚡ Algumas melhorias podem chegar antes, ainda na Versão 1</span>
+        </div>
       </div>
       <div class="rm-acoes">
         ${botaoShare}
         <a class="rm-b am" href="/">▶ Jogar de graça</a>
       </div>
     </div>
-    <div class="rm-avisos">
-      <div class="rm-aviso"><span class="ic">📅</span><div><b>Versão 2 prevista para dezembro de 2026</b><br>
-        A data ainda está a confirmar — avisamos aqui e no grupo assim que ela fechar.</div></div>
-      <div class="rm-aviso"><span class="ic">⚡</span><div><b>Algumas melhorias podem chegar antes</b><br>
-        Dependendo da complexidade e do tempo de implementação, parte destes itens entra como extra ainda na
-        Versão 1. Eles levam a etiqueta <span class="rm-tag v1">⚡ Pode chegar na V1</span>.</div></div>
-    </div>
   </section>
 
-  <section class="rm-sec">
-    <h2 class="rm-h2">🏆 Mais votados</h2>
-    <p class="rm-sub">O que a comunidade mais quer ver no jogo agora.</p>
-    <div class="rm-top" id="rm-top"></div>
-  </section>
-
-  <section class="rm-sec">
-    <h2 class="rm-h2">O quadro</h2>
-    <p class="rm-sub">Da ideia ao jogo: cada item anda da esquerda para a direita.</p>
+  <section class="rm-sec" style="padding-top:4px">
     <div class="rm-barra">
       <div id="rm-areas" style="display:contents"></div>
       <div class="rm-ord">Ordenar:
@@ -299,20 +298,29 @@ export const roadmap = [{
   </section>
 
   <section class="rm-sec">
+    <h2 class="rm-h2">🏆 Mais votados</h2>
+    <p class="rm-sub">O que a comunidade mais quer ver no jogo agora.</p>
+    <ol class="rm-top" id="rm-top"></ol>
+  </section>
+
+  <section class="rm-sec">
     <h2 class="rm-h2">Como funciona</h2>
     <div class="rm-como">
-      <div><b>▲ Vote no que importa</b>Cada conta tem 1 voto por item, e pode tirar o voto quando quiser.
-        Os votos ajudam a decidir a ordem do que fazemos.</div>
-      <div><b>🧭 Os estágios</b>Em análise: estamos estudando. Planejado: aprovado para a V2. Em
-        desenvolvimento: sendo feito agora. Lançado: já está no jogo.</div>
-      <div><b>📅 Sem promessa de data por item</b>A Versão 2 está prevista para dezembro de 2026, a confirmar.
-        O que for simples pode chegar antes, como extra da Versão 1.</div>
+      <h3>▲ Vote no que importa</h3>
+      <p>Cada conta tem 1 voto por item e pode tirar o voto quando quiser. A cor do voto mostra o peso:
+        cinza sem votos, verde cada vez mais forte nos mais pedidos.</p>
+      <h3>🧭 Os estágios</h3>
+      <p>Em análise: estamos estudando. Planejado: aprovado para a Versão 2. Em desenvolvimento: sendo feito
+        agora. Lançado: já está no jogo.</p>
+      <h3>📅 Quando chega</h3>
+      <p>A Versão 2 está prevista para dezembro de 2026, ainda a confirmar. Dependendo da complexidade e do
+        tempo de implementação, alguns itens entram antes, como extra da Versão 1 — esses levam a etiqueta
+        <span class="rm-tag v1">⚡ Pode chegar na V1</span>.</p>
     </div>
   </section>
 
   <section class="rm-ideia">
-    <div><b>Tem uma ideia que não está aqui?</b>Conta pra gente no grupo da Resenha no WhatsApp — é de lá
-      que sai boa parte deste quadro.</div>
+    <span><b>Tem uma ideia que não está aqui?</b> Conta pra gente no grupo da Resenha no WhatsApp.</span>
     <button class="rm-b am" id="rm-ideia-btn" type="button">💬 Sugerir no grupo</button>
     ${botaoShare.replace('rm-b az', 'rm-b br')}
   </section>
