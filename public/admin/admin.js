@@ -270,14 +270,16 @@ const PAPEIS = { socio:'Sócio · vê tudo', financeiro:'Financeiro', produto:'P
    chegou ao menu. */
 /* 'espera' acompanha 'analytics': é a mesma pergunta (o funil antes da conta),
    e quem vê uma tem de ver a outra. Fora do financeiro, como o analytics. */
+/* 'sobre' (o assistente de IA sobre o jogo) é para TODOS os papéis: é leitura sobre
+   como o jogo funciona, e quem atende jogador pode estar em qualquer um deles. */
 /* 'registro' é o log de quem fez o quê. Fica com o sócio, como 'equipa': é a
    página que serve para CONFERIR a equipe, e quem está a ser conferido não
    precisa dela para trabalhar. */
 const ACESSO = {
-  socio:      ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','embaixadores','equipa','registro'],
-  financeiro: ['visao','financas','publicidade','parceiros'],
-  produto:    ['visao','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio','embaixadores'],
-  leitura:    ['visao','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','embaixadores']
+  socio:      ['visao','sobre','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','embaixadores','equipa','registro'],
+  financeiro: ['visao','sobre','financas','publicidade','parceiros'],
+  produto:    ['visao','sobre','usuarios','jogos','analytics','espera','videos','parceiros','conteudo','features','editor','estudio','embaixadores'],
+  leitura:    ['visao','sobre','usuarios','jogos','analytics','espera','financas','publicidade','videos','parceiros','conteudo','features','editor','estudio','embaixadores']
 };
 function podeVer(tab){ return (ACESSO[ME&&ME.papel] || ACESSO.leitura).includes(tab); }
 function podeEditar(area){
@@ -434,6 +436,7 @@ async function fazerNovaSenha(){
 /* ============================ navegação ============================ */
 const NAV = [
   { id:'visao',       ic:'◈', label:'Visão geral',    tit:'Visão geral',        sub:'Como o projeto está a andar' },
+  { id:'sobre',       ic:'✺', label:'Sobre o jogo',   tit:'Sobre o jogo',       sub:'Pergunte à IA como o jogo funciona — regras, motor, planos, Resenha e telas' },
   { id:'usuarios',    ic:'◍', label:'Usuários',       tit:'Usuários',           sub:'Contas, plano e tempo de jogo' },
   { id:'jogos',       ic:'⚑', label:'Resenhas & solo',tit:'Resenhas & solo',    sub:'Salas abertas, convites e saves' },
   { id:'analytics',   ic:'◔', label:'Analytics',      tit:'Analytics',          sub:'Visitas, contas e funil' },
@@ -670,7 +673,7 @@ function irPara(tab, forcar){
   const marcar = (txt) => { const t = el('tag-'+tab); if(t) t.textContent = txt; };
   marcar('···');
   const pronto = () => { if(desenhoAtual(senha)) marcar(''); };
-  const fn = { visao:pgVisao, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
+  const fn = { visao:pgVisao, sobre:pgSobre, usuarios:pgUsuarios, jogos:pgJogos, analytics:pgAnalytics,
                espera:pgEspera,
                financas:pgFinancas, publicidade:pgPublicidade, videos:pgVideos, features:pgFeatures,
                parceiros:pgParceiros, conteudo:pgConteudo, registro:pgRegistro,
@@ -14174,4 +14177,224 @@ async function gravarArteComp(pais, chave, dados){
   fecharModal();
   toast(dados ? 'Competição salva no patch.' : 'Competição voltou ao padrão do jogo.');
   pgEditor();
+}
+
+/* ============================ SOBRE O JOGO (assistente de IA) ============================
+   O time de suporte pergunta, o Gemini responde a partir da base de conhecimento do jogo
+   (docs/conhecimento/*.md, empacotada na edge function `sobre-o-jogo`). A resposta vem em
+   STREAM (SSE): com a base inteira como contexto, esperar a resposta completa deixava a tela
+   parada por uns bons segundos — e tela parada parece clique perdido.
+
+   A conversa vive só na memória desta aba (SOBRE.msgs): trocar de página e voltar mantém,
+   recarregar começa do zero. O histórico permanente é o da equipe, em
+   admin_rf98.sobre_perguntas, gravado pela função — é por ele que se descobre o que falta
+   na base (pergunta repetida, resposta com 👎).
+
+   ENSINAR ALGO NOVO À IA não é aqui: é editar docs/conhecimento/, rodar
+   `node scripts/build-conhecimento.mjs` e publicar a função (push na main). */
+const SOBRE = { msgs: [], ocupado: false, ctrl: null };
+const SOBRE_SUGESTOES = [
+  'Como o motor decide o resultado de uma partida?',
+  'Qual a diferença entre o plano Grátis e o Pro?',
+  'Como funciona o Modo Resenha, do convite ao fim da temporada?',
+  'Quantos times sobem e descem em cada divisão?',
+  'Por que um clube recusa a proposta de compra de um jogador?',
+  'O jogador diz que a Resenha travou em "aguardando". O que eu respondo?',
+  'Como o valor de passe de um jogador é calculado?',
+  'O que acontece se o caixa do clube ficar negativo?'
+];
+
+/* Markdown mínimo e SEGURO: escapa tudo primeiro, depois reconhece o pouco que o
+   modelo usa (títulos, listas, tabelas, negrito, itálico, código em linha). */
+function mdSobre(txt){
+  const inl = (s) => h(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<i>$2</i>');
+  const linhas = String(txt||'').replace(/\r/g,'').split('\n');
+  let out = '', i = 0;
+  while(i < linhas.length){
+    const l = linhas[i];
+    if(!l.trim()){ i++; continue; }
+    let m;
+    if((m = l.match(/^(#{1,4})\s+(.*)$/))){ out += `<div class="sj-h">${inl(m[2])}</div>`; i++; continue; }
+    if(/^\s*\|.*\|\s*$/.test(l)){
+      const rows = [];
+      while(i < linhas.length && /^\s*\|.*\|\s*$/.test(linhas[i])){ rows.push(linhas[i]); i++; }
+      const cel = (r) => r.trim().replace(/^\||\|$/g,'').split('|').map(c => c.trim());
+      const corpo = rows.filter(r => !/^\s*\|[\s:|-]+\|\s*$/.test(r));
+      out += '<div class="sj-tab"><table>' + corpo.map((r, k) =>
+        '<tr>' + cel(r).map(c => k===0 ? `<th>${inl(c)}</th>` : `<td>${inl(c)}</td>`).join('') + '</tr>').join('') + '</table></div>';
+      continue;
+    }
+    if(/^\s*([-*•]|\d+[.)])\s+/.test(l)){
+      const ord = /^\s*\d+[.)]/.test(l);
+      let itens = '';
+      while(i < linhas.length && /^\s*([-*•]|\d+[.)])\s+/.test(linhas[i])){
+        itens += `<li>${inl(linhas[i].replace(/^\s*([-*•]|\d+[.)])\s+/, ''))}</li>`; i++;
+      }
+      out += ord ? `<ol>${itens}</ol>` : `<ul>${itens}</ul>`;
+      continue;
+    }
+    const par = [];
+    while(i < linhas.length && linhas[i].trim() && !/^(#{1,4}\s|\s*\||\s*([-*•]|\d+[.)])\s+)/.test(linhas[i])){ par.push(linhas[i]); i++; }
+    out += `<p>${par.map(inl).join('<br>')}</p>`;
+  }
+  return out;
+}
+
+async function pgSobre(forcar, senha = pedirDesenho()){
+  const inicio = new Date(); inicio.setDate(1); inicio.setHours(0,0,0,0);
+  const [rec, mes] = await Promise.all([
+    sb.from('sobre_perguntas').select('id,pergunta,user_id,criado_em,util').order('criado_em', { ascending:false }).limit(12),
+    sb.from('sobre_perguntas').select('custo_usd').gte('criado_em', inicio.toISOString()).range(0, 9999)
+  ]);
+  if(!desenhoAtual(senha)) return;
+  const recentes = rec.error ? [] : (rec.data || []);
+  const gastoMes = mes.error ? null : (mes.data || []).reduce((a, r) => a + Number(r.custo_usd || 0), 0);
+  const nPerg = mes.error ? null : (mes.data || []).length;
+
+  el('page').innerHTML = `
+    <div class="sj">
+      <div class="card sj-chat">
+        <div class="card-h"><b>Assistente do jogo</b>
+          <span class="tag t-azul">Gemini</span>
+          <button class="btn btn-sm btn-ghost" id="sj-nova">Nova conversa</button></div>
+        <div class="sj-msgs" id="sj-msgs"></div>
+        <div class="sj-in">
+          <textarea class="f" id="sj-txt" rows="2" maxlength="4000" placeholder="Pergunte qualquer coisa sobre o jogo…" title="Enter envia · Shift+Enter quebra linha"></textarea>
+          <button class="btn" id="sj-env">Enviar</button>
+        </div>
+      </div>
+      <div class="sj-lado">
+        <div class="card card-p">
+          <div class="tt">Sugestões</div>
+          <div class="st" style="margin-bottom:10px">Clique para perguntar.</div>
+          <div class="sj-sug">${SOBRE_SUGESTOES.map((s, k) => `<button class="sj-chip" data-sug="${k}">${h(s)}</button>`).join('')}</div>
+        </div>
+        <div class="card card-p">
+          <div class="tt">Perguntas recentes da equipe</div>
+          <div class="st" style="margin-bottom:10px">Pergunta repetida ou resposta com 👎 = algo a acrescentar na base.</div>
+          ${recentes.length ? `<div class="sj-rec">${recentes.map(r => `
+            <div class="sj-rec-i" data-rec="${h(r.pergunta)}" title="Perguntar de novo">
+              <span>${h(r.pergunta.length > 110 ? r.pergunta.slice(0,110)+'…' : r.pergunta)}</span>
+              <small>${new Date(r.criado_em).toLocaleDateString('pt-BR')}${r.util===true?' · 👍':r.util===false?' · 👎':''}</small>
+            </div>`).join('')}</div>` : `<div class="st">${rec.error ? 'Histórico indisponível.' : 'Ninguém perguntou nada ainda.'}</div>`}
+        </div>
+        <div class="card card-p">
+          <div class="tt">Uso no mês</div>
+          <div class="st">${gastoMes==null ? '—' : `${num(nPerg)} pergunta${nPerg===1?'':'s'} · US$ ${gastoMes.toFixed(2)}`}</div>
+          <div class="st" style="margin-top:8px">A base de conhecimento é escrita a partir do código do jogo. Para ensinar algo novo à IA, peça a um dev para atualizar <span class="mono">docs/conhecimento/</span>.</div>
+        </div>
+      </div>
+    </div>`;
+
+  desenharMsgsSobre();
+  const txt = el('sj-txt');
+  el('sj-env').onclick = () => enviarSobre(txt.value);
+  txt.addEventListener('keydown', e => {
+    if(e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); enviarSobre(txt.value); }
+  });
+  el('sj-nova').onclick = () => {
+    if(SOBRE.ctrl) SOBRE.ctrl.abort();
+    SOBRE.msgs = []; SOBRE.ocupado = false; desenharMsgsSobre(); txt.focus();
+  };
+  el('page').querySelectorAll('[data-sug]').forEach(b => b.onclick = () => enviarSobre(SOBRE_SUGESTOES[+b.dataset.sug]));
+  el('page').querySelectorAll('[data-rec]').forEach(b => b.onclick = () => enviarSobre(b.dataset.rec));
+  if(!SOBRE.ocupado) txt.focus();
+}
+
+function desenharMsgsSobre(){
+  const box = el('sj-msgs'); if(!box) return;
+  if(!SOBRE.msgs.length){
+    box.innerHTML = `<div class="sj-vazio"><div style="font-size:26px">✺</div>
+      <b>Pergunte como o jogo funciona</b>
+      <span>Regras, motor de partida, competições, mercado, finanças, planos, Modo Solo e Modo Resenha, telas e problemas conhecidos. A IA responde só com o que está na base — se não souber, ela diz.</span></div>`;
+  } else {
+    box.innerHTML = SOBRE.msgs.map((m, k) => m.papel === 'user'
+      ? `<div class="sj-m sj-eu">${h(m.texto).replace(/\n/g,'<br>')}</div>`
+      : `<div class="sj-m sj-ia">
+           ${m.erro ? `<div class="erro">${h(m.erro)}</div>` : ''}
+           ${m.texto ? `<div class="sj-md">${mdSobre(m.texto)}</div>` : (m.erro ? '' : '<div class="sj-digit"><i></i><i></i><i></i></div>')}
+           ${m.fim && m.texto ? `<div class="sj-acoes">
+              <button class="sj-a" data-copiar="${k}">Copiar</button>
+              ${m.id ? `<button class="sj-a ${m.util===true?'on':''}" data-voto="${k}:1" title="Resposta útil">👍</button>
+              <button class="sj-a ${m.util===false?'on':''}" data-voto="${k}:0" title="Resposta errada ou incompleta">👎</button>` : ''}
+            </div>` : ''}
+         </div>`).join('');
+    box.querySelectorAll('[data-copiar]').forEach(b => b.onclick = async () => {
+      try{ await navigator.clipboard.writeText(SOBRE.msgs[+b.dataset.copiar].texto); toast('Resposta copiada.'); }
+      catch(e){ toast('Não deu para copiar.', true); }
+    });
+    box.querySelectorAll('[data-voto]').forEach(b => b.onclick = () => {
+      const [k, v] = b.dataset.voto.split(':'); votarSobre(+k, v === '1');
+    });
+  }
+  box.scrollTop = box.scrollHeight;
+  const env = el('sj-env'); if(env){ env.disabled = SOBRE.ocupado; env.textContent = SOBRE.ocupado ? 'Pensando…' : 'Enviar'; }
+}
+
+async function votarSobre(k, util){
+  const m = SOBRE.msgs[k]; if(!m || !m.id) return;
+  const novo = m.util === util ? null : util;     // clicar de novo desfaz
+  const { error } = await sb.from('sobre_perguntas').update({ util: novo }).eq('id', m.id);
+  if(error) return toast(erroMsg(error), true);
+  m.util = novo; desenharMsgsSobre();
+}
+
+async function enviarSobre(texto){
+  const pergunta = String(texto || '').trim();
+  if(!pergunta || SOBRE.ocupado) return;
+  const txt = el('sj-txt'); if(txt) txt.value = '';
+  // o histórico que vai ao modelo são só as trocas completas, sem as que deram erro
+  const historico = SOBRE.msgs.filter(m => m.texto && !m.erro).map(m => ({ papel: m.papel, texto: m.texto }));
+  SOBRE.msgs.push({ papel:'user', texto: pergunta });
+  const resp = { papel:'model', texto:'', fim:false };
+  SOBRE.msgs.push(resp);
+  SOBRE.ocupado = true; desenharMsgsSobre();
+
+  const ctrl = new AbortController(); SOBRE.ctrl = ctrl;
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    const r = await fetch(`${SB_URL}/functions/v1/sobre-o-jogo`, {
+      method:'POST', signal: ctrl.signal,
+      headers:{ 'Content-Type':'application/json', apikey: SB_KEY,
+                Authorization: 'Bearer ' + (session ? session.access_token : SB_KEY) },
+      body: JSON.stringify({ pergunta, historico })
+    });
+    if(!r.ok || !r.body){
+      let msg = `Erro ${r.status}.`;
+      try{ const j = await r.json(); msg = j.error || j.message || msg; }catch(e){}
+      throw new Error(msg);
+    }
+    const leitor = r.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buf = '', pend = false;
+    const redesenha = () => { if(pend) return; pend = true; requestAnimationFrame(() => { pend = false; desenharMsgsSobre(); }); };
+    for(;;){
+      const { value, done } = await leitor.read();
+      if(done) break;
+      buf += value;
+      let i;
+      while((i = buf.indexOf('\n\n')) >= 0){
+        const bloco = buf.slice(0, i); buf = buf.slice(i + 2);
+        const linha = bloco.split('\n').find(l => l.startsWith('data:'));
+        if(!linha) continue;
+        let ev; try{ ev = JSON.parse(linha.slice(5)); }catch(e){ continue; }
+        if(ev.t) resp.texto += ev.t;
+        if(ev.erro) resp.erro = ev.erro;
+        if(ev.fim){ resp.fim = true; resp.id = ev.id; }
+        redesenha();
+      }
+    }
+    if(!resp.texto && !resp.erro) resp.erro = 'A resposta veio vazia.';
+    resp.fim = true;
+  }catch(e){
+    if(e.name === 'AbortError') return;       // "Nova conversa" no meio: a conversa já foi limpa
+    resp.erro = /Failed to fetch|NetworkError/i.test(e.message||'')
+      ? 'Sem conexão com o servidor (ou a função ainda não foi publicada).' : erroMsg(e);
+    resp.fim = true;
+  }finally{
+    if(SOBRE.ctrl === ctrl){ SOBRE.ctrl = null; SOBRE.ocupado = false; }
+  }
+  desenharMsgsSobre();
 }

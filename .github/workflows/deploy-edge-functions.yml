@@ -79,8 +79,14 @@ jobs:
       - name: Virada de temporada íntegra
         run: node scripts/teste-virada.mjs
 
+      # PORTÃO DA BASE DO ASSISTENTE: conhecimento.ts é gerado de docs/conhecimento/*.md. Se
+      # alguém editou o .md e esqueceu de regerar, a função subiria respondendo com a base velha.
+      - name: Base de conhecimento do assistente em dia
+        run: node scripts/build-conhecimento.mjs --check
+
       - name: Validar sintaxe das funções
         run: |
+          npx esbuild supabase/functions/sobre-o-jogo/index.ts --bundle --outfile=/dev/null --platform=neutral --format=esm '--external:jsr:*'
           npx esbuild supabase/functions/resolve-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/kickoff-round/index.ts --outfile=/dev/null --platform=neutral --format=esm
           npx esbuild supabase/functions/generate-image/index.ts --outfile=/dev/null --platform=neutral --format=esm
@@ -112,7 +118,8 @@ jobs:
             supabase/functions/player-avatar/index.ts \
             supabase/functions/criar-checkout/index.ts \
             supabase/functions/stripe-webhook/index.ts \
-            supabase/functions/portal-assinatura/index.ts
+            supabase/functions/portal-assinatura/index.ts \
+            supabase/functions/sobre-o-jogo/index.ts
 
       - uses: supabase/setup-cli@v1
         with:
@@ -139,6 +146,7 @@ jobs:
           supabase functions deploy player-avatar --project-ref "$PROJECT_REF"
           supabase functions deploy criar-checkout --project-ref "$PROJECT_REF"
           supabase functions deploy portal-assinatura --project-ref "$PROJECT_REF"
+          supabase functions deploy sobre-o-jogo --project-ref "$PROJECT_REF"
 
       # send-password-reset é a EXCEÇÃO e vai sozinha: quem esqueceu a senha não tem
       # sessão, então ela precisa continuar pública. Sem --no-verify-jwt o deploy a
@@ -165,7 +173,7 @@ jobs:
       # é o sinal de que o worker bootou. 5xx aqui significa erro em tempo de boot.
       - name: Verificar que as funções sobem
         run: |
-          for fn in resolve-round kickoff-round generate-image coach-avatar player-avatar criar-checkout portal-assinatura; do
+          for fn in resolve-round kickoff-round generate-image coach-avatar player-avatar criar-checkout portal-assinatura sobre-o-jogo; do
             ok=0
             for i in 1 2 3; do
               code=$(curl -s -o /tmp/r.txt -w '%{http_code}' -X POST \
