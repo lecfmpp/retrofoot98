@@ -2168,13 +2168,24 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
 
   // Funil: largura pela RAIZ da percentagem, senão as últimas etapas desaparecem
   const base = ga4 && ga4.visitas ? +ga4.visitas : +f.contas;
+  /* FUNIL COM AS TRAVAS DO PAYWALL (27/09/2026). Sem as contas dos sócios (eles testam o paywall e o
+     checkout). Cada etapa mostra o % do topo e o % da etapa anterior. As travas: quem ganhou a
+     temporada extra por depoimento (1ª) e por post nas redes (2ª) — elifoot_v3.temporadas_extras. */
   const etapas = [
     ga4 && ga4.visitas ? {n:'Visitas ao site', v:+ga4.visitas, nota:'GA4'} : null,
-    { n:'Contas criadas', v:+f.contas, nota:'base do jogo' },
+    { n:'Contas criadas', v:+f.contas, nota:'base do jogo, sem os sócios' },
     { n:'Primeiro jogo concluído', v:+f.jogaram, nota:'tem save solo ou assento numa sala' },
-    { n:'Assinantes', v:+f.pagos,
-      nota:'plano Pro' }
+    { n:'Chegaram à trava (viram o paywall)', v:+f.viram_paywall||0, nota:'fim da temporada grátis' },
+    { n:'Passaram a 1ª trava com depoimento', v:+f.depoimento||0, nota:'ganharam +1 temporada pelo depoimento' },
+    { n:'Passaram a 2ª trava com post', v:+f.post||0, nota:'ganharam +1 temporada pelo post nas redes sociais' },
+    { n:'Assinantes Pro', v:+f.pagos, nota:'plano Pro hoje — comparado com quem chegou à trava', ref:'trava' }
   ].filter(Boolean);
+  /* o Pro não passa pelas travas (assina direto no paywall): a comparação dele é com quem viu o paywall */
+  etapas.forEach(e => { if(e.n.startsWith('Chegaram à trava')) e.id = 'trava'; });
+  const st = data.stripe || {};
+  const churn = +st.pagaram ? (+st.cancelaram * 100 / +st.pagaram) : 0;
+  const pctBR = (x) => x.toLocaleString('pt-BR', { maximumFractionDigits:1 }) + '%';
+  const reais = (c) => 'R$ ' + ((+c||0)/100).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
 
   if(!desenhoAtual(senha)) return;   // o sócio já pediu outra página
   el('page').innerHTML = `
@@ -2210,14 +2221,17 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
       </div>
       <div class="card card-p">
         <div class="tt" style="margin-bottom:4px">Funil de conversão</div>
-        <div class="st" style="margin-bottom:16px">${ga4&&ga4.visitas?'Visita → conta → primeiro jogo → pago':'Conta → primeiro jogo → pago'}</div>
+        <div class="st" style="margin-bottom:16px">${ga4&&ga4.visitas?'Visita → conta → jogo → travas → Pro':'Conta → jogo → travas do paywall → Pro'} · total, sem os sócios</div>
         <div style="display:flex;flex-direction:column;gap:12px">
-          ${etapas.map(e=>{
+          ${etapas.map((e,i)=>{
             const p = base? e.v*100/base : 0;
+            const refE = e.ref ? etapas.find(x => x.id === e.ref) : etapas[i-1];
+            const ant = i && refE ? refE.v : 0, pAnt = ant ? e.v*100/ant : 0;
+            const rotAnt = e.ref ? 'de quem chegou à trava' : 'da anterior';
             return `<div>
-              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;margin-bottom:6px">
                 <span style="font-weight:600;color:var(--fg2)">${h(e.n)}</span>
-                <span class="mono" style="color:var(--dim)">${num(e.v)} · ${p.toFixed(1)}%</span></div>
+                <span class="mono" style="color:var(--dim);white-space:nowrap" data-tip="${h(`${pctBR(p)} do topo do funil${i ? `\n${pctBR(pAnt)} ${rotAnt}` : ''}`)}">${num(e.v)} · ${pctBR(p)}${i ? ` <small style="color:var(--dim3)">(${pctBR(pAnt)} ${rotAnt})</small>` : ''}</span></div>
               <span style="height:26px;border-radius:7px;background:var(--bd3);display:block">
                 <i style="display:block;height:100%;border-radius:7px;background:var(--verde);width:${Math.max(4,Math.sqrt(p/100)*100)}%"></i></span>
               <div style="font-size:11.5px;color:var(--dim3);margin-top:5px">${h(e.nota)}</div>
@@ -2225,6 +2239,15 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
           }).join('')}
         </div>
       </div>
+    </div>
+    <!-- CHURN E REEMBOLSOS DO STRIPE (27/09/2026) — sem os sócios -->
+    <div style="display:flex;align-items:baseline;gap:10px;margin-top:4px">
+      <span class="tt">Churn e reembolsos</span><span class="st" style="margin:0">Stripe · sem as contas dos sócios</span></div>
+    <div class="g4">
+      ${kpiHTML({l:'Churn', v: +st.pagaram ? pctBR(churn) : '—', d:`${num(st.cancelaram||0)} de ${num(st.pagaram||0)} que já pagaram saíram do Pro`, c: churn ? 'var(--vermelho)' : ''})}
+      ${kpiHTML({l:'Saíram do Pro no período', v:num(st.cancelaram_per||0), d:`cancelaram ou o Pix venceu · ${per.rot}`})}
+      ${kpiHTML({l:'Reembolsos', v:num(st.reembolsos||0), d:`${reais(st.reembolsado_centavos)} devolvidos${+st.bruto_centavos ? ' · ' + pctBR(+st.reembolsado_centavos*100/+st.bruto_centavos) + ' do faturado' : ''}`})}
+      ${kpiHTML({l:'Reembolsos no período', v:num(st.reembolsos_per||0), d:`${reais(st.reembolsado_per_centavos)} · ${per.rot}`})}
     </div>
     ${ga4 ? renderGA4(ga4) : `
     <div class="card card-p">
