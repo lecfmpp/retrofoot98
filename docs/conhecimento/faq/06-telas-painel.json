@@ -820,7 +820,7 @@
       "titulos do jogador no admin",
       "ficha do jogador no painel"
     ],
-    "resposta": "Em **Usuários**, clicando na linha da pessoa. A **ficha** mostra:\n\n- os fatos: plano e validade, WhatsApp, cadastro, origem, time do coração, grupo, último acesso, tempo de jogo e dias ativos;\n- tabela **Modo Solo**: uma linha por save (nome, clube, divisão e temporada atuais, rodada, quando foi gravado, partidas, pontos, V-E-D, temporadas, campanha);\n- tabela **Modo Resenha**: uma linha por sala (código, clube, fase, última presença);\n- a lista de **Títulos**.\n\nPara saber a sala de alguém, esse é o caminho mais fácil (não a página Resenhas & solo).",
+    "resposta": "Em **Usuários**, clicando na linha da pessoa. A **ficha** mostra:\n\n- os fatos: plano e validade, WhatsApp, cadastro, origem, time do coração, grupo, último acesso, tempo de jogo e dias ativos;\n- tabela **Modo Solo**: uma linha por save (nome, clube, divisão e temporada atuais, rodada, quando foi gravado, partidas, pontos, V-E-D, temporadas, campanha);\n- tabela **Modo Resenha**: uma linha por sala (código, clube, fase, última presença);\n- a lista de **Títulos**.\n\nPara saber a sala de alguém, esse é o caminho mais fácil (não a aba Analytics → Resenhas & solo).",
     "resposta_jogador": null,
     "tags": [
       "painel",
@@ -974,15 +974,16 @@
   },
   {
     "id": "06-055",
-    "pergunta": "O que é a página Resenhas & solo do painel?",
+    "pergunta": "Onde vejo as salas do Modo Resenha e os saves do Modo Solo no painel (Resenhas & solo)?",
     "variacoes": [
+      "cade a pagina resenhas e solo",
       "ver salas abertas no admin",
       "salas sem humano",
       "saves parados por jogador",
       "convites de sala pendentes",
       "pedidos para entrar em sala"
     ],
-    "resposta": "Mostra salas, saves e convites.\n\n- **Indicadores** (seguem o período): salas criadas, salas sem humano (hoje), jogaram no Solo, convites com % aceita.\n- **\"Modo Resenha — salas abertas\"** (estado de hoje): Sala, Anfitrião, Treinadores (humanos/lugares), Jornada, Aberta há, Ativa há (vermelho a partir de 14 dias).\n- **\"Modo Solo — saves por jogador\"**: Jogador, Conta, Saves, Parados, Divisões, Último salvamento.\n- **\"Convites de sala\"** (destino mascarado, estado aceito/pendente/expirado) e **Pedidos para entrar**.\n\nResponde \"quais salas existem\" e \"quem tem saves parados\". Para a sala de um jogador específico, use a ficha em **Usuários**.",
+    "resposta": "Em **Analytics → aba Resenhas & solo** (até 28/09/2026 era uma página própria no menu). Mostra salas, saves e convites.\n\n- **Indicadores** (seguem o período): salas criadas, salas sem humano (hoje), jogaram no Solo, convites com % aceita.\n- **\"Modo Resenha — salas abertas\"** (estado de hoje): Sala, Anfitrião, Treinadores (humanos/lugares), Jornada, Aberta há, Ativa há (vermelho a partir de 14 dias).\n- **\"Modo Solo — saves por jogador\"**: Jogador, Conta, Saves, Parados, Divisões, Último salvamento.\n- **\"Convites de sala\"** (destino mascarado, estado aceito/pendente/expirado) e **Pedidos para entrar**.\n\nResponde \"quais salas existem\" e \"quem tem saves parados\". Para a sala de um jogador específico, use a ficha em **Usuários**.",
     "resposta_jogador": null,
     "tags": [
       "painel",
@@ -1000,7 +1001,7 @@
       "apagar uma sala so",
       "apagar sala tem volta?"
     ],
-    "resposta": "Em **Resenhas & solo**, **só o Sócio**:\n\n- Atalhos: salas **sem humano** ou **paradas 14d+**; saves **parados 14d+** ou **30d+**; convites **expirados** ou **já aceitos**.\n- Para confirmar, é preciso **digitar o número de itens**.\n- Para apagar uma única sala: clicar no **✕** e **digitar o código da sala**.\n- **Apagar sala não tem volta.** Quem estava jogando perde a temporada.",
+    "resposta": "Em **Analytics → Resenhas & solo**, **só o Sócio**:\n\n- Atalhos: salas **sem humano** ou **paradas 14d+**; saves **parados 14d+** ou **30d+**; convites **expirados** ou **já aceitos**.\n- Para confirmar, é preciso **digitar o número de itens**.\n- Para apagar uma única sala: clicar no **✕** e **digitar o código da sala**.\n- **Apagar sala não tem volta.** Quem estava jogando perde a temporada.",
     "resposta_jogador": null,
     "tags": [
       "painel",
@@ -1082,16 +1083,16 @@
   },
   {
     "id": "06-061",
-    "pergunta": "Como conferir se alguém está na lista de espera?",
+    "pergunta": "Cadê a página Lista de espera do painel? Como confiro se alguém se inscreveu?",
     "variacoes": [
-      "jogador diz que se inscreveu",
-      "lista de espera do painel",
+      "jogador diz que se inscreveu na lista de espera",
+      "lista de espera do painel sumiu",
       "procurar pessoa na lista de espera",
-      "quem deixou telefone",
-      "pagariam pelo jogo respostas"
+      "onde ficou a lista de espera",
+      "minha vaga na fila"
     ],
-    "resposta": "Na página **Lista de espera**, lista **Quem está na lista**, com a busca \"Procurar nome, e-mail, time, resposta…\". Colunas: Pessoa, Telefone, Time · origem, Entrou em, Respondeu e Indicou.\n\nA página também tem os indicadores **Na lista de espera**, **Deixaram telefone** e **Responderam a pergunta**, o gráfico **Como a lista cresceu** e blocos de origem, botão que abriu o formulário e perguntas de preço.",
-    "resposta_jogador": null,
+    "resposta": "A página **Lista de espera** foi **removida do painel em 28/09/2026**: a fila foi desligada em 04/09/2026, quando o pagamento entrou no ar, e hoje qualquer pessoa cria a conta e joga o Peladeiro na hora.\n\nSe alguém diz que se inscreveu e está esperando vaga, a resposta é que não há mais fila: é só criar a conta no site. Os registros antigos continuam guardados no banco — se precisar consultá-los, peça a um dev.",
+    "resposta_jogador": "Não existe mais lista de espera! É só criar a sua conta no site e começar a jogar na hora, com a 1ª temporada de graça.",
     "tags": [
       "painel",
       "lista-de-espera",
@@ -1252,7 +1253,7 @@
       "seletor de periodo sumiu",
       "por que o periodo nao muda os numeros"
     ],
-    "resposta": "No topo: **7 dias · 30 dias · Ano · Escolher datas (De/Até)**. Só aparece nas páginas que o respeitam: **Visão geral**, **Resenhas & solo**, **Analytics**, **Lista de espera**, **Publicidade** e **Registro**.\n\nEm Resenhas & solo, a tabela de **salas abertas** mostra o estado de hoje e não segue o período. Passar o mouse sobre cabeçalhos e células mostra **dicas** que explicam cada número. O menu lateral fica à esquerda (no celular, abre pelo botão de menu) e **Sair** encerra a sessão.",
+    "resposta": "No topo: **7 dias · 30 dias · Ano · Escolher datas (De/Até)**. Só aparece nas páginas que o respeitam: **Visão geral**, **Analytics** (nas duas abas), **Publicidade** e **Registro**.\n\nEm Analytics → Resenhas & solo, a tabela de **salas abertas** mostra o estado de hoje e não segue o período. Passar o mouse sobre cabeçalhos e células mostra **dicas** que explicam cada número. O menu lateral fica à esquerda (no celular, abre pelo botão de menu) e **Sair** encerra a sessão.",
     "resposta_jogador": null,
     "tags": [
       "painel",

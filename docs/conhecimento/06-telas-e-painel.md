@@ -449,9 +449,7 @@ Sem convite, o painel não abre, mesmo com uma conta válida no jogo. O convite 
 | Visão geral | ✓ | ✓ | ✓ | ✓ |
 | Sobre o jogo | ✓ | ✓ | ✓ | ✓ |
 | Usuários | ✓ | — | ✓ | ✓ |
-| Resenhas & solo | ✓ | — | ✓ | ✓ |
 | Analytics | ✓ | — | ✓ | ✓ |
-| Lista de espera | ✓ | — | ✓ | ✓ |
 | Finanças | ✓ | ✓ | — | ✓ |
 | Publicidade | ✓ | ✓ | — | ✓ |
 | Vídeos | ✓ | — | ✓ | ✓ |
@@ -483,7 +481,7 @@ Referência técnica: `ACESSO`, `podeVer`, `podeEditar` e `NAV` em `public/admin
 
 - Menu lateral à esquerda. No celular, abre pelo botão de menu.
 - Botão **Sair** para encerrar a sessão.
-- **Seletor de período no topo:** 7 dias · 30 dias · Ano · Escolher datas (De/Até). Só aparece nas páginas que o respeitam: Visão geral, Resenhas & solo, Analytics, Lista de espera, Publicidade e Registro.
+- **Seletor de período no topo:** 7 dias · 30 dias · Ano · Escolher datas (De/Até). Só aparece nas páginas que o respeitam: Visão geral, Analytics (as duas abas), Publicidade e Registro.
 - Passar o mouse sobre cabeçalhos e células mostra **dicas** que explicam cada número.
 
 ---
@@ -570,9 +568,29 @@ Referência técnica: `pgUsuarios`, `usLinhaTds`, `modalUsuario`, `modalResetSen
 
 ---
 
-## Resenhas & solo
+---
 
-Mostra as salas, os saves e os convites.
+## Analytics
+
+Tem duas abas no topo: **Visitas e funil** e **Resenhas & solo**.
+
+### Aba Visitas e funil
+
+Mostra os números de aquisição e uso:
+
+- **Contas criadas no período**, **Ativos no período** e **Chegaram a jogar (total)**;
+- os gráficos **Atividade e contas criadas** e **Funil de conversão**;
+- **Temporadas completas por pessoa**;
+- **Dispositivo e retenção**;
+- o bloco **Stripe · sem as contas dos sócios**: Assinantes (hoje), Churn, Saíram do Pro no período e **Churn e reembolsos**.
+
+Os blocos de **Origem do tráfego, Páginas mais vistas e Dispositivo (GA4)** só aparecem quando houver dados do Google Analytics gravados no sistema. Por enquanto podem estar vazios.
+
+"Ativo" quer dizer que a pessoa teve login ou jogada no dia. Deixar o jogo aberto não conta.
+
+### Aba Resenhas & solo
+
+Fica em **Analytics → Resenhas & solo** (até 28/09/2026 era uma página própria no menu). Mostra as salas, os saves e os convites.
 
 **Indicadores do topo** (seguem o período escolhido):
 
@@ -597,35 +615,6 @@ Mostra as salas, os saves e os convites.
 **Para o suporte:** para saber a sala em que um jogador está, é mais fácil abrir a ficha dele em **Usuários**, na tabela Modo Resenha. Esta página responde "quais salas existem" e "quem tem saves parados".
 
 Referência técnica: `pgJogos` em `admin.js`; `docs/painel-admin.md` §3.
-
----
-
-## Analytics
-
-Mostra os números de aquisição e uso:
-
-- **Contas criadas no período**, **Ativos no período** e **Chegaram a jogar (total)**;
-- os gráficos **Atividade e contas criadas** e **Funil de conversão**;
-- **Temporadas completas por pessoa**;
-- **Dispositivo e retenção**;
-- o bloco **Stripe · sem as contas dos sócios**: Assinantes (hoje), Churn, Saíram do Pro no período e **Churn e reembolsos**.
-
-Os blocos de **Origem do tráfego, Páginas mais vistas e Dispositivo (GA4)** só aparecem quando houver dados do Google Analytics gravados no sistema. Por enquanto podem estar vazios.
-
-"Ativo" quer dizer que a pessoa teve login ou jogada no dia. Deixar o jogo aberto não conta.
-
----
-
-## Lista de espera
-
-Mostra quem se inscreveu pelo formulário da página pública.
-
-- Indicadores: **Na lista de espera**, **Deixaram telefone**, **Responderam a pergunta**.
-- Gráfico **Como a lista cresceu**.
-- Blocos **De onde vieram**, **O botão que abriu o formulário**, **As duas perguntas de preço do formulário** e **Pagariam pelo jogo?**.
-- A lista **Quem está na lista**, com busca ("Procurar nome, e-mail, time, resposta…") e as colunas Pessoa, Telefone, Time · origem, Entrou em, Respondeu e Indicou.
-
-É útil para confirmar se alguém que diz "me inscrevi" está mesmo na lista.
 
 ---
 
