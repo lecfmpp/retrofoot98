@@ -14199,10 +14199,12 @@ async function gravarArteComp(pais, chave, dados){
    (scripts/validar-faq.mjs → push na main → botão "Atualizar respostas prontas", que faz o
    banco baixar os JSON do GitHub). */
 const SOBRE = { msgs: [], ocupado: false, ctrl: null, vivo: null, vivoSeq: 0 };
-/* Cortes da nota de sobre_buscar (0..1: metade semelhança de texto, metade palavras em comum).
-   Calibrados em 28/09 com as perguntas da própria base e paráfrases: acima de SJ_BATEU a
-   resposta pronta é a certa quase sempre; entre SJ_PARECE e SJ_BATEU vira "parecidas". */
-const SJ_BATEU = 0.55, SJ_PARECE = 0.33;
+/* Cortes da nota de sobre_buscar (0..1: metade semelhança de texto, metade palavras em comum
+   pesadas pela raridade). Calibrados em 28/09 com 30 perguntas reescritas e 8 fora do assunto:
+   acima de 0,50 veio a resposta certa (ou uma equivalente) em 20 de 22; nenhuma pergunta fora
+   do assunto passou de 0,42. Entre SJ_PARECE e SJ_BATEU a pergunta vai à IA e as prontas
+   aparecem como "Talvez ajude também". */
+const SJ_BATEU = 0.50, SJ_PARECE = 0.35;
 const SOBRE_SUGESTOES = [
   'Como o motor decide o resultado de uma partida?',
   'Qual a diferença entre o plano Grátis e o Pro?',

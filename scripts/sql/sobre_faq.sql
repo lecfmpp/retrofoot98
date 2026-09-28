@@ -7,8 +7,8 @@
 -- CARGA: botão "Atualizar respostas prontas" do painel → sobre_faq_sincronizar() (fim deste ficheiro),
 -- que lê os JSON direto da main no GitHub. scripts/build-faq.mjs só valida os JSON antes do push.
 -- BUSCA (sobre_buscar): nota = metade semelhança por trigramas (contra a pergunta e cada
--- variação; vale a melhor) + metade cobertura (fração das palavras da pergunta — sem acento, sem
--- stopword, com radical — presentes na resposta pronta). O corte de "bateu" mora no painel.
+-- variação; vale a melhor) + metade cobertura (palavras da pergunta — sem acento, sem stopword,
+-- com radical — presentes na resposta pronta, pesadas pela raridade). O corte mora no painel.
 -- unaccent não é imutável (o dicionário pode mudar), por isso sj_norm/sj_doc embrulham e
 -- se declaram imutáveis: é o que deixa o tsvector ser coluna gerada com índice.
 
@@ -54,22 +54,41 @@ alter table admin_rf98.sobre_perguntas add column if not exists faq_id text;
 create or replace function admin_rf98.sj_bancada() returns boolean language sql stable as $$
   select session_user = 'postgres' and auth.uid() is null $$;
 
+/* IDF e frases já normalizadas (28/09, calibrado com 30 perguntas reescritas + 8 fora do
+   assunto): a cobertura pesa cada palavra pela raridade na base — "jogador", "time", "jogo"
+   quase não contam —, o que baixou o melhor falso positivo de 0,50 para 0,42 sem perder os
+   acertos. frases_norm guarda pergunta+variações sem acento: tirar acento de ~2.500 frases a
+   cada busca custava 330 ms; pré-calculado, 50 ms (a busca roda enquanto se digita). */
+create or replace function admin_rf98.sj_frases(p text, v text[]) returns text[]
+language sql immutable parallel safe
+set search_path = extensions, pg_catalog
+as $$ select array(select admin_rf98.sj_norm(x) from unnest(coalesce(v,'{}') || p) x) $$;
+
+alter table admin_rf98.sobre_faq add column if not exists frases_norm text[]
+  generated always as (admin_rf98.sj_frases(pergunta, variacoes)) stored;
+
 create or replace function admin_rf98.sobre_buscar(p_q text, p_lim int default 5)
 returns table (id text, pergunta text, resposta text, resposta_jogador text, tags text[], fonte text, nota real)
 language plpgsql stable security definer
 set search_path = admin_rf98, extensions, public
 as $$
 declare nq text := admin_rf98.sj_norm(p_q);
-        lex text[];
+        n real;
 begin
   if not (admin_rf98.is_admin() or admin_rf98.sj_bancada()) then raise exception 'sem acesso'; end if;
-  select coalesce(array_agg(l), '{}') into lex from unnest(tsvector_to_array(to_tsvector('portuguese', nq))) l;
+  select count(*) into n from admin_rf98.sobre_faq f where f.ativo;
   return query
-  with c as (
-    select f.*,
-      (select max(extensions.similarity(nq, admin_rf98.sj_norm(x))) from unnest(f.variacoes || f.pergunta) x) as sim,
-      case when cardinality(lex) = 0 then 0
-           else (select count(*) from unnest(lex) l where f.tsv @@ to_tsquery('portuguese', quote_literal(l)))::real / cardinality(lex) end as cob
+  with lex as (
+    select to_tsquery('portuguese', quote_literal(l)) tq
+    from unnest(tsvector_to_array(to_tsvector('portuguese', nq))) l
+  ), w as (
+    select lex.tq, ln((n + 1) / ((select count(*) from admin_rf98.sobre_faq f where f.ativo and f.tsv @@ lex.tq) + 1)) + 0.1 as peso
+    from lex
+  ), tot as (select nullif(sum(peso), 0) s from w),
+  c as (
+    select f.id, f.pergunta, f.resposta, f.resposta_jogador, f.tags, f.fonte, f.usos,
+      (select max(extensions.similarity(nq, x)) from unnest(f.frases_norm) x) as sim,
+      coalesce((select sum(w.peso) filter (where f.tsv @@ w.tq) from w) / (select s from tot), 0) as cob
     from admin_rf98.sobre_faq f where f.ativo
   )
   select c.id, c.pergunta, c.resposta, c.resposta_jogador, c.tags, c.fonte,
