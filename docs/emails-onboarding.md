@@ -102,6 +102,21 @@ automação do Resend precisa de EVENTO; o próximo passo é o `email-planejar` 
    esse endereço — antes de enviar, fazer o jogo abrir o campo (rfTimeCampoHTML) para quem está logado
    e salvar em `raw_user_meta_data` (mesmas chaves do cadastro).
 
+## Automações por evento (LIGADAS em 28/09)
+
+| Momento do jogador | Quando dispara | E-mail |
+|---|---|---|
+| Cadastro novo | na hora (trigger no banco) | boas-vindas + 7 Dicas (dias 0–15) |
+| Cadastrou e não jogou (etapas 0/1) | 24 h depois, se ainda não jogou | Jogue a 1ª rodada |
+| Travou no 1º paywall (opinião) | 24 h travado | Temporada grátis pela opinião (sem Pro) |
+| Travou no 2º paywall (post) | 24 h travado | Oferta Pro |
+| Parou na 1ª temporada | 7 dias sem jogar | Sentimos sua falta |
+| Base antiga (antes de 28/09) na 1ª temporada | na hora, pela etapa | Dicas 1→7, 5→7 ou só a 7 |
+| Veterano travado | — | nenhum |
+
+Uma vez por pessoa por gatilho, no máximo 1 por dia. Detalhes: `scripts/sql/email_gatilhos.sql`.
+Em 28/09 a base antiga recebeu as dicas: 78 (Dica 1→7), 12 (5→7), 3 (Dica 7).
+
 ## Automação pós-cadastro (LIGADA em 28/09)
 
 Resend → Automations → "RF · Onboarding pós-cadastro". Gatilho: evento `rf.cadastro`, disparado pelo banco

@@ -1,0 +1,19 @@
+-- ===== GATILHOS DE CICLO DE VIDA → AUTOMAÇÕES DO RESEND (28/09/2026) =====
+-- Aplicado como migração "email_gatilhos_ciclo_de_vida". Roda no cron email-planejar (a cada 10 min):
+--   select admin_rf98.email_planejar(); select admin_rf98.email_gatilhos_rodar();
+-- Cada gatilho dispara UMA vez por pessoa (admin_rf98.email_gatilhos) e no máximo 1 evento por pessoa por
+-- dia; os eventos saem pela fila email_fila (1 chamada a cada 2 s).
+--
+-- gatilho     condição                                                   evento           automação no Resend
+-- paywall2    etapa e5b (2º paywall, post), travado há 24 h+            rf.paywall2      RF · Paywall 2 (post) → oferta Pro
+-- paywall1    etapa e5a (1º paywall, opinião), travado há 24 h+         rf.paywall1      RF · Paywall 1 (opinião) → temporada grátis
+-- nao_jogou   etapa e0/e1, conta 24 h+, sem jogar há 24 h+              rf.nao_jogou     RF · Cadastrou e não jogou → jogue a 1ª rodada
+-- dicas_base  conta de ANTES de 28/09 15:05 na 1ª temporada:
+--               e2 → rf.dicas.comeco (Dicas 1→7) · e3 → rf.dicas.meio (5→7) · e4 → rf.dicas.reta (7)
+--                                                                         RF · Dicas base antiga · …
+-- t1_parado   1ª temporada (e2–e4), 7 dias sem jogar, sem outro gatilho em 16 dias
+--                                                              rf.t1_parado     RF · Parou na 1ª temporada → sentimos sua falta
+-- Cadastro novo: rf.cadastro (trigger em auth.users, ver email_evento_cadastro.sql) → boas-vindas + 7 dicas.
+-- Veteranos travados (e5c): NENHUM e-mail (regra do dono).
+-- Pré-marcados em 28/09 (já contatados por broadcast): etapas 0/1 (nao_jogou) e o 2º paywall (paywall2).
+-- A função completa está no banco (pg_get_functiondef('admin_rf98.email_gatilhos_rodar'::regproc)).

@@ -329,7 +329,7 @@ T.push(dica({ n: 7, capa: { img: CAPA('dica-fim-temporada'), alt: 'Técnico camp
   ],
   fazer: 'Jogue as últimas rodadas com o time mais descansado possível e, na virada, deixe a sua opinião para seguir com a carreira.',
   cta: 'Terminar a temporada',
-  ps: 'Quer jogar sem limite de temporadas? O Pro libera temporadas e carreiras ilimitadas e o Modo Resenha.',
+  ps: 'Dar a opinião leva menos de um minuto — e ela vai direto para quem faz o jogo.',  // sem Pro (dono, 28/09)
 }));
 
 /* 13–15. CONVERSÃO (28/09) — um por segmento do Resend (docs/emails-onboarding.md, "Segmentos").
