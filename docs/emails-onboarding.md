@@ -10,7 +10,7 @@ para o jogador chegar ao fim da temporada (e ao paywall) sabendo jogar.
   utm_content: `botao` (CTA principal), `capa` (imagem do topo), `logo`, `link_guia`, `link_roadmap`,
   `link_resenha`, `link_whatsapp`, `rodape_site`, `rodape_whatsapp`; nos broadcasts, a versão texto usa
   `texto_botao`/`texto_guia`. Ao passar HEADER_LINK/CTA_URL num envio, manter o utm_content no link.
-- Envios feitos: 28/09 — "Jogue a 1ª rodada" (broadcast) para o segmento 1 (156 contas).
+- Envios feitos: 28/09 — "Jogue a 1ª rodada" (broadcast) para o segmento 1 (156) e o segmento 0 (51).
 
 ## Cabeçalho de mídia (todos os templates)
 
@@ -89,6 +89,13 @@ automação do Resend precisa de EVENTO; o próximo passo é o `email-planejar` 
 5. **Pergunta do time do coração**: o botão leva a `/?time-do-coracao`. O jogo ainda **não** trata
    esse endereço — antes de enviar, fazer o jogo abrir o campo (rfTimeCampoHTML) para quem está logado
    e salvar em `raw_user_meta_data` (mesmas chaves do cadastro).
+
+## Automação pós-cadastro (LIGADA em 28/09)
+
+Resend → Automations → "RF · Onboarding pós-cadastro". Gatilho: evento `rf.cadastro`, disparado pelo banco
+em todo cadastro novo (`scripts/sql/email_evento_cadastro.sql`). Sequência por DIAS desde o cadastro
+(decisão do dono): 0 boas-vindas · 1 Dica 1 · 2 Dica 2 · 4 Dica 3 · 6 Dica 4 · 9 Dica 5 · 12 Dica 6 · 15 Dica 7.
+Só cadastros novos; a base antiga não entra. Mudou um template? Republicar no Resend (publish).
 
 ## Sequência de onboarding (1ª temporada do Modo Solo)
 
