@@ -910,7 +910,7 @@ async function pgVisao(forcar, senha = pedirDesenho()){
      e dizem isso no título. */
   const lucroPer = (+data.receita_per||0) - (+data.despesa_per||0);
   const kpis = [
-    { l:'Usuários no jogo', v:num(data.usuarios), d:`${num(data.novos_per)} novos ${per.rot}` },
+    { l:'Usuários no jogo', v:num(data.usuarios), d:`${num(data.novos_per)} novos ${per.rot} · sem sócios` },
     { l:'Ativos no período', v:num(data.ativos_per), d:`${num(data.retorno_per)} voltaram em mais de um dia` },
     { l:'Tempo médio por usuário', v:hm(data.minutos_medio_per), d:`${hm(data.minutos_per)} jogados no período` },
     { l:'Lucro no período', v:brl(lucroPer),
@@ -984,7 +984,7 @@ async function pgVisao(forcar, senha = pedirDesenho()){
     </div>
     <div class="g2">
       <div class="card card-p">
-        <div class="tt" style="margin-bottom:14px">Ranking de pontuação <span class="st" style="font-weight:500">— geral, não segue o período</span></div>
+        <div class="tt" style="margin-bottom:14px">Ranking de pontuação <span class="st" style="font-weight:500">— geral, não segue o período, sem sócios</span></div>
         ${(data.ranking||[]).length ? (data.ranking||[]).map((r,i)=>`
           <div style="display:grid;grid-template-columns:26px 1fr 130px 88px;align-items:center;gap:10px;padding:8px">
             <span class="mono" style="font-size:12px;font-weight:700;color:${i<3?'var(--verde2)':'var(--dim2)'}">${i+1}</span>
@@ -994,7 +994,7 @@ async function pgVisao(forcar, senha = pedirDesenho()){
           </div>`).join('') : '<div class="vazio">Ninguém pontuou ainda.</div>'}
       </div>
       <div class="card card-p" style="display:flex;flex-direction:column;gap:16px">
-        <div class="tt">Engajamento <span class="st" style="font-weight:500">— ${h(per.rot)}</span></div>
+        <div class="tt">Engajamento <span class="st" style="font-weight:500">— ${h(per.rot)}, sem sócios</span></div>
         ${engBarras.map(([l,v]) => `
           <div>
             <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px">
