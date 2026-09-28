@@ -333,6 +333,8 @@ T.push(dica({ n: 7, capa: { img: CAPA('dica-fim-temporada'), alt: 'Técnico camp
 }));
 
 /* 13–15. CONVERSÃO (28/09) — um por segmento do Resend (docs/emails-onboarding.md, "Segmentos").
+   REGRA DO DONO (28/09): ao falar de preço, NUNCA o valor cheio do anual (R$ 178,80) — só o valor por mês
+   (R$ 14,90/mês no anual), "para não assustar". O total aparece na tela de pagamento, não no e-mail.
    Preço e benefícios são os do paywall (rf26-paywall.js / RF_PLANOS): R$ 19,90/mês, R$ 178,80/ano
    (−25%), cartão (renova) ou Pix (avulso, sem renovação). O "Ultrassônico" fica de fora do e-mail:
    sem contexto, não vende. O botão usa o link direto do Pro (?pro / ?pro=ano, ui/rf-link-pro.js):
@@ -379,7 +381,7 @@ T.push({
     par('{{{FIRST_NAME}}}, você fechou a temporada e parou na hora da virada. O elenco, o caixa e a história do seu clube continuam salvos, do jeitinho que você deixou.'),
     subtitulo('Com o Pro, a carreira não para mais'),
     itens(BENS_PRO),
-    caixa(`${b('R$ 19,90 por mês')} — cancela quando quiser.<br>Ou ${b('R$ 178,80 por ano')}: sai por R$ 14,90 por mês (25% menos).<br>No cartão ou no Pix (o Pix vale pelo período, sem renovação automática).`),
+    caixa(`${b('R$ 19,90 por mês')} — cancela quando quiser.<br>Ou ${b('R$ 14,90 por mês')} no plano anual (25% menos).<br>No cartão ou no Pix.`),
     botao('Seguir a carreira no Pro', utm(SITE + '/?pro', a, 'botao')),
     nota('O botão abre a assinatura do Pro já no jogo (se pedir, entre na sua conta primeiro — é assim que o Pro cai no seu save). Prefere seguir de graça? Se ainda houver uma saída grátis para a sua carreira, ela aparece ao clicar em "Começar a próxima temporada".'),
     assinatura,
@@ -398,7 +400,7 @@ T.push({
     par('{{{FIRST_NAME}}}, obrigado por seguir com o RetroFoot. A temporada extra que você liberou está valendo — mas as temporadas grátis têm limite, e a carreira trava de novo numa das próximas viradas.'),
     subtitulo('O que muda com o Pro'),
     itens(BENS_PRO),
-    caixa(`${b('Plano anual: R$ 178,80')} — R$ 14,90 por mês, 25% menos que o mensal (R$ 19,90).<br>Um pagamento e um ano inteiro de carreira sem trava.`),
+    caixa(`${b('Plano anual: R$ 14,90 por mês')} — 25% menos que o mensal (R$ 19,90).<br>Um ano inteiro de carreira sem trava.`),
     botao('Assinar o Pro anual', utm(SITE + '/?pro=ano', a, 'botao')),
     nota('O botão abre a assinatura já no plano anual (se pedir, entre na sua conta primeiro). Pagamento pelo Stripe, no cartão ou no Pix — dá para trocar para o mensal na mesma tela.'),
     assinatura,
