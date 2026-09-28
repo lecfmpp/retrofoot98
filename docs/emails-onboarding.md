@@ -81,6 +81,15 @@ Para disparar por mudança de etapa (ex.: entrou em "Travado" → e-mail de conv
 automação do Resend precisa de EVENTO; o próximo passo é o `email-planejar` mandar um evento
 `rf.etapa` quando a etapa muda.
 
+## Regra da oferta do Pro (dono, 28/09)
+
+- Oferta do Pro **só** para quem bateu no **2º paywall** (o do post nas redes) ou depois → segmento 5b.
+- 1º paywall (opinião) → segmento 5a → e-mail `rf-pw1-opiniao`, **sem** falar de Pro.
+- **Veteranos da Beta: nenhum e-mail de proposta**, nem no último paywall (5c) — ver se assinam sozinhos.
+- Segmento 6 (temporada extra) não recebe oferta; recebe as dicas.
+- O e-mail `rf-pro-extra` (Pro anual para a temporada extra) fica parado.
+- Erro de 28/09: a oferta foi ao antigo segmento 5 (9 contas) antes desta regra; só 1 estava no 2º paywall.
+
 ## Falta para ligar (depois do domínio)
 
 1. **Domínio de envio**: hoje só `retrofoot98.com.br` está verificado no Resend. Definir o remetente

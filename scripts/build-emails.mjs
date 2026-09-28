@@ -406,6 +406,32 @@ T.push({
   ],
 });
 
+/* 16. TRAVADO NO 1º PAYWALL (28/09) — segmento 5a. REGRA DO DONO: oferta do Pro só a partir do 2º
+   paywall (o do post); aqui NÃO se fala de Pro — só do caminho grátis (dar a opinião), que é o botão
+   "Ganhar 1 temporada grátis — dar minha opinião" da virada (rf26-paywall.js, texto ≥ 20 caracteres). */
+T.push({
+  alias: 'rf-pw1-opiniao', nome: '[RetroFoot] 1º paywall · Temporada grátis',
+  capa: { img: CAPA('pro-travado'), alt: 'O técnico planejando a próxima temporada' },
+  assunto: '{{{FIRST_NAME}}}, a sua próxima temporada é grátis',
+  preview: 'Uma opinião sobre o jogo e a carreira segue, sem pagar nada.',
+  variaveis: [],
+  corpo: (a) => [
+    rotulo('Sua carreira está em pausa'),
+    titulo('Falta um passo para a próxima temporada'),
+    par('{{{FIRST_NAME}}}, você fechou a primeira temporada e parou na virada. O seu clube continua salvo, do jeitinho que você deixou — e a próxima temporada sai de graça.'),
+    subtitulo('Como liberar'),
+    itens([
+      ['1. Entre no jogo e abra o seu save', ''],
+      ['2. Clique em "Começar a próxima temporada"', ''],
+      ['3. Escolha "Ganhar 1 temporada grátis — dar minha opinião"', 'Conte em uma ou duas frases o que achou do RetroFoot. A temporada é liberada na hora.'],
+    ]),
+    caixa('A sua opinião vai direto para quem faz o jogo e ajuda a decidir o que entra nas próximas versões.'),
+    botao('Continuar a minha carreira', utm(SITE + '/', a, 'botao')),
+    assinatura,
+    nota('P.S. Leva menos de um minuto.'),
+  ],
+});
+
 mkdirSync('emails/templates', { recursive: true });
 const indice = [];
 for (const t of T) {

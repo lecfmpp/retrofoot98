@@ -197,3 +197,14 @@ select cron.schedule('email-despachar', '2 seconds', 'select admin_rf98.email_de
 -- No email_estado(): coluna na_automacao =
 --   (u.created_at >= timestamptz '2026-09-28 15:05:00+00' and u.created_at > now() - interval '16 days')
 -- e em_massa = not (etapa in ('e0_nao_jogou','e1_parou_r1') or na_automacao); todos/inativos_7d/sem_time só se em_massa.
+
+-- ===== 28/09: O SEGMENTO 5 VIRA TRÊS (migração email_travado_por_paywall + correção) =====
+-- Regra do dono: oferta do Pro SÓ a partir do 2º paywall (o do post nas redes). Veteranos: NENHUM e-mail
+-- de proposta, nem no último paywall — o dono quer ver se assinam sozinhos.
+--   e5a_pw1       travou no 1º paywall (opinião)                 → e-mail rf-pw1-opiniao (sem Pro)
+--   e5b_pw2       já deu opinião/postou e travou de novo           → oferta Pro (rf-pro-travado)
+--   e5c_veterano  veterano da Beta travado                         → sem e-mail
+-- "Travado" = viu o paywall DEPOIS da última saída grátis: greatest(seguiu_gratis, criação do extra
+-- 'depoimento'/'post'). Quem dá a opinião NÃO gera 'seguiu_gratis' em paywall_eventos — a 1ª versão
+-- achava que essas pessoas estavam travadas (e o envio da oferta de 28/09 ao antigo segmento 5 foi para 9
+-- contas, das quais só 1 estava de fato no 2º paywall).

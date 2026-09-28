@@ -448,5 +448,28 @@
         "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pro-extra&utm_content=capa"
       }
     ]
+  },
+  {
+    "alias": "rf-pw1-opiniao",
+    "nome": "[RetroFoot] 1º paywall · Temporada grátis",
+    "assunto": "{{{FIRST_NAME}}}, a sua próxima temporada é grátis",
+    "marketing": true,
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/pro-travado.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "O técnico planejando a próxima temporada"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-pw1-opiniao&utm_content=capa"
+      }
+    ]
   }
 ]
