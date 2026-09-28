@@ -17,6 +17,8 @@ import { legal } from '../seo/legal.mjs';
    comercial de largura inteira, com desenho proprio (`css`) e sem a barra branca do site
    (soMiolo) — mantem a casca do site e corta so' a mobilia de artigo. */
 import { mediaKit } from '../seo/media-kit.mjs';
+/* ROADMAP PÚBLICO (27/09/2026): quadro kanban com votos, mesmo formato soMiolo do media kit. */
+import { roadmap } from '../seo/roadmap.mjs';
 /* A versão markdown de cada página, para quem lê por agente (ver seo/markdown.mjs). */
 import { paginaMarkdown, restos } from '../seo/markdown.mjs';
 /* O que um agente encontra sozinho em /.well-known/ (ver seo/well-known.mjs). */
@@ -392,6 +394,7 @@ ${p.css||''}
       <a href="/ranking/"${p.slug==='ranking'?' aria-current="page"':''}>Ranking</a>
       <a href="/historia-do-elifoot/"${p.slug==='historia-do-elifoot'?' aria-current="page"':''}>História</a>
       <a href="/jogar-com-amigos/"${p.slug==='jogar-com-amigos'?' aria-current="page"':''}>Jogar com amigos</a>
+      <a href="/roadmap/"${p.slug==='roadmap'?' aria-current="page"':''}>Roadmap</a>
       <a href="/media-kit/"${p.slug==='media-kit'?' aria-current="page"':''}>Anuncie</a>
     </nav>
     <a class="cta" href="/">▶ Jogar de graça</a>
@@ -423,6 +426,7 @@ ${p.css||''}
         <a href="/jogar-com-amigos/">Modo Resenha</a>
         <a href="/guia/">Guia do jogo</a>
         <a href="/ranking/">Ranking de treinadores</a>
+        <a href="/roadmap/">Roadmap da Versão 2</a>
       </div>
       <div class="foot-col"><span class="foot-h">Para marcas</span>
         <a href="/media-kit/">Media kit</a>
@@ -460,7 +464,7 @@ function sitemapXml(ready){
 
 // ---- build ----
 if(!existsSync(DIST)){ console.error('dist/ não existe — rode `vite build` antes.'); process.exit(1); }
-const ready = [...pages, ...legal, ...mediaKit].filter(p=>p.ready);
+const ready = [...pages, ...legal, ...mediaKit, ...roadmap].filter(p=>p.ready);
 const tagsPerdidas = new Set();
 for(const p of ready){
   const dir = resolve(DIST, p.slug);

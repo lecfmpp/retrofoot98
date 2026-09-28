@@ -1038,6 +1038,12 @@ const LANDING_LEGAIS=[
 const LANDING_COMERCIAL=[
   ['media-kit','Media kit'],
 ];
+/* O ROADMAP PÚBLICO (27/09/2026) também fica fora de LANDING_PAGINAS (não é cartão de leitura da
+   home): o link mora na coluna "O jogo" do rodapé da landing (rf26-landing.js) e no topo/rodapé das
+   páginas estáticas. Listado aqui para o build o reconhecer como ligado. */
+const LANDING_ROADMAP=[
+  ['roadmap','Roadmap da Versão 2'],
+];
 function rodapeLegaisHTML(sep){
   return LANDING_LEGAIS.map(([slug,label])=>`<a href="/${slug}/">${escC(label)}</a>`).join(sep||' · ');
 }

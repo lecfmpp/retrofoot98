@@ -1362,6 +1362,7 @@ function rfLpRodapeHTML(){
         ['Por dentro do jogo',"rfLpIr('telas')"],
         ['Planos',"rfLpIr('planos')"],
         ['Plano Pro',"rfLpIr('ligas')"],
+        ['Roadmap da Versão 2','/roadmap/'],
       ])}
       ${col('Para marcas',[
         ['Media kit','/media-kit/'],
