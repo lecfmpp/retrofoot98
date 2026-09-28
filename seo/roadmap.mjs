@@ -93,6 +93,11 @@ body{background:var(--rm-fundo);font-family:'Space Grotesk',system-ui,-apple-sys
 .rm-voto.on{border-color:var(--rm-az);box-shadow:0 0 0 2px #fff inset}
 .rm-voto:disabled{opacity:.6;cursor:progress}
 .rm-vazio{font-size:13px;color:var(--rm-cinza);padding:8px 4px}
+.rm-montando{grid-column:1/-1;flex:1 0 100%;background:#fff;border:1px dashed #b9c7bb;border-radius:18px;padding:28px 24px;
+  text-align:center;line-height:1.6;font-size:15px;color:var(--rm-corpo)}
+.rm-montando b{display:block;font-size:19px;color:var(--rm-tinta);margin-bottom:6px}
+.rm-montando span{display:block;margin-top:8px;font-size:13.5px;color:var(--rm-cinza)}
+[hidden]{display:none !important}
 .rm-como{max-width:760px;font-size:14.5px;line-height:1.65}
 .rm-como h3{margin:14px 0 2px;font-size:15px;color:var(--rm-tinta)}
 .rm-como p{margin:0}
@@ -153,6 +158,16 @@ const script = `
       +'<div class="rm-pe"><div class="rm-tags">'+tags+'</div>'+voto+'</div></article>';
   }
   function desenhar(){
+    /* ROADMAP VAZIO (27/09/2026): os sócios estão aprovando os itens de novo. Sem nenhum item, a
+       página não mostra quatro colunas vazias nem o ranking — mostra que o quadro está sendo montado. */
+    var vazio=!itens.length;
+    el('rm-sec-top').hidden=vazio; el('rm-barra-wrap').hidden=vazio;
+    if(vazio){
+      el('rm-quadro').innerHTML='<div class="rm-montando"><b>🛠️ O roadmap da Versão 2 está sendo montado.</b>'
+        +'Os sócios estão escolhendo o que entra. Assim que os primeiros itens forem aprovados, eles aparecem aqui para você votar.'
+        +'<span>Quer dar uma ideia enquanto isso? Conta no grupo da Resenha — é de lá que sai boa parte deste quadro.</span></div>';
+      return;
+    }
     maxVotos=0; itens.forEach(function(i){ if(i.status!=='lancado' && i.votos>maxVotos) maxVotos=i.votos; });
     var vis=itens.filter(function(i){ return !area || i.area===area; });
     var ord=function(a,b){ return ordem==='votos' ? (b.votos-a.votos) || (a.ord-b.ord) : (a.ord-b.ord); };
@@ -281,18 +296,18 @@ export const roadmap = [{
   </section>
 
   <section class="rm-sec" style="padding-top:4px">
-    <div class="rm-barra">
+    <div id="rm-barra-wrap"><div class="rm-barra">
       <div id="rm-areas" style="display:contents"></div>
       <div class="rm-ord">Ordenar:
         <button class="rm-chip" id="rm-ord-votos" type="button">Mais votados</button>
         <button class="rm-chip" id="rm-ord-plano" type="button">Ordem do roadmap</button>
       </div>
     </div>
-    <p class="rm-quem" id="rm-quem"></p>
+    <p class="rm-quem" id="rm-quem"></p></div>
     <div class="rm-quadro" id="rm-quadro"><div class="rm-vazio">Carregando o roadmap…</div></div>
   </section>
 
-  <section class="rm-sec">
+  <section class="rm-sec" id="rm-sec-top">
     <h2 class="rm-h2">🏆 Mais votados</h2>
     <p class="rm-sub">O que a comunidade mais quer ver no jogo agora.</p>
     <ol class="rm-top" id="rm-top"></ol>

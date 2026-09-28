@@ -69,22 +69,6 @@ end $$;
 revoke all on function elifoot_v3.rf_roadmap_votar(uuid) from public, anon;
 grant execute on function elifoot_v3.rf_roadmap_votar(uuid) to authenticated;
 
--- ---- conteúdo inicial (tirado do kanban interno, reescrito para o jogador; editar à vontade) ----
-insert into elifoot_v3.roadmap_itens (titulo, descricao, area, status, versao, ord, lancado_em)
-select * from (values
-  ('Patrocínios que mexem nas finanças', 'O contrato de patrocínio do seu clube passa a pesar de verdade no caixa: bônus por meta, multa por queda e renovação negociada.', 'Clube e finanças', 'desenvolvimento', 'v1_extra', 10, null::date),
-  ('Atributos com peso real na partida', 'Cada atributo do jogador — finalização, marcação, velocidade — influencia o lance de forma mais clara, e dá para ver isso no relatório do jogo.', 'Partida', 'desenvolvimento', 'v1_extra', 20, null),
-  ('Ligas e clubes estrangeiros no Modo Resenha', 'Campeonatos de outros países para a sua turma disputar junta, e não só o Brasileirão.', 'Modo Resenha', 'planejado', 'v2', 30, null),
-  ('Mercado de transferências mais realista', 'Propostas, contrapropostas e valores que respeitam o momento do jogador e do clube vendedor.', 'Mercado', 'planejado', 'v2', 40, null),
-  ('Estádios atualizados', 'Estádios novos e reformados, com capacidade e imagem de hoje.', 'Visual', 'planejado', 'v2', 50, null),
-  ('Vídeos das jogadoras nos grandes momentos', 'Os vídeos de título, acesso e artilharia também no futebol feminino.', 'Futebol feminino', 'planejado', 'v2', 60, null),
-  ('Sócio-torcedor', 'Um programa de sócios para o seu clube: mais receita fixa, casa cheia e torcida cobrando resultado.', 'Clube e finanças', 'analise', 'v2', 70, null),
-  ('Renovar contratos em grupo', 'Renovar vários jogadores de uma vez, sem abrir a ficha de um por um.', 'Elenco', 'analise', 'v1_extra', 80, null),
-  ('Avatar do treinador por IA', 'Crie o rosto do seu treinador com inteligência artificial e use em todo o jogo.', 'Personalização', 'analise', 'v2', 90, null),
-  ('Newsletter de novidades', 'Um e-mail curto com o que mudou no jogo, as próximas atualizações e o ranking da temporada.', 'Comunidade', 'analise', 'v2', 100, null),
-  ('Ranking universal de treinadores', 'Todos os treinadores num ranking só, com títulos e campanhas.', 'Comunidade', 'lancado', 'v2', 110, date '2026-09-23'),
-  ('Universo do futebol feminino', 'Times, ligas e jogadoras do futebol feminino, com calendário próprio.', 'Futebol feminino', 'lancado', 'v2', 120, date '2026-09-02'),
-  ('Rostos dos jogadores da base', 'Os garotos da base agora chegam com rosto, para você acompanhar quem promover.', 'Elenco', 'lancado', 'v2', 130, date '2026-09-27')
-) v(titulo, descricao, area, status, versao, ord, lancado_em)
-where not exists (select 1 from elifoot_v3.roadmap_itens);
+-- (Havia aqui 13 itens iniciais. Em 27/09/2026 o dono mandou ZERAR o roadmap: tudo passa pelo banco de
+--  ideias e pela aprovação dos sócios — ver roadmap_banco_ideias.sql. Não recriar itens por SQL.)
 notify pgrst, 'reload schema';
