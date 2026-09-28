@@ -117,3 +117,9 @@ create policy roadmap_votos_admin_sel on elifoot_v3.roadmap_votos for select to 
 -- CORREÇÃO (27/09/2026): tabela nova em admin_rf98 NÃO herda grant (o elifoot_v3 herda). Sem isto o painel
 -- quebrava com "permission denied for table ideia_votos". Só leitura: o voto passa por ideia_decidir.
 grant select on admin_rf98.ideia_votos to authenticated;
+
+-- CORREÇÃO (27/09/2026): a origem só aceitava 'usuario'/'equipa'; o formulário de nova ideia oferece também
+-- WhatsApp e Parceiro. (A chave da equipe é 'equipa', grafada assim.)
+alter table admin_rf98.adm_features drop constraint if exists adm_features_origem_check;
+alter table admin_rf98.adm_features add constraint adm_features_origem_check
+  check (origem = any (array['usuario','equipa','whatsapp','parceiro']));

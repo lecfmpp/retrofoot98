@@ -4287,6 +4287,8 @@ function modalUpload(chave){
    Futuro: o leitor de mensagens e áudios do WhatsApp insere ideias aqui (colunas fonte/fonte_ref). */
 const RM_ESTAGIOS = [['analise','Em análise','#8b978d'],['planejado','Planejado','#7dd3fc'],
                      ['desenvolvimento','Em desenvolvimento','#e3b23c'],['lancado','Lançado','#4ade80']];
+/* valores aceitos pelo banco (adm_features_origem_check): a chave da equipe é 'equipa' */
+const IDEIA_ORIGEM = { equipa:'Equipe', usuario:'Jogador', whatsapp:'Grupo do WhatsApp', parceiro:'Parceiro' };
 const IDEIA_VER = { pendente:'Aguardando aprovação', aprovada:'Aprovadas (no roadmap)', recusada:'Recusadas',
                     arquivada:'Arquivadas', todas:'Todas' };
 async function pgFeatures(forcar, senha = pedirDesenho()){
@@ -4412,7 +4414,7 @@ function ideiasHTML(souSocio, editar, meuFalta){
         return `<div class="row" style="grid-template-columns:${col};align-items:start">
           <span style="min-width:0"><b class="link" data-abrir-ideia="${h(f.id)}" style="display:block;font-size:13px;font-weight:600;color:var(--fg)">${h(f.titulo)}</b>
             ${texto ? `<small style="display:block;font-size:12px;color:var(--dim);margin-top:3px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${h(texto)}</small>` : ''}
-            <small style="display:block;font-size:11px;color:var(--dim3);margin-top:4px">${h([f.origem, etapa ? 'etapa antiga: ' + etapa : null, f.fonte === 'whatsapp' ? 'via WhatsApp' : null, dmy(f.criada_em)].filter(Boolean).join(' · '))}</small></span>
+            <small style="display:block;font-size:11px;color:var(--dim3);margin-top:4px">${h([IDEIA_ORIGEM[f.origem] || f.origem, etapa ? 'etapa antiga: ' + etapa : null, f.fonte === 'whatsapp' ? 'via WhatsApp' : null, dmy(f.criada_em)].filter(Boolean).join(' · '))}</small></span>
           <span style="display:flex;flex-wrap:wrap;gap:4px">${ideiaChipsHTML(f)}</span>
           <span>${acao}</span>
         </div>`;
@@ -4462,7 +4464,7 @@ function modalNovaIdeia(){
       <label class="lbl">Título</label><input class="f" id="ni-tit" placeholder="Ex.: Sócio-torcedor com mensalidade">
       <label class="lbl">Descrição (opcional)</label><textarea class="f" id="ni-desc" rows="3" placeholder="O que é e por que importa para o jogador"></textarea>
       <label class="lbl">De onde veio</label>
-      <select class="f" id="ni-orig"><option value="equipe">Equipe</option><option value="usuario">Jogador</option><option value="whatsapp">Grupo do WhatsApp</option><option value="parceiro">Parceiro</option></select>
+      <select class="f" id="ni-orig">${Object.entries(IDEIA_ORIGEM).map(([k,r]) => `<option value="${k}">${h(r)}</option>`).join('')}</select>
       <div class="st" style="margin:0">Entra em <b>Aguardando aprovação</b>: vai para o roadmap quando os ${num((D.socios||[]).length)} sócios aprovarem.</div>
       <div class="acoes"><button class="btn" id="ni-ok">Adicionar ao banco de ideias</button><button class="btn btn-ghost" data-fechar>Cancelar</button></div>
     </div>`);
