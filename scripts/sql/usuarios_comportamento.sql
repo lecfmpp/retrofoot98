@@ -40,3 +40,9 @@ end $$;
 -- a conversão); na tabela elas continuam, com a etiqueta "sócio". Patch aplicado na migração
 -- usuarios_flag_socio: antes de 'plano', pl.plan, entra
 --   'socio', exists (select 1 from admin_rf98.adm_users sa where sa.user_id = b.id and sa.papel = 'socio'),
+
+-- ===== 27/09/2026: 'time_coracao' em admin_rf98.usuarios =====
+-- O cadastro pergunta o time do coração (public/src/ui/rf-time-coracao.js) e grava em
+-- raw_user_meta_data: time_coracao (id do clube | 'outro' | 'nenhum'), time_coracao_nome, time_coracao_serie.
+-- O painel recebe {id, nome, serie} (null para quem se cadastrou antes). Patch na migração
+-- usuarios_time_coracao, logo depois de 'socio'.

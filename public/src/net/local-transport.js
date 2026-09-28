@@ -844,6 +844,7 @@ function scConta(){ const n=CL.net; const join=(n.intent==='join'); const st=(ty
         ${rfCampo('E-mail', `<input class="rf-campo-c" ${isSignup?'':'id="cl-focus"'} type="email"
           placeholder="voce@exemplo.com" value="${escC(n.email)}" oninput="CL.net.email=this.value;netContaSync()">`)}
         ${isSignup?rfWhatsCampoHTML('CL.net', n, 'netContaSync'):''}
+        ${isSignup && typeof rfTimeCampoHTML==='function' ? rfTimeCampoHTML('CL.net', n, 'netContaSync') : ''}
         ${rfCampo('Senha', `<input class="rf-campo-c" type="password" minlength="6" placeholder="••••••••"
           value="${escC(n.password||'')}" oninput="CL.net.password=this.value;netContaSync()"
           onkeydown="if(event.key==='Enter')${isSignup?'clAuthDoSignup':'clAuthDoLogin'}()">`)}
@@ -866,14 +867,17 @@ function netContaSync(){ const b=document.querySelector('.rf-wiz-cta, .cl-wiz-ct
   const n=CL.net; const st=(typeof NET!=='undefined'&&NET.authStatus)?NET.authStatus():{loggedIn:false};
   if(st.loggedIn){ b.disabled=!n.name; return; }
   const isSignup=(n.authMode||'login')==='signup';
-  b.disabled=!(n.email&&n.password&&(!isSignup||(n.name&&rfWaAceito(n.waPais||'BR',n.whatsapp))));
+  b.disabled=!(n.email&&n.password&&(!isSignup||(n.name&&rfWaAceito(n.waPais||'BR',n.whatsapp)
+    && (typeof rfTimeOk!=='function' || rfTimeOk(n)))));
 }
 function clAuthSwitchAccount(){ (async ()=>{ await NET.authSignOut(); CL.net.name=''; CL.net.email=''; CL.net.password=''; cdraw(); })(); }
 function clAuthDoSignup(){ const n=CL.net; if(!(n.email&&n.password&&n.name)) return;
   if(!rfWaAceito(n.waPais||'BR', n.whatsapp)){ toastC('⚠ WhatsApp incompleto. Complete o número ou deixe em branco.'); return; }
+  if(typeof rfTimeOk==='function' && !rfTimeOk(n)){ toastC('⚠ Escolha o seu time do coração.'); return; }
   toastC('Criando conta...');
   (async ()=>{ try {
-    await NET.authSignUp(n.email, n.password, n.name, rfWaMeta(n));
+    await NET.authSignUp(n.email, n.password, n.name, Object.assign({}, rfWaMeta(n),
+      (typeof rfTimeMeta==='function') ? rfTimeMeta(n) : {}));
     toastC('Conta criada!');
     try{ if(typeof rfWppPosCadastro==='function') rfWppPosCadastro(); }catch(e){}
     if(clSegueEntradaPorLink()) return;   // idem ao login: o convite nao pode parar aqui

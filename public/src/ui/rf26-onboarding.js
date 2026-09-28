@@ -288,6 +288,7 @@ function rfOb1(){
         ${criando?rfCampo('Nome do treinador', rfInput('rf-ob-n','Gringo',a.name,'text',"rfObSet('name',this.value)")):''}
         ${rfCampo('E-mail', rfInput('rf-ob-e','voce@email.com',a.email,'email',"rfObSet('email',this.value)"))}
         ${criando?rfWhatsCampoHTML('CL.auth', a, 'rfObSyncCta'):''}
+        ${criando && typeof rfTimeCampoHTML==='function' ? rfTimeCampoHTML('CL.auth', a, 'rfObSyncCta') : ''}
         ${rfCampo('Senha', rfInput('rf-ob-s', criando?'6+ caracteres, com letra e número':'sua senha', a.password,'password',
             criando ? "rfObSet('password',this.value);rfSenhaGuiaPintar(this.value)" : "rfObSet('password',this.value)"),
             criando ? '' : `<span class="rf-campo-link" onclick="event.preventDefault();clForgotPassword()">Esqueci minha senha</span>`)}
@@ -349,7 +350,8 @@ function rfObSyncCta(){
 /* cadastro: nome, senha valida e WhatsApp completo; entrar: so e-mail e senha */
 function rfObPronto(a){
   const criando=a.mode!=='login';
-  return !!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password)&&rfWaAceito(a.waPais||'BR',a.whatsapp))));
+  return !!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password)&&rfWaAceito(a.waPais||'BR',a.whatsapp)
+    && (typeof rfTimeOk!=='function' || rfTimeOk(a)))));   // time do coração: obrigatório (rf-time-coracao.js)
 }
 
 /* =====================================================================

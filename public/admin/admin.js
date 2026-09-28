@@ -1123,6 +1123,7 @@ async function modalUsuario(id){
         ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
         ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
         ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
+        ${fato('Time do coração', u.time_coracao ? h(usTimeNome(u)) : '<span class="us-nada">—</span>', u.time_coracao ? 'Respondido no cadastro' : 'Cadastro anterior a 27/09/2026')}
         ${fato('Grupo WhatsApp', u.grupo_botao ? h(US_GRUPO[u.grupo_botao] || u.grupo_botao) : '<span class="us-nada">—</span>',
                u.grupo_botao ? 'Primeiro clique em ' + usDataHora(u.grupo_em) + (+u.grupo_cliques > 1 ? '\n' + u.grupo_cliques + ' cliques no total' : '') : 'Nunca clicou em entrar no grupo')}
         ${fato('Último acesso', h(ha(u.ultimo_acesso)), 'Último login: ' + usDataHora(u.ultimo_login) + '\nÚltima jogada: ' + usDataHora(u.ultima_jogada))}
@@ -1211,6 +1212,20 @@ function usGrupoCel(u){
   if(+u.grupo_cliques > 1) tip += `\n\nÚltimo clique: ${US_GRUPO[u.grupo_ultimo_botao] || u.grupo_ultimo_botao} · ${usDataHora(u.grupo_ultimo_em)}\n${u.grupo_cliques} cliques no total`;
   return `<span data-tip="${h(tip)}"><b class="us-ref">${h(US_GRUPO[u.grupo_botao] || u.grupo_botao)}</b><small class="us-sub">${h(dmy(u.grupo_em))}${+u.grupo_cliques > 1 ? ' · ' + num(u.grupo_cliques) + ' cliques' : ''}</small></span>`;
 }
+/* TIME DO CORAÇÃO (27/09/2026): perguntado no cadastro (public/src/ui/rf-time-coracao.js), nome REAL
+   do clube. u.time_coracao = {id, nome, serie} | null (quem se cadastrou antes). */
+function usTimeNome(u){
+  const t = u.time_coracao; if(!t) return '';
+  if(t.id === 'nenhum') return 'Não torce';
+  if(t.id === 'outro') return t.nome ? t.nome : 'Outro time';
+  return t.nome || '';
+}
+function usTimeCel(u){
+  const t = u.time_coracao;
+  if(!t) return '<span class="us-nada" data-tip="Cadastro anterior a 27/09/2026, quando a pergunta entrou">—</span>';
+  const sub = t.id === 'outro' ? 'outro time' : t.id === 'nenhum' ? '' : (t.serie ? 'Série ' + t.serie : '');
+  return `<span data-tip="${h('Time do coração informado no cadastro')}"><b class="us-ref">${h(usTimeNome(u))}</b>${sub ? `<small class="us-sub">${h(sub)}</small>` : ''}</span>`;
+}
 function usCanal(u){ return u.referral ? 'Parceiro' : (u.canal || 'Desconhecido'); }
 function usToqueTxt(t){
   if(!t) return '—';
@@ -1276,7 +1291,8 @@ function usDeriv(u){
     estado: dAc <= 2 ? 'ativo' : dAc <= 13 ? 'parado' : 'perdido',
     whats: String(u.whatsapp||'').replace(/\D/g,''),
     canal: usCanal(u),
-    busca: [u.nome, u.email, u.clube_nome, u.referral, u.parceiro, usCanal(u),
+    time: usTimeNome(u),
+    busca: [u.nome, u.email, u.clube_nome, u.referral, u.parceiro, usCanal(u), usTimeNome(u),
             ...['source','campaign','referrer'].map(k => ((u.origem||{}).ultimo||{})[k])]
              .map(x => String(x||'').toLowerCase()).join(' | ')
   };
@@ -1287,6 +1303,7 @@ const US_ORD = {
   grupo:     u => u.grupo_em ? new Date(u.grupo_em).getTime() : 0,
   plano:     u => US_PLANO_ORD[planoChave(u.plano)],
   origem:    u => (u._d.canal === 'Desconhecido' ? '~' : '') + u._d.canal.toLowerCase(),
+  time:      u => (u._d.time ? '' : '~') + u._d.time.toLowerCase(),
   carreiras: u => u._d.carreiras,
   temporadas:u => u._d.temporadas,
   partidas:  u => u._d.partidas,
@@ -1306,6 +1323,7 @@ const US_COLS = [
   { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
   { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
+  { k:'time', l:'Time', tip:'Time do coração que a pessoa escolheu no cadastro (nome real).\nContas criadas antes de 27/09/2026: sem resposta.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
   { k:'temporadas', l:'Temporadas', a:'c', tip:'Temporadas que chegaram ao fim (Solo / Resenha).' },
   { k:'partidas', l:'Partidas', a:'c', tip:'Partidas de liga na carreira toda (Solo / Resenha).\n"parcial": há save antigo com temporadas fechadas sem os números guardados — o total real é maior.' },
@@ -1437,6 +1455,7 @@ function usLinhaTds(u, podeApagar){
     <td>${usGrupoCel(u)}</td>
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
+    <td>${usTimeCel(u)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
     <td class="c mono">${usDupla(u.temporadas_solo, u.temporadas_resenha, 'temporada(s) fechada(s) no Solo', 'na Resenha')}</td>
     <td class="c mono">${usDupla(u.jogos_solo, u.jogos_resenha, 'partida(s) no Solo', 'na Resenha')}${parcial}</td>
@@ -1514,6 +1533,16 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       .sort((a, b) => (a[0]==='Desconhecido') - (b[0]==='Desconhecido') || b[1].n30 - a[1].n30 || b[1].n - a[1].n);
   }
   const canais = canaisDe(us);
+  /* TORCIDAS: quantas contas (do período, sem sócios) torcem para cada time — base para o Sócio
+     Torcedor. Clicar procura o time na tabela. */
+  function torcidasHTML(){
+    const por = {}; let resp = 0;
+    usPM().forEach(u => { const n = u._d.time; if(!n) return; resp++; por[n] = (por[n]||0) + 1; });
+    const lst = Object.entries(por).sort((a,b) => b[1]-a[1]).slice(0, 12);
+    return `<span class="us-canais-t" data-tip="Time do coração respondido no cadastro (desde 27/09/2026), sem as contas dos sócios.\nClique num time para procurar na tabela.">Torcidas</span>
+      ${lst.length ? lst.map(([n,c]) => `<span class="us-canal" data-torcida="${h(n)}" data-tip="${h(`${n}: ${c} conta(s) · ${pct(c, resp)}% de quem respondeu`)}"><b>${h(n)}</b> <i class="mono">${num(c)}</i></span>`).join('')
+        : '<span class="us-nada">ainda ninguém respondeu — a pergunta entrou no cadastro em 27/09/2026</span>'}`;
+  }
   function canaisHTML(){
     const perOn = !!usIntervalo(f), lst = canaisDe(usPM());
     return `<span class="us-canais-t" data-tip="${h('Canal que trouxe cada conta até o cadastro (sem as contas dos sócios).\n' + (perOn
@@ -1569,6 +1598,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       </div>
       <div class="us-ativos" id="u-ativos"></div>
       <div class="us-canais" id="u-canais">${canaisHTML()}</div>
+      <div class="us-canais" id="u-torcidas">${torcidasHTML()}</div>
       ${podeApagar?`<div class="us-selbar st">Selecionar para apagar:
         <span class="link" data-sel-contas="visiveis" data-tip="Marca todas as contas que aparecem com os filtros atuais">as que estão na lista</span> ·
         <span class="link" data-sel-contas="nunca" data-tip="Sem carreira nenhuma e sem tempo de jogo">nunca jogaram</span> ·
@@ -1646,12 +1676,19 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
     });
   }
   ligarCanais();
+  function ligarTorcidas(){
+    document.querySelectorAll('#u-torcidas [data-torcida]').forEach(x => x.onclick = () => {
+      f.q = x.dataset.torcida; el('u-busca').value = f.q; desenharLinhas();
+    });
+  }
+  ligarTorcidas();
   /* período: só números, canais e linhas são redesenhados — os campos de data nunca, para o
      calendário e a digitação da data não perderem o foco no meio */
   function usRedesenharPeriodo(){
     document.querySelectorAll('#u-per [data-up]').forEach(x => x.classList.toggle('on', x.dataset.up === f.per));
     el('u-kpis').innerHTML = kpisHTML();
     el('u-canais').innerHTML = canaisHTML(); ligarCanais();
+    el('u-torcidas').innerHTML = torcidasHTML(); ligarTorcidas();
     desenharLinhas();
   }
   function usMudarPeriodo(v){
