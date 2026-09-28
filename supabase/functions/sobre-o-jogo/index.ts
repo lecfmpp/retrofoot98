@@ -37,12 +37,17 @@ function resp(status: number, body: unknown) {
   });
 }
 
-/* Modelo e preço. GEMINI_MODEL nos secrets troca o modelo sem deploy; o
-   preço abaixo é o do padrão (3.8 Flash, preço introdutório até o fim de
-   2026 — US$ por 1M de tokens). Se trocar de modelo, o custo registrado
-   passa a ser estimativa. */
-const MODELO_PADRAO = "gemini-3.8-flash";
-const PRECO_USD = { entrada: 0.75, cache: 0.075, saida: 3.75 };
+/* Modelo e preço. GEMINI_MODEL nos secrets troca o modelo sem deploy.
+   Padrão: 3.5 Flash-Lite — a tarefa é achar a resposta num texto que o modelo
+   recebe pronto, e o Lite faz isso por menos da metade do 3.8 Flash (medido em
+   28/09: ~US$ 0,058/pergunta no 3.8 Flash, que ainda dobra de preço em 2027).
+   US$ por 1M de tokens; modelo fora da tabela registra custo pelo padrão. */
+const MODELO_PADRAO = "gemini-3.5-flash-lite";
+const PRECOS_USD: Record<string, { entrada: number; cache: number; saida: number }> = {
+  "gemini-3.5-flash-lite": { entrada: 0.30, cache: 0.03, saida: 2.50 },
+  "gemini-3.1-flash-lite": { entrada: 0.25, cache: 0.025, saida: 1.50 },
+  "gemini-3.8-flash":      { entrada: 0.75, cache: 0.075, saida: 3.75 },  // preço até 31/12/2026
+};
 
 const LIMITE_PERGUNTA = 4000;
 const LIMITE_TURNOS = 20;          // últimas N mensagens do histórico
@@ -75,6 +80,7 @@ Deno.serve(async (req) => {
     return resp(500, { error: "Secret GEMINI_API_KEY não configurado no projeto Supabase." });
   }
   const modelo = Deno.env.get("GEMINI_MODEL") || MODELO_PADRAO;
+  const PRECO_USD = PRECOS_USD[modelo] ?? PRECOS_USD[MODELO_PADRAO];
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
