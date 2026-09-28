@@ -4397,8 +4397,10 @@ function ideiasHTML(souSocio, editar, meuFalta){
         if(f.ideia_status === 'pendente'){
           acao = souSocio
             ? `<span style="display:flex;gap:6px;flex-wrap:wrap">
-                 <button class="btn btn-sm ${meu && meu.decisao==='aprovar' ? '' : 'btn-ghost'}" data-decidir="${h(f.id)}" data-d="aprovar" data-tip="${meu && meu.decisao==='aprovar' ? 'Clique para tirar sua aprovação' : 'Aprovar para o roadmap'}">✓ Aprovar</button>
-                 <button class="btn btn-sm btn-ghost" data-decidir="${h(f.id)}" data-d="recusar" style="${meu && meu.decisao==='recusar' ? 'border-color:var(--vermelho);color:var(--vermelho)' : ''}" data-tip="${meu && meu.decisao==='recusar' ? 'Clique para tirar sua recusa' : 'Recusar'}">✕ Recusar</button>
+                 ${/* rótulo diz o estado: "Votar Sim/Não" antes, "Votei Sim/Não" depois (pedido do dono, 27/09);
+                      clicar no voto dado tira o voto */''}
+                 <button class="btn btn-sm ${meu && meu.decisao==='aprovar' ? '' : 'btn-ghost'}" data-decidir="${h(f.id)}" data-d="aprovar" data-tip="${meu && meu.decisao==='aprovar' ? 'Você votou Sim — clique para tirar o voto' : 'Votar Sim: aprovar para o roadmap'}">${meu && meu.decisao==='aprovar' ? '✓ Votei Sim' : 'Votar Sim'}</button>
+                 <button class="btn btn-sm btn-ghost" data-decidir="${h(f.id)}" data-d="recusar" style="${meu && meu.decisao==='recusar' ? 'border-color:var(--vermelho);color:var(--vermelho);background:rgba(240,84,107,.12)' : ''}" data-tip="${meu && meu.decisao==='recusar' ? 'Você votou Não — clique para tirar o voto' : 'Votar Não: recusar'}">${meu && meu.decisao==='recusar' ? '✕ Votei Não' : 'Votar Não'}</button>
                  <span class="link" data-arquivar="${h(f.id)}" style="font-size:12px;align-self:center" data-tip="Tirar da fila sem votar (ex.: tarefa já feita)">arquivar</span>
                </span>`
             : '<span class="st" style="margin:0">só os sócios votam</span>';
