@@ -4,7 +4,23 @@
     "nome": "[RetroFoot] Onboarding 0 · Boas-vindas (dia 0)",
     "assunto": "Bem-vindo ao RetroFoot, {{{FIRST_NAME}}}! ⚽",
     "marketing": false,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/boas-vindas.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Contrato assinado: bem-vindo ao RetroFoot"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-boas-vindas"
+      }
+    ]
   },
   {
     "alias": "rf-newsletter-mensal",
@@ -12,6 +28,21 @@
     "assunto": "{{{ASSUNTO}}}",
     "marketing": true,
     "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/video-como-jogar.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Vídeo: Como jogar RetroFoot"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/guia/?utm_source=email&utm_medium=email&utm_campaign=rf-newsletter-mensal"
+      },
       {
         "key": "ASSUNTO",
         "type": "string",
@@ -81,6 +112,21 @@
     "marketing": true,
     "variaveis": [
       {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/time-do-coracao.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "O estádio do seu clube no RetroFoot"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao"
+      },
+      {
         "key": "RESPONDER_URL",
         "type": "string",
         "fallbackValue": "https://retrofoot.com.br/?time-do-coracao&utm_source=email&utm_medium=email&utm_campaign=rf-time-do-coracao"
@@ -93,6 +139,21 @@
     "assunto": "Novidade no RetroFoot: {{{RECURSO}}}",
     "marketing": true,
     "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/novidade.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Novidade no RetroFoot"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-novidade"
+      },
       {
         "key": "RECURSO",
         "type": "string",
@@ -137,6 +198,21 @@
     "marketing": true,
     "variaveis": [
       {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/sentimos-falta.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Rodada ao vivo no RetroFoot"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-sentimos-falta"
+      },
+      {
         "key": "NOVIDADE",
         "type": "string",
         "fallbackValue": "o roadmap público, onde você vota no que entra no jogo"
@@ -148,48 +224,160 @@
     "nome": "[RetroFoot] Dica 1/7 · Janela aberta",
     "assunto": "As 10 primeiras rodadas decidem a sua temporada",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-janela.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Tela do Mercado com a janela de transferências aberta"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-1-janela"
+      }
+    ]
   },
   {
     "alias": "rf-dica-2-caixa",
     "nome": "[RetroFoot] Dica 2/7 · Caixa",
     "assunto": "Aquele dinheiro no caixa não é sobra",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-caixa.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Tela de Finanças do clube"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-2-caixa"
+      }
+    ]
   },
   {
     "alias": "rf-dica-3-rodizio",
     "nome": "[RetroFoot] Dica 3/7 · Rodízio",
     "assunto": "Seu time está cansado (e você nem percebeu)",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-rodizio.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Tela do Elenco"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-3-rodizio"
+      }
+    ]
   },
   {
     "alias": "rf-dica-4-evolucao",
     "nome": "[RetroFoot] Dica 4/7 · Evolução e base",
     "assunto": "Como transformar garoto em titular",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-evolucao.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Tela do Treino especial"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-4-evolucao"
+      }
+    ]
   },
   {
     "alias": "rf-dica-5-copa",
     "nome": "[RetroFoot] Dica 5/7 · Copa",
     "assunto": "O prêmio que vale mais que o título da Série D",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-copa.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Tela da Copa da Federação"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-5-copa"
+      }
+    ]
   },
   {
     "alias": "rf-dica-6-acesso",
     "nome": "[RetroFoot] Dica 6/7 · Acesso",
     "assunto": "Rodada 21: a janela reabriu. É agora.",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-acesso.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Tela da Classificação"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-6-acesso"
+      }
+    ]
   },
   {
     "alias": "rf-dica-7-fim-temporada",
     "nome": "[RetroFoot] Dica 7/7 · Fim da temporada",
     "assunto": "O fim da temporada não é o fim da carreira",
     "marketing": true,
-    "variaveis": []
+    "variaveis": [
+      {
+        "key": "HEADER_IMG",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/img/email/dica-fim-temporada.jpg"
+      },
+      {
+        "key": "HEADER_ALT",
+        "type": "string",
+        "fallbackValue": "Técnico campeão com a taça"
+      },
+      {
+        "key": "HEADER_LINK",
+        "type": "string",
+        "fallbackValue": "https://retrofoot.com.br/?utm_source=email&utm_medium=email&utm_campaign=rf-dica-7-fim-temporada"
+      }
+    ]
   }
 ]

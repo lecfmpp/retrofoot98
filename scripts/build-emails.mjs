@@ -7,7 +7,15 @@
 
    Variáveis no formato do Resend: {{{NOME}}}. FIRST_NAME e RESEND_UNSUBSCRIBE_URL são do próprio
    Resend (não declarar). Os links levam utm_source=email&utm_medium=email&utm_campaign=<alias>,
-   que o rastreamento de origem do cadastro já entende (docs/rastreamento-origem.md). */
+   que o rastreamento de origem do cadastro já entende (docs/rastreamento-origem.md).
+
+   CABEÇALHO DE MÍDIA (pedido do dono, 28/09): todo template abre o cartão com uma imagem que
+   representa o tema, trocável a cada envio pelas variáveis
+     HEADER_IMG   URL pública de JPG/PNG/GIF (GIF anima no Gmail/Apple Mail; Outlook mostra o 1º quadro)
+     HEADER_ALT   texto alternativo
+     HEADER_LINK  para onde o clique leva (num vídeo: o link do vídeo)
+   Vídeo não toca em e-mail: usar a miniatura com play (scripts/build-email-capas.mjs video <ID> <nome>).
+   Padrão por template em public/img/email/ (mesmo script). Formato: 16:9, 1120×630. */
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const SITE = 'https://retrofoot.com.br';
@@ -19,9 +27,12 @@ const C = {
 };
 const FONTE = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
+const CAPA = (nome) => `${SITE}/img/email/${nome}.jpg`;
 const utm = (url, alias) => url + (url.includes('?') ? '&' : '?') + `utm_source=email&utm_medium=email&utm_campaign=${alias}`;
 
 function casca({ alias, preview, corpo, marketing = true }) {
+  /* a imagem ocupa a largura do cartão (560 − 2px de borda) e não tem altura fixa: GIF/imagem de outra
+     proporção não deforma */
   const rodape = marketing
     ? `Você recebe este e-mail porque tem conta no RetroFoot.<br>
        <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color:${C.fraco};text-decoration:underline;">Não quero mais receber</a>`
@@ -42,8 +53,15 @@ function casca({ alias, preview, corpo, marketing = true }) {
     <tr><td align="center" style="padding-bottom:20px;">
       <a href="${utm(SITE + '/', alias)}" target="_blank"><img src="${LOGO}" width="56" height="56" alt="RetroFoot" border="0" style="display:block;width:56px;height:56px;"></a>
     </td></tr>
-    <tr><td bgcolor="${C.cartao}" style="background-color:${C.cartao};border:1px solid ${C.linha};border-radius:14px;padding-top:34px;padding-bottom:30px;padding-left:34px;padding-right:34px;">
+    <tr><td bgcolor="${C.cartao}" style="background-color:${C.cartao};border:1px solid ${C.linha};border-radius:14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="font-size:0;line-height:0;">
+          <a href="{{{HEADER_LINK}}}" target="_blank"><img src="{{{HEADER_IMG}}}" width="558" alt="{{{HEADER_ALT}}}" border="0" style="display:block;width:100%;max-width:558px;height:auto;border-radius:13px 13px 0 0;color:${C.fraco};font-family:${FONTE};font-size:13px;"></a>
+        </td></tr>
+        <tr><td style="padding-top:30px;padding-bottom:30px;padding-left:34px;padding-right:34px;">
 ${corpo}
+        </td></tr>
+      </table>
     </td></tr>
     <tr><td align="center" style="padding-top:22px;">
       <p style="margin:0;color:${C.fraco};font-family:${FONTE};font-size:11px;line-height:1.7;">
@@ -90,6 +108,7 @@ const T = [];
 /* 1. Boas-vindas — transacional, sai logo depois do cadastro */
 T.push({
   alias: 'rf-boas-vindas', nome: '[RetroFoot] Onboarding 0 · Boas-vindas (dia 0)', marketing: false,
+  capa: { img: CAPA('boas-vindas'), alt: 'Contrato assinado: bem-vindo ao RetroFoot' },
   assunto: 'Bem-vindo ao RetroFoot, {{{FIRST_NAME}}}! ⚽',
   preview: 'Sua conta está pronta. Escolha o clube e comece a sua primeira temporada.',
   variaveis: [],
@@ -111,6 +130,7 @@ T.push({
 /* 2. Newsletter mensal — casca com blocos variáveis */
 T.push({
   alias: 'rf-newsletter-mensal', nome: '[RetroFoot] Newsletter mensal',
+  capa: { img: CAPA('video-como-jogar'), alt: 'Vídeo: Como jogar RetroFoot', link: utm(SITE + '/guia/', 'rf-newsletter-mensal') },
   assunto: '{{{ASSUNTO}}}',
   preview: '{{{PREVIEW}}}',
   variaveis: [
@@ -139,6 +159,7 @@ T.push({
 /* 3. Pergunta do time do coração — para as contas criadas antes de 27/09 */
 T.push({
   alias: 'rf-time-do-coracao', nome: '[RetroFoot] Pergunta · Time do coração',
+  capa: { img: CAPA('time-do-coracao'), alt: 'O estádio do seu clube no RetroFoot' },
   assunto: '{{{FIRST_NAME}}}, pra qual time você torce?',
   preview: 'Uma pergunta só, um toque para responder.',
   variaveis: [['RESPONDER_URL', utm(SITE + '/?time-do-coracao', 'rf-time-do-coracao')]],
@@ -155,6 +176,7 @@ T.push({
 /* 4. Anúncio de novidade — um recurso novo, e-mail avulso */
 T.push({
   alias: 'rf-novidade', nome: '[RetroFoot] Anúncio de novidade',
+  capa: { img: CAPA('novidade'), alt: 'Novidade no RetroFoot' },
   assunto: 'Novidade no RetroFoot: {{{RECURSO}}}',
   preview: '{{{RESUMO}}}',
   variaveis: [
@@ -176,6 +198,7 @@ T.push({
 /* 5. Sentimos sua falta — reengajamento de quem parou de jogar */
 T.push({
   alias: 'rf-sentimos-falta', nome: '[RetroFoot] Reengajamento · Sentimos sua falta',
+  capa: { img: CAPA('sentimos-falta'), alt: 'Rodada ao vivo no RetroFoot' },
   assunto: '{{{FIRST_NAME}}}, o seu time está esperando o técnico',
   preview: 'O seu save continua na nuvem, do jeitinho que você deixou.',
   variaveis: [['NOVIDADE', 'o roadmap público, onde você vota no que entra no jogo']],
@@ -193,8 +216,8 @@ T.push({
    Objetivo: reduzir o churn da 1ª temporada ensinando o jogo na ordem em que as dúvidas aparecem.
    REGRA: só números que estão no código (conferidos em 27/09 — janelas, base, treino, patrocínio,
    copa, energia, moral, cargo). Nada de "a tática vencedora": a qualidade decide (simulate.js). */
-const dica = ({ n, curto, alias, assunto, preview, tituloTxt, abertura, pontos, fazer, cta = 'Abrir o meu clube', ps }) => ({
-  alias, nome: `[RetroFoot] Dica ${n}/7 · ${curto}`, assunto, preview, variaveis: [],
+const dica = ({ n, curto, capa, alias, assunto, preview, tituloTxt, abertura, pontos, fazer, cta = 'Abrir o meu clube', ps }) => ({
+  alias, nome: `[RetroFoot] Dica ${n}/7 · ${curto}`, assunto, preview, variaveis: [], capa,
   corpo: (a) => [
     rotulo(`Dica do Presidente · ${n} de 7`),
     titulo(tituloTxt),
@@ -207,7 +230,7 @@ const dica = ({ n, curto, alias, assunto, preview, tituloTxt, abertura, pontos, 
   ],
 });
 
-T.push(dica({ n: 1, curto: 'Janela aberta', alias: 'rf-dica-1-janela',
+T.push(dica({ n: 1, capa: { img: CAPA('dica-janela'), alt: 'Tela do Mercado com a janela de transferências aberta' }, curto: 'Janela aberta', alias: 'rf-dica-1-janela',
   assunto: 'As 10 primeiras rodadas decidem a sua temporada',
   preview: 'A janela de transferências está aberta agora — e fecha na rodada 11.',
   tituloTxt: 'A janela está aberta. Use-a.',
@@ -221,7 +244,7 @@ T.push(dica({ n: 1, curto: 'Janela aberta', alias: 'rf-dica-1-janela',
   ps: 'Jogador comprado não pode ser revendido na mesma temporada. Compre para ficar.',
 }));
 
-T.push(dica({ n: 2, curto: 'Caixa', alias: 'rf-dica-2-caixa',
+T.push(dica({ n: 2, capa: { img: CAPA('dica-caixa'), alt: 'Tela de Finanças do clube' }, curto: 'Caixa', alias: 'rf-dica-2-caixa',
   assunto: 'Aquele dinheiro no caixa não é sobra',
   preview: 'O patrocínio do ano inteiro entra de uma vez na 1ª rodada.',
   tituloTxt: 'Cuide do caixa como se fosse seu',
@@ -235,7 +258,7 @@ T.push(dica({ n: 2, curto: 'Caixa', alias: 'rf-dica-2-caixa',
   fazer: 'Abra as Finanças e veja o selo do clube: o objetivo é terminar a temporada "No azul, com folga".',
 }));
 
-T.push(dica({ n: 3, curto: 'Rodízio', alias: 'rf-dica-3-rodizio',
+T.push(dica({ n: 3, capa: { img: CAPA('dica-rodizio'), alt: 'Tela do Elenco' }, curto: 'Rodízio', alias: 'rf-dica-3-rodizio',
   assunto: 'Seu time está cansado (e você nem percebeu)',
   preview: 'Energia e moral mexem na força do time em campo. Rodízio é obrigatório.',
   tituloTxt: 'Time cansado perde jogo ganho',
@@ -249,7 +272,7 @@ T.push(dica({ n: 3, curto: 'Rodízio', alias: 'rf-dica-3-rodizio',
   fazer: 'Antes da próxima rodada, olhe a energia do elenco e troque quem está no limite.',
 }));
 
-T.push(dica({ n: 4, curto: 'Evolução e base', alias: 'rf-dica-4-evolucao',
+T.push(dica({ n: 4, capa: { img: CAPA('dica-evolucao'), alt: 'Tela do Treino especial' }, curto: 'Evolução e base', alias: 'rf-dica-4-evolucao',
   assunto: 'Como transformar garoto em titular',
   preview: 'Treino especial é de graça e a base libera um jovem por janela.',
   tituloTxt: 'Time forte se constrói, não se compra',
@@ -263,7 +286,7 @@ T.push(dica({ n: 4, curto: 'Evolução e base', alias: 'rf-dica-4-evolucao',
   fazer: 'Ocupe as 3 vagas do treino especial e, com a janela aberta, veja os garotos da Categoria de base.',
 }));
 
-T.push(dica({ n: 5, curto: 'Copa', alias: 'rf-dica-5-copa',
+T.push(dica({ n: 5, capa: { img: CAPA('dica-copa'), alt: 'Tela da Copa da Federação' }, curto: 'Copa', alias: 'rf-dica-5-copa',
   assunto: 'O prêmio que vale mais que o título da Série D',
   preview: 'A Copa da Federação paga por fase disputada — e paga na hora.',
   tituloTxt: 'Não despreze a Copa da Federação',
@@ -277,7 +300,7 @@ T.push(dica({ n: 5, curto: 'Copa', alias: 'rf-dica-5-copa',
   cta: 'Ver a Copa da Federação',
 }));
 
-T.push(dica({ n: 6, curto: 'Acesso', alias: 'rf-dica-6-acesso',
+T.push(dica({ n: 6, capa: { img: CAPA('dica-acesso'), alt: 'Tela da Classificação' }, curto: 'Acesso', alias: 'rf-dica-6-acesso',
   assunto: 'Rodada 21: a janela reabriu. É agora.',
   preview: 'Os 4 primeiros sobem. A segunda janela é a última chance de reforço.',
   tituloTxt: 'A reta do acesso começa agora',
@@ -291,7 +314,7 @@ T.push(dica({ n: 6, curto: 'Acesso', alias: 'rf-dica-6-acesso',
   fazer: 'Veja a sua posição na tabela e a distância para o 4º lugar. Até a rodada 30 dá para contratar.',
 }));
 
-T.push(dica({ n: 7, curto: 'Fim da temporada', alias: 'rf-dica-7-fim-temporada',
+T.push(dica({ n: 7, capa: { img: CAPA('dica-fim-temporada'), alt: 'Técnico campeão com a taça' }, curto: 'Fim da temporada', alias: 'rf-dica-7-fim-temporada',
   assunto: 'O fim da temporada não é o fim da carreira',
   preview: 'Como fechar bem o ano e garantir a próxima temporada da sua carreira.',
   tituloTxt: 'A temporada acaba. A carreira, não.',
@@ -311,8 +334,9 @@ const indice = [];
 for (const t of T) {
   const html = casca({ alias: t.alias, preview: t.preview, corpo: t.corpo(t.alias).join('\n'), marketing: t.marketing !== false });
   writeFileSync(`emails/templates/${t.alias}.html`, html);
+  const cab = [['HEADER_IMG', t.capa.img], ['HEADER_ALT', t.capa.alt], ['HEADER_LINK', t.capa.link || utm(SITE + '/', t.alias)]];
   indice.push({ alias: t.alias, nome: t.nome, assunto: t.assunto, marketing: t.marketing !== false,
-    variaveis: t.variaveis.map(([key, fallbackValue]) => ({ key, type: 'string', fallbackValue })) });
+    variaveis: [...cab, ...t.variaveis].map(([key, fallbackValue]) => ({ key, type: 'string', fallbackValue })) });
 }
 writeFileSync('emails/templates/index.json', JSON.stringify(indice, null, 2) + '\n');
 console.log(`${T.length} templates em emails/templates/`);
