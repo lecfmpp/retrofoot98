@@ -150,7 +150,7 @@ const script = `
   function cartao(i){
     var lanc=i.status==='lancado';
     var tags='<span class="rm-tag">'+esc(i.area||'Geral')+'</span>';
-    if(!lanc && i.versao==='v1_extra') tags+='<span class="rm-tag v1" title="Dependendo da complexidade e do tempo, pode entrar como extra ainda na Versão 1">⚡ Pode chegar na V1</span>';
+    if(!lanc && i.versao==='v1_extra') tags+='<span class="rm-tag v1" title="Dependendo da complexidade e do tempo, pode entrar como extra ainda na Versão 1">Pode chegar na V1</span>';
     if(lanc) tags+='<span class="rm-tag ok">✓ Lançado'+(i.lancado_em?' em '+dataBR(i.lancado_em):'')+'</span>';
     var voto=lanc ? '' : '<button class="rm-voto '+nivel(i.votos)+(i.meu_voto?' on':'')+'" data-votar="'+i.id+'" aria-pressed="'+(i.meu_voto?'true':'false')+'" title="'+(i.meu_voto?'Tirar meu voto':'Votar')+'"'+(votando[i.id]?' disabled':'')+'>'
       +'<span class="s">'+(i.meu_voto?'✓':'▲')+'</span><b>'+i.votos+'</b><small>'+(i.meu_voto?'votado':(i.votos===1?'voto':'votos'))+'</small></button>';
@@ -163,7 +163,7 @@ const script = `
     var vazio=!itens.length;
     el('rm-sec-top').hidden=vazio; el('rm-barra-wrap').hidden=vazio;
     if(vazio){
-      el('rm-quadro').innerHTML='<div class="rm-montando"><b>🛠️ O roadmap da Versão 2 está sendo montado.</b>'
+      el('rm-quadro').innerHTML='<div class="rm-montando"><b>O roadmap da Versão 2 está sendo montado.</b>'
         +'Os sócios estão escolhendo o que entra. Assim que os primeiros itens forem aprovados, eles aparecem aqui para você votar.'
         +'<span>Quer dar uma ideia enquanto isso? Conta no grupo da Resenha — é de lá que sai boa parte deste quadro.</span></div>';
       return;
@@ -290,8 +290,8 @@ export const roadmap = [{
     <p class="rm-lead">O quadro do que estamos preparando para a Versão 2. Vote no que você quer primeiro —
       os mais votados sobem na fila.</p>
     <div class="rm-labels">
-      <span class="rm-label data">📅 Versão 2 prevista para dezembro de 2026 · a confirmar</span>
-      <span class="rm-label v1">⚡ Algumas melhorias podem chegar antes, ainda na Versão 1</span>
+      <span class="rm-label data">Versão 2 prevista para dezembro de 2026 · a confirmar</span>
+      <span class="rm-label v1">Algumas melhorias podem chegar antes, ainda na Versão 1</span>
     </div>
   </section>
 
@@ -308,7 +308,7 @@ export const roadmap = [{
   </section>
 
   <section class="rm-sec" id="rm-sec-top">
-    <h2 class="rm-h2">🏆 Mais votados</h2>
+    <h2 class="rm-h2">Mais votados</h2>
     <p class="rm-sub">O que a comunidade mais quer ver no jogo agora.</p>
     <ol class="rm-top" id="rm-top"></ol>
   </section>
@@ -316,22 +316,22 @@ export const roadmap = [{
   <section class="rm-sec">
     <h2 class="rm-h2">Como funciona</h2>
     <div class="rm-como">
-      <h3>▲ Vote no que importa</h3>
+      <h3>Vote no que importa</h3>
       <p>Cada conta tem 1 voto por item e pode tirar o voto quando quiser. A cor do voto mostra o peso:
         cinza sem votos, verde cada vez mais forte nos mais pedidos.</p>
-      <h3>🧭 Os estágios</h3>
+      <h3>Os estágios</h3>
       <p>Em análise: estamos estudando. Planejado: aprovado para a Versão 2. Em desenvolvimento: sendo feito
         agora. Lançado: já está no jogo.</p>
-      <h3>📅 Quando chega</h3>
+      <h3>Quando chega</h3>
       <p>A Versão 2 está prevista para dezembro de 2026, ainda a confirmar. Dependendo da complexidade e do
         tempo de implementação, alguns itens entram antes, como extra da Versão 1 — esses levam a etiqueta
-        <span class="rm-tag v1">⚡ Pode chegar na V1</span>.</p>
+        <span class="rm-tag v1">Pode chegar na V1</span>.</p>
     </div>
   </section>
 
   <section class="rm-ideia">
     <span><b>Tem uma ideia que não está aqui?</b> Conta pra gente no grupo da Resenha no WhatsApp.</span>
-    <button class="rm-b am" id="rm-ideia-btn" type="button">💬 Sugerir no grupo</button>
+    <button class="rm-b am" id="rm-ideia-btn" type="button">Sugerir no grupo</button>
     ${botaoShare.replace('rm-b az', 'rm-b br')}
   </section>
 </div>
@@ -353,7 +353,7 @@ export const roadmap = [{
     <h3 id="rm-share-t">Compartilhar o roadmap</h3>
     <p>Mande para a sua turma votar também.</p>
     <div class="linha">
-      <a class="rm-b am" id="rm-share-wpp" target="_blank" rel="noopener" href="#">💬 Enviar no WhatsApp</a>
+      <a class="rm-b am" id="rm-share-wpp" target="_blank" rel="noopener" href="#">Enviar no WhatsApp</a>
     </div>
     <div class="linha"><input id="rm-share-url" readonly style="flex:1;min-width:0;height:44px;border:1px solid var(--rm-bd);border-radius:12px;padding:0 12px;font:inherit">
       <button class="rm-b br" id="rm-copiar" type="button">Copiar link</button></div>

@@ -4328,11 +4328,11 @@ async function pgFeatures(forcar, senha = pedirDesenho()){
     <span class="${aba==='ideias'?'on':''}" data-fx="ideias" style="padding:9px 16px">Banco de ideias${
       pendentes.length?` <b style="color:var(--ambar)">${pendentes.length}</b>`:''}</span>
     <span class="${aba==='roadmap'?'on':''}" data-fx="roadmap" style="padding:9px 16px">Roadmap (kanban)</span>
-    <span class="${aba==='bugs'?'on':''}" data-fx="bugs" style="padding:9px 16px">🐞 Bugs${
+    <span class="${aba==='bugs'?'on':''}" data-fx="bugs" style="padding:9px 16px">Bugs${
       bugsAbertos?` <b style="color:var(--vermelho)">${bugsAbertos}</b>`:''}</span>
-    <span class="${aba==='ops'?'on':''}" data-fx="ops" style="padding:9px 16px">📣 Marketing e operação${
+    <span class="${aba==='ops'?'on':''}" data-fx="ops" style="padding:9px 16px">Marketing e operação${
       opsAbertos?` <b style="color:var(--ambar)">${opsAbertos}</b>`:''}</span>
-    <span class="${aba==='depoimentos'?'on':''}" data-fx="depoimentos" style="padding:9px 16px">💬 Depoimentos${
+    <span class="${aba==='depoimentos'?'on':''}" data-fx="depoimentos" style="padding:9px 16px">Depoimentos${
       porLer?` <b style="color:var(--ambar)">${porLer}</b>`:''}</span>
     <a class="link" href="https://retrofoot.com.br/roadmap/" target="_blank" rel="noopener" style="margin-left:auto;align-self:center;font-size:12.5px">Ver página pública ↗</a>
   </div>`;
@@ -4655,7 +4655,7 @@ function depoimentosHTML(editar){
         const feita = d.feature_id && D.feats.find(f => f.id === d.feature_id);
         return `<div class="row" style="grid-template-columns:minmax(0,1fr) 250px;align-items:start;${d.lida?'':'border-left:3px solid var(--ambar)'}">
           <span style="min-width:0">
-            <span class="tag ${d.tipo==='post'?'t-azul':'t-ok'}">${d.tipo==='post' ? '📣 Post · 2ª trava' : '💬 Depoimento · 1ª trava'}</span>
+            <span class="tag ${d.tipo==='post'?'t-azul':'t-ok'}">${d.tipo==='post' ? 'Post · 2ª trava' : 'Depoimento · 1ª trava'}</span>
             ${d.socio ? '<span class="tag t-dim">sócio</span>' : ''}
             ${d.texto ? `<div style="font-size:13.5px;line-height:1.55;margin:8px 0 6px;color:var(--fg)">“${h(d.texto)}”</div>` : ''}
             ${d.link ? `<div style="margin:8px 0 6px"><a href="${h(/^https?:\/\//i.test(d.link) ? d.link : 'https://' + d.link)}" target="_blank" rel="noopener noreferrer">${h(d.link)}</a></div>` : ''}
@@ -4663,13 +4663,13 @@ function depoimentosHTML(editar){
             ${feita ? `<small style="display:block;margin-top:5px;font-size:11.5px;color:var(--verde2)">→ virou ${feita.tipo==='bug'?'bug':'ideia'}: ${h(feita.titulo)}</small>` : ''}
           </span>
           <span style="display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end">
-            ${editar && !feita && d.texto ? `<button class="btn btn-sm btn-ghost" data-dep-virar="${d.id}" data-t="recurso">💡 Virar ideia</button>
-              <button class="btn btn-sm btn-ghost" data-dep-virar="${d.id}" data-t="bug">🐞 Virar bug</button>` : ''}
+            ${editar && !feita && d.texto ? `<button class="btn btn-sm btn-ghost" data-dep-virar="${d.id}" data-t="recurso">Virar ideia</button>
+              <button class="btn btn-sm btn-ghost" data-dep-virar="${d.id}" data-t="bug">Virar bug</button>` : ''}
             ${d.lida ? '' : `<span class="link" data-dep-lida="${d.id}" style="font-size:12px;align-self:center">marcar lido</span>`}
             <span class="link" data-dep-arq="${d.id}" style="font-size:12px;align-self:center">${d.arquivado ? 'desarquivar' : 'arquivar'}</span>
           </span>
         </div>`;
-      }).join('') : `<div class="vazio">${ver==='novos' ? 'Nenhum depoimento novo. 🎉' : 'Nenhum depoimento com esses filtros.'}</div>`}
+      }).join('') : `<div class="vazio">${ver==='novos' ? 'Nenhum depoimento novo. ' : 'Nenhum depoimento com esses filtros.'}</div>`}
     </div>`;
 }
 async function depMarcar(id, linha){
@@ -4717,8 +4717,8 @@ function rmKanbanHTML(souSocio){
       ${i.descricao ? `<small style="font-size:12px;color:var(--dim);line-height:1.5">${h(i.descricao)}</small>` : ''}
       <span style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">
         ${i.area ? `<span class="tag t-dim">${h(i.area)}</span>` : ''}
-        ${i.versao === 'v1_extra' && i.status !== 'lancado' ? '<span class="tag t-warn">⚡ pode chegar na V1</span>' : ''}
-        ${i.publicado ? '' : '<span class="tag t-dim" data-tip="Não aparece na página pública">🔒 oculto</span>'}
+        ${i.versao === 'v1_extra' && i.status !== 'lancado' ? '<span class="tag t-warn">pode chegar na V1</span>' : ''}
+        ${i.publicado ? '' : '<span class="tag t-dim" data-tip="Não aparece na página pública">oculto</span>'}
         <span class="mono" style="margin-left:auto;font-size:12px;color:${v?'var(--verde2)':'var(--dim3)'}" data-tip="Votos dos jogadores na página pública">▲ ${num(v)}</span>
       </span>
       ${souSocio ? `<span style="display:flex;gap:6px;align-items:center">
