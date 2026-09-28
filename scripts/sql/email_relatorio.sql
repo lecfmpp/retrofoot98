@@ -1,0 +1,9 @@
+-- ===== RELATÓRIO DIÁRIO DOS E-MAILS (28/09/2026) — migração email_relatorio_diario =====
+-- admin_rf98.email_etapas_dia   foto diária da etapa de cada conta (23:50 de Brasília, cron email-foto-etapas;
+--                               a de 28/09 é a BASE da campanha — "on conflict do nothing" para não sobrescrever)
+-- admin_rf98.email_foto_etapas() tira a foto do dia
+-- admin_rf98.email_relatorio()   jsonb: etapas agora, quem avançou desde ontem, resultado da campanha de 28/09,
+--                               automações disparadas em 24 h, fila, Pro, paywall, opinião/post, cadastros
+-- Lido pela tarefa agendada "Relatório diário dos e-mails do RetroFoot" (9h de Toronto), que junta com as
+-- métricas do Resend (domínio retrofoot.com.br) e resume para o dono.
+-- A função completa está no banco (pg_get_functiondef('admin_rf98.email_relatorio'::regproc)).
