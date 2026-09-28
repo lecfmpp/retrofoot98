@@ -4289,7 +4289,7 @@ const RM_ESTAGIOS = [['analise','Em análise','#8b978d'],['planejado','Planejado
                      ['desenvolvimento','Em desenvolvimento','#e3b23c'],['lancado','Lançado','#4ade80']];
 /* valores aceitos pelo banco (adm_features_origem_check): a chave da equipe é 'equipa' */
 const IDEIA_ORIGEM = { equipa:'Equipe', usuario:'Jogador', whatsapp:'Grupo do WhatsApp', parceiro:'Parceiro' };
-const IDEIA_VER = { pendente:'Aguardando aprovação', aprovada:'Aprovadas (no roadmap)', recusada:'Recusadas',
+const IDEIA_VER = { pendente:'Aguardando aprovação', aprovada:'Aprovadas (no roadmap)', recusada:'Recusadas (por enquanto)',
                     arquivada:'Arquivadas', todas:'Todas' };
 async function pgFeatures(forcar, senha = pedirDesenho()){
   const [cols, feats, equipe, opin, votosS, itens, votosJ] = await Promise.all([
@@ -4386,7 +4386,7 @@ function ideiasHTML(souSocio, editar, meuFalta){
       <div style="flex:1;min-width:240px;line-height:1.55;font-size:13px;color:var(--dim)">
         <b style="color:var(--fg)">Banco de ideias.</b> Cada ideia precisa da aprovação dos
         <b>${num((D.socios||[]).length)} sócios</b> para entrar no roadmap público (vai para <i>Planejado · V2</i>).
-        Maioria recusando, ela sai da fila.
+        Maioria recusando, ela vai para <i>Recusadas</i> — <b>nenhuma ideia some</b>: dá para reabrir a votação a qualquer momento.
         ${souSocio && meuFalta ? `<br><b style="color:var(--ambar)">Faltam ${num(meuFalta)} ideia${meuFalta===1?'':'s'} com o seu voto.</b>` : ''}
       </div>
       ${editar ? '<button class="btn btn-sm" id="id-nova">+ Nova ideia</button>' : ''}
@@ -4424,8 +4424,9 @@ function ideiasHTML(souSocio, editar, meuFalta){
         } else if(f.ideia_status === 'aprovada'){
           acao = `<span class="tag t-ok">no roadmap</span> <span class="link" data-fx="roadmap" style="font-size:12px">ver no kanban →</span>`;
         } else if(f.ideia_status === 'arquivada'){
-          acao = `<span class="tag t-dim">arquivada</span>${souSocio ? ` <span class="link" data-desarquivar="${h(f.id)}" style="font-size:12px">voltar para a fila</span>` : ''}`;
-        } else acao = '<span class="tag t-dim">recusada</span>';
+          acao = `<span class="tag t-dim">arquivada</span>${souSocio ? ` <span class="link" data-reabrir="${h(f.id)}" style="font-size:12px" data-tip="Volta para a fila de aprovação, com os votos zerados">voltar para a fila</span>` : ''}`;
+        } else acao = `<span class="tag t-dim" data-tip="Recusada pela maioria dos sócios — continua guardada">recusada por enquanto</span>${souSocio
+            ? ` <button class="btn btn-sm btn-ghost" data-reabrir="${h(f.id)}" data-tip="Zera os votos e volta para a fila: os sócios votam de novo">↺ Reabrir votação</button>` : ''}`;
         return `<div class="row" style="grid-template-columns:${col};align-items:start">
           <span style="min-width:0"><b class="link" data-abrir-ideia="${h(f.id)}" style="display:block;font-size:13px;font-weight:600;color:var(--fg)">${h(f.titulo)}</b>
             ${texto ? `<small style="display:block;font-size:12px;color:var(--dim);margin-top:3px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${h(texto)}</small>` : ''}
@@ -4462,7 +4463,12 @@ function ligarIdeias(souSocio, editar){
     toast(msg); redesenhar(pgFeatures);
   };
   document.querySelectorAll('[data-arquivar]').forEach(b => b.onclick = () => mudar(b.dataset.arquivar, 'arquivada', 'Ideia arquivada.'));
-  document.querySelectorAll('[data-desarquivar]').forEach(b => b.onclick = () => mudar(b.dataset.desarquivar, 'pendente', 'Ideia voltou para a fila.'));
+  /* reabrir (recusada ou arquivada) passa pela função: zera os votos e registra (ideias_nunca_somem.sql) */
+  document.querySelectorAll('[data-reabrir]').forEach(b => b.onclick = async () => {
+    const { error } = await sb.rpc('ideia_reabrir', { p_ideia: b.dataset.reabrir });
+    if(error) return toast(erroMsg(error), true);
+    toast('Voltou para a fila — os sócios votam de novo.'); redesenhar(pgFeatures);
+  });
   document.querySelectorAll('[data-virar-bug]').forEach(b => b.onclick = () => mudarTipo(b.dataset.virarBug, 'bug'));
   if(el('id-arq-lote')) el('id-arq-lote').onclick = async () => {
     const ls = ideiasFiltradas().filter(f => f.ideia_status === 'pendente');
@@ -4744,9 +4750,12 @@ function modalRoadmapItem(id){
     fecharModal(); toast('Roadmap atualizado.'); redesenhar(pgFeatures);
   };
   el('ri-del').onclick = async () => {
-    if(!confirm(`Tirar "${i.titulo}" do roadmap?\n\nSome da página pública junto com os ${D.rmVotos[i.id]||0} voto(s). Para só esconder, desmarque "Aparece na página pública".`)) return;
+    if(!confirm(`Tirar "${i.titulo}" do roadmap?\n\nSome da página pública junto com os ${D.rmVotos[i.id]||0} voto(s). A ideia de origem volta para o banco de ideias, aguardando nova votação.\nPara só esconder, desmarque "Aparece na página pública".`)) return;
+    const origem = (D.feats||[]).find(f => f.roadmap_item_id === i.id);
     const { error } = await jogo('roadmap_itens').delete().eq('id', i.id);
     if(error) return toast(erroMsg(error), true);
+    /* a ideia não some: volta para a fila (ideia_reabrir) */
+    if(origem){ const r = await sb.rpc('ideia_reabrir', { p_ideia: origem.id }); if(r.error) toast('Item tirado, mas a ideia não voltou para a fila: ' + erroMsg(r.error), true); }
     registrar('roadmap.remover', i.titulo, { item_id: i.id, item: i, votos: D.rmVotos[i.id]||0 });
     fecharModal(); toast('Item tirado do roadmap.'); redesenhar(pgFeatures);
   };
@@ -5433,7 +5442,7 @@ const ACOES = {
   'feature.reabrir':'Reabriu o card',
   'feature.voto':'Mudou votos de um card',
   'ideia.voto':'Votou numa ideia', 'ideia.aprovada':'Ideia aprovada → roadmap', 'ideia.recusada':'Ideia recusada',
-  'ideia.arquivar':'Arquivou ideia', 'ideia.desarquivar':'Voltou ideia para a fila', 'ideia.arquivar_lote':'Arquivou ideias em lote',
+  'ideia.arquivar':'Arquivou ideia', 'ideia.desarquivar':'Voltou ideia para a fila', 'ideia.reabrir':'Reabriu a votação de uma ideia', 'ideia.arquivar_lote':'Arquivou ideias em lote',
   'roadmap.estagio':'Moveu item do roadmap', 'depoimento.virou':'Depoimento virou ideia/bug', 'bug.status':'Mudou situação de bug', 'ideia.tipo':'Mudou entre bug e recurso', 'roadmap.editar':'Editou item do roadmap', 'roadmap.remover':'Tirou item do roadmap',
   'coluna.criar':'Criou coluna do kanban',
   'coluna.renomear':'Renomeou coluna do kanban',
