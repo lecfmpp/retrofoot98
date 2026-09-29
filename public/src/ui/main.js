@@ -4101,7 +4101,7 @@ function playerSalary(p){ return (p&&p.contract&&p.contract.salary) || (p?REBAL.
 /* jogador em treino especial (Jogador > Treino especial). Lê a MESMA fonte do menu
    (S.trainingByClub[clube] — ver startTraining/myTrainingList no core), não o flag _training
    solto no jogador, que não sobrevive a um adopt do estado do servidor. */
-function isInTraining(clubId, pid){ return ((S.trainingByClub && S.trainingByClub[clubId])||[]).indexOf(pid)>=0; }
+function isInTraining(clubId, pid){ return ((S.trainingByClub && S.trainingByClub[clubId])||[]).map(String).indexOf(String(pid))>=0; }
 /* ícone ao lado da força de quem está treinando — dá pra acompanhar a evolução direto na lista,
    sem abrir o menu de treino. ⭐ já significa outra coisa aqui (evolui mais rápido), por isso o
    cone (não existe emoji nativo de cone de trânsito — usa a imagem). */
@@ -5806,13 +5806,13 @@ function trainingRowHTML(p, inTraining, cheio){
   </div>`;
 }
 function clTrainingScreen(){ CL.menu=null;
-  const training=new Set(myTrainingList());
+  const training=new Set(myTrainingList().map(String));
   const cheio=training.size>=TRAINING_MAX_SLOTS;
   const sq=squad(CL.clubId).slice().sort((a,b)=>{
     const ga=(typeof growthProfileOf==='function')?growthProfileOf(a):null, gb=(typeof growthProfileOf==='function')?growthProfileOf(b):null;
     return ((gb&&gb.forcaPorTemporada)||0)-((ga&&ga.forcaPorTemporada)||0); // quem mais cresce primeiro
   });
-  const rows=sq.map(p=>trainingRowHTML(p, training.has(p.pid), cheio)).join('');
+  const rows=sq.map(p=>trainingRowHTML(p, training.has(String(p.pid)), cheio)).join('');
   // o explicador vira <details> RECOLHIDO por padrão: ele ocupava quase metade da janela antes
   // de qualquer dado. CL.trnHelpOpen guarda o estado pra não fechar sozinho a cada re-render
   // (clStartTraining/clStopTraining redesenham a tela inteira).

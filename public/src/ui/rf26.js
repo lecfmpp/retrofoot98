@@ -2545,7 +2545,7 @@ function rfTreinoHTML(){
   const lista=(typeof myTrainingList==='function')?myTrainingList():[];
   const max=(typeof TRAINING_MAX_SLOTS!=='undefined')?TRAINING_MAX_SLOTS:3;
   const linhas=lista.length ? lista.map(pid=>{
-      const p=squad(CL.clubId).find(x=>x.pid===pid); if(!p) return '';
+      const p=squad(CL.clubId).find(x=>String(x.pid)===String(pid)); if(!p) return '';
       return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}</span>
         <span class="rf-linha-v">força ${p.f}</span></div>`;
     }).join('')

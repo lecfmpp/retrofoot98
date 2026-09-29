@@ -621,7 +621,7 @@ async function netPublishResult(round, result){
   // lista de pids viaja por aqui (mesmo canal das transferências) e o servidor remarca o flag
   // antes de evoluir. Fonte única: S.trainingByClub (o que o menu de Treino especial escreve).
   const _trn = (typeof S!=='undefined' && S && S.trainingByClub && S.clubId!=null)
-    ? (S.trainingByClub[S.clubId]||[]) : [];
+    ? ((typeof myTrainingList==='function') ? myTrainingList() : (S.trainingByClub[S.clubId]||[])) : [];
   // SEMENTE DAS LIGAS DE FUNDO (item 4): sala de antes do pacote existir. O estado adotado não
   // tem S.bgLeagues — este cliente monta o pacote de todos os países (bgInitCountry) e manda
   // UMA vez; o servidor só adota quando ainda não há (ver o seat loop no resolve-round).

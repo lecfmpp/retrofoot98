@@ -855,7 +855,7 @@ function rfElTreinoHTML(){
   /* Quem está em treino, dito por extenso: nome e a chance dele. Três linhas,
      não uma tabela — é a resposta a "o que é que eu estou a ganhar com isto". */
   const dentro=lista.map(pid=>{
-    const p=sq.find(x=>x.pid===pid); if(!p) return '';
+    const p=sq.find(x=>String(x.pid)===String(pid)); if(!p) return '';
     const ch=rfTrnChance(p);
     return `<div class="rf-linha"><span class="rf-linha-t">${escC(p.n)}${ch.star?' ★':''}</span>
       <span class="rf-linha-v">+${ch.pct}% de evoluir por semana</span></div>`;

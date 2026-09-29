@@ -215,20 +215,42 @@ function canReleaseFromSquad(clubId, p){
    próprio jogador via hasEstrelinha(), sem precisar mexer em todo canto que cria jogador. */
 const TRAINING_MAX_SLOTS=3;
 function hasEstrelinha(p){ if(!p) return false; return (hashSeed(p.pid!=null?p.pid:0, p.n||'','estrelinha')>>>0)%100 < 15; }
-function myTrainingList(){ return (S.trainingByClub && S.trainingByClub[S.clubId])||[]; }
+/* ===== A VAGA DE TREINO NÃO PODE SOBREVIVER AO JOGADOR (29/09/2026) =====
+   A lista S.trainingByClub[clube] guarda PIDs, e nada os tirava dali quando o jogador deixava o
+   clube: venda, dispensa, aposentadoria (o repositor entra com outro pid), fim de contrato, troca de
+   clube. O PID fantasma seguia contando nas 3 vagas mas não tem linha na tela — então ninguém o
+   via nem podia tirá-lo, e a tela dizia "as 3 vagas estão ocupadas" com "ninguém em treino". Uns
+   poucos anos de carreira (vender o garoto que treinava, aposentar o veterano) e o treino
+   ficava travado para sempre. Relato de usuário: "chegou em uma certa temporada que eu não
+   conseguia selecionar ninguém para treinar".
+   `treinoPodar` é a cura e roda na LEITURA (myTrainingList), então nenhuma tela pode ver vaga
+   fantasma, e em todo ponto de adoção de estado (syncTrainingFlags) — o que também limpa os saves
+   que já estavam travados. Comparação sempre por String: o pid vem de atributo HTML como texto. */
+function treinoPodar(clubId){
+  if(typeof S==='undefined' || !S || !S.trainingByClub) return [];
+  const lista=S.trainingByClub[clubId]; if(!Array.isArray(lista)) return [];
+  const sq=(S.squads&&S.squads[clubId])||[];
+  const vivos=new Set(sq.filter(Boolean).map(p=>String(p.pid)));
+  const vistos=new Set(); const limpa=[];
+  lista.forEach(pid=>{ const k=String(pid); if(vivos.has(k) && !vistos.has(k)){ vistos.add(k); limpa.push(pid); } });
+  if(limpa.length!==lista.length) S.trainingByClub[clubId]=limpa;
+  return S.trainingByClub[clubId];
+}
+function myTrainingList(){ return treinoPodar(S.clubId); }
 function startTraining(pid){
   S.trainingByClub=S.trainingByClub||{};
-  const mine=S.trainingByClub[S.clubId]=S.trainingByClub[S.clubId]||[];
-  if(mine.includes(pid)) return {ok:false,msg:`${RFG().t('Esse')} ${RFG().t('jogador')} já está em treino.`};
-  if(mine.length>=TRAINING_MAX_SLOTS) return {ok:false,msg:`Máximo de ${TRAINING_MAX_SLOTS} ${RFG().t('jogadores')} em treino ao mesmo tempo.`};
-  const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não ${RFG().ehFem()?'encontrada':'encontrado'}.`};
-  mine.push(pid); p._training=true; save();
+  const mine=treinoPodar(S.clubId); S.trainingByClub[S.clubId]=mine.length?mine:(S.trainingByClub[S.clubId]||[]);
+  const lista=S.trainingByClub[S.clubId];
+  if(lista.map(String).includes(String(pid))) return {ok:false,msg:`${RFG().t('Esse')} ${RFG().t('jogador')} já está em treino.`};
+  if(lista.length>=TRAINING_MAX_SLOTS) return {ok:false,msg:`Máximo de ${TRAINING_MAX_SLOTS} ${RFG().t('jogadores')} em treino ao mesmo tempo.`};
+  const p=(S.squads[S.clubId]||[]).find(x=>String(x.pid)===String(pid)); if(!p) return {ok:false,msg:`${RFG().t('Jogador')} não ${RFG().ehFem()?'encontrada':'encontrado'}.`};
+  lista.push(p.pid); p._training=true; save();
   return {ok:true,msg:`${p.n} entrou em treino especial.`};
 }
 function stopTraining(pid){
   S.trainingByClub=S.trainingByClub||{};
-  S.trainingByClub[S.clubId]=(S.trainingByClub[S.clubId]||[]).filter(x=>x!==pid);
-  const p=(S.squads[S.clubId]||[]).find(x=>x.pid===pid); if(p) delete p._training;
+  S.trainingByClub[S.clubId]=(S.trainingByClub[S.clubId]||[]).filter(x=>String(x)!==String(pid));
+  const p=(S.squads[S.clubId]||[]).find(x=>String(x.pid)===String(pid)); if(p) delete p._training;
   save();
   return {ok:true};
 }
@@ -240,6 +262,7 @@ function stopTraining(pid){
 function syncTrainingFlags(){
   if(typeof S==='undefined' || !S || !S.squads) return;
   const map=S.trainingByClub||{};
+  Object.keys(map).forEach(cid=>{ try{ treinoPodar(cid); }catch(e){} });   // pid de quem já saiu do clube não ocupa vaga
   Object.keys(S.squads).forEach(cid=>{
     const lista=map[cid]; const sq=S.squads[cid]; if(!Array.isArray(sq)) return;
     if(!lista || !lista.length){ sq.forEach(p=>{ if(p && p._training) delete p._training; }); return; }
@@ -6240,6 +6263,7 @@ function playRound(userResult, humanResults){
   capsDrain(S.clubId, capsOf(S.clubId), roundMins[S.clubId]||90, Rr);
   // player development / decline (deterministic)
   const Rd=makeRng(hashSeed(S.seed,S.round,'dev'));
+  syncTrainingFlags();   // vaga de quem saiu do clube é liberada; flag de treino não vai junto na venda
   Object.keys(S.squads).forEach(cid=>{
     /* "jogou" pra evolução = entrou em campo, não "estava no onze do fim". Sem isto o titular
        substituído no intervalo levava benchStreak++ (perda de ritmo por ficar no banco) numa
@@ -7345,6 +7369,7 @@ function applySeasonAgingAndRetirement(){
     });
     recomputeClubOverall(cid);
   });
+  syncTrainingFlags();   // quem se aposentou deixou o pid na lista de treino: libera a vaga
 }
 /* calcula (sem aplicar) pra qual divisão o usuário iria na próxima temporada —
    permite à UI pré-carregar dados reais ANTES de chamar newSeasonReset() */
