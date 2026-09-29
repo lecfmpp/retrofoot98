@@ -171,10 +171,12 @@ const RF_MKT_FILTROS=[
      degrau continha todos os de cima. Agora sao FAIXAS fechadas, que e' o que se procura no
      mercado ("um de 30 a 40 que eu consiga pagar"), com o topo aberto onde ele de facto
      acaba (medido: mediana 34, percentil 90 em 43, so' 17 jogadores acima de 70). */
-  { k:'forca', l:'Força',   op:[['all','qualquer'],
-                                ['0-10','0 a 10'],['11-20','11 a 20'],['21-30','21 a 30'],
-                                ['31-40','31 a 40'],['41-50','41 a 50'],['51-60','51 a 60'],
-                                ['61-70','61 a 70'],['71-','71 ou mais']] },
+  /* ===== QUANTOS HÁ EM CADA FAIXA, E O ATALHO DAS ESTRELAS (29/09/2026) =====
+     Só ~3% do mercado chega a 50 (a escala é por faixas: 50-69 Estrela, 70-89 Craque Nacional,
+     90+ Craque Mundial — ver BANDS em data/rebalance.js), e quem escolhia "51 a 60" não sabia se
+     ia encontrar alguém. Cada faixa agora mostra quantos jogadores tem com os OUTROS filtros
+     aplicados (país, posição, idade...), e "Estrelas (50+)" junta as três faixas de cima. */
+  { k:'forca', l:'Força',   op:()=>rfMktForcaOp() },
   { k:'idade', l:'Idade',   op:[['all','qualquer'],['23','até 23'],['27','até 27'],['30','até 30']] },
   { k:'preco', l:'Preço',   op:[['all','qualquer'],['caixa','o que cabe no caixa'],['meio','até metade do caixa']] },
   /* ===== NACIONALIDADE (regra do dono, 22/08) =====
@@ -478,6 +480,24 @@ function rfMktMercado(){
 /* FILTRO = PÍLULA, não caixa de selecção do sistema. O <select> nativo é o
    último resto de aparência de sistema operativo na tela; aqui ele fica por
    baixo, invisível, e quem se vê é a pílula com rótulo e valor. */
+/* as faixas de Força; o 3º item de cada uma é quantos jogadores caem nela com os demais filtros */
+function rfMktForcaOp(){
+  const f=rfMktF();
+  let cont=null;
+  try{
+    const guarda=f.forca; f.forca='all';
+    const fs=rfMktMercado().map(x=>Number((x.p||x).f)||0);
+    f.forca=guarda;
+    const n=(a,b)=>fs.filter(v=>v>=a && v<=b).length;
+    cont={ all:fs.length, '50-':n(50,1e9), '0-10':n(0,10), '11-20':n(11,20), '21-30':n(21,30), '31-40':n(31,40),
+           '41-50':n(41,50), '51-60':n(51,60), '61-70':n(61,70), '71-':n(71,1e9) };
+  }catch(e){ cont=null; }
+  const c=k=>cont?cont[k]:undefined;
+  return [['all','qualquer',c('all')],['50-','⭐ Estrelas (50 ou mais)',c('50-')],
+          ['0-10','0 a 10',c('0-10')],['11-20','11 a 20',c('11-20')],['21-30','21 a 30',c('21-30')],
+          ['31-40','31 a 40',c('31-40')],['41-50','41 a 50',c('41-50')],['51-60','51 a 60',c('51-60')],
+          ['61-70','61 a 70',c('61-70')],['71-','71 ou mais',c('71-')]];
+}
 function rfMktFiltrosHTML(){
   const f=rfMktF();
   return `<div class="rf-mkf">
@@ -493,7 +513,7 @@ function rfMktFiltrosHTML(){
         <span class="rf-mkf-v">${escC(String(at).trim())}</span>
         <span class="rf-mkf-c">▾</span>
         <select onchange="rfMktSetF('${ff.k}',this.value)">
-          ${ff.op.map(([v,l])=>`<option value="${v}" ${val===v?'selected':''}>${escC(l)}</option>`).join('')}
+          ${ff.op.map(([v,l,n])=>`<option value="${v}" ${val===v?'selected':''}>${escC(l)}${n!=null?' · '+n:''}</option>`).join('')}
         </select>
       </label>`;
     }).join('')}
