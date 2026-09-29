@@ -703,7 +703,7 @@ const RF_BASE_COLS='minmax(0,1.2fr) 34px 40px 40px minmax(74px,.5fr) minmax(74px
    pra lá. Quando ligarmos a base de verdade, é só trocar as duas contas. */
 /* ===== A ESTRELA DO POTENCIAL (29/09/2026) =====
    Quatro níveis reais (o quarto, o globo, é o do fenômeno), sorteados uma vez por jogador (p.pot / p.potT, ver potEnsure em index.html):
-   ⅓ de estrela = potencial comum, ½ = grande promessa, estrela cheia = potencial de craque.
+   estrela AZUL = potencial comum, PRATA = grande promessa, DOURADA = potencial de craque.
    O nível também entra no VALOR do passe (fatorPotencial) e o mouse mostra até onde ele pode
    chegar, na força que a tela exibe, se treinar e jogar com regularidade. Só jovens têm a estrela
    (`idadeMax`): depois dos 25 não há mais o que crescer. */
@@ -712,10 +712,9 @@ function rfPotEstrelaHTML(p, idadeMax){
   if((p.age||99) > (idadeMax==null?25:idadeMax)) return '';
   let i=null; try{ i=potInfo(p); }catch(e){}
   if(!i) return '';
-  const corte=[0,66.7,50,0,0][i.nivel];               // % a esconder à direita: ⅓, ½, cheia
-  const fracao=['','⅓','½','estrela cheia','globo'][i.nivel];
+  const cor=['','azul','prata','dourada','globo'][i.nivel];
   const sobe=i.teto>i.atual;
-  const dica=`${i.nome} (${fracao})\n`
+  const dica=`${i.nome} (${cor==='globo'?'globo':'estrela '+cor})\n`
     +(sobe?`Se treinar e jogar com regularidade, pode chegar à força ${i.teto} (hoje ${i.atual}).`
            :`Já está perto do máximo: força ${i.atual}.`)
     +`\nPotencial maior valoriza o passe do jogador.`;
@@ -724,8 +723,7 @@ function rfPotEstrelaHTML(p, idadeMax){
     return `<span class="rf-pot n4" tabindex="0" title="${escC(dica)}" aria-label="${escC(dica.replace(/\n/g,' '))}"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><ellipse cx="12" cy="12" rx="4" ry="9.5"/><path d="M2.5 12h19M4 7.2h16M4 16.8h16"/></svg></span>`;
   }
   const svg=`<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6L2.5 9.5l6.6-.9z"/></svg>`;
-  return `<span class="rf-pot n${i.nivel}" tabindex="0" title="${escC(dica)}" aria-label="${escC(dica.replace(/\n/g,' '))}">
-    <span class="rf-pot-bg">${svg}</span><span class="rf-pot-fg" style="clip-path:inset(0 ${corte}% 0 0)">${svg}</span></span>`;
+  return `<span class="rf-pot n${i.nivel}" tabindex="0" title="${escC(dica)}" aria-label="${escC(dica.replace(/\n/g,' '))}">${svg}</span>`;
 }
 function rfElPotencial(y){
   /* O TETO É O REAL: o que o motor vai deixar o jogador ser (potInfo). A projeção antiga
