@@ -12140,6 +12140,15 @@ function clAcceptResenhaOffer(){
   toastC('Assumindo o clube...');
   NET.setMyClub(offer.clubId).then(r=>{
     if(!r||!r.ok){ toastC('Não deu pra assumir'+((r&&r.error)?' ('+r.error+')':'')+'.'); return; }
+    /* ===== A PASSAGEM PELO CLUBE ANTIGO FECHA AQUI (29/09/2026) =====
+       Este caminho nunca mexia nas passagens (S.coachSpells): quem trocava de clube empregado
+       continuava com a passagem do clube ANTIGO aberta — a carreira somava os jogos de um clube
+       que ja nao era dele e ignorava os do novo. Fecha AGORA, com S.table ainda na divisao do
+       clube antigo (depois do applyViewerDivision ele sai da tabela e a conta daria zero).
+       Demitido nao entra aqui: enterResenhaUnemployment ja fechou a passagem como 'demitido'. */
+    try{ if(!CL.unemployed && typeof coachSpellFechar==='function'){
+           if(typeof coachSpellsMigrar==='function') coachSpellsMigrar();
+           coachSpellFechar('saiu'); } }catch(e){ console.warn('passagem (troca na sala):', e&&e.message); }
     CL.unemployed=false; CL._unempRounds=0; CL._pendingResenhaOffer=null; CL._ofertaEmMesa=null;
     S._demitidoPorDivida=false;
     if(Array.isArray(S.pendingJobOffers)) S.pendingJobOffers=S.pendingJobOffers.filter(x=>x.clubId!==offer.clubId);
@@ -12193,6 +12202,19 @@ function clAcceptResenhaOffer(){
     }
     if(typeof saveMyFinances==='function') saveMyFinances();
     if(typeof applyViewerDivision==='function') applyViewerDivision(CL.clubId);
+    /* a passagem nova abre DEPOIS de a divisao do clube novo estar em S.table: a marca e a tabela
+       dele neste instante, e so conta o que ele fizer daqui para a frente (mesma regra do solo,
+       ver applyManagerJobChange). Antes ela so abria "atrasada", quando alguma tela chamava
+       coachSpellsMigrar — e os jogos ate la sumiam da carreira. */
+    try{ if(typeof coachSpellAbrir==='function'){
+           const _ab=(typeof coachSpellAtual==='function')?coachSpellAtual():null;
+           if(_ab && String(_ab.clubId)!==String(offer.clubId)) coachSpellFechar('saiu');
+           if(!_ab || String(_ab.clubId)!==String(offer.clubId)) coachSpellAbrir(offer.clubId,'contratado');
+           /* alguem ja a abriu no meio da troca (abertura atrasada, com a tabela antiga): ainda nao
+              contou nada, entao so refaz a marca com a tabela certa */
+           else if(!Object.values(_ab.tot||{}).some(Number) && typeof _spellTabelaDe==='function')
+             _ab.marca=_spellTabelaDe(offer.clubId);
+         } }catch(e){ console.warn('passagem nova (sala):', e&&e.message); }
     S.xi=(typeof resolveClubXI==='function')?resolveClubXI(CL.clubId):(typeof autoXI==='function'?autoXI(CL.clubId):S.xi);
     CL.tacticChosen=false; CL.formation=null; CL.selPlayer=squad(CL.clubId)[0]?.pid||null; S.jobSecurity=55;
     if(offer.salary) S.coachSalary=offer.salary;     // o número que ele viu na mesa do jantar é o que passa a valer
