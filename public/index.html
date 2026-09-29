@@ -579,6 +579,43 @@ function assignBehavior(p){
 }
 /* evolução/regressão por rodada: idade define potencial de crescer/declinar; desempenho
    recente (nota média) e minutos definem o ganho. Recalcula força e valor de mercado. */
+/* ===== POTENCIAL: TETO DE CRESCIMENTO POR JOGADOR (29/09/2026) =====
+   Antes NÃO HAVIA teto: a evolução sorteava +1 ponto de atributo (até 20) toda rodada, sem limite de
+   quanto o jogador podia crescer. Um garoto da base de nível 50-60 que jogasse bem subia para 99 em
+   duas temporadas (medido: força 49 -> 96 em 2 anos, valor R$ 436 mi) — estrela mundial de graça,
+   vendida por fortuna, e os grandes viravam invencíveis e milionários. Os clubes de CPU evoluem pela
+   MESMA função, então o efeito se espalhava pelo mundo inteiro.
+   Agora cada jogador tem `p.pot` (na escala BRUTA de atributos, a mesma de rawF; ver levelToForce),
+   sorteado uma vez e guardado no jogador:
+     · o espaço para crescer vem da idade (18 anos: até +12 bruto; 28+: +1) e de um sorteio 50-100%;
+     · o TETO depende da raridade, também por sorteio determinístico (pid+nome):
+         normal   teto 86 bruto (≈ força 74 na Série A)     ← quase todo mundo
+         promessa teto 89 (≈ 86)                            ← ~13%  (base: 10%)
+         craque   teto 92 (≈ 94)                            ← ~4,5% (base: 2%)
+         fenômeno teto 95 (99)                              ← ~0,5% (base: 0,2%)
+     · quem já está acima continua onde está (pot >= nível atual); só não cresce mais;
+     · a chance de ganhar ponto cai linearmente nos últimos 4 pontos brutos antes do teto e zera nele.
+   O mesmo código vive em supabase/functions/resolve-round/index.ts (a Resenha evolui lá): mexeu
+   aqui, mexe lá. Nada disso aparece na tela: potencial é segredo do jogador. */
+const POT_TETO={ normal:86, promessa:89, craque:92, fenomeno:95 };
+function potEspaco(age){ return age<=18?12 : age===19?10 : age===20?9 : age===21?7 : age===22?6 : age===23?5 : age<=25?4 : age<=27?3 : 1; }
+function potEnsure(p, raw){
+  if(p.pot!=null) return p.pot;
+  const base=(p.ag==='Base');
+  const r=(hashSeed(p.pid!=null?p.pid:0, p.n||'', 'potrar')>>>0)%1000;
+  const cortes=base?[2,20,100]:[5,50,185];           // fenômeno / craque / promessa (em milésimos)
+  const tier=r<cortes[0]?'fenomeno' : r<cortes[1]?'craque' : r<cortes[2]?'promessa' : 'normal';
+  const mult={normal:1,promessa:1.5,craque:2.1,fenomeno:2.8}[tier];
+  const u=0.5+0.5*((hashSeed(p.pid!=null?p.pid:0, p.n||'', 'potesp')>>>0)%1000)/1000;
+  const pot=Math.min(POT_TETO[tier], raw+potEspaco(p.age||26)*u*mult);
+  p.pot=Math.round(Math.max(raw, pot));
+  return p.pot;
+}
+/* 1 = cresce à vontade; 0 = no teto. `a` são os atributos ATUAIS (mudam ao longo do laço). */
+function potFolga(p, a){
+  const raw=levelToForce(attrLevel(a,p.s));
+  return Math.max(0,Math.min(1,(potEnsure(p,raw)-raw)/4));
+}
 function evolvePlayer(p, R, played){
   if(!p.attr){ attachAttrs(p); }
   const a=p.attr, age=p.age||26;
@@ -603,14 +640,14 @@ function evolvePlayer(p, R, played){
     const careerBonus=1+Math.min(0.5,((p.career&&p.career.titles)||0)*0.08+((p.career&&p.career.seasonsTopDiv)||0)*0.02);
     const golBonus=Math.min(0.08, goals3*0.03);          // artilheiro em fase boa valoriza um pouco mais rápido que só a nota
     const chance = growth*((form-6.8)/2.2+golBonus)*careerBonus;
-    for(let i=0;i<2;i++){ const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<chance){ a[k]++; changed=true; } }
+    for(let i=0;i<2;i++){ const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<chance*potFolga(p,a)){ a[k]++; changed=true; } }
   }
   // TREINO ESPECIAL: chance extra de evolução, independente de idade/jogo/descanso — soma-se
   // ao que o jogador já ganharia pelos outros caminhos acima. "Estrelinha" evolui mais rápido.
   if(p._training){
     const star=(typeof hasEstrelinha==='function') && hasEstrelinha(p);
     const trainChance=0.05*(star?1.8:1);
-    const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<trainChance){ a[k]++; changed=true; }
+    const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<trainChance*potFolga(p,a)){ a[k]++; changed=true; }
   }
   if(!played && age<=20 && growth>0){
     // JOVEM (<=20) descansando: antes só evoluía jogando bem — se não entrava em campo,
@@ -619,7 +656,7 @@ function evolvePlayer(p, R, played){
     // e fica isento do decaimento por banco logo abaixo (perder ritmo não faz sentido pra quem
     // ainda está em formação/crescimento).
     const chance = growth*0.12;
-    const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<chance){ a[k]++; changed=true; }
+    const k=keys[R.int(keys.length)]; if(a[k]<20 && R.random()<chance*potFolga(p,a)){ a[k]++; changed=true; }
   }
   if(decline>0){
     // boa performance recente ATENUA a queda de veteranos (até ~38% de redução na chance),

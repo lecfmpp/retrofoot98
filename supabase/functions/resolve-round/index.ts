@@ -3119,6 +3119,27 @@ function cpuSeasonFinances(S: any, humans: Set<string>) {
 /* porte fiel de hasEstrelinha() do cliente (core.js) — precisa do mesmo hash determinístico
    pro treino especial valorizar "estrelinhas" igual nos dois lados. */
 function hasEstrelinha(p: any) { if (!p) return false; return (ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'estrelinha') >>> 0) % 100 < 15; }
+/* ===== POTENCIAL: TETO DE CRESCIMENTO POR JOGADOR — porte fiel do cliente (public/index.html) =====
+   Sem teto, um garoto de força 50-60 subia a 99 em duas temporadas. Ver a explicação completa no
+   cliente. Mexeu aqui, mexe lá: os dois lados evoluem o mesmo elenco. */
+const POT_TETO: any = { normal: 86, promessa: 89, craque: 92, fenomeno: 95 };
+function potEspaco(age: number) { return age <= 18 ? 12 : age === 19 ? 10 : age === 20 ? 9 : age === 21 ? 7 : age === 22 ? 6 : age === 23 ? 5 : age <= 25 ? 4 : age <= 27 ? 3 : 1; }
+function potEnsure(p: any, raw: number) {
+  if (p.pot != null) return p.pot;
+  const base = (p.ag === 'Base');
+  const r = (ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'potrar') >>> 0) % 1000;
+  const cortes = base ? [2, 20, 100] : [5, 50, 185];
+  const tier = r < cortes[0] ? 'fenomeno' : r < cortes[1] ? 'craque' : r < cortes[2] ? 'promessa' : 'normal';
+  const mult = ({ normal: 1, promessa: 1.5, craque: 2.1, fenomeno: 2.8 } as any)[tier];
+  const u = 0.5 + 0.5 * ((ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'potesp') >>> 0) % 1000) / 1000;
+  const pot = Math.min(POT_TETO[tier], raw + potEspaco(p.age || 26) * u * mult);
+  p.pot = Math.round(Math.max(raw, pot));
+  return p.pot;
+}
+function potFolga(p: any, a: any) {
+  const raw = levelToForce(attrLevel(a, p.s));
+  return Math.max(0, Math.min(1, (potEnsure(p, raw) - raw) / 4));
+}
 function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
   if (!p.attr) return; // sem atributos não há como evoluir (saves válidos já têm p.attr)
   /* MIGRAÇÃO DE det — espelha o attachAttrs do cliente. Sem isto, um elenco que
@@ -3146,19 +3167,19 @@ function evolvePlayer(p: any, R: any, played: boolean, sDivision: string) {
     const careerBonus = 1 + Math.min(0.5, ((p.career && p.career.titles) || 0) * 0.08 + ((p.career && p.career.seasonsTopDiv) || 0) * 0.02);
     const golBonus = Math.min(0.08, goals3 * 0.03);
     const chance = growth * ((form - 6.8) / 2.2 + golBonus) * careerBonus;
-    for (let i = 0; i < 2; i++) { const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < chance) { a[k]++; changed = true; } }
+    for (let i = 0; i < 2; i++) { const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < chance * potFolga(p, a)) { a[k]++; changed = true; } }
   }
   // TREINO ESPECIAL — porte fiel do cliente (index.html evolvePlayer): faltava aqui, então
   // jogadores em treino especial no host nunca ganhavam o bônus na Resenha.
   if (p._training) {
     const star = hasEstrelinha(p);
     const trainChance = 0.05 * (star ? 1.8 : 1);
-    const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < trainChance) { a[k]++; changed = true; }
+    const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < trainChance * potFolga(p, a)) { a[k]++; changed = true; }
   }
   // JOVEM (<=20) descansando cresce devagar mesmo sem jogar — porte fiel do cliente, faltava aqui.
   if (!played && age <= 20 && growth > 0) {
     const chance = growth * 0.12;
-    const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < chance) { a[k]++; changed = true; }
+    const k = keys[R.int(keys.length)]; if (a[k] < 20 && R.random() < chance * potFolga(p, a)) { a[k]++; changed = true; }
   }
   if (decline > 0) {
     // boa performance recente atenua (não zera) a queda de veteranos — mesmo formMult do cliente.
