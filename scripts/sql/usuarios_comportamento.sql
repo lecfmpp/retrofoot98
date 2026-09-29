@@ -46,3 +46,10 @@ end $$;
 -- raw_user_meta_data: time_coracao (id do clube | 'outro' | 'nenhum'), time_coracao_nome, time_coracao_serie.
 -- O painel recebe {id, nome, serie} (null para quem se cadastrou antes). Patch na migração
 -- usuarios_time_coracao, logo depois de 'socio'.
+
+-- ===== 29/09/2026: 'idade' em admin_rf98.usuarios =====
+-- O cadastro pergunta a idade (public/src/ui/rf-idade.js) e grava raw_user_meta_data->>'idade'.
+-- Patch na migração usuarios_idade: coluna 'idade' no CTE base e 'idade', b.idade no jsonb (null para contas antigas).
+-- ===== 29/09/2026: 'chegou_2a' em admin_rf98.analytics (funil) =====
+-- Migração analytics_funil_chegou_2a_trava: quem já tinha a temporada por depoimento e teve um
+-- paywall_eventos 'exibido' DEPOIS dela (sem sócios). O 'post' continua sendo a etapa seguinte.

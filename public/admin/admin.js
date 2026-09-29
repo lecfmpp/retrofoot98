@@ -1125,6 +1125,8 @@ async function modalUsuario(id){
         ${fato('WhatsApp', u._d && u._d.whats ? usWhats(u) : '<span class="us-nada">—</span>')}
         ${fato('Cadastro', h(dmy(u.criado_em)), 'Conta criada em ' + usDataHora(u.criado_em))}
         ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
+        ${fato('Idade', u.idade == null ? '<span class="us-nada">—</span>' : h(u.idade) + ' anos', u.idade == null ? 'Cadastro anterior a 29/09/2026' : 'Informada no cadastro')}
+        ${fato('Jogos que já jogou', usJogosTxt(u) ? h(usJogosTxt(u)) : '<span class="us-nada">—</span>', usJogosTxt(u) ? 'Respondido no cadastro (múltipla escolha)' : 'Cadastro anterior a 29/09/2026')}
         ${fato('Time do coração', u.time_coracao ? h(usTimeNome(u)) : '<span class="us-nada">—</span>', u.time_coracao ? 'Respondido no cadastro' : 'Cadastro anterior a 27/09/2026')}
         ${fato('Grupo WhatsApp', u.grupo_botao ? h(US_GRUPO[u.grupo_botao] || u.grupo_botao) : '<span class="us-nada">—</span>',
                u.grupo_botao ? 'Primeiro clique em ' + usDataHora(u.grupo_em) + (+u.grupo_cliques > 1 ? '\n' + u.grupo_cliques + ' cliques no total' : '') : 'Nunca clicou em entrar no grupo')}
@@ -1189,11 +1191,14 @@ function whatsHTML(num, pais){
        jogada — a mesma regra do "Ativos (7 dias)" do painel inicial). */
 const US_ESTADO = { ativo:'Ativo (até 2 dias)', parado:'Parado (3 a 13 dias)', perdido:'Perdido (14 dias ou mais)' };
 const US_MODO = { solo:'Só Modo Solo', resenha:'Só Modo Resenha', ambos:'Solo e Resenha', nunca:'Nunca jogou' };
-const US_FK = ['estado','modo','plano','origem','grupo','whats'];   // os filtros da barra, na ordem
-const US_FK_ROT = { estado:'Estado', modo:'Modo', plano:'Plano', origem:'Origem', grupo:'Grupo', whats:'WhatsApp' };
+const US_FK = ['estado','modo','plano','origem','grupo','whats','idade','jogo'];   // os filtros da barra, na ordem
+const US_FK_ROT = { estado:'Estado', modo:'Modo', plano:'Plano', origem:'Origem', grupo:'Grupo', whats:'WhatsApp', idade:'Idade', jogo:'Jogou' };
+/* faixas do filtro de idade (perguntada no cadastro desde 29/09/2026); 'sem' = não respondeu */
+const US_IDADE = { sem:['Sem resposta'], '0-17':['Até 17 anos', 0, 17], '18-24':['18 a 24 anos', 18, 24], '25-34':['25 a 34 anos', 25, 34],
+                   '35-44':['35 a 44 anos', 35, 44], '45+':['45 anos ou mais', 45, 999] };
 const US_PLANO_ORD = { free:0, pro:1 };
 function usFiltros(){
-  if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'', ord:'acesso', dir:-1 };
+  if(!ST.us) ST.us = { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'', idade:'', jogo:'', ord:'acesso', dir:-1 };
   if(!ST.us.per) Object.assign(ST.us, { per:'tudo', de:'', ate:'', perCampo:'cadastro' });
   return ST.us;
 }
@@ -1213,6 +1218,12 @@ function usGrupoCel(u){
   let tip = `Primeiro clique: ${US_GRUPO_TIP[u.grupo_botao] || u.grupo_botao}\n${usDataHora(u.grupo_em)}${antes ? ' (antes de criar a conta)' : ''}`;
   if(+u.grupo_cliques > 1) tip += `\n\nÚltimo clique: ${US_GRUPO[u.grupo_ultimo_botao] || u.grupo_ultimo_botao} · ${usDataHora(u.grupo_ultimo_em)}\n${u.grupo_cliques} cliques no total`;
   return `<span data-tip="${h(tip)}"><b class="us-ref">${h(US_GRUPO[u.grupo_botao] || u.grupo_botao)}</b><small class="us-sub">${h(dmy(u.grupo_em))}${+u.grupo_cliques > 1 ? ' · ' + num(u.grupo_cliques) + ' cliques' : ''}</small></span>`;
+}
+/* JOGOS QUE JÁ JOGOU (29/09/2026): múltipla escolha no cadastro (rf-idade.js); u.jogos = ['cm','fm',...], u.jogos_outro = texto livre */
+const US_JOGOS = { cm:'Championship Manager', fm:'Football Manager', brasfoot:'Brasfoot', elifoot:'Elifoot', outros:'Outros' };
+function usJogosTxt(u){
+  if(!Array.isArray(u.jogos) || !u.jogos.length) return '';
+  return u.jogos.map(k => k === 'outros' && u.jogos_outro ? 'Outros (' + u.jogos_outro + ')' : (US_JOGOS[k] || k)).join(', ');
 }
 /* TIME DO CORAÇÃO (27/09/2026): perguntado no cadastro (public/src/ui/rf-time-coracao.js), nome REAL
    do clube. u.time_coracao = {id, nome, serie} | null (quem se cadastrou antes). */
@@ -1294,6 +1305,8 @@ function usDeriv(u){
     whats: String(u.whatsapp||'').replace(/\D/g,''),
     canal: usCanal(u),
     time: usTimeNome(u),
+    idade: u.idade == null ? null : +u.idade,
+    jogos: Array.isArray(u.jogos) ? u.jogos : [],
     busca: [u.nome, u.email, u.clube_nome, u.referral, u.parceiro, usCanal(u), usTimeNome(u),
             ...['source','campaign','referrer'].map(k => ((u.origem||{}).ultimo||{})[k])]
              .map(x => String(x||'').toLowerCase()).join(' | ')
@@ -1306,6 +1319,7 @@ const US_ORD = {
   plano:     u => US_PLANO_ORD[planoChave(u.plano)],
   origem:    u => (u._d.canal === 'Desconhecido' ? '~' : '') + u._d.canal.toLowerCase(),
   time:      u => (u._d.time ? '' : '~') + u._d.time.toLowerCase(),
+  idade:     u => u._d.idade == null ? -1 : u._d.idade,
   carreiras: u => u._d.carreiras,
   temporadas:u => u._d.temporadas,
   partidas:  u => u._d.partidas,
@@ -1327,6 +1341,7 @@ const US_COLS = [
   { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
   { k:'time', l:'Time', tip:'Time do coração que a pessoa escolheu no cadastro (nome real).\nContas criadas antes de 27/09/2026: sem resposta.' },
+  { k:'idade', l:'Idade', a:'c', tip:'Idade informada no cadastro.\nContas criadas antes de 29/09/2026: sem resposta.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
   { k:'temporadas', l:'Temporadas', a:'c', tip:'Temporadas que chegaram ao fim (Solo / Resenha).' },
   { k:'partidas', l:'Partidas', a:'c', tip:'Partidas de liga na carreira toda (Solo / Resenha).\n"parcial": há save antigo com temporadas fechadas sem os números guardados — o total real é maior.' },
@@ -1392,6 +1407,11 @@ function usFiltrar(us){
     if(f.plano && planoChave(u.plano) !== (f.plano === 'pagos' ? 'pro' : f.plano)) return false;
     if(f.origem && d.canal !== f.origem) return false;
     if(f.grupo === 'sim' ? !u.grupo_botao : f.grupo === 'nao' ? !!u.grupo_botao : f.grupo && u.grupo_botao !== f.grupo) return false;
+    if(f.idade){
+      const fx = US_IDADE[f.idade];
+      if(f.idade === 'sem' ? d.idade != null : (d.idade == null || d.idade < fx[1] || d.idade > fx[2])) return false;
+    }
+    if(f.jogo && (f.jogo === 'sem' ? d.jogos.length : !d.jogos.includes(f.jogo))) return false;
     if(f.whats === 'com' && !d.whats) return false;
     if(f.whats === 'sem' && d.whats) return false;
     return true;
@@ -1460,6 +1480,7 @@ function usLinhaTds(u, podeApagar, n){
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
     <td>${usTimeCel(u)}</td>
+    <td class="c mono">${u.idade == null ? '<span class="us-nada" data-tip="Cadastro anterior a 29/09/2026">—</span>' : h(u.idade)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
     <td class="c mono">${usDupla(u.temporadas_solo, u.temporadas_resenha, 'temporada(s) fechada(s) no Solo', 'na Resenha')}</td>
     <td class="c mono">${usDupla(u.jogos_solo, u.jogos_resenha, 'partida(s) no Solo', 'na Resenha')}${parcial}</td>
@@ -1622,6 +1643,10 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
           + Object.entries(US_GRUPO).map(([k,v]) => opt(k, 'Grupo: ' + v, f.grupo)).join('') + opt('nao', 'Nunca clicou', f.grupo))}
         ${sel('uf-whats', 'Se informou WhatsApp no cadastro', f.whats,
           opt('', 'WhatsApp: todos', f.whats) + opt('com', 'Com WhatsApp', f.whats) + opt('sem', 'Sem WhatsApp', f.whats))}
+        ${sel('uf-idade', 'Idade informada no cadastro', f.idade,
+          opt('', 'Idade: todas', f.idade) + Object.entries(US_IDADE).map(([k,v]) => opt(k, v[0], f.idade)).join(''))}
+        ${sel('uf-jogo', 'Jogos de gerente de futebol que a pessoa já jogou (informado no cadastro)', f.jogo,
+          opt('', 'Jogou: todos', f.jogo) + Object.entries(US_JOGOS).map(([k,v]) => opt(k, 'Jogou: ' + v, f.jogo)).join('') + opt('sem', 'Sem resposta', f.jogo))}
         <div class="us-ordm">
           <select class="us-sel" id="u-ord" data-tip="Ordenar a lista">${US_COLS.filter(c => c.k).map(c => opt(c.k, 'Ordenar: ' + c.l, f.ord)).join('')}</select>
           <button class="us-sel" id="u-dir" type="button" data-tip="Inverter a ordem"></button>
@@ -1744,7 +1769,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   });
   el('up-campo').onchange = (ev) => { f.perCampo = ev.target.value; usRedesenharPeriodo(); };
   el('uf-limpar').onclick = () => {
-    Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'' });
+    Object.assign(f, { q:'', estado:'', plano:'', modo:'', origem:'', grupo:'', whats:'', idade:'', jogo:'' });
     b.value = ''; US_FK.forEach(k => { el('uf-'+k).value = ''; });
     usMudarPeriodo('tudo');
     desenharLinhas();
@@ -2274,6 +2299,7 @@ async function pgAnalytics(forcar, senha = pedirDesenho()){
     { n:'Primeiro jogo concluído', v:+f.jogaram, nota:'tem save solo ou assento numa sala' },
     { n:'Chegaram à trava (viram o paywall)', v:+f.viram_paywall||0, nota:'fim da temporada grátis' },
     { n:'Passaram a 1ª trava com depoimento', v:+f.depoimento||0, nota:'ganharam +1 temporada pelo depoimento' },
+    { n:'Chegaram à 2ª trava (viram o paywall de novo)', v:+f.chegou_2a||0, nota:'já tinham o depoimento e viram o paywall outra vez' },
     { n:'Passaram a 2ª trava com post', v:+f.post||0, nota:'ganharam +1 temporada pelo post nas redes sociais' },
     { n:'Assinantes Pro', v:+f.pagos, nota:'plano Pro hoje — comparado com quem chegou à trava', ref:'trava' }
   ].filter(Boolean);
