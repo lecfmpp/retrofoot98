@@ -891,6 +891,7 @@ function cdraw(){ const r=$c('#c-root'); if(!r)return;
   const _rolagem=capturaRolagem();
   // registra a força do meu elenco uma vez por rodada (no-op se nada mudou) — ver trackMyForces
   if(typeof trackMyForces==='function'){ try{ trackMyForces(); }catch(e){} }
+  if(CL.screen==='main' && typeof rfPmTick==='function'){ try{ rfPmTick(); }catch(e){} }   // Patrocínio Master devido? (só agenda)
   applyClubTokens(CL.clubId);   // ver applyClubTokens: --club-primary/--club-secondary do time do usuário
   let html='';
   switch(CL.screen){
@@ -9907,7 +9908,10 @@ function liveDone(){ _prLog('liveDone -> main'); if(CL._liveTimer)clearTimeout(C
     if(NET.reopenReady) NET.reopenReady(); else if(NET.isHost) NET.start(); // fallback: transporte local
   }
   if(S.finished) setTimeout(()=>seasonEndDialog(),300);
-  else if(typeof rfUpMarcoRodada==='function') rfUpMarcoRodada(); }   // lembrete de plano, 4x por temporada (rf26-planos.js)
+  else {
+    if(typeof rfPmAgendar==='function') rfPmAgendar(0);   // Patrocínio Master na penúltima rodada, ANTES do lembrete de plano (rf26-patrocinio-master.js)
+    if(typeof rfUpMarcoRodada==='function') rfUpMarcoRodada();
+  } }   // lembrete de plano, 4x por temporada (rf26-planos.js)
 /* ---- fim de temporada: mostra campeão + posição final, botão avança a temporada
    (com promoção/rebaixamento de verdade, pré-carregando dados reais da nova divisão) ---- */
 /* o marcador é por TEMPORADA: sem zerar, o fim da temporada seguinte não mostraria nada. */

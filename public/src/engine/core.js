@@ -5156,7 +5156,7 @@ function checkManagerJobEvent(){
    carimbo de quantas coletivas já deu nesta temporada também. Guardados no S
    sem estarem aqui, seriam sobrescritos pelo estado do anfitrião a cada adoção
    de rodada — e toda a gente na sala herdaria a reputação de um só. */
-const CAREER_KEYS=['_copasPagas','_bilhCopaPagas','jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin','coachGender','coachAvatar','coachRep','pressState'];
+const CAREER_KEYS=['_copasPagas','_bilhCopaPagas','jobSecurity','roundsSinceFired','pendingJobOffers','coachHistory','coachSalary','lastClubChangeSeason','playerGrowth','_growthKey','trainingByClub','criseVista','history','titlesByClub','financeHistory','_titlesRegisteredSeason','coachCareerStats','_coachCareerSeason','coachSpells','_myFin','coachGender','coachAvatar','coachRep','pressState','patroMaster'];
 /* ---- EVOLUÇÃO DO ELENCO (o que o treino de fato fez) ----
    O ícone 🔺 dizia "está em treino", mas não dizia se rendeu alguma coisa. Aqui fica o histórico
    de FORÇA do meu elenco: uma entrada por MUDANÇA (não por rodada), então uma temporada inteira
@@ -6368,7 +6368,7 @@ function processFinances(userResult,uf,startedNames,gateOverride){
       as rodadas mais antigas silenciosamente saíam da conta (salário/bônus "sumindo"). */
 /* as cinco naturezas em que a receita de uma rodada se reparte. Uma lista so', para o motor e a
    tela nunca discordarem sobre quais sao. */
-const RF_RECEITA_PARTES=['tvFixa','tvMerito','patrocinio','bilheteria','premioVitoria'];
+const RF_RECEITA_PARTES=['tvFixa','tvMerito','patrocinio','bilheteria','premioVitoria','patrocinioMaster'];
 function pushFinanceEntry(patch){
   S.finances=S.finances||[];
   S.seasonTotals=S.seasonTotals||{income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0};
@@ -6382,7 +6382,7 @@ function pushFinanceEntry(patch){
      o extrato mostra a data real; saves antigos, sem ele, caem na data da
      rodada (ver rfFiExtratoHTML). */
   const entry=Object.assign({round:S.round+1,day:S.day,income:0,salaries:0,bonuses:0,opex:0,playerSales:0,playerPurchases:0,stadium:0,net:0,log:[],
-    tvFixa:0,tvMerito:0,patrocinio:0,bilheteria:0,premioVitoria:0},patch);
+    tvFixa:0,tvMerito:0,patrocinio:0,bilheteria:0,premioVitoria:0,patrocinioMaster:0},patch);
   entry.net=(entry.income||0)+(entry.playerSales||0)-(entry.salaries||0)-(entry.bonuses||0)-(entry.opex||0)-(entry.playerPurchases||0)-(entry.stadium||0);
   S.finances.unshift(entry);
   if(S.finances.length>12) S.finances.pop();

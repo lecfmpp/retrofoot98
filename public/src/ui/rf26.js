@@ -531,6 +531,26 @@ function rfFormaHTML(){
   return `<span class="rf-forma">${f.map(x=>`<i class="${x}">${L[x]}</i>`).join('')}</span>`;
 }
 
+/* O "EM CAIXA" DA FAIXA, EM DESTAQUE (pacote do Patrocínio Master, 29/09/2026). Lê sempre S.budget — a
+   mesma variável de Finanças —, então qualquer entrada ou saída (venda, salário, prêmio, patrocínio)
+   aparece aqui sem ninguém mexer no texto. O id `hdr-caixa` é o alvo das moedas
+   (rfPmAnimar, rf26-patrocinio-master.js); o "+R$ x mi" verde fica até a rodada seguinte. */
+function rfCaixaBandHTML(){
+  const fmtC=(typeof rfDin==='function')?rfDin:fmt;
+  let folha=0; try{ folha=squad(CL.clubId).reduce((s,p)=>s+((p.contract&&p.contract.salary)||p.salary||0),0); }catch(e){}
+  const d=(CL._pmDelta && CL._pmDelta.round===S.round) ? CL._pmDelta : null;
+  return `<div id="hdr-caixa" class="hdr-caixa" title="Caixa do clube (o mesmo de Finanças)">
+    <span class="hdr-caixa__moeda">R$</span>
+    <span class="hdr-caixa__txt">
+      <span class="hdr-caixa__top">
+        <span class="hdr-caixa__label">EM CAIXA</span>
+        <span class="hdr-caixa__delta"${d?'':' hidden'}>${d?'+'+escC(String(fmtC(d.valor)).replace(/,(\d)0 /,',$1 ')):''}</span>
+      </span>
+      <span class="hdr-caixa__valor">${escC(fmtC(S.budget||0))}</span>
+      <span class="hdr-caixa__folha">folha ${escC(fmtC(folha))}/rodada</span>
+    </span>
+  </div>`;
+}
 /* faixa do clube — o cabeçalho de TODAS as páginas */
 function rfBandHTML(titulo){
   const cl=clubOf(CL.clubId)||{short:'—'};
@@ -552,10 +572,7 @@ function rfBandHTML(titulo){
          direito da faixa (ver .rf-band-data-canto) -->
     <div class="rf-band-data-canto">${rfBandDataHTML()}</div>
     <div class="rf-band-sp"></div>
-    <div class="rf-band-stat end">
-      <span class="rf-band-sl">Em caixa</span>
-      <span class="rf-band-sv gold rf-num">${escC(fmt(S.budget||0))}</span>
-    </div>
+    ${rfCaixaBandHTML()}
     <div class="rf-band-stat mid">
       <span class="rf-band-sl">Forma</span>
       ${rfFormaHTML()}

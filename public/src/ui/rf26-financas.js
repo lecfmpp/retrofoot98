@@ -32,10 +32,12 @@ function rfFiTotais(){
    total, e então a linha única volta em vez de quatro zeros; a sobra de uma receita que nasça fora
    destas cinco naturezas sai como "Outras receitas" em vez de sumir. */
 const RF_FI_RECEITA_ROT=[['tvFixa','Cota de TV (fixa)'],['tvMerito','Cota de TV (mérito)'],
-  ['patrocinio','Patrocínio'],['bilheteria','Bilheteria'],['premioVitoria','Prêmio de desempenho']];
+  ['patrocinio','Patrocínio'],['bilheteria','Bilheteria'],['premioVitoria','Prêmio de desempenho'],
+  ['patrocinioMaster','Patrocínio Master']];
 function rfFiReceitaLinhas(o){
   const total=(o&&o.income)||0;
-  const partes=RF_FI_RECEITA_ROT.map(([k,rot])=>[rot, Math.round((o&&o[k])||0)]);
+  /* o Patrocínio Master leva o nome da empresa que fechou (rf26-patrocinio-master.js) */
+  const partes=RF_FI_RECEITA_ROT.map(([k,rot])=>[k==='patrocinioMaster'&&typeof rfPmEmpresa==='function'&&rfPmEmpresa()?rot+' · '+rfPmEmpresa():rot, Math.round((o&&o[k])||0)]);
   const soma=partes.reduce((t,x)=>t+x[1],0);
   if(!soma) return total?[['Receita da rodada', total]]:[];
   const sobra=total-soma;

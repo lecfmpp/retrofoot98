@@ -437,7 +437,7 @@ function rfUpTelaLivre(){
   if(typeof MOMENTO_FILA!=='undefined' && MOMENTO_FILA.length) return false;
   const ov=document.querySelector('#c-overlay');
   if(ov && ov.style.display!=='none' && ov.innerHTML) return false;
-  if(document.querySelector('.rf-up-fundo, .rf-pg-fundo, .rf-ac-fundo, .rf-teatro')) return false;
+  if(document.querySelector('.rf-up-fundo, .rf-pg-fundo, .rf-ac-fundo, .rf-teatro, .rf-pm-fundo')) return false;
   return true;
 }
 function rfUpMostrarMarco(marco){ rfUpPopupDois(marco); }
@@ -462,6 +462,8 @@ function rfUpAgendar(marco, temporada, tentativa){
     try{
       if(!rfUpPodeVender()) return;
       if(rfUpVistos().includes(rfUpMarcoChave(marco, temporada))) return;
+      /* o Patrocínio Master vem ANTES (rf26-patrocinio-master.js): enquanto ele estiver devido, espera; ao aceitar, ele chama rfUpMarcoRodada */
+      if(typeof rfPmPendente==='function' && rfPmPendente()) return;
       if(!rfUpTelaLivre()){
         if(tentativa<20) rfUpAgendar(marco, temporada, tentativa+1);   // ~1 minuto de paciencia
         return;
@@ -475,6 +477,7 @@ function rfUpAgendar(marco, temporada, tentativa){
 function rfUpMarcoRodada(){
   try{
     if(!rfUpPodeVender()) return;
+    if(typeof rfPmPendente==='function' && rfPmPendente()) return;   // Patrocínio Master primeiro
     const devidos=rfUpMarcoDaRodada(); if(!devidos) return;
     const temporada=S.season||0;
     const ultimo=devidos[devidos.length-1];
