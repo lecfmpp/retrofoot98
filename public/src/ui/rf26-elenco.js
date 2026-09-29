@@ -215,7 +215,7 @@ function rfElElencoHTML(){
     return `<div class="rf-eln-row rf-eln-g ${sel?'sel':''}" onclick="rfSelPlayer('${escC(p.pid)}')" title="Ver a ficha de ${escC(p.n)}">
       <span class="rf-eln-jog">
         ${rfFotoNumHTML(rfFxFoto(p, cid), nums[p.pid]||p.num||'', 'eln')}
-        <b class="rf-eln-nome">${escC(p.n)}</b>
+        <b class="rf-eln-nome">${escC(p.n)}</b>${rfPotEstrelaHTML(p)}
         ${emTreino?'<img class="rf-eln-cone" src="img/treino-especial-cone.webp" width="13" height="13" alt="Em treino especial" title="Em treino especial — chance extra de evolução a cada rodada">':''}
         ${(p.suspended>0)?' 🟥':''}${(p.injuredMatches>0)?' ✚':''}
       </span>
@@ -701,7 +701,36 @@ const RF_BASE_COLS='minmax(0,1.2fr) 34px 40px 40px minmax(74px,.5fr) minmax(74px
    O garoto tem força e idade, e o crescimento sai de growthProfileOf; então
    o potencial é a força projetada até os 24 e o "pronto em" é quanto falta
    pra lá. Quando ligarmos a base de verdade, é só trocar as duas contas. */
+/* ===== A ESTRELA DO POTENCIAL (29/09/2026) =====
+   Três níveis reais, sorteados uma vez por jogador (p.pot / p.potT, ver potEnsure em index.html):
+   ⅓ de estrela = potencial comum, ½ = grande promessa, estrela cheia = potencial de craque.
+   O nível também entra no VALOR do passe (fatorPotencial) e o mouse mostra até onde ele pode
+   chegar, na força que a tela exibe, se treinar e jogar com regularidade. Só jovens têm a estrela
+   (`idadeMax`): depois dos 25 não há mais o que crescer. */
+function rfPotEstrelaHTML(p, idadeMax){
+  if(!p || typeof potInfo!=='function') return '';
+  if((p.age||99) > (idadeMax==null?25:idadeMax)) return '';
+  let i=null; try{ i=potInfo(p); }catch(e){}
+  if(!i) return '';
+  const corte=[0,66.7,50,0][i.nivel];                 // % a esconder à direita: ⅓, ½, cheia
+  const fracao=['','⅓','½','estrela cheia'][i.nivel];
+  const sobe=i.teto>i.atual;
+  const dica=`${i.nome} (${fracao})\n`
+    +(sobe?`Se treinar e jogar com regularidade, pode chegar à força ${i.teto} (hoje ${i.atual}).`
+           :`Já está perto do máximo: força ${i.atual}.`)
+    +`\nPotencial maior valoriza o passe do jogador.`;
+  const svg=`<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.5l-5.9 3.2 1.2-6.6L2.5 9.5l6.6-.9z"/></svg>`;
+  return `<span class="rf-pot n${i.nivel}" tabindex="0" title="${escC(dica)}" aria-label="${escC(dica.replace(/\n/g,' '))}">
+    <span class="rf-pot-bg">${svg}</span><span class="rf-pot-fg" style="clip-path:inset(0 ${corte}% 0 0)">${svg}</span></span>`;
+}
 function rfElPotencial(y){
+  /* O TETO É O REAL: o que o motor vai deixar o jogador ser (potInfo). A projeção antiga
+     (força + ritmo × anos até os 24) prometia tetos que o jogador ultrapassava — e foi isso que
+     deixou um garoto de base chegar a 99. Cai nela só quando não há atributos (jogador de fora). */
+  try{
+    const i=(typeof potInfo==='function')?potInfo(y):null;
+    if(i){ const anos=Math.max(0, 24-(y.age||18)); return { teto:i.teto, anos, pct:Math.round(100*i.teto/99), real:i }; }
+  }catch(e){}
   const g=(typeof growthProfileOf==='function')?growthProfileOf(y):null;
   const porTemp=(g&&g.forcaPorTemporada)||2;
   const anos=Math.max(0, 24-(y.age||18));
@@ -736,7 +765,7 @@ function rfElBaseHTML(){
       <span class="rf-el-c">${escC(rfPosInicial(y.s))}</span>
       <span class="rf-el-c">${y.age||'—'}</span>
       <span class="rf-el-forte">${y.f}</span>
-      ${rfElMini(pot.pct, rfElTom(pot.pct), 62)}
+      <span class="rf-el-pot">${rfPotEstrelaHTML(y, 99)}<b>${pot.teto}</b></span>
       <span class="rf-el-d">${pot.anos?(pot.anos+' ano'+(pot.anos>1?'s':'')):'agora'}</span>
       <span class="rf-el-d">${escC(sal?rfDin(sal):'—')}</span>
       <span class="rf-el-act"><button type="button" class="rf-el-bt ${primeiro?'cta':''}"

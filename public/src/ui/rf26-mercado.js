@@ -382,6 +382,9 @@ function rfMktCalibPreview(p){
      mesmo resultado que a materialização real vai dar, sem materializar nada. */
   const behavior=(typeof assignBehavior==='function')?assignBehavior({...p,rawF,f}):null;
   if(behavior && typeof BEHAVIOR_MV_MULT!=='undefined') mv=Math.round(mv*(BEHAVIOR_MV_MULT[behavior]||1));
+  /* o potencial também encarece o passe na materialização (computeVM -> fatorPotencial); a lista
+     tem de cobrar o mesmo que a negociação */
+  if(typeof fatorPotencial==='function'){ try{ mv=Math.round(mv*fatorPotencial({...p,rawF,f})); }catch(e){} }
   return {...p, rawF, f, mv, behavior};
 }
 /* ===== O MEU PAIS SAO AS QUATRO DIVISOES, NAO SO' A MINHA =====
@@ -559,7 +562,7 @@ function rfMktComprarTabelaHTML(){
     const estr=(typeof playerIsForeign==='function') && playerIsForeign(p);
     const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
     return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(clubId))}'${pais?`,'${escC(String(pais))}'`:''})" title="Ver a ficha de ${escC(p.n)}">
-    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}</span>
+    <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}${(typeof rfPotEstrelaHTML==='function')?rfPotEstrelaHTML(p):''}</span>
     <span class="rf-mkt-f">${p.f}</span>
     ${/* GOLS TEM COLUNA PROPRIA. Era uma marca "⚽N" colada ao nome, e so' quando havia gols —
          entao ordenar por gols mexia a lista sem que se visse porque: a coluna que explica a

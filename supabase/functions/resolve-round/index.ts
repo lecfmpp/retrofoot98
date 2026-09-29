@@ -3023,7 +3023,16 @@ function rbValue(f: number, age: number) { return Math.max(30000, Math.round(int
    Mudou lá? Muda aqui também, senão as vendas da CPU na Resenha usam outro preço. */
 const BEHAVIOR_MV_MULT_S: Record<string, number> = { 'Exemplar': 1.15, 'Manso': 1.02, 'Discreto': 1.06, 'Encrenqueiro': 0.98, 'Brigão': 0.92, 'Casca-Grossa': 0.85 };
 const MV_GA_ESPERADO_S: Record<string, number> = { ATT: 0.35, MID: 0.15, DEF: 0.05, GK: 0 };
-function fatorPotencialS(p: any) { const age = p.age || 26, f = p.f || 20; return 1 + 0.20 * Math.max(0, Math.min(1, (24 - age) / 6)) * Math.max(0, Math.min(1, (f - 10) / 40)); }
+function fatorPotencialS(p: any) {
+  const age = p.age || 26, f = p.f || 20;
+  const ageF = Math.max(0, Math.min(1, (24 - age) / 6));
+  const raw = p.attr ? levelToForce(attrLevel(p.attr, p.s)) : (p.rawF != null ? p.rawF : null);
+  if (raw == null) return 1 + 0.20 * ageF * Math.max(0, Math.min(1, (f - 10) / 40));
+  potEnsure(p, raw);
+  const room = Math.max(0, Math.min(1, (p.pot - raw) / 6));
+  const extra = ({ normal: 0, promessa: 0.10, craque: 0.25, fenomeno: 0.35 } as any)[p.potT] || 0;
+  return 1 + (0.15 + extra) * ageF * room;
+}
 function fatorMomentoS(p: any) {
   const st = p.stats; if (!st) return 1;
   const r3 = st.r3 || [], apps = st.apps || 0;
@@ -3127,13 +3136,13 @@ function potEspaco(age: number) { return age <= 18 ? 12 : age === 19 ? 10 : age 
 function potEnsure(p: any, raw: number) {
   if (p.pot != null) return p.pot;
   const base = (p.ag === 'Base');
-  const r = (ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'potrar') >>> 0) % 1000;
+  const r = (ME.hashSeed(p.n || '', p.s || '', 'potrar') >>> 0) % 1000;
   const cortes = base ? [2, 20, 100] : [5, 50, 185];
   const tier = r < cortes[0] ? 'fenomeno' : r < cortes[1] ? 'craque' : r < cortes[2] ? 'promessa' : 'normal';
   const mult = ({ normal: 1, promessa: 1.5, craque: 2.1, fenomeno: 2.8 } as any)[tier];
-  const u = 0.5 + 0.5 * ((ME.hashSeed(p.pid != null ? p.pid : 0, p.n || '', 'potesp') >>> 0) % 1000) / 1000;
+  const u = 0.5 + 0.5 * ((ME.hashSeed(p.n || '', p.s || '', 'potesp') >>> 0) % 1000) / 1000;
   const pot = Math.min(POT_TETO[tier], raw + potEspaco(p.age || 26) * u * mult);
-  p.pot = Math.round(Math.max(raw, pot));
+  p.pot = Math.round(Math.max(raw, pot)); p.potT = tier;
   return p.pot;
 }
 function potFolga(p: any, a: any) {

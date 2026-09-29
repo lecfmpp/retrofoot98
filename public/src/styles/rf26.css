@@ -12618,3 +12618,15 @@ button.rf-up-btn{cursor:pointer}
   .hdr-caixa__valor{font-size:20px}
   .hdr-caixa__moeda{width:30px;height:30px;font-size:11px}
 }
+
+
+/* ----- A ESTRELA DO POTENCIAL: ⅓, ½ ou cheia (29/09/2026) ----- */
+.rf-pot{position:relative;display:inline-block;width:15px;height:15px;margin-left:5px;vertical-align:-2px;flex:0 0 auto;cursor:help}
+.rf-pot svg{display:block;width:15px;height:15px}
+.rf-pot-bg,.rf-pot-fg{position:absolute;inset:0}
+.rf-pot-bg path{fill:#dfe4df;stroke:#b9c2ba;stroke-width:1}
+.rf-pot-fg path{fill:#F2B90C;stroke:#c9971a;stroke-width:1}
+.rf-pot.n3{filter:drop-shadow(0 0 3px rgba(242,185,12,.75))}
+.rf-pot:focus-visible{outline:2px solid var(--brand-primary,#17458F);outline-offset:2px;border-radius:3px}
+.rf-el-pot{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:12px}
+.rf-el-pot .rf-pot{margin-left:0}
