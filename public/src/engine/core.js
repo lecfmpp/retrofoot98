@@ -5653,9 +5653,39 @@ function coachSpellsLimparVices(){
   });
   if(tirados) console.warn('sala de troféus: '+tirados+' título(s) removido(s) — eram vice-campeonatos.');
 }
+/* ===== MARCA ZERADA DE QUEM TROCOU DE DIVISAO A MEIO DA TEMPORADA (28/09/2026) =====
+   Ate hoje a passagem nova abria antes de o clube novo estar em S.table (ver applyManagerJobChange):
+   marca zerada, e a carreira somava os jogos do clube de ANTES de o treinador chegar. Aqui a marca
+   e reconstruida a partir de S.results: tabela de hoje menos o que o clube fez desde a chegada.
+   So conserta o que consegue PROVAR: passagem aberta nesta temporada, marca toda zero, chegada
+   depois da 1a rodada, e S.results com exatamente um jogo do clube por rodada desde a chegada
+   e o que sobra batendo com as rodadas de antes. Faltando qualquer coisa, deixa como esta. */
+function coachSpellRepararMarca(){
+  const sp=coachSpellAtual(); if(!sp || sp._marcaOk) return false;
+  const K=['P','W','D','L','GF','GA','Pts'];
+  const m=sp.marca||{}, ini=sp.inicio||{};
+  if(K.some(k=>m[k]) || !(+ini.round>0) || String(ini.season)!==String(S.season)
+     || !S.table || !S.table[sp.clubId]) return false;
+  const id=String(sp.clubId), r0=+ini.round;
+  const res=(Array.isArray(S.results)?S.results:[]).filter(r=>r && +r.round>=r0 && (String(r.h)===id || String(r.a)===id));
+  const ag=_spellTabelaDe(sp.clubId);
+  if(res.length!==Math.max(0,(S.round||0)-r0) || ag.P-res.length!==r0) return false;
+  const des={P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0};
+  res.forEach(r=>{
+    const casa=String(r.h)===id, gf=+(casa?r.hg:r.ag)||0, ga=+(casa?r.ag:r.hg)||0;
+    des.P++; des.GF+=gf; des.GA+=ga;
+    if(gf>ga){ des.W++; des.Pts+=3; } else if(gf===ga){ des.D++; des.Pts+=1; } else des.L++;
+  });
+  sp.marca={}; K.forEach(k=>{ sp.marca[k]=Math.max(0,(ag[k]||0)-des[k]); });
+  if(S.division) sp.divisao=S.division;
+  sp._marcaOk=1;
+  console.info('passagem: marca reconstruida para', sp.curto, sp.marca);
+  return true;
+}
 function coachSpellsMigrar(){
   if(!S) return;
   coachSpellsLimparVices();
+  try{ coachSpellRepararMarca(); }catch(e){ console.warn('marca da passagem:', e&&e.message); }
   if(Array.isArray(S.coachSpells) && S.coachSpells.length) return;
   S.coachSpells=[];
   const porClube={};
@@ -5703,7 +5733,11 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
   }
   const sameDivision = !crossCountry && newDivision===S.division;
   S.clubId=newClubId; CL.clubId=newClubId;
-  try{ coachSpellAbrir(newClubId,'contratado'); }catch(e){ console.warn('passagem nova:', e&&e.message); }
+  /* A PASSAGEM NOVA ABRE DEPOIS DE ADOTAR A DIVISAO (28/09/2026). Abria aqui, antes do bloco
+     abaixo: numa troca PARA OUTRA DIVISAO o clube novo ainda nao estava em S.table (estava em
+     S.otherDivs), a marca saia zerada e a divisao era a antiga. Resultado: a carreira contava
+     como do treinador os jogos que o clube novo fez ANTES de ele chegar (caso real: 55 partidas
+     numa carreira de 36, 1a temporada). Ver coachSpellRepararMarca para os saves ja afetados. */
   if(!sameDivision){
     // A divisão de destino JÁ EXISTE e está em andamento — S.otherDivs a simula em segundo plano
     // com tabela e calendário próprios. Adotá-la preserva a rodada e a classificação.
@@ -5738,6 +5772,7 @@ function applyManagerJobChange(newClubId, newDivision, newCountry){
       if(crossCountry) initBgLeagues(); // recria as ligas de fundo (país antigo entra, novo sai)
     }
   }
+  try{ coachSpellAbrir(newClubId,'contratado'); }catch(e){ console.warn('passagem nova:', e&&e.message); }
   squad(newClubId).forEach(p=>{ if(!p.contract) p.contract=defaultContract(p); });
   S.xi=autoXI(newClubId);
   /* A CAIXA TEM DE SER A QUE A PROPOSTA PROMETEU. O convite pro jantar e o modal da proposta

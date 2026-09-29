@@ -3928,6 +3928,11 @@ function clLoadSave(name){
     }
     // temporada fechada antes do S.archive existir: entra pro arquivo agora (idempotente)
     if(typeof archiveBackfill==='function'){ try{ archiveBackfill(); }catch(e){} }
+    /* passagem aberta com a marca zerada — troca de divisao a meio da temporada antes de 28/09
+       (ver coachSpellRepararMarca): conserta e grava, para o painel e o ranking lerem o certo */
+    if(typeof coachSpellRepararMarca==='function'){
+      try{ if(coachSpellRepararMarca() && typeof saveV3==='function') saveV3(); }catch(e){}
+    }
     // save de antes das ligas de fundo cobrirem TODOS os países (item 4): completa agora
     if(typeof ensureBgLeaguesCompletas==='function'){ try{ ensureBgLeaguesCompletas(); }catch(e){} }
     syncDataClubsFromState(); // realinha DATA.clubs com a divisão real do save carregado
