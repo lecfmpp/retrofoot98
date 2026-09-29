@@ -63,6 +63,15 @@ async function netInitSupabase(){
       }
       if(session && session.user){
         SB_AUTH_USER = session.user;
+        /* RASTRO: liga a gravação de tela desta sessão à conta. A sessão começou na home, antes do
+           cadastro; o identify amarra tudo o que veio antes ao id da conta (o mesmo id do painel).
+           Só o id da conta vai: nome, e-mail e whatsapp não saem daqui. */
+        try{
+          if(typeof window.rastro==='function' && window.__rastroId !== session.user.id){
+            window.__rastroId = session.user.id;
+            window.rastro('identify', session.user.id, { origem_evento: event });
+          }
+        }catch(e){}
         setTimeout(()=>{ try{ netGrupoWpp(); }catch(e){} }, 0);   // clique no grupo feito antes de logar
         /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
            cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
