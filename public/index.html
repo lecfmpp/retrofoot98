@@ -624,13 +624,13 @@ function potRawDe(p){
   if(p.attr) return levelToForce(attrLevel(p.attr,p.s));
   return p.rawF!=null ? p.rawF : null;
 }
-/* o que a tela precisa: nível da estrela (1 = ⅓, 2 = ½, 3 = cheia), o teto na escala EXIBIDA e o
+/* o que a tela precisa: nível da estrela (1 = ⅓, 2 = ½, 3 = cheia, 4 = globo dos fenômenos), o teto na escala EXIBIDA e o
    nome do nível. Nada aqui muda o jogador além de gravar o pot na primeira leitura. */
 function potInfo(p){
   if(!p) return null;
   const raw=potRawDe(p); if(raw==null) return null;
   potEnsure(p, raw);
-  const nivel=({normal:1,promessa:2,craque:3,fenomeno:3})[p.potT]||1;
+  const nivel=({normal:1,promessa:2,craque:3,fenomeno:4})[p.potT]||1;
   /* a escala do teto é a MESMA em que o p.f do jogador foi calculado: p._div, a minha divisão, ou (jogador
      do mercado, calibrado na escala da Série A) a que reproduz o p.f dele a partir do raw */
   const cand=[p._div, (typeof S!=='undefined'&&S&&S.division), 'A','B','C','D'].filter(Boolean);
@@ -640,7 +640,7 @@ function potInfo(p){
   const folga=p.pot-raw, base=(p.rawF!=null?p.rawF:raw);
   const teto=folga<=0 ? Math.round(p.f||0) : Math.round(Math.max(p.f||0, REBAL.force(base+folga, div)));
   return { nivel, tier:p.potT, pot:p.pot, teto, atual:p.f||0,
-           nome:['','Potencial comum','Grande promessa','Potencial de craque'][nivel] };
+           nome:['','Potencial comum','Grande promessa','Potencial de craque','Fenômeno: pode virar estrela mundial'][nivel] };
 }
 /* 1 = cresce à vontade; 0 = no teto. `a` são os atributos ATUAIS (mudam ao longo do laço). */
 function potFolga(p, a){
