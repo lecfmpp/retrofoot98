@@ -612,8 +612,10 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
 .us-tbl .c{text-align:center} .us-tbl .r{text-align:right}
 .us-tbl tbody tr{cursor:pointer}
 .us-tbl tbody tr:hover td{background:#14201a}
-.us-tbl .us-fix{position:sticky;left:0;z-index:1;border-right:1px solid var(--bd3)}
-.us-tbl th:first-child{left:0;z-index:3;border-right:1px solid var(--bd3)}
+.us-tbl .us-num{position:sticky;left:0;z-index:1;width:44px;min-width:44px;padding-left:10px;padding-right:6px;color:var(--dim2);font-size:11.5px;text-align:center;background:var(--card)}
+.us-tbl .us-fix{position:sticky;left:44px;z-index:1;border-right:1px solid var(--bd3)}
+.us-tbl th:first-child{left:0;z-index:3;width:44px;min-width:44px}
+.us-tbl th:nth-child(2){position:sticky;left:44px;z-index:3;border-right:1px solid var(--bd3)}
 .us-tec{display:flex;align-items:center;gap:10px}
 .us-tec input{margin:0;cursor:pointer}
 .us-tec b{display:block;font-size:13px;font-weight:600;color:var(--fg)}
@@ -831,3 +833,17 @@ details[open] .faq-seta{ transform:rotate(180deg) }   /* só a seta gira; o rót
 .sj-par{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .sj-chip-p{padding:5px 10px;font-size:12px}
 .sj-vivo{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 16px 0;border-top:1px solid var(--bd)}
+
+/* resumo da lista filtrada (Usuários) */
+.us-resumo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 20px;border-bottom:1px solid var(--bd3);font-size:12.5px;color:var(--dim)}
+.us-resumo:empty{display:none}
+.us-rtot{font-size:13px;color:var(--fg);margin-right:4px}
+.us-rtot b{font-size:15px;color:var(--verde2)}
+.us-rchip{background:var(--card2);border:1px solid var(--bd);border-radius:99px;padding:4px 10px;white-space:nowrap}
+.us-rchip b{color:var(--fg)}
+.us-rsep{width:1px;height:18px;background:var(--bd2);margin:0 2px}
+@media (max-width:900px){
+  .us-resumo{padding:10px 14px}
+  .us-rsep{display:none}
+  .us-tbl td.us-num{display:none}
+}

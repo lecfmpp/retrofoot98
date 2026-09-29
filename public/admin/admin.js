@@ -1320,6 +1320,7 @@ const US_ORD = {
 };
 /* colunas: chave de ordenação, rótulo, alinhamento e o que o tooltip explica */
 const US_COLS = [
+  { l:'#', a:'c', tip:'Número da linha na lista como ela está agora (com os filtros e a ordem escolhidos).' },
   { k:'nome', l:'Técnico', tip:'Nome do técnico no jogo (ou o do cadastro), clube do save mais recente e e-mail da conta.\nClique na linha para ver a carreira completa.' },
   { k:'whats', l:'WhatsApp', tip:'Número informado no cadastro. Clique para abrir a conversa.\nContas antigas, de antes do campo existir, não têm.' },
   { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
@@ -1434,11 +1435,11 @@ function usClube(u){
 function usDataHora(d){ return d ? dmy(d) + ' ' + horaHM(d) : '—'; }
 
 /* cada <td> ganha o rótulo da sua coluna: no celular a linha vira cartão e o rótulo aparece em cima */
-function usLinhaHTML(u, podeApagar){
+function usLinhaHTML(u, podeApagar, n){
   let i = 0;
-  return usLinhaTds(u, podeApagar).replace(/<td(?=[\s>])/g, () => `<td data-l="${h((US_COLS[i++] || {}).l || '')}"`);
+  return usLinhaTds(u, podeApagar, n).replace(/<td(?=[\s>])/g, () => `<td data-l="${h((US_COLS[i++] || {}).l || '')}"`);
 }
-function usLinhaTds(u, podeApagar){
+function usLinhaTds(u, podeApagar, n){
   const d = u._d, e = estadoAcesso(u.ultimo_acesso), pl = planoAdm(u.plano);
   const fonte = [
     'Último login: ' + usDataHora(u.ultimo_login),
@@ -1446,6 +1447,7 @@ function usLinhaTds(u, podeApagar){
   ].join('\n');
   const parcial = u.incompleto ? ' <small class="us-parcial" data-tip="Há save antigo com temporadas fechadas sem os números guardados: o total real é maior.">parcial</small>' : '';
   return `<tr data-detalhe="${h(u.id)}">
+    <td class="us-num mono">${num(n)}</td>
     <td class="us-fix">
       <div class="us-tec">
         ${podeApagar ? `<input type="checkbox" data-conta="${h(u.id)}" ${SEL.contas.has(u.id)?'checked':''} data-tip="Selecionar para apagar">` : ''}
@@ -1474,6 +1476,36 @@ function usLinhaTds(u, podeApagar){
     <td class="r"><span class="link" data-reset="${h(u.email)}" data-nome="${h(u.nome)}"
           data-tip="${h('Enviar link de nova senha para ' + u.email)}">Reenviar</span></td>
   </tr>`;
+}
+
+/* ===== RESUMO DA LISTA FILTRADA (28/09/2026) =====
+   Quem filtra quer saber "quantos são, e em que pé estão" sem contar linha a linha: quantos nunca
+   jogaram, quantos estão na 1ª temporada, quantos fecharam 1, 2, 3+ temporadas (Solo + Resenha),
+   e quantos são Pro, jogaram nos últimos 7 dias e deixaram WhatsApp. É sempre sobre as linhas que
+   estão na tabela agora — período, busca e filtros incluídos. Inclui as contas de sócio, como a tabela. */
+function usResumoHTML(vis, filtrado){
+  const n = vis.length;
+  if(!n) return '';
+  const cont = (fn) => vis.filter(fn).length;
+  const pc = (x) => n ? Math.round(x * 100 / n) : 0;
+  const temp = (u) => u._d.temporadas;
+  const partes = [
+    ['nunca jogaram', cont(u => !u._d.jogou), 'Sem save, sem sala e sem tempo de jogo'],
+    ['na 1ª temporada', cont(u => u._d.jogou && temp(u) === 0), 'Jogaram, mas ainda não fecharam nenhuma temporada'],
+    ['fecharam 1 temporada', cont(u => temp(u) === 1), 'Temporadas fechadas no Solo + Resenha'],
+    ['fecharam 2', cont(u => temp(u) === 2), 'Temporadas fechadas no Solo + Resenha'],
+    ['fecharam 3 ou mais', cont(u => temp(u) >= 3), 'Temporadas fechadas no Solo + Resenha'],
+  ];
+  const extras = [
+    ['Pro', cont(ehPago), 'Plano Pro hoje'],
+    ['jogaram em 7 dias', cont(u => +u.dias_ativos_7 > 0), 'Login ou jogada nos últimos 7 dias'],
+    ['com WhatsApp', cont(u => !!u._d.whats), 'Informaram WhatsApp no cadastro'],
+  ];
+  const chip = ([rot, v, tip]) => `<span class="us-rchip" data-tip="${h(`${tip}\n${v} de ${n} (${pc(v)}%)`)}"><b class="mono">${num(v)}</b> ${h(rot)}</span>`;
+  return `<span class="us-rtot"><b class="mono">${num(n)}</b> ${n === 1 ? 'jogador' : 'jogadores'}${filtrado ? (n === 1 ? ' selecionado' : ' selecionados') : ''}</span>
+    ${partes.filter(p => p[1]).map(chip).join('')}
+    <span class="us-rsep"></span>
+    ${extras.map(chip).join('')}`;
 }
 
 async function pgUsuarios(forcar, senha = pedirDesenho()){
@@ -1599,6 +1631,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
         <span class="us-cont mono" id="u-cont"></span>
       </div>
       <div class="us-ativos" id="u-ativos"></div>
+      <div class="us-resumo" id="u-resumo"></div>
       <div class="us-canais" id="u-canais">${canaisHTML()}</div>
       <div class="us-canais" id="u-torcidas">${torcidasHTML()}</div>
       ${podeApagar?`<div class="us-selbar st">Selecionar para apagar:
@@ -1618,9 +1651,10 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   function desenharLinhas(){
     const vis = usFiltrar(usP());
     D.usuariosVisiveis = vis;
-    el('u-tb').innerHTML = vis.length ? vis.map(u => usLinhaHTML(u, podeApagar)).join('')
+    el('u-tb').innerHTML = vis.length ? vis.map((u, i) => usLinhaHTML(u, podeApagar, i + 1)).join('')
       : `<tr><td colspan="${US_COLS.length}" class="vazio">Nenhuma conta com esses filtros.</td></tr>`;
     el('u-cont').textContent = vis.length === us.length ? `${num(us.length)} contas` : `${num(vis.length)} de ${num(us.length)} contas`;
+    el('u-resumo').innerHTML = usResumoHTML(vis, vis.length !== us.length);
     document.querySelectorAll('.us-tbl th[data-ord]').forEach(th => {
       const on = th.dataset.ord === f.ord;
       th.classList.toggle('on', on);
