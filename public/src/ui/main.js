@@ -3790,7 +3790,10 @@ function scHandoff(){
        montado na hora em que sai (é sempre o estado mais recente);
      · falhou por servidor/rede → a espera dobra (até SAVE_AUTO_MAX_MS) e tenta de novo sozinho;
      · explícito ("Gravar jogo", sair) grava JÁ: espera o envio em voo e cancela o agendado. */
-const SAVE_AUTO_MS = 120000, SAVE_AUTO_MAX_MS = 600000;
+/* 30/09/2026: 120 s -> 30 s. Quem joga em dois aparelhos precisa que a rodada JÁ tenha chegado ao servidor
+   quando abrir o outro; com 2 min de espera o aparelho novo via o jogo velho. O freio continua (um envio de
+   cada vez, espera que dobra na falha), e o save agora sobe compactado (gz1), bem menor que os 8-16 MB de 25/09. */
+const SAVE_AUTO_MS = 30000, SAVE_AUTO_MAX_MS = 600000;
 const _sv = { voo:null, sujo:false, ult:0, espera:SAVE_AUTO_MS, timer:null };
 function _svAgendar(){
   if(_sv.timer || _sv.voo) return;
@@ -3810,8 +3813,48 @@ document.addEventListener('visibilitychange', ()=>{
    Qualquer outra chamada — escalação, mercado, e-mail, opções, `rfGravar()` sem argumento — não
    grava: o que mudou vai junto no save da próxima rodada. As chamadas ficaram no código de
    propósito, para voltar atrás ser só mudar esta porta. */
+/* ===== DOIS APARELHOS NA MESMA CONTA (30/09/2026) =====
+   O aparelho velho guardava o jogo na memória e nunca olhava o servidor: quem jogava no celular e voltava ao
+   computador via o jogo de antes — e a próxima gravação do computador sobrescrevia a do celular. Agora:
+     · cada save tem uma versão (rev, no banco); o aparelho grava dizendo em qual se baseou e o banco recusa
+       (SAVE_CONFLITO) se outro gravou depois;
+     · ao voltar para a aba (visibilitychange) o jogo pergunta ao servidor se há versão mais nova. */
+function _svPerguntar(motivo){
+  if(CL._svAviso) return;
+  if(typeof rfUpTelaLivre==='function' && !rfUpTelaLivre()){ setTimeout(()=>_svPerguntar(motivo), 4000); return; }
+  CL._svAviso=true;
+  const txt = motivo==='conflito'
+    ? 'Este jogo foi gravado por <b>outro aparelho</b> depois do último ponto que este aparelho carregou. Para não apagar nada sem você querer, a gravação foi pausada.'
+    : 'Este jogo tem uma <b>versão mais nova</b>, gravada por outro aparelho da sua conta.';
+  overlayC(dlg('Jogo atualizado em outro aparelho', `<div class="cl-res-verd" style="text-align:center">${txt}
+    <br><br>Carregar a versão mais nova traz o progresso do outro aparelho. Manter esta cópia grava por cima dele.</div>
+    <div class="cl-cal-ok" style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+      ${btn('Manter esta cópia',"_svManterEsta()",{cls:'cl-btn-cancel'})}
+      ${btn('Carregar a mais nova',"_svCarregarNova()",{icon:'⟳',cls:'cl-btn-ok'})}
+    </div>`,{w:480}));
+}
+function _svConflito(){ CL._saveConflito=true; _sv.sujo=false; _svPerguntar('conflito'); }
+function _svCarregarNova(){ CL._svAviso=false; CL._saveConflito=false; clCloseOverlay(); if(CL.save) clLoadSave(CL.save); }
+async function _svManterEsta(){
+  CL._svAviso=false; clCloseOverlay();
+  const r = (NET&&NET.revDoSave&&CL.save) ? await NET.revDoSave(CL.save) : null;
+  if(r===null){ toastC('⚠ Não consegui falar com o servidor agora. Tente de novo em instantes.'); CL._svAviso=false; return; }
+  CL._saveRev=r; CL._saveConflito=false;      // passa a se basear na versão que está no banco: grava por cima, de propósito
+  saveV3(true);
+}
+let _svChecagem=0;
+async function _svChecarNovidade(){
+  if(CL._svAviso || CL._saveConflito || CL._saveNovo || !CL.save || CL.online || CL.screen!=='main') return;
+  if(typeof S==='undefined' || !S || !NET || !NET.revDoSave) return;
+  if(Date.now()-_svChecagem < 15000) return; _svChecagem=Date.now();
+  const r = await NET.revDoSave(CL.save);
+  if(r!==null && CL._saveRev!=null && r > CL._saveRev) _svPerguntar('nova');
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) _svChecarNovidade(); });
+window.addEventListener('focus', ()=>{ _svChecarNovidade(); });
 async function saveV3(modo){
   const explicit = (modo === true);
+  if(CL._saveConflito && !explicit) return;   // aguardando a resposta do jogador sobre a versão de outro aparelho
   if(!explicit && modo !== 'rodada' && modo !== 'criacao') return;
   if(CL._seatContext) return; // hotseat: contexto trocado pro assento — NÃO persistir (seria salvo com o clube errado como primário)
   if(CL.online) return; // online usa o save da sala (host-autoritativo), não o solo
@@ -3856,7 +3899,8 @@ async function _saveV3Enviar(explicit){
   let finishSavingOverlay=null;
   if(explicit) finishSavingOverlay=showSavingOverlay();
   try{
-    await NET.saveSoloGame(name, payload, { criar: !!CL._saveNovo });
+    const _r = await NET.saveSoloGame(name, payload, { criar: !!CL._saveNovo, rev: CL._saveRev });
+    if(_r && _r.rev!=null) CL._saveRev = _r.rev;   // a versão que o servidor acabou de gravar: a próxima parte dela
     CL._saveNovo=false;
     /* O SOLO NAO PASSA POR persistCareer (ele sai logo quando !CL.online), entao o livro de
        titulos entra aqui — a gravacao na nuvem e' o momento em que a carreira fica publicada, e
@@ -3871,6 +3915,12 @@ async function _saveV3Enviar(explicit){
     return true;
   } catch(e){
     console.warn('saveSolo erro:', e);
+    /* OUTRO APARELHO GRAVOU ESTE JOGO DEPOIS DO QUE ESTE AQUI CARREGOU (SAVE_CONFLITO): nada é
+       sobrescrito. Pergunta se carrega a versão mais nova ou se prevalece esta. */
+    if(/SAVE_CONFLITO/.test((e&&e.message)||'')){
+      if(finishSavingOverlay) finishSavingOverlay();
+      _svConflito(); return false;
+    }
     /* O NOME DO JOGO NOVO JA' EXISTE NA CONTA: escolhe outro (conferido no servidor) e grava de novo.
        O save que já estava lá NÃO é tocado — antes o upsert o substituía. Sem resposta do servidor,
        tenta mais tarde (null): nunca presume que o nome está livre. */
@@ -3937,6 +3987,7 @@ function clLoadSave(name){
     S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
     CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
     CL._saveNovo=false;            // é um save que já existe: gravar por cima dele é o normal
+    CL._saveRev=(g._rev!=null)?g._rev:undefined; CL._saveConflito=false;   // a versão do servidor em que este aparelho se baseia
     // save de antes da unificação do estádio: migra o valor único S.stadium (aposentado) pro
     // mapa por clube S.clubStadiumCap[clubId] uma única vez, sem perder o progresso de quem já
     // construiu bancadas. Depois desta migração, S.stadium não é mais lido em lugar nenhum.

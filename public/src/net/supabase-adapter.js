@@ -1614,9 +1614,22 @@ async function netSaveNomesUsados(){
 async function netLoadSoloSave(name){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
-  const { data, error } = await sb.from('solo_saves').select('state').eq('save_name', name).maybeSingle();
+  const { data, error } = await sb.from('solo_saves').select('state,rev').eq('save_name', name).maybeSingle();
   if(error) throw error;
-  return data ? desempacotarSave(data.state) : null;
+  if(!data) return null;
+  const g = await desempacotarSave(data.state);
+  if(g && typeof g==='object') g._rev = Number(data.rev)||0;   // a versão em que este aparelho se baseia (ver SAVE_CONFLITO)
+  return g;
+}
+/* a versão (rev) do save no servidor — só a coluna, sem tocar no estado. null = não deu para saber */
+async function netRevDoSave(name){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return null;
+  try{
+    const { data, error } = await sb.from('solo_saves').select('rev').eq('save_name', name).maybeSingle();
+    if(error || !data) return null;
+    return Number(data.rev)||0;
+  }catch(e){ return null; }
 }
 async function netSaveSoloGame(name, state, opts){
   if(!sb) await netInitSupabase();
@@ -1626,19 +1639,21 @@ async function netSaveSoloGame(name, state, opts){
      foi assim que um "Novo jogo" apagou o SAVE01 de 13 temporadas do Bruno (30/09/2026). Nome ja' em uso
      => erro SAVE_EXISTE e quem chamou escolhe outro; o save antigo nunca e' tocado. */
   if(opts && opts.criar){
-    const { error } = await sb.from('solo_saves').insert(
-      { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() });
+    const { data, error } = await sb.from('solo_saves').insert(
+      { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() }).select('rev');
     if(error){
       if(error.code==='23505' || /duplicate key/i.test(error.message||'')) throw new Error('SAVE_EXISTE');
       throw error;
     }
-    return true;
+    return { ok:true, rev:(data&&data[0]&&Number(data[0].rev))||0 };
   }
-  const { error } = await sb.from('solo_saves').upsert(
-    { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() },
-    { onConflict: 'user_id,save_name' });
+  /* `rev` = a versão do save em que ESTE aparelho se baseou (ver CL._saveRev). O banco recusa com
+     SAVE_CONFLITO se outro aparelho gravou depois — em vez de o mais lento sobrescrever o mais novo. */
+  const linha = { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() };
+  if(opts && opts.rev!=null) linha.rev = opts.rev;
+  const { data, error } = await sb.from('solo_saves').upsert(linha, { onConflict: 'user_id,save_name' }).select('rev');
   if(error) throw error;
-  return true;
+  return { ok:true, rev:(data&&data[0]&&Number(data[0].rev))||0 };
 }
 /* ===== O LIVRO DE TITULOS DO RANKING =====
    Entrega os titulos da carreira a `rf_registrar_titulos` (elifoot_v3). O user_id NAO vai no
@@ -2188,6 +2203,7 @@ NET.rejectJoin = netRejectJoin;
 NET.getDivisionClubs = netGetDivisionClubs;
 NET.listSoloSaves = netListSoloSaves;
 NET.saveNomesUsados = netSaveNomesUsados;
+NET.revDoSave = netRevDoSave;
 NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.enviarTitulos = netEnviarTitulos;
