@@ -36,6 +36,7 @@
 .rf-tc-op small{margin-left:auto;font-size:11px;color:#8a958d}
 .rf-tc-outro{margin-top:8px}
 .rf-tc-nada{padding:12px;font-size:13px;color:#8a958d}
+.rf-tc-outro[hidden]{display:none}
 .rf-tc [hidden]{display:none !important}`;
   document.head.appendChild(st);
 })();
@@ -63,12 +64,12 @@ function rfTimeCampoHTML(alvo, estado, aoMudar){
     if(!ts.length) continue;
     grupos += `<div class="rf-tc-grupo" data-tc-grupo>${SERIES[s]}</div>` + ts.map(x =>
       `<div class="rf-tc-op${x.id===id?' on':''}" data-tc-nome="${escC((x.nome+' '+x.completo).toLowerCase())}"
-         onclick="${alvo}.timeCoracao='${escC(x.id)}';${alvo}.timeCoracaoOutro='';${aoMudar}();cdraw()">
+         onclick="${alvo}.timeCoracao='${escC(x.id)}';${alvo}.timeCoracaoOutro='';${aoMudar}();rfTcPintar(this)">
          ${rfTcEscudoHTML(x)}<span>${escC(x.nome)}</span></div>`).join('');
   }
   grupos += `<div class="rf-tc-grupo" data-tc-grupo>Outros</div>
-    <div class="rf-tc-op${id==='outro'?' on':''}" data-tc-nome="outro time" onclick="${alvo}.timeCoracao='outro';${aoMudar}();cdraw()"><span>Outro time</span></div>
-    <div class="rf-tc-op${id==='nenhum'?' on':''}" data-tc-nome="nao torco nenhum" onclick="${alvo}.timeCoracao='nenhum';${alvo}.timeCoracaoOutro='';${aoMudar}();cdraw()"><span>Não torço para nenhum time</span></div>`;
+    <div class="rf-tc-op${id==='outro'?' on':''}" data-tc-nome="outro time" onclick="${alvo}.timeCoracao='outro';${aoMudar}();rfTcPintar(this)"><span>Outro time</span></div>
+    <div class="rf-tc-op${id==='nenhum'?' on':''}" data-tc-nome="nao torco nenhum" onclick="${alvo}.timeCoracao='nenhum';${alvo}.timeCoracaoOutro='';${aoMudar}();rfTcPintar(this)"><span>Não torço para nenhum time</span></div>`;
   return `<div class="rf-campo rf-tc">
     <span class="rf-campo-l">Seu time do coração</span>
     <button type="button" class="rf-campo-c rf-tc-btn${id?'':' vazio'}" onclick="rfTcAbrir(this)">${rotulo}<span class="rf-tc-seta">▾</span></button>
@@ -76,9 +77,25 @@ function rfTimeCampoHTML(alvo, estado, aoMudar){
       <input class="rf-tc-busca" type="search" placeholder="Buscar time" autocomplete="off" oninput="rfTcFiltrar(this)">
       <div class="rf-tc-lista">${grupos}<div class="rf-tc-nada" hidden>Nenhum time com esse nome — escolha "Outro time".</div></div>
     </div>
-    ${id === 'outro' ? `<input class="rf-campo-c rf-tc-outro" maxlength="40" placeholder="Qual time?"
-        value="${escC((estado && estado.timeCoracaoOutro) || '')}" oninput="${alvo}.timeCoracaoOutro=this.value;${aoMudar}()">` : ''}
+    <input class="rf-campo-c rf-tc-outro" maxlength="40" placeholder="Qual time?"${id === 'outro' ? '' : ' hidden'}
+        value="${escC((estado && estado.timeCoracaoOutro) || '')}" oninput="${alvo}.timeCoracaoOutro=this.value;${aoMudar}()">
   </div>`;
+}
+/* ESCOLHER O TIME NÃO REDESENHA A TELA (30/09/2026): o cdraw() recriava o formulário inteiro e a página
+   pulava para o topo a cada escolha (mesmo defeito dos jogos jogados). O estado já foi gravado no onclick;
+   aqui só se troca o rótulo do botão, a opção marcada, o fecho da lista e o campo do "Outro time". */
+function rfTcPintar(op){
+  const raiz=op.closest('.rf-tc'); if(!raiz) return;
+  const btn=raiz.querySelector('.rf-tc-btn'), pop=raiz.querySelector('.rf-tc-pop'), outro=raiz.querySelector('.rf-tc-outro');
+  raiz.querySelectorAll('.rf-tc-op').forEach(o=>o.classList.toggle('on', o===op));
+  if(btn){ btn.innerHTML=op.innerHTML+'<span class="rf-tc-seta">▾</span>'; btn.classList.remove('vazio'); }
+  if(pop) pop.hidden=true;
+  const ehOutro=op.getAttribute('data-tc-nome')==='outro time';
+  if(outro){
+    outro.hidden=!ehOutro;
+    if(!ehOutro) outro.value='';
+    else { try{ outro.focus({preventScroll:true}); }catch(e){} }
+  }
 }
 function rfTcAbrir(btn){
   const pop = btn.parentNode.querySelector('.rf-tc-pop');
