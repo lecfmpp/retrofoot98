@@ -63,6 +63,31 @@ function rfJogosMeta(estado){
   const ids = RF_JOGOS.map(x => x[0]).filter(id => estado.jogos.includes(id));
   return { jogos_ja_jogou: ids, jogos_outro: ids.includes('outros') ? ((estado.jogosOutro||'').trim().slice(0,60) || null) : null };
 }
+/* ===== COMO CONHECEU O JOGO (29/09/2026) =====
+   Pergunta obrigatória de escolha ÚNICA, depois dos jogos que já jogou. "Outros" abre um campo livre.
+   Vai para raw_user_meta_data:
+     como_conheceu        'google' | 'amigos' | 'instagram' | 'tiktok' | 'youtube' | 'outros'
+     como_conheceu_outro  texto do "Outros" (até 60 caracteres) ou null
+   (o `origem` dos metadados já é o UTM/referrer automático, ver net/origem.js: este é o que a
+   PESSOA diz, e os dois se comparam no painel). Reusa o visual dos chips de rf-jg-*. */
+const RF_COMO = [['google','Google'], ['amigos','Indicação de amigos'], ['instagram','Instagram'], ['tiktok','TikTok'], ['youtube','YouTube'], ['outros','Outros']];
+function rfComoOk(estado){ return !!(estado && RF_COMO.some(x => x[0] === estado.como)); }
+function rfComoCampoHTML(alvo, estado, aoMudar){
+  const sel = estado && estado.como;
+  const chips = RF_COMO.map(([id, nome]) =>
+    `<button type="button" class="rf-jg-chip${sel===id?' on':''}" aria-pressed="${sel===id}"
+       onclick="${alvo}.como='${id}';${aoMudar}();cdraw()">${escC(nome)}</button>`).join('');
+  return `<div class="rf-campo rf-jg">
+    <span class="rf-campo-l">Como você conheceu o jogo?</span>
+    <div class="rf-jg-chips">${chips}</div>
+    ${sel==='outros' ? `<input class="rf-campo-c rf-jg-outro" maxlength="60" placeholder="Onde você conheceu?"
+        value="${escC((estado && estado.comoOutro) || '')}" oninput="${alvo}.comoOutro=this.value;${aoMudar}()">` : ''}
+  </div>`;
+}
+function rfComoMeta(estado){
+  if(!rfComoOk(estado)) return {};
+  return { como_conheceu: estado.como, como_conheceu_outro: estado.como==='outros' ? ((estado.comoOutro||'').trim().slice(0,60) || null) : null };
+}
 (function(){
   if(document.getElementById('rf-jg-css')) return;
   const st = document.createElement('style'); st.id = 'rf-jg-css';

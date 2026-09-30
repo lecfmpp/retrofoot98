@@ -63,6 +63,15 @@ async function netInitSupabase(){
       }
       if(session && session.user){
         SB_AUTH_USER = session.user;
+        /* RASTRO: liga a gravação de tela desta sessão à conta. A sessão começou na home, antes do
+           cadastro; o identify amarra tudo o que veio antes ao id da conta (o mesmo id do painel).
+           Só o id da conta vai: nome, e-mail e whatsapp não saem daqui. */
+        try{
+          if(typeof window.rastro==='function' && window.__rastroId !== session.user.id){
+            window.__rastroId = session.user.id;
+            window.rastro('identify', session.user.id, { origem_evento: event });
+          }
+        }catch(e){}
         setTimeout(()=>{ try{ netGrupoWpp(); }catch(e){} }, 0);   // clique no grupo feito antes de logar
         /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
            cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
@@ -281,6 +290,7 @@ async function netAuthSignUp(email, password, name, extra){
     e2.code = 'DUPLICATE_ACCOUNT';
     throw e2;
   }
+  try{ RF_FUNIL('cadastro_concluido', { confirma_email: !data.session }); }catch(e){}
   if(!data.session){
     const e2 = new Error('Conta criada! Confirme seu e-mail antes de entrar (verifique a caixa de entrada).');
     e2.code = 'NEEDS_CONFIRM';
@@ -310,10 +320,12 @@ async function netAuthSignIn(email, password){
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if(error){
     const msg=(error.message||'').toLowerCase();
+    try{ RF_FUNIL('login_erro', { motivo: msg.includes('invalid login') ? 'credenciais' : 'outro' }); }catch(e){}
     if(msg.includes('invalid login')) throw new Error('E-mail ou senha incorretos.');
     throw new Error(authErrPt(error));
   }
   SB_AUTH_USER = data.user;
+  try{ RF_FUNIL('login_ok'); }catch(e){}
   setTimeout(()=>{ try{ netMarcarInteracao('login'); }catch(e){} }, 0);   // login conta como ativo
   return SB_AUTH_USER;
 }
@@ -1509,6 +1521,7 @@ async function netAbrirPortal(){
 async function netCriarCheckout(plano, ciclo, forma){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) return { erro:'sem_sessao' };
+  try{ RF_FUNIL('checkout_iniciado', { plano, ciclo: ciclo||'mes', forma: forma==='pix' ? 'pix' : 'cartao' }); }catch(e){}
   const res = await netInvokeFn('criar-checkout', {
     plano, ciclo: ciclo||'mes', forma: forma==='pix' ? 'pix' : 'cartao',
     origem: (typeof location!=='undefined' ? location.origin : '')
