@@ -867,6 +867,7 @@ function devolveRolagem(m){
   try{ if(typeof rfWppRender==='function') rfWppRender(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
+  try{ if(window.RF_FUNIL_TELA) RF_FUNIL_TELA(); }catch(e){}   // Rastro: etapas do funil por tela
   /* as vagas aprovadas entram tambem no save JA' ABERTO — comparacao de strings quando nada
      mudou; so' varre os elencos quando o save troca ou quando as vagas chegam da rede
      (ver rfVagasNoSaveSeMudou, engine/core.js) */
@@ -1934,6 +1935,7 @@ function clNoop(){}
    sessão salva, vai direto pra escolha de modo; senão mostra a tela de login. */
 function clGoModo(mode){
   CL.navMenuOpen=false;
+  try{ RF_FUNIL('landing_cta_click', { modo: mode||'login' }); }catch(e){}
   /* FASE DE LISTA DE ESPERA: enquanto o jogo não abriu ao público, nenhuma
      porta leva ao login — todas levam à lista. A trava mora AQUI, na única
      entrada, e não em cada botão: proteger botão por botão foi justamente o
@@ -3414,7 +3416,8 @@ function rfTesteComecar(){
   clStartGame();
 }
 /* clubes -> loading (4/4) -> lança o jogo. Começar (1 jogador, clubes escolhidos) */
-function clStartGame(){ if(!(CL.pick||[]).length || !CL.pick.every(p=>p.clubId)) return; CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
+function clStartGame(){ if(!(CL.pick||[]).length || !CL.pick.every(p=>p.clubId)) return;
+  try{ RF_FUNIL('clube_escolhido', { clube:CL.pick[0].clubId, modo: CL.online ? 'resenha' : 'solo' }); }catch(e){} CL._pendingLaunch=clConfirmarClubes; CL.screen='loading'; cdraw(); }
 /* multi-jogador: sorteia os times, MOSTRA o sorteio e só então começa */
 function clSortearStart(){ _assignRandomClubs(); startSoloDraw(); }
 /* ===== SORTEIO DOS CLUBES NO SOLO =====
@@ -9976,6 +9979,7 @@ function clAdvanceSeason(){
      mexer em qualquer coisa. Se ele liberar, chama esta função outra vez com CL._pwLiberado. */
   if(typeof rfPwAntesDaVirada==='function' && rfPwAntesDaVirada()) return;
   CL._virandoTemporada=true;
+  try{ RF_FUNIL('temporada_concluida', { n_temporada:S.season, divisao:S.division }); }catch(e){}
   /* foto do fim da temporada na nuvem, ANTES da virada (ver autoSaveNuvemFimDeTemporada). A copia
      e' aqui, sincrona; o envio corre por fora e nunca segura a virada. */
   if(typeof autoSaveNuvemFimDeTemporada==='function'){

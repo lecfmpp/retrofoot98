@@ -209,6 +209,7 @@ function rfPwSeguir(){
 function rfPwReg(evento){
   try{
     const c=RF_PW.ctx; if(!c || c.demo || rfPwTeste()) return;
+    try{ RF_FUNIL(evento==='virou_pro' ? 'pro_ativado' : 'paywall_'+evento, { variante:c.variante, situacao:c.sit&&c.sit.k, temporada:S&&S.season, trava:(c.st&&c.st.depoimento_usado)?2:1 }); }catch(e){}
     if(typeof NET!=='undefined' && NET.paywallEvento)
       NET.paywallEvento(evento, { save:CL.save, variante:c.variante, situacao:c.sit&&c.sit.k,
         divisao:S&&S.division, temporada:S&&S.season });
@@ -444,6 +445,7 @@ function rfPwEnviar(tipo){
   chamada.then(r=>{
     RF_PW.enviando=false;
     if(r && r.teto){
+      try{ RF_FUNIL('paywall_'+(dep?'depoimento':'post')+'_enviado', { variante:RF_PW.ctx&&RF_PW.ctx.variante }); }catch(e){}
       RF_PW.texto=''; RF_PW.link='';
       toastC(dep ? '✓ Obrigado pela opinião! Temporada liberada.' : '✓ Valeu pela divulgação! Temporada liberada.');
       return rfPwSeguir();
