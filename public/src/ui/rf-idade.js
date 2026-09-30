@@ -33,20 +33,30 @@ function rfIdadeMeta(estado){
      jogos_ja_jogou  lista de ids: 'cm' | 'fm' | 'brasfoot' | 'elifoot' | 'outros'
      jogos_outro     texto do "Outros" (até 60 caracteres) ou null
    O painel lê em admin_rf98.usuarios ('jogos', 'jogos_outro') e mostra no detalhe da conta.
-   Só a ESCOLHA redesenha (cdraw); digitar em "Outros" só atualiza o estado. */
+   Marcar e desmarcar não redesenha a tela (ver rfJogosPintar); digitar em "Outros" só atualiza o estado. */
 const RF_JOGOS = [['cm','Championship Manager'], ['fm','Football Manager'], ['brasfoot','Brasfoot'], ['elifoot','Elifoot'], ['outros','Outros']];
 function rfJogosOk(estado){ return !!(estado && estado.jogos && estado.jogos.length); }
 function rfJogosCampoHTML(alvo, estado, aoMudar){
   const sel = (estado && estado.jogos) || [];
   const chips = RF_JOGOS.map(([id, nome]) =>
     `<button type="button" class="rf-jg-chip${sel.includes(id)?' on':''}" aria-pressed="${sel.includes(id)}"
-       onclick="var a=${alvo}.jogos=(${alvo}.jogos||[]).slice(),i=a.indexOf('${id}');i<0?a.push('${id}'):a.splice(i,1);${aoMudar}();cdraw()">${escC(nome)}</button>`).join('');
+       onclick="var a=${alvo}.jogos=(${alvo}.jogos||[]).slice(),i=a.indexOf('${id}');i<0?a.push('${id}'):a.splice(i,1);${aoMudar}();rfJogosPintar(this,'${id}',i<0)">${escC(nome)}</button>`).join('');
   return `<div class="rf-campo rf-jg">
     <span class="rf-campo-l">Quais jogos de gerente de futebol você já jogou? <i class="rf-wa-opc">(pode marcar vários)</i></span>
     <div class="rf-jg-chips">${chips}</div>
-    ${sel.includes('outros') ? `<input class="rf-campo-c rf-jg-outro" maxlength="60" placeholder="Quais outros jogos?"
-        value="${escC((estado && estado.jogosOutro) || '')}" oninput="${alvo}.jogosOutro=this.value;${aoMudar}()">` : ''}
+    <input class="rf-campo-c rf-jg-outro" maxlength="60" placeholder="Quais outros jogos?"${sel.includes('outros')?'':' hidden'}
+        value="${escC((estado && estado.jogosOutro) || '')}" oninput="${alvo}.jogosOutro=this.value;${aoMudar}()">
   </div>`;
+}
+/* MARCAR NÃO REDESENHA A TELA (30/09/2026): o cdraw() por escolha recriava o formulário inteiro e a página
+   pulava para o topo a cada clique. O estado já foi atualizado no onclick; aqui só se pinta o botão e se
+   mostra/esconde o campo do "Outros" — a rolagem e o foco ficam onde estão. */
+function rfJogosPintar(btn, id, ligado){
+  btn.classList.toggle('on', !!ligado); btn.setAttribute('aria-pressed', ligado ? 'true' : 'false');
+  if(id==='outros'){
+    const campo=btn.closest('.rf-jg') && btn.closest('.rf-jg').querySelector('.rf-jg-outro');
+    if(campo){ campo.hidden=!ligado; if(ligado){ try{ campo.focus({preventScroll:true}); }catch(e){} } }
+  }
 }
 function rfJogosMeta(estado){
   if(!rfJogosOk(estado)) return {};
@@ -60,6 +70,7 @@ function rfJogosMeta(estado){
 .rf-jg-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .rf-jg-chip{cursor:pointer;font:inherit;font-size:14px;padding:9px 14px;border-radius:99px;border:1px solid rgba(0,0,0,.18);background:#fff;color:#1c2a22}
 .rf-jg-chip.on{background:#1f7a3f;border-color:#1f7a3f;color:#fff;font-weight:700}
-.rf-jg-outro{margin-top:8px}`;
+.rf-jg-outro{margin-top:8px}
+.rf-jg-outro[hidden]{display:none}`;
   document.head.appendChild(st);
 })();
