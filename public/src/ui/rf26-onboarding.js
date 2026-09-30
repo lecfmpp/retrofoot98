@@ -290,6 +290,7 @@ function rfOb1(){
         ${criando?rfWhatsCampoHTML('CL.auth', a, 'rfObSyncCta'):''}
         ${criando && typeof rfIdadeCampoHTML==='function' ? rfIdadeCampoHTML('CL.auth', a, 'rfObSyncCta') : ''}
         ${criando && typeof rfJogosCampoHTML==='function' ? rfJogosCampoHTML('CL.auth', a, 'rfObSyncCta') : ''}
+        ${criando && typeof rfComoCampoHTML==='function' ? rfComoCampoHTML('CL.auth', a, 'rfObSyncCta') : ''}
         ${criando && typeof rfTimeCampoHTML==='function' ? rfTimeCampoHTML('CL.auth', a, 'rfObSyncCta') : ''}
         ${rfCampo('Senha', rfInput('rf-ob-s', criando?'6+ caracteres, com letra e número':'sua senha', a.password,'password',
             criando ? "rfObSet('password',this.value);rfSenhaGuiaPintar(this.value)" : "rfObSet('password',this.value)"),
@@ -355,6 +356,7 @@ function rfObPronto(a){
   return !!(a.email&&a.password&&(!criando||(a.name&&rfSenhaOk(a.password)&&rfWaAceito(a.waPais||'BR',a.whatsapp)
     && (typeof rfIdadeOk!=='function' || rfIdadeOk(a))
     && (typeof rfJogosOk!=='function' || rfJogosOk(a))
+    && (typeof rfComoOk!=='function' || rfComoOk(a))
     && (typeof rfTimeOk!=='function' || rfTimeOk(a)))));   // time do coração: obrigatório (rf-time-coracao.js)
 }
 
