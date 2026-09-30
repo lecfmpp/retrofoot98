@@ -2455,15 +2455,26 @@ function clDeleteSaveGo(name){
    pra "País e liga". O nome então nasce aqui, no mesmo padrão que o campo antigo
    sugeria no placeholder (SAVE01, SAVE02…), pulando os que já existem na conta.
    `clModoOk()` continua exigindo CL.save preenchido, e é ele que decide seguir. */
-function clSaveNomeLivre(){
+function clSaveNomeLivre(doServidor){
+  /* os nomes usados vêm da lista da tela E do servidor (`doServidor`, ver clSoloNew). Só a lista da tela
+     não basta: enquanto ela carrega — ou se ela falha — está VAZIA, e o primeiro nome "livre" era
+     SAVE01, por cima da carreira de quem já tinha um. */
   const usados=new Set((CL.soloSaves||[]).map(s=>String(s.name||s.save_name||'').toUpperCase()));
+  (doServidor||[]).forEach(n=>usados.add(String(n).toUpperCase()));
   for(let i=1;i<100;i++){
     const n='SAVE'+String(i).padStart(2,'0');
     if(!usados.has(n)) return n;
   }
   return 'SAVE'+Date.now().toString(36).slice(-4).toUpperCase();
 }
-function clSoloNew(){ CL.save=clSaveNomeLivre(); CL.soloStep='novo'; clModoOk(); }
+async function clSoloNew(){
+  let nomes=[];
+  if(typeof NET!=='undefined' && typeof NET.saveNomesUsados==='function'){
+    try{ nomes=await NET.saveNomesUsados(); }catch(e){ nomes=null; }
+    if(nomes===null){ toastC('⚠ Não consegui conferir os seus jogos salvos agora. Tente de novo em alguns segundos.'); return; }
+  }
+  CL.save=clSaveNomeLivre(nomes); CL.soloStep='novo'; clModoOk();
+}
 function clSoloBackChoice(){ CL.soloStep='choice'; cdraw(); }
 function clSyncOk(){ const b=document.querySelector('.cl-wiz-cta, .cl-btn-ok'); if(b) b.disabled = !((CL.save||'').trim().length>0); }
 function clGoAbertura(){ CL.screen='abertura'; cdraw(); }
@@ -2884,6 +2895,7 @@ function clEntrar(){
   if(typeof NET!=='undefined'){ NET.isHost=false; NET.gameId=null; NET.onState=null; }
   CL.humans={}; CL.draw.forEach(d=>CL.humans[d.clubId]=d.name);
   CL.tab='jogo'; CL.selPlayer=squad(CL.clubId)[0]?.pid||null;
+  CL._saveNovo=true;   // primeira gravação deste jogo: só INSERE, nunca substitui um save que já exista (ver netSaveSoloGame)
   saveV3('criacao');
   // BOAS-VINDAS -> SORTEIOS -> TELA DO CLUBE. Todos os sorteios de abertura acontecem aqui, no
   // começo do jogo, um depois do outro (ver cupSeasonDrawDays: todos no dia 1) — é a partir deles
@@ -3844,7 +3856,8 @@ async function _saveV3Enviar(explicit){
   let finishSavingOverlay=null;
   if(explicit) finishSavingOverlay=showSavingOverlay();
   try{
-    await NET.saveSoloGame(name, payload);
+    await NET.saveSoloGame(name, payload, { criar: !!CL._saveNovo });
+    CL._saveNovo=false;
     /* O SOLO NAO PASSA POR persistCareer (ele sai logo quando !CL.online), entao o livro de
        titulos entra aqui — a gravacao na nuvem e' o momento em que a carreira fica publicada, e
        `name` e' exactamente a `origem` que o servidor usa como chave. Best-effort e depois do
@@ -3858,6 +3871,16 @@ async function _saveV3Enviar(explicit){
     return true;
   } catch(e){
     console.warn('saveSolo erro:', e);
+    /* O NOME DO JOGO NOVO JA' EXISTE NA CONTA: escolhe outro (conferido no servidor) e grava de novo.
+       O save que já estava lá NÃO é tocado — antes o upsert o substituía. Sem resposta do servidor,
+       tenta mais tarde (null): nunca presume que o nome está livre. */
+    if(CL._saveNovo && /SAVE_EXISTE/.test((e&&e.message)||'')){
+      let nomes=null; try{ nomes=(NET.saveNomesUsados)?await NET.saveNomesUsados():null; }catch(e2){}
+      if(nomes===null){ if(finishSavingOverlay) finishSavingOverlay(); return null; }
+      CL.save=clSaveNomeLivre(nomes);
+      if(finishSavingOverlay) finishSavingOverlay();
+      return _saveV3Enviar(explicit);
+    }
     /* TETO DE SAVES — ESTE ERRO NAO PODE SER SILENCIOSO. O trigger do banco
        (PLANO_SAVES) recusa a carreira que passa do teto do plano, e os
        auto-saves de fim de rodada sao mudos de proposito: sem este desvio, a
@@ -3913,6 +3936,7 @@ function clLoadSave(name){
     if(!g){ toastC('⚠ Save não encontrado.'); return; }
     S=g.S; CL.clubId=g.clubId; CL.mgr=g.mgr; CL.currency=g.currency||'Reais'; CL.ticket=g.ticket||8; CL.humans=g.humans||{};
     CL.save=name; CL.online=false; // jogo solo — nunca herda estado de sala online
+    CL._saveNovo=false;            // é um save que já existe: gravar por cima dele é o normal
     // save de antes da unificação do estádio: migra o valor único S.stadium (aposentado) pro
     // mapa por clube S.clubStadiumCap[clubId] uma única vez, sem perder o progresso de quem já
     // construiu bancadas. Depois desta migração, S.stadium não é mais lido em lugar nenhum.

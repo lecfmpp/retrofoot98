@@ -1576,14 +1576,40 @@ async function netListSoloSaves(){
        estado inteiro: identidade (clubId/short/crest, gravados pelo saveV3) + onde o save
        está (temporada, divisão, rodada). Save antigo não tem short/crest — o cliente
        resolve pelo clubId (ver rfClubeDoSave em rf26-fluxo). */
+    /* ===== A LISTA LE SO' COLUNAS GERADAS (30/09/2026) =====
+       Antes ela extraia campos do jsonb (state->>clubId, state->S->>season...). Extrair de um jsonb
+       obriga o Postgres a DESCOMPACTAR o estado inteiro de cada save: com 27 saves de 1-3 MB (a conta
+       do Bruno) eram 2,4 s a quente e estourava o statement_timeout de 8 s quando o banco estava
+       carregado. Falhou a lista => a tela achava que nao havia save nenhum => "Novo jogo" pegava
+       SAVE01 e sobrescrevia a carreira de 13 temporadas. As colunas club_id/club_short/divisao/
+       temporada/rodada sao GERADAS do estado na gravacao: lê-las custa milissegundos.
+       Escudo e modalidade (so' existiam no jsonb) saem da lista: o escudo se resolve pelo clubId
+       (rfClubeDoSave) e a modalidade cai no padrao masculino, como ja' acontecia em save antigo. */
     const { data, error } = await sb.from('solo_saves')
-      .select('save_name,updated_at,clubId:state->>clubId,clubShort:state->>clubShort,clubCrest:state->>clubCrest,modalidade:state->>modalidade,season:state->S->>season,division:state->S->>division,round:state->S->>round')
+      .select('save_name,updated_at,club_id,club_short,divisao,temporada,rodada')
       .order('updated_at',{ascending:false});
-    if(error){ console.error('listSoloSaves erro:', error); return []; }
+    if(error){ console.error('listSoloSaves erro:', error); _listaSavesFalhou(); return []; }
+    const t=v=>(v==null?null:String(v));
     return (data||[]).map(r=>({ name:r.save_name, updated_at:r.updated_at,
-      clubId:r.clubId||null, clubShort:r.clubShort||null, clubCrest:r.clubCrest||null,
-      season:r.season||null, division:r.division||null, round:r.round||null }));
-  } catch(e){ console.error('listSoloSaves erro:', e); return []; }
+      clubId:r.club_id||null, clubShort:r.club_short||null, clubCrest:null,
+      season:t(r.temporada), division:r.divisao||null, round:t(r.rodada) }));
+  } catch(e){ console.error('listSoloSaves erro:', e); _listaSavesFalhou(); return []; }
+}
+/* a lista de saves falhou: ela vem VAZIA, e vazia parece "nao tenho save nenhum". Avisa, para ninguem
+   achar que perdeu a carreira (e nao cria jogo novo achando que esta' tudo livre — ver clSoloNew). */
+function _listaSavesFalhou(){
+  try{ if(typeof toastC==='function') toastC('⚠ Não consegui carregar a lista dos seus jogos. Seus saves estão guardados; atualize a página e tente de novo.'); }catch(e){}
+}
+/* os nomes de save que a conta JA' TEM, direto do servidor (so' a coluna save_name: nao toca no estado).
+   null = nao deu para conferir (rede/servidor) — quem chama NAO pode presumir "livre". */
+async function netSaveNomesUsados(){
+  if(!sb) await netInitSupabase();
+  if(!sb || !SB_AUTH_USER) return null;
+  try{
+    const { data, error } = await sb.from('solo_saves').select('save_name');
+    if(error){ console.warn('saveNomesUsados:', error.message||error); return null; }
+    return (data||[]).map(r=>String(r.save_name||'').toUpperCase());
+  }catch(e){ return null; }
 }
 async function netLoadSoloSave(name){
   if(!sb) await netInitSupabase();
@@ -1592,10 +1618,22 @@ async function netLoadSoloSave(name){
   if(error) throw error;
   return data ? desempacotarSave(data.state) : null;
 }
-async function netSaveSoloGame(name, state){
+async function netSaveSoloGame(name, state, opts){
   if(!sb) await netInitSupabase();
   if(!sb || !SB_AUTH_USER) throw new Error('Não conectado.');
   state = await empacotarSave(state);
+  /* JOGO NOVO SO' INSERE (opts.criar): o upsert de sempre SUBSTITUI o save que ja' tem esse nome —
+     foi assim que um "Novo jogo" apagou o SAVE01 de 13 temporadas do Bruno (30/09/2026). Nome ja' em uso
+     => erro SAVE_EXISTE e quem chamou escolhe outro; o save antigo nunca e' tocado. */
+  if(opts && opts.criar){
+    const { error } = await sb.from('solo_saves').insert(
+      { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() });
+    if(error){
+      if(error.code==='23505' || /duplicate key/i.test(error.message||'')) throw new Error('SAVE_EXISTE');
+      throw error;
+    }
+    return true;
+  }
   const { error } = await sb.from('solo_saves').upsert(
     { user_id: SB_UID(), save_name: name, state, updated_at: new Date().toISOString() },
     { onConflict: 'user_id,save_name' });
@@ -2149,6 +2187,7 @@ NET.approveJoin = netApproveJoin;
 NET.rejectJoin = netRejectJoin;
 NET.getDivisionClubs = netGetDivisionClubs;
 NET.listSoloSaves = netListSoloSaves;
+NET.saveNomesUsados = netSaveNomesUsados;
 NET.loadSoloSave = netLoadSoloSave;
 NET.saveSoloGame = netSaveSoloGame;
 NET.enviarTitulos = netEnviarTitulos;
