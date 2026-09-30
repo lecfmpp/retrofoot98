@@ -1127,6 +1127,7 @@ async function modalUsuario(id){
         ${fato('Origem', h(usCanal(u)), usOrigemTip(u))}
         ${fato('Idade', u.idade == null ? '<span class="us-nada">—</span>' : h(u.idade) + ' anos', u.idade == null ? 'Cadastro anterior a 29/09/2026' : 'Informada no cadastro')}
         ${fato('Jogos que já jogou', usJogosTxt(u) ? h(usJogosTxt(u)) : '<span class="us-nada">—</span>', usJogosTxt(u) ? 'Respondido no cadastro (múltipla escolha)' : 'Cadastro anterior a 29/09/2026')}
+        ${fato('Como conheceu', u.como_conheceu ? h(usComoTxt(u)) : '<span class="us-nada">—</span>', u.como_conheceu ? 'Respondido no cadastro' : 'Cadastro anterior a 30/09/2026')}
         ${fato('Time do coração', u.time_coracao ? h(usTimeNome(u)) : '<span class="us-nada">—</span>', u.time_coracao ? 'Respondido no cadastro' : 'Cadastro anterior a 27/09/2026')}
         ${fato('Grupo WhatsApp', u.grupo_botao ? h(US_GRUPO[u.grupo_botao] || u.grupo_botao) : '<span class="us-nada">—</span>',
                u.grupo_botao ? 'Primeiro clique em ' + usDataHora(u.grupo_em) + (+u.grupo_cliques > 1 ? '\n' + u.grupo_cliques + ' cliques no total' : '') : 'Nunca clicou em entrar no grupo')}
@@ -1239,6 +1240,18 @@ function usTimeCel(u){
   const sub = t.id === 'outro' ? 'outro time' : t.id === 'nenhum' ? '' : (t.serie ? 'Série ' + t.serie : '');
   return `<span data-tip="${h('Time do coração informado no cadastro')}"><b class="us-ref">${h(usTimeNome(u))}</b>${sub ? `<small class="us-sub">${h(sub)}</small>` : ''}</span>`;
 }
+/* COMO CONHECEU (30/09/2026): o que a PESSOA respondeu no cadastro (google/amigos/instagram/tiktok/
+   youtube/outros), ao contrário do Canal, que vem do UTM/referrer. Contas antigas: sem resposta. */
+const US_COMO = { google:'Google', amigos:'Indicação de amigos', instagram:'Instagram', tiktok:'TikTok', youtube:'YouTube', outros:'Outros' };
+function usComoTxt(u){
+  if(!u.como_conheceu) return '';
+  return u.como_conheceu === 'outros' && u.como_conheceu_outro ? 'Outros: ' + u.como_conheceu_outro : (US_COMO[u.como_conheceu] || u.como_conheceu);
+}
+function usComoCel(u){
+  if(!u.como_conheceu) return '<span class="us-nada" data-tip="Cadastro anterior a 30/09/2026, quando a pergunta entrou">—</span>';
+  const sub = u.como_conheceu === 'outros' && u.como_conheceu_outro ? `<small class="us-sub">${h(u.como_conheceu_outro)}</small>` : '';
+  return `<span data-tip="${h('Como a pessoa disse que conheceu o jogo, no cadastro')}"><b class="us-ref">${h(US_COMO[u.como_conheceu] || u.como_conheceu)}</b>${sub}</span>`;
+}
 function usCanal(u){ return u.referral ? 'Parceiro' : (u.canal || 'Desconhecido'); }
 function usToqueTxt(t){
   if(!t) return '—';
@@ -1319,6 +1332,7 @@ const US_ORD = {
   plano:     u => US_PLANO_ORD[planoChave(u.plano)],
   origem:    u => (u._d.canal === 'Desconhecido' ? '~' : '') + u._d.canal.toLowerCase(),
   time:      u => (u._d.time ? '' : '~') + u._d.time.toLowerCase(),
+  como:      u => (u.como_conheceu ? '' : '~') + usComoTxt(u).toLowerCase(),
   idade:     u => u._d.idade == null ? -1 : u._d.idade,
   carreiras: u => u._d.carreiras,
   temporadas:u => u._d.temporadas,
@@ -1340,6 +1354,7 @@ const US_COLS = [
   { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
   { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
+  { k:'como', l:'Como conheceu', tip:'O que a pessoa respondeu no cadastro: Google, indicação de amigos, Instagram, TikTok, YouTube ou outros (com o texto livre embaixo).\nÉ diferente do Canal, que vem do link/UTM. Contas criadas antes de 30/09/2026: sem resposta.' },
   { k:'time', l:'Time', tip:'Time do coração que a pessoa escolheu no cadastro (nome real).\nContas criadas antes de 27/09/2026: sem resposta.' },
   { k:'idade', l:'Idade', a:'c', tip:'Idade informada no cadastro.\nContas criadas antes de 29/09/2026: sem resposta.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
@@ -1503,6 +1518,7 @@ function usLinhaTds(u, podeApagar, n){
     <td>${usGrupoCel(u)}</td>
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
+    <td>${usComoCel(u)}</td>
     <td>${usTimeCel(u)}</td>
     <td class="c mono">${u.idade == null ? '<span class="us-nada" data-tip="Cadastro anterior a 29/09/2026">—</span>' : h(u.idade)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
@@ -1746,7 +1762,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
     el('uf-'+k).onchange = (ev) => { f[k] = ev.target.value; desenharLinhas(); };
   });
   el('u-fbtn').onclick = () => el('u-fbtn').parentNode.classList.toggle('aberto');
-  el('u-ord').onchange = (ev) => { f.ord = ev.target.value; f.dir = (f.ord === 'nome' || f.ord === 'origem') ? 1 : -1; desenharLinhas(); };
+  el('u-ord').onchange = (ev) => { f.ord = ev.target.value; f.dir = (f.ord === 'nome' || f.ord === 'origem' || f.ord === 'como') ? 1 : -1; desenharLinhas(); };
   el('u-dir').onclick = () => { f.dir = -f.dir; desenharLinhas(); };
   el('u-ativos').onclick = (ev) => {
     const c = ev.target.closest('[data-tirar]'); if(!c) return;
@@ -1803,7 +1819,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   document.querySelectorAll('.us-tbl th[data-ord]').forEach(th => th.onclick = () => {
     const k = th.dataset.ord;
     if(f.ord === k) f.dir = -f.dir;
-    else { f.ord = k; f.dir = (k === 'nome' || k === 'origem') ? 1 : -1; }   // texto A→Z; número maior primeiro
+    else { f.ord = k; f.dir = (k === 'nome' || k === 'origem' || k === 'como') ? 1 : -1; }   // texto A→Z; número maior primeiro
     desenharLinhas();
   });
   el('u-tb').onclick = (ev) => {
