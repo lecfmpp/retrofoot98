@@ -67,6 +67,9 @@ function rfJogosMeta(estado){
   if(document.getElementById('rf-jg-css')) return;
   const st = document.createElement('style'); st.id = 'rf-jg-css';
   st.textContent = `
+/* o rótulo é comprido e o .rf-campo-l é nowrap: no celular o "(pode marcar vários)" saía da tela */
+.rf-jg .rf-campo-l{white-space:normal;line-height:1.35}
+.rf-jg .rf-campo-l .rf-wa-opc{display:block;margin-top:2px}
 .rf-jg-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 .rf-jg-chip{cursor:pointer;font:inherit;font-size:14px;padding:9px 14px;border-radius:99px;border:1px solid rgba(0,0,0,.18);background:#fff;color:#1c2a22}
 .rf-jg-chip.on{background:#1f7a3f;border-color:#1f7a3f;color:#fff;font-weight:700}

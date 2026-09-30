@@ -12633,3 +12633,7 @@ button.rf-up-btn{cursor:pointer}
 .rf-pot.n4{width:17px;height:17px;cursor:help;filter:drop-shadow(0 0 4px rgba(20,170,120,.75))}
 .rf-pot.n4 svg{width:17px;height:17px;fill:#d6f5e8;stroke:#0e8f66;stroke-width:1.3;stroke-linecap:round}
 .rf-pot.n4 svg ellipse,.rf-pot.n4 svg path{fill:none}
+
+/* ----- CELULAR: o contador da lista de convidados (Resenha, passo Convites) saía da tela ----- */
+.rf-sa-lista-hd{flex-wrap:wrap;row-gap:2px}
+.rf-sa-lista-c{white-space:normal}
