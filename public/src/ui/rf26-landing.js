@@ -269,7 +269,7 @@ function rfContaChipHTML(minimo){
   /* O NOME E O BOTAO DE JOGAR. Com sessao aberta o cabecalho ficava sem
      nenhuma porta de entrada: o "Entrar" some (ja esta dentro) e sobrava um
      cracha passivo com o nome. */
-  return `<button type="button" class="rf-lp-conta ${pro?'pro':''} plano-${escC(chave)}" onclick="rfIrParaModo()"
+  return `<button type="button" class="rf-lp-conta rastro-mask ${pro?'pro':''} plano-${escC(chave)}" onclick="rfIrParaModo()"
       title="Jogar como ${escC(st.email||nome)} · plano ${escC(selo)}">
       ${glifo?`<span class="rf-lp-coroa" aria-hidden="true">${glifo}</span>`:rfIcone('jogar',16)}
       <span class="rf-lp-conta-n">${escC(nome)}</span>

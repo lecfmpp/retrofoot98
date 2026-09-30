@@ -1351,6 +1351,7 @@ const US_COLS = [
   { k:'freq', l:'Dias ativos', a:'c', tip:'Dias com login ou jogada (Jogar, Pronto, Avançar dia):\nnos últimos 7 dias · nos últimos 30 dias.\nAntes de 26/09/2026 conta o dia com tempo de jogo.' },
   { k:'cadastro', l:'Cadastro', a:'r', tip:'Quando a conta foi criada.' },
   { k:'acesso', l:'Último acesso', a:'r', tip:'O mais recente entre: último login, último save do Modo Solo e última jogada.\nAbrir o jogo já logado, sem jogar, não conta.' },
+  { l:'Gravação', a:'c', tip:'Gravação de tela da sessão da pessoa, no Visiflow (Rastro).\nO ▶ abre a gravação mais recente; o número é quantas sessões gravadas existem.\n— = sem gravação (ou ainda carregando). Só contas que entraram depois de o rastreio ligar têm.' },
   { k:'estado', l:'Estado', a:'c', tip:'Pelo último acesso:\nAtivo — até 2 dias\nParado — de 3 a 13 dias\nPerdido — 14 dias ou mais' },
   { l:'Senha', a:'r', tip:'Envia para o e-mail da pessoa um link para criar uma senha nova. O painel nunca vê a senha.' },
 ];
@@ -1459,6 +1460,29 @@ function usLinhaHTML(u, podeApagar, n){
   let i = 0;
   return usLinhaTds(u, podeApagar, n).replace(/<td(?=[\s>])/g, () => `<td data-l="${h((US_COLS[i++] || {}).l || '')}"`);
 }
+/* ===== GRAVAÇÃO DE TELA (Visiflow/Rastro, 29/09/2026) =====
+   O jogo chama rastro('identify', <id da conta>) no login/cadastro; o Visiflow guarda as sessões por
+   esse id. Quem diz quais contas têm gravação é a edge function `rastro-usuarios` (a chave de leitura
+   fica no servidor). D.gravacoes = { [id]: { sessions, sessions_with_video, panel_url, latest_replay_url, … } }
+   e só é preenchido depois que a lista já está na tela — a coluna começa em "—" e se completa. */
+function usGravCel(u){
+  const g = (D.gravacoes || {})[u.id];
+  if(!g || !(+g.sessions > 0)) return '<span class="us-nada" data-tip="Sem gravação de tela desta conta">—</span>';
+  const url = g.latest_replay_url || g.panel_url;
+  if(!url) return '<span class="us-nada">—</span>';
+  const com = +g.sessions_with_video || 0;
+  return `<a href="${h(url)}" target="_blank" rel="noopener" class="us-play"
+      data-tip="${h(`Abrir a gravação mais recente no Visiflow\n${g.sessions} sessão(ões), ${com} com vídeo\nÚltima: ${usDataHora(g.last_session_at)}`)}"
+      style="display:inline-flex;align-items:center;gap:5px;color:var(--verde,#35c46a);text-decoration:none;font-weight:600">▶<small class="us-sub" style="margin:0">${num(g.sessions)}</small></a>`;
+}
+async function usCarregarGravacoes(ids, redesenhar){
+  try{
+    const { data, error } = await sb.functions.invoke('rastro-usuarios', { body:{ user_ids: ids } });
+    if(error || !data || !data.usuarios) return;
+    D.gravacoes = data.usuarios;
+    redesenhar();
+  }catch(e){}   // sem a coluna preenchida a lista segue igual
+}
 function usLinhaTds(u, podeApagar, n){
   const d = u._d, e = estadoAcesso(u.ultimo_acesso), pl = planoAdm(u.plano);
   const fonte = [
@@ -1493,6 +1517,7 @@ function usLinhaTds(u, podeApagar, n){
       <small class="us-sub">${+u.dias_ativos_30||0}/30</small></span></td>
     <td class="r mono"><span data-tip="${h('Conta criada em ' + usDataHora(u.criado_em))}">${h(dmy(u.criado_em))}</span></td>
     <td class="r mono"><span data-tip="${h(fonte)}">${h(ha(u.ultimo_acesso))}<small class="us-sub">${h(usDataHora(u.ultimo_acesso))}</small></span></td>
+    <td class="c">${usGravCel(u)}</td>
     <td class="c"><span class="us-est" data-tip="${h(US_ESTADO[d.estado])}"><i style="background:${e.c}"></i>${e.t}</span></td>
     <td class="r"><span class="link" data-reset="${h(u.email)}" data-nome="${h(u.nome)}"
           data-tip="${h('Enviar link de nova senha para ' + u.email)}">Reenviar</span></td>
@@ -1712,6 +1737,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
   }
   desenharLinhas();
   tipIniciar();
+  usCarregarGravacoes(us.map(u => u.id), () => { if(desenhoAtual(senha)){ desenharLinhas(); tipIniciar(); } });
 
   const b = el('u-busca');
   let t = null;
