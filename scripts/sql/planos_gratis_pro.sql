@@ -204,8 +204,10 @@ begin
   if p_tipo = 'depoimento' and length(btrim(coalesce(p_texto, ''))) < 20 then
     raise exception 'DEPOIMENTO_CURTO';
   end if;
-  -- 30/09: a 2ª saída virou "mensagem no grupo do WhatsApp" (link wa.me com o texto); os links de
-  -- redes sociais continuam aceitos para quem ainda estiver com a versão antiga aberta
+  -- 30/09: a 2ª saída virou "mensagem no grupo do WhatsApp". O jogo manda o link do grupo
+  -- (chat.whatsapp.com, o botão copia a mensagem e abre o grupo) ou, sem ele, o wa.me com o texto.
+  -- Liberação por confiança (não há como saber se a mensagem foi enviada), uma vez por conta.
+  -- Os links de redes sociais continuam aceitos para quem ainda estiver com a versão antiga aberta.
   if p_tipo = 'post' and coalesce(p_link, '') !~* '^https?://([a-z0-9-]+\.)*(instagram\.com|tiktok\.com|youtube\.com|youtu\.be|x\.com|twitter\.com|facebook\.com|fb\.watch|threads\.net|kwai\.com|wa\.me|whatsapp\.com)/' then
     raise exception 'LINK_INVALIDO';
   end if;
@@ -213,8 +215,13 @@ begin
     raise exception 'JA_USADO';
   end if;
 
-  insert into elifoot_v3.temporadas_extras (user_id, save_name, tipo, qtd, texto, link, resumo)
-  values (v_uid, p_save, p_tipo, 1, left(btrim(p_texto), 2000), left(btrim(p_link), 500), left(p_resumo, 200));
+  begin
+    insert into elifoot_v3.temporadas_extras (user_id, save_name, tipo, qtd, texto, link, resumo)
+    values (v_uid, p_save, p_tipo, 1, left(btrim(p_texto), 2000), left(btrim(p_link), 500), left(p_resumo, 200));
+  exception when unique_violation then
+    -- dois toques ao mesmo tempo: o índice temporadas_extras_por_conta segura o 2º
+    raise exception 'JA_USADO';
+  end;
   v_teto := elifoot_v3.temporadas_teto(v_uid, p_save);
 
   -- aviso aos devs; nunca impede a liberação
@@ -230,7 +237,7 @@ begin
                   else '📣 *Post/vídeo sobre o RetroFoot*' end
       || chr(10) || coalesce(v_nome, '?') || ' (' || coalesce(v_email, '?') || ' · ' || coalesce(v_fone, '—') || ')'
       || case when p_tipo = 'depoimento' then ' deixou depoimento'
-              when v_wpp then ' disse que contou a temporada no grupo'
+              when v_wpp then ' abriu o grupo para contar a temporada'
               else ' publicou sobre o jogo' end
       || ' e estendeu a carreira' || coalesce(' no ' || v_clube, '') || ' por mais 1 temporada no Peladeiro.'
       || coalesce(chr(10) || 'Temporada: ' || p_resumo, '')
