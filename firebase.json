@@ -70,6 +70,16 @@
           ]
         },
         {
+          "//": "VIDEOS (boas-vindas, celebracoes, convites). Estavam sob o '**' e saiam com `no-store`: nessa condicao o CDN IGNORA o pedido de faixa de bytes e devolve o arquivo inteiro com 200 (medido: `Range: bytes=0-1` -> 200 e 3 MB; uma imagem com cache devolve 206 e 2 bytes). O Safari do iPhone e os navegadores do celular em geral EXIGEM 206 para tocar video — no desktop tocava, no celular so' aparecia o cartaz de tras. Um dia de cache, como as imagens: os nomes nao levam hash, entao um video regerado chega em ate 24 h.",
+          "source": "/video/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
           "//": "UMA REGRA POR FICHEIRO, e nao um @(a|b|c). A alternacao extglob com barra a abrir foi tentada e NAO CASOU: as duas regras existiam, o deploy passava e o cabecalho simplesmente nao aparecia -- erro que so' se ve conferindo o cabecalho no ar. As regras de um caminho so' (as de Content-Type mais abaixo) sempre funcionaram, entao e' essa a forma.",
           "source": "/robots.txt",
           "headers": [
