@@ -12637,3 +12637,30 @@ button.rf-up-btn{cursor:pointer}
 /* ----- CELULAR: o contador da lista de convidados (Resenha, passo Convites) saía da tela ----- */
 .rf-sa-lista-hd{flex-wrap:wrap;row-gap:2px}
 .rf-sa-lista-c{white-space:normal}
+
+/* ----- RANKING NO CELULAR: o NOME do treinador é o principal (30/09/2026) -----
+   A linha virava um flex em que o bloco do nome encolhia a 0 px e os pontos ficavam por cima do avatar:
+   no celular não se lia o nome de ninguém. Agora é uma grade de 4 colunas e 2 linhas:
+        posição │ foto │ NOME (grande)          │ pontos
+        variação│      │ escudo · clube · modo  │
+   O bloco do nome usa display:contents para a foto, o nome e o "VOCÊ" caírem direto na grade. */
+@media (max-width:900px){
+  .rf-rk-tr{display:grid;grid-template-columns:36px 42px minmax(0,1fr) auto;
+    grid-template-areas:"pos av nome pts" "pill av save pts";
+    column-gap:10px;row-gap:2px;align-items:center;padding:10px 8px}
+  .rf-rk-tr>.rf-rk-pos{grid-area:pos;width:auto;align-self:end}
+  .rf-rk-tr>span:nth-child(2){grid-area:pill;align-self:start;justify-self:start}
+  .rf-rk-tr>span:nth-child(2) .rf-rk-pill{font-size:9px;padding:1px 5px}
+  .rf-rk-tr.eu>span:nth-child(2){display:none}            /* na minha linha o "VOCÊ" ocupa esse lugar */
+  .rf-rk-nome-c{display:contents}
+  .rf-rk-nome-c .rf-rk-av{grid-area:av;width:42px!important;height:42px!important;font-size:14px}
+  .rf-rk-nome{grid-area:nome;align-self:end;font-size:14.5px;line-height:1.2;min-width:0}
+  .rf-rk-voce{grid-area:pill;align-self:start;justify-self:start}
+  .rf-rk-save{grid-area:save;order:0;width:auto;padding:0;margin:0;align-self:start;gap:6px;min-width:0}
+  .rf-rk-save .rf-rk-crest{width:16px!important;height:16px!important;flex:0 0 auto}
+  .rf-rk-save-id{flex-direction:row;align-items:baseline;gap:6px;min-width:0;overflow:hidden}
+  .rf-rk-save-c{font-family:inherit;font-size:11.5px;color:#5d6c62;min-width:0}
+  .rf-rk-save-m{flex:0 0 auto}
+  .rf-rk-pts{grid-area:pts;order:0;font-size:15px;white-space:nowrap;align-self:center}
+  .rf-rk-temp,.rf-rk-col{display:none}
+}
