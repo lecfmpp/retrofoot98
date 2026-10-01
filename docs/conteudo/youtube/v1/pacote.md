@@ -3,7 +3,7 @@
 **Marca:** RetroFoot (só RetroFoot neste vídeo).
 **Base:** roteiro do V1 em `docs/conteudo/plano-conteudo.html` (parte 5, "O Elifoot da escola, refeito para 2026"),
 atualizado para o produto de hoje (`docs/conhecimento/01-visao-geral-conta-planos.md`, `docs/plano-gratis-pro.md`).
-**Status:** rascunho para aprovação do Leandro. Nada foi gravado, publicado nem agendado.
+**Status:** título A, capa EP. 01, sem preço e sem "Elifoot" aprovados pelo Leandro em 01/10/2026. Nada foi gravado, publicado nem agendado. Fluxo completo em `../FLUXO.md`.
 
 > Convenção: tudo entre `[colchetes]` é número ou dado que o Leandro precisa preencher ou confirmar.
 > Nenhum número de jogadores, vendas ou resultado foi inventado.
