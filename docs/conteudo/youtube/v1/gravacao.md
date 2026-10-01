@@ -69,8 +69,9 @@ Nada aqui foi gravado ainda. Gravar, publicar e gastar crédito (IA de imagem, m
 
 Total bruto estimado: [25–40] min de tela + [10–15] min de câmera.
 
-**Fotos para a thumbnail** (se o rosto for aprovado): 10–15 fotos do apresentador em reação forte, fundo liso,
-mesma luz da gravação; e um print limpo em 1920×1080 do cartão do clube sorteado (B-07) e do Camarote (B-19).
+**Para a capa** (modelo "EP. 01" do Canva, ver `pacote.md` seção 10): um print limpo em 1920×1080 do cartão do
+clube sorteado com o selo Série D (B-07) e um do Camarote (B-19) para a metade direita. Fotos do apresentador
+(10–15, reação forte, fundo liso) só se o rosto for aprovado.
 
 Ajuda possível: `scripts/capture-ads.mjs` já abre o jogo e grava telas automaticamente para o media kit;
 pode ser adaptado para gerar prints limpos (B-10 a B-16) na rotina do computador do Leandro — o vídeo

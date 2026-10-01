@@ -60,8 +60,8 @@ Palavra-chave principal: **manager de futebol (online)** — é a página de mai
 | B | O manager de futebol da escola voltou (e roda no navegador) | 59 | Nostalgia (é o gancho do plano) |
 | C | Manager de futebol online: não escolhi meu time. Sorteei. | 57 | O diferencial do jogo (sorteio) |
 
-Sugestão de teste: publicar com **A** e a thumbnail 1; se o CTR das primeiras 48 h ficar abaixo de [meta de CTR],
-trocar para **B** + thumbnail 2 (ou usar o "Testar e comparar" do YouTube, se o canal tiver).
+Sugestão de teste: publicar com **A** e a capa "EP. 01" (seção 10); se o CTR das primeiras 48 h ficar abaixo de [meta de CTR],
+trocar para **C** + a capa "Da Série D ao título" (ou usar o "Testar e comparar" do YouTube, se o canal tiver).
 
 ---
 
@@ -300,36 +300,40 @@ O YouTube trata tag de marca alheia como metadado enganoso quando o vídeo não 
 
 ---
 
-## 10. Briefing de thumbnail (3 conceitos)
+## 10. Thumbnail — usar o design system do RetroFoot98 (não criar do zero)
 
-Regras para os três: 1280×720, texto com **no máximo 4 palavras**, legível em 160 px de largura;
-**sem escudos reais, sem nomes de clubes reais, sem jogadores reais, sem logo/tela de outro jogo**
-(nem Elifoot, nem Brasfoot). Só telas do RetroFoot, com os nomes e escudos fictícios do próprio jogo.
-Paleta da marca do jogo (conferir em `design-system-brief.md`). Rosto do apresentador **só com aprovação dele**
-(conceitos 1 e 2 têm versão sem rosto).
+**Regra (pedido do Leandro, 01/10):** toda capa de YouTube do RetroFoot sai dos modelos que já existem:
 
-### Conceito 1 — "O sorteio" (recomendado com o título A)
-- **Imagem:** à esquerda, rosto do apresentador em reação forte (surpresa/desespero), recortado.
-  À direita, o cartão do clube sorteado (escudo **fictício** do jogo) grande, com o selo "SÉRIE D".
-- **Texto:** **"NÃO ESCOLHI"** (amarelo, contorno escuro).
-- **Sem rosto:** a mão/cursor sobre o cartão do sorteio girando, com motion blur.
+- **Design system:** "RetroFoot98 Design System" (feito no Claude Design) — https://claude.ai/artifact/PBgFZRDDUhZknVqtJFiLPa.
+  Dele vêm cores, fontes, selos e o logo `Retrofoot.com.br`. Nada de paleta ou fonte nova.
+- **Modelos no Canva:** "RetroFoot98 — Capas YouTube (12 modelos)" — https://www.canva.com/d/rUN1TN9RO9x-7te
+  (exportado do design system). Também existe "RetroFoot98 — Capa EP. 01 · Primeira Resenha" para a série da Resenha.
+- **Fluxo:** copiar a página do modelo para um design novo (o original nunca é editado), trocar só texto e a imagem
+  da direita, exportar PNG 1280×720 ≤ 2 MB.
 
-### Conceito 2 — "A tarde da escola" (combina com o título B)
-- **Imagem:** metade esquerda = PC bege anos 90 com monitor CRT, ilustrado (gerado ou desenho próprio),
-  mostrando uma **tabela em pixel-art genérica** (nada que copie a tela de outro jogo). Metade direita = celular
-  com o campo da Formação do RetroFoot. Seta entre os dois.
-- **Texto:** **"VOLTOU."**
-- **Sem rosto:** já não tem rosto.
-- Atenção: geração de imagem por IA gasta crédito — é decisão do Leandro (vermelho). Alternativa sem custo:
-  fotografar um PC antigo real (sem marca visível) ou usar só o celular com a tela.
+Estrutura comum dos modelos: fundo de gramado escuro (ou claro, nos de explicação), logo no canto superior esquerdo,
+selo azul do episódio/tema, título em duas linhas em caixa alta condensada com a 2ª linha numa faixa amarela,
+linha de apoio em fonte mono com o traço amarelo, e a metade direita com a **tela do jogo** separada por um filete amarelo.
 
-### Conceito 3 — "Rodada ao vivo"
-- **Imagem:** captura do Modo Camarote com a barra de pressão encostada e o placar em destaque
-  (ex.: 2 x 2, aos 89' — usar o placar que aparecer na gravação real, não montar um).
-- **Texto:** **"SÉRIE D. AO VIVO."**
-- Bom para o teste A/B se o 1 não performar; também serve de capa para o Short da rodada.
+### Capa do V1 (recomendada) — modelo "EP. 01 · Você jogava isso na escola"
+- **Base:** página 7 dos 12 modelos. Cópia de trabalho já criada: "RetroFoot98 — Capas YouTube (12 modelos)" com 1 página
+  — https://www.canva.com/d/K8qSJ5y_aCQeBQx (renomear para "Capa V1" ao editar).
+- **Texto (já no modelo, combina com o título A sem repetir):** "VOCÊ JOGAVA / ISSO NA ESCOLA / **AGORA É 2026**" ·
+  apoio "SEM INSTALAR NADA · NO NAVEGADOR" · selo "EP. 01" · etiqueta "HOJE".
+- **O que trocar:** a captura da direita (hoje é uma partida genérica) por um quadro da gravação do V1 —
+  de preferência o **cartão do clube sorteado com o selo "Série D"** (o momento do título A), ou a partida ao vivo
+  se o sorteio não render bem em 1280×720.
+- **Rosto:** o modelo não usa rosto. Se o Leandro quiser aparecer, o recorte entra por cima do filete amarelo, à direita
+  (decisão D3).
 
-Entregáveis pedidos ao designer/rotina: 3 PNG ≤ 2 MB, mais as camadas (rosto recortado, cartão, texto) para variar.
+### Alternativas para teste A/B (mesmos modelos)
+- **"Da Série D ao título"** (página 11, selo TEMPORADA) — trocar o troféu da direita pela tela do clube sorteado.
+  Combina com os títulos A e C.
+- **"Perdi nos pênaltis"** (página 4, selo DESAFIO) — só se a gravação tiver um momento real assim; nunca montar placar.
+
+Regras que continuam: sem escudos/nomes de clubes reais, sem jogadores reais, sem tela de outro jogo
+(nem Elifoot, nem Brasfoot); só escudos fictícios do próprio jogo. Antes de publicar, conferir a capa em 160 px de largura.
+
 
 ---
 
@@ -337,7 +341,7 @@ Entregáveis pedidos ao designer/rotina: 3 PNG ≤ 2 MB, mais as camadas (rosto 
 
 | # | Decisão | Opções |
 |---|---|---|
-| D1 | Aprovar título + thumbnail para a publicação | A+1 (recomendado) · B+2 · C+3 |
+| D1 | Aprovar título + thumbnail para a publicação | A + capa EP. 01 (recomendado) · C + "Da Série D ao título" · B + capa EP. 01 |
 | D2 | Usar a palavra "Elifoot" | **Recomendado:** só falada como comparação ("no estilo dos que a gente jogava"), sem título, tag ou arte. Alternativa: citar "estilo Elifoot" na descrição, como o site faz em `/elifoot-online/`. |
 | D3 | Quem apresenta e se o rosto vai na thumbnail | [nome] · thumbnail com rosto ou sem rosto |
 | D4 | Link do grupo do WhatsApp na descrição | sim / não |
