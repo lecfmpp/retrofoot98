@@ -1,0 +1,37 @@
+name: Submit sitemaps (Google + IndexNow)
+
+# Sends the sitemaps listed in public/robots.txt to Google Search Console and
+# pings IndexNow (Bing/Yandex). Runs daily, whenever a sitemap changes on main,
+# and on demand. Needs the repository secret GSC_SERVICE_ACCOUNT_JSON.
+
+on:
+  schedule:
+    - cron: '30 11 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'public/sitemap*.xml'
+      - 'public/robots.txt'
+      - 'scripts/submit-sitemaps.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: submit-sitemaps
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/submit-sitemaps.mjs
+        env:
+          SITE_DIR: public
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
