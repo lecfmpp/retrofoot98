@@ -1427,6 +1427,7 @@ function onlineBeginSeason(fresh){ const room=NET.room; if(!room) return; const 
   // 32-bit ESTÁVEL e NÃO-ZERO da string do games.seed (FNV-1a) — igual em todos os clientes.
   const seed32=resenhaSeed32(room.seed);
   newGame(CL.clubId, startDiv, undefined, seed32); if(!S.stadium) S.stadium={capacity:STAND_START}; // seed compartilhada -> mesma competição p/ todos
+  if(fresh){ try{ if(typeof rfRastroClube==='function') rfRastroClube('resenha'); }catch(e){} }   // Rastro: clube_escolhido só no início da sala, não na reconexão
   /* ===== DOIS CAMPOS COM SIGNIFICADOS DIFERENTES, E NENHUM DELES É "O PAÍS DO JOGADOR" =====
      `S.intlUniverse` é o país da PIRÂMIDE ÂNCORA — a que mora em S.table/S.otherDivs e que o
      servidor resolve a cada rodada. Não é "o país da sala" e muito menos "o meu país": num

@@ -11,6 +11,9 @@
 
   gtag('config', 'G-YE7PT01DGY');
 </script>
+<!-- Rastro: comportamento e navegação do usuário (análise de UI/UX) -->
+<script>window.rastro=window.rastro||function(){(rastro.q=rastro.q||[]).push(arguments)};</script>
+<script async src="https://ccbwtzqrumuiyubvtvas.supabase.co/functions/v1/rastro-ingest/s.js?k=rs_039dc20bdd6870ac78"></script>
 <!-- Origem do cadastro (UTM/referrer): síncrono e AQUI, antes de o jogo limpar a query da URL. -->
 <script src="src/net/origem.js"></script>
 <!-- Google AdSense (ca-pub-8683510933527854) — SÓ a tag de verificação: o Google precisa
@@ -1069,6 +1072,8 @@ function teamMorale(id,players){
      de rede porque não depende de nenhum deles (faz fetch cru, ver ads.js). -->
 <script src="src/net/ads.js"></script>
 <script src="src/net/momento-videos.js"></script>
+<!-- Rastro (Visiflow): marcos do jogo e troca de tela — o snippet está no <head> (ver src/net/rastro-marcos.js) -->
+<script src="src/net/rastro-marcos.js"></script>
 <script src="src/net/local-transport.js"></script>
 <script src="src/net/supabase-adapter.js"></script>
 <script>

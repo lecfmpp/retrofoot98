@@ -63,6 +63,8 @@ async function netInitSupabase(){
       }
       if(session && session.user){
         SB_AUTH_USER = session.user;
+        // Rastro (Visiflow): liga as sessões gravadas à conta — só o id interno, nunca e-mail/nome
+        try{ if(typeof rfRastro==='function' && session.user.id) rfRastro('identify', session.user.id); }catch(e){}
         setTimeout(()=>{ try{ netGrupoWpp(); }catch(e){} }, 0);   // clique no grupo feito antes de logar
         /* trocou de conta -> o plano e outro. Redesenha quando chegar, para o
            cabecalho passar a mostrar o botao PRO sem esperar por um clique. */
@@ -288,6 +290,8 @@ async function netAuthSignUp(email, password, name, extra){
   }
   SB_AUTH_USER = data.user;
   await netAtribuirReferral();
+  // Rastro (Visiflow): marco cadastro_concluido (conta criada COM sessão — sem dado pessoal)
+  try{ if(typeof rfRastro==='function'){ if(data.user && data.user.id) rfRastro('identify', data.user.id); rfRastro('track','cadastro_concluido',{}); } }catch(e){}
   setTimeout(()=>{ try{ netMarcarInteracao('cadastro'); }catch(e){} }, 0);   // conta nova já entra ativa
   return SB_AUTH_USER;
 }
