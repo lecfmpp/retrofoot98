@@ -473,18 +473,11 @@ function rfUpAgendar(marco, temporada, tentativa){
     }catch(e){ console.warn('marco de planos:', e); }
   }, tentativa ? 3000 : 1500);
 }
-/* chamado por liveDone, depois de cada rodada */
-function rfUpMarcoRodada(){
-  try{
-    if(!rfUpPodeVender()) return;
-    if(typeof rfPmPendente==='function' && rfPmPendente()) return;   // Patrocínio Master primeiro
-    const devidos=rfUpMarcoDaRodada(); if(!devidos) return;
-    const temporada=S.season||0;
-    const ultimo=devidos[devidos.length-1];
-    devidos.slice(0,-1).forEach(m=>rfUpCarimbar(m, temporada));
-    if(!rfUpVistos().includes(rfUpMarcoChave(ultimo, temporada))) rfUpAgendar(ultimo, temporada);
-  }catch(e){ console.warn('marco de planos:', e); }
-}
+/* chamado por liveDone, depois de cada rodada.
+   DESLIGADO (01/10): os lembretes de início, virada do turno e reta final não abrem mais. O
+   plano só é oferecido nas travas (RF_UP_TRAVA_MOTIVO) e na virada de temporada (rf26-paywall.js,
+   rfPwAntesDaVirada). Os carimbos antigos em localStorage ('rf98:upMarcos:*') ficam sem uso. */
+function rfUpMarcoRodada(){}
 /* chamado quando o jogador avanca para a temporada nova: `temporada` e' a que acabou */
 /* O FIM DE TEMPORADA SAIU DOS MARCOS (25/09): quem não é Pro já passa pelo paywall de
    temporada (rf26-paywall.js) antes de virar — um segundo popup logo depois seria repetir. */
