@@ -865,6 +865,8 @@ function devolveRolagem(m){
   try{ if(typeof rfOpiniaoRender==='function') rfOpiniaoRender(); }catch(e){}
   /* o grupo do WhatsApp tambem vive fora do #c-root (ver ui/rf26-grupo-wpp.js) */
   try{ if(typeof rfWppRender==='function') rfWppRender(); }catch(e){}
+  /* Rastro (Visiflow): troca de tela e marcos do jogo (ver src/net/rastro-marcos.js) */
+  try{ if(typeof rfRastroTick==='function') rfRastroTick(); }catch(e){}
 }
 function cdraw(){ const r=$c('#c-root'); if(!r)return;
   /* as vagas aprovadas entram tambem no save JA' ABERTO — comparacao de strings quando nada
@@ -2865,6 +2867,7 @@ function clEntrar(){
   S.intlUniverse = CL.intlUniverse; // false | país (ex.: 'Inglaterra')
   S.bgCountries = (CL.bgCountries||[]).slice(); // outros países selecionados: ligas de background
   initBgLeagues(); // materializa as ligas de background pra simular/visualizar/negociar
+  try{ if(typeof rfRastroClube==='function') rfRastroClube('solo'); }catch(e){}   // Rastro: marco clube_escolhido (ver src/net/rastro-marcos.js)
   // estádio do próprio usuário: newGame() já semeou S.clubStadiumCap[CL.clubId] junto com o
   // resto do elenco de DATA.clubs (mesmo mapa por clube que a CPU usa — ver core.js) — não
   // precisa de semente separada aqui. S.stadium (campo único, um só por save) foi aposentado:
