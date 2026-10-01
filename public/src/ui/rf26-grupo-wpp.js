@@ -8,8 +8,8 @@
         (Solo: clLoginSignup em main.js; Resenha: clAuthDoSignup em
         net/local-transport.js). SÓ UM BOTÃO (23/09): o ✕ saiu; fecha no Esc e no clique fora.
         Desktop: cartão centrado. Abaixo de 760px: bottom sheet.
-   1b · ABA DAS PÁGINAS PÚBLICAS — a home (CL.screen 'abertura') e as páginas
-        estáticas de SEO (scripts/build-seo.mjs carrega ESTE ficheiro). Pílula no
+   1b · ABA DAS PÁGINAS PÚBLICAS — as páginas estáticas de SEO (a home, CL.screen
+        'abertura', deixou de ter a pílula em 30/09) (scripts/build-seo.mjs carrega ESTE ficheiro). Pílula no
         canto inferior direito, no desktop e no telefone; o clique abre o grupo.
    1c · ÁREA LOGADA — desktop: botão no pé da barra lateral (rfSidebarHTML chama
         rfWppSidebarHTML): um cartão só, que abre o grupo direto. Telefone: lingueta na borda
@@ -330,7 +330,9 @@ function ocupadoNoJogo(){
 function onde(){
   if(!NO_JOGO) return 'publica';
   try{
-    if(CL.screen==='abertura') return 'publica';
+    /* A HOME NÃO TEM MAIS A PÍLULA (pedido do dono, 30/09): na tela de abertura o botão do
+       grupo sai. As páginas de SEO (fora do jogo, NO_JOGO=false) continuam com a peça 1b. */
+    if(CL.screen==='abertura') return '';
     if(CL.screen==='main' || CL.screen==='seatturn') return 'logada';
   }catch(e){}
   return '';

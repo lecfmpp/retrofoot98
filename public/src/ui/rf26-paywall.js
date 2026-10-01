@@ -6,7 +6,9 @@
 
    O QUE ABRE, conforme o servidor (rf_temporadas) e a temporada que acabou (k):
    - 'bloqueio' — a próxima (k+1) passa do teto da carreira. Só vira com o Pro, ou com UMA saída
-     grátis por vez (escada): depoimento (+1) → post/vídeo (+1) → só o Pro.
+     grátis por vez (escada): depoimento (+1) → mensagem no grupo do WhatsApp (+1) → só o Pro.
+     A 2ª saída era "post/vídeo nas redes" até 30/09; não convertia e virou a mensagem no grupo
+     (ver "SEGUNDA TRAVA" mais abaixo). No servidor o tipo continua 'post' (a mesma vaga).
    - 'ultima'   — veterano da fase Beta a entrar na última temporada de cortesia: aviso com
      o Pro, e "jogar a última temporada grátis".
    - 'beta'     — veterano no primeiro fim de temporada depois do lançamento: explica a cortesia
@@ -26,7 +28,8 @@
 /* preço do Pro: o de RF_PLANOS (rf26-landing.js), que é o do Stripe; a reserva só vale se a
    landing não carregou */
 const RF_PW_PRO = (typeof RF_PLANOS!=='undefined' && RF_PLANOS.find(p=>p.key==='pro')) || { key:'pro', nome:'Pro', mes:1990, ano:17880 };
-const RF_PW = { ctx:null, vista:'pro', texto:'', link:'', enviando:false, erro:'', espera:null };
+const RF_PW = { ctx:null, vista:'pro', texto:'', link:'', enviando:false, erro:'', espera:null,
+  wpp:{ msg:'', i:-1, abriu:false, copiou:null } };
 
 /* ---------- as 5 situações ---------- */
 function rfPwSituacao(){
@@ -239,6 +242,7 @@ function rfPwFechar(){
 }
 function rfPwVista(v){
   if(v==='depoimento'||v==='post') rfPwReg('abriu_'+v);
+  if(v==='post' && !RF_PW.wpp.msg) rfPwWppSortear();
   RF_PW.vista=v; RF_PW.erro=''; rfPwDesenhar();
 }
 function rfPwCiclo(k){ RF_UP.ciclo = k==='ano'?'ano':'mes'; rfPwDesenhar(); }
@@ -302,11 +306,11 @@ function rfPwProHTML(c){
       <div class="rf-pw-ou"><span>ou</span></div>
       <div class="rf-pw-gratis">
         <button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwVista('${saida}')">
-          <span class="rf-up-emo">${saida==='depoimento'?'💬':'📣'}</span>
-          <span>${saida==='depoimento'?'Ganhar 1 temporada grátis — dar minha opinião':'Ganhar 1 temporada grátis — postar sobre o jogo'}</span></button>
+          <span class="rf-up-emo">${saida==='depoimento'?'💬':'📲'}</span>
+          <span>${saida==='depoimento'?'Ganhar 1 temporada grátis — dar minha opinião':'Ganhar 1 temporada grátis — contar no grupo do WhatsApp'}</span></button>
         <span class="rf-up-cta-nota">${saida==='depoimento'
           ? 'Conte o que achou do RetroFoot e a próxima temporada é liberada na hora.'
-          : 'Poste um vídeo ou post sobre o RetroFoot nas suas redes e cole o link.'}</span>
+          : 'Conte no grupo do WhatsApp da Resenha como foi a sua temporada. A mensagem já vai pronta.'}</span>
       </div>` : '';
   const fica = c.recusado ? 'Voltar ao último ponto salvo'
     : c.variante==='bloqueio' ? 'Voltar ao resumo'
@@ -351,8 +355,8 @@ function rfPwBarraHTML(c){
   const ciclo=RF_UP.ciclo, preco = ciclo==='ano' ? rfBRL(RF_PW_PRO.ano) : rfBRL(RF_PW_PRO.mes);
   const saida=rfPwSaida(c);
   const dois = saida
-    ? `<button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwVista('${saida}')"><span class="rf-up-emo">${saida==='depoimento'?'💬':'📣'}</span>
-        <span>${saida==='depoimento'?'Ganhar 1 temporada grátis — dar minha opinião':'Ganhar 1 temporada grátis — postar sobre o jogo'}</span></button>`
+    ? `<button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwVista('${saida}')"><span class="rf-up-emo">${saida==='depoimento'?'💬':'📲'}</span>
+        <span>${saida==='depoimento'?'Ganhar 1 temporada grátis — dar minha opinião':'Ganhar 1 temporada grátis — contar no grupo do WhatsApp'}</span></button>`
     : c.variante!=='bloqueio'
       ? `<button type="button" class="rf-up-cta rf-pw-cta2" onclick="rfPwReg('seguiu_gratis');rfPwSeguir()"><span>${c.variante==='ultima'?'Jogar a última temporada grátis':'Continuar grátis'}</span></button>`
       : '';
@@ -362,6 +366,7 @@ function rfPwBarraHTML(c){
     </div>`;
 }
 function rfPwFormHTML(tipo){
+  if(tipo==='post') return rfPwWppHTML();
   const dep = tipo==='depoimento';
   const val = dep ? RF_PW.texto : RF_PW.link;
   const ok = dep ? val.trim().length>=20 : /^https?:\/\/\S+\.\S+/i.test(val.trim());
@@ -383,9 +388,202 @@ function rfPwFormHTML(tipo){
       <div class="rf-up-rodape"><span class="rf-sp"></span>
         <button type="button" class="rf-up-agora" onclick="rfPwVista('pro')">← Voltar</button></div>`;
 }
+/* ---------- SEGUNDA TRAVA: contar a temporada no grupo do WhatsApp (30/09/2026) ----------
+   Substitui o "poste nas redes e cole o link" (não convertia). A pessoa manda no grupo da
+   Resenha uma mensagem sobre a temporada dela; a mensagem já vem pronta.
+
+   UM BOTÃO SÓ (ajuste do dono, 30/09): "Copiar a mensagem e abrir o grupo".
+   O WhatsApp não tem link que abra um GRUPO já com texto escrito:
+   - o convite (chat.whatsapp.com/…) não aceita texto — mas abre o grupo: quem não é membro
+     vê "Entrar no grupo" e cai na conversa; quem já é membro cai direto na conversa;
+   - o link de mensagem (wa.me/?text=…) aceita texto, mas abre a LISTA de conversas (a pessoa
+     teria de achar o grupo sozinha) — o mesmo vale para o compartilhar do sistema.
+   Então o toque copia a mensagem (navigator.clipboard, com reserva execCommand) e abre o
+   convite do grupo: é só colar e enviar. Se o link do grupo faltar, cai no wa.me com o texto.
+
+   MENSAGEM SEM NADA PARA TROCAR (ajuste do dono, 30/09): nada de "*meu time*", colchetes ou
+   negrito com cara de robô. Time, divisão, posição, campanha e artilheiro entram sozinhos; se
+   um dado faltar, a frase é montada sem ele (cada modelo é uma lista de frases e as vazias
+   caem fora). 20 variações para o grupo não encher de mensagens iguais; sorteio sem repetir a
+   última usada neste navegador ('rf98:pwWppUlt'); "Outra mensagem" troca na hora. A pessoa
+   pode mexer no texto aqui ou no próprio WhatsApp.
+
+   PROVA: não há como o site saber se a mensagem foi enviada. Liberação por confiança, uma vez
+   por conta: depois de tocar no botão (RF_PW.wpp.abriu), "Já mandei — liberar a temporada".
+   Vai para o servidor como tipo 'post' com o texto e o link do grupo; o SQL
+   (scripts/sql/trava2_whatsapp.sql) aceita link do WhatsApp e barra o 2º uso (JA_USADO). */
+function rfPwWppDados(){
+  const c=RF_PW.ctx||{}, sit=c.sit||rfPwSituacao();
+  const cl=(typeof clubOf==='function' && CL.clubId!=null && clubOf(CL.clubId)) || {};
+  const clube=String(cl.short||cl.name||'').trim();
+  const div=(typeof divisionLabelOf==='function' && S.division) ? divisionLabelOf(S.division) : '';
+  let acima='';
+  try{ if(typeof rfDivAcima==='function' && typeof divisionLabelOf==='function'){ const a=rfDivAcima(); if(a && a!==S.division) acima=divisionLabelOf(a); } }catch(e){}
+  if(acima===div) acima='';
+  const t=(S.table&&S.table[CL.clubId])||{};
+  const n=v=>Number(v)||0;
+  const pl=(q,um,varios)=>`${q} ${q===1?um:varios}`;
+  const jogou=n(t.P)>0;
+  const placar = jogou ? `${pl(n(t.W),'vitória','vitórias')}, ${pl(n(t.D),'empate','empates')} e ${pl(n(t.L),'derrota','derrotas')}` : '';
+  const pontos = jogou ? pl(n(t.Pts),'ponto','pontos') : '';
+  const gm = jogou ? n(t.GF) : 0, gs = jogou ? n(t.GA) : 0;
+  let art=null;
+  try{
+    const sq=((S.squads&&S.squads[CL.clubId])||[]).map(p=>({n:p.n, g:Math.max(n(p.stats&&p.stats.goals), n(S.scorers&&S.scorers[p.n]))}))
+      .filter(p=>p.n && p.g>1).sort((a,b)=>b.g-a.g);
+    if(sq.length) art={ n:sq[0].n, g:sq[0].g };
+  }catch(e){}
+  const pos=Number(sit.pos)||0;
+  const comC = clube ? ` com o ${clube}` : '';
+  const naD = div ? ` na ${div}` : '';
+  /* fato = a frase principal, em 1ª pessoa, sem ponto final; curto = sem o nome do time */
+  const F={
+    titulo:   { emo:'🏆', grito:'Que temporada!',
+      fato: `ganhei a ${div||'liga'}${comC}`, curto: `ganhei a ${div||'liga'}`, prox:'Agora é defender o título.' },
+    acesso:   { emo:'🚀', grito:'Deu certo!',
+      fato: acima ? `subi ${clube?`o ${clube} `:''}para a ${acima}` : `consegui o acesso${comC}`,
+      curto: acima ? `subi para a ${acima}` : 'consegui o acesso',
+      prox: acima ? `Agora é se firmar na ${acima}.` : 'Agora é se firmar lá em cima.' },
+    quase:    { emo:'🔥', grito:'Bateu na trave!',
+      fato: pos ? `terminei em ${pos}º${naD}${comC} e o acesso ficou por pouco` : `bati na trave do acesso${comC}`,
+      curto: pos ? `terminei em ${pos}º e o acesso ficou por pouco` : 'bati na trave do acesso', prox:'Na próxima o acesso vem.' },
+    meio:     { emo:'⚽', grito:'Temporada fechada!',
+      fato: `${pos?`terminei em ${pos}º`:'fiz uma temporada de meio de tabela'}${naD}${comC}`, curto: pos?`terminei em ${pos}º`:'fiquei no meio da tabela',
+      prox:'Na próxima é para brigar lá em cima.' },
+    rebaixado:{ emo:'💪', grito:'Temporada difícil.',
+      fato: clube ? `não deu para segurar o ${clube}${naD}, caímos` : `não deu para ficar${naD}, caímos`,
+      curto:'caí de divisão', prox:'Mas a volta vem na próxima.' },
+  };
+  return Object.assign({ clube, div, pos, placar, pontos, gm, gs, art }, F[sit.k]||F.meio);
+}
+/* cada modelo devolve uma lista de frases; as vazias caem fora na montagem */
+const RF_PW_WPP_MODELOS=[
+  d=>[`${d.fato}!`, d.placar&&`Foram ${d.placar}.`, d.prox],
+  d=>['Acabei de fechar mais uma temporada no RetroFoot.', `${d.fato}.`, d.prox],
+  d=>[`Galera, ${d.fato}!`, d.art&&`${d.art.n} fez ${d.art.g} gols e carregou o time.`],
+  d=>[`Resumo da minha temporada: ${d.curto}${d.pontos?`, com ${d.pontos}`:''}.`, d.emo],
+  d=>[`${d.fato}.`, d.gm&&`Foram ${d.gm} gols no campeonato.`, 'Alguém aqui fez melhor?'],
+  d=>[d.div?`Quem mais está jogando na ${d.div}?`:'Quem mais está jogando o RetroFoot?', `${d.fato}.`],
+  d=>[`Mais uma temporada no RetroFoot: ${d.fato}.`, d.prox],
+  d=>['Temporada encerrada por aqui.', `${d.fato}.`, 'E as carreiras de vocês, como estão?'],
+  d=>[`${d.fato}.`, d.art&&`Destaque para ${d.art.n}, com ${d.art.g} gols.`, d.prox],
+  d=>[`Passando para contar: ${d.fato} ${d.emo}`],
+  d=>[`${d.fato}.`, 'Quem tiver dica de contratação para a próxima, manda aí.'],
+  d=>['O RetroFoot está me viciando.', `${d.fato}.`, d.placar&&`Campanha de ${d.placar}.`],
+  d=>[`Balanço da temporada: ${d.curto}.`, d.gm&&`Marcamos ${d.gm} e sofremos ${d.gs}.`],
+  d=>[`${d.fato}.`, 'Já estou montando o time para a próxima.'],
+  d=>['Fim de temporada!', `${d.fato}.`, d.pontos&&`Fechei com ${d.pontos}.`],
+  d=>[`Deixando registrado aqui: ${d.fato} ${d.emo}`],
+  d=>[`${d.fato}.`, d.art&&`${d.art.n} terminou como meu artilheiro, com ${d.art.g} gols.`, 'Qual foi o melhor resultado de vocês até agora?'],
+  d=>[d.grito, `${d.fato}.`, d.emo],
+  d=>[`Atualizando a minha carreira no RetroFoot: ${d.fato}.`, d.prox],
+  d=>[d.grito, `${d.fato}.`, d.gm&&`Foram ${d.gm} gols marcados na temporada.`],
+];
+function rfPwWppMontar(i){
+  const d=rfPwWppDados();
+  let partes=[];
+  try{ partes=RF_PW_WPP_MODELOS[i](d); }catch(e){ partes=[`${d.fato}.`]; }
+  const m=partes.filter(p=>typeof p==='string' && p.trim())
+    .map(p=>{ p=p.trim(); return p.charAt(0).toUpperCase()+p.slice(1); })
+    .join(' ').replace(/\s+/g,' ').trim();
+  return m;
+}
+function rfPwWppSortear(){
+  const n=RF_PW_WPP_MODELOS.length;
+  let ult=-1; try{ const v=localStorage.getItem('rf98:pwWppUlt'); ult=v==null?-1:Number(v); if(!Number.isFinite(ult)) ult=-1; }catch(e){}
+  let i=Math.floor(Math.random()*n);
+  if(i===ult || i===RF_PW.wpp.i) i=(i+1+Math.floor(Math.random()*(n-1)))%n;
+  if(i===ult || i===RF_PW.wpp.i) i=(i+1)%n;
+  RF_PW.wpp.i=i; RF_PW.wpp.msg=rfPwWppMontar(i);
+  try{ localStorage.setItem('rf98:pwWppUlt', String(i)); }catch(e){}
+}
+function rfPwWppOutra(){ rfPwWppSortear(); RF_PW.wpp.copiou=null; rfPwDesenhar(); }
+function rfPwWppGrupoUrl(){ return String((typeof window!=='undefined' && window.RF_WHATSAPP_URL) || '').trim(); }
+/* o destino do botão: o grupo; sem link do grupo, o WhatsApp com o texto (a pessoa escolhe o grupo) */
+function rfPwWppDestino(){ return rfPwWppGrupoUrl() || ('https://wa.me/?text='+encodeURIComponent(RF_PW.wpp.msg.trim())); }
+/* copiar: a reserva (textarea + execCommand) roda NO MESMO toque — fora dele o navegador recusa */
+function rfPwWppCopiarReserva(txt){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=txt; ta.setAttribute('readonly',''); ta.style.cssText='position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, txt.length);
+    const ok=document.execCommand('copy'); document.body.removeChild(ta); return !!ok;
+  }catch(e){ return false; }
+}
+function rfPwWppCopiar(txt){
+  try{
+    if(navigator.clipboard && window.isSecureContext)
+      return navigator.clipboard.writeText(txt).then(()=>true, ()=>rfPwWppCopiarReserva(txt));
+  }catch(e){}
+  return Promise.resolve(rfPwWppCopiarReserva(txt));
+}
+/* o toque no botão: copia, deixa o link (target=_blank) abrir o grupo e acende o "Já mandei" */
+function rfPwWppAbrir(){
+  const txt=RF_PW.wpp.msg.trim();
+  RF_PW.wpp.abriu=true;
+  rfPwReg('wpp_abriu');
+  try{ if(rfPwWppGrupoUrl() && typeof rfWppEntrou==='function') rfWppEntrou('paywall'); }catch(e){}
+  rfPwWppCopiar(txt).then(ok=>{
+    RF_PW.wpp.copiou=!!ok;
+    if(ok) toastC('✓ Mensagem copiada — é só colar no grupo e enviar.');
+    rfPwWppAviso(); rfPwAtualizarBotao();
+  });
+  setTimeout(rfPwAtualizarBotao, 0);
+  return true;   // deixa o link seguir
+}
+function rfPwWppAvisoHTML(){
+  const w=RF_PW.wpp;
+  if(w.copiou===true) return '✓ Mensagem copiada — é só colar no grupo e enviar.';
+  if(w.copiou===false) return 'Não deu para copiar sozinho: segure o texto acima, copie e cole no grupo.';
+  return '';
+}
+function rfPwWppAviso(){
+  const el=document.querySelector('[data-pw-wpp-aviso]'); if(!el) return;
+  const t=rfPwWppAvisoHTML(); el.textContent=t; el.hidden=!t;
+  el.classList.toggle('ruim', RF_PW.wpp.copiou===false);
+}
+/* editar o texto não redesenha (cursor): troca só o destino do botão (reserva wa.me) e o "Já mandei" */
+function rfPwWppEditar(v){
+  RF_PW.wpp.msg=v;
+  const a=document.querySelector('[data-pw-wpp-abrir]'); if(a) a.href=rfPwWppDestino();
+  rfPwAtualizarBotao();
+}
+function rfPwWppHTML(){
+  const w=RF_PW.wpp, grupo=rfPwWppGrupoUrl();
+  const ok=w.abriu && w.msg.trim().length>=20;
+  const aviso=rfPwWppAvisoHTML();
+  return `
+      <div class="rf-pw-topo"><span class="rf-up-mono">📲 SUA TEMPORADA NO GRUPO VALE UMA TEMPORADA</span>
+        <b>Conte no grupo do WhatsApp como foi a sua temporada</b>
+        <span>${grupo
+          ? 'A mensagem já está pronta. Toque no botão verde: ela é copiada e o grupo da Resenha abre (se ainda não for membro, é só entrar). Aí é colar e enviar.'
+          : 'A mensagem já está pronta. Toque no botão verde, escolha o grupo da Resenha e envie.'}</span></div>
+      <div class="rf-pw-passo">
+        <span class="rf-up-mono">A SUA MENSAGEM · PODE MUDAR O QUE QUISER</span>
+        <textarea class="rf-pw-campo" rows="4" maxlength="1000" aria-label="Mensagem para o grupo" oninput="rfPwWppEditar(this.value)">${escC(w.msg)}</textarea>
+        <button type="button" class="rf-up-agora" onclick="rfPwWppOutra()">🔀 Outra mensagem</button>
+      </div>
+      <a class="rf-up-cta rf-pw-wpp-cta" data-pw-wpp-abrir href="${escC(rfPwWppDestino())}" target="_blank" rel="noopener" onclick="return rfPwWppAbrir()">
+        <span class="rf-up-emo">📲</span><span>${grupo?'Copiar a mensagem e abrir o grupo':'Abrir o WhatsApp com a mensagem'}</span></a>
+      <span class="rf-pw-wpp-aviso${w.copiou===false?' ruim':''}" data-pw-wpp-aviso role="status" ${aviso?'':'hidden'}>${escC(aviso)}</span>
+      ${RF_PW.erro?`<span class="rf-pw-erro">${escC(RF_PW.erro)}</span>`:''}
+      <div class="rf-up-pe">
+        <button type="button" class="rf-up-cta rf-pw-cta2" data-pw-enviar ${ok&&!RF_PW.enviando?'':'disabled'} onclick="rfPwEnviar('post')">
+          <span>${RF_PW.enviando?'Liberando…':'Já mandei — liberar a temporada'}</span></button>
+        <span class="rf-up-cta-nota">Acende depois que você tocar no botão verde.</span>
+      </div>
+      <div class="rf-up-rodape"><span class="rf-sp"></span>
+        <button type="button" class="rf-up-agora" onclick="rfPwVista('pro')">← Voltar</button></div>`;
+}
+
 /* só o botão e o contador mudam a cada tecla — redesenhar tudo apagaria o cursor
    (ver memória "cdraw() por tecla mata o cursor") */
 function rfPwAtualizarBotao(){
+  if(RF_PW.vista==='post'){
+    const b=document.querySelector('[data-pw-enviar]');
+    if(b) b.disabled=!(RF_PW.wpp.abriu && RF_PW.wpp.msg.trim().length>=20) || RF_PW.enviando;
+    return;
+  }
   const dep=RF_PW.vista==='depoimento';
   const v=(dep?RF_PW.texto:RF_PW.link).trim();
   const ok= dep ? v.length>=20 : /^https?:\/\/\S+\.\S+/i.test(v);
@@ -440,18 +638,19 @@ function rfPwEnviar(tipo){
     ? new Promise(r=>setTimeout(()=>{ teste.teto=(teste.teto||1)+1; teste[dep?'depoimento_usado':'post_usado']=true;
         try{ localStorage.setItem('rf98:pwTeste', JSON.stringify(teste)); }catch(e){}
         r({ teto:teste.teto }); }, 600))
-    : NET.liberarTemporada(CL.save, tipo, dep?RF_PW.texto.trim():null, dep?null:RF_PW.link.trim(), rfPwResumo());
+    : dep ? NET.liberarTemporada(CL.save, tipo, RF_PW.texto.trim(), null, rfPwResumo())
+          : NET.liberarTemporada(CL.save, tipo, RF_PW.wpp.msg.trim(), rfPwWppDestino(), rfPwResumo());
   chamada.then(r=>{
     RF_PW.enviando=false;
     if(r && r.teto){
-      RF_PW.texto=''; RF_PW.link='';
-      toastC(dep ? '✓ Obrigado pela opinião! Temporada liberada.' : '✓ Valeu pela divulgação! Temporada liberada.');
+      RF_PW.texto=''; RF_PW.link=''; RF_PW.wpp={ msg:'', i:-1, abriu:false, copiou:null };
+      toastC(dep ? '✓ Obrigado pela opinião! Temporada liberada.' : '✓ Valeu por contar no grupo! Temporada liberada.');
       return rfPwSeguir();
     }
     RF_PW.erro = ({
       DEPOIMENTO_CURTO:'Escreva um pouco mais — pelo menos 20 caracteres.',
-      LINK_INVALIDO:'Esse link não parece ser de uma rede social (Instagram, TikTok, YouTube, X, Facebook, Kwai).',
-      JA_USADO: dep?'Você já usou a sua temporada por opinião.':'Você já usou a sua temporada por post.',
+      LINK_INVALIDO:'Não consegui liberar agora. Tente de novo em instantes.',
+      JA_USADO: dep?'Você já usou a sua temporada por opinião.':'Você já usou a sua temporada pelo grupo do WhatsApp.',
     })[r&&r.erro] || 'Não consegui enviar agora. Tente de novo em instantes.';
     rfPwDesenhar();
   });

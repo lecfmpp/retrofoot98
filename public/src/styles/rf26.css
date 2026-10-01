@@ -12574,6 +12574,19 @@ button.rf-up-btn{cursor:pointer}
 .rf-pw-roda{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-3);border-top-color:var(--up-azul);animation:rf-pw-gira .8s linear infinite}
 @keyframes rf-pw-gira{to{transform:rotate(360deg)}}
 .rf-pw-barra{display:none}
+/* segunda trava: mensagem no grupo do WhatsApp (30/09) */
+.rf-pw-passo{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line-3);border-radius:var(--r-inner)}
+.rf-pw-passo>span:not(.rf-up-mono){font-size:12.5px;line-height:1.45;color:var(--text-3)}
+.rf-pw-passo .rf-up-mono{font-size:10px;letter-spacing:.1em;color:var(--up-ouro-borda)}
+.rf-pw-passo.feito{opacity:.8}
+.rf-pw-passo .rf-up-agora{align-self:flex-start}
+.rf-pw a.rf-up-cta{text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
+.rf-pw a.rf-up-cta.rf-pw-wpp-cta{background:#25d366;color:#0b2e17;border-color:#25d366;font-weight:700}
+.rf-pw a.rf-up-cta.rf-pw-wpp-cta:hover{background:#1fc05b}
+.rf-pw .rf-pw-wpp-cta,.rf-pw [data-pw-enviar]{height:auto;min-height:52px;white-space:normal;line-height:1.25;padding:8px 14px;text-align:center}
+.rf-pw-wpp-aviso{font-size:12.5px;line-height:1.45;color:#1a7f3c;font-weight:600}
+.rf-pw-wpp-aviso.ruim{color:#b3261e}
+.rf-pw-wpp-aviso[hidden]{display:none}
 @media (max-width:820px){
   .rf-pw .rf-up-venda-frase{display:block;font-size:13px}
   .rf-pw-bens{grid-template-columns:1fr}
