@@ -1044,7 +1044,11 @@ function rfMkSalarioDoCampo(){
 function rfMkTermos(){
   const M=CL.market; const n=S.negos[M.negoIdx];
   n.salary=rfMkSalarioDoCampo()||n.salary;
-  const r=agentRespond(n); toastC(r.msg||''); cdraw();
+  const r=agentRespond(n);
+  /* 02/10/2026: empresário topou o salário (sem pedido a mais) -> fecha a contratação AQUI, sem
+     passar pela tela de veredito. Se ele pediu mais, a tela de veredito continua a aparecer. */
+  if(r.ok && n.stage==='verdict' && (!n.agentCounter || (n.salary||0)>=n.agentCounter)){ rfMkFinalizar(); return; }
+  toastC(r.msg||''); cdraw();
 }
 function rfMkAceitarAgente(){
   const M=CL.market; const n=S.negos[M.negoIdx];
