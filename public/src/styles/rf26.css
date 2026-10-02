@@ -8205,25 +8205,39 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
      botão Propor descia para um segundo andar dentro da própria linha — cada
      jogador ocupava dois níveis. Com `flex` e `nowrap` isso não acontece: o que
      não couber empurra a largura e a tabela rola de lado, que é a sua regra. */
+  /* 02/10/2026: colunas na ordem pedida — jogador · pos · for · ene · nac · ida · (gols) ·
+     (clube) · valor · (salário) · Propor. Gols, clube e salário saem no telefone. */
   [data-mkt="mkt-mercado"] .rf-mkt-head,
   [data-mkt="mkt-mercado"] .rf-mkt-row{
-    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:366px}
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:4px;min-width:0}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(1),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(1){flex:1 1 90px;min-width:90px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(1){flex:1 1 64px;min-width:64px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(2),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(2){flex:0 0 22px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(2){flex:0 0 14px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(3),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(3){flex:0 0 24px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(3){flex:0 0 20px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(4),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(4){flex:0 0 26px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(4){flex:0 0 24px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(5),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(5){flex:0 0 26px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(5){flex:0 0 22px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(6),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(6){flex:0 0 84px}
-  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(8),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(8){flex:0 0 58px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(6){flex:0 0 18px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(9),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(9){flex:0 0 72px;font-size:10px;letter-spacing:-.04em;white-space:nowrap;text-align:right}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(11),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(11){flex:0 0 46px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row{padding-left:2px;padding-right:2px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>.rf-mkt-x,[data-mkt="mkt-mercado"] .rf-mkt-row>.rf-mkt-f,[data-mkt="mkt-mercado"] .rf-mkt-row>.rf-mkt-pos{font-size:11px;letter-spacing:-.04em}
+  /* sem a foto no telefone: o nome ganha o espaço (a foto está na ficha, a um toque) */
+  [data-mkt="mkt-mercado"] .rf-mkt-n .rf-fotonum{display:none}
+  [data-mkt="mkt-mercado"] .rf-mkt-n{font-size:12px;line-height:1.15;white-space:normal;overflow-wrap:anywhere}
+  [data-mkt="mkt-mercado"] .rf-mkt-row .rf-mkt-bt{padding:5px 4px;font-size:10.5px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(7),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(7){display:none}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(7),
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(8),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(8),
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(10),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(10){display:none}
 
   /* VENDER — 7 colunas depois de sair FIM e INTERESSE: jogador · pos · ida ·
      for · valor · salário · Listar. Cabe quase inteiro; o que faltar, rola. */
