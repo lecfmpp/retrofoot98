@@ -3428,6 +3428,7 @@ function advanceCupBracket(S: any, b: any, roundLabel: string, cupResultByFx: an
     applyMatchIncidents(S, r.events);
     cupSumula(S, t.h, t.a, r.hg, r.ag, r.scorers || [], r.perf || null, roundLabel, r.caps || null, r.matchMinutes || 90);
     const res = resolveDrawnKnockoutTie(S, t.h, t.a, seed, r.hg, r.ag);
+    t.hg = res.hg; t.ag = res.ag;                          // placar com o gol da prorrogação (como na partida ao vivo)
     t.winner = res.winner; t.pens = res.pens || null; winners.push(res.winner);
     t.jornada = S.round;                                   // Calendário do cliente lê este carimbo
     awardCupPhasePrize(S, roundLabel.split('-')[0], b, t, humans);

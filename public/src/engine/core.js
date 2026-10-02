@@ -1847,6 +1847,11 @@ function advanceCupBracket(b, roundLabel, comp){
     // em simulate.js) — nada de sorteio 50/50, e a MESMA seed de sempre garante que bate com
     // o que a partida ao vivo/espectador já mostrou, se for o caso.
     const res=resolveDrawnKnockoutTie(t.h,t.a,seed,fin.hg,fin.ag);
+    /* O PLACAR GUARDADO TEM DE SER O DA PRORROGAÇÃO TAMBÉM: a partida AO VIVO guarda m.hg/m.ag já com
+       os gols da prorrogação, mas aqui t.hg/t.ag ficavam no tempo normal (1×1) e o gol da prorrogação
+       (res.hg/res.ag) se perdia — o confronto aparecia como empate sem pênaltis e com um vencedor
+       (relato do dono: resultado de copa diferente do jogo real). */
+    t.hg=res.hg; t.ag=res.ag; if(res.wentToExtra) t.prorrogacao=true;
     t.winner=res.winner; t.pens=res.pens||null; winners.push(res.winner);
     t.jornada=S.round; // rodada de liga em que este confronto foi jogado — o Calendário precisa dela pra listar o resultado (ver userCupCalendarRows)
     awardCupPhasePrize(_cupKeyOf(roundLabel), b, t); // cota da fase (Copa da Federação), para os dois lados
