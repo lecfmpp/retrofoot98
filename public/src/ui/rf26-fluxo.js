@@ -771,6 +771,7 @@ function rfNovaSenhaHTML(){
    Agora sao links para o documento unico. `href` marca a entrada como saida do jogo. */
 const RF_INSTITUCIONAIS=[
   { k:'sobre',     t:'Sobre o RetroFoot' },
+  { k:'licenca-pro', t:'Licença Pro' },
   { k:'ajuda',     t:'Ajuda' },
   { k:'contato',   t:'Contato' },
   { k:'termos',    t:'Termos de uso',  href:'/termos/' },
@@ -814,6 +815,7 @@ function rfClubesDoPais(uk){
 }
 function rfInstitucionalCorpo(view){
   const p=t=>`<p class="rf-in-p">${t}</p>`;
+  if(view==='licenca-pro' && typeof rfLicencaProHTML==='function') return rfLicencaProHTML();
   if(view==='ajuda'){
     const passos=[
       ['1','Escolha o modo.','Solo contra a máquina ou Modo Resenha, com a liga da galera.'],

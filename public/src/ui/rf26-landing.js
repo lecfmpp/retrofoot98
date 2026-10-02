@@ -29,7 +29,7 @@
    foi a porta do topo, nao o conteudo. Para religar, basta devolver a linha aqui. */
 const RF_LP_NAV=[
   ['jogo','O jogo','O jogo'],['telas','Por dentro','Por dentro'],['resenha','Modo Resenha','Resenha'],
-  ['planos','Planos','Planos'],
+  ['licenca','Licença Pro','Licença Pro'],
 ];
 
 /* ===== A CONTA VIVE NO CABEÇALHO, EM TODA A TELA =====
@@ -374,6 +374,12 @@ function rfLpEntrarOn(chamada){
 const RF_LP_CTA_TXT='Criar conta';
 function rfLpComecarOn(){ return rfSoLista() ? "rfLpIr('lista')" : "clGoModo('signup')"; }
 function rfLpIr(k){
+  /* 02/10/2026: a seção de planos saiu da home. 'planos', 'ligas' (a antiga seção do Pro) e
+     'licenca' levam à página exclusiva da Licença Pro (rfInstitucionalHTML, 'licenca-pro'). */
+  if(k==='planos'||k==='ligas'||k==='licenca'){
+    if(typeof clLandingGo==='function'){ clLandingGo('licenca-pro'); try{ window.scrollTo(0,0); }catch(e){} }
+    return;
+  }
   const el=document.getElementById('rf-lp-'+k);
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1204,23 +1210,35 @@ function rfPlanoPreco(key){
   const q=rfPlanoPrecoPartes(p, RF_LP_CICLO);
   return q.v+'/'+q.c.replace('por ','');
 }
+/* 02/10/2026: a seção de planos e o preço saíram da home. Fica só uma chamada para a página
+   exclusiva da Licença Pro — sem preço e sem botão de pagamento (ver rfLicencaProHTML). */
 function rfLpLigasHTML(){
-  const cartoes=RF_LP_EMBAIXADOR.map(([ic,t,d,breve])=>`<div class="rf-lp-embc ${breve?'breve':''}">
-    ${breve?`<span class="rf-lp-chip-neutro rf-lp-embc-breve">${escC(breve)}</span>`:''}
-    <span class="rf-lp-embc-ic" aria-hidden="true">${ic}</span>
-    <span class="rf-lp-embc-t">${escC(t)}</span>
-    <span class="rf-lp-embc-d">${escC(d)}</span>
-  </div>`).join('');
   return `<section class="rf-lp-ligas rf-lp-f-creme" id="rf-lp-ligas">
     <div class="rf-lp-ligas-in">
-      <span class="rf-lp-selo-emb">👑 Plano Pro</span>
-      <h2 class="rf-lp-h2">Tudo o que vem junto com a coroa.</h2>
-      <p class="rf-lp-p">R$ 19,90 por mês — ou R$ 14,90 por mês no anual. Cancele quando quiser.</p>
-      <div class="rf-lp-embc-grade">${cartoes}</div>
-      <button type="button" class="rf-lp-bt-ouro" onclick="rfPlanoCta('pro',null,RF_LP_CICLO)">
-        👑 Assinar o Pro — ${escC(rfPlanoPreco('pro'))}</button>
+      <span class="rf-lp-selo-emb">👑 Licença Pro</span>
+      <h2 class="rf-lp-h2">Uma licença exclusiva para quem chegou primeiro.</h2>
+      <p class="rf-lp-p">Para os primeiros usuários ativos e para quem participa da comunidade e do grupo de WhatsApp. Pague uma vez e jogue enquanto a Licença Pro existir.</p>
+      <button type="button" class="rf-lp-bt-ouro" onclick="rfLpIr('licenca')">Conhecer a Licença Pro</button>
     </div>
   </section>`;
+}
+/* A PÁGINA DA LICENÇA PRO (texto-base do dono, 02/10/2026). NÃO TEM PREÇO NEM LINK DE PAGAMENTO:
+   o valor e o botão de compra entram quando o dono definir (item parado). Até lá o bloco do preço
+   é um placeholder explícito e o botão fica desabilitado. */
+function rfLicencaProHTML(){
+  const p=t=>`<p class="rf-in-p">${t}</p>`;
+  return p('A <b>Licença Pro</b> é exclusiva para os <b>primeiros usuários ativos</b> do RetroFoot e para quem participa da <b>comunidade</b> e do <b>grupo de WhatsApp</b>.')
+    +p('O modelo é simples: <b>pague uma vez e jogue enquanto a Licença Pro existir</b>.')
+    +`<div class="rf-card" style="padding:14px;margin:12px 0">
+        <b>O que isto é (e o que não é)</b>
+        <p class="rf-in-p">Não é a venda do jogo. É o <b>licenciamento</b> do uso do RetroFoot aos usuários desta fase de lançamento.</p>
+        <p class="rf-in-p">A licença está sujeita a mudanças no modelo de jogo e no modelo de negócio. Qualquer mudança será <b>avisada com 1 mês de antecedência</b>.</p>
+      </div>`
+    +`<div class="rf-card" style="padding:14px;margin:12px 0;border:1px dashed currentColor">
+        <b>Valor</b>
+        <p class="rf-in-p">[ valor da Licença Pro: a definir ]</p>
+        <button type="button" class="rf-ov-cta" disabled aria-disabled="true">Em breve</button>
+      </div>`;
 }
 
 
@@ -1282,8 +1300,6 @@ function rfLandingHTML(){
     ${/* JOGADOR OFICIAL E CÓDIGO DE MONETIZAÇÃO eram do Embaixador e saíram da vitrine em 25/09
          (Grátis × Pro). Quem já os tem mantém; as secções ficam escritas para voltarem quando
          virarem item avulso. */''}
-
-    ${rfLpPlanosHTML()}
 
     ${rfLpLigasHTML()}
 
@@ -1362,8 +1378,7 @@ function rfLpRodapeHTML(){
         ['Jogar agora',"rfLpIr('jogo')"],
         ['Modo Resenha',"rfLpIr('resenha')"],
         ['Por dentro do jogo',"rfLpIr('telas')"],
-        ['Planos',"rfLpIr('planos')"],
-        ['Plano Pro',"rfLpIr('ligas')"],
+        ['Licença Pro',"rfLpIr('licenca')"],
         ['Roadmap da Versão 2','/roadmap/'],
       ])}
       ${col('Para marcas',[
