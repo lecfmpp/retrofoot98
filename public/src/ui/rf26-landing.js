@@ -298,7 +298,7 @@ function rfLpMenu(minimo){
   const lista=minimo ? '' : (RF_SO_LISTA
     ? `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('lista')">
       <span class="rf-nav-l">Entrar na lista</span></button>`
-    : `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();rfLpIr('planos')">
+    : `<button type="button" class="rf-sheet-i destaque" onclick="clCloseOverlay();clGoModo('signup')">
       <span class="rf-nav-l">${RF_LP_CTA_TXT}</span></button>`);
   const conta = st.loggedIn ? `<div class="rf-sheet-sep"></div>
       <div class="rf-sheet-conta">
@@ -369,8 +369,10 @@ function rfLpEntrarOn(chamada){
    cadastro (ver rfPlanoEscolher).
    A trava da lista de espera continua a valer por cima de tudo: enquanto o jogo nao abriu, o
    destino e a lista, e e por isso que isto e uma funcao e nao um `onclick` escrito a mao. */
-const RF_LP_CTA_TXT='Começar carreira';
-function rfLpComecarOn(){ return rfSoLista() ? "rfLpIr('lista')" : "rfLpIr('planos')"; }
+/* 02/10/2026 (pedido do dono): o botão passa a dizer 'Criar conta' e abre o cadastro DIRETO, sem
+   passar pela seção de planos (clGoModo('signup'); quem já tem sessão cai na tela da conta). */
+const RF_LP_CTA_TXT='Criar conta';
+function rfLpComecarOn(){ return rfSoLista() ? "rfLpIr('lista')" : "clGoModo('signup')"; }
 function rfLpIr(k){
   const el=document.getElementById('rf-lp-'+k);
   if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
