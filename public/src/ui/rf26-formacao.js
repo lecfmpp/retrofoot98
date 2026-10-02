@@ -115,7 +115,7 @@ function rfAdversarioCardHTML(){
          entrar em campo, e clJogar resolve a fila antes de olhar para a escalacao. Trancado,
          o jogador ficava sem caminho nenhum para a classificacao que o jogo lhe devia. -->
     <button type="button" class="rf-adv-jogar ${pronto&&!rfClassifPendente()?'pulsa':''}" onclick="${rfJogarAcao()}"
-      ${(pronto||rfClassifPendente())?'':'disabled'}>${rfJogarLabel()}</button>
+      ${(pronto||rfClassifPendente())?'':'disabled'}>${rfJogarLabelDesab(!(pronto||rfClassifPendente()))}</button>
     ${pronto?'':'<span class="rf-adv-falta">Complete o onze e escolha a formação para entrar em campo.</span>'}
   </div>`;
 }
