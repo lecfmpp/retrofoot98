@@ -47,6 +47,16 @@
     sala:     (q.get('sala') || /^\/convite\//.test(location.pathname)) ? 1 : null,
     referrer: ref || null,
     pagina:   corta(location.pathname, 120),
+    /* PLATAFORMA (02/10/2026): celular ou computador, para o painel dos sócios mostrar quem joga
+       de onde. Mesmo critério do formulário de opinião (tela estreita ou navegador de celular).
+       Só dado de aparelho, nada pessoal. NÃO conta como 'sinal' de origem (ver temSinal). */
+    plataforma: (function(){
+      try{
+        var tel = (window.matchMedia && window.matchMedia('(max-width: 760px)').matches)
+          || /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent || '');
+        return tel ? 'mobile' : 'desktop';
+      }catch(e){ return null; }
+    })(),
     em:       new Date().toISOString()
   };
   var temSinal = !!(toque.source || toque.medium || toque.campaign || toque.gclid || toque.fbclid
