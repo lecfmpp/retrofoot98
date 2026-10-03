@@ -1239,6 +1239,19 @@ function usTimeCel(u){
   const sub = t.id === 'outro' ? 'outro time' : t.id === 'nenhum' ? '' : (t.serie ? 'Série ' + t.serie : '');
   return `<span data-tip="${h('Time do coração informado no cadastro')}"><b class="us-ref">${h(usTimeNome(u))}</b>${sub ? `<small class="us-sub">${h(sub)}</small>` : ''}</span>`;
 }
+/* PLATAFORMA de quem joga (02/10/2026): celular ou computador. O dado vem do navegador no cadastro
+   (origem.js grava `plataforma` no toque da origem) e, se algum dia a conta ganhar a coluna
+   `plataforma` direto no RPC `usuarios`, ela vale primeiro. Contas de antes disso: sem dado. */
+function usPlataforma(u){
+  const o = u.origem || {};
+  const v = u.plataforma || (o.ultimo && o.ultimo.plataforma) || (o.primeiro && o.primeiro.plataforma) || '';
+  return v === 'mobile' ? 'celular' : v === 'desktop' ? 'computador' : '';
+}
+function usPlataformaCel(u){
+  const p = usPlataforma(u);
+  if(!p) return '<span class="us-nada" data-tip="Sem dado: a conta foi criada antes de 02/10/2026, quando o cadastro começou a gravar a plataforma.">—</span>';
+  return `<span data-tip="${h('Plataforma do navegador no cadastro')}">${p==='celular'?'📱 Celular':'💻 Computador'}</span>`;
+}
 function usCanal(u){ return u.referral ? 'Parceiro' : (u.canal || 'Desconhecido'); }
 function usToqueTxt(t){
   if(!t) return '—';
@@ -1340,6 +1353,7 @@ const US_COLS = [
   { k:'grupo', l:'Grupo', tip:'Se clicou em entrar no grupo do WhatsApp, e por qual botão:\nHome / site · Área logada · Pós-cadastro (janela depois do cadastro).\nEmbaixo: a data do primeiro clique. Gravado desde 27/09/2026.' },
   { k:'plano', l:'Plano', tip:'Peladeiro (grátis) ou Pro.\nPasse o mouse no selo para ver a validade e de onde veio o plano.' },
   { k:'origem', l:'Origem', tip:'Canal que trouxe a pessoa até o cadastro (UTM, anúncio, busca, rede social, parceiro, convite).\nEmbaixo: source · campanha, o site de onde veio ou o parceiro.\nPasse o mouse para ver a primeira visita e a que levou ao cadastro.\nContas de antes de 27/09/2026: desconhecida.' },
+  { l:'Plataforma', tip:'Celular ou computador, pelo navegador usado no cadastro.\nContas criadas antes de 02/10/2026: sem dado.' },
   { k:'time', l:'Time', tip:'Time do coração que a pessoa escolheu no cadastro (nome real).\nContas criadas antes de 27/09/2026: sem resposta.' },
   { k:'idade', l:'Idade', a:'c', tip:'Idade informada no cadastro.\nContas criadas antes de 29/09/2026: sem resposta.' },
   { k:'carreiras', l:'Carreiras', a:'c', tip:'Saves no Modo Solo / salas no Modo Resenha.' },
@@ -1479,6 +1493,7 @@ function usLinhaTds(u, podeApagar, n){
     <td>${usGrupoCel(u)}</td>
     <td><span class="tag ${pl.tag}" data-tip="${h(`${pl.nome}\n${u.plano_ate ? 'Válido até ' + dmy(u.plano_ate) : 'Sem prazo'}${u.plano_origem ? '\nOrigem: ' + u.plano_origem : ''}${+u.mrr ? '\nMRR: ' + brl(+u.mrr) : ''}`)}">${h(pl.nome)}</span></td>
     <td>${usOrigemCel(u)}</td>
+    <td>${usPlataformaCel(u)}</td>
     <td>${usTimeCel(u)}</td>
     <td class="c mono">${u.idade == null ? '<span class="us-nada" data-tip="Cadastro anterior a 29/09/2026">—</span>' : h(u.idade)}</td>
     <td class="c mono">${usDupla(u.saves_solo, u.salas_resenha, 'save(s) no Solo', 'sala(s) de Resenha')}</td>
@@ -1598,6 +1613,18 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       ${lst.length ? lst.map(([n,c]) => `<span class="us-canal" data-torcida="${h(n)}" data-tip="${h(`${n}: ${c} conta(s) · ${pct(c, resp)}% de quem respondeu`)}"><b>${h(n)}</b> <i class="mono">${num(c)}</i></span>`).join('')
         : '<span class="us-nada">ainda ninguém respondeu — a pergunta entrou no cadastro em 27/09/2026</span>'}`;
   }
+  /* PLATAFORMAS: quantas contas (do período, sem sócios) cadastraram de celular e de computador.
+     "Sem dado" são as contas anteriores a 02/10/2026. */
+  function plataformasHTML(){
+    const por = { celular:0, computador:0, '':0 };
+    usPM().forEach(u => { por[usPlataforma(u)]++; });
+    const com = por.celular + por.computador;
+    const chip = (rot, n, tip) => `<span class="us-canal" data-tip="${h(tip)}"><b>${rot}</b> <i class="mono">${num(n)}</i></span>`;
+    return `<span class="us-canais-t" data-tip="Plataforma do navegador no momento do cadastro (gravada desde 02/10/2026), sem as contas dos sócios.">Plataforma</span>
+      ${chip('📱 Celular', por.celular, `${por.celular} conta(s) · ${pct(por.celular, com)}% de quem tem dado`)}
+      ${chip('💻 Computador', por.computador, `${por.computador} conta(s) · ${pct(por.computador, com)}% de quem tem dado`)}
+      ${chip('sem dado', por[''], 'Contas criadas antes de 02/10/2026')}`;
+  }
   function canaisHTML(){
     const perOn = !!usIntervalo(f), lst = canaisDe(usPM());
     return `<span class="us-canais-t" data-tip="${h('Canal que trouxe cada conta até o cadastro (sem as contas dos sócios).\n' + (perOn
@@ -1658,6 +1685,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
       <div class="us-ativos" id="u-ativos"></div>
       <div class="us-resumo" id="u-resumo"></div>
       <div class="us-canais" id="u-canais">${canaisHTML()}</div>
+      <div class="us-canais" id="u-plat">${plataformasHTML()}</div>
       <div class="us-canais" id="u-torcidas">${torcidasHTML()}</div>
       ${podeApagar?`<div class="us-selbar st">Selecionar para apagar:
         <span class="link" data-sel-contas="visiveis" data-tip="Marca todas as contas que aparecem com os filtros atuais">as que estão na lista</span> ·
@@ -1750,6 +1778,7 @@ async function pgUsuarios(forcar, senha = pedirDesenho()){
     el('u-kpis').innerHTML = kpisHTML();
     el('u-canais').innerHTML = canaisHTML(); ligarCanais();
     el('u-torcidas').innerHTML = torcidasHTML(); ligarTorcidas();
+    el('u-plat').innerHTML = plataformasHTML();
     desenharLinhas();
   }
   function usMudarPeriodo(v){

@@ -35,9 +35,10 @@
    FREQUÊNCIA. Uma coletiva por rodada seria ruído; uma por temporada é o
    que havia. A régua está em RF_PRESS_CFG:
 
-     · MODO SOLO    — de 3 em 3 rodadas, ou de 2 em 2 quando há um gatilho
-                      (goleada, jejum, crise), até 8 por temporada.
-     · MODO RESENHA — de 4 em 4 rodadas (3 com gatilho), até 5 por temporada.
+     · MODO SOLO    — de 6 em 6 rodadas, ou de 4 em 4 quando há um gatilho
+                      (goleada, jejum, crise), até 4 por temporada.
+     · MODO RESENHA — de 8 em 8 rodadas (6 com gatilho), até 3 por temporada.
+     (metade da frequência anterior, a pedido do dono, 02/10/2026)
 
    QUANDO APARECE. Depois da classificação de pós-rodada, já com a rodada
    reaberta para a sala (ver posRodadaFim em main.js) — a entrevista de um
@@ -71,8 +72,10 @@
    pede microfone. `teto` é o máximo por temporada — o que impede uma
    sequência de gatilhos de virar coletiva toda semana. */
 const RF_PRESS_CFG = {
-  solo:    { intervalo:3, intervaloGatilho:2, teto:8, perguntas:3 },
-  resenha: { intervalo:4, intervaloGatilho:3, teto:5, perguntas:3 },
+  /* 02/10/2026 (pedido do dono): METADE da frequência de antes (antes: solo 3/2/teto 8;
+     resenha 4/3/teto 5) — intervalos dobrados, teto pela metade. */
+  solo:    { intervalo:6, intervaloGatilho:4, teto:4, perguntas:3 },
+  resenha: { intervalo:8, intervaloGatilho:6, teto:3, perguntas:3 },
 };
 function rfPressCfg(){
   return (typeof CL!=='undefined' && CL.online) ? RF_PRESS_CFG.resenha : RF_PRESS_CFG.solo;

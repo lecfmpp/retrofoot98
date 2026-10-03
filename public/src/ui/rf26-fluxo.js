@@ -557,8 +557,8 @@ function rfTreinadoresHTML(){
       : 'O nome, a idade e a cara que vão aparecer na sua carreira, no ranking e na ficha do treinador.',
     passo:rfPasso('Treinador',modo), trilha:modo, contexto:convidado?'Convidado':(naResenha?'Modo Resenha':undefined), corpo,
     nota:temCara?'Dá para trocar a foto depois, em Configurações.':'Escolha a sua cara para continuar.',
-    voltar:convidado?'clResenhaBackChoice()':(naResenha?'clGoModo()':'clGoMoeda()'),
-    voltarLabel:convidado?'‹ Voltar':(naResenha?'‹ Voltar ao modo':'‹ Voltar à moeda'),
+    voltar:convidado?'clResenhaBackChoice()':(naResenha?'clGoModo()':'clMoedaBack()'),
+    voltarLabel:convidado?'‹ Voltar':(naResenha?'‹ Voltar ao modo':'‹ Voltar ao país'),
     ctaCurto:temCara?'Continuar':'Escolha a cara',
     ctaOff:!temCara,
     cta:temCara?(convidado?'Entrar na sala':'Continuar'):'Escolha a sua cara',
@@ -771,6 +771,7 @@ function rfNovaSenhaHTML(){
    Agora sao links para o documento unico. `href` marca a entrada como saida do jogo. */
 const RF_INSTITUCIONAIS=[
   { k:'sobre',     t:'Sobre o RetroFoot' },
+  { k:'licenca-pro', t:'Licença Pro' },
   { k:'ajuda',     t:'Ajuda' },
   { k:'contato',   t:'Contato' },
   { k:'termos',    t:'Termos de uso',  href:'/termos/' },
@@ -814,6 +815,7 @@ function rfClubesDoPais(uk){
 }
 function rfInstitucionalCorpo(view){
   const p=t=>`<p class="rf-in-p">${t}</p>`;
+  if(view==='licenca-pro' && typeof rfLicencaProHTML==='function') return rfLicencaProHTML();
   if(view==='ajuda'){
     const passos=[
       ['1','Escolha o modo.','Solo contra a máquina ou Modo Resenha, com a liga da galera.'],

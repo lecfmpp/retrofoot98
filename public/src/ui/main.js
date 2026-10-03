@@ -2670,7 +2670,7 @@ function clPaisesOk(){
     CL.screen='paisJogavel';
   } else {
     CL.playCountry=playable[0]||'Brasil';
-    CL.screen='moeda';
+    CL.screen='jogadores'; // 02/10/2026: a tela de escolha de moeda saiu do assistente (moeda = Reais)
   }
   cdraw();
 }
@@ -2682,7 +2682,7 @@ function scPaisJogavel(){
 }
 
 function clGoPaises(){ CL.screen='paises'; cdraw(); }
-function clPaisJogavelOk(){ CL.screen='moeda'; cdraw(); }
+function clPaisJogavelOk(){ CL.screen='jogadores'; cdraw(); } // sem a tela de moeda (02/10/2026)
 
 /* ================= SETUP DO JOGO (redesign handoff_setup_jogo) — wizShell 1/4..4/4 =================
    Dinheiro (1/4) → Jogadores (2/4) → Escolha os clubes (3/4) → A iniciar o jogo (loading).
@@ -2695,7 +2695,7 @@ function scMoeda(){
 
 function clMoedaBack(){ CL.screen = selectedPlayableCountries().length>1 ? 'paisJogavel' : 'paises'; cdraw(); }
 function clMoedaOk(){ CL.screen='jogadores'; cdraw(); }
-function clGoMoeda(){ CL.screen='moeda'; cdraw(); }
+function clGoMoeda(){ clMoedaBack(); } // a tela de moeda não existe mais no fluxo: 'voltar' leva ao país
 
 /* ---- 4/4 · A INICIAR O JOGO (loading + barra de progresso) ---- */
 function scLoading(){

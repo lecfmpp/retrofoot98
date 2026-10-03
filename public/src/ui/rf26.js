@@ -1049,6 +1049,9 @@ function rfProximaAcao(){
   }catch(e){ return R('jogar','jogar','Jogar'); }
 }
 function rfJogarLabel(){ return rfProximaAcao().rotulo; }
+/* 02/10/2026 (pedido do dono): botão DESABILITADO na tela de formação diz sempre "Avançar",
+   em todos os eventos (antes mostrava "Jogar", "Quase pronto"... num botão que não clica). */
+function rfJogarLabelDesab(desab){ return desab ? rfIcone('calendario',16)+' Avançar' : rfJogarLabel(); }
 /* ===== VERDE QUER DIZER "PODE ENTRAR EM CAMPO" =====
    O botão era sempre azul, dissesse ele "Escolher formação", "Ver o sorteio" ou "Jogar" — a cor
    não distinguia o passo que ainda falta cumprir do passo que É a partida. Verde fica reservado
@@ -2127,9 +2130,10 @@ function rfBottomNavHTML(){
     <!-- Sem tática escolhida o botão NÃO fica morto: vira "Formação" e leva ao
          bloco de formações, igual ao da barra lateral no desktop. Ficava
          desabilitado sem dizer o que faltava nem para onde ir. -->
-    <button type="button" class="rf-bn-jogar ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
-      ${(pronto||rfFaltaTatica()||['avancar','sorteio','classif','assistir'].indexOf(rfProximaAcao().k)>=0)?'':'disabled'}
-      onclick="${rfJogarAcao()}">${rfJogarLabel()}</button>
+    ${(()=>{ const desab=!(pronto||rfFaltaTatica()||['avancar','sorteio','classif','assistir'].indexOf(rfProximaAcao().k)>=0);
+      return `<button type="button" class="rf-bn-jogar ${rfJogarClasse()} ${pronto?'rf-btn-pulse':''}"
+      ${desab?'disabled':''}
+      onclick="${rfJogarAcao()}">${rfJogarLabelDesab(desab)}</button>`; })()}
   </nav>`;
 }
 

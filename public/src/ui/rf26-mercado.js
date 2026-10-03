@@ -563,28 +563,31 @@ function rfMktComprarTabelaHTML(){
     const nac=`<span class="rf-mkt-x rf-mkt-nac" title="${escC(p.nat||'nacionalidade desconhecida')}${estr?' · estrangeiro (conta na cota)':' · não conta na cota'}">${(typeof flagImg==='function'&&p.nat)?flagImg(p.nat):'—'}</span>`;
     return `<div class="rf-mkt-row" onclick="rfVerFichaJogador('${escC(p.n)}','${escC(String(clubId))}'${pais?`,'${escC(String(pais))}'`:''})" title="Ver a ficha de ${escC(p.n)}">
     <span class="rf-mkt-n">${rfMkFotoMini(p, clubId)}${rfLinkJogador(p.n, clubId)}${(typeof rfPotEstrelaHTML==='function')?rfPotEstrelaHTML(p):''}</span>
+    ${/* ORDEM DAS COLUNAS (pedido do dono, 02/10/2026): Posição, Força, Energia, Bandeira do país,
+         Idade — depois Gols, Clube, Valor, Salário. */''}
+    ${rfMkPos(p)}
     <span class="rf-mkt-f">${p.f}</span>
+    <span class="rf-mkt-x rf-mkt-ene" title="Energia">${Math.round(p.energy!=null?p.energy:100)}</span>
+    ${nac}
+    <span class="rf-mkt-x">${p.age||'—'}</span>
     ${/* GOLS TEM COLUNA PROPRIA. Era uma marca "⚽N" colada ao nome, e so' quando havia gols —
          entao ordenar por gols mexia a lista sem que se visse porque: a coluna que explica a
          ordem tem de estar la', inclusive quando o numero e' zero. */''}
     <span class="rf-mkt-x rf-mkt-gols ${gols?'tem':''}" title="${gols} ${gols===1?'gol':'gols'} nesta temporada">${gols||'—'}</span>
-    ${rfMkPos(p)}
-    ${nac}
-    <span class="rf-mkt-x">${p.age||'—'}</span>
     ${rfMkClube(clubId, pais?clube:null, pais)}
     <span class="rf-mkt-v">${escC(rfDin(ask))}</span>
     <span class="rf-mkt-v leve">${escC(rfMkSalario(p))}</span>
     ${rfMkBt('Propor',propor)}
   </div>`;});
-  const cabecalho=`<span>JOGADOR</span><span class="dir">FOR</span><span class="dir">GOLS</span><span class="dir">POS</span>
-    <span class="dir">NAC</span><span class="dir">IDA</span>
+  const cabecalho=`<span>JOGADOR</span><span class="dir">POS</span><span class="dir">FOR</span><span class="dir">ENE</span>
+    <span class="dir">NAC</span><span class="dir">IDA</span><span class="dir">GOLS</span>
     <span>CLUBE</span><span class="dir">VALOR</span><span class="dir">SALÁRIO</span><span></span>`;
   const vazio=(rfMktF().q||'').trim()
     ? `${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Nenhum')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} com esse nome — e os filtros de posicao, forca e preco tambem contam.`
     : `${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('Nenhum')} ${(typeof RF_GENERO!=='undefined'?RF_GENERO:{t:x=>x,ehFem:()=>false}).t('jogador')} com esses filtros.`;
   /* GRADE LITERAL DO PACOTE (Mercado - Abas): duas colunas flexiveis (1.3fr e
      1fr) repartem nome e clube. */
-  return rfMkTabela('minmax(0,1.3fr) 28px 40px 34px 34px 34px minmax(0,1fr) 96px 84px 74px',
+  return rfMkTabela('minmax(0,1.3fr) 34px 28px 36px 34px 34px 40px minmax(0,1fr) 96px 84px 74px',
     cabecalho, linhas, vazio, 'mkt-mercado');
 }
 function rfMktConta(){
@@ -1041,7 +1044,11 @@ function rfMkSalarioDoCampo(){
 function rfMkTermos(){
   const M=CL.market; const n=S.negos[M.negoIdx];
   n.salary=rfMkSalarioDoCampo()||n.salary;
-  const r=agentRespond(n); toastC(r.msg||''); cdraw();
+  const r=agentRespond(n);
+  /* 02/10/2026: empresário topou o salário (sem pedido a mais) -> fecha a contratação AQUI, sem
+     passar pela tela de veredito. Se ele pediu mais, a tela de veredito continua a aparecer. */
+  if(r.ok && n.stage==='verdict' && (!n.agentCounter || (n.salary||0)>=n.agentCounter)){ rfMkFinalizar(); return; }
+  toastC(r.msg||''); cdraw();
 }
 function rfMkAceitarAgente(){
   const M=CL.market; const n=S.negos[M.negoIdx];

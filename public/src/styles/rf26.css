@@ -8205,25 +8205,39 @@ a.rf-lp-cta2{display:inline-flex;align-items:center;justify-content:center;text-
      botão Propor descia para um segundo andar dentro da própria linha — cada
      jogador ocupava dois níveis. Com `flex` e `nowrap` isso não acontece: o que
      não couber empurra a largura e a tabela rola de lado, que é a sua regra. */
+  /* 02/10/2026: colunas na ordem pedida — jogador · pos · for · ene · nac · ida · (gols) ·
+     (clube) · valor · (salário) · Propor. Gols, clube e salário saem no telefone. */
   [data-mkt="mkt-mercado"] .rf-mkt-head,
   [data-mkt="mkt-mercado"] .rf-mkt-row{
-    display:flex !important;flex-wrap:nowrap;align-items:center;gap:6px;min-width:366px}
+    display:flex !important;flex-wrap:nowrap;align-items:center;gap:4px;min-width:0}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(1),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(1){flex:1 1 90px;min-width:90px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(1){flex:1 1 64px;min-width:64px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(2),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(2){flex:0 0 22px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(2){flex:0 0 14px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(3),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(3){flex:0 0 24px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(3){flex:0 0 20px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(4),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(4){flex:0 0 26px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(4){flex:0 0 24px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(5),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(5){flex:0 0 26px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(5){flex:0 0 22px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(6),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(6){flex:0 0 84px}
-  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(8),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(8){flex:0 0 58px}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(6){flex:0 0 18px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(9),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(9){flex:0 0 72px;font-size:10px;letter-spacing:-.04em;white-space:nowrap;text-align:right}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(11),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(11){flex:0 0 46px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row{padding-left:2px;padding-right:2px}
+  [data-mkt="mkt-mercado"] .rf-mkt-row>.rf-mkt-x,[data-mkt="mkt-mercado"] .rf-mkt-row>.rf-mkt-f,[data-mkt="mkt-mercado"] .rf-mkt-row>.rf-mkt-pos{font-size:11px;letter-spacing:-.04em}
+  /* sem a foto no telefone: o nome ganha o espaço (a foto está na ficha, a um toque) */
+  [data-mkt="mkt-mercado"] .rf-mkt-n .rf-fotonum{display:none}
+  [data-mkt="mkt-mercado"] .rf-mkt-n{font-size:12px;line-height:1.15;white-space:normal;overflow-wrap:anywhere}
+  [data-mkt="mkt-mercado"] .rf-mkt-row .rf-mkt-bt{padding:5px 4px;font-size:10.5px}
   [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(7),
-  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(7){display:none}
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(7),
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(8),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(8),
+  [data-mkt="mkt-mercado"] .rf-mkt-row>*:nth-child(10),
+  [data-mkt="mkt-mercado"] .rf-mkt-head>span:nth-child(10){display:none}
 
   /* VENDER — 7 colunas depois de sair FIM e INTERESSE: jogador · pos · ida ·
      for · valor · salário · Listar. Cabe quase inteiro; o que faltar, rola. */
@@ -10648,9 +10662,22 @@ body.rf-tem-anchor .rf-content{padding-bottom:106px}
 /* NUMA COLUNA SO', O 4:5 ESTOURA. Empilhado, o card ocupa a largura inteira e a moldura vira
    uma foto de meio metro de altura -- e' preciso rolar duas vezes para ver o segundo cartao. O
    limite mantem a proporcao onde ela cabe e corta o exagero onde nao cabe. */
+/* 02/10/2026 (pedido do dono): no celular os dois cards ficam LADO A LADO e cabem na tela sem
+   rolar — antes empilhavam e o segundo ficava abaixo da dobra. (Seletores com .rf-mod-cards na
+   frente para ganhar das regras base, que vêm depois no arquivo.) */
 @media (max-width:900px){
-  .rf-mod-cards{ grid-template-columns:1fr; }
-  .rf-mod-frame{ max-height:min(48vh,400px); }
+  .rf-mod-cards{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .rf-mod-cards .rf-mod-card{ max-width:none; min-width:0; margin-inline:0; padding:8px; gap:8px; border-radius:16px; }
+  .rf-mod-cards .rf-mod-frame{ aspect-ratio:1/1.1; max-height:none; border-radius:11px; }
+  .rf-mod-cards .rf-mod-ficha{ padding:8px 8px 10px; gap:2px; }
+  .rf-mod-cards .rf-mod-crest{ width:28px; height:28px; margin-bottom:2px; }
+  .rf-mod-cards .rf-mod-pos{ font-size:8px; letter-spacing:.06em; white-space:normal; }
+  .rf-mod-cards .rf-mod-nome{ font-size:14px; }
+  .rf-mod-cards .rf-mod-txt{ padding:0 2px; gap:2px; }
+  .rf-mod-cards .rf-mod-t{ font-size:16px; }
+  .rf-mod-cards .rf-mod-d{ font-size:11.5px; line-height:1.4; }
+  .rf-mod-cards .rf-mod-sel{ height:40px; font-size:12.5px; border-radius:11px; white-space:normal; text-align:center; line-height:1.1; padding:0 4px; }
+  .rf-mod-nota{ font-size:11.5px; }
 }
 
 .rf-mod-card{ appearance:none; text-align:left; font:inherit; cursor:pointer;

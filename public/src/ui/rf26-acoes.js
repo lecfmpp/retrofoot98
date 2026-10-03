@@ -250,19 +250,20 @@ const RF_ACOES = {
        carregasse em "Enviar termos" sem reparar reenviava o mesmo valor baixo. */
     const salAtual=pedeAgente||n.salary||sal;
     const folhaDepois=rfFolha()+salAtual;
-    return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 2 DE 3',
+    return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 2 DE 2',
       titulo:'Salário de '+escC((p&&p.n)||'—'), w:520,
       corpo:
         rfAcFichaHTML(p,'TAXA ACERTADA',rfDin(n.offerFee),d.num)
-        + rfAcAvisoHTML(`O ${escC(c.short)} <b>aceitou a taxa</b> de ${escC(rfDin(n.offerFee))}. Falta acertar o salário com ${RF_G().t('o')} ${RF_G().t('jogador')}.`,'ok')
+        + rfAcAvisoHTML(`O ${escC(c.short)} <b>aceitou a taxa</b> de ${escC(rfDin(n.offerFee))}.`,'ok')
         + rfAcCampoHTML('rf-ac-sal','Salário oferecido', moneyDisp(salAtual),
             pedeAgente?`O empresário pede ${escC(rfDin(pedeAgente))}/rodada.`
                       :`${RF_G().t('O')} ${RF_G().t('jogador')} pede no mínimo ${escC(rfDin(Math.round(salAtual*0.9)))}.`,
             {sufixo:'/rodada', foco:true})
         + rfAcLinhaHTML('Folha depois da contratação', rfDin(folhaDepois)+'/rodada', 'aviso', true)
-        + rfCtDialogoHTML({taxa:n.offerFee, salario:salAtual, ctx:'termos'})
-        + rfAcNotaHTML(`A taxa já está fechada — daqui em diante você negocia só com ${RF_G().t('o')} ${RF_G().t('jogador')}.`),
-      acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar termos',on:'rfMkTermos()'}] });
+        + rfCtDialogoHTML({taxa:n.offerFee, salario:salAtual, ctx:'termos'}),
+      /* 02/10/2026: o botão já FECHA a contratação quando o empresário topa (ver rfMkTermos) —
+         uma tela a menos; a de veredito só aparece se ele pedir mais. */
+      acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Fechar contratação',on:'rfMkTermos()'}] });
   }
 
   if(n && etapa==='verdict'){
@@ -274,7 +275,7 @@ const RF_ACOES = {
     const pede=n.agentCounter||0;
     const emAberto=pede && (n.salary||0)<pede;
     const salFinal=emAberto?pede:(n.salary||sal);
-    return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 3 DE 3',
+    return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 2 DE 2',
       titulo:'Fechar a contratação de '+escC((p&&p.n)||'—'), w:520,
       corpo:
         rfAcFichaHTML(p,'TAXA',rfDin(n.offerFee),d.num)
@@ -285,8 +286,7 @@ const RF_ACOES = {
                   'Abaixo de '+escC(rfDin(pede))+' o empresário recusa.', {sufixo:'/rodada', foco:true})
             : rfAcLinhaHTML('Salário combinado', rfDin(salFinal)+'/rodada', '', true))
         + rfCtDialogoHTML({taxa:n.offerFee, salario:salFinal, ctx:'fechar'})
-        + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/rodada', 'aviso')
-        + rfAcNotaHTML(`Clube e ${RF_G().t('jogador')} já concordaram. Confirmar transfere ${RF_G().t('o')} ${RF_G().t('jogador')} para o seu elenco.`),
+        + rfAcLinhaHTML('Folha depois', rfDin(rfFolha()+salFinal)+'/rodada', 'aviso'),
       acoes:[{l:'Cancelar',tom:'fantasma'},
              {l:emAberto?'Aceitar e fechar':'Fechar contratação',on:'rfMkFinalizar()'}] });
   }
@@ -319,7 +319,7 @@ const RF_ACOES = {
   }
 
   const pediu = n && n.clubCounter;
-  return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 1 DE 3',
+  return rfAcao({ kicker:'MERCADO · COMPRAR · ETAPA 1 DE 2',
     titulo:'Proposta por '+escC((p&&p.n)||'—'), w:520,
     corpo:
       rfAcFichaHTML(p,'PEDIDO',rfDin(ask),d.num)
@@ -327,8 +327,7 @@ const RF_ACOES = {
       + rfAcCampoHTML('rf-ac-fee','Valor da proposta', oferta?moneyDisp(oferta):'',
           `Abaixo de ${escC(rfDin(minimo))} o ${escC(c.short)} recusa direto.`, {foco:true})
       + rfCtDialogoHTML({taxa:oferta, salario:sal, ctx:'propor'})
-      + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/rodada', 'aviso')
-      + rfAcNotaHTML(`Primeiro acerta-se a TAXA com o ${escC(c.short)}. O salário ${RF_G().ehFem()?'da':'do'} ${RF_G().t('jogador')} vem na etapa seguinte.`),
+      + rfAcLinhaHTML('Folha depois da contratação', rfDin(folha)+'/rodada', 'aviso'),
     acoes:[{l:'Cancelar',tom:'fantasma'},{l:'Enviar proposta',on:'rfMkProporFee()'}] });
 },
 
